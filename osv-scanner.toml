@@ -117,3 +117,13 @@ reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app wi
 id = "GHSA-pfhg-q3qv-9q6r"
 ignoreUntil = 2026-12-31
 reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app with only the root route, no form actions and no use:enhance, so the enhanced form redirect cannot occur. Remove when CALM Studio is retired or moves to kit 3."
+
+# deepmerge 4.3.1 comes in through @sveltejs/vite-plugin-svelte (CALM Studio app and
+# @calmstudio/diagram) and @svgr/plugin-svgo (Docusaurus preset-classic in docs). Both are
+# build-time only. vite-plugin-svelte merges our own Svelte and Vite config with it, and
+# plugin-svgo declares it but never imports it. No patched release exists, and the latest
+# vite-plugin-svelte still depends on it.
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+ignoreUntil = 2026-12-31
+reason = "deepmerge 4.3.1 runs only at build time: vite-plugin-svelte merges project-owned Svelte and Vite config, and @svgr/plugin-svgo never imports it. No untrusted object reaches mergeObject(). Remove when a patched release is available."
