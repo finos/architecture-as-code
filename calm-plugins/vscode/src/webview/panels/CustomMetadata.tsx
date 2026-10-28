@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 
-const INTERNAL_KEYS = new Set(['source-standard-node', 'standard-node-type', 'standard-node-behaviour', 'standard-node-style']);
+const INTERNAL_KEYS = new Set(['standard-node-type', 'standard-node-behaviour', 'standard-node-style']);
 
 interface CustomMetadataProps {
     metadata: Record<string, string>;

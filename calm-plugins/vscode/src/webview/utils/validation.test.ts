@@ -86,14 +86,13 @@ describe('validateControlConfig', () => {
 });
 
 describe('validateControls', () => {
-    it('validates controls on every node, including standard nodes', () => {
+    it('validates controls on every node', () => {
         const arch = {
             nodes: [
                 {
-                    'unique-id': 'std-1',
-                    'node-type': 'standard',
-                    name: 'A Standard',
-                    metadata: { 'source-standard-node': 'standards:foo' },
+                    'unique-id': 'db-1',
+                    'node-type': 'database',
+                    name: 'Order DB',
                     controls: {
                         'app-id': control({ 'allowed-values': ['x'] }),
                     },
@@ -117,11 +116,11 @@ describe('validateControls', () => {
         } as any;
 
         const issues = validateControls(arch);
-        // The standard's unconfigured app-id AND the service's api-gateway are flagged
+        // The database's unconfigured app-id AND the service's api-gateway are flagged
         // (health-api has a valid value, so it passes).
         expect(issues).toHaveLength(2);
         expect(
-            issues.some((i) => i.controlId === 'app-id' && i.nodeId === 'std-1')
+            issues.some((i) => i.controlId === 'app-id' && i.nodeId === 'db-1')
         ).toBe(true);
         expect(
             issues.some(
