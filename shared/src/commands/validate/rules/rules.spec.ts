@@ -1,12 +1,14 @@
 import validationRulesForArchitecture from '../../../spectral/rules-architecture';
 import { SpectralValidationRule } from './spectral-rule';
 import { ControlsValidationRule } from './controls-rule';
+import { InterfacesValidationRule } from './interfaces-rule';
 import { NodeDetailsValidationRule } from './node-details-rule';
 import { JsonSchemaValidationRule } from './json-schema-rule';
 import { ValidationContext, ValidationMode } from '../validation-rule';
 import { SchemaDirectory } from '../../../schema-directory';
 import { ValidationEngine } from '../validation-engine';
 import { validateAllControls } from '../validate-controls';
+import { validateAllInterfaces } from '../validate-interfaces';
 import { validateNodeDetails } from '../validate-node-details';
 import { JsonSchemaValidator } from '../json-schema-validator';
 import { CachingTrackingResolver } from '../../../resolver/caching-tracking-resolver';
@@ -15,6 +17,7 @@ vi.mock('../../../logger.js', () => ({
     initLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() })
 }));
 vi.mock('../validate-controls.js', () => ({ validateAllControls: vi.fn() }));
+vi.mock('../validate-interfaces.js', () => ({ validateAllInterfaces: vi.fn() }));
 vi.mock('../validate-node-details.js', () => ({ validateNodeDetails: vi.fn() }));
 vi.mock('../json-schema-validator.js', () => ({ JsonSchemaValidator: vi.fn() }));
 
@@ -74,6 +77,32 @@ describe('ControlsValidationRule', () => {
         expect(result.jsonSchemaOutputs).toEqual([{ code: 'c' }]);
         expect(result.spectralOutputs).toEqual([]);
         expect(result.hasErrors).toBe(true);
+    });
+});
+
+describe('InterfacesValidationRule', () => {
+    const rule = new InterfacesValidationRule();
+
+    it('applies only when architecture AND schemaDirectory are present', () => {
+        expect(rule.appliesTo(ctx({ architecture: {}, schemaDirectory: fakeDir }))).toBe(true);
+        expect(rule.appliesTo(ctx({ architecture: {} }))).toBe(false);
+        expect(rule.appliesTo(ctx({ schemaDirectory: fakeDir }))).toBe(false);
+    });
+
+    it('delegates to validateAllInterfaces and maps the result', async () => {
+        vi.mocked(validateAllInterfaces).mockResolvedValue({
+            jsonSchemaOutputs: [{ code: 'i' } as never],
+            hasErrors: false,
+            hasWarnings: true
+        });
+
+        const result = await rule.run(ctx({ architecture: { a: 1 }, schemaDirectory: fakeDir }));
+
+        expect(validateAllInterfaces).toHaveBeenCalledWith({ a: 1 }, fakeDir, false);
+        expect(result.jsonSchemaOutputs).toEqual([{ code: 'i' }]);
+        expect(result.spectralOutputs).toEqual([]);
+        expect(result.hasErrors).toBe(false);
+        expect(result.hasWarnings).toBe(true);
     });
 });
 
