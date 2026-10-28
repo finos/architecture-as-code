@@ -17,6 +17,7 @@ import { SystemGroupNode } from '../../visualizer/components/reactflow/SystemGro
 import { DecisionGroupNode } from '../../visualizer/components/reactflow/DecisionGroupNode.js';
 import { THEME } from '../../visualizer/components/reactflow/theme.js';
 import { MotionToggleButton } from '../../visualizer/components/reactflow/MotionToggleButton.js';
+import { onReactFlowError } from '../../visualizer/components/reactflow/onReactFlowError.js';
 import { parseCALMDataWithDiff } from './utils/diffTransformer.js';
 import { parsePatternDataWithDiff } from './utils/patternDiffTransformer.js';
 import { useIsMobile } from '../../hooks/useMediaQuery.js';
@@ -82,6 +83,7 @@ function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphPr
             onEdgesChange={onEdgesChange}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
+            onError={onReactFlowError}
             fitView
             fitViewOptions={{ padding: 0.2 }}
             minZoom={0.1}
