@@ -365,19 +365,58 @@ describe('flowToCalm - round trip', () => {
 
     it('keeps the fields of the reverse relationship of a bidirectional edge', () => {
         const arch = fullArchitecture();
+        const { 'unique-id': _id, 'relationship-type': _type, authentication: _auth, ...editedFields } = arch.relationships[0];
         arch.relationships.push({
             'unique-id': 'db-api',
             authentication: 'mTLS',
             'relationship-type': {
                 connects: { source: { node: 'db', interfaces: ['db-sql'] }, destination: { node: 'api' } },
             },
+            ...editedFields,
         });
         const { nodes, edges } = openCanvas(arch);
+        expect(edges.find((e) => e.id === 'api-db')!.data.calmReverseRelId).toBe('db-api');
 
         const reverse = relationship(flowToCalm(nodes, edges), 'db-api');
 
         expect(reverse.authentication).toBe('mTLS');
         expect(reverse['relationship-type'].connects.source).toEqual({ node: 'db', interfaces: ['db-sql'] });
+    });
+
+    it('keeps the data of each relationship of an A→B and B→A pair that differ', () => {
+        const arch = fullArchitecture();
+        arch.relationships.push({
+            'unique-id': 'db-api',
+            description: 'Notifies the API',
+            protocol: 'JDBC',
+            'relationship-type': { connects: { source: { node: 'db' }, destination: { node: 'api' } } },
+            controls: { retention: { description: 'Kept 7 days', requirements: [{ 'requirement-url': 'https://example.com/ret' }] } },
+        });
+        const original = JSON.parse(JSON.stringify(arch));
+        const { nodes, edges } = openCanvas(arch);
+
+        const result = flowToCalm(nodes, edges, original.controls);
+
+        expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
+    });
+
+    it('writes an edit of a bidirectional edge to both relationships', () => {
+        const arch = fullArchitecture();
+        const { 'unique-id': _id, 'relationship-type': _type, authentication: _auth, ...editedFields } = arch.relationships[0];
+        arch.relationships.push({
+            'unique-id': 'db-api',
+            'relationship-type': { connects: { source: { node: 'db' }, destination: { node: 'api' } } },
+            ...editedFields,
+        });
+        const { nodes, edges } = openCanvas(arch);
+        const controls = { audit: { description: 'Edited', requirements: [{ 'requirement-url': 'https://example.com/audit' }] } };
+        const apiDb = edges.find((e) => e.id === 'api-db')!;
+        apiDb.data = { ...apiDb.data, controls };
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(relationship(result, 'api-db').controls).toEqual(controls);
+        expect(relationship(result, 'db-api').controls).toEqual(controls);
     });
 
     it('keeps the containment fields when a child moves out', () => {
