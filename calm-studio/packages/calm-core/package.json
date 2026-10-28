@@ -41,10 +41,10 @@
   },
   "devDependencies": {
     "@finos/calm-schema": "*",
-    "@vitest/coverage-v8": "^4.1.0",
+    "@vitest/coverage-v8": "^5.0.5",
     "tsup": "^8.5.1",
     "typescript": "^5.7.0",
-    "vitest": "^4.1.0"
+    "vitest": "^5.0.5"
   },
   "dependencies": {
     "@finos/calm-models": "*",

@@ -38,7 +38,7 @@ describe('Adr Service ', () => {
             "message": "An Error Occurred",
         }`;
             mock.onGet(`/api/calm/namespaces/${namespace}/adrs`).reply(errorStatusCode, errorMessage);
-            expect(async () => await adrService.fetchAdrSummaries(namespace)).rejects.toThrowError();
+            await expect(async () => await adrService.fetchAdrSummaries(namespace)).rejects.toThrowError();
         }
     );
 
@@ -59,7 +59,7 @@ describe('Adr Service ', () => {
             "message": "An Error Occurred",
         }`;
             mock.onGet(`/api/calm/namespaces/${namespace}/adrs`).reply(errorStatusCode, errorMessage);
-            expect(
+            await expect(
                 async () => await adrService.fetchAdrRevisions(namespace, adrId)
             ).rejects.toThrowError();
         }
@@ -85,7 +85,7 @@ describe('Adr Service ', () => {
                 errorStatusCode,
                 errorMessage
             );
-            expect(
+            await expect(
                 async () => await adrService.fetchAdr(namespace, adrId, revision)
             ).rejects.toThrowError();
         }
