@@ -4,7 +4,7 @@
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
   "timestamp": "2026-10-27T00:00:00Z",
-  "version": 16,
+  "version": 17,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -335,6 +335,36 @@
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "@sveltejs/kit 2.70.2 is used only by the CALM Studio app, a single-page app built with adapter-static. The flaw is an open redirect in enhanced form actions (use:enhance) on routes that accept paths that begin with //. CALM Studio has only the root route, no form actions and no use:enhance. The fix is only in kit 3, which needs TypeScript 6."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-gcqx-w48m-w2h4",
+        "aliases": [
+          "CVE-2026-93753"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/deepmerge@4.3.1"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#docs",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/deepmerge@4.3.1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "deepmerge 4.3.1 is a build-time dependency only. @sveltejs/vite-plugin-svelte uses it in the CALM Studio app and @calmstudio/diagram builds to merge the project-owned Svelte and Vite config. @svgr/plugin-svgo, through Docusaurus preset-classic in the docs site, declares it but never imports it. No untrusted object reaches mergeObject(), and no built CALM artefact includes deepmerge. No patched release exists."
     }
   ],
   "last_updated": "2026-10-27T00:00:00Z"
