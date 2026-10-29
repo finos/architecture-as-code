@@ -109,8 +109,8 @@ export interface ParsedNodes {
 /**
  * Parses CALM nodes into ReactFlow nodes
  */
-/** Drawings above which a node in several containers is drawn in its first container only. */
-const MAX_DRAWINGS = 1000;
+/** Copies above which a node in several containers is drawn in its first container only. */
+const MAX_COPIES = 1000;
 
 export function parseNodes(
     nodes: CalmNodeSchema[],
@@ -146,7 +146,7 @@ export function parseNodes(
         counts.set(id, count);
         return count;
     };
-    const capped = [...calmIds].reduce((sum, id) => sum + countDrawings(id, new Set()), 0) > MAX_DRAWINGS;
+    const capped = [...calmIds].reduce((sum, id) => sum + countDrawings(id, new Set()) - 1, 0) > MAX_COPIES;
 
     const resolved = new Map<string, Instance[]>();
     const resolveInstances = (id: string, path: Set<string>): Instance[] => {

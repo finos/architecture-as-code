@@ -596,6 +596,15 @@ describe('parseCALMData - nodes with several parents', () => {
         expect(result.nodes).toHaveLength(levels * 2);
     });
 
+    it('counts only copies against the limit, not every node', () => {
+        const singles = Array.from({ length: 1001 }, (_, k) => node(`n${k}`));
+        const result = parseCALMData({
+            nodes: [node('cluster-a'), node('cluster-b'), node('ns'), ...singles],
+            relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.filter((n) => n.data['unique-id'] === 'ns')).toHaveLength(2);
+    });
+
     it('stops at a containment cycle', () => {
         const result = parseCALMData({
             nodes: [node('a'), node('b')],

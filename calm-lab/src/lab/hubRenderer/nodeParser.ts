@@ -132,8 +132,8 @@ export interface ParsedNodes {
     ancestorsOf: Map<string, string[]>;
 }
 
-/** Drawings above which a node in several containers is drawn in its first container only. */
-const MAX_DRAWINGS = 1000;
+/** Copies above which a node in several containers is drawn in its first container only. */
+const MAX_COPIES = 1000;
 
 export function parseNodes(nodes: LabCalmNode[], containerInfo: ContainerInfo, onShowDetailsCallback?: (node: LabCalmNode) => void): ParsedNodes {
     const regularNodes: Node[] = [];
@@ -165,7 +165,7 @@ export function parseNodes(nodes: LabCalmNode[], containerInfo: ContainerInfo, o
         counts.set(id, count);
         return count;
     };
-    const capped = [...calmIds].reduce((sum, id) => sum + countDrawings(id, new Set()), 0) > MAX_DRAWINGS;
+    const capped = [...calmIds].reduce((sum, id) => sum + countDrawings(id, new Set()) - 1, 0) > MAX_COPIES;
 
     const resolved = new Map<string, Instance[]>();
     const resolveInstances = (id: string, path: Set<string>): Instance[] => {

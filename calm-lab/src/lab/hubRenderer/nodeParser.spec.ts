@@ -168,5 +168,17 @@ describe('parseCALMData with deeply shared containers', () => {
         const parsed = parseCALMData({ nodes: ids.flat().map((id) => node(id)), relationships });
         expect(parsed.nodes).toHaveLength(levels * 2);
     });
+
+    it('counts only copies against the limit, not every node', () => {
+        const singles = Array.from({ length: 1001 }, (_, k) => node(`n${k}`));
+        const parsed = parseCALMData({
+            nodes: [node('cluster-a'), node('cluster-b'), node('ns'), ...singles],
+            relationships: [
+                { ...composedOf('cluster-a', ['ns']), 'unique-id': 'r1' },
+                { ...composedOf('cluster-b', ['ns']), 'unique-id': 'r2' },
+            ],
+        });
+        expect(parsed.nodes.filter((n) => n.data['unique-id'] === 'ns')).toHaveLength(2);
+    });
 });
 
