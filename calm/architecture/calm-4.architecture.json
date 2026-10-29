@@ -1,0 +1,972 @@
+{
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "calm-user",
+            "node-type": "actor",
+            "name": "CALM User",
+            "description": "User working with CALM architectures through various tools and interfaces"
+        },
+        {
+            "unique-id": "calm-cli",
+            "node-type": "service",
+            "name": "CALM CLI",
+            "description": "Command-line interface for CALM operations including validation, generation, visualization, and documentation",
+            "development-language": "TypeScript",
+            "controls": {
+                "ext-cli-no-core-override": {
+                    "description": "Extension commands live only under 'calm hub ext <id>'. Subcommands are not generated from the network",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-cli-01",
+                                "name": "Extensions cannot replace core commands",
+                                "description": "Extension commands live only under 'calm hub ext <id>'. Subcommands are not generated from the network",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0014-extension-commands-in-the-cli-and-mcp.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "calm-vscode",
+            "node-type": "service",
+            "name": "VSCode Extension",
+            "description": "Visual Studio Code extension providing IDE integration for CALM architectures with syntax highlighting, validation, and visualization",
+            "development-language": "TypeScript"
+        },
+        {
+            "unique-id": "calm-studio",
+            "node-type": "system",
+            "name": "CalmStudio",
+            "description": "Browser-based visual CALM architecture editor (SvelteKit) for creating and editing architectures with built-in CALM 1.2 validation",
+            "development-language": "TypeScript"
+        },
+        {
+            "unique-id": "calm-server",
+            "node-type": "service",
+            "name": "CALM Server",
+            "description": "Standalone HTTP server exposing CALM architecture validation as a REST API, independent of the CALM Hub",
+            "development-language": "TypeScript",
+            "interfaces": [
+                {
+                    "unique-id": "calm-server-validate-api",
+                    "type": "api"
+                }
+            ],
+            "controls": {
+                "validator-side-effect-free": {
+                    "description": "A validator only reads the request and returns results, so Hub can call it for dry runs and revalidation",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-val-05",
+                                "name": "Validator has no side effects",
+                                "description": "A validator only reads the request and returns results, so Hub can call it for dry runs and revalidation",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub",
+            "node-type": "service",
+            "name": "CALM Hub API",
+            "description": "Central registry and API service for CALM architectures, patterns, and standards built with Quarkus. Hosts the extensions framework and validates architectures against bound standards-only Patterns",
+            "development-language": "Java",
+            "details": {
+                "detailed-architecture": "calm-hub-4-detail.architecture.json"
+            },
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-rest-api",
+                    "type": "api"
+                },
+                {
+                    "unique-id": "calm-hub-extensions-api",
+                    "url": "/api/calm/extensions"
+                },
+                {
+                    "unique-id": "calm-hub-jwks",
+                    "url": "/api/calm/auth/jwks"
+                },
+                {
+                    "unique-id": "calm-hub-mcp",
+                    "url": "/mcp"
+                }
+            ],
+            "controls": {
+                "ext-operator-install-only": {
+                    "description": "Extensions are manifest folders read at start up. No API adds, changes or removes an extension at runtime",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-01",
+                                "name": "Operator-only extension install",
+                                "description": "Extensions are manifest folders read at start up. No API adds, changes or removes an extension at runtime",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0009-extensions-run-out-of-process-behind-a-hub-proxy.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "calm-hub-ui",
+            "node-type": "system",
+            "name": "CALM Hub UI",
+            "description": "React-based web interface for browsing and managing CALM architectures, patterns, and standards",
+            "development-language": "TypeScript",
+            "controls": {
+                "ext-ui-no-extension-code": {
+                    "description": "Third-party extension UI is Hub-rendered blocks or host-owned contracts. Extension code in the browser runs only in a cross-origin sandboxed iframe without allow-same-origin. Same-origin mount is only for bundled or operator-trusted extensions",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-ui-01",
+                                "name": "No third-party code in Hub's origin",
+                                "description": "Third-party extension UI is Hub-rendered blocks or host-owned contracts. Extension code in the browser runs only in a cross-origin sandboxed iframe without allow-same-origin. Same-origin mount is only for bundled or operator-trusted extensions",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-ui-slot-isolation": {
+                    "description": "Each extension slot has its own error boundary. A failing or unknown block does not break the host page",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-ui-02",
+                                "name": "Failure isolation per slot",
+                                "description": "Each extension slot has its own error boundary. A failing or unknown block does not break the host page",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "mongodb",
+            "node-type": "database",
+            "name": "MongoDB",
+            "description": "Document database for storing CALM architectures, patterns, and standards in CALM Hub",
+            "interfaces": [
+                {
+                    "unique-id": "mongodb-port",
+                    "type": "port-interface",
+                    "port": 27017
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-hub-system",
+            "node-type": "system",
+            "name": "CALM Hub System",
+            "description": "Complete CALM Hub system including API backend, web UI, and database"
+        },
+        {
+            "unique-id": "vscode",
+            "node-type": "system",
+            "name": "Visual Studio Code",
+            "description": "Microsoft Visual Studio Code IDE"
+        },
+        {
+            "unique-id": "hub-operator",
+            "node-type": "actor",
+            "name": "Hub Operator",
+            "description": "Deploys CALM Hub, installs extensions and sets per-environment configuration"
+        },
+        {
+            "unique-id": "automation-agent",
+            "node-type": "actor",
+            "name": "Automation or AI Agent",
+            "description": "A script or AI agent that calls extension commands through the CLI or MCP"
+        },
+        {
+            "unique-id": "extension-service",
+            "node-type": "service",
+            "name": "Extension Service",
+            "description": "A third-party HTTP service that implements an extension's routes and returns JSON blocks or command results",
+            "controls": {
+                "ext-verify-assertion": {
+                    "description": "The extension checks the signature against Hub's JWKS, and checks typ, iss, aud, exp, htm and htp before it acts",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-12",
+                                "name": "Extension verifies the assertion",
+                                "description": "The extension checks the signature against Hub's JWKS, and checks typ, iss, aud, exp, htm and htp before it acts",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-filter-by-user": {
+                    "description": "An extension that reads Hub data with its own service account filters what it returns by the asserted sub and ns",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-13",
+                                "name": "Extension filters by user",
+                                "description": "An extension that reads Hub data with its own service account filters what it returns by the asserted sub and ns",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "event-subscriber",
+            "node-type": "service",
+            "name": "Event Subscriber",
+            "description": "A third-party HTTP service that receives post-write events, for example a CMDB or CI trigger"
+        },
+        {
+            "unique-id": "identity-provider",
+            "node-type": "system",
+            "name": "Identity Provider",
+            "description": "OIDC provider for the secure profile, or an authenticating reverse proxy for proxy-auth"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "user-interacts-with-ui",
+            "description": "CALM user interacts with CALM Hub UI through web browser",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-hub-ui"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "user-interacts-with-cli",
+            "description": "CALM user interacts with CALM CLI through command line",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-cli"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "user-interacts-with-vscode",
+            "description": "CALM user interacts with VSCode extension through IDE",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-vscode"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "user-interacts-with-studio",
+            "description": "CALM user interacts with CalmStudio through a web browser",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-studio"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "user-interacts-with-calm-server",
+            "description": "CALM user or CI pipeline invokes CALM Server's validation API directly",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "calm-user",
+                    "nodes": [
+                        "calm-server"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "cli-to-hub",
+            "description": "CLI interacts with CALM Hub API REST endpoint for publishing and retrieving architectures",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-cli"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interfaces": [
+                            "calm-hub-rest-api"
+                        ]
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "hub-to-db",
+            "description": "CALM Hub API stores and retrieves data from MongoDB",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub"
+                    },
+                    "destination": {
+                        "node": "mongodb",
+                        "interfaces": [
+                            "mongodb-port"
+                        ]
+                    }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "hub-ui-to-hub",
+            "description": "CALM Hub UI interacts with CALM Hub API via REST endpoint",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-ui"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interfaces": [
+                            "calm-hub-rest-api"
+                        ]
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "hub-system-composition",
+            "description": "CALM Hub System is composed of API backend, web UI, and database",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "calm-hub-system",
+                    "nodes": [
+                        "calm-hub",
+                        "calm-hub-ui",
+                        "mongodb"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "vscode-composition",
+            "description": "VSCode contains the CALM extension",
+            "relationship-type": {
+                "deployed-in": {
+                    "container": "vscode",
+                    "nodes": [
+                        "calm-vscode"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "operator-manages-hub",
+            "description": "The operator installs extension manifests and sets per-environment configuration",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "hub-operator",
+                    "nodes": [
+                        "calm-hub"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "agent-interacts-with-cli",
+            "description": "Scripts call extension commands with 'calm hub ext'",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "automation-agent",
+                    "nodes": [
+                        "calm-cli"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "agent-to-hub-mcp",
+            "description": "AI agents call extension commands as MCP tools",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "automation-agent"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interfaces": [
+                            "calm-hub-mcp"
+                        ]
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "hub-to-idp",
+            "description": "Hub authenticates users through OIDC, or trusts the proxy-auth header",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub"
+                    },
+                    "destination": {
+                        "node": "identity-provider"
+                    }
+                }
+            },
+            "protocol": "HTTPS",
+            "controls": {
+                "proxy-auth-network-isolation": {
+                    "description": "In proxy-auth mode Hub listens only on loopback or behind the authenticating proxy, so no client can set Remote-User directly",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-sec-03",
+                                "name": "proxy-auth network isolation",
+                                "description": "In proxy-auth mode Hub listens only on loopback or behind the authenticating proxy, so no client can set Remote-User directly",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "hub-to-extension",
+            "description": "Hub forwards a declared route with a signed identity assertion",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub"
+                    },
+                    "destination": {
+                        "node": "extension-service"
+                    }
+                }
+            },
+            "protocol": "HTTPS",
+            "controls": {
+                "ext-identity-assertion": {
+                    "description": "Hub never forwards the user's token. Each call carries a 60-second RS256 or ES256 assertion of type calm-ext+jwt with iss, sub, aud, jti, htm, htp and the checked route, scope and namespace",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-14",
+                                "name": "Hub-signed, request-bound identity assertion",
+                                "description": "Hub never forwards the user's token. Each call carries a 60-second RS256 or ES256 assertion of type calm-ext+jwt with iss, sub, aud, jti, htm, htp and the checked route, scope and namespace",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-host-pinning": {
+                    "description": "Only declared route templates match. The path is normalised, the URI is built with URI.resolve, and scheme, host and port must equal the configured backend. Redirects are not followed",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-15",
+                                "name": "Backend host pinning",
+                                "description": "Only declared route templates match. The path is normalised, the URI is built with URI.resolve, and scheme, host and port must equal the configured backend. Redirects are not followed",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-https-backend": {
+                    "description": "Backends use HTTPS, except loopback or an explicit cluster-internal opt-in",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-16",
+                                "name": "HTTPS to backends",
+                                "description": "Backends use HTTPS, except loopback or an explicit cluster-internal opt-in",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-request-header-allowlist": {
+                    "description": "Only Content-Type, Accept, Accept-Language and the assertion are sent. Authorization, Cookie, Remote-User and X-Forwarded-* are never sent",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-17",
+                                "name": "Request header allow-list",
+                                "description": "Only Content-Type, Accept, Accept-Language and the assertion are sent. Authorization, Cookie, Remote-User and X-Forwarded-* are never sent",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "extension-to-hub-jwks",
+            "description": "The extension fetches Hub's public keys",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "extension-service"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interfaces": [
+                            "calm-hub-jwks"
+                        ]
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "extension-to-hub-api",
+            "description": "The extension reads Hub data with its own service account",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "extension-service"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interfaces": [
+                            "calm-hub-rest-api"
+                        ]
+                    }
+                }
+            },
+            "protocol": "HTTPS",
+            "controls": {
+                "ext-own-service-account": {
+                    "description": "The service calls Hub only with its own service account and grants. Hub rejects its own assertion as a credential",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-18",
+                                "name": "Own least-privilege service account",
+                                "description": "The service calls Hub only with its own service account and grants. Hub rejects its own assertion as a credential",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "hub-to-calm-server",
+            "description": "Hub sends an architecture with its resolved Pattern and bound standards-only Patterns for validation",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub"
+                    },
+                    "destination": {
+                        "node": "calm-server",
+                        "interfaces": [
+                            "calm-server-validate-api"
+                        ]
+                    }
+                }
+            },
+            "protocol": "HTTPS",
+            "controls": {
+                "validator-rate-and-timeout": {
+                    "description": "Calls have a timeout and the relay limits the rate. calm-server's rate limit is configured for Hub's load",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-val-06",
+                                "name": "Validator call limits",
+                                "description": "Calls have a timeout and the relay limits the rate. calm-server's rate limit is configured for Hub's load",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "hub-to-event-subscriber",
+            "description": "Hub delivers thin, CloudEvents-shaped events after writes",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub"
+                    },
+                    "destination": {
+                        "node": "event-subscriber"
+                    }
+                }
+            },
+            "protocol": "HTTPS",
+            "controls": {
+                "event-signing": {
+                    "description": "Event deliveries are signed as Standard Webhooks specifies, with a stable webhook-id and timestamp. Payloads hold no document body",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-evt-03",
+                                "name": "Signed webhooks",
+                                "description": "Event deliveries are signed as Standard Webhooks specifies, with a stable webhook-id and timestamp. Payloads hold no document body",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "subscriber-to-hub-api",
+            "description": "A subscriber that needs the document reads it with its own service account",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "event-subscriber"
+                    },
+                    "destination": {
+                        "node": "calm-hub",
+                        "interfaces": [
+                            "calm-hub-rest-api"
+                        ]
+                    }
+                }
+            },
+            "protocol": "HTTPS",
+            "controls": {
+                "ext-own-service-account": {
+                    "description": "The service calls Hub only with its own service account and grants. Hub rejects its own assertion as a credential",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-evt-04",
+                                "name": "Own least-privilege service account",
+                                "description": "The service calls Hub only with its own service account and grants. Hub rejects its own assertion as a credential",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "flows": [
+        {
+            "unique-id": "flow-publish-architecture",
+            "name": "Publish Architecture",
+            "description": "User authors and publishes a CALM architecture to the Hub via the CLI",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-cli",
+                    "sequence-number": 1,
+                    "description": "User invokes the CLI to publish an architecture"
+                },
+                {
+                    "relationship-unique-id": "cli-to-hub",
+                    "sequence-number": 2,
+                    "description": "CLI sends the architecture to the CALM Hub API over HTTPS"
+                },
+                {
+                    "relationship-unique-id": "hub-to-db",
+                    "sequence-number": 3,
+                    "description": "CALM Hub API persists the architecture in MongoDB"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-browse-architectures",
+            "name": "Browse Architectures",
+            "description": "User browses published architectures through the CALM Hub web UI",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-ui",
+                    "sequence-number": 1,
+                    "description": "User opens the CALM Hub UI in a browser"
+                },
+                {
+                    "relationship-unique-id": "hub-ui-to-hub",
+                    "sequence-number": 2,
+                    "description": "Hub UI fetches architecture data from the Hub API"
+                },
+                {
+                    "relationship-unique-id": "hub-to-db",
+                    "sequence-number": 3,
+                    "description": "Hub API queries MongoDB for stored architectures"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-validate-in-ide",
+            "name": "Validate Architecture in IDE",
+            "description": "User validates a CALM architecture directly inside VS Code using the extension",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-vscode",
+                    "sequence-number": 1,
+                    "description": "User opens a CALM file in VS Code and triggers validation"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-edit-in-studio",
+            "name": "Edit Architecture in CalmStudio",
+            "description": "User visually creates or edits a CALM architecture in the browser using CalmStudio",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-studio",
+                    "sequence-number": 1,
+                    "description": "User opens a CALM architecture in CalmStudio and edits it visually"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-validate-via-api",
+            "name": "Validate Architecture via CALM Server",
+            "description": "User or automated pipeline validates a CALM architecture by calling CALM Server's REST API",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-calm-server",
+                    "sequence-number": 1,
+                    "description": "Caller POSTs an architecture to CALM Server's /calm/validate endpoint and receives validation results"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-extension-screen",
+            "name": "Render an extension screen",
+            "description": "A user opens an extension screen. Hub proxies the screen route and renders the returned blocks",
+            "transitions": [
+                {
+                    "relationship-unique-id": "user-interacts-with-ui",
+                    "sequence-number": 1,
+                    "description": "User opens an extension screen from the menu"
+                },
+                {
+                    "relationship-unique-id": "hub-ui-to-hub",
+                    "sequence-number": 2,
+                    "description": "The UI requests the screen route through the extension proxy"
+                },
+                {
+                    "relationship-unique-id": "hub-to-extension",
+                    "sequence-number": 3,
+                    "description": "Hub checks the route scope and calls the backend with a signed assertion"
+                },
+                {
+                    "relationship-unique-id": "extension-to-hub-jwks",
+                    "sequence-number": 4,
+                    "description": "The extension verifies the assertion against Hub's JWKS"
+                },
+                {
+                    "relationship-unique-id": "hub-to-extension",
+                    "sequence-number": 5,
+                    "description": "The extension returns JSON blocks, which Hub sanitises",
+                    "direction": "destination-to-source"
+                },
+                {
+                    "relationship-unique-id": "hub-ui-to-hub",
+                    "sequence-number": 6,
+                    "description": "The UI renders the blocks with Hub components",
+                    "direction": "destination-to-source"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-extension-command",
+            "name": "Call an extension command",
+            "description": "A script or agent calls a manifest command through the CLI or MCP",
+            "transitions": [
+                {
+                    "relationship-unique-id": "agent-interacts-with-cli",
+                    "sequence-number": 1,
+                    "description": "A script runs 'calm hub ext <id> <command> --input'"
+                },
+                {
+                    "relationship-unique-id": "cli-to-hub",
+                    "sequence-number": 2,
+                    "description": "The CLI sends the input. Hub validates it against the command schema"
+                },
+                {
+                    "relationship-unique-id": "agent-to-hub-mcp",
+                    "sequence-number": 3,
+                    "description": "Or: an AI agent calls the command's MCP tool"
+                },
+                {
+                    "relationship-unique-id": "hub-to-extension",
+                    "sequence-number": 4,
+                    "description": "Hub forwards the route with a signed assertion"
+                },
+                {
+                    "relationship-unique-id": "hub-to-extension",
+                    "sequence-number": 5,
+                    "description": "The command result returns as JSON",
+                    "direction": "destination-to-source"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-post-write-event",
+            "name": "Deliver a post-write event",
+            "description": "Hub validates a published architecture and tells subscribers about the write",
+            "transitions": [
+                {
+                    "relationship-unique-id": "cli-to-hub",
+                    "sequence-number": 1,
+                    "description": "User publishes a new architecture version"
+                },
+                {
+                    "relationship-unique-id": "hub-to-db",
+                    "sequence-number": 2,
+                    "description": "Hub writes the version and its pending event in one insert"
+                },
+                {
+                    "relationship-unique-id": "hub-to-calm-server",
+                    "sequence-number": 3,
+                    "description": "Hub validates the version against its Pattern and bound standards-only Patterns"
+                },
+                {
+                    "relationship-unique-id": "hub-to-event-subscriber",
+                    "sequence-number": 4,
+                    "description": "Hub delivers a signed, thin event"
+                },
+                {
+                    "relationship-unique-id": "subscriber-to-hub-api",
+                    "sequence-number": 5,
+                    "description": "The subscriber reads the version with its own service account"
+                }
+            ]
+        }
+    ],
+    "adrs": [
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0009-extensions-run-out-of-process-behind-a-hub-proxy.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0012-extension-manifest-registry-and-versioning.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0014-extension-commands-in-the-cli-and-mcp.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
+    ],
+    "metadata": {
+        "_layout": {
+            "calm-user": {
+                "x": 615,
+                "y": 0,
+                "w": 250,
+                "h": 60
+            },
+            "calm-cli": {
+                "x": 1130,
+                "y": 420,
+                "w": 250,
+                "h": 60
+            },
+            "calm-vscode": {
+                "x": 200,
+                "y": 205,
+                "w": 250,
+                "h": 60
+            },
+            "calm-studio": {
+                "x": 336,
+                "y": 539,
+                "w": 250,
+                "h": 60
+            },
+            "calm-server": {
+                "x": 1057,
+                "y": 965,
+                "w": 250,
+                "h": 60
+            },
+            "calm-hub": {
+                "x": 281,
+                "y": 265,
+                "w": 250,
+                "h": 60
+            },
+            "calm-hub-ui": {
+                "x": 229,
+                "y": 80,
+                "w": 250,
+                "h": 60
+            },
+            "mongodb": {
+                "x": 209,
+                "y": 480,
+                "w": 250,
+                "h": 60
+            },
+            "calm-hub-system": {
+                "x": 1315,
+                "y": 575,
+                "w": 505,
+                "h": 590
+            },
+            "vscode": {
+                "x": 338,
+                "y": 671,
+                "w": 650,
+                "h": 470
+            },
+            "hub-operator": {
+                "x": 1163,
+                "y": 674,
+                "w": 250,
+                "h": 60
+            },
+            "automation-agent": {
+                "x": 1480,
+                "y": 0,
+                "w": 250,
+                "h": 60
+            },
+            "extension-service": {
+                "x": 2149,
+                "y": 849,
+                "w": 250,
+                "h": 60
+            },
+            "event-subscriber": {
+                "x": 1708,
+                "y": 1238,
+                "w": 250,
+                "h": 60
+            },
+            "identity-provider": {
+                "x": 1542,
+                "y": 1244,
+                "w": 250,
+                "h": 60
+            }
+        }
+    }
+}
