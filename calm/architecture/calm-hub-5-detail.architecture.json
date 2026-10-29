@@ -1,0 +1,681 @@
+{
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "calm-hub-resources",
+            "node-type": "service",
+            "name": "REST Resources Layer",
+            "description": "JAX-RS resource classes under org.finos.calm.resources exposing namespace-scoped endpoints for architectures, patterns, controls, ADRs, decorators, domains, flows, interfaces, standards, timelines, search, and user access",
+            "development-language": "Java",
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-rest-api",
+                    "type": "api"
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-hub-services",
+            "node-type": "service",
+            "name": "Services Layer",
+            "description": "Business logic under org.finos.calm.services that orchestrates store access on behalf of the REST resources layer",
+            "development-language": "Java"
+        },
+        {
+            "unique-id": "calm-hub-storage",
+            "node-type": "service",
+            "name": "Storage Layer",
+            "description": "Store implementations under org.finos.calm.store for MongoDB and NitriteDB, selected at runtime based on the calm.database.mode configuration property",
+            "development-language": "Java"
+        },
+        {
+            "unique-id": "mongodb",
+            "node-type": "database",
+            "name": "MongoDB",
+            "description": "Production storage backend, used when calm.database.mode is mongo (the default)",
+            "interfaces": [
+                {
+                    "unique-id": "mongodb-port",
+                    "type": "port-interface",
+                    "port": 27017
+                }
+            ]
+        },
+        {
+            "unique-id": "nitritedb",
+            "node-type": "database",
+            "name": "NitriteDB",
+            "description": "Embedded, file-based document database used in standalone and read-only deployment modes (calm.database.mode=standalone), avoiding the need for an external database"
+        },
+        {
+            "unique-id": "observed-stores",
+            "node-type": "service",
+            "name": "Observed Stores",
+            "description": "Wrappers that the store producers return around the selected implementation. Every REST, MCP, mapping and promotion write passes through them",
+            "development-language": "Java",
+            "controls": {
+                "validation-decorator-trust": {
+                    "description": "The decorator store wrapper rejects a decorator of type validation from any writer other than Hub's validation service",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-val-01",
+                                "name": "Only Hub writes validation decorators",
+                                "description": "The decorator store wrapper rejects a decorator of type validation from any writer other than Hub's validation service",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md"
+                            }
+                        }
+                    ]
+                },
+                "outbox-atomic-with-write": {
+                    "description": "A new version's pending event is written in the same insert as the version document",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-evt-01",
+                                "name": "Outbox entry written with the data",
+                                "description": "A new version's pending event is written in the same insert as the version document",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "extension-registry",
+            "node-type": "service",
+            "name": "Extension Registry",
+            "description": "Loads and validates extension manifests at start up, applies per-environment overrides, and serves GET /api/calm/extensions",
+            "development-language": "Java",
+            "interfaces": [
+                {
+                    "unique-id": "registry-url",
+                    "url": "/api/calm/extensions"
+                }
+            ],
+            "controls": {
+                "ext-manifest-validation": {
+                    "description": "Each manifest is validated against its JSON Schema with unknown fields rejected. An unsupported hubApi, unknown extension point, missing route scope or missing backend URL stops start up",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-03",
+                                "name": "Manifest validated at start up",
+                                "description": "Each manifest is validated against its JSON Schema with unknown fields rejected. An unsupported hubApi, unknown extension point, missing route scope or missing backend URL stops start up",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0012-extension-manifest-registry-and-versioning.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-registry-no-backend-url": {
+                    "description": "The registry leaves out backend URLs and the routes this Hub cannot run",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-04",
+                                "name": "Registry hides backend details",
+                                "description": "The registry leaves out backend URLs and the routes this Hub cannot run",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0012-extension-manifest-registry-and-versioning.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-refuse-start-auth-off": {
+                    "description": "Hub refuses to start with enabled extensions when auth is off, unless the operator sets an explicit opt-in",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-02",
+                                "name": "Refuse to start with auth off",
+                                "description": "Hub refuses to start with enabled extensions when auth is off, unless the operator sets an explicit opt-in",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "extension-proxy",
+            "node-type": "service",
+            "name": "Extension Proxy",
+            "description": "JAX-RS resource that forwards declared routes to extension backends with the JDK HttpClient",
+            "development-language": "Java",
+            "interfaces": [
+                {
+                    "unique-id": "proxy-url",
+                    "url": "/api/calm/extensions/{id}/api/{path}"
+                }
+            ],
+            "controls": {
+                "ext-route-scope": {
+                    "description": "Hub checks each route's declared scope in code, with the namespace taken only from the matched path parameter",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-05",
+                                "name": "Declared scope on every route",
+                                "description": "Hub checks each route's declared scope in code, with the namespace taken only from the matched path parameter",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-read-only-routes": {
+                    "description": "On a read-only Hub the proxy allows a non-GET method only on routes declared readOnly",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-06",
+                                "name": "Read-only routes on a read-only Hub",
+                                "description": "On a read-only Hub the proxy allows a non-GET method only on routes declared readOnly",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-response-sanitising": {
+                    "description": "Only JSON, event-stream and plain-text content types pass. Set-Cookie, Location and hop-by-hop headers are dropped. Each reply carries Content-Security-Policy: sandbox; default-src 'none'",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-07",
+                                "name": "Proxied response sanitising",
+                                "description": "Only JSON, event-stream and plain-text content types pass. Set-Cookie, Location and hop-by-hop headers are dropped. Each reply carries Content-Security-Policy: sandbox; default-src 'none'",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-proxy-limits": {
+                    "description": "Each extension has timeouts, size caps, an idle-read timeout, a maximum stream duration and a cap on concurrent streams. Failures return 502 or 504 and fail closed",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-08",
+                                "name": "Proxy limits",
+                                "description": "Each extension has timeouts, size caps, an idle-read timeout, a maximum stream duration and a cap on concurrent streams. Failures return 502 or 504 and fail closed",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-audit-writes": {
+                    "description": "Calls to routes that are not readOnly are audited as the EXTENSION entity type, with the assertion jti",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-09",
+                                "name": "Audit of proxied writes",
+                                "description": "Calls to routes that are not readOnly are audited as the EXTENSION entity type, with the assertion jti",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "identity-signer",
+            "node-type": "service",
+            "name": "Identity Signer and JWKS",
+            "description": "Signs extension identity assertions and publishes the public keys",
+            "development-language": "Java",
+            "interfaces": [
+                {
+                    "unique-id": "jwks-url",
+                    "url": "/api/calm/auth/jwks"
+                }
+            ],
+            "controls": {
+                "ext-key-rotation": {
+                    "description": "The operator supplies the signing key. The JWKS holds the active key and verify-only previous and next keys",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-10",
+                                "name": "Signing key rotation",
+                                "description": "The operator supplies the signing key. The JWKS holds the active key and verify-only previous and next keys",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "hub-mcp-server",
+            "node-type": "service",
+            "name": "MCP Server",
+            "description": "MCP tools under org.finos.calm.mcp. Registers one tool for each extension command at start up",
+            "development-language": "Java",
+            "interfaces": [
+                {
+                    "unique-id": "mcp-url",
+                    "url": "/mcp"
+                }
+            ],
+            "controls": {
+                "ext-mcp-same-checks": {
+                    "description": "Extension tool handlers call the same proxy service as the REST route, so scope, read-only, audit and limits apply",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-11",
+                                "name": "Same checks as REST",
+                                "description": "Extension tool handlers call the same proxy service as the REST route, so scope, read-only, audit and limits apply",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0014-extension-commands-in-the-cli-and-mcp.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "event-relay",
+            "node-type": "service",
+            "name": "Event Relay",
+            "description": "Scheduled job that claims outbox entries with a lease, delivers them, and runs a reconcile sweep",
+            "development-language": "Java",
+            "controls": {
+                "event-at-least-once": {
+                    "description": "Events have a stable id and are retried until delivered. Consumers must be idempotent",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-evt-02",
+                                "name": "At-least-once delivery",
+                                "description": "Events have a stable id and are retried until delivered. Consumers must be idempotent",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "validation-service",
+            "node-type": "service",
+            "name": "Validation Service",
+            "description": "Resolves standards-only Pattern bindings, calls the ArchitectureValidator implementations, and records validation decorators",
+            "development-language": "Java",
+            "controls": {
+                "validation-failure-not-pass": {
+                    "description": "A validator error or timeout is recorded as status error",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-val-02",
+                                "name": "A failed validation is never a pass",
+                                "description": "A validator error or timeout is recorded as status error",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md"
+                            }
+                        }
+                    ]
+                },
+                "validation-content-keyed": {
+                    "description": "Each result holds the version URL and the content SHA-256. A result for older content is stale",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-val-03",
+                                "name": "Results keyed on content",
+                                "description": "Each result holds the version URL and the content SHA-256. A result for older content is stale",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md"
+                            }
+                        }
+                    ]
+                },
+                "validation-no-skip-deny": {
+                    "description": "No request header skips a deny binding. Only the operator can set a binding to fail open",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-val-04",
+                                "name": "No user bypass of deny bindings",
+                                "description": "No request header skips a deny binding. Only the operator can set a binding to fail open",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "extension-manifests",
+            "node-type": "data-asset",
+            "name": "Extension Manifests",
+            "description": "One folder for each extension in calm.extensions.dir, with extension.json. Built-in manifests are on the classpath"
+        },
+        {
+            "unique-id": "calm-server",
+            "node-type": "service",
+            "name": "CALM Server",
+            "description": "External validator. The default ArchitectureValidator implementation calls it",
+            "interfaces": [
+                {
+                    "unique-id": "calm-server-validate-api",
+                    "url": "/calm/validate"
+                }
+            ]
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "resources-to-services",
+            "description": "Delegates business logic for validated requests to",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-resources"
+                    },
+                    "destination": {
+                        "node": "calm-hub-services"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "storage-to-mongo",
+            "description": "Persists to, when calm.database.mode is mongo",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-storage"
+                    },
+                    "destination": {
+                        "node": "mongodb",
+                        "interfaces": [
+                            "mongodb-port"
+                        ]
+                    }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "storage-to-nitrite",
+            "description": "Persists to, when calm.database.mode is standalone, including read-only deployments using calm.readonly=true",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-storage"
+                    },
+                    "destination": {
+                        "node": "nitritedb"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "services-to-observed-stores",
+            "description": "Reads and writes CALM resources via",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-services"
+                    },
+                    "destination": {
+                        "node": "observed-stores"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "observed-stores-to-storage",
+            "description": "Delegates to the selected implementation, then records outbox entries",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "observed-stores"
+                    },
+                    "destination": {
+                        "node": "calm-hub-storage"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "mcp-to-observed-stores",
+            "description": "Built-in MCP tools read and write via",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "hub-mcp-server"
+                    },
+                    "destination": {
+                        "node": "observed-stores"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "mcp-to-proxy",
+            "description": "Extension tools call the same proxy service as REST",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "hub-mcp-server"
+                    },
+                    "destination": {
+                        "node": "extension-proxy"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "mcp-to-registry",
+            "description": "Registers one tool for each command at start up",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "hub-mcp-server"
+                    },
+                    "destination": {
+                        "node": "extension-registry"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "registry-reads-manifests",
+            "description": "Reads and validates at start up",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "extension-registry"
+                    },
+                    "destination": {
+                        "node": "extension-manifests"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "proxy-to-registry",
+            "description": "Matches the request to a declared route",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "extension-proxy"
+                    },
+                    "destination": {
+                        "node": "extension-registry"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "proxy-to-signer",
+            "description": "Gets a request-bound assertion for each call",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "extension-proxy"
+                    },
+                    "destination": {
+                        "node": "identity-signer"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "relay-to-storage",
+            "description": "Claims and clears outbox entries",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "event-relay"
+                    },
+                    "destination": {
+                        "node": "calm-hub-storage"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "relay-to-validation",
+            "description": "Passes version events for validation",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "event-relay"
+                    },
+                    "destination": {
+                        "node": "validation-service"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "validation-to-calm-server",
+            "description": "Sends the document with its resolved Pattern and bound standards-only Patterns",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "validation-service"
+                    },
+                    "destination": {
+                        "node": "calm-server",
+                        "interfaces": [
+                            "calm-server-validate-api"
+                        ]
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "validation-to-observed-stores",
+            "description": "Writes one validation decorator for each source, as the system actor",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "validation-service"
+                    },
+                    "destination": {
+                        "node": "observed-stores"
+                    }
+                }
+            }
+        }
+    ],
+    "adrs": [
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0009-extensions-run-out-of-process-behind-a-hub-proxy.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0012-extension-manifest-registry-and-versioning.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0014-extension-commands-in-the-cli-and-mcp.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
+    ],
+    "flows": [
+        {
+            "unique-id": "flow-publish-and-validate",
+            "name": "Publish and validate an architecture",
+            "description": "A new architecture version is stored, then validated asynchronously against its Pattern and bound standards-only Patterns",
+            "transitions": [
+                {
+                    "relationship-unique-id": "resources-to-services",
+                    "sequence-number": 1,
+                    "description": "The resource passes the new version to the services layer"
+                },
+                {
+                    "relationship-unique-id": "services-to-observed-stores",
+                    "sequence-number": 2,
+                    "description": "The write goes through the observed store"
+                },
+                {
+                    "relationship-unique-id": "observed-stores-to-storage",
+                    "sequence-number": 3,
+                    "description": "The version and its pending event are written in one insert"
+                },
+                {
+                    "relationship-unique-id": "storage-to-mongo",
+                    "sequence-number": 4,
+                    "description": "MongoDB stores the version document"
+                },
+                {
+                    "relationship-unique-id": "relay-to-storage",
+                    "sequence-number": 5,
+                    "description": "The relay claims the pending event"
+                },
+                {
+                    "relationship-unique-id": "relay-to-validation",
+                    "sequence-number": 6,
+                    "description": "The relay passes the event to the validation service"
+                },
+                {
+                    "relationship-unique-id": "validation-to-calm-server",
+                    "sequence-number": 7,
+                    "description": "Hub validates the version against each source"
+                },
+                {
+                    "relationship-unique-id": "validation-to-observed-stores",
+                    "sequence-number": 8,
+                    "description": "Hub records one validation decorator for each source"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-extension-call",
+            "name": "Proxy an extension call",
+            "description": "The REST proxy or an MCP tool forwards a call to an extension route",
+            "transitions": [
+                {
+                    "relationship-unique-id": "mcp-to-proxy",
+                    "sequence-number": 1,
+                    "description": "An MCP tool, or the REST resource, calls the proxy service"
+                },
+                {
+                    "relationship-unique-id": "proxy-to-registry",
+                    "sequence-number": 2,
+                    "description": "The proxy matches a declared route and checks its scope"
+                },
+                {
+                    "relationship-unique-id": "proxy-to-signer",
+                    "sequence-number": 3,
+                    "description": "The proxy gets a request-bound assertion"
+                }
+            ]
+        }
+    ]
+}
