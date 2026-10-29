@@ -65,10 +65,6 @@ next-env.d.ts
 **/.docusaurus/
 **/docs-site/docs/api/
 
-# Tauri/Rust build output
-**/src-tauri/target/
-**/src-tauri/gen/
-
 # Playwright
 playwright-report/
 test-results/

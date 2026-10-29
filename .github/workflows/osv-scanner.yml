@@ -46,7 +46,6 @@ jobs:
                   ./osv-scanner scan source \
                     --config osv-scanner.toml \
                     --lockfile package-lock.json \
-                    --lockfile calm-studio/apps/studio/src-tauri/Cargo.lock \
                     --lockfile calm-hub/pom.xml \
                     --lockfile calm-models/pom.xml \
                     --format json \
