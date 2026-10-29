@@ -30,6 +30,25 @@
             "details": {
                 "detailed-architecture": "calm-3.json"
             }
+        },
+        {
+            "unique-id": "calm-4",
+            "node-type": "moment",
+            "name": "CALM Hub with extensions",
+            "description": "CALM Hub adds an extensions framework for screens, tabs, CLI and MCP commands, and post-write events, and validates architectures against standards-only Patterns bound to namespaces",
+            "adrs": [
+                "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0009-extensions-run-out-of-process-behind-a-hub-proxy.md",
+                "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md",
+                "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md",
+                "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0012-extension-manifest-registry-and-versioning.md",
+                "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md",
+                "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0014-extension-commands-in-the-cli-and-mcp.md",
+                "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md",
+                "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
+            ],
+            "details": {
+                "detailed-architecture": "calm-4.architecture.json"
+            }
         }
     ],
     "metadata": {
