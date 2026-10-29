@@ -239,6 +239,20 @@ describe('container-builder', () => {
             expect(containers[0].nodes.map(n => n.id)).toEqual(['svc']);
         });
 
+        it('draws each node once when copies would exceed the limit', () => {
+            // Each level has two containers that are both in both containers of the level above
+            const levels = 12;
+            const ids = Array.from({ length: levels }, (_, k) => [`l${k}a`, `l${k}b`]);
+            const parentsOf = new Map(ids.slice(1).flatMap(([a, b], k) => [[a, ids[k]], [b, ids[k]]] as [string, string[]][]));
+
+            const { containers, instancesOf } =
+                buildContainerForest(ids.flat().map(id => node(id)), parentsOf, new Set(ids.flat()), false);
+
+            const count = (cs: VMContainer[]): number => cs.reduce((sum, c) => sum + 1 + count(c.containers), 0);
+            expect(count(containers)).toBe(levels * 2);
+            expect(instancesOf.get('l11a')).toEqual(['l11a']);
+        });
+
         it('gives each copy its own interfaces and attachments', () => {
             const nodes = [
                 node('cluster-a'),

@@ -29,6 +29,22 @@ export function pruneEmptyContainers(containers: VMContainer[]): VMContainer[] {
 
 export const instanceId = (id: string, parentInstanceId: string) => `${id}__in__${parentInstanceId}`;
 
+/** Drawings above which a node in several containers is drawn in its first container only. */
+const MAX_DRAWINGS = 1000;
+
+function countDrawings(ids: Set<string>, parentsOf: (id: string) => string[]): number {
+    const counts = new Map<string, number>();
+    const count = (id: string, path: Set<string>): number => {
+        const known = counts.get(id);
+        if (known !== undefined) return known;
+        const parents = parentsOf(id).filter(p => !path.has(p));
+        const result = parents.length === 0 ? 1 : parents.reduce((sum, p) => sum + count(p, new Set(path).add(id)), 0);
+        counts.set(id, result);
+        return result;
+    };
+    return [...ids].reduce((sum, id) => sum + count(id, new Set()), 0);
+}
+
 /**
  * Builds the container forest structure for the view model. Creates VM containers
  * for each container ID, places nodes into their appropriate containers based on
@@ -63,8 +79,12 @@ export function buildContainerForest(
         return candidate;
     };
 
-    const renderedParents = (id: string) =>
+    const allRenderedParents = (id: string) =>
         (parentsOf.get(id) ?? []).filter(p => p !== id && containerIdsToRender.has(p));
+    // Copies multiply with each level of shared containers. Past the limit, draw each node in its first container only.
+    const ids = new Set([...containerIdsToRender, ...nodes.map(n => n['unique-id'])]);
+    const capped = countDrawings(ids, allRenderedParents) > MAX_DRAWINGS;
+    const renderedParents = capped ? (id: string) => allRenderedParents(id).slice(0, 1) : allRenderedParents;
 
     const childrenOf = new Map<string, string[]>();
     const addChild = (parent: string, child: string) => {
