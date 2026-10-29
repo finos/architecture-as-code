@@ -51,20 +51,31 @@ export function flowToCalm(
     const calmNodes: Array<Record<string, unknown>> = [];
     const calmRelationships: Array<Record<string, unknown>> = [];
 
+    // A node drawn in several containers has one flow node per container, all with the same calmId
+    const calmIdOf = new Map(nodes.map((n) => [n.id, ((n.data as Record<string, unknown> | undefined)?.calmId as string) ?? n.id]));
+    const toCalmId = (flowId: string) => calmIdOf.get(flowId) ?? flowId;
+
     // Reconstruct containment from parentId, including empty containers
     const containerChildren = new Map<string, string[]>();
     for (const n of nodes) {
-        if (n.type === 'container') {
-            if (!containerChildren.has(n.id)) containerChildren.set(n.id, []);
+        if (n.type === 'container' && !containerChildren.has(toCalmId(n.id))) {
+            containerChildren.set(toCalmId(n.id), []);
         }
         if (n.parentId) {
-            if (!containerChildren.has(n.parentId)) containerChildren.set(n.parentId, []);
-            containerChildren.get(n.parentId)!.push(n.id);
+            const parent = toCalmId(n.parentId);
+            const children = containerChildren.get(parent) ?? [];
+            if (!children.includes(toCalmId(n.id))) children.push(toCalmId(n.id));
+            containerChildren.set(parent, children);
         }
     }
 
-    // Build nodes
-    for (const n of nodes) {
+    // Build nodes in the order of the file. The canvas puts containers first, which can differ.
+    const fileOrder = new Map((lastParsedArch?.nodes ?? []).map((n, i) => [n['unique-id'] as string, i] as const));
+    const orderOf = (n: Node) => fileOrder.get(toCalmId(n.id)) ?? Number.MAX_SAFE_INTEGER;
+    const writtenIds = new Set<string>();
+    for (const n of [...nodes].sort((a, b) => orderOf(a) - orderOf(b))) {
+        if (writtenIds.has(toCalmId(n.id))) continue;
+        writtenIds.add(toCalmId(n.id));
         const data = (n.data ?? {}) as Record<string, unknown>;
         const calmNode: Record<string, unknown> = {
             'unique-id': data.calmId ?? n.id,
@@ -89,9 +100,19 @@ export function flowToCalm(
         calmNodes.push(calmNode);
     }
 
-    // Build containment relationships
-    for (const [parentId, children] of containerChildren) {
-        const parentNode = nodes.find((n) => n.id === parentId);
+    // Build containment relationships in their original order: the parser draws a node with
+    // several parents first in the container of its first relationship.
+    const originalOrder = (containerId: string) => {
+        const index = (lastParsedArch?.relationships ?? []).findIndex((r) => {
+            const rt = r['relationship-type'] as Record<string, unknown> | undefined;
+            const rel = rt?.['deployed-in'] ?? rt?.['composed-of'];
+            return (rel as { container?: string } | undefined)?.container === containerId;
+        });
+        return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+    };
+    const orderedContainers = [...containerChildren].sort(([a], [b]) => originalOrder(a) - originalOrder(b));
+    for (const [parentId, children] of orderedContainers) {
+        const parentNode = nodes.find((n) => toCalmId(n.id) === parentId);
         const variant = ((parentNode?.data as Record<string, unknown>)?.containmentType as string) ?? 'deployed-in';
         const existingRel = lastParsedArch?.relationships.find((r) => {
             const rt = r['relationship-type'] as Record<string, unknown> | undefined;
@@ -117,9 +138,9 @@ export function flowToCalm(
         if (variant === 'interacts') {
             const existing = interactsGroups.get(relId);
             if (existing) {
-                existing.targets.push(edge.target);
+                existing.targets.push(toCalmId(edge.target));
             } else {
-                interactsGroups.set(relId, { actor: edge.source, targets: [edge.target], data, edge });
+                interactsGroups.set(relId, { actor: toCalmId(edge.source), targets: [toCalmId(edge.target)], data, edge });
             }
             continue;
         }
@@ -135,7 +156,7 @@ export function flowToCalm(
 
         const rel: Record<string, unknown> = {
             'unique-id': relId,
-            'relationship-type': buildRelationshipType(variant, edge.source, edge.target),
+            'relationship-type': buildRelationshipType(variant, toCalmId(edge.source), toCalmId(edge.target)),
         };
         if (data.protocol) rel.protocol = data.protocol;
         if (data.description) rel.description = data.description;
@@ -148,7 +169,7 @@ export function flowToCalm(
             const reverseId = (data.calmReverseRelId as string) ?? `${relId}-reverse`;
             const reverseRel: Record<string, unknown> = {
                 'unique-id': reverseId,
-                'relationship-type': buildRelationshipType(variant, edge.target, edge.source),
+                'relationship-type': buildRelationshipType(variant, toCalmId(edge.target), toCalmId(edge.source)),
             };
             if (data.protocol) reverseRel.protocol = data.protocol;
             if (data.description) reverseRel.description = data.description;

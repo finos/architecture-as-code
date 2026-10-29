@@ -156,3 +156,94 @@ describe('parseCALMData', () => {
         expect(result.edges[0].data.edgeMetadata.custom).toBe('value');
     });
 });
+
+describe('parseCALMData - nodes with several parents', () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id });
+    const deployedIn = (id: string, container: string, nodes: string[]) =>
+        ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
+    const byId = (nodes: { id: string }[], id: string) => nodes.find((n) => n.id === id) as any;
+
+    it('draws a node once in each parent', () => {
+        const result = parseCALMData(arch(
+            [node('cluster-a'), node('cluster-b'), node('ns')],
+            [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])],
+        ));
+        const copies = result.nodes.filter((n) => n.data.calmId === 'ns');
+        expect(copies.map((n) => [n.id, n.parentId])).toEqual([
+            ['ns', 'cluster-a'],
+            ['ns__in__cluster-b', 'cluster-b'],
+        ]);
+        expect(copies[1].data.label).toBe('ns');
+    });
+
+    it('copies everything nested in a shared container', () => {
+        const result = parseCALMData(arch(
+            [node('cluster-a'), node('cluster-b'), node('ns'), node('svc')],
+            [
+                deployedIn('r1', 'cluster-a', ['ns']),
+                deployedIn('r2', 'cluster-b', ['ns']),
+                deployedIn('r3', 'ns', ['svc']),
+            ],
+        ));
+        expect(byId(result.nodes, 'ns__in__cluster-b').type).toBe('container');
+        expect(result.nodes.filter((n) => n.data.calmId === 'svc').map((n) => [n.id, n.parentId])).toEqual([
+            ['svc', 'ns'],
+            ['svc__in__ns__in__cluster-b', 'ns__in__cluster-b'],
+        ]);
+    });
+
+    it('lists a parent once when relationships repeat it', () => {
+        const result = parseCALMData(arch(
+            [node('cluster'), node('ns')],
+            [deployedIn('r1', 'cluster', ['ns']), deployedIn('r2', 'cluster', ['ns'])],
+        ));
+        expect(result.nodes.filter((n) => n.data.calmId === 'ns')).toHaveLength(1);
+    });
+
+    it('keeps edges on the original node', () => {
+        const result = parseCALMData(arch(
+            [node('cluster-a'), node('cluster-b'), node('ns'), node('client')],
+            [
+                deployedIn('r1', 'cluster-a', ['ns']),
+                deployedIn('r2', 'cluster-b', ['ns']),
+                { 'unique-id': 'c1', 'relationship-type': { connects: { source: { node: 'client' }, destination: { node: 'ns' } } } },
+            ],
+        ));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([['client', 'ns']]);
+    });
+
+    it('does not give a copy the id of a real node', () => {
+        const result = parseCALMData(arch(
+            [node('a'), node('b'), node('x'), node('x__in__b')],
+            [deployedIn('r1', 'a', ['x']), deployedIn('r2', 'b', ['x'])],
+        ));
+        const ids = result.nodes.map((n) => n.id);
+        expect(new Set(ids).size).toBe(ids.length);
+        expect(byId(result.nodes, 'x__in__b').data.calmId).toBe('x__in__b');
+    });
+
+    it('puts every container before the nodes inside it', () => {
+        const result = parseCALMData(arch(
+            [node('svc'), node('ns'), node('cluster-a'), node('cluster-b')],
+            [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns']), deployedIn('r3', 'ns', ['svc'])],
+        ));
+        const ids = result.nodes.map((n) => n.id);
+        for (const n of result.nodes) {
+            if (n.parentId) expect(ids.indexOf(n.parentId)).toBeLessThan(ids.indexOf(n.id));
+        }
+    });
+
+    it('ignores a node listed as its own container', () => {
+        const result = parseCALMData(arch([node('a'), node('b')], [deployedIn('r1', 'a', ['a', 'b'])]));
+        expect(result.nodes.map((n) => [n.id, n.parentId])).toEqual([['a', undefined], ['b', 'a']]);
+    });
+
+    it('stops at a containment cycle', () => {
+        const result = parseCALMData(arch(
+            [node('a'), node('b')],
+            [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['a'])],
+        ));
+        expect(result.nodes.map((n) => n.data.calmId).sort()).toEqual(['a', 'b']);
+    });
+});
+

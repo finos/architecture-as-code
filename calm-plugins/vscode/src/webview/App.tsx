@@ -46,6 +46,7 @@ import {
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
+import { updateInstances, reattachEdges } from './transforms/node-instances';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
@@ -168,8 +169,7 @@ function CanvasApp() {
     // changed); Hub refs only when not yet enriched. All updates are guarded by
     // the load generation so stale resolves from a prior document are discarded.
     const updateNodeControl = useCallback((nodeId: string, ckey: string, enrich: (c: ControlEntry) => ControlEntry) => {
-        setNodes((nds) => nds.map((n) => {
-            if (n.id !== nodeId) return n;
+        setNodes((nds) => updateInstances(nds, nodeId, (n) => {
             const data = n.data as Record<string, unknown>;
             const existing = (data.controls as Record<string, ControlEntry>) ?? {};
             const target = existing[ckey];
@@ -292,8 +292,7 @@ function CanvasApp() {
             loadArchitecture(json);
         });
         setDefinitionResolvedCallback((nodeId, controls) => {
-            setNodes((nds) => nds.map((n) => {
-                if (n.id !== nodeId) return n;
+            setNodes((nds) => updateInstances(nds, nodeId, (n) => {
                 const data = n.data as Record<string, unknown>;
                 // Only set controls if node doesn't already have them (from saved file)
                 const existingControls = data.controls as Record<string, unknown> | undefined;
@@ -477,9 +476,18 @@ function CanvasApp() {
             }
             return updated.filter((n) => !deletedIds.has(n.id));
         });
-        setEdges((eds) => eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target)));
+        // React Flow has already removed the edges of the deleted nodes. Restore those that
+        // another drawing of the same CALM node can keep.
+        const remaining = nodes.filter((n) => !deletedIds.has(n.id));
+        const touched = edges.filter((e) => deletedIds.has(e.source) || deletedIds.has(e.target));
+        const reattached = reattachEdges(touched, deletedNodes, remaining);
+        setEdges((eds) => {
+            const kept = eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target));
+            const keptIds = new Set(kept.map((e) => e.id));
+            return [...kept, ...reattached.filter((e) => !keptIds.has(e.id))];
+        });
         setTimeout(() => emitChange(true), 0);
-    }, [setNodes, setEdges, emitChange, store.readonlyMode]);
+    }, [nodes, edges, setNodes, setEdges, emitChange, store.readonlyMode]);
 
     // --- Node click (select) ---
     const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -555,8 +563,7 @@ function CanvasApp() {
     // --- Node update (from properties panel) ---
     const onNodeUpdate = useCallback((nodeId: string, field: string, value: unknown) => {
         setNodes((nds) => {
-            const result = nds.map((n) => {
-                if (n.id !== nodeId) return n;
+            const result = updateInstances(nds, nodeId, (n) => {
                 const data = { ...(n.data as Record<string, unknown>) };
                 switch (field) {
                     case 'name': data.label = value; break;
@@ -569,7 +576,7 @@ function CanvasApp() {
                 }
                 const updated = { ...n, data };
                 if (field === 'node-type') updated.type = resolveFlowNodeType(value as string);
-                setSelectedNode(updated);
+                if (n.id === nodeId) setSelectedNode(updated);
                 return updated;
             });
             pendingNodesRef.current = result;
@@ -639,8 +646,7 @@ function CanvasApp() {
                             (n) => (n.data as any)?.metadata?.['source-standard-node'] === standardNodeId
                         );
                         let stdNodeId: string;
-                        let updatedNodes = nds.map((n) => {
-                            if (n.id !== targetId) return n;
+                        let updatedNodes = updateInstances(nds, targetId, (n) => {
                             if (!isHubSourced && Object.keys(controlsCopy).length === 0) return n;
                             const data = { ...(n.data as Record<string, unknown>) };
                             if (!isHubSourced) {
@@ -817,10 +823,13 @@ function CanvasApp() {
             else if (issue.severity === 'warning') c.warnings++;
             counts[issue.nodeId] = c;
         }
-        setNodes(effectiveNodes.map((n) => ({
-            ...n,
-            data: { ...(n.data as Record<string, unknown>), validationErrors: counts[n.id]?.errors ?? 0, validationWarnings: counts[n.id]?.warnings ?? 0 },
-        })));
+        setNodes(effectiveNodes.map((n) => {
+            const calmId = ((n.data as Record<string, unknown>)?.calmId as string) ?? n.id;
+            return {
+                ...n,
+                data: { ...(n.data as Record<string, unknown>), validationErrors: counts[calmId]?.errors ?? 0, validationWarnings: counts[calmId]?.warnings ?? 0 },
+            };
+        }));
     }, [nodes, edges, store, setNodes]);
 
     // --- Layout ---
@@ -1004,8 +1013,7 @@ function CanvasApp() {
         if (!target) return;
         const generation = loadGeneration.current;
         if (target.type === 'node') {
-            setNodes((nds) => nds.map((n) => {
-                if (n.id !== target.nodeId) return n;
+            setNodes((nds) => updateInstances(nds, target.nodeId, (n) => {
                 const data = n.data as Record<string, unknown>;
                 const existing = (data.controls as Record<string, ControlEntry>) ?? {};
                 const prev = existing[key];

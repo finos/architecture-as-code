@@ -27,7 +27,7 @@ export function parseCALMData(
 
     // Identify containers from relationships
     const containerIds = new Set<string>();
-    const parentMap = new Map<string, string>();
+    const parentsMap = new Map<string, string[]>();
     const containerVariant = new Map<string, string>();
 
     for (const rel of arch.relationships ?? []) {
@@ -51,31 +51,68 @@ export function parseCALMData(
                 deployedIn ? 'deployed-in' : 'composed-of'
             );
             for (const childId of containment.nodes ?? []) {
-                parentMap.set(childId, containment.container);
+                const parents = parentsMap.get(childId) ?? [];
+                if (!parents.includes(containment.container)) parents.push(containment.container);
+                parentsMap.set(childId, parents);
             }
         }
     }
 
     // Compute descendant counts for dynamic container sizing
     const descendantCount = new Map<string, number>();
-    function countDescendants(nodeId: string): number {
+    function countDescendants(nodeId: string, path: Set<string>): number {
         if (descendantCount.has(nodeId)) return descendantCount.get(nodeId)!;
         let count = 0;
-        for (const [child, parent] of parentMap.entries()) {
-            if (parent === nodeId) {
-                count += 1 + countDescendants(child);
+        for (const [child, parents] of parentsMap.entries()) {
+            if (parents.includes(nodeId) && !path.has(child)) {
+                count += 1 + countDescendants(child, new Set(path).add(nodeId));
             }
         }
         descendantCount.set(nodeId, count);
         return count;
     }
-    for (const cId of containerIds) countDescendants(cId);
+    for (const cId of containerIds) countDescendants(cId, new Set());
 
-    // Build nodes
-    for (const n of arch.nodes) {
-        const id = (n['unique-id'] as string) ?? `node-${nodes.length}`;
+    // Build nodes. A node with several parents is drawn once in each, with everything nested in it.
+    // The first drawing keeps the CALM id; the others are copies with the CALM id in data.calmId.
+    type Instance = { id: string; parent?: string; depth: number };
+    const calmNodes = arch.nodes.map((n, i) => ({ n, id: (n['unique-id'] as string) ?? `node-${i}` }));
+    const calmIds = new Set(calmNodes.map(({ id }) => id));
+    const takenIds = new Set(calmIds);
+    const copyId = (id: string, parentInstance: string) => {
+        const base = `${id}__in__${parentInstance}`;
+        let candidate = base;
+        for (let i = 2; takenIds.has(candidate); i++) candidate = `${base}_${i}`;
+        takenIds.add(candidate);
+        return candidate;
+    };
+    const instancesOf = new Map<string, Instance[]>();
+    const resolveInstances = (id: string, path: Set<string>): Instance[] => {
+        const known = instancesOf.get(id);
+        if (known) return known;
+        const parents = (parentsMap.get(id) ?? []).filter((p) => p !== id && calmIds.has(p) && !path.has(p));
+        const instances: Instance[] = [];
+        for (const p of parents) {
+            for (const parent of resolveInstances(p, new Set(path).add(id))) {
+                const instanceId = instances.length === 0 ? id : copyId(id, parent.id);
+                instances.push({ id: instanceId, parent: parent.id, depth: parent.depth + 1 });
+            }
+        }
+        if (instances.length === 0) instances.push({ id, depth: 0 });
+        instancesOf.set(id, instances);
+        return instances;
+    };
+
+    for (const { n, id } of calmNodes) {
+        for (const instance of resolveInstances(id, new Set())) {
+            nodes.push(buildNode(n, id, instance.id, instance.parent, instance.depth));
+        }
+    }
+    // React Flow needs every parent before its children
+    nodes.sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0));
+
+    function buildNode(n: Record<string, unknown>, id: string, instanceId: string, parent: string | undefined, depth: number): Node {
         const isContainer = containerIds.has(id);
-        const parent = parentMap.get(id);
 
         const resolvedType = isContainer
             ? 'container'
@@ -89,12 +126,12 @@ export function parseCALMData(
             containerHeight = CONTAINER_BASE_HEIGHT + Math.ceil(Math.sqrt(desc)) * CONTAINER_CHILD_HEIGHT_INCREMENT;
         }
 
-        const node: Node = {
-            id,
+        return {
+            id: instanceId,
             type: resolvedType,
             position: { x: 0, y: 0 },
             data: {
-                label: n.name ?? id,
+                label: (n.name as string) ?? id,
                 calmId: id,
                 calmType: n['node-type'] ?? 'system',
                 description: n.description ?? '',
@@ -105,7 +142,7 @@ export function parseCALMData(
                 'definition-id': n['definition-id'],
                 containmentType: containerVariant.get(id),
             },
-            ...(parent ? { parentId: parent, extent: 'parent' as const, zIndex: computeDepth(parent, parentMap) } : {}),
+            ...(parent ? { parentId: parent, extent: 'parent' as const, zIndex: depth } : {}),
             ...(isContainer
                 ? {
                       style: { width: containerWidth, height: containerHeight },
@@ -114,8 +151,6 @@ export function parseCALMData(
             width: isContainer ? containerWidth : NODE_WIDTH,
             height: isContainer ? containerHeight : NODE_HEIGHT,
         };
-
-        nodes.push(node);
     }
 
     // Build edges from non-containment relationships
@@ -283,16 +318,6 @@ function resolveNodeType(calmType: string): string {
     if (lower === 'datastore' || lower === 'data-store') return 'database';
     if (calmType.includes(':')) return 'extension';
     return 'system';
-}
-
-function computeDepth(parentId: string, parentMap: Map<string, string>): number {
-    let depth = 1;
-    let current = parentId;
-    while (parentMap.has(current)) {
-        depth++;
-        current = parentMap.get(current)!;
-    }
-    return depth;
 }
 
 function applyDagreLayout(

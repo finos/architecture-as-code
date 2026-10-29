@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Node, Edge } from 'reactflow';
 import { flowToCalm, setLastParsedArch } from './calm-editor-transformer';
+import type { CalmArchitecture } from './calm-editor-transformer';
+import { parseCALMData } from './calm-parser';
 
 describe('flowToCalm - definition-id handling', () => {
     beforeEach(() => {
@@ -205,6 +207,78 @@ describe('flowToCalm - definition-id handling', () => {
 
         const arch = flowToCalm(nodes, []);
         expect(arch.nodes[0].metadata).toEqual({ 'standard-node-style': { background: '#1c4587' } });
+    });
+});
+
+describe('flowToCalm - nodes with several parents', () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: id });
+    const deployedIn = (id: string, container: string, nodes: string[]) =>
+        ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
+    const sharedNamespace = (): CalmArchitecture => ({
+        nodes: [node('cluster-a'), node('cluster-b'), node('ns'), node('svc'), node('client')],
+        relationships: [
+            deployedIn('r1', 'cluster-a', ['ns']),
+            deployedIn('r2', 'cluster-b', ['ns']),
+            deployedIn('r3', 'ns', ['svc']),
+            { 'unique-id': 'c1', 'relationship-type': { connects: { source: { node: 'client' }, destination: { node: 'svc' } } } },
+        ],
+    });
+    const roundTrip = (arch: CalmArchitecture) => {
+        setLastParsedArch(arch);
+        const parsed = parseCALMData(arch);
+        return { parsed, out: flowToCalm(parsed.nodes, parsed.edges) };
+    };
+    const containment = (out: CalmArchitecture) =>
+        out.relationships
+            .filter((r) => (r['relationship-type'] as Record<string, unknown>)['deployed-in'])
+            .map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in']]);
+
+    beforeEach(() => {
+        setLastParsedArch(null);
+    });
+
+    it('keeps every container membership of a node', () => {
+        const { out } = roundTrip(sharedNamespace());
+        expect(containment(out)).toEqual([
+            ['r1', { container: 'cluster-a', nodes: ['ns'] }],
+            ['r2', { container: 'cluster-b', nodes: ['ns'] }],
+            ['r3', { container: 'ns', nodes: ['svc'] }],
+        ]);
+    });
+
+    it('writes each node once', () => {
+        const { out } = roundTrip(sharedNamespace());
+        expect(out.nodes.map((n) => n['unique-id'])).toEqual(['cluster-a', 'cluster-b', 'ns', 'svc', 'client']);
+    });
+
+    it('writes the original ids for an edge drawn to a copy', () => {
+        const { parsed } = roundTrip(sharedNamespace());
+        const edges: Edge[] = [{
+            id: 'c2', source: 'client', target: 'svc__in__ns__in__cluster-b',
+            data: { calmRelId: 'c2', calmVariant: 'connects' },
+        }];
+        const out = flowToCalm(parsed.nodes, edges);
+        expect(out.relationships.find((r) => r['unique-id'] === 'c2')?.['relationship-type']).toEqual({
+            connects: { source: { node: 'client' }, destination: { node: 'svc' } },
+        });
+    });
+
+    it('keeps the order of containment relationships, so the same drawing stays the original', () => {
+        const arch = sharedNamespace();
+        arch.relationships = [arch.relationships[1], arch.relationships[0], ...arch.relationships.slice(2)];
+        const { out } = roundTrip(arch);
+        expect(containment(out).map(([id]) => id)).toEqual(['r2', 'r1', 'r3']);
+    });
+
+    it('drops a membership when its copy is removed', () => {
+        const { parsed } = roundTrip(sharedNamespace());
+        const nodes = parsed.nodes.filter((n) => !n.id.endsWith('__in__cluster-b'));
+        const out = flowToCalm(nodes, parsed.edges);
+        expect(containment(out)).toEqual([
+            ['r1', { container: 'cluster-a', nodes: ['ns'] }],
+            ['r2', { container: 'cluster-b', nodes: [] }],
+            ['r3', { container: 'ns', nodes: ['svc'] }],
+        ]);
     });
 });
 
