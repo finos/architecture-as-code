@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-018",
+      "control-id": "AIR-OP-018",
       "name": "Model Overreach / Expanded Use",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-18_model-overreach-expanded-use.html",
-      "summary": "Model overreach occurs when AI systems are used beyond their intended purpose, often due to overconfidence in their capabilities. This can lead to poor-quality, non-compliant, or misleading outputs, especially when users apply AI to high-stakes tasks without proper validation or oversight.",
+      "description": "Model overreach occurs when AI systems are used beyond their intended purpose, often due to overconfidence in their capabilities. This can lead to poor-quality, non-compliant, or misleading outputs, especially when users apply AI to high-stakes tasks without proper validation or oversight.",
       "requirements": [
         "Define and publish an approved use case register for each AI system, with clearly stated scope boundaries.",
         "Require formal change management approval before repurposing an AI model to new use cases.",

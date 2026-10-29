@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-014",
+      "control-id": "AIR-OP-014",
       "name": "Inadequate System Alignment",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-14_inadequate-system-alignment.html",
-      "summary": "LLM-powered RAG systems may generate responses that diverge from their intended business purpose, producing outputs that appear relevant but contain inaccurate financial advice, biased recommendations, or inappropriate tone for the financial context.",
+      "description": "LLM-powered RAG systems may generate responses that diverge from their intended business purpose, producing outputs that appear relevant but contain inaccurate financial advice, biased recommendations, or inappropriate tone for the financial context.",
       "requirements": [
         "Define and document the authorised scope of each AI system, including prohibited use cases.",
         "Implement system prompt guardrails that constrain outputs to the intended domain and tone.",

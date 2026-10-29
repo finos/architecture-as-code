@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-SEC-002",
+      "control-id": "AIR-SEC-002",
       "name": "Information Leaked to Vector Store",
       "category": "Security",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-2_information-leaked-to-vector-store.html",
-      "summary": "LLM applications pose data leakage risks across all components handling derived data—vector stores, embeddings, prompt logs, and caches. These representations can expose sensitive information via inversion or inference attacks when enterprise-grade security controls are absent.",
+      "description": "LLM applications pose data leakage risks across all components handling derived data—vector stores, embeddings, prompt logs, and caches. These representations can expose sensitive information via inversion or inference attacks when enterprise-grade security controls are absent.",
       "requirements": [
         "Apply role-based access control (RBAC) to vector stores, restricting retrieval to data the requesting user is authorised to access.",
         "Encrypt embeddings and vector store data at rest using approved encryption standards.",
