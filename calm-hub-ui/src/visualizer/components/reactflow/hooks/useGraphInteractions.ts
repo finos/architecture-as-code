@@ -1,9 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Node, Edge, NodeChange } from 'reactflow';
 import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';
 import { saveNodePositions, toStoredPositions, type StoredNodePosition } from '../../../services/node-position-service.js';
 
 interface UseGraphInteractionsOptions {
+    /** The graph's current nodes; the drag-end report fires on the commit that changes them. */
+    nodes: Node[];
     setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
     onNodesChangeBase: (changes: NodeChange[]) => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,6 +21,7 @@ interface UseGraphInteractionsOptions {
 }
 
 export function useGraphInteractions({
+    nodes,
     setNodes,
     onNodesChangeBase,
     onNodeClick,
@@ -27,6 +30,34 @@ export function useGraphInteractions({
     persistKey,
     onPositionsChange,
 }: UseGraphInteractionsOptions) {
+    // Positions computed at drag-end inside the setNodes updater, reported after
+    // the render that applies them. Calling onPositionsChange from the updater
+    // made DiagramSection set its own state while ArchitectureGraph was
+    // rendering, which React reports as "Cannot update a component
+    // (DiagramSection) while rendering a different component
+    // (ArchitectureGraph)" (issue #3503).
+    const pendingReport = useRef<StoredNodePosition[] | null>(null);
+
+    // Only ever called from the effect below, never from the updater: React
+    // reports "Cannot update a component while rendering a different component"
+    // when a parent setState runs from inside one.
+    const flushReport = useCallback(() => {
+        const positions = pendingReport.current;
+        if (!positions) return;
+        pendingReport.current = null;
+        onPositionsChange?.(positions);
+    }, [onPositionsChange]);
+
+    // The only report path. React runs the updater during the render — eagerly
+    // only when its queue is empty, which it never is here because
+    // onNodesChangeBase queued a change on the same state first — so the report
+    // lands here, after the commit that applied the reflowed nodes, and never
+    // while a component renders. Keying the effect to `nodes` keeps it off
+    // renders that cannot produce a report.
+    useEffect(() => {
+        flushReport();
+    }, [nodes, flushReport]);
+
     const isGroupType = useCallback(
         (type: string | undefined) => type != null && groupNodeTypes.includes(type),
         [groupNodeTypes]
@@ -58,13 +89,15 @@ export function useGraphInteractions({
                     if (dragEnded && persistKey) saveNodePositions(persistKey, reflowed);
                     // Report at drag-end only (not every position change during
                     // the drag) so "Save as default layout" always reflects the
-                    // latest settled arrangement without re-rendering on every frame.
-                    if (dragEnded) onPositionsChange?.(toStoredPositions(reflowed));
+                    // latest settled arrangement without re-rendering on every
+                    // frame. The call itself happens in the effect above, after
+                    // this updater has finished.
+                    if (dragEnded) pendingReport.current = toStoredPositions(reflowed);
                     return reflowed;
                 });
             }
         },
-        [onNodesChangeBase, setNodes, persistKey, onPositionsChange]
+        [onNodesChangeBase, setNodes, persistKey]
     );
 
     const handleNodeClick = useCallback(

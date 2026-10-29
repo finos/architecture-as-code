@@ -102,6 +102,7 @@ export function PatternGraph({
         handleNodeMouseEnter,
         handleNodeMouseLeave,
     } = useGraphInteractions({
+        nodes,
         setNodes,
         onNodesChangeBase,
         onNodeClick,
