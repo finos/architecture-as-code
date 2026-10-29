@@ -253,6 +253,17 @@ describe('container-builder', () => {
             expect(instancesOf.get('l11a')).toEqual(['l11a']);
         });
 
+        it('counts only copies against the limit, not every node', () => {
+            const singles = Array.from({ length: 1001 }, (_, k) => node(`n${k}`));
+            const nodes = [node('cluster-a'), node('cluster-b'), node('ns'), ...singles];
+            const parentsOf = new Map([['ns', ['cluster-a', 'cluster-b']]]);
+
+            const { instancesOf } =
+                buildContainerForest(nodes, parentsOf, new Set(['cluster-a', 'cluster-b']), false);
+
+            expect(instancesOf.get('ns')).toHaveLength(2);
+        });
+
         it('gives each copy its own interfaces and attachments', () => {
             const nodes = [
                 node('cluster-a'),

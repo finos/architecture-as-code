@@ -29,10 +29,11 @@ export function pruneEmptyContainers(containers: VMContainer[]): VMContainer[] {
 
 export const instanceId = (id: string, parentInstanceId: string) => `${id}__in__${parentInstanceId}`;
 
-/** Drawings above which a node in several containers is drawn in its first container only. */
-const MAX_DRAWINGS = 1000;
+/** Copies above which a node in several containers is drawn in its first container only. */
+const MAX_COPIES = 1000;
 
-function countDrawings(ids: Set<string>, parentsOf: (id: string) => string[]): number {
+/** Number of times each id is drawn: one per drawing of each parent. */
+function drawingCounter(parentsOf: (id: string) => string[]): (id: string) => number {
     const counts = new Map<string, number>();
     const count = (id: string, path: Set<string>): number => {
         const known = counts.get(id);
@@ -42,7 +43,7 @@ function countDrawings(ids: Set<string>, parentsOf: (id: string) => string[]): n
         counts.set(id, result);
         return result;
     };
-    return [...ids].reduce((sum, id) => sum + count(id, new Set()), 0);
+    return id => count(id, new Set());
 }
 
 /**
@@ -83,8 +84,10 @@ export function buildContainerForest(
         (parentsOf.get(id) ?? []).filter(p => p !== id && containerIdsToRender.has(p));
     // Copies multiply with each level of shared containers. Past the limit, draw each node in its first container only.
     const ids = new Set([...containerIdsToRender, ...nodes.map(n => n['unique-id'])]);
-    const capped = countDrawings(ids, allRenderedParents) > MAX_DRAWINGS;
+    const allDrawings = drawingCounter(allRenderedParents);
+    const capped = [...ids].reduce((sum, id) => sum + allDrawings(id) - 1, 0) > MAX_COPIES;
     const renderedParents = capped ? (id: string) => allRenderedParents(id).slice(0, 1) : allRenderedParents;
+    const drawings = capped ? drawingCounter(renderedParents) : allDrawings;
 
     const childrenOf = new Map<string, string[]>();
     const addChild = (parent: string, child: string) => {
@@ -100,18 +103,6 @@ export function buildContainerForest(
         if (containerIdsToRender.has(nid)) continue;
         for (const p of renderedParents(nid)) addChild(p, nid);
     }
-
-    // Number of times each id is drawn: one per drawing of each rendered parent
-    const copies = new Map<string, number>();
-    const countCopies = (id: string, path: Set<string>): number => {
-        const known = copies.get(id);
-        if (known !== undefined) return known;
-        const parents = renderedParents(id).filter(p => !path.has(p));
-        const nextPath = new Set(path).add(id);
-        const count = parents.length === 0 ? 1 : parents.reduce((sum, p) => sum + countCopies(p, nextPath), 0);
-        copies.set(id, count);
-        return count;
-    };
 
     const record = (id: string, rendered: string, ancestors: string[]) => {
         const list = instancesOf.get(id) ?? [];
@@ -154,7 +145,7 @@ export function buildContainerForest(
         const childPath = new Set(path).add(cid);
         for (const child of childrenOf.get(cid) ?? []) {
             if (childPath.has(child)) continue;
-            const childRendered = countCopies(child, new Set()) > 1 ? copyId(child, rendered) : child;
+            const childRendered = drawings(child) > 1 ? copyId(child, rendered) : child;
             if (containerIdsToRender.has(child)) {
                 container.containers.push(createContainer(child, childRendered, childAncestors, childPath));
             } else {

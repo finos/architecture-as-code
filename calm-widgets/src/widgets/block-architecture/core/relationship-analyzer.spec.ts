@@ -31,13 +31,12 @@ describe('relationship-analyzer (extra cases)', () => {
         expect(res.parentOf.get('D')).not.toBe('C');
     });
 
-    it('keeps every deployed-in parent of a node without warnings', () => {
+    it('keeps every deployed-in parent of a node', () => {
         const relationships: CalmRelationshipCanonicalModel[] = [
             rel('r1', { 'deployed-in': { container: 'D1', nodes: ['x'] } }),
             rel('r2', { 'deployed-in': { container: 'D2', nodes: ['x'] } }),
         ];
         const res = buildParentHierarchy(relationships);
-        expect(res.warnings).toEqual([]);
         expect(res.parentsOf.get('x')).toEqual(['D1', 'D2']);
         expect(res.parentOf.get('x')).toBe('D1');
     });
@@ -48,7 +47,6 @@ describe('relationship-analyzer (extra cases)', () => {
             rel('r2', { 'composed-of': { container: 'C2', nodes: ['x'] } }),
         ];
         const res = buildParentHierarchy(relationships);
-        expect(res.warnings).toEqual([]);
         expect(res.parentsOf.get('x')).toEqual(['C1', 'C2']);
     });
 

@@ -11,7 +11,6 @@ export interface ParentHierarchyResult {
     parentsOf: Map<string, string[]>;
     allMentionedContainers: Set<string>;
     childrenOfContainer: Map<string, Set<string>>;
-    warnings: string[];
 }
 
 /**
@@ -47,7 +46,6 @@ function addTo(map: Map<string, string[]>, key: string, value: string): void {
  * deployed containers when possible.
  */
 export function buildParentHierarchy(relationships: CalmRelationshipCanonicalModel[]): ParentHierarchyResult {
-    const warnings: string[] = [];
     const parentsOf = new Map<string, string[]>();
     const allMentionedContainers = new Set<string>();
     const childrenOfContainer = new Map<string, Set<string>>();
@@ -92,5 +90,5 @@ export function buildParentHierarchy(relationships: CalmRelationshipCanonicalMod
     const parentOf = new Map<string, string>();
     for (const [id, parents] of parentsOf.entries()) parentOf.set(id, parents[0]);
 
-    return { parentOf, parentsOf, allMentionedContainers, childrenOfContainer, warnings };
+    return { parentOf, parentsOf, allMentionedContainers, childrenOfContainer };
 }

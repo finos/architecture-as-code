@@ -89,7 +89,7 @@ export function buildDefaultFilterChain(
  *      relationship kind (connects, interacts, composed-of, deployed-in).
  *    - containerIds: container IDs to render according to opts.includeContainers
  *      (none | parents of visible nodes | all mentioned containers).
- * 4. Aggregate warnings from the parentHierarchyResult and the filter chain and return a
+ * 4. Collect warnings from the filter chain and return a
  *    VisibilityResult describing the final visibleNodes, filteredNodes, filteredRels,
  *    containerIds and warnings.
  *
@@ -102,7 +102,7 @@ export function buildDefaultFilterChain(
  * Inputs:
  *  - context: CalmCoreCanonicalModel (nodes + relationships)
  *  - opts: NormalizedOptions (UI options that affect visibility/edges/containers)
- *  - parentHierarchyResult: parent/child mappings and warnings from earlier analysis
+ *  - parentHierarchyResult: parent/child mappings from earlier analysis
  *  - nodesById: map of node-id → CalmNodeCanonicalModel for quick lookup
  *
  * Output:
@@ -203,6 +203,6 @@ export function resolveVisibilityWithStrategies(
         filteredNodes,
         filteredRels,
         containerIds,
-        warnings: [...parentHierarchyResult.warnings, ...result.warnings],
+        warnings: result.warnings,
     };
 }

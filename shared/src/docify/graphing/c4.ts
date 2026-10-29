@@ -19,10 +19,8 @@ export class C4Element {
         public uniqueId: string,
         public name: string,
         public description: string,
-        /** First parent. A node shared by several containers lists all of them in `parentIds`. */
         public parentId?: string,
-        public children: string[] = [],
-        public parentIds: string[] = []
+        public children: string[] = []
     ) {}
 }
 
@@ -38,16 +36,10 @@ export function buildParentChildMappings(
     relationships: CalmRelationship[]
 ): {
     parentLookup: Record<string, string>,
-    parentsLookup: Record<string, string[]>,
     childrenLookup: Record<string, string[]>
 } {
     const parentLookup: Record<string, string> = {};
-    const parentsLookup: Record<string, string[]> = {};
     const childrenLookup: Record<string, string[]> = {};
-    const addTo = (lookup: Record<string, string[]>, key: string, value: string) => {
-        lookup[key] ??= [];
-        if (!lookup[key].includes(value)) lookup[key].push(value);
-    };
 
     relationships.forEach(rel => {
         const relType = rel.relationshipType;
@@ -55,22 +47,24 @@ export function buildParentChildMappings(
         case 'composed-of':
         case 'deployed-in': {
             const t = relType as CalmComposedOfType | CalmDeployedInType;
+            if (!childrenLookup[t.container]) {
+                childrenLookup[t.container] = [];
+            }
+            childrenLookup[t.container].push(...t.nodes);
             t.nodes.forEach(nodeId => {
-                addTo(childrenLookup, t.container, nodeId);
-                addTo(parentsLookup, nodeId, t.container);
-                parentLookup[nodeId] ??= t.container;
+                parentLookup[nodeId] = t.container;
             });
             break;
         }
         }
     });
 
-    return { parentLookup, parentsLookup, childrenLookup };
+    return { parentLookup, childrenLookup };
 }
 
 function sortNodesByHierarchy(
     nodes: CalmNode[],
-    parentsLookup: Record<string, string[]>
+    parentLookup: Record<string, string>
 ): CalmNode[] {
     const nodeMap = new Map(nodes.map(node => [node.uniqueId, node]));
     const visited = new Set<string>();
@@ -84,7 +78,10 @@ function sortNodesByHierarchy(
 
         visited.add(nodeId);
 
-        (parentsLookup[nodeId] ?? []).forEach(visit);
+        const parentId = parentLookup[nodeId];
+        if (parentId && nodeMap.has(parentId)) {
+            visit(parentId);
+        }
 
         sorted.push(node);
     }
@@ -105,9 +102,9 @@ export class C4Model {
     }
 
     private buildFromCalm(calmCore: CalmCore) {
-        const { parentLookup, parentsLookup, childrenLookup } = buildParentChildMappings(calmCore.relationships);
+        const { parentLookup, childrenLookup } = buildParentChildMappings(calmCore.relationships);
 
-        const sortedNodes = sortNodesByHierarchy(calmCore.nodes, parentsLookup);
+        const sortedNodes = sortNodesByHierarchy(calmCore.nodes, parentLookup);
 
         sortedNodes.forEach(node => {
             const parentId = parentLookup[node.uniqueId];
@@ -129,8 +126,7 @@ export class C4Model {
                 node.name,
                 node.description,
                 parentId,
-                [...children],
-                [...(parentsLookup[node.uniqueId] ?? [])]
+                [...children]
             );
         });
 
