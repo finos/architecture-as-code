@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as vscode from 'vscode';
-import { renderArchitectureToSvg } from '@calmstudio/mcp/src/tools/render.js';
+import { renderELKDiagram } from '@calmstudio/diagram/render';
 import type { CalmArchitecture } from '@calmstudio/calm-core';
 
 // ---------------------------------------------------------------------------
@@ -31,6 +31,14 @@ export function isCalmFile(pathOrFsPath: string): boolean {
 }
 
 /**
+ * Renders the architecture with the same renderer as the docs site: containers
+ * are drawn as boxes with their members inside.
+ */
+export function renderPreviewSvg(arch: CalmArchitecture, theme: 'light' | 'dark'): Promise<string> {
+  return renderELKDiagram(arch, { theme });
+}
+
+/**
  * Generates CSP-compliant HTML wrapping an SVG for the VS Code webview panel.
  * Exported for unit testing.
  */
@@ -49,7 +57,7 @@ export function getWebviewContent(svg: string, nonce: string): string {
   </style>
 </head>
 <body>
-  ${svg}
+  ${svg.replace(/<style>/g, `<style nonce="${nonce}">`)}
 </body>
 </html>`;
 }
@@ -61,6 +69,7 @@ export function getWebviewContent(svg: string, nonce: string): string {
 export class CalmPreviewPanel {
   private static currentPanel: CalmPreviewPanel | undefined;
   private readonly _panel: vscode.WebviewPanel;
+  private _uri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
 
   private constructor(
@@ -69,9 +78,17 @@ export class CalmPreviewPanel {
     uri: vscode.Uri
   ) {
     this._panel = panel;
+    this._uri = uri;
 
     // Set initial content and start async render
     void this._updateForUri(uri);
+
+    // Render again in the new theme's colours
+    vscode.window.onDidChangeActiveColorTheme(
+      () => void this._updateForUri(this._uri),
+      null,
+      this._disposables
+    );
 
     // Dispose panel when user closes it
     this._panel.onDidDispose(
@@ -118,11 +135,14 @@ export class CalmPreviewPanel {
   }
 
   private async _updateForUri(uri: vscode.Uri): Promise<void> {
+    this._uri = uri;
     try {
       const raw = await vscode.workspace.fs.readFile(uri);
       const text = Buffer.from(raw).toString('utf-8');
       const arch = JSON.parse(text) as CalmArchitecture;
-      const svg = await renderArchitectureToSvg(arch);
+      const kind = vscode.window.activeColorTheme.kind;
+      const dark = kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast;
+      const svg = await renderPreviewSvg(arch, dark ? 'dark' : 'light');
       const nonce = getNonce();
       this._panel.webview.html = getWebviewContent(svg, nonce);
     } catch {
