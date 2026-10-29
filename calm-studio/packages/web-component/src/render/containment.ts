@@ -63,13 +63,15 @@ function hasAncestor(parentsOf: Map<string, string[]>, start: string, target: st
  * Resolve containment claims in document order. A claim container⊃member is
  * satisfiable iff: both ids exist, member is not the container itself, and
  * nesting would not create a cycle (the container is not itself a descendant
- * of the member). A member claimed by several containers nests in each.
+ * of the member). A member claimed by several containers nests in each,
+ * unless `sharedMembers` is false: then only its first claim nests.
  * Unsatisfiable claims fall back to edges; a relationship with zero fallbacks
  * is fully consumed.
  */
 export function planContainment(
   relationships: CalmRelationship[],
-  knownNodeIds: Set<string>
+  knownNodeIds: Set<string>,
+  { sharedMembers = true }: { sharedMembers?: boolean } = {}
 ): ContainmentPlan {
   const plan = emptyContainmentPlan();
 
@@ -93,6 +95,7 @@ export function planContainment(
         knownNodeIds.has(container) &&
         knownNodeIds.has(member) &&
         member !== container &&
+        (sharedMembers || parents.length === 0) &&
         !hasAncestor(plan.parentsOf, container, member);
       if (satisfiable) {
         const siblings = plan.childrenOf.get(container) ?? [];

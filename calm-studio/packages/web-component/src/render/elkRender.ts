@@ -11,7 +11,7 @@ import { renderNodeSvg, renderContainerSvg } from './nodeRenderer.js';
 import { renderEdgeSvg, renderEdgeMarkers } from './edgeRenderer.js';
 import { renderFlowOverlay, applyFlowDimming, getFlowNodeIds, type EdgeLayout } from './flowOverlay.js';
 import { relationshipToEdges, expandEdgesToInstances, type DiagramEdge } from './relationshipEdges.js';
-import { planContainment, emptyContainmentPlan, isNestedContainment } from './containment.js';
+import { planContainment, emptyContainmentPlan, isNestedContainment, type ContainmentPlan } from './containment.js';
 
 // ---------------------------------------------------------------------------
 // ELK type helpers
@@ -61,6 +61,23 @@ export interface RenderOptions {
  * @param options - Optional render options (theme, direction)
  * @returns Promise resolving to an SVG string
  */
+/** Drawings above which a node in several containers is nested under its first claim only. */
+const MAX_DRAWINGS = 1000;
+
+/** Number of drawings when every node is drawn once in each container that claims it. */
+function countDrawings(plan: ContainmentPlan): number {
+  const counts = new Map<string, number>();
+  const count = (id: string): number => {
+    const known = counts.get(id);
+    if (known !== undefined) return known;
+    const parents = plan.parentsOf.get(id) ?? [];
+    const result = parents.length === 0 ? 1 : parents.reduce((sum, p) => sum + count(p), 0);
+    counts.set(id, result);
+    return result;
+  };
+  return [...plan.parentsOf.keys()].reduce((sum, id) => sum + count(id), 0);
+}
+
 export async function renderELKDiagram(
   arch: CalmArchitecture,
   options: RenderOptions = {}
@@ -90,9 +107,14 @@ export async function renderELKDiagram(
   // once: anything that is not exactly 'edges' renders nested. Both the plan
   // and the edge filter below must agree, or containment silently vanishes.
   const containersMode: 'nested' | 'edges' = containers === 'edges' ? 'edges' : 'nested';
-  const plan = containersMode === 'nested'
+  let plan = containersMode === 'nested'
     ? planContainment(relationships, knownNodeIds)
     : emptyContainmentPlan();
+  // Copies multiply with each level of shared containers. Past the limit, nest
+  // each node under its first claim only and draw the other claims as edges.
+  if (countDrawings(plan) > MAX_DRAWINGS) {
+    plan = planContainment(relationships, knownNodeIds, { sharedMembers: false });
+  }
 
   // Expand relationships into renderable edges. In nested mode, containment
   // relationships are represented by the plan (nesting + fallback edges) and

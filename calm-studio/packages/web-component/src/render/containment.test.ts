@@ -79,6 +79,18 @@ describe('planContainment', () => {
     expect(plan.consumedRelationshipIds.has('r2')).toBe(true);
   });
 
+  it('with shared members off, the first claim wins and later claims fall back to edges', () => {
+    const plan = planContainment(
+      [composedOf('r1', 'sys', ['svc-a']), deployedIn('r2', 'cluster', ['svc-a'])],
+      KNOWN,
+      { sharedMembers: false }
+    );
+    expect(plan.parentsOf.get('svc-a')).toEqual(['sys']);
+    expect(plan.fallbackEdges).toEqual([
+      { id: 'r2', relationshipId: 'r2', source: 'cluster', target: 'svc-a', variant: 'deployed-in' },
+    ]);
+  });
+
   it('lists a member once when its container claims it twice', () => {
     const plan = planContainment(
       [composedOf('r1', 'sys', ['svc-a']), composedOf('r2', 'sys', ['svc-a'])],
@@ -255,6 +267,21 @@ describe('renderELKDiagram nested containers (integration)', () => {
     const positions = [...svg.matchAll(/class="calm-node" data-node-id="svc-a"[^>]*>\s*<rect x="([\d.]+)" y="([\d.]+)"/g)]
       .map((m) => `${m[1]},${m[2]}`);
     expect(new Set(positions).size).toBe(2);
+  });
+
+  it('draws each node once, with fallback edges, when copies would exceed the limit', async () => {
+    const levels = 12;
+    const ids = Array.from({ length: levels }, (_, k) => [`l${k}a`, `l${k}b`] as const);
+    const arch: CalmArchitecture = {
+      nodes: ids.flat().map((id) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: id })),
+      relationships: ids.slice(1).flatMap(([a, b], k) => [
+        deployedIn(`r${k}a`, ids[k]![0], [a, b]),
+        deployedIn(`r${k}b`, ids[k]![1], [a, b]),
+      ]),
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    expect((svg.match(/data-node-id="l11a"/g) ?? []).length).toBe(1);
+    expect((svg.match(/<polyline/g) ?? []).length).toBeGreaterThan(0);
   });
 
   it('copies a shared container with its members and connects the copies in the same container', async () => {
