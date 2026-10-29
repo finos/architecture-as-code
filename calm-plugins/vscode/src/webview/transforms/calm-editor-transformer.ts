@@ -54,6 +54,7 @@ export function flowToCalm(
     // A node drawn in several containers has one flow node per container, all with the same calmId
     const calmIdOf = new Map(nodes.map((n) => [n.id, ((n.data as Record<string, unknown> | undefined)?.calmId as string) ?? n.id]));
     const toCalmId = (flowId: string) => calmIdOf.get(flowId) ?? flowId;
+    const drawnCalmIds = new Set(calmIdOf.values());
 
     // Reconstruct containment from parentId, including empty containers
     const containerChildren = new Map<string, string[]>();
@@ -61,8 +62,9 @@ export function flowToCalm(
         if (n.type === 'container' && !containerChildren.has(toCalmId(n.id))) {
             containerChildren.set(toCalmId(n.id), []);
         }
-        if (n.parentId) {
-            const parent = toCalmId(n.parentId);
+        const otherParents = (((n.data as Record<string, unknown> | undefined)?.otherParents as string[] | undefined) ?? [])
+            .filter((p) => drawnCalmIds.has(p));
+        for (const parent of [...(n.parentId ? [toCalmId(n.parentId)] : []), ...otherParents]) {
             const children = containerChildren.get(parent) ?? [];
             if (!children.includes(toCalmId(n.id))) children.push(toCalmId(n.id));
             containerChildren.set(parent, children);

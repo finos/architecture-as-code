@@ -16,6 +16,9 @@ const CONTAINER_BASE_HEIGHT = 350;
 const CONTAINER_CHILD_WIDTH_INCREMENT = 150;
 const CONTAINER_CHILD_HEIGHT_INCREMENT = 120;
 
+/** Drawings above which a node in several containers is drawn in its first container only. */
+const MAX_DRAWINGS = 1000;
+
 export function parseCALMData(
     arch: CalmArchitecture,
     direction: 'DOWN' | 'RIGHT' = 'DOWN'
@@ -86,11 +89,30 @@ export function parseCALMData(
         takenIds.add(candidate);
         return candidate;
     };
+    const parentsOf = (id: string, path: Set<string>) =>
+        (parentsMap.get(id) ?? []).filter((p) => p !== id && calmIds.has(p) && !path.has(p));
+
+    // Copies multiply with each level of shared containers. Past the limit, draw each node in its
+    // first container only; data.otherParents keeps the other memberships for the save.
+    const counts = new Map<string, number>();
+    const countDrawings = (id: string, path: Set<string>): number => {
+        const known = counts.get(id);
+        if (known !== undefined) return known;
+        const parents = parentsOf(id, path);
+        const count = parents.length === 0 ? 1 : parents.reduce((sum, p) => sum + countDrawings(p, new Set(path).add(id)), 0);
+        counts.set(id, count);
+        return count;
+    };
+    const capped = [...calmIds].reduce((sum, id) => sum + countDrawings(id, new Set()), 0) > MAX_DRAWINGS;
+    const otherParentsOf = new Map<string, string[]>();
+
     const instancesOf = new Map<string, Instance[]>();
     const resolveInstances = (id: string, path: Set<string>): Instance[] => {
         const known = instancesOf.get(id);
         if (known) return known;
-        const parents = (parentsMap.get(id) ?? []).filter((p) => p !== id && calmIds.has(p) && !path.has(p));
+        const candidates = parentsOf(id, path);
+        const parents = capped ? candidates.slice(0, 1) : candidates;
+        if (capped && candidates.length > 1) otherParentsOf.set(id, candidates.slice(1));
         const instances: Instance[] = [];
         for (const p of parents) {
             for (const parent of resolveInstances(p, new Set(path).add(id))) {
@@ -141,6 +163,7 @@ export function parseCALMData(
                 metadata: n.metadata,
                 'definition-id': n['definition-id'],
                 containmentType: containerVariant.get(id),
+                ...(otherParentsOf.has(id) ? { otherParents: otherParentsOf.get(id) } : {}),
             },
             ...(parent ? { parentId: parent, extent: 'parent' as const, zIndex: depth } : {}),
             ...(isContainer

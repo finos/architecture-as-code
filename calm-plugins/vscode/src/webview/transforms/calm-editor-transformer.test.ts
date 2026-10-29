@@ -270,6 +270,31 @@ describe('flowToCalm - nodes with several parents', () => {
         expect(containment(out).map(([id]) => id)).toEqual(['r2', 'r1', 'r3']);
     });
 
+    it('draws each node once past the copy limit and still keeps every membership', () => {
+        // Each level has two containers that are both in both containers of the level above
+        const levels = 12;
+        const ids = Array.from({ length: levels }, (_, k) => [`l${k}a`, `l${k}b`]);
+        const arch: CalmArchitecture = {
+            nodes: ids.flat().map(node),
+            relationships: ids.slice(1).flatMap(([a, b], k) => [
+                deployedIn(`r${k}a`, ids[k][0], [a, b]),
+                deployedIn(`r${k}b`, ids[k][1], [a, b]),
+            ]),
+        };
+        const { parsed, out } = roundTrip(arch);
+        expect(parsed.nodes).toHaveLength(levels * 2);
+        expect(containment(out)).toEqual(arch.relationships.map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in']]));
+    });
+
+    it('drops a hidden membership when its container is deleted', () => {
+        const nodes: Node[] = [
+            { id: 'a', type: 'container', position: { x: 0, y: 0 }, data: { calmId: 'a' } },
+            { id: 'x', position: { x: 0, y: 0 }, parentId: 'a', data: { calmId: 'x', otherParents: ['gone'] } },
+        ];
+        const out = flowToCalm(nodes, []);
+        expect(containment(out)).toEqual([['containment-a', { container: 'a', nodes: ['x'] }]]);
+    });
+
     it('drops a membership when its copy is removed', () => {
         const { parsed } = roundTrip(sharedNamespace());
         const nodes = parsed.nodes.filter((n) => !n.id.endsWith('__in__cluster-b'));
