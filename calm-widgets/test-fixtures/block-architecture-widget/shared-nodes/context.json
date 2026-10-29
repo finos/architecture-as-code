@@ -1,0 +1,21 @@
+{
+  "nodes": [
+    { "unique-id": "prod", "node-type": "environment", "name": "Production", "description": "Production environment" },
+    { "unique-id": "prod-eu", "node-type": "system", "name": "Cluster prod-eu", "description": "Kubernetes cluster" },
+    { "unique-id": "prod-us", "node-type": "system", "name": "Cluster prod-us", "description": "Kubernetes cluster" },
+    { "unique-id": "ns-orders", "node-type": "system", "name": "orders namespace", "description": "Namespace on every prod cluster" },
+    { "unique-id": "ns-payments", "node-type": "system", "name": "payments namespace", "description": "Namespace on every prod cluster" },
+    { "unique-id": "orders-svc", "node-type": "service", "name": "Orders Service", "description": "Takes orders" },
+    { "unique-id": "payments-svc", "node-type": "service", "name": "Payments Service", "description": "Takes payments" },
+    { "unique-id": "customer", "node-type": "actor", "name": "Customer", "description": "Places orders" }
+  ],
+  "relationships": [
+    { "unique-id": "prod-clusters", "relationship-type": { "composed-of": { "container": "prod", "nodes": ["prod-eu", "prod-us"] } } },
+    { "unique-id": "prod-eu-namespaces", "relationship-type": { "deployed-in": { "container": "prod-eu", "nodes": ["ns-orders", "ns-payments"] } } },
+    { "unique-id": "prod-us-namespaces", "relationship-type": { "deployed-in": { "container": "prod-us", "nodes": ["ns-orders", "ns-payments"] } } },
+    { "unique-id": "orders-in-ns", "relationship-type": { "deployed-in": { "container": "ns-orders", "nodes": ["orders-svc"] } } },
+    { "unique-id": "payments-in-ns", "relationship-type": { "deployed-in": { "container": "ns-payments", "nodes": ["payments-svc"] } } },
+    { "unique-id": "customer-orders", "description": "Places order", "relationship-type": { "interacts": { "actor": "customer", "nodes": ["orders-svc"] } } },
+    { "unique-id": "orders-payments", "description": "Charges card", "relationship-type": { "connects": { "source": { "node": "orders-svc" }, "destination": { "node": "payments-svc" } } } }
+  ]
+}

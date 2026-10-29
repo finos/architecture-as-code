@@ -31,16 +31,91 @@ describe('relationship-analyzer (extra cases)', () => {
         expect(res.parentOf.get('D')).not.toBe('C');
     });
 
-    it('warns on multiple deployed-in parents and keeps the first seen', () => {
+    it('keeps every deployed-in parent of a node without warnings', () => {
         const relationships: CalmRelationshipCanonicalModel[] = [
             rel('r1', { 'deployed-in': { container: 'D1', nodes: ['x'] } }),
             rel('r2', { 'deployed-in': { container: 'D2', nodes: ['x'] } }),
         ];
         const res = buildParentHierarchy(relationships);
-        expect(res.warnings.length).toBeGreaterThan(0);
-        expect(res.warnings.join(' ')).toMatch(/multiple deployed-in parents/i);
-        // Implementation keeps the first encountered parent
-        expect(['D1', 'D2']).toContain(res.parentOf.get('x'));
+        expect(res.warnings).toEqual([]);
+        expect(res.parentsOf.get('x')).toEqual(['D1', 'D2']);
+        expect(res.parentOf.get('x')).toBe('D1');
+    });
+
+    it('keeps every composed-of parent of a node', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'composed-of': { container: 'C1', nodes: ['x'] } }),
+            rel('r2', { 'composed-of': { container: 'C2', nodes: ['x'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.warnings).toEqual([]);
+        expect(res.parentsOf.get('x')).toEqual(['C1', 'C2']);
+    });
+
+    it('lists a parent once when several relationships repeat it', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'deployed-in': { container: 'D', nodes: ['x'] } }),
+            rel('r2', { 'deployed-in': { container: 'D', nodes: ['x'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('x')).toEqual(['D']);
+    });
+
+    it('nests a composed container under one deployed container of its members', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'composed-of': { container: 'C', nodes: ['n'] } }),
+            rel('r2', { 'deployed-in': { container: 'D1', nodes: ['n'] } }),
+            rel('r3', { 'deployed-in': { container: 'D2', nodes: ['n'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('n')).toEqual(['C']);
+        expect(res.parentsOf.get('C')).toEqual(['D1']);
+    });
+
+    it('does not copy a composed container whose members are deployed in different containers', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'composed-of': { container: 'C', nodes: ['svc1', 'svc2'] } }),
+            rel('r2', { 'deployed-in': { container: 'A', nodes: ['svc1'] } }),
+            rel('r3', { 'deployed-in': { container: 'B', nodes: ['svc2'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('C')).toEqual(['B']);
+        expect(res.parentsOf.get('svc1')).toEqual(['C']);
+        expect(res.parentsOf.get('svc2')).toEqual(['C']);
+    });
+
+    it('falls back to deployed-in parents when every composed-of parent creates a cycle', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'composed-of': { container: 'X', nodes: ['Y', 'lx'] } }),
+            rel('r2', { 'composed-of': { container: 'Y', nodes: ['X', 'ly'] } }),
+            rel('r3', { 'deployed-in': { container: 'Z', nodes: ['X'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('Y')).toEqual(['X']);
+        expect(res.parentsOf.get('X')).toEqual(['Z']);
+    });
+
+    it('applies nesting parents before direct parents when they conflict', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'composed-of': { container: 'C', nodes: ['m'] } }),
+            rel('r2', { 'deployed-in': { container: 'D', nodes: ['m'] } }),
+            rel('r3', { 'composed-of': { container: 'C', nodes: ['D'] } }),
+            rel('r4', { 'composed-of': { container: 'D', nodes: ['dl'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('C')).toEqual(['D']);
+        expect(res.parentsOf.get('D')).toBeUndefined();
+    });
+
+    it('rejects a parent that is reached through any ancestor of the child', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'deployed-in': { container: 'env', nodes: ['cluster-a', 'cluster-b'] } }),
+            rel('r2', { 'deployed-in': { container: 'cluster-b', nodes: ['ns'] } }),
+            rel('r3', { 'deployed-in': { container: 'ns', nodes: ['env'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('ns')).toEqual(['cluster-b']);
+        expect(res.parentsOf.get('env')).toBeUndefined();
     });
 
     it('tracks allMentionedContainers across composed-of and deployed-in', () => {

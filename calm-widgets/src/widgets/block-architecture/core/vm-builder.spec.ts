@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildBlockArchVM, BlockArchVMBuilder } from './vm-builder';
-import { CalmCoreCanonicalModel } from '@finos/calm-models/canonical';
+import { CalmCoreCanonicalModel, CalmRelationshipCanonicalModel } from '@finos/calm-models/canonical';
 import { NormalizedOptions } from '../types';
 
 const baseOpts = (over: Partial<NormalizedOptions> = {}): NormalizedOptions => ({
@@ -121,5 +121,109 @@ describe('vm-builder', () => {
         };
         const vm = buildBlockArchVM(context, baseOpts());
         expect(Array.isArray(vm.warnings)).toBe(true);
+    });
+
+    it('draws a focused node in its container when the container parent is not drawn', () => {
+        const context: CalmCoreCanonicalModel = {
+            nodes: [
+                { 'unique-id': 'N', 'node-type': 'service', name: 'N', description: '' },
+                { 'unique-id': 'C', 'node-type': 'system', name: 'C', description: '' },
+                { 'unique-id': 'D', 'node-type': 'system', name: 'D', description: '' },
+            ],
+            relationships: [
+                { 'unique-id': 'r1', 'relationship-type': { 'composed-of': { container: 'C', nodes: ['N'] } } },
+                { 'unique-id': 'r2', 'relationship-type': { 'deployed-in': { container: 'D', nodes: ['C'] } } },
+            ],
+        };
+        const vm = buildBlockArchVM(context, baseOpts({ focusNodes: ['N'], includeContainers: 'parents' }));
+        expect(vm.containers.map(c => [c.id, c.nodes.map(n => n.id)])).toEqual([['C', ['N']]]);
+    });
+
+    describe('nodes shared between clusters', () => {
+        const node = (id: string, type = 'system') => ({ 'unique-id': id, 'node-type': type, name: id, description: '' });
+        const deployedIn = (id: string, container: string, nodes: string[]) =>
+            ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
+        const connects = (id: string, source: string, destination: string) =>
+            ({ 'unique-id': id, 'relationship-type': { connects: { source: { node: source }, destination: { node: destination } } } });
+
+        const sharedNamespaces = (extraNodes: ReturnType<typeof node>[], extraRels: CalmRelationshipCanonicalModel[]): CalmCoreCanonicalModel => ({
+            nodes: [
+                node('cluster-a'), node('cluster-b'), node('ns-orders'), node('ns-payments'),
+                node('orders', 'service'), node('payments', 'service'),
+                ...extraNodes,
+            ],
+            relationships: [
+                deployedIn('d1', 'cluster-a', ['ns-orders', 'ns-payments']),
+                deployedIn('d2', 'cluster-b', ['ns-orders', 'ns-payments']),
+                deployedIn('d3', 'ns-orders', ['orders']),
+                deployedIn('d4', 'ns-payments', ['payments']),
+                ...extraRels,
+            ],
+        });
+
+        it('draws a shared namespace and its services in every cluster', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts());
+
+            expect(vm.containers.map(c => c.id)).toEqual(['cluster-a', 'cluster-b']);
+            for (const cluster of ['cluster-a', 'cluster-b']) {
+                const c = vm.containers.find(x => x.id === cluster)!;
+                expect(c.containers.map(x => x.id)).toEqual([`ns-orders__in__${cluster}`, `ns-payments__in__${cluster}`]);
+                expect(c.containers[1].nodes.map(n => n.id)).toEqual([`payments__in__ns-payments__in__${cluster}`]);
+            }
+            expect(vm.looseNodes).toEqual([]);
+            expect(vm.warnings).toEqual([]);
+        });
+
+        it('connects copies of shared nodes inside the same cluster only', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], [connects('c1', 'orders', 'payments')]), baseOpts());
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['orders__in__ns-orders__in__cluster-a', 'payments__in__ns-payments__in__cluster-a'],
+                ['orders__in__ns-orders__in__cluster-b', 'payments__in__ns-payments__in__cluster-b'],
+            ]);
+            expect(new Set(vm.edges.map(e => e.id)).size).toBe(2);
+        });
+
+        it('connects a node drawn once to every copy of a shared node', () => {
+            const vm = buildBlockArchVM(
+                sharedNamespaces([node('client', 'actor')], [connects('c1', 'client', 'payments')]),
+                baseOpts()
+            );
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['client', 'payments__in__ns-payments__in__cluster-a'],
+                ['client', 'payments__in__ns-payments__in__cluster-b'],
+            ]);
+        });
+
+        it('requires containers before edges, because edges point at drawn copies', () => {
+            const builder = new BlockArchVMBuilder(sharedNamespaces([], []), baseOpts());
+            builder.analyzeRelationships().resolveVisibility();
+            expect(() => builder.buildEdges()).toThrowError('Must call buildContainers() first');
+        });
+
+        it('connects edges to the interfaces of each copy', () => {
+            const context = sharedNamespaces([], [{
+                'unique-id': 'c1',
+                'relationship-type': { connects: { source: { node: 'orders' }, destination: { node: 'payments', interfaces: ['api'] } } },
+            }]);
+            context.nodes!.find(n => n['unique-id'] === 'payments')!.interfaces = [{ 'unique-id': 'api', name: 'API' }];
+
+            const vm = buildBlockArchVM(context, baseOpts({ renderInterfaces: true }));
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['orders__in__ns-orders__in__cluster-a', 'payments__in__ns-payments__in__cluster-a__iface__api'],
+                ['orders__in__ns-orders__in__cluster-b', 'payments__in__ns-payments__in__cluster-b__iface__api'],
+            ]);
+        });
+
+        it('highlights every copy of a highlighted node', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
+
+            expect(vm.highlightNodeIds).toEqual([
+                'payments__in__ns-payments__in__cluster-a',
+                'payments__in__ns-payments__in__cluster-b',
+            ]);
+        });
     });
 });

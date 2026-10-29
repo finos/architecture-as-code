@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { buildInterfaceNameMap, buildEdges } from './edge-builder';
+import { buildInterfaceNameMap, buildEdges, expandEdgesToInstances } from './edge-builder';
 import { VMFactoryProvider } from '../factories/factory-provider';
 import {
     CalmNodeCanonicalModel,
@@ -152,5 +152,46 @@ describe('edge-builder', () => {
         expect(collapsedEdge).toBeDefined();
         expect(collapsedEdge!.id).toBe('r1|r2');
         expect(collapsedEdge!.label).toBe('r1, r2');
+    });
+
+    describe('expandEdgesToInstances', () => {
+        const edge: VMEdge = { id: 'r1', source: 'svc', target: 'db', label: 'reads' };
+
+        it('keeps an edge unchanged when neither end has copies', () => {
+            expect(expandEdgesToInstances([edge], new Map(), new Map())).toEqual([edge]);
+        });
+
+        it('connects every copy of one end to the single other end', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db']]]);
+            const ancestorsOf = new Map([['svc__in__A', ['A']], ['svc__in__B', ['B']], ['db', ['A']]]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf)).toEqual([
+                { id: 'r1__0', source: 'svc__in__A', target: 'db', label: 'reads' },
+                { id: 'r1__1', source: 'svc__in__B', target: 'db', label: 'reads' },
+            ]);
+        });
+
+        it('connects copies of both ends only where they share the most containers', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__A', 'db__in__B']]]);
+            const ancestorsOf = new Map([
+                ['svc__in__A', ['A']], ['svc__in__B', ['B']],
+                ['db__in__A', ['A']], ['db__in__B', ['B']],
+            ]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
+                ['svc__in__A', 'db__in__A'],
+                ['svc__in__B', 'db__in__B'],
+            ]);
+        });
+
+        it('connects all copies when no copies share a container', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__C', 'db__in__D']]]);
+            const ancestorsOf = new Map([
+                ['svc__in__A', ['A']], ['svc__in__B', ['B']],
+                ['db__in__C', ['C']], ['db__in__D', ['D']],
+            ]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf)).toHaveLength(4);
+        });
     });
 });

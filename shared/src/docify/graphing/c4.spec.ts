@@ -287,4 +287,56 @@ describe('C4Model', () => {
         expect(serviceToServiceConnection).toBeDefined();
         expect(serviceToServiceConnection?.relationshipType).toBe('Connects To');
     });
+
+    describe('nodes with several parents', () => {
+        const node = (id: string) => ({ 'unique-id': id, 'node-type': 'service', name: id, description: id });
+        const deployedIn = (id: string, container: string, nodes: string[]) => ({
+            'unique-id': id,
+            'relationship-type': { 'deployed-in': { container, nodes } }
+        });
+
+        it('lists every parent of a node shared by several containers', () => {
+            const core = CalmCore.fromSchema({
+                nodes: ['cluster-a', 'cluster-b', 'ns'].map(node),
+                relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])]
+            });
+            const model = new C4Model(core);
+            expect(model.elements['ns'].parentIds).toEqual(['cluster-a', 'cluster-b']);
+            expect(model.elements['cluster-a'].children).toEqual(['ns']);
+            expect(model.elements['cluster-b'].children).toEqual(['ns']);
+        });
+
+        it('orders every parent before a shared child', () => {
+            const core = CalmCore.fromSchema({
+                nodes: ['ns', 'cluster-a', 'cluster-b'].map(node),
+                relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])]
+            });
+            expect(Object.keys(new C4Model(core).elements)).toEqual(['cluster-a', 'cluster-b', 'ns']);
+        });
+
+        it('keeps parentId as the first parent', () => {
+            const core = CalmCore.fromSchema({
+                nodes: ['cluster-a', 'cluster-b', 'ns'].map(node),
+                relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])]
+            });
+            expect(new C4Model(core).elements['ns'].parentId).toBe('cluster-a');
+        });
+
+        it('lists a parent and a child once when relationships repeat them', () => {
+            const core = CalmCore.fromSchema({
+                nodes: ['cluster', 'ns'].map(node),
+                relationships: [deployedIn('r1', 'cluster', ['ns']), deployedIn('r2', 'cluster', ['ns'])]
+            });
+            const model = new C4Model(core);
+            expect(model.elements['ns'].parentIds).toEqual(['cluster']);
+            expect(model.elements['cluster'].children).toEqual(['ns']);
+        });
+
+        it('gives a node with no parent an empty parent list', () => {
+            const core = CalmCore.fromSchema({ nodes: [node('alone')], relationships: [] });
+            const model = new C4Model(core);
+            expect(model.elements['alone'].parentIds).toEqual([]);
+            expect(model.elements['alone'].parentId).toBeUndefined();
+        });
+    });
 });

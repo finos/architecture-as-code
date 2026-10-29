@@ -258,6 +258,32 @@ describe('Widgets E2E - Handlebars Integration', () => {
     });
 
     describe('Block Architecture Widget', () => {
+        it('renders namespaces shared by every cluster of an environment', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'shared-nodes');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
+        it('draws a node with several parents in each parent, linking every copy to the original node', () => {
+            const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: '' });
+            const context = {
+                nodes: [node('cluster-a'), node('cluster-b'), node('ns-payments')],
+                relationships: [
+                    { 'unique-id': 'd1', 'relationship-type': { 'deployed-in': { container: 'cluster-a', nodes: ['ns-payments'] } } },
+                    { 'unique-id': 'd2', 'relationship-type': { 'deployed-in': { container: 'cluster-b', nodes: ['ns-payments'] } } },
+                ],
+            };
+            const compiled = handlebars.compile('{{block-architecture this link-prefix="#"}}');
+            const result = compiled(context);
+
+            expect(result).toContain('ns-payments__in__cluster-a["ns-payments"]:::node');
+            expect(result).toContain('ns-payments__in__cluster-b["ns-payments"]:::node');
+            expect(result).toContain('click ns-payments__in__cluster-a "#ns-payments" "Jump to ns-payments"');
+            expect(result).toContain('click ns-payments__in__cluster-b "#ns-payments" "Jump to ns-payments"');
+            expect(result).toContain('click cluster-a "#cluster-a" "Jump to cluster-a"');
+        });
+
         it('renders basic architecture structures (empty, single system, multiple systems)', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'basic-structures');
             const compiled = handlebars.compile(template);

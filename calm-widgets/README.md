@@ -201,6 +201,7 @@ Renders a system architecture as a Mermaid flowchart with optional containers (s
 
 **What it shows**
 - **Containers (systems)** as Mermaid subgraphs, with contained **nodes (services, dbs, etc.)** inside.
+- A node in more than one container (for example a namespace `deployed-in` several clusters) is drawn in each container, with everything nested in it. Edges connect the copies that are in the same container, and links go to the original node.
 - Optional **interfaces** as dotted attachments to their parent node.
 - **Edges** for `connects`/`interacts` relationships, using the relationship **`description`** as the label when present.
 - **Highlights** for any nodes listed in `highlight-nodes`.

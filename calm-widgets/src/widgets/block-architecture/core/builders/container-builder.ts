@@ -3,6 +3,16 @@ import { VMContainer, VMLeafNode, VMAttach } from '../../types';
 import { labelFor } from '../utils';
 import { VMFactoryProvider } from '../factories/factory-provider';
 
+export interface ContainerForest {
+    containers: VMContainer[];
+    attachments: VMAttach[];
+    looseNodes: VMLeafNode[];
+    /** Rendered ids of each node or interface. More than one when the node is drawn in several containers. */
+    instancesOf: Map<string, string[]>;
+    /** Rendered container ids enclosing each rendered id, outermost first. */
+    ancestorsOf: Map<string, string[]>;
+}
+
 /**
  * Recursively removes containers that have no nodes or child containers.
  * This prevents empty subgraph blocks from appearing in the rendered output,
@@ -17,64 +27,135 @@ export function pruneEmptyContainers(containers: VMContainer[]): VMContainer[] {
         .filter(c => c.nodes.length > 0 || c.containers.length > 0);
 }
 
+export const instanceId = (id: string, parentInstanceId: string) => `${id}__in__${parentInstanceId}`;
+
 /**
  * Builds the container forest structure for the view model. Creates VM containers
  * for each container ID, places nodes into their appropriate containers based on
  * the parent map, and handles interface rendering if enabled. Returns the root
  * containers, interface attachments, and any loose nodes that don't belong to containers.
+ *
+ * A node with several rendered parents is drawn once in each, together with everything
+ * nested in it. Each copy gets a distinct id from `instanceId`, and keeps the original
+ * unique-id in `sourceId` for links.
  */
 export function buildContainerForest(
     nodes: CalmNodeCanonicalModel[],
-    parentOf: Map<string, string>,
+    parentsOf: Map<string, string[]>,
     containerIdsToRender: Set<string>,
     renderInterfaces: boolean,
     activeInterfaceIds?: Set<string>
-): { containers: VMContainer[]; attachments: VMAttach[]; looseNodes: VMLeafNode[] } {
+): ContainerForest {
     const byId = new Map(nodes.map(n => [n['unique-id'], n] as const));
-    const attachments: VMAttach[] = [];
+    const attachmentsOf = new Map<string, VMAttach[]>();
     const looseNodes: VMLeafNode[] = [];
+    const instancesOf = new Map<string, string[]>();
+    const ancestorsOf = new Map<string, string[]>();
     const nodeFactory = VMFactoryProvider.getNodeFactory();
 
-    const vmContainers = new Map<string, VMContainer>();
-    for (const id of containerIdsToRender) {
-        const node = byId.get(id);
-        vmContainers.set(id, {
-            id,
-            label: labelFor(node, id),
+    // A copy id must not reuse the id of a real node or of another copy
+    const takenIds = new Set(nodes.map(n => n['unique-id']));
+    const copyId = (id: string, parentInstanceId: string) => {
+        const base = instanceId(id, parentInstanceId);
+        let candidate = base;
+        for (let i = 2; takenIds.has(candidate); i++) candidate = `${base}_${i}`;
+        takenIds.add(candidate);
+        return candidate;
+    };
+
+    const renderedParents = (id: string) =>
+        (parentsOf.get(id) ?? []).filter(p => p !== id && containerIdsToRender.has(p));
+
+    const childrenOf = new Map<string, string[]>();
+    const addChild = (parent: string, child: string) => {
+        const kids = childrenOf.get(parent) ?? [];
+        kids.push(child);
+        childrenOf.set(parent, kids);
+    };
+    for (const cid of containerIdsToRender) {
+        for (const p of renderedParents(cid)) addChild(p, cid);
+    }
+    for (const n of nodes) {
+        const nid = n['unique-id'];
+        if (containerIdsToRender.has(nid)) continue;
+        for (const p of renderedParents(nid)) addChild(p, nid);
+    }
+
+    // Number of times each id is drawn: one per drawing of each rendered parent
+    const copies = new Map<string, number>();
+    const countCopies = (id: string, path: Set<string>): number => {
+        const known = copies.get(id);
+        if (known !== undefined) return known;
+        const parents = renderedParents(id).filter(p => !path.has(p));
+        const nextPath = new Set(path).add(id);
+        const count = parents.length === 0 ? 1 : parents.reduce((sum, p) => sum + countCopies(p, nextPath), 0);
+        copies.set(id, count);
+        return count;
+    };
+
+    const record = (id: string, rendered: string, ancestors: string[]) => {
+        const list = instancesOf.get(id) ?? [];
+        list.push(rendered);
+        instancesOf.set(id, list);
+        ancestorsOf.set(rendered, ancestors);
+    };
+
+    const createLeaf = (n: CalmNodeCanonicalModel, rendered: string, ancestors: string[]): VMLeafNode => {
+        const nid = n['unique-id'];
+        const { node: leaf, attachments: nodeAttachments } = nodeFactory.createLeafNode(n, renderInterfaces, activeInterfaceIds);
+        const rename = (x: string) => (x === nid || x.startsWith(`${nid}__iface__`) ? rendered + x.slice(nid.length) : x);
+
+        record(nid, rendered, ancestors);
+        for (const itf of leaf.interfaces ?? []) record(itf.id, rename(itf.id), [...ancestors, rendered]);
+        if (rendered !== nid) {
+            leaf.id = rendered;
+            leaf.sourceId = nid;
+            leaf.interfaces = leaf.interfaces?.map(itf => ({ ...itf, id: rename(itf.id), sourceId: itf.id }));
+        }
+        const forNode = attachmentsOf.get(nid) ?? [];
+        forNode.push(...nodeAttachments.map(a => ({ from: rename(a.from), to: rename(a.to) })));
+        attachmentsOf.set(nid, forNode);
+        return leaf;
+    };
+
+    const createContainer = (cid: string, rendered: string, ancestors: string[], path: Set<string>): VMContainer => {
+        const node = byId.get(cid);
+        const container: VMContainer = {
+            id: rendered,
+            label: labelFor(node, cid),
             nodeType: node?.['node-type'],
             nodes: [],
             containers: [],
-        });
-    }
+        };
+        if (rendered !== cid) container.sourceId = cid;
+        record(cid, rendered, ancestors);
 
-    // Place nodes into containers when their parent is rendered; otherwise treat as loose
+        const childAncestors = [...ancestors, rendered];
+        const childPath = new Set(path).add(cid);
+        for (const child of childrenOf.get(cid) ?? []) {
+            if (childPath.has(child)) continue;
+            const childRendered = countCopies(child, new Set()) > 1 ? copyId(child, rendered) : child;
+            if (containerIdsToRender.has(child)) {
+                container.containers.push(createContainer(child, childRendered, childAncestors, childPath));
+            } else {
+                const n = byId.get(child);
+                if (n) container.nodes.push(createLeaf(n, childRendered, childAncestors));
+            }
+        }
+        return container;
+    };
+
+    const containers = Array.from(containerIdsToRender)
+        .filter(cid => renderedParents(cid).length === 0)
+        .map(cid => createContainer(cid, cid, [], new Set()));
+
     for (const n of nodes) {
         const nid = n['unique-id'];
-        if (containerIdsToRender.has(nid)) continue; // a container id itself
-        const pid = parentOf.get(nid);
-        if (pid && containerIdsToRender.has(pid)) {
-            const cont = vmContainers.get(pid);
-            if (cont) {
-                const { node: leafNode, attachments: nodeAttachments } = nodeFactory.createLeafNode(n, renderInterfaces, activeInterfaceIds);
-                cont.nodes.push(leafNode);
-                attachments.push(...nodeAttachments);
-            }
-        } else {
-            const { node: leafNode, attachments: nodeAttachments } = nodeFactory.createLeafNode(n, renderInterfaces, activeInterfaceIds);
-            looseNodes.push(leafNode);
-            attachments.push(...nodeAttachments);
-        }
+        if (containerIdsToRender.has(nid) || renderedParents(nid).length > 0) continue;
+        looseNodes.push(createLeaf(n, nid, []));
     }
 
-    // Attach container → container for rendered containers
-    for (const [child, parent] of parentOf.entries()) {
-        if (!containerIdsToRender.has(child)) continue;
-        const p = vmContainers.get(parent);
-        const c = vmContainers.get(child);
-        if (p && c) p.containers.push(c);
-    }
-
-    const roots = Array.from(containerIdsToRender).filter(cid => !parentOf.get(cid));
-    const containers = roots.map(r => vmContainers.get(r)!).filter(Boolean);
-    return { containers, attachments, looseNodes };
+    // Input node order keeps the output stable for architectures without shared nodes
+    const attachments = nodes.flatMap(n => attachmentsOf.get(n['unique-id']) ?? []);
+    return { containers, attachments, looseNodes, instancesOf, ancestorsOf };
 }

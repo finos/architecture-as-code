@@ -30,7 +30,7 @@ export interface VisibilityResult {
  */
 function collectContainerIdsForVisible(
     visible: Set<string>,
-    parentOf: Map<string, string>,
+    parentsOf: Map<string, string[]>,
     include: IncludeContainers,
     allMentioned: Set<string>
 ): Set<string> {
@@ -40,8 +40,7 @@ function collectContainerIdsForVisible(
     // parents
     const wanted = new Set<string>();
     for (const nid of visible) {
-        const p = parentOf.get(nid);
-        if (p) wanted.add(p);
+        for (const p of parentsOf.get(nid) ?? []) wanted.add(p);
     }
     return wanted;
 }
@@ -120,7 +119,7 @@ export function resolveVisibilityWithStrategies(
     parentHierarchyResult: ParentHierarchyResult,
     nodesById: Map<string, CalmNodeCanonicalModel>
 ): VisibilityResult {
-    const { parentOf, allMentionedContainers, childrenOfContainer } = parentHierarchyResult;
+    const { parentsOf, allMentionedContainers, childrenOfContainer } = parentHierarchyResult;
     const nodes = context.nodes ?? [];
     const relationships = context.relationships ?? [];
     const allNodeIds = new Set(nodes.map(n => n['unique-id']));
@@ -194,7 +193,7 @@ export function resolveVisibilityWithStrategies(
 
     const containerIds = collectContainerIdsForVisible(
         result.visibleNodes,
-        parentOf,
+        parentsOf,
         opts.includeContainers,
         allMentionedContainers
     );

@@ -4,12 +4,14 @@ import { BlockArchVM, NormalizedOptions, VMContainer, VMLeafNode, VMAttach, VMEd
 import { buildParentHierarchy, ParentHierarchyResult } from './relationship-analyzer';
 import { resolveVisibilityWithStrategies, VisibilityResult } from './visibility-resolver';
 import { buildContainerForest, pruneEmptyContainers } from './builders/container-builder';
-import { buildInterfaceNameMap, buildEdges } from './builders/edge-builder';
+import { buildInterfaceNameMap, buildEdges, expandEdgesToInstances } from './builders/edge-builder';
 
 interface ContainerResult {
     containers: VMContainer[];
     attachments: VMAttach[];
     looseNodes: VMLeafNode[];
+    instancesOf: Map<string, string[]>;
+    ancestorsOf: Map<string, string[]>;
 }
 
 /**
@@ -86,9 +88,9 @@ export class BlockArchVMBuilder {
                 ? collectActiveInterfaceIds(this.visibilityResult.filteredRels)
                 : undefined;
 
-        const { containers: initialContainers, attachments, looseNodes: initialLooseNodes } = buildContainerForest(
+        const { containers: initialContainers, attachments, looseNodes: initialLooseNodes, instancesOf, ancestorsOf } = buildContainerForest(
             filteredNodes,
-            this.parentHierarchyResult.parentOf,
+            this.parentHierarchyResult.parentsOf,
             this.visibilityResult.containerIds,
             shouldRenderInterfaces,
             activeInterfaceIds
@@ -101,7 +103,7 @@ export class BlockArchVMBuilder {
 
         const containers = pruneEmptyContainers(initialContainers);
 
-        this.containerResult = { containers, attachments, looseNodes };
+        this.containerResult = { containers, attachments, looseNodes, instancesOf, ancestorsOf };
         return this;
     }
 
@@ -112,12 +114,15 @@ export class BlockArchVMBuilder {
         if (!this.visibilityResult) {
             throw new Error('Must call resolveVisibility() first');
         }
+        if (!this.containerResult) {
+            throw new Error('Must call buildContainers() first');
+        }
 
         const nodes = this.context.nodes ?? [];
         const nodesById = new Map(nodes.map(n => [n['unique-id'], n] as const));
         const ifaceNames = buildInterfaceNameMap(nodes);
 
-        this.edges = this.options.edges === 'none'
+        const edges = this.options.edges === 'none'
             ? []
             : buildEdges(
                 this.visibilityResult.filteredRels,
@@ -127,6 +132,7 @@ export class BlockArchVMBuilder {
                 ifaceNames,
                 nodesById
             );
+        this.edges = expandEdgesToInstances(edges, this.containerResult.instancesOf, this.containerResult.ancestorsOf);
         return this;
     }
 
@@ -169,7 +175,8 @@ export class BlockArchVMBuilder {
 
         const highlightSet = new Set<string>(this.options.highlightNodes ?? []);
         for (const id of this.options.focusNodes ?? []) highlightSet.add(id);
-        const highlightNodeIds = Array.from(highlightSet);
+        const { instancesOf } = this.containerResult;
+        const highlightNodeIds = Array.from(highlightSet).flatMap(id => instancesOf.get(id) ?? [id]);
 
         return {
             containers: this.containerResult.containers,

@@ -68,6 +68,12 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
             }
             return 0;
         },
+        linkId: (item: unknown): string => {
+            if (typeof item !== 'object' || item === null) return '';
+            const { id, sourceId } = item as { id?: unknown; sourceId?: unknown };
+            const linkTarget = sourceId ?? id;
+            return typeof linkTarget === 'string' ? linkTarget : '';
+        },
         lookup: (obj: unknown, key: unknown): unknown => {
             if (obj && (typeof key === 'string' || typeof key === 'number')) {
                 return (obj as Record<string | number, unknown>)[key];
