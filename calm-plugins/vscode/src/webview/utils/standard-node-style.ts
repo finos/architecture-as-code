@@ -1,6 +1,6 @@
 export function isStandardNode(data: Record<string, unknown>): boolean {
     const metadata = data.metadata as Record<string, unknown> | undefined;
-    return !!metadata?.['source-standard-node'] || !!metadata?.['source-fidelity-node'];
+    return !!metadata?.['source-fidelity-node'];
 }
 
 /** User-defined per-node appearance overrides, persisted under `metadata['standard-node-style']`. */

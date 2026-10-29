@@ -53,6 +53,7 @@ import { ControlsList } from './panels/ControlsList';
 import { CustomMetadata } from './panels/CustomMetadata';
 import { NodeAppearance } from './panels/NodeAppearance';
 import { getNodeStyleOverride, isStandardNode } from './utils/standard-node-style';
+import { applyStandardToNode } from './utils/standard-drop';
 import { defaultNodeColours } from './canvas/node-colours';
 import { PatternPicker } from './panels/PatternPicker';
 import { StandardNodeCreator } from './panels/StandardNodeCreator';
@@ -72,7 +73,6 @@ import { nodeTypes } from './canvas/nodeTypes';
 import { edgeTypes } from './canvas/edgeTypes';
 import { minimapNodeClassName } from './canvas/minimap';
 import { makeContainment, removeContainment, isInsideBounds, getAbsolutePosition } from './utils/containment';
-import { mergeControls } from '@finos/calm-shared/browser';
 import { validateArchitecture } from './utils/validation';
 
 const SUPPRESS_ECHO_MS = 1200;
@@ -494,13 +494,9 @@ function CanvasApp() {
         const details = data?.details as { 'detailed-architecture'?: string } | undefined;
         const calmType = (data?.calmType as string) ?? '';
         const label = (data?.label as string) || node.id;
-        const metadata = data?.metadata as Record<string, unknown> | undefined;
-        const sourceStandardNode = metadata?.['source-standard-node'] as string | undefined;
 
         if (details?.['detailed-architecture']) {
             notifyDrillInto(label, details['detailed-architecture'], calmType);
-        } else if (sourceStandardNode) {
-            notifyDrillInto(label, `standard-nodes/${sourceStandardNode}.calm.json`, `standard-node:${sourceStandardNode}`);
         } else if (calmType.includes(':')) {
             const safeName = calmType.replace(/^standard-node:/, '');
             notifyDrillInto(label, `standard-nodes/${safeName}.calm.json`, calmType);
@@ -627,89 +623,11 @@ function CanvasApp() {
                     }
                 }
                 if (targetId) {
-                    // Hub-sourced standard/guideline: write a definition-id CURIE ref
-                    const stdCurieType = standardNode.id?.startsWith?.('guidelines:') ? 'guidelines' : 'standards';
-                    const requirementUrl = (isHubSourced && standardNode.sha)
-                        ? `${standardNode.namespace}:${stdCurieType}:${standardNode.id}@${standardNode.sha}`
-                        : undefined;
-
-                    // Merge controls into target (if any) and create standards node + edge
-                    setNodes((nds) => {
-                        const existingStdNode = nds.find(
-                            (n) => (n.data as any)?.metadata?.['source-standard-node'] === standardNodeId
-                        );
-                        let stdNodeId: string;
-                        let updatedNodes = nds.map((n) => {
-                            if (n.id !== targetId) return n;
-                            if (!isHubSourced && Object.keys(controlsCopy).length === 0) return n;
-                            const data = { ...(n.data as Record<string, unknown>) };
-                            if (!isHubSourced) {
-                                data.controls = mergeControls((data.controls as Record<string, unknown>) ?? {}, controlsCopy);
-                            }
-                            return { ...n, data };
-                        });
-
-                        if (existingStdNode) {
-                            stdNodeId = existingStdNode.id;
-                        } else {
-                            // Create a standards node near the drop position
-                            stdNodeId = `standard-${Date.now()}`;
-                            const stdNodeData: Record<string, unknown> = {
-                                label: standardNode.name,
-                                calmId: stdNodeId,
-                                calmType: 'standard',
-                                description: standardNode.description ?? '',
-                                interfaces: [],
-                            };
-                            if (requirementUrl) {
-                                stdNodeData['definition-id'] = requirementUrl;
-                            } else {
-                                stdNodeData.controls = {};
-                                stdNodeData.metadata = { 'source-standard-node': standardNodeId };
-                            }
-                            const stdNode: Node = {
-                                id: stdNodeId,
-                                type: resolveFlowNodeType('service'),
-                                position: { x: position.x + 200, y: position.y - 100 },
-                                data: stdNodeData,
-                            };
-                            updatedNodes = [...updatedNodes, stdNode];
-                        }
-
-                        // Create "adheres to" dotted edge (if not already connected)
-                        setEdges((eds) => {
-                            const alreadyLinked = eds.some(
-                                (edge) => edge.source === targetId && edge.target === stdNodeId
-                                    && (edge.data as any)?.lineStyle === 'dotted'
-                            );
-                            if (alreadyLinked) return eds;
-                            const edgeId = `rel-${Date.now()}`;
-                            return [...eds, {
-                                id: edgeId,
-                                source: targetId!,
-                                target: stdNodeId,
-                                type: 'tooltip',
-                                label: 'adheres to',
-                                markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                                style: { strokeWidth: 1.5 },
-                                data: {
-                                    calmRelId: edgeId,
-                                    calmVariant: 'connects',
-                                    protocol: '',
-                                    description: 'adheres to',
-                                    direction: 'source-to-target',
-                                    lineStyle: 'dotted',
-                                },
-                            }];
-                        });
-
-                        return updatedNodes;
-                    });
+                    setNodes((nds) => applyStandardToNode(nds, targetId!, controlsCopy));
                     setTimeout(() => emitChange(true), 0);
                     setTimeout(() => enrichAllControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
-                    return;
                 }
-                // No target (or no controls to apply) — fall through to place a standalone marker.
+                return;
             }
 
             const id = `${standardNode.nodeType}-${Date.now()}`;
@@ -718,25 +636,15 @@ function CanvasApp() {
                 id,
                 type: resolveFlowNodeType(standardNode.nodeType),
                 position,
-                data: isHubSourced
-                    ? {
-                        label: standardNode.name,
-                        calmId: id,
-                        calmType: standardNode.nodeType,
-                        description: standardNode.description ?? '',
-                        interfaces: [],
-                        controls: controlsCopy,
-                        ...(hasCustomId && standardNode.sha ? { 'definition-id': `${standardNode.namespace}:standards:${standardNode.id}@${standardNode.sha}` } : {}),
-                    }
-                    : {
-                        label: standardNode.name,
-                        calmId: id,
-                        calmType: standardNode.nodeType,
-                        description: standardNode.description ?? '',
-                        interfaces: [],
-                        controls: controlsCopy,
-                        metadata: { 'source-standard-node': standardNode.id },
-                    },
+                data: {
+                    label: standardNode.name,
+                    calmId: id,
+                    calmType: standardNode.nodeType,
+                    description: standardNode.description ?? '',
+                    interfaces: [],
+                    controls: controlsCopy,
+                    ...(isHubSourced && hasCustomId && standardNode.sha ? { 'definition-id': `${standardNode.namespace}:standards:${standardNode.id}@${standardNode.sha}` } : {}),
+                },
             };
             setNodes((nds) => [...nds, newNode]);
             // Request resolution for Hub-sourced blocks so the webview can render controls
@@ -767,29 +675,7 @@ function CanvasApp() {
 
     // --- Validate ---
     const handleValidate = useCallback(() => {
-        // Re-resolve controls onto standard/guideline nodes from the palette item they came
-        // from (via `source-standard-node`). Nodes dropped before their front-matter controls
-        // were available — or whose controls were never populated — otherwise validate as
-        // empty. Only backfill when the node currently has no controls of its own.
-        const paletteControlsById = new Map<string, Record<string, unknown>>();
-        for (const fn of store.standardNodes as Array<{ id?: string; controls?: Record<string, unknown> }>) {
-            if (fn?.id && fn.controls && Object.keys(fn.controls).length > 0) {
-                paletteControlsById.set(fn.id, fn.controls);
-            }
-        }
-        const effectiveNodes = nodes.map((n) => {
-            const data = (n.data ?? {}) as Record<string, unknown>;
-            const meta = data.metadata as Record<string, unknown> | undefined;
-            const sourceId = meta?.['source-standard-node'] as string | undefined;
-            if (!sourceId) return n;
-            const palette = paletteControlsById.get(sourceId);
-            if (!palette) return n;
-            const current = data.controls as Record<string, unknown> | undefined;
-            if (current && Object.keys(current).length > 0) return n;
-            return { ...n, data: { ...data, controls: JSON.parse(JSON.stringify(palette)) as Record<string, unknown> } };
-        });
-
-        const arch = flowToCalm(effectiveNodes, edges, store.documentControls);
+        const arch = flowToCalm(nodes, edges, store.documentControls);
         const issues = validateArchitecture(arch);
         // Count controls actually present so the result makes it clear whether there was
         // anything to validate (a common confusion: plain node-type nodes have no controls).
@@ -817,7 +703,7 @@ function CanvasApp() {
             else if (issue.severity === 'warning') c.warnings++;
             counts[issue.nodeId] = c;
         }
-        setNodes(effectiveNodes.map((n) => ({
+        setNodes(nodes.map((n) => ({
             ...n,
             data: { ...(n.data as Record<string, unknown>), validationErrors: counts[n.id]?.errors ?? 0, validationWarnings: counts[n.id]?.warnings ?? 0 },
         })));

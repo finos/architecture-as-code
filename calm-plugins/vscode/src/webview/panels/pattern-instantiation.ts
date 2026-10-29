@@ -116,8 +116,6 @@ function resolveStandardNode(node: any, standardNodes: StandardNodeDef[]): void 
         node['definition-id'] = `${match.namespace}:standards:${match.id}@${match.sha}`;
     } else {
         delete node['definition-id'];
-        if (!node.metadata) node.metadata = {};
-        node.metadata['source-standard-node'] = match.id;
     }
 }
 
