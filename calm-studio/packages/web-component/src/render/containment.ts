@@ -18,8 +18,10 @@ import { isFlatRelationship, type DiagramEdge } from './relationshipEdges.js';
 export interface ContainmentPlan {
   /** containerId -> member node ids (only satisfiable claims, document order) */
   childrenOf: Map<string, string[]>;
-  /** nodeId -> containerId (inverse of childrenOf) */
+  /** nodeId -> first containerId */
   parentOf: Map<string, string>;
+  /** nodeId -> every containerId, in document order (inverse of childrenOf). The node is drawn in each. */
+  parentsOf: Map<string, string[]>;
   /** Unsatisfiable claims, as dashed edges with fan-out id rules */
   fallbackEdges: DiagramEdge[];
   /** Containment relationships fully represented by nesting (no edges at all). Informational: the renderer filters containment relationships via isNestedContainment (a partially-fallen-back relationship must not fan out either), so it does not read this set; it exists for consumers that need to know which relationships are fully expressed by nesting. */
@@ -30,6 +32,7 @@ export function emptyContainmentPlan(): ContainmentPlan {
   return {
     childrenOf: new Map(),
     parentOf: new Map(),
+    parentsOf: new Map(),
     fallbackEdges: [],
     consumedRelationshipIds: new Set(),
   };
@@ -42,22 +45,27 @@ export function isNestedContainment(rel: CalmRelationship): boolean {
   return variant === 'composed-of' || variant === 'deployed-in';
 }
 
-/** Walk parentOf upward from `start`; true if `target` is an ancestor of `start`. */
-function hasAncestor(parentOf: Map<string, string>, start: string, target: string): boolean {
-  let current: string | undefined = parentOf.get(start);
-  while (current !== undefined) {
+/** Walk every parent upward from `start`; true if `target` is an ancestor of `start`. */
+function hasAncestor(parentsOf: Map<string, string[]>, start: string, target: string): boolean {
+  const stack = [...(parentsOf.get(start) ?? [])];
+  const seen = new Set<string>();
+  while (stack.length > 0) {
+    const current = stack.pop() as string;
     if (current === target) return true;
-    current = parentOf.get(current);
+    if (seen.has(current)) continue;
+    seen.add(current);
+    stack.push(...(parentsOf.get(current) ?? []));
   }
   return false;
 }
 
 /**
  * Resolve containment claims in document order. A claim container⊃member is
- * satisfiable iff: both ids exist, member is not already claimed, member is
- * not the container itself, and nesting would not create a cycle (the
- * container is not itself a descendant of the member). Unsatisfiable claims
- * fall back to edges; a relationship with zero fallbacks is fully consumed.
+ * satisfiable iff: both ids exist, member is not the container itself, and
+ * nesting would not create a cycle (the container is not itself a descendant
+ * of the member). A member claimed by several containers nests in each.
+ * Unsatisfiable claims fall back to edges; a relationship with zero fallbacks
+ * is fully consumed.
  */
 export function planContainment(
   relationships: CalmRelationship[],
@@ -79,17 +87,19 @@ export function planContainment(
 
     const rejected: string[] = [];
     for (const member of members) {
+      const parents = plan.parentsOf.get(member) ?? [];
+      if (parents.includes(container)) continue;
       const satisfiable =
         knownNodeIds.has(container) &&
         knownNodeIds.has(member) &&
         member !== container &&
-        !plan.parentOf.has(member) &&
-        !hasAncestor(plan.parentOf, container, member);
+        !hasAncestor(plan.parentsOf, container, member);
       if (satisfiable) {
         const siblings = plan.childrenOf.get(container) ?? [];
         siblings.push(member);
         plan.childrenOf.set(container, siblings);
-        plan.parentOf.set(member, container);
+        plan.parentsOf.set(member, [...parents, container]);
+        if (!plan.parentOf.has(member)) plan.parentOf.set(member, container);
       } else {
         rejected.push(member);
       }

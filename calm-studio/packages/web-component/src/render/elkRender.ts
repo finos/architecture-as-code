@@ -10,7 +10,7 @@ import type { CalmArchitecture } from '@calmstudio/calm-core';
 import { renderNodeSvg, renderContainerSvg } from './nodeRenderer.js';
 import { renderEdgeSvg, renderEdgeMarkers } from './edgeRenderer.js';
 import { renderFlowOverlay, applyFlowDimming, getFlowNodeIds, type EdgeLayout } from './flowOverlay.js';
-import { relationshipToEdges, type DiagramEdge } from './relationshipEdges.js';
+import { relationshipToEdges, expandEdgesToInstances, type DiagramEdge } from './relationshipEdges.js';
 import { planContainment, emptyContainmentPlan, isNestedContainment } from './containment.js';
 
 // ---------------------------------------------------------------------------
@@ -119,23 +119,45 @@ export async function renderELKDiagram(
 
   const nodeNameMap = new Map(nodes.map((n) => [n['unique-id'], n.name] as const));
 
-  function buildElkNode(id: string): ElkNodeInput {
+  // A node nested in several containers is drawn once in each, with everything
+  // nested in it. The first drawing keeps the CALM id; each other drawing gets
+  // its own render id, mapped back through calmIdOf.
+  const calmIdOf = new Map<string, string>();
+  const instancesOf = new Map<string, string[]>();
+  const ancestorsOf = new Map<string, string[]>();
+  const takenIds = new Set<string>(knownNodeIds);
+  function renderIdFor(id: string, parentRenderId: string | undefined): string {
+    if (!instancesOf.has(id)) return id;
+    const base = `${id}__in__${parentRenderId ?? 'root'}`;
+    let candidate = base;
+    for (let i = 2; takenIds.has(candidate); i++) candidate = `${base}_${i}`;
+    takenIds.add(candidate);
+    return candidate;
+  }
+
+  function buildElkNode(id: string, parentRenderId?: string, ancestors: string[] = []): ElkNodeInput {
+    const renderId = renderIdFor(id, parentRenderId);
+    calmIdOf.set(renderId, id);
+    instancesOf.set(id, [...(instancesOf.get(id) ?? []), renderId]);
+    ancestorsOf.set(renderId, ancestors);
     const members = plan.childrenOf.get(id);
     const label = { text: nodeNameMap.get(id) ?? id };
     if (members && members.length > 0) {
       return {
-        id,
+        id: renderId,
         labels: [label],
         layoutOptions: { 'elk.padding': '[top=44.0,left=16.0,bottom=16.0,right=16.0]' },
-        children: members.map(buildElkNode),
+        children: members.map((m) => buildElkNode(m, renderId, [...ancestors, renderId])),
       };
     }
-    return { id, width: NODE_WIDTH, height: NODE_HEIGHT, labels: [label] };
+    return { id: renderId, width: NODE_WIDTH, height: NODE_HEIGHT, labels: [label] };
   }
 
   const topLevelIds = nodes
     .map((n) => n['unique-id'])
     .filter((id) => !plan.parentOf.has(id));
+  const topLevelChildren = topLevelIds.map((id) => buildElkNode(id));
+  const renderEdges = expandEdgesToInstances(diagramEdges, instancesOf, ancestorsOf);
 
   const graph = {
     id: 'root',
@@ -150,8 +172,8 @@ export async function renderELKDiagram(
       // INCLUDE_CHILDREN: lets the layered algorithm route edges across hierarchy levels.
       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
     },
-    children: topLevelIds.map(buildElkNode),
-    edges: diagramEdges.map((e) => ({
+    children: topLevelChildren,
+    edges: renderEdges.map((e) => ({
       id: e.id,
       sources: [e.source],
       targets: [e.target],
@@ -171,7 +193,7 @@ export async function renderELKDiagram(
 
   const relTypeMap = new Map<string, string>();
   const relIdByRenderId = new Map<string, string>();
-  for (const e of diagramEdges) {
+  for (const e of renderEdges) {
     relTypeMap.set(e.id, e.variant);
     relIdByRenderId.set(e.id, e.relationshipId);
   }
@@ -202,7 +224,7 @@ export async function renderELKDiagram(
         height: child.height ?? NODE_HEIGHT,
         label: child.labels?.[0]?.text ?? child.id,
         depth,
-        isContainer: (plan.childrenOf.get(child.id)?.length ?? 0) > 0,
+        isContainer: (plan.childrenOf.get(calmIdOf.get(child.id) ?? child.id)?.length ?? 0) > 0,
       });
       placeNodes(child.children, x, y, depth + 1);
     }
@@ -253,12 +275,14 @@ export async function renderELKDiagram(
 
   // Draw container boxes first, outermost (lowest depth) first, so children paint on top
   for (const p of placed.filter((n) => n.isContainer).sort((a, b) => a.depth - b.depth)) {
-    const nodeType = nodeTypeMap.get(p.id) ?? 'system';
-    const description = nodeDescMap.get(p.id) ?? '';
+    const calmId = calmIdOf.get(p.id) ?? p.id;
+    const nodeType = nodeTypeMap.get(calmId) ?? 'system';
+    const description = nodeDescMap.get(calmId) ?? '';
     const nodeOpacity =
-      activeFlow && activeFlowNodeIds.size > 0 && !activeFlowNodeIds.has(p.id) ? '0.3' : '1';
+      activeFlow && activeFlowNodeIds.size > 0 && !activeFlowNodeIds.has(calmId) ? '0.3' : '1';
     const containerSvg = renderContainerSvg({
       id: p.id,
+      calmId,
       x: p.x,
       y: p.y,
       width: p.width,
@@ -315,17 +339,19 @@ export async function renderELKDiagram(
 
   // Draw leaf nodes on top of containers and edges
   for (const p of placed.filter((n) => !n.isContainer)) {
-    const nodeType = nodeTypeMap.get(p.id) ?? 'system';
-    const description = nodeDescMap.get(p.id) ?? '';
+    const calmId = calmIdOf.get(p.id) ?? p.id;
+    const nodeType = nodeTypeMap.get(calmId) ?? 'system';
+    const description = nodeDescMap.get(calmId) ?? '';
 
     // Dim nodes not connected to the active flow
     const nodeOpacity =
-      activeFlow && activeFlowNodeIds.size > 0 && !activeFlowNodeIds.has(p.id)
+      activeFlow && activeFlowNodeIds.size > 0 && !activeFlowNodeIds.has(calmId)
         ? '0.3'
         : '1';
 
     const nodeSvg = renderNodeSvg({
       id: p.id,
+      calmId,
       x: p.x,
       y: p.y,
       width: p.width,

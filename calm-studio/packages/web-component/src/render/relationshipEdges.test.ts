@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, it, expect } from 'vitest';
-import { relationshipToEdges } from './relationshipEdges.js';
+import { relationshipToEdges, expandEdgesToInstances, type DiagramEdge } from './relationshipEdges.js';
 import { renderELKDiagram } from './elkRender.js';
 import type { CalmArchitecture, CalmRelationship } from '@calmstudio/calm-core';
 
@@ -228,5 +228,27 @@ describe('renderELKDiagram with nested relationship-type (integration)', () => {
     expect(animCount).toBe(2);
     // ...and neither may be dimmed: the only relationship present IS the flow.
     expect(svg).not.toContain('opacity="0.3"');
+  });
+});
+
+describe('expandEdgesToInstances', () => {
+  const edge = (id: string, source: string, target: string): DiagramEdge =>
+    ({ id, relationshipId: id, source, target, variant: 'connects' });
+  const instancesOf = new Map([['a', ['a', 'a__in__y']]]);
+  const ancestorsOf = new Map([['a', ['x']], ['a__in__y', ['y']]]);
+
+  it('keeps an edge between nodes drawn once', () => {
+    expect(expandEdgesToInstances([edge('c', 'b', 'd')], instancesOf, ancestorsOf)).toEqual([edge('c', 'b', 'd')]);
+  });
+
+  it('connects a node drawn once to every copy, keeping the relationship id', () => {
+    const result = expandEdgesToInstances([edge('c', 'b', 'a')], instancesOf, ancestorsOf);
+    expect(result.map((e) => [e.target, e.relationshipId])).toEqual([['a', 'c'], ['a__in__y', 'c']]);
+  });
+
+  it('gives each copy edge an id that no other edge uses', () => {
+    const result = expandEdgesToInstances([edge('c', 'b', 'a'), edge('c__copy1', 'a', 'b')], instancesOf, ancestorsOf);
+    const ids = result.map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

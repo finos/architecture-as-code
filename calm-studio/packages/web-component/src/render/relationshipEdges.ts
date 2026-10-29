@@ -111,3 +111,47 @@ function buildFanOutEdges(
     variant,
   }));
 }
+
+/**
+ * Connects edges to the drawings of nodes that are nested in several containers.
+ * When both ends have several drawings, each drawing connects only to those that
+ * share the most containers.
+ */
+export function expandEdgesToInstances(
+  edges: DiagramEdge[],
+  instancesOf: Map<string, string[]>,
+  ancestorsOf: Map<string, string[]>
+): DiagramEdge[] {
+  const takenIds = new Set(edges.map((e) => e.id));
+  const copyEdgeId = (id: string, i: number): string => {
+    let candidate = `${id}__copy${i}`;
+    for (let n = 2; takenIds.has(candidate); n++) candidate = `${id}__copy${i}_${n}`;
+    takenIds.add(candidate);
+    return candidate;
+  };
+  const sharedContainers = (a: string, b: string): number => {
+    const ofB = new Set(ancestorsOf.get(b) ?? []);
+    return (ancestorsOf.get(a) ?? []).filter((x) => ofB.has(x)).length;
+  };
+
+  return edges.flatMap((edge) => {
+    const sources = instancesOf.get(edge.source) ?? [edge.source];
+    const targets = instancesOf.get(edge.target) ?? [edge.target];
+    if (sources.length === 1 && targets.length === 1) {
+      return [{ ...edge, source: sources[0] as string, target: targets[0] as string }];
+    }
+
+    const pairs = sources.flatMap((source) =>
+      targets.map((target) => ({ source, target, score: sharedContainers(source, target) }))
+    );
+    const bestForSource = new Map<string, number>();
+    const bestForTarget = new Map<string, number>();
+    for (const p of pairs) {
+      bestForSource.set(p.source, Math.max(bestForSource.get(p.source) ?? 0, p.score));
+      bestForTarget.set(p.target, Math.max(bestForTarget.get(p.target) ?? 0, p.score));
+    }
+    return pairs
+      .filter((p) => p.score === bestForSource.get(p.source) || p.score === bestForTarget.get(p.target))
+      .map((p, i) => ({ ...edge, id: i === 0 ? edge.id : copyEdgeId(edge.id, i), source: p.source, target: p.target }));
+  });
+}
