@@ -16,8 +16,8 @@ const CONTAINER_BASE_HEIGHT = 350;
 const CONTAINER_CHILD_WIDTH_INCREMENT = 150;
 const CONTAINER_CHILD_HEIGHT_INCREMENT = 120;
 
-/** Drawings above which a node in several containers is drawn in its first container only. */
-const MAX_DRAWINGS = 1000;
+/** Copies above which a node in several containers is drawn in its first container only. */
+const MAX_COPIES = 1000;
 
 export function parseCALMData(
     arch: CalmArchitecture,
@@ -103,7 +103,7 @@ export function parseCALMData(
         counts.set(id, count);
         return count;
     };
-    const capped = [...calmIds].reduce((sum, id) => sum + countDrawings(id, new Set()), 0) > MAX_DRAWINGS;
+    const capped = [...calmIds].reduce((sum, id) => sum + countDrawings(id, new Set()) - 1, 0) > MAX_COPIES;
     const otherParentsOf = new Map<string, string[]>();
 
     const instancesOf = new Map<string, Instance[]>();
