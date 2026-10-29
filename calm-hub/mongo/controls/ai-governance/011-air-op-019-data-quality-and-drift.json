@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-019",
+      "control-id": "AIR-OP-019",
       "name": "Data Quality and Drift",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-19_data-quality-and-drift.html",
-      "summary": "Generative AI systems rely heavily on the quality and freshness of their training data. Outdated or poor-quality data can lead to inaccurate, biased, or irrelevant outputs, including flawed risk assessments and compliance failures due to data or concept drift.",
+      "description": "Generative AI systems rely heavily on the quality and freshness of their training data. Outdated or poor-quality data can lead to inaccurate, biased, or irrelevant outputs, including flawed risk assessments and compliance failures due to data or concept drift.",
       "requirements": [
         "Establish a data governance framework defining quality standards, ownership, and lifecycle management for AI training and inference data.",
         "Implement automated data quality checks (accuracy, completeness, consistency, timeliness) at ingestion and pre-training stages.",
