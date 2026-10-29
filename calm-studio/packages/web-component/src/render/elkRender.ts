@@ -61,11 +61,11 @@ export interface RenderOptions {
  * @param options - Optional render options (theme, direction)
  * @returns Promise resolving to an SVG string
  */
-/** Drawings above which a node in several containers is nested under its first claim only. */
-const MAX_DRAWINGS = 1000;
+/** Copies above which a node in several containers is nested under its first claim only. */
+const MAX_COPIES = 1000;
 
 /** Number of drawings when every node is drawn once in each container that claims it. */
-function countDrawings(plan: ContainmentPlan): number {
+function countCopies(plan: ContainmentPlan): number {
   const counts = new Map<string, number>();
   const count = (id: string): number => {
     const known = counts.get(id);
@@ -75,7 +75,7 @@ function countDrawings(plan: ContainmentPlan): number {
     counts.set(id, result);
     return result;
   };
-  return [...plan.parentsOf.keys()].reduce((sum, id) => sum + count(id), 0);
+  return [...plan.parentsOf.keys()].reduce((sum, id) => sum + count(id) - 1, 0);
 }
 
 export async function renderELKDiagram(
@@ -112,7 +112,7 @@ export async function renderELKDiagram(
     : emptyContainmentPlan();
   // Copies multiply with each level of shared containers. Past the limit, nest
   // each node under its first claim only and draw the other claims as edges.
-  if (countDrawings(plan) > MAX_DRAWINGS) {
+  if (countCopies(plan) > MAX_COPIES) {
     plan = planContainment(relationships, knownNodeIds, { sharedMembers: false });
   }
 

@@ -284,6 +284,20 @@ describe('renderELKDiagram nested containers (integration)', () => {
     expect((svg.match(/<polyline/g) ?? []).length).toBeGreaterThan(0);
   });
 
+  it('counts only copies against the limit, not every node', async () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'service', name: id, description: id });
+    const singles = Array.from({ length: 1001 }, (_, k) => `n${k}`);
+    const arch: CalmArchitecture = {
+      nodes: ['cluster-a', 'cluster-b', 'ns', ...singles].map(node),
+      relationships: [
+        deployedIn('r1', 'cluster-a', ['ns', ...singles]),
+        deployedIn('r2', 'cluster-b', ['ns']),
+      ],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    expect((svg.match(/class="calm-node" data-node-id="ns"/g) ?? []).length).toBe(2);
+  });
+
   it('copies a shared container with its members and connects the copies in the same container', async () => {
     const node = (id: string, type = 'service') => ({ 'unique-id': id, 'node-type': type, name: id, description: id });
     const arch: CalmArchitecture = {
