@@ -8,22 +8,18 @@
  * Uses Svelte 5 module-level $state runes (same pattern as history, clipboard,
  * theme stores). Tracks:
  *   - currentFileName: display name shown in title bar
- *   - fileHandle: FileSystemFileHandle (browser FSA) | string (Tauri path) | null
+ *   - fileHandle: FileSystemFileHandle | null
  *   - isDirty: whether the diagram has unsaved changes
  *
  * markDirty() is called on every canvas or model mutation.
  * markClean() is called after a successful save.
  * resetFileState() is called on Cmd+N (new diagram).
- *
- * The handle type is widened to support both browser FSA and Tauri desktop:
- * - Browser: FileSystemFileHandle (supports .createWritable(), .name)
- * - Desktop: string (file path, used by saveFileTauri/openFileTauri)
  */
 
 // ─── Module-level state ───────────────────────────────────────────────────────
 
 let currentFileName = $state<string | null>(null);
-let fileHandle = $state<FileSystemFileHandle | string | null>(null);
+let fileHandle = $state<FileSystemFileHandle | null>(null);
 let isDirty = $state(false);
 
 // ─── Getters ──────────────────────────────────────────────────────────────────
@@ -33,20 +29,9 @@ export function getFileName(): string | null {
 	return currentFileName;
 }
 
-/**
- * Returns the file handle (FileSystemFileHandle in browser, string path in
- * Tauri desktop, null if unsaved).
- */
-export function getFileHandle(): FileSystemFileHandle | string | null {
+/** Returns the file handle, or null if unsaved. */
+export function getFileHandle(): FileSystemFileHandle | null {
 	return fileHandle;
-}
-
-/**
- * Returns the file path string if in Tauri desktop mode (handle is a string),
- * or null for browser FSA handles and unsaved files.
- */
-export function getFilePath(): string | null {
-	return typeof fileHandle === 'string' ? fileHandle : null;
 }
 
 /** Returns true if the diagram has unsaved changes. */
@@ -66,12 +51,11 @@ export function markDirty(): void {
  * Optionally update the filename and/or file handle.
  *
  * @param name    New filename to display (undefined = no change)
- * @param handle  New handle: FileSystemFileHandle (browser) or string path (Tauri)
- *                (undefined = no change, null = clear handle)
+ * @param handle  New handle (undefined = no change, null = clear handle)
  */
 export function markClean(
 	name?: string,
-	handle?: FileSystemFileHandle | string | null,
+	handle?: FileSystemFileHandle | null,
 ): void {
 	isDirty = false;
 	if (name !== undefined) currentFileName = name;

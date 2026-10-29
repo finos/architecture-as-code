@@ -32,7 +32,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                language: ['actions', 'java-kotlin', 'javascript-typescript', 'rust']
+                language: ['actions', 'java-kotlin', 'javascript-typescript']
         steps:
             - name: Harden Runner
               uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2

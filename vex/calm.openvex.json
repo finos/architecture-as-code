@@ -3,111 +3,10 @@
   "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-10-28T00:00:00Z",
-  "version": 18,
+  "timestamp": "2026-10-29T00:00:00Z",
+  "version": 19,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
-    {
-      "vulnerability": {
-        "name": "GHSA-wrw7-89jp-8q8g"
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/glib@0.18.5"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "glib 0.18 is pinned by the Tauri GTK stack used by the CALM Studio desktop app. CALM Studio does not call the unsound glib::VariantStrIter iterator implementations. The fix (glib 0.20) needs a Tauri release that moves to gtk-rs 0.20."
-    },
-    {
-      "vulnerability": {
-        "name": "RUSTSEC-2026-0367",
-        "aliases": [
-          "GHSA-vv5m-jxxh-4627"
-        ]
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/zip@4.6.1"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_present",
-      "impact_statement": "zip comes in only through tauri-plugin-updater, which depends on it only for Windows builds, to unpack update archives after it verifies their signature. The flaw is that extraction keeps SUID, SGID and sticky bits when it applies Unix permissions, and zip compiles that step only for Unix targets. The Linux and macOS builds do not include zip, and the Windows build does not include the vulnerable code. The fix (zip 9) needs a tauri-plugin-updater release that moves to it: 2.14.0 and 3.0.0-alpha.3 still require zip ^4."
-    },
-    {
-      "vulnerability": {
-        "name": "RUSTSEC-2026-0369",
-        "aliases": [
-          "GHSA-4684-h2q9-2vcp"
-        ]
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/zip@4.6.1"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_present",
-      "impact_statement": "zip comes in only through tauri-plugin-updater, which depends on it only for Windows builds, to unpack update archives after it verifies their signature. The flaw is in the step that applies Unix permissions during extraction, and zip compiles that step only for Unix targets. The Linux and macOS builds do not include zip, and the Windows build does not include the vulnerable code. The fix (zip 9) needs a tauri-plugin-updater release that moves to it: 2.14.0 and 3.0.0-alpha.3 still require zip ^4."
-    },
-    {
-      "vulnerability": {
-        "name": "GHSA-m665-v7pm-7grj"
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/zip@4.6.1"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "zip comes in only through tauri-plugin-updater, which depends on it only for Windows builds, to unpack update archives after it verifies their signature. The flaw is a differential between ZipArchive, which reads the central directory, and ZipStreamReader, which reads the local file headers. It needs one archive to be read by both. tauri-plugin-updater reads the archive only with ZipArchive, and CALM Studio does not use ZipStreamReader. The fix (zip 9.0.5) needs a tauri-plugin-updater release that moves to it: 3.0.0-alpha.3 still requires zip ^4."
-    },
-    {
-      "vulnerability": {
-        "name": "GHSA-qwgh-2vcv-g2f7"
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/block-buffer@0.10.4"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_present",
-      "impact_statement": "block-buffer comes in only through sha2 0.10, which tauri-codegen and wry use. The flaw is that a caught panic can leave an invalid cursor in the buffer block, which then permits out-of-bounds access. block-buffer 0.11.0-pre and later keep the cursor inside the block. Version 0.10.4 keeps it in a separate field that a panic does not change, so it does not include the vulnerable code, although the advisory range (< 0.12.1) includes it. The fix (block-buffer 0.12.1) needs digest 0.11, and tauri-codegen 2.7.4 and wry 0.57.1 still require sha2 ^0.10."
-    },
     {
       "vulnerability": {
         "name": "GHSA-ch52-4w7c-c8xp",
@@ -408,5 +307,5 @@
       "impact_statement": "opentelemetry-api 1.62.0 comes in through the Quarkus 3.40 BOM. The flaw is quadratic CPU use when the W3C propagator parses an inbound tracestate header. CALM Hub turns off the OpenTelemetry SDK by default (CALM_OTEL_DISABLED=true). Quarkus then builds a no-op SDK and disables the HTTP server instrumenter, so it does not parse tracestate. A deployment that sets CALM_OTEL_DISABLED=false is exposed. The fix (1.67.0) cannot be overridden, because Quarkus 3.40 does not start with OpenTelemetry 1.67. It needs a Quarkus release that manages OpenTelemetry 1.67.0 or later."
     }
   ],
-  "last_updated": "2026-10-28T00:00:00Z"
+  "last_updated": "2026-10-29T00:00:00Z"
 }
