@@ -3,7 +3,7 @@ name: OSV Fix
 # Opens a pull request that updates package-lock.json after the OSV Scanner run on
 # main fails. It only tries `npm update <package> --package-lock-only` for the
 # blocking npm findings, so a finding that needs a new major version, an override,
-# a Maven or Cargo change, or a suppression still needs a maintainer. The branch
+# a Maven change, or a suppression still needs a maintainer. The branch
 # name is fixed, so a later failure updates the open pull request instead of
 # opening another. See SECURITY.md, "Dependency and Code Scanning Policy".
 

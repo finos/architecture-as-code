@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-RC-023",
+      "control-id": "AIR-RC-023",
       "name": "Intellectual Property (IP) and Copyright",
       "category": "Regulatory and Compliance",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-23_intellectual-property-ip-and-copyright.html",
-      "summary": "AI systems may generate content that infringes third-party intellectual property rights, or may reproduce copyrighted material from training data. Financial institutions must manage IP risks associated with AI-generated outputs.",
+      "description": "AI systems may generate content that infringes third-party intellectual property rights, or may reproduce copyrighted material from training data. Financial institutions must manage IP risks associated with AI-generated outputs.",
       "requirements": [
         "Conduct IP risk assessments for all AI systems that generate or reproduce content, identifying copyright exposure.",
         "Implement content filters to detect and block reproduction of copyrighted material in AI outputs.",

@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-017",
+      "control-id": "AIR-OP-017",
       "name": "Lack of Explainability",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-17_lack-of-explainability.html",
-      "summary": "AI systems, particularly those using complex foundation models, often lack transparency, making it difficult to interpret how decisions are made. This limits firms' ability to explain outcomes to regulators, stakeholders, or customers, raising trust and compliance concerns.",
+      "description": "AI systems, particularly those using complex foundation models, often lack transparency, making it difficult to interpret how decisions are made. This limits firms' ability to explain outcomes to regulators, stakeholders, or customers, raising trust and compliance concerns.",
       "requirements": [
         "Implement explainability mechanisms (e.g., chain-of-thought prompting, SHAP/LIME for ML models, citation of source documents) for all AI-assisted decisions.",
         "Provide human-readable rationales for AI-generated recommendations in customer-facing applications.",

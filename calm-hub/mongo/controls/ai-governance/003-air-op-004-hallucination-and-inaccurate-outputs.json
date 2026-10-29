@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-004",
+      "control-id": "AIR-OP-004",
       "name": "Hallucination and Inaccurate Outputs",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-4_hallucination-and-inaccurate-outputs.html",
-      "summary": "LLM hallucinations occur when a model generates confident but incorrect or fabricated information due to its reliance on statistical patterns rather than factual understanding. Techniques like Retrieval-Augmented Generation can reduce hallucinations by providing factual context, but they cannot fully prevent the model from introducing errors or mixing in inaccurate internal knowledge.",
+      "description": "LLM hallucinations occur when a model generates confident but incorrect or fabricated information due to its reliance on statistical patterns rather than factual understanding. Techniques like Retrieval-Augmented Generation can reduce hallucinations by providing factual context, but they cannot fully prevent the model from introducing errors or mixing in inaccurate internal knowledge.",
       "requirements": [
         "Implement Retrieval-Augmented Generation (RAG) to ground model responses in verified factual sources.",
         "Deploy output validation pipelines that cross-check AI-generated content against authoritative data sources.",

@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-028",
+      "control-id": "AIR-OP-028",
       "name": "Multi-Agent Trust Boundary Violations",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-28_multi-agent-trust-boundary-violations.html",
-      "summary": "In multi-agent systems, compromised agents affect other agents through shared resources, communication channels, or state corruption, leading to systemic failures and cascading security incidents.",
+      "description": "In multi-agent systems, compromised agents affect other agents through shared resources, communication channels, or state corruption, leading to systemic failures and cascading security incidents.",
       "requirements": [
         "Enforce strict agent isolation using separate security contexts, namespaces, and privilege levels per agent.",
         "Implement mutual authentication and authorisation for all agent-to-agent communications.",

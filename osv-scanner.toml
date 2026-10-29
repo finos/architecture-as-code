@@ -6,36 +6,6 @@
 # An ignored ID applies to every copy of the package, so check that the other copies are
 # outside the affected range before adding one.
 
-# glib 0.18 comes in through Tauri's Linux GTK stack for the CALM Studio desktop app.
-# The unsound iterator impls on glib::VariantStrIter are not called by CALM Studio code,
-# and the fix (glib 0.20) needs a Tauri release that moves to gtk-rs 0.20.
-[[IgnoredVulns]]
-id = "GHSA-wrw7-89jp-8q8g"
-ignoreUntil = 2026-12-31
-reason = "glib 0.18 is pinned by Tauri's GTK stack; the unsound VariantStrIter impls are not used by CALM Studio. Re-check when Tauri supports gtk-rs 0.20."
-
-# zip 4.x comes in through tauri-plugin-updater for the CALM Studio desktop app, on Windows
-# builds only. Both flaws are in zip's Unix-only permission step, which the Windows build does
-# not compile. The fix (zip 9) needs a tauri-plugin-updater release that moves to it.
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0367"
-ignoreUntil = 2026-12-31
-reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows; the code that keeps SUID/SGID bits is in the Unix permission step, which is not compiled there, and Linux and macOS builds do not include zip. Remove when tauri-plugin-updater moves to zip >= 9.0.0."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0369"
-ignoreUntil = 2026-12-31
-reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows; the vulnerable Unix permission code is not compiled there, and Linux and macOS builds do not include zip. Remove when tauri-plugin-updater moves to zip >= 9.0.0."
-
-# block-buffer 0.10.4 comes in through sha2 0.10 (tauri-codegen and wry) for the CALM Studio
-# desktop app. The flaw is in the cursor that 0.11.0-pre and later keep inside the buffer
-# block. 0.10 keeps the cursor in a separate field, so the advisory range (< 0.12.1) is too
-# wide. The fix (0.12.1) needs digest 0.11, and Tauri still requires sha2 0.10.
-[[IgnoredVulns]]
-id = "GHSA-qwgh-2vcv-g2f7"
-ignoreUntil = 2026-12-31
-reason = "block-buffer 0.10.4 (via sha2 0.10 in tauri-codegen and wry) keeps its cursor in a separate field; the inline cursor that a caught panic can corrupt is only in 0.11.0-pre and later. Remove when the advisory range is corrected or Tauri moves to sha2 0.11."
-
 # http-cache-semantics 4.2.0 comes in through Docusaurus's update-notifier (got,
 # cacheable-request), which uses it only as a private client cache. The attack needs a
 # shared cache that serves responses to other users, which no CALM component runs. No
@@ -127,3 +97,12 @@ reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app wi
 id = "GHSA-gcqx-w48m-w2h4"
 ignoreUntil = 2026-12-31
 reason = "deepmerge 4.3.1 runs only at build time: vite-plugin-svelte merges project-owned Svelte and Vite config, and @svgr/plugin-svgo never imports it. No untrusted object reaches mergeObject(). Remove when a patched release is available."
+
+# opentelemetry-api 1.62.0 comes in through the Quarkus BOM for CALM Hub. The quadratic
+# tracestate parsing runs only when the OpenTelemetry SDK is on. CALM Hub turns it off by
+# default (CALM_OTEL_DISABLED=true), and then Quarkus does not extract inbound trace context.
+# The fix (1.67.0) cannot be overridden: Quarkus 3.40 does not start with OpenTelemetry 1.67.
+[[IgnoredVulns]]
+id = "GHSA-ccrj-gw8r-854m"
+ignoreUntil = 2026-11-30
+reason = "CALM Hub turns off the OpenTelemetry SDK by default, and Quarkus then does not parse inbound tracestate headers. Deployments that set CALM_OTEL_DISABLED=false are exposed until Quarkus manages OpenTelemetry >= 1.67.0. Remove when the Quarkus BOM moves to it."

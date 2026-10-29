@@ -70,8 +70,8 @@
         "@types/node": "^26",
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
-        "@vitest/coverage-v8": "^4.0.0",
-        "@vitest/ui": "^4.0.0",
+        "@vitest/coverage-v8": "^5.0.5",
+        "@vitest/ui": "^5.0.5",
         "ajv": "^8.18.0",
         "axios-mock-adapter": "^2.1.0",
         "calm-schema-1.0": "npm:@finos/calm-schema@1.0.0",
@@ -89,7 +89,7 @@
         "msw": "^2.7.3",
         "npm-run-all2": "^8.0.0",
         "typescript": "^5.9.2",
-        "vitest": "^4.0.0"
+        "vitest": "^5.0.5"
     },
     "overrides": {
         "@babel/plugin-transform-modules-systemjs": "^7.29.4",
