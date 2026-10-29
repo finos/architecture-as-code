@@ -29,3 +29,5 @@ assuming anything here reflects current behaviour.
 | [0010](0010-extension-identity-is-a-hub-signed-assertion.md) | Extension identity is a Hub-signed, request-bound assertion | Proposed |
 | [0011](0011-extension-proxy-request-handling.md) | Extension proxy request handling | Proposed |
 | [0012](0012-extension-manifest-registry-and-versioning.md) | Extension manifest, registry and versioning | Proposed |
+| [0013](0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md) | Extension UI is tiered, with Hub-rendered blocks by default | Proposed |
+| [0014](0014-extension-commands-in-the-cli-and-mcp.md) | Extension commands in the CLI and MCP | Proposed |
