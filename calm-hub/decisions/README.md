@@ -31,3 +31,5 @@ assuming anything here reflects current behaviour.
 | [0012](0012-extension-manifest-registry-and-versioning.md) | Extension manifest, registry and versioning | Proposed |
 | [0013](0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md) | Extension UI is tiered, with Hub-rendered blocks by default | Proposed |
 | [0014](0014-extension-commands-in-the-cli-and-mcp.md) | Extension commands in the CLI and MCP | Proposed |
+| [0015](0015-architecture-validation-is-a-hub-feature-behind-an-spi.md) | Architecture validation is a Hub feature behind an SPI, recorded async first | Proposed |
+| [0016](0016-store-write-seam-and-outbox-for-post-write-events.md) | Store write seam and outbox for post-write events | Proposed |
