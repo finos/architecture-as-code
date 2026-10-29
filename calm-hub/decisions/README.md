@@ -25,3 +25,7 @@ assuming anything here reflects current behaviour.
 | [0006](0006-denormalize-adr-title-onto-header.md) | Denormalize ADR title onto the header | Implemented |
 | [0007](0007-control-storage-header-version-split.md) | Control storage — header/version split via two composed helper instances | Implemented |
 | [0008](0008-pattern-implementations-read-the-architecture-schema.md) | Pattern implementations are found by reading the architecture's `$schema` | Implemented |
+| [0009](0009-extensions-run-out-of-process-behind-a-hub-proxy.md) | Extensions run out of process, behind a Hub proxy | Proposed |
+| [0010](0010-extension-identity-is-a-hub-signed-assertion.md) | Extension identity is a Hub-signed, request-bound assertion | Proposed |
+| [0011](0011-extension-proxy-request-handling.md) | Extension proxy request handling | Proposed |
+| [0012](0012-extension-manifest-registry-and-versioning.md) | Extension manifest, registry and versioning | Proposed |
