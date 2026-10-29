@@ -15,7 +15,7 @@ describe('identifyContainerNodes', () => {
             [composedOf('system', ['child'])],
             [node('system'), node('child')],
         );
-        expect(parentMap.get('child')).toBe('system');
+        expect(parentMap.get('child')).toEqual(['system']);
     });
 
     it('drops a parent whose container is not in the node list', () => {
@@ -37,8 +37,24 @@ describe('identifyContainerNodes', () => {
             [composedOf('a', ['b']), composedOf('b', ['a'])],
             [node('a'), node('b')],
         );
-        expect(parentMap.get('b')).toBe('a');
+        expect(parentMap.get('b')).toEqual(['a']);
         expect(parentMap.has('a')).toBe(false);
+    });
+
+    it('keeps every container of a node', () => {
+        const { parentMap } = identifyContainerNodes(
+            [composedOf('a', ['x']), composedOf('b', ['x']), composedOf('a', ['x'])],
+            [node('a'), node('b'), node('x')],
+        );
+        expect(parentMap.get('x')).toEqual(['a', 'b']);
+    });
+
+    it('breaks a cycle through any parent of a node', () => {
+        const { parentMap } = identifyContainerNodes(
+            [composedOf('env', ['cluster-a', 'cluster-b']), composedOf('cluster-b', ['ns']), composedOf('ns', ['env'])],
+            [node('env'), node('cluster-a'), node('cluster-b'), node('ns')],
+        );
+        expect(parentMap.has('env')).toBe(false);
     });
 
     it('breaks a longer containment cycle (A→B→C→A)', () => {
@@ -47,7 +63,7 @@ describe('identifyContainerNodes', () => {
             [node('a'), node('b'), node('c')],
         );
         expect(parentMap.has('a')).toBe(false);
-        expect([...parentMap.entries()]).toEqual([['b', 'a'], ['c', 'b']]);
+        expect([...parentMap.entries()]).toEqual([['b', ['a']], ['c', ['b']]]);
     });
 });
 
@@ -99,3 +115,58 @@ describe('parseCALMData with invalid input', () => {
         expect(parsed.edges[0].data.protocol).toBe('5');
     });
 });
+
+describe('parseCALMData with nodes in several containers', () => {
+    const connects = (id: string, source: string, destination: string) => ({
+        'unique-id': id,
+        'relationship-type': { connects: { source: { node: source }, destination: { node: destination } } },
+    });
+    const sharedNamespace = () => parseCALMData({
+        nodes: ['cluster-a', 'cluster-b', 'ns', 'svc', 'db'].map((id) => node(id)),
+        relationships: [
+            composedOf('cluster-a', ['ns']),
+            { ...composedOf('cluster-b', ['ns']), 'unique-id': 'cluster-b-ns' },
+            composedOf('ns', ['svc', 'db']),
+            connects('c1', 'svc', 'db'),
+        ],
+    });
+    const drawings = (calmId: string) =>
+        sharedNamespace().nodes.filter((n) => n.data['unique-id'] === calmId).map((n) => [n.id, n.parentId]);
+
+    it('draws the node and everything in it once in each container', () => {
+        expect(drawings('ns')).toEqual([['ns', 'cluster-a'], ['ns__in__cluster-b', 'cluster-b']]);
+        expect(drawings('svc')).toEqual([['svc', 'ns'], ['svc__in__ns__in__cluster-b', 'ns__in__cluster-b']]);
+    });
+
+    it('connects the copies in the same container', () => {
+        const { edges } = sharedNamespace();
+        expect(edges.map((e) => [e.source, e.target])).toEqual([
+            ['svc', 'db'],
+            ['svc__in__ns__in__cluster-b', 'db__in__ns__in__cluster-b'],
+        ]);
+        expect(new Set(edges.map((e) => e.id)).size).toBe(2);
+    });
+
+    it('gives every parent a node that exists', () => {
+        const { nodes } = sharedNamespace();
+        const ids = new Set(nodes.map((n) => n.id));
+        expect(ids.size).toBe(nodes.length);
+        for (const n of nodes) {
+            if (n.parentId) expect(ids.has(n.parentId)).toBe(true);
+        }
+    });
+});
+
+describe('parseCALMData with deeply shared containers', () => {
+    it('draws each node once when copies would exceed the limit', () => {
+        const levels = 12;
+        const ids = Array.from({ length: levels }, (_, k) => [`l${k}a`, `l${k}b`]);
+        const relationships = ids.slice(1).flatMap(([a, b], k) => [
+            { ...composedOf(ids[k][0], [a, b]), 'unique-id': `r${k}a` },
+            { ...composedOf(ids[k][1], [a, b]), 'unique-id': `r${k}b` },
+        ]);
+        const parsed = parseCALMData({ nodes: ids.flat().map((id) => node(id)), relationships });
+        expect(parsed.nodes).toHaveLength(levels * 2);
+    });
+});
+

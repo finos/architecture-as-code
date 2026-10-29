@@ -507,3 +507,101 @@ describe('parseCALMData flow animation state', () => {
     });
 });
 
+describe('parseCALMData - nodes with several parents', () => {
+    const node = (id: string) => ({ 'unique-id': id, name: id, 'node-type': 'service' });
+    const deployedIn = (id: string, container: string, nodes: string[]) =>
+        ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
+    const connects = (id: string, source: string, destination: string) =>
+        ({ 'unique-id': id, 'relationship-type': { connects: { source: { node: source }, destination: { node: destination } } } });
+    const drawings = (result: { nodes: { id: string; parentId?: string; data: Record<string, unknown> }[] }, calmId: string) =>
+        result.nodes.filter((n) => n.data['unique-id'] === calmId).map((n) => [n.id, n.parentId]);
+    const sharedNamespace = (extra: object[] = [], extraNodes: string[] = []) => ({
+        nodes: ['cluster-a', 'cluster-b', 'ns', 'svc', 'db', ...extraNodes].map(node),
+        relationships: [
+            deployedIn('r1', 'cluster-a', ['ns']),
+            deployedIn('r2', 'cluster-b', ['ns']),
+            deployedIn('r3', 'ns', ['svc', 'db']),
+            ...extra,
+        ],
+    }) as CalmArchitectureSchema;
+
+    it('draws a node once in each parent', () => {
+        const result = parseCALMData(sharedNamespace());
+        expect(drawings(result, 'ns')).toEqual([
+            ['ns', 'cluster-a'],
+            ['ns__in__cluster-b', 'cluster-b'],
+        ]);
+    });
+
+    it('copies everything nested in a shared container', () => {
+        const result = parseCALMData(sharedNamespace());
+        expect(result.nodes.find((n) => n.id === 'ns__in__cluster-b')?.type).toBe('group');
+        expect(drawings(result, 'svc')).toEqual([
+            ['svc', 'ns'],
+            ['svc__in__ns__in__cluster-b', 'ns__in__cluster-b'],
+        ]);
+    });
+
+    it('keeps the CALM node in the data of each copy', () => {
+        const result = parseCALMData(sharedNamespace());
+        const copy = result.nodes.find((n) => n.id === 'svc__in__ns__in__cluster-b');
+        expect(copy?.data).toEqual(expect.objectContaining({ 'unique-id': 'svc', label: 'svc' }));
+    });
+
+    it('connects the copies in the same container', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'svc', 'db')]));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['svc', 'db'],
+            ['svc__in__ns__in__cluster-b', 'db__in__ns__in__cluster-b'],
+        ]);
+        expect(new Set(result.edges.map((e) => e.id)).size).toBe(2);
+    });
+
+    it('connects a node drawn once to every copy', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'client', 'svc')], ['client']));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['client', 'svc'],
+            ['client', 'svc__in__ns__in__cluster-b'],
+        ]);
+    });
+
+    it('lists a parent once when relationships repeat it', () => {
+        const result = parseCALMData(sharedNamespace([deployedIn('r4', 'cluster-a', ['ns'])]));
+        expect(drawings(result, 'ns')).toHaveLength(2);
+    });
+
+    it('does not give a copy the id of a real node', () => {
+        const result = parseCALMData(sharedNamespace([], ['ns__in__cluster-b']));
+        const ids = result.nodes.map((n) => n.id);
+        expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('ignores a node listed as its own container', () => {
+        const result = parseCALMData({
+            nodes: [node('a'), node('b')],
+            relationships: [deployedIn('r1', 'a', ['a', 'b'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => [n.id, n.parentId]).sort()).toEqual([['a', undefined], ['b', 'a']]);
+    });
+
+    it('draws each node once when copies would exceed the limit', () => {
+        // Each level has two containers that are both in both containers of the level above
+        const levels = 12;
+        const ids = Array.from({ length: levels }, (_, k) => [`l${k}a`, `l${k}b`]);
+        const relationships = ids.slice(1).flatMap(([a, b], k) => [
+            deployedIn(`r${k}a`, ids[k][0], [a, b]),
+            deployedIn(`r${k}b`, ids[k][1], [a, b]),
+        ]);
+        const result = parseCALMData({ nodes: ids.flat().map(node), relationships } as CalmArchitectureSchema);
+        expect(result.nodes).toHaveLength(levels * 2);
+    });
+
+    it('stops at a containment cycle', () => {
+        const result = parseCALMData({
+            nodes: [node('a'), node('b')],
+            relationships: [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['a'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => n.data['unique-id']).sort()).toEqual(['a', 'b']);
+    });
+});
+

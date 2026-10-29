@@ -8,7 +8,7 @@ import {
     sortNodesParentsBeforeChildren,
 } from './layoutUtils';
 import { identifyContainerNodes, parseNodes } from './nodeParser';
-import { extractFlowTransitions, parseRelationships } from './relationshipParser';
+import { expandEdgesToInstances, extractFlowTransitions, parseRelationships } from './relationshipParser';
 import { GRAPH_LAYOUT } from './constants';
 
 /**
@@ -34,9 +34,9 @@ export function parseCALMData(
         const flows = data.flows || [];
 
         const containerInfo = identifyContainerNodes(relationships);
-        const { regularNodes, systemNodes } = parseNodes(nodes, containerInfo, onShowDetailsCallback);
+        const { regularNodes, systemNodes, instancesOf, ancestorsOf } = parseNodes(nodes, containerInfo, onShowDetailsCallback);
         const flowTransitions = extractFlowTransitions(flows);
-        const edges = parseRelationships(relationships, flowTransitions);
+        const edges = expandEdgesToInstances(parseRelationships(relationships, flowTransitions), instancesOf, ancestorsOf);
 
         const result = applyLayout(regularNodes, systemNodes, edges);
 

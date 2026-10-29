@@ -10,7 +10,7 @@ import {
     sortNodesParentsBeforeChildren,
 } from './layoutUtils';
 import { identifyContainerNodes, parseNodes } from './nodeParser';
-import { extractFlowTransitions, parseRelationships } from './relationshipParser';
+import { expandEdgesToInstances, extractFlowTransitions, parseRelationships } from './relationshipParser';
 import { GRAPH_LAYOUT } from './constants';
 import type { LabCalmDoc, LabCalmNode } from './types';
 
@@ -34,9 +34,9 @@ export function parseCALMData(data: LabCalmDoc | null | undefined, onShowDetails
         const flows = data.flows || [];
 
         const containerInfo = identifyContainerNodes(relationships, nodes);
-        const { regularNodes, systemNodes } = parseNodes(nodes, containerInfo, onShowDetailsCallback);
+        const { regularNodes, systemNodes, instancesOf, ancestorsOf } = parseNodes(nodes, containerInfo, onShowDetailsCallback);
         const flowTransitions = extractFlowTransitions(flows);
-        const edges = parseRelationships(relationships, flowTransitions);
+        const edges = expandEdgesToInstances(parseRelationships(relationships, flowTransitions), instancesOf, ancestorsOf);
 
         return applyLayout(regularNodes, systemNodes, edges);
     } catch (error) {
