@@ -6,43 +6,6 @@
 # An ignored ID applies to every copy of the package, so check that the other copies are
 # outside the affected range before adding one.
 
-# glib 0.18 comes in through Tauri's Linux GTK stack for the CALM Studio desktop app.
-# The unsound iterator impls on glib::VariantStrIter are not called by CALM Studio code,
-# and the fix (glib 0.20) needs a Tauri release that moves to gtk-rs 0.20.
-[[IgnoredVulns]]
-id = "GHSA-wrw7-89jp-8q8g"
-ignoreUntil = 2026-12-31
-reason = "glib 0.18 is pinned by Tauri's GTK stack; the unsound VariantStrIter impls are not used by CALM Studio. Re-check when Tauri supports gtk-rs 0.20."
-
-# zip 4.x comes in through tauri-plugin-updater for the CALM Studio desktop app, on Windows
-# builds only. Both flaws are in zip's Unix-only permission step, which the Windows build does
-# not compile. The fix (zip 9) needs a tauri-plugin-updater release that moves to it.
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0367"
-ignoreUntil = 2026-12-31
-reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows; the code that keeps SUID/SGID bits is in the Unix permission step, which is not compiled there, and Linux and macOS builds do not include zip. Remove when tauri-plugin-updater moves to zip >= 9.0.0."
-
-[[IgnoredVulns]]
-id = "RUSTSEC-2026-0369"
-ignoreUntil = 2026-12-31
-reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows; the vulnerable Unix permission code is not compiled there, and Linux and macOS builds do not include zip. Remove when tauri-plugin-updater moves to zip >= 9.0.0."
-
-# The parser differential needs one archive to be read by both ZipArchive and
-# ZipStreamReader. tauri-plugin-updater uses only ZipArchive, after it verifies the signature.
-[[IgnoredVulns]]
-id = "GHSA-m665-v7pm-7grj"
-ignoreUntil = 2026-12-31
-reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows, which reads signed update archives only with ZipArchive. The differential needs a second read with ZipStreamReader, which CALM Studio never does. Remove when tauri-plugin-updater moves to zip >= 9.0.5."
-
-# block-buffer 0.10.4 comes in through sha2 0.10 (tauri-codegen and wry) for the CALM Studio
-# desktop app. The flaw is in the cursor that 0.11.0-pre and later keep inside the buffer
-# block. 0.10 keeps the cursor in a separate field, so the advisory range (< 0.12.1) is too
-# wide. The fix (0.12.1) needs digest 0.11, and Tauri still requires sha2 0.10.
-[[IgnoredVulns]]
-id = "GHSA-qwgh-2vcv-g2f7"
-ignoreUntil = 2026-12-31
-reason = "block-buffer 0.10.4 (via sha2 0.10 in tauri-codegen and wry) keeps its cursor in a separate field; the inline cursor that a caught panic can corrupt is only in 0.11.0-pre and later. Remove when the advisory range is corrected or Tauri moves to sha2 0.11."
-
 # http-cache-semantics 4.2.0 comes in through Docusaurus's update-notifier (got,
 # cacheable-request), which uses it only as a private client cache. The attack needs a
 # shared cache that serves responses to other users, which no CALM component runs. No
