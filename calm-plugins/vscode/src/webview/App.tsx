@@ -46,7 +46,7 @@ import {
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
-import { updateInstances, reattachEdges } from './transforms/node-instances';
+import { updateInstances, reattachEdges, calmIdOf, sameMembership, withDescendants } from './transforms/node-instances';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
@@ -276,6 +276,14 @@ function CanvasApp() {
         }
     }, [setNodes, setEdges, enrichAllControls]);
 
+    // After an edit that changes which drawings a node has, rebuild the canvas from the file,
+    // so every drawing of a container shows the same members
+    const emitAndReload = useCallback(() => {
+        const before = lastEmittedJson.current;
+        emitChange(true);
+        if (lastEmittedJson.current && lastEmittedJson.current !== before) loadArchitecture(lastEmittedJson.current);
+    }, [emitChange, loadArchitecture]);
+
     // --- Bridge setup ---
     useEffect(() => {
         setModelUpdateCallback((json, source) => {
@@ -324,9 +332,20 @@ function CanvasApp() {
 
     // --- Unparent ---
     const unparentNode = useCallback((nodeId: string) => {
-        setNodes((nds) => removeContainment(nodeId, nds));
-        setTimeout(() => emitChange(true), 0);
-    }, [setNodes, emitChange]);
+        const node = nodes.find((n) => n.id === nodeId);
+        // The membership leaves every drawing of it
+        const others = node ? withDescendants(new Set(sameMembership(node, nodes).map((n) => n.id)), nodes) : new Set<string>();
+        const remaining = nodes.filter((n) => !others.has(n.id));
+        setNodes((nds) => removeContainment(nodeId, nds.filter((n) => !others.has(n.id))));
+        if (others.size > 0) {
+            setEdges((eds) => {
+                const touches = (e: Edge) => others.has(e.source) || others.has(e.target);
+                return [...eds.filter((e) => !touches(e)), ...reattachEdges(eds.filter(touches), nodes.filter((n) => others.has(n.id)), remaining)];
+            });
+        }
+        const drawnElsewhere = !!node && remaining.some((n) => n.id !== nodeId && calmIdOf(n) === calmIdOf(node));
+        setTimeout(() => (others.size > 0 || drawnElsewhere ? emitAndReload() : emitChange(true)), 0);
+    }, [nodes, setNodes, setEdges, emitChange, emitAndReload]);
 
     // --- Undo/Redo ---
     useEffect(() => {
@@ -381,6 +400,7 @@ function CanvasApp() {
                 delete data._resolvedControls;
                 delete data.validationErrors;
                 delete data.validationWarnings;
+                delete data.otherParents;
 
                 const isContainer = src.type === 'container';
                 const newNode: Node = {
@@ -460,11 +480,14 @@ function CanvasApp() {
     // --- Delete (reactflow v11 fires onNodesDelete after removal) ---
     const onNodesDelete = useCallback((deletedNodes: Node[]) => {
         if (store.readonlyMode) return;
-        const deletedIds = new Set(deletedNodes.map((n) => n.id));
+        // Deleting one drawing removes its container membership, so the other drawings of it go too
+        const others = deletedNodes.flatMap((d) => sameMembership(d, nodes));
+        const deletedIds = withDescendants(new Set([...deletedNodes, ...others].map((n) => n.id)), nodes);
+        const removed = nodes.filter((n) => deletedIds.has(n.id));
         // Unparent children of deleted containers
         setNodes((nds) => {
             let updated = nds;
-            for (const deleted of deletedNodes) {
+            for (const deleted of removed) {
                 if (deleted.type === 'container') {
                     updated = updated.map((n) => {
                         if (n.parentId !== deleted.id) return n;
@@ -480,12 +503,8 @@ function CanvasApp() {
         // another drawing of the same CALM node can keep.
         const remaining = nodes.filter((n) => !deletedIds.has(n.id));
         const touched = edges.filter((e) => deletedIds.has(e.source) || deletedIds.has(e.target));
-        const reattached = reattachEdges(touched, deletedNodes, remaining);
-        setEdges((eds) => {
-            const kept = eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target));
-            const keptIds = new Set(kept.map((e) => e.id));
-            return [...kept, ...reattached.filter((e) => !keptIds.has(e.id))];
-        });
+        const reattached = reattachEdges(touched, removed, remaining);
+        setEdges((eds) => [...eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target)), ...reattached]);
         setTimeout(() => emitChange(true), 0);
     }, [nodes, edges, setNodes, setEdges, emitChange, store.readonlyMode]);
 
@@ -557,8 +576,15 @@ function CanvasApp() {
             }
             return nds;
         });
-        setTimeout(() => emitChange(true), 0);
-    }, [setNodes, emitChange, store.readonlyMode]);
+        setTimeout(() => {
+            const current = reactFlowInstance.getNodes();
+            const parentId = current.find((n) => n.id === draggedNode.id)?.parentId;
+            const container = parentId ? current.find((n) => n.id === parentId) : undefined;
+            const sharedContainer = !!container && current.some((n) => n.id !== container.id && calmIdOf(n) === calmIdOf(container));
+            if (sharedContainer) emitAndReload();
+            else emitChange(true);
+        }, 0);
+    }, [setNodes, emitChange, emitAndReload, reactFlowInstance, store.readonlyMode]);
 
     // --- Node update (from properties panel) ---
     const onNodeUpdate = useCallback((nodeId: string, field: string, value: unknown) => {
@@ -824,7 +850,7 @@ function CanvasApp() {
             counts[issue.nodeId] = c;
         }
         setNodes(effectiveNodes.map((n) => {
-            const calmId = ((n.data as Record<string, unknown>)?.calmId as string) ?? n.id;
+            const calmId = calmIdOf(n);
             return {
                 ...n,
                 data: { ...(n.data as Record<string, unknown>), validationErrors: counts[calmId]?.errors ?? 0, validationWarnings: counts[calmId]?.warnings ?? 0 },

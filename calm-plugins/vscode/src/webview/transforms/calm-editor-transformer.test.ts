@@ -287,13 +287,43 @@ describe('flowToCalm - nodes with several parents', () => {
         expect(containment(out)).toEqual(arch.relationships.map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in']]));
     });
 
+    it.each([
+        ['a container that is not a node', [node('x')], [deployedIn('r1', 'ghost', ['x'])]],
+        ['a containment cycle', [node('a'), node('b')], [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['a'])]],
+        ['a node listed as its own container', [node('c'), node('x')], [deployedIn('r1', 'c', ['c', 'x'])]],
+        ['a node in a container and in a container inside it', [node('cluster'), node('ns'), node('svc')],
+            [deployedIn('r1', 'cluster', ['ns', 'svc']), deployedIn('r2', 'ns', ['svc'])]],
+    ])('writes back %s unchanged', (_name, nodes, relationships) => {
+        const arch: CalmArchitecture = { nodes, relationships };
+        const { out } = roundTrip(arch);
+        expect(out.relationships).toEqual(relationships);
+    });
+
+    it('keeps each containment relationship, so the same drawing keeps the CALM id after a reload', () => {
+        const arch: CalmArchitecture = {
+            nodes: [node('c1'), node('c2'), node('a'), node('x')],
+            relationships: [
+                { ...deployedIn('r1', 'c1', ['a']), description: 'kept' },
+                deployedIn('r2', 'c2', ['x']),
+                deployedIn('r3', 'c1', ['x']),
+            ],
+        };
+        const { out } = roundTrip(arch);
+        expect(out.relationships).toEqual(arch.relationships);
+        expect(parseCALMData(out).nodes.find((n) => n.id === 'x')?.parentId).toBe('c1');
+    });
+
     it('drops a hidden membership when its container is deleted', () => {
+        setLastParsedArch({
+            nodes: [node('a'), node('x'), node('gone')],
+            relationships: [deployedIn('r1', 'a', ['x']), deployedIn('r2', 'gone', ['x'])],
+        });
         const nodes: Node[] = [
             { id: 'a', type: 'container', position: { x: 0, y: 0 }, data: { calmId: 'a' } },
             { id: 'x', position: { x: 0, y: 0 }, parentId: 'a', data: { calmId: 'x', otherParents: ['gone'] } },
         ];
         const out = flowToCalm(nodes, []);
-        expect(containment(out)).toEqual([['containment-a', { container: 'a', nodes: ['x'] }]]);
+        expect(containment(out)).toEqual([['r1', { container: 'a', nodes: ['x'] }]]);
     });
 
     it('drops a membership when its copy is removed', () => {

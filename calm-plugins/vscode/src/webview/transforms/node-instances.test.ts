@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Node, Edge } from 'reactflow';
-import { updateInstances, reattachEdges } from './node-instances';
+import { updateInstances, reattachEdges, sameMembership, withDescendants } from './node-instances';
 
 const flowNode = (id: string, calmId = id, parentId?: string): Node => ({
     id,
@@ -45,5 +45,33 @@ describe('reattachEdges', () => {
         const remaining = [flowNode('client')];
         const result = reattachEdges([edge('c1', 'client', 'ns'), edge('c2', 'client', 'client')], deleted, remaining);
         expect(result.map((e) => e.id)).toEqual(['c2']);
+    });
+});
+
+describe('sameMembership', () => {
+    // ns is in cluster-a and cluster-b, svc is in ns, so svc has one membership and two drawings
+    const nodes = [
+        flowNode('cluster-a'), flowNode('cluster-b'),
+        flowNode('ns', 'ns', 'cluster-a'), flowNode('ns__in__cluster-b', 'ns', 'cluster-b'),
+        flowNode('svc', 'svc', 'ns'), flowNode('svc__in__ns__in__cluster-b', 'svc', 'ns__in__cluster-b'),
+    ];
+
+    it('finds the other drawings of the same node in the same container', () => {
+        expect(sameMembership(nodes[5], nodes).map((n) => n.id)).toEqual(['svc']);
+    });
+
+    it('finds none for a drawing of a different membership', () => {
+        expect(sameMembership(nodes[3], nodes)).toEqual([]);
+    });
+
+    it('finds none for a top-level drawing', () => {
+        expect(sameMembership(nodes[0], nodes)).toEqual([]);
+    });
+});
+
+describe('withDescendants', () => {
+    it('adds every drawing nested in the given drawings', () => {
+        const nodes = [flowNode('a'), flowNode('b', 'b', 'a'), flowNode('c', 'c', 'b'), flowNode('d')];
+        expect([...withDescendants(new Set(['a']), nodes)].sort()).toEqual(['a', 'b', 'c']);
     });
 });

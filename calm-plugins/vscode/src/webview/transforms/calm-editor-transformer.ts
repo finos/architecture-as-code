@@ -1,4 +1,5 @@
 import type { Node, Edge } from 'reactflow';
+import { calmIdOf } from './node-instances';
 
 export interface LayoutEntry { x: number; y: number; w?: number; h?: number }
 export type LayoutMap = Record<string, LayoutEntry>;
@@ -52,22 +53,23 @@ export function flowToCalm(
     const calmRelationships: Array<Record<string, unknown>> = [];
 
     // A node drawn in several containers has one flow node per container, all with the same calmId
-    const calmIdOf = new Map(nodes.map((n) => [n.id, ((n.data as Record<string, unknown> | undefined)?.calmId as string) ?? n.id]));
-    const toCalmId = (flowId: string) => calmIdOf.get(flowId) ?? flowId;
-    const drawnCalmIds = new Set(calmIdOf.values());
+    const calmIdByDrawing = new Map(nodes.map((n) => [n.id, calmIdOf(n)]));
+    const toCalmId = (flowId: string) => calmIdByDrawing.get(flowId) ?? flowId;
+    const drawnCalmIds = new Set(calmIdByDrawing.values());
 
-    // Reconstruct containment from parentId, including empty containers
-    const containerChildren = new Map<string, string[]>();
+    // Memberships: each drawing's container, plus those the canvas does not draw (data.otherParents).
+    // A hidden container that was a node and is no longer drawn has been deleted.
+    const deletedIds = new Set((lastParsedArch?.nodes ?? []).map((n) => n['unique-id'] as string).filter((id) => !drawnCalmIds.has(id)));
+    const membersOf = new Map<string, string[]>();
     for (const n of nodes) {
-        if (n.type === 'container' && !containerChildren.has(toCalmId(n.id))) {
-            containerChildren.set(toCalmId(n.id), []);
-        }
+        const child = toCalmId(n.id);
+        if (n.type === 'container' && !membersOf.has(child)) membersOf.set(child, []);
         const otherParents = (((n.data as Record<string, unknown> | undefined)?.otherParents as string[] | undefined) ?? [])
-            .filter((p) => drawnCalmIds.has(p));
+            .filter((p) => !deletedIds.has(p));
         for (const parent of [...(n.parentId ? [toCalmId(n.parentId)] : []), ...otherParents]) {
-            const children = containerChildren.get(parent) ?? [];
-            if (!children.includes(toCalmId(n.id))) children.push(toCalmId(n.id));
-            containerChildren.set(parent, children);
+            const members = membersOf.get(parent) ?? [];
+            if (!members.includes(child)) members.push(child);
+            membersOf.set(parent, members);
         }
     }
 
@@ -102,29 +104,38 @@ export function flowToCalm(
         calmNodes.push(calmNode);
     }
 
-    // Build containment relationships in their original order: the parser keeps the CALM id of a
-    // node with several parents in the container of its last relationship.
-    const originalOrder = (containerId: string) => {
-        const index = (lastParsedArch?.relationships ?? []).findIndex((r) => {
-            const rt = r['relationship-type'] as Record<string, unknown> | undefined;
-            const rel = rt?.['deployed-in'] ?? rt?.['composed-of'];
-            return (rel as { container?: string } | undefined)?.container === containerId;
-        });
-        return index === -1 ? Number.MAX_SAFE_INTEGER : index;
-    };
-    const orderedContainers = [...containerChildren].sort(([a], [b]) => originalOrder(a) - originalOrder(b));
-    for (const [parentId, children] of orderedContainers) {
-        const parentNode = nodes.find((n) => toCalmId(n.id) === parentId);
-        const variant = ((parentNode?.data as Record<string, unknown>)?.containmentType as string) ?? 'deployed-in';
-        const existingRel = lastParsedArch?.relationships.find((r) => {
-            const rt = r['relationship-type'] as Record<string, unknown> | undefined;
-            const rel = rt?.['deployed-in'] ?? rt?.['composed-of'];
-            return (rel as any)?.container === parentId;
-        });
-        const relId = (existingRel?.['unique-id'] as string) ?? `containment-${parentId}`;
+    // Write each containment relationship back with its id, place and fields, so the drawing that keeps
+    // the CALM id is the same after a reload. New memberships go to the container's first relationship.
+    const written = new Map<string, Set<string>>();
+    const firstRelOf = new Map<string, Record<string, unknown>>();
+    for (const rel of lastParsedArch?.relationships ?? []) {
+        const rt = rel['relationship-type'] as Record<string, unknown> | undefined;
+        const variant = rt?.['deployed-in'] ? 'deployed-in' : rt?.['composed-of'] ? 'composed-of' : undefined;
+        if (!variant) continue;
+        const containment = rt![variant] as { container: string; nodes?: string[] };
+        if (deletedIds.has(containment.container)) continue;
+        const members = membersOf.get(containment.container) ?? [];
+        const kept = (containment.nodes ?? []).filter((c) => members.includes(c));
+        const done = written.get(containment.container) ?? new Set<string>();
+        kept.forEach((c) => done.add(c));
+        written.set(containment.container, done);
+        const out = { ...rel, 'relationship-type': { [variant]: { ...containment, nodes: kept } } };
+        if (!firstRelOf.has(containment.container)) firstRelOf.set(containment.container, out);
+        calmRelationships.push(out);
+    }
+    for (const [containerId, members] of membersOf) {
+        const added = members.filter((c) => !written.get(containerId)?.has(c));
+        const existing = firstRelOf.get(containerId);
+        if (existing) {
+            const rt = existing['relationship-type'] as Record<string, { nodes: string[] }>;
+            Object.values(rt)[0].nodes.push(...added);
+            continue;
+        }
+        const containerNode = nodes.find((n) => toCalmId(n.id) === containerId);
+        const variant = ((containerNode?.data as Record<string, unknown>)?.containmentType as string) ?? 'deployed-in';
         calmRelationships.push({
-            'unique-id': relId,
-            'relationship-type': { [variant]: { container: parentId, nodes: children } },
+            'unique-id': `containment-${containerId}`,
+            'relationship-type': { [variant]: { container: containerId, nodes: added } },
         });
     }
 

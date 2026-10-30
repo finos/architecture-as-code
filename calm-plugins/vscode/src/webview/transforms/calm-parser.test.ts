@@ -247,6 +247,31 @@ describe('parseCALMData - nodes with several parents', () => {
         expect(result.nodes.filter((n) => n.data.calmId === 'ns')).toHaveLength(2);
     });
 
+    it('keeps the CALM id in the container of the last relationship when a container repeats', () => {
+        const result = parseCALMData(arch(
+            [node('A'), node('B'), node('N')],
+            [deployedIn('r1', 'A', ['N']), deployedIn('r2', 'B', ['N']), deployedIn('r3', 'A', ['N'])],
+        ));
+        expect(result.nodes.filter((n) => n.data.calmId === 'N').map((n) => [n.id, n.parentId])).toEqual([
+            ['N', 'A'],
+            ['N__in__B', 'B'],
+        ]);
+    });
+
+    it('draws a node once when it is listed in both a container and a container inside it', () => {
+        const result = parseCALMData(arch(
+            [node('cluster'), node('ns'), node('svc')],
+            [deployedIn('r1', 'cluster', ['ns', 'svc']), deployedIn('r2', 'ns', ['svc'])],
+        ));
+        expect(result.nodes.filter((n) => n.data.calmId === 'svc').map((n) => [n.id, n.parentId])).toEqual([['svc', 'ns']]);
+    });
+
+    it('sizes a container listed as its own member like one without that member', () => {
+        const withSelf = parseCALMData(arch([node('a'), node('b')], [deployedIn('r1', 'a', ['a', 'b'])]));
+        const plain = parseCALMData(arch([node('a'), node('b')], [deployedIn('r1', 'a', ['b'])]));
+        expect(byId(withSelf.nodes, 'a').width).toBe(byId(plain.nodes, 'a').width);
+    });
+
     it('stops at a containment cycle', () => {
         const result = parseCALMData(arch(
             [node('a'), node('b')],
