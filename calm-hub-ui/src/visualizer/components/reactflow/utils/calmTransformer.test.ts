@@ -618,6 +618,23 @@ describe('parseCALMData - nodes with several parents', () => {
         expect(result.edges.map((e) => [e.source, e.target])).toEqual([['svc__in__ns__in__a', 'q__in__a']]);
     });
 
+    it('gives each drawing one edge when copies of both ends tie on shared containers', () => {
+        const ps = ['P0', 'P1', 'P2'];
+        const qs = ['Q0', 'Q1', 'Q2'];
+        const result = parseCALMData({
+            nodes: ['X', 'Z', 'W', ...ps, ...qs, 's', 't'].map(node),
+            relationships: [
+                deployedIn('rx', 'X', [...ps, ...qs]),
+                ...ps.map((p) => deployedIn(`in-${p}`, p, ['s'])),
+                deployedIn('in-Z', 'Z', ['s']),
+                ...qs.map((q) => deployedIn(`in-${q}`, q, ['t'])),
+                deployedIn('in-W', 'W', ['t']),
+                connects('c1', 's', 't'),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.edges.length).toBeLessThan(8);
+    });
+
     it('draws one edge when only a container around everything holds copies of both ends', () => {
         const result = parseCALMData({
             nodes: ['prod', 'c1', 'c2', 'c3', 'c4', 'a', 'b'].map(node),

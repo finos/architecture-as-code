@@ -19,15 +19,6 @@ function reaches(parentMap: Map<string, string[]>, from: string, target: string)
     return false;
 }
 
-/**
- * Identifies container nodes from deployed-in and composed-of relationships.
- * Only containers that are in `nodes` can hold a node.
- *
- * Lab addition (not in the Hub original): the lab parses the live editor
- * buffer, so a containment relationship can name a container that has not been
- * added to `nodes` yet — ReactFlow throws on a `parentId` with no matching
- * node — or close a loop (A in B, B in A), which the layout walks forever.
- */
 export interface ContainerInfo {
     containerNodeIds: Set<string>;
     /**
@@ -38,6 +29,12 @@ export interface ContainerInfo {
     parentMap: Map<string, string[]>;
 }
 
+/**
+ * Identifies container nodes from deployed-in and composed-of relationships.
+ * Only containers that are in `nodes` can hold a node: the lab parses the live
+ * editor buffer, so a relationship can name a container that is not added yet,
+ * and ReactFlow throws on a `parentId` with no matching node.
+ */
 export function identifyContainerNodes(relationships: LabCalmRelationship[], nodes: LabCalmNode[] = []): ContainerInfo {
     const containerNodeIds = new Set<string>();
     const knownNodeIds = new Set(nodes.map((node) => node?.['unique-id']).filter((id): id is string => Boolean(id)));

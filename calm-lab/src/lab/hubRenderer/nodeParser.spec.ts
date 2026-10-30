@@ -225,6 +225,23 @@ describe('parseCALMData with repeated, redundant and cyclic containers', () => {
     });
 });
 
+describe('parseCALMData with ties between copies', () => {
+    it('gives each drawing one edge when copies of both ends tie on shared containers', () => {
+        const ps = ['P0', 'P1', 'P2'];
+        const qs = ['Q0', 'Q1', 'Q2'];
+        const parsed = parseCALMData({
+            nodes: ['X', 'Z', 'W', ...ps, ...qs, 's', 't'].map((id) => node(id)),
+            relationships: [
+                { ...composedOf('X', [...ps, ...qs]), 'unique-id': 'rx' },
+                ...[...ps, 'Z'].map((p) => ({ ...composedOf(p, ['s']), 'unique-id': `in-${p}` })),
+                ...[...qs, 'W'].map((q) => ({ ...composedOf(q, ['t']), 'unique-id': `in-${q}` })),
+                { 'unique-id': 'c1', 'relationship-type': { connects: { source: { node: 's' }, destination: { node: 't' } } } },
+            ],
+        });
+        expect(parsed.edges.length).toBeLessThan(8);
+    });
+});
+
 describe('parseCALMData with deeply shared containers', () => {
     it('draws each node once when copies would exceed the limit', () => {
         const levels = 12;

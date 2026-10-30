@@ -201,8 +201,9 @@ export function parseRelationships(
 /**
  * Connects edges to the drawings of nodes that are in several containers. A node drawn once
  * connects to every copy of the other end. When both ends have copies, only the copies that share
- * the most containers connect, e.g. two services in the same cluster, and if no copies share a
- * container, one edge connects the first drawings. When one end contains drawings of the other,
+ * the most containers connect, e.g. two services in the same cluster. On a tie, a pair connects only
+ * if one of its drawings has no edge yet. If no copies share a container, one edge connects the first
+ * drawings. When one end contains drawings of the other,
  * only those drawings connect.
  */
 export function expandEdgesToInstances(
@@ -236,8 +237,15 @@ export function expandEdgesToInstances(
             bestForSource.set(p.source, Math.max(bestForSource.get(p.source) ?? 0, p.score));
             bestForTarget.set(p.target, Math.max(bestForTarget.get(p.target) ?? 0, p.score));
         }
-        const shared = pairs.filter((p) => p.score > 0
-            && p.score === bestForSource.get(p.source) && p.score === bestForTarget.get(p.target));
+        const shared: typeof pairs = [];
+        const linked = new Set<string>();
+        for (const p of pairs) {
+            if (p.score === 0 || p.score !== bestForSource.get(p.source) || p.score !== bestForTarget.get(p.target)) continue;
+            // On a tie, a pair connects only if one of its drawings has no edge yet
+            if (linked.has(p.source) && linked.has(p.target)) continue;
+            linked.add(p.source).add(p.target);
+            shared.push(p);
+        }
         let kept = nested;
         if (kept.length === 0) kept = sources.length === 1 || targets.length === 1 ? pairs : shared;
         if (kept.length === 0) kept = pairs.slice(0, 1);
