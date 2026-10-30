@@ -1,5 +1,6 @@
 import type { Node, Edge } from 'reactflow';
 import { calmIdOf } from './node-instances';
+import { parseCALMData } from './calm-parser';
 
 export interface LayoutEntry { x: number; y: number; w?: number; h?: number }
 export type LayoutMap = Record<string, LayoutEntry>;
@@ -244,13 +245,36 @@ export function flowToCalm(
         arch.controls = documentControls;
     }
 
-    // Persist layout
-    const layout = buildLayoutMap(nodes);
+    // Persist layout, in file order
+    const layout = buildLayoutMap([...nodes].sort((a, b) => orderOf(a) - orderOf(b)));
     const rawMetadata = lastParsedArch?.metadata as Record<string, unknown> | undefined;
     const existingMetadata = (rawMetadata && typeof rawMetadata === 'object' && !Array.isArray(rawMetadata)) ? rawMetadata : {};
     arch.metadata = { ...existingMetadata, _layout: layout };
 
     return arch;
+}
+
+/**
+ * The layout of `arch` as it is drawn after a reload. A drawing can get another id when another
+ * drawing of the same node goes, so each position is found by the drawing's path of CALM ids.
+ */
+export function relayoutByPath(arch: CalmArchitecture, nodes: Node[]): LayoutMap {
+    const pathOf = (n: Node, byId: Map<string, Node>) => {
+        const path: string[] = [];
+        for (let c: Node | undefined = n; c; c = c.parentId ? byId.get(c.parentId) : undefined) path.unshift(calmIdOf(c));
+        return path.join('/');
+    };
+    const current = new Map(nodes.map((n) => [n.id, n]));
+    const byPath = new Map(nodes.map((n) => [pathOf(n, current), n]));
+    const reloaded = parseCALMData(arch).nodes;
+    const reloadedById = new Map(reloaded.map((n) => [n.id, n]));
+    const fileOrder = new Map(arch.nodes.map((n, i) => [n['unique-id'] as string, i] as const));
+    return buildLayoutMap(reloaded
+        .sort((a, b) => (fileOrder.get(calmIdOf(a)) ?? 0) - (fileOrder.get(calmIdOf(b)) ?? 0))
+        .flatMap((n) => {
+            const before = byPath.get(pathOf(n, reloadedById));
+            return before ? [{ ...before, id: n.id }] : [];
+        }));
 }
 
 function buildRelationshipType(variant: string, source: string, target: string): Record<string, unknown> {

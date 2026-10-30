@@ -41,12 +41,13 @@ import {
 import { postMessage } from './vscode-api';
 import {
     flowToCalm,
+    relayoutByPath,
     setLastParsedArch,
     applyLayoutFromMetadata,
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
-import { updateInstances, reattachEdges, calmIdOf, sameMembership, withDescendants } from './transforms/node-instances';
+import { updateInstances, reattachEdges, calmIdOf, sameMembership, withDescendants, hasSharedDrawings } from './transforms/node-instances';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
@@ -134,7 +135,7 @@ function CanvasApp() {
 
 
     // --- Core: emit change ---
-    const emitChange = useCallback((immediate = false) => {
+    const emitChange = useCallback((immediate = false, forReload = false) => {
         if (syncingRef.current || store.readonlyMode || undoingOrRedoing.current) return;
         if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
@@ -153,6 +154,7 @@ function CanvasApp() {
             pendingNodesRef.current = null;
             const currentEdges = reactFlowInstance.getEdges();
             const arch = flowToCalm(currentNodes, currentEdges, currentState.documentControls);
+            if (forReload) (arch.metadata as Record<string, unknown>)._layout = relayoutByPath(arch, currentNodes);
             const json = JSON.stringify(arch, null, 2);
             lastEmittedJson.current = json;
             notifyCanvasChanged(json);
@@ -259,8 +261,10 @@ function CanvasApp() {
             setNodes(layoutedNodes);
             setEdges(parsedEdges);
             lastEmittedJson.current = json;
-            // Request resolution for any nodes with definition-id references
-            for (const node of layoutedNodes) {
+            // Request resolution for any nodes with definition-id references, once per CALM node:
+            // the result is applied to every drawing of it
+            const originals = layoutedNodes.filter((n) => n.id === calmIdOf(n));
+            for (const node of originals) {
                 const defId = (node.data as Record<string, unknown>)?.['definition-id'] as string | undefined;
                 if (defId) {
                     postMessage({ type: 'resolveDefinitionId', nodeId: node.id, curie: defId });
@@ -270,7 +274,7 @@ function CanvasApp() {
             // load, drill, file-watcher, SVG import, undo/redo). Both node-level and
             // document-level controls are scanned; local refs always re-resolve.
             const generation = loadGeneration.current;
-            setTimeout(() => enrichAllControls(layoutedNodes, generation), 0);
+            setTimeout(() => enrichAllControls(originals, generation), 0);
         } catch (err) {
             console.error('[CALM Canvas] Failed to load architecture:', err);
         }
@@ -280,7 +284,7 @@ function CanvasApp() {
     // so every drawing of a container shows the same members
     const emitAndReload = useCallback(() => {
         const before = lastEmittedJson.current;
-        emitChange(true);
+        emitChange(true, true);
         if (lastEmittedJson.current && lastEmittedJson.current !== before) loadArchitecture(lastEmittedJson.current);
     }, [emitChange, loadArchitecture]);
 
@@ -343,8 +347,7 @@ function CanvasApp() {
                 return [...eds.filter((e) => !touches(e)), ...reattachEdges(eds.filter(touches), nodes.filter((n) => others.has(n.id)), remaining)];
             });
         }
-        const drawnElsewhere = !!node && remaining.some((n) => n.id !== nodeId && calmIdOf(n) === calmIdOf(node));
-        setTimeout(() => (others.size > 0 || drawnElsewhere ? emitAndReload() : emitChange(true)), 0);
+        setTimeout(() => (hasSharedDrawings(nodes) ? emitAndReload() : emitChange(true)), 0);
     }, [nodes, setNodes, setEdges, emitChange, emitAndReload]);
 
     // --- Undo/Redo ---
@@ -484,29 +487,15 @@ function CanvasApp() {
         const others = deletedNodes.flatMap((d) => sameMembership(d, nodes));
         const deletedIds = withDescendants(new Set([...deletedNodes, ...others].map((n) => n.id)), nodes);
         const removed = nodes.filter((n) => deletedIds.has(n.id));
-        // Unparent children of deleted containers
-        setNodes((nds) => {
-            let updated = nds;
-            for (const deleted of removed) {
-                if (deleted.type === 'container') {
-                    updated = updated.map((n) => {
-                        if (n.parentId !== deleted.id) return n;
-                        const absPos = getAbsolutePosition(n, updated);
-                        const { parentId: _, extent: _e, zIndex: _z, ...rest } = n as any;
-                        return { ...rest, position: absPos } as Node;
-                    });
-                }
-            }
-            return updated.filter((n) => !deletedIds.has(n.id));
-        });
+        setNodes((nds) => nds.filter((n) => !deletedIds.has(n.id)));
         // React Flow has already removed the edges of the deleted nodes. Restore those that
         // another drawing of the same CALM node can keep.
         const remaining = nodes.filter((n) => !deletedIds.has(n.id));
         const touched = edges.filter((e) => deletedIds.has(e.source) || deletedIds.has(e.target));
         const reattached = reattachEdges(touched, removed, remaining);
         setEdges((eds) => [...eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target)), ...reattached]);
-        setTimeout(() => emitChange(true), 0);
-    }, [nodes, edges, setNodes, setEdges, emitChange, store.readonlyMode]);
+        setTimeout(() => (hasSharedDrawings(nodes) ? emitAndReload() : emitChange(true)), 0);
+    }, [nodes, edges, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
 
     // --- Node click (select) ---
     const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {

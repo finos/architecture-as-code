@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Node, Edge } from 'reactflow';
-import { updateInstances, reattachEdges, sameMembership, withDescendants } from './node-instances';
+import { updateInstances, reattachEdges, sameMembership, withDescendants, hasSharedDrawings } from './node-instances';
 
 const flowNode = (id: string, calmId = id, parentId?: string): Node => ({
     id,
@@ -73,5 +73,16 @@ describe('withDescendants', () => {
     it('adds every drawing nested in the given drawings', () => {
         const nodes = [flowNode('a'), flowNode('b', 'b', 'a'), flowNode('c', 'c', 'b'), flowNode('d')];
         expect([...withDescendants(new Set(['a']), nodes)].sort()).toEqual(['a', 'b', 'c']);
+    });
+});
+
+describe('hasSharedDrawings', () => {
+    it('is true when a node has several drawings or a membership that is not drawn', () => {
+        expect(hasSharedDrawings([flowNode('ns', 'ns', 'a'), flowNode('ns__in__b', 'ns', 'b')])).toBe(true);
+        expect(hasSharedDrawings([{ ...flowNode('svc', 'svc', 'ns'), data: { calmId: 'svc', otherParents: ['cluster'] } }])).toBe(true);
+    });
+
+    it('is false when each node has one drawing and every membership is drawn', () => {
+        expect(hasSharedDrawings([flowNode('a'), flowNode('b', 'b', 'a')])).toBe(false);
     });
 });

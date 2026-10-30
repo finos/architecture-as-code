@@ -59,3 +59,14 @@ export function withDescendants(ids: Set<string>, nodes: Node[]): Set<string> {
     }
     return result;
 }
+
+/** True when a node has several drawings, or a membership that is not drawn (data.otherParents). */
+export function hasSharedDrawings(nodes: Node[]): boolean {
+    const seen = new Set<string>();
+    for (const n of nodes) {
+        if ((((n.data as Record<string, unknown> | undefined)?.otherParents as string[] | undefined) ?? []).length > 0) return true;
+        if (seen.has(calmIdOf(n))) return true;
+        seen.add(calmIdOf(n));
+    }
+    return false;
+}

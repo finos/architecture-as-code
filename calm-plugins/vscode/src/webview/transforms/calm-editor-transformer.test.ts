@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Node, Edge } from 'reactflow';
-import { flowToCalm, setLastParsedArch } from './calm-editor-transformer';
+import { flowToCalm, relayoutByPath, setLastParsedArch } from './calm-editor-transformer';
 import type { CalmArchitecture } from './calm-editor-transformer';
 import { parseCALMData } from './calm-parser';
 
@@ -311,6 +311,23 @@ describe('flowToCalm - nodes with several parents', () => {
         const { out } = roundTrip(arch);
         expect(out.relationships).toEqual(arch.relationships);
         expect(parseCALMData(out).nodes.find((n) => n.id === 'x')?.parentId).toBe('c1');
+    });
+
+    it('writes the layout in file order', () => {
+        const arch: CalmArchitecture = {
+            nodes: [node('web'), node('k8s'), node('api'), node('db'), node('user')],
+            relationships: [deployedIn('r1', 'k8s', ['api', 'db'])],
+        };
+        const { out } = roundTrip(arch);
+        expect(Object.keys((out.metadata as any)._layout)).toEqual(['web', 'k8s', 'api', 'db', 'user']);
+    });
+
+    it('keeps the position of a drawing that takes the CALM id when another drawing of it goes', () => {
+        const { parsed } = roundTrip(sharedNamespace());
+        const moved = parsed.nodes.map((n) => (n.id === 'ns__in__cluster-a' ? { ...n, position: { x: 11, y: 22 } } : n));
+        const remaining = moved.filter((n) => n.id !== 'ns' && n.parentId !== 'ns');
+        const out = flowToCalm(remaining, []);
+        expect(relayoutByPath(out, remaining).ns).toMatchObject({ x: 11, y: 22 });
     });
 
     it('drops a hidden membership when its container is deleted', () => {
