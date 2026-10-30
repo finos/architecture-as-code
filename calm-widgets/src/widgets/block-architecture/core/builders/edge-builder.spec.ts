@@ -184,6 +184,26 @@ describe('edge-builder', () => {
             ]);
         });
 
+        it('gives each drawing one edge when copies of both ends tie on shared containers', () => {
+            // Every copy is in X, and one copy of each end is outside X, so X does not hold every drawing
+            const instancesOf = new Map([
+                ['svc', ['svc__in__P0', 'svc__in__P1', 'svc__in__P2', 'svc__in__Z']],
+                ['db', ['db__in__Q0', 'db__in__Q1', 'db__in__Q2', 'db__in__W']],
+            ]);
+            const ancestorsOf = new Map([
+                ...['P0', 'P1', 'P2'].map(p => [`svc__in__${p}`, ['X', p]] as [string, string[]]),
+                ...['Q0', 'Q1', 'Q2'].map(q => [`db__in__${q}`, ['X', q]] as [string, string[]]),
+                ['svc__in__Z', ['Z']], ['db__in__W', ['W']],
+            ]);
+
+            const edges = expandEdgesToInstances([edge], instancesOf, ancestorsOf);
+
+            expect(edges.length).toBeLessThan(instancesOf.get('svc')!.length + instancesOf.get('db')!.length);
+            expect(new Set(edges.flatMap(e => [e.source, e.target]))).toEqual(new Set([
+                'svc__in__P0', 'svc__in__P1', 'svc__in__P2', 'db__in__Q0', 'db__in__Q1', 'db__in__Q2',
+            ]));
+        });
+
         it('draws one edge between the first drawings when no copies of the two ends share a container', () => {
             const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__C', 'db__in__D']]]);
             const ancestorsOf = new Map([
