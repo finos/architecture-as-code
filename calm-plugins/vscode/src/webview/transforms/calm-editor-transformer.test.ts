@@ -366,6 +366,23 @@ describe('flowToCalm - nodes with several parents', () => {
         expect(containment(out)).toEqual([['containment-c1', { container: 'c1', nodes: ['a'] }]]);
     });
 
+    it('keeps every membership of a cycle of three, in either relationship order', () => {
+        const rels = [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['c']), deployedIn('r3', 'c', ['a'])];
+        for (const relationships of [rels, [...rels].reverse()]) {
+            const { out } = roundTrip({ nodes: [node('a'), node('b'), node('c')], relationships });
+            expect(containment(out).sort()).toEqual([
+                ['r1', { container: 'a', nodes: ['b'] }],
+                ['r2', { container: 'b', nodes: ['c'] }],
+                ['r3', { container: 'c', nodes: ['a'] }],
+            ]);
+        }
+    });
+
+    it('writes a node once when two nodes share a unique-id', () => {
+        const { out } = roundTrip({ nodes: [node('a'), { ...node('a'), name: 'second' }], relationships: [] });
+        expect(out.nodes.map((n) => [n['unique-id'], n.name])).toEqual([['a', 'a']]);
+    });
+
     it('drops a membership when its copy is removed', () => {
         const { parsed } = roundTrip(sharedNamespace());
         const nodes = parsed.nodes.filter((n) => !n.id.endsWith('__in__cluster-a'));
