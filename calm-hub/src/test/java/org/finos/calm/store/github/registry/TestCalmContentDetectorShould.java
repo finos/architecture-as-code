@@ -250,25 +250,23 @@ class TestCalmContentDetectorShould {
     }
 
     @Test
-    void detect_standard_from_nodes_in_standard_nodes_directory() {
-        // standard-nodes/ is aliased to STANDARD (Office Hours, 2026-09-10, #3052) —
-        // "Standard Node" was removed as its own CALM Hub resource type.
+    void classify_nodes_in_standard_nodes_directory_as_unknown() {
         String json = "{\"nodes\": [{\"unique-id\": \"svc\"}], \"relationships\": []}";
         Optional<RegistryResourceType> type = detector.detect(json, Path.of("standard-nodes/auth-block.json"));
-        assertThat(type, equalTo(Optional.of(RegistryResourceType.STANDARD)));
+        assertThat(type, equalTo(Optional.empty()));
     }
 
     @Test
-    void detect_standard_from_standard_nodes_directory_only() {
+    void classify_file_in_standard_nodes_directory_only_as_unknown() {
         String json = "{\"title\": \"Auth Standard Node\"}";
         Optional<RegistryResourceType> type = detector.detect(json, Path.of("standard-nodes/auth-block.json"));
-        assertThat(type, equalTo(Optional.of(RegistryResourceType.STANDARD)));
+        assertThat(type, equalTo(Optional.empty()));
     }
 
     @Test
-    void detect_standard_from_nested_standard_nodes_path() {
+    void classify_nodes_in_nested_standard_nodes_path_as_unknown() {
         String json = "{\"nodes\": []}";
         Optional<RegistryResourceType> type = detector.detect(json, Path.of("standard-nodes/sub/auth-block.json"));
-        assertThat(type, equalTo(Optional.of(RegistryResourceType.STANDARD)));
+        assertThat(type, equalTo(Optional.empty()));
     }
 }

@@ -20,10 +20,10 @@ import java.util.Map;
  * GitHubUserAccessDomainReadIntegration for what this fixture is proving.
  *
  * <p>"finos-repo" also carries a {@code standard-nodes/rate-limit-policy.json} file -
- * see {@link GitHubReworkBehaviorIntegration} for what that proves (the Building
- * Block-to-Standard alias, and the "latest" removal, end to end against a real local clone
- * rather than a mock). Each repo also carries one {@code standards/searchable-*.json} file so
- * the namespace scoping of search can be proven.
+ * see {@link GitHubReworkBehaviorIntegration} for what that proves (that {@code standard-nodes/}
+ * is not aliased to {@code Standard}, and the "latest" removal, end to end against a real local
+ * clone rather than a mock). Each repo also carries one {@code standards/searchable-*.json} file
+ * so the namespace scoping of search can be proven.
  */
 public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManager {
 
