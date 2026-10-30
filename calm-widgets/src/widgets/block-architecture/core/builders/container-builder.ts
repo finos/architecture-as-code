@@ -27,6 +27,12 @@ export function pruneEmptyContainers(containers: VMContainer[]): VMContainer[] {
         .filter(c => c.nodes.length > 0 || c.containers.length > 0);
 }
 
+function append<T>(map: Map<string, T[]>, key: string, ...values: T[]): void {
+    const list = map.get(key) ?? [];
+    list.push(...values);
+    map.set(key, list);
+}
+
 /** Copies above which a node in several containers is drawn in its first container only. */
 const MAX_COPIES = 1000;
 
@@ -88,26 +94,19 @@ export function buildContainerForest(
     const drawings = capped ? drawingCounter(renderedParents) : allDrawings;
 
     const childrenOf = new Map<string, string[]>();
-    const addChild = (parent: string, child: string) => {
-        const kids = childrenOf.get(parent) ?? [];
-        kids.push(child);
-        childrenOf.set(parent, kids);
-    };
     // Relationship order, as before, so sibling containers with the same label keep their order
     for (const cid of parentsOf.keys()) {
         if (!containerIdsToRender.has(cid)) continue;
-        for (const p of renderedParents(cid)) addChild(p, cid);
+        for (const p of renderedParents(cid)) append(childrenOf, p, cid);
     }
     for (const n of nodes) {
         const nid = n['unique-id'];
         if (containerIdsToRender.has(nid)) continue;
-        for (const p of renderedParents(nid)) addChild(p, nid);
+        for (const p of renderedParents(nid)) append(childrenOf, p, nid);
     }
 
     const record = (id: string, rendered: string, ancestors: string[]) => {
-        const list = instancesOf.get(id) ?? [];
-        list.push(rendered);
-        instancesOf.set(id, list);
+        append(instancesOf, id, rendered);
         ancestorsOf.set(rendered, ancestors);
     };
 
@@ -123,9 +122,7 @@ export function buildContainerForest(
             leaf.sourceId = nid;
             leaf.interfaces = leaf.interfaces?.map(itf => ({ ...itf, id: rename(itf.id), sourceId: itf.id }));
         }
-        const forNode = attachmentsOf.get(nid) ?? [];
-        forNode.push(...nodeAttachments.map(a => ({ from: rename(a.from), to: rename(a.to) })));
-        attachmentsOf.set(nid, forNode);
+        append(attachmentsOf, nid, ...nodeAttachments.map(a => ({ from: rename(a.from), to: rename(a.to) })));
         return leaf;
     };
 

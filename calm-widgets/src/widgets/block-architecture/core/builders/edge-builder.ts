@@ -139,22 +139,18 @@ export function buildEdges(
 }
 
 /**
- * Points edges at the drawn copies of their end nodes. Copies connect to the copies that share
- * the most containers with them, e.g. two services in the same cluster. A drawing with no such
- * partner connects to its best matches, so a node drawn once connects to every copy.
- * When one end contains drawings of the other, only those drawings connect. When no copies of
- * the two ends share a container, one edge connects their first drawings.
+ * Points edges at the drawn copies of their end nodes. A node drawn once connects to every copy of
+ * the other end. When both ends have copies, only the copies that share the most containers connect,
+ * e.g. two services in the same cluster, and if no copies share a container, one edge connects the
+ * first drawings. When one end contains drawings of the other, only those drawings connect.
  */
 export function expandEdgesToInstances(
     edges: VMEdge[],
     instancesOf: Map<string, string[]>,
     ancestorsOf: Map<string, string[]>
 ): VMEdge[] {
-    const sharedContainers = (a: string, b: string) => {
-        const ofB = new Set(ancestorsOf.get(b) ?? []);
-        return (ancestorsOf.get(a) ?? []).filter(x => ofB.has(x)).length;
-    };
-    const contains = (outer: string, inner: string) => (ancestorsOf.get(inner) ?? []).includes(outer);
+    const ancestors = (id: string) => ancestorsOf.get(id) ?? [];
+    const contains = (outer: string, inner: string) => ancestors(inner).includes(outer);
 
     return edges.flatMap(edge => {
         const sources = instancesOf.get(edge.source) ?? [edge.source];
@@ -162,6 +158,14 @@ export function expandEdgesToInstances(
         if (sources.length === 1 && targets.length === 1) {
             return [{ ...edge, source: sources[0], target: targets[0] }];
         }
+
+        // A container that holds every drawing of both ends does not tell which drawings belong together
+        const drawings = [...sources, ...targets];
+        const everywhere = new Set(ancestors(drawings[0]).filter(x => drawings.every(d => ancestors(d).includes(x))));
+        const sharedContainers = (a: string, b: string) => {
+            const ofB = new Set(ancestors(b));
+            return ancestors(a).filter(x => ofB.has(x) && !everywhere.has(x)).length;
+        };
 
         const pairs = sources.flatMap(source => targets.map(target => ({ source, target, score: sharedContainers(source, target) })));
         const nested = pairs.filter(p => contains(p.source, p.target) || contains(p.target, p.source));
@@ -172,16 +176,11 @@ export function expandEdgesToInstances(
             bestForSource.set(p.source, Math.max(bestForSource.get(p.source) ?? 0, p.score));
             bestForTarget.set(p.target, Math.max(bestForTarget.get(p.target) ?? 0, p.score));
         }
-        const isBest = (p: typeof pairs[number]) =>
-            p.score === bestForSource.get(p.source) && p.score === bestForTarget.get(p.target);
-        const linked = new Set(pairs.filter(isBest).flatMap(p => [p.source, p.target]));
-        const kept = nested.length > 0
-            ? nested
-            : sources.length > 1 && targets.length > 1 && pairs.every(p => p.score === 0)
-                ? pairs.slice(0, 1)
-                : pairs.filter(p => isBest(p)
-                    || (!linked.has(p.source) && p.score === bestForSource.get(p.source))
-                    || (!linked.has(p.target) && p.score === bestForTarget.get(p.target)));
+        const shared = pairs.filter(p => p.score > 0
+            && p.score === bestForSource.get(p.source) && p.score === bestForTarget.get(p.target));
+        let kept = nested;
+        if (kept.length === 0) kept = sources.length === 1 || targets.length === 1 ? pairs : shared;
+        if (kept.length === 0) kept = pairs.slice(0, 1);
         return kept.map((p, i) => ({ ...edge, id: `${edge.id}__${i}`, source: p.source, target: p.target }));
     });
 }

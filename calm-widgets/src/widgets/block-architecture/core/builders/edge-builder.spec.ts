@@ -196,7 +196,7 @@ describe('edge-builder', () => {
             ]);
         });
 
-        it('pairs the copies left without a partner with each other first', () => {
+        it('connects only the copies that share a container, not the copies left without a partner', () => {
             const instancesOf = new Map([['svc', ['svc__in__B', 'svc__in__A']], ['db', ['db__in__C', 'db__in__A']]]);
             const ancestorsOf = new Map([
                 ['svc__in__B', ['B']], ['svc__in__A', ['A']],
@@ -204,21 +204,19 @@ describe('edge-builder', () => {
             ]);
 
             expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
-                ['svc__in__B', 'db__in__C'],
                 ['svc__in__A', 'db__in__A'],
             ]);
         });
 
-        it('connects a copy across containers only when it has no partner in its own container', () => {
-            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__A', 'db__in__C']]]);
+        it('ignores a container that holds every drawing of both ends', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__C', 'db__in__D']]]);
             const ancestorsOf = new Map([
-                ['svc__in__A', ['A']], ['svc__in__B', ['B']],
-                ['db__in__A', ['A']], ['db__in__C', ['C']],
+                ['svc__in__A', ['prod', 'A']], ['svc__in__B', ['prod', 'B']],
+                ['db__in__C', ['prod', 'C']], ['db__in__D', ['prod', 'D']],
             ]);
 
             expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
-                ['svc__in__A', 'db__in__A'],
-                ['svc__in__B', 'db__in__C'],
+                ['svc__in__A', 'db__in__C'],
             ]);
         });
     });
