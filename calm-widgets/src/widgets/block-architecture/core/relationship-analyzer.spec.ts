@@ -14,8 +14,8 @@ describe('relationship-analyzer (extra cases)', () => {
             rel('r2', { 'deployed-in': { container: 'D', nodes: ['n1', 'C'] } }),
         ];
         const res = buildParentHierarchy(relationships);
-        expect(res.parentOf.get('C')).toBe('D');
-        expect(res.parentOf.get('n1')).toBe('C');
+        expect(res.parentsOf.get('C')?.[0]).toBe('D');
+        expect(res.parentsOf.get('n1')?.[0]).toBe('C');
     });
 
     it('prevents cycles when attempting to nest containers mutually', () => {
@@ -26,9 +26,9 @@ describe('relationship-analyzer (extra cases)', () => {
             rel('r3', { 'deployed-in': { container: 'C', nodes: ['D'] } }),
         ];
         const res = buildParentHierarchy(relationships);
-        expect(res.parentOf.get('n')).toBe('C');
-        expect(res.parentOf.get('C')).toBe('D');
-        expect(res.parentOf.get('D')).not.toBe('C');
+        expect(res.parentsOf.get('n')?.[0]).toBe('C');
+        expect(res.parentsOf.get('C')?.[0]).toBe('D');
+        expect(res.parentsOf.get('D')?.[0]).not.toBe('C');
     });
 
     it('keeps every deployed-in parent of a node', () => {
@@ -38,7 +38,6 @@ describe('relationship-analyzer (extra cases)', () => {
         ];
         const res = buildParentHierarchy(relationships);
         expect(res.parentsOf.get('x')).toEqual(['D1', 'D2']);
-        expect(res.parentOf.get('x')).toBe('D1');
     });
 
     it('keeps every composed-of parent of a node', () => {
@@ -48,6 +47,15 @@ describe('relationship-analyzer (extra cases)', () => {
         ];
         const res = buildParentHierarchy(relationships);
         expect(res.parentsOf.get('x')).toEqual(['C1', 'C2']);
+    });
+
+    it('ignores a parent that is already an ancestor through another parent', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'deployed-in': { container: 'cluster', nodes: ['ns', 'svc'] } }),
+            rel('r2', { 'deployed-in': { container: 'ns', nodes: ['svc'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('svc')).toEqual(['ns']);
     });
 
     it('lists a parent once when several relationships repeat it', () => {
@@ -142,7 +150,7 @@ describe('relationship-analyzer (extra cases)', () => {
             rel('r2', { 'deployed-in': { container: 'D', nodes: ['n1'] } }),
         ];
         const res = buildParentHierarchy(relationships);
-        expect(res.parentOf.get('n1')).toBe('C');
+        expect(res.parentsOf.get('n1')?.[0]).toBe('C');
     });
 
     it('self-parent assignment is rejected as a cycle', () => {
@@ -150,7 +158,7 @@ describe('relationship-analyzer (extra cases)', () => {
             rel('r1', { 'composed-of': { container: 'C', nodes: ['C'] } }),
         ];
         const res = buildParentHierarchy(relationships);
-        expect(res.parentOf.get('C')).toBeUndefined();
+        expect(res.parentsOf.get('C')?.[0]).toBeUndefined();
         expect(res.childrenOfContainer.get('C')).toEqual(new Set(['C']));
     });
 
@@ -159,6 +167,6 @@ describe('relationship-analyzer (extra cases)', () => {
             rel('r1', { 'deployed-in': { container: 'D', nodes: ['n2'] } }),
         ];
         const res = buildParentHierarchy(relationships);
-        expect(res.parentOf.get('n2')).toBe('D');
+        expect(res.parentsOf.get('n2')?.[0]).toBe('D');
     });
 });

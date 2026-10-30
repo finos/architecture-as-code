@@ -27,8 +27,6 @@ export function pruneEmptyContainers(containers: VMContainer[]): VMContainer[] {
         .filter(c => c.nodes.length > 0 || c.containers.length > 0);
 }
 
-export const instanceId = (id: string, parentInstanceId: string) => `${id}__in__${parentInstanceId}`;
-
 /** Copies above which a node in several containers is drawn in its first container only. */
 const MAX_COPIES = 1000;
 
@@ -53,7 +51,7 @@ function drawingCounter(parentsOf: (id: string) => string[]): (id: string) => nu
  * containers, interface attachments, and any loose nodes that don't belong to containers.
  *
  * A node with several rendered parents is drawn once in each, together with everything
- * nested in it. Each copy gets a distinct id from `instanceId`, and keeps the original
+ * nested in it. Each copy gets a distinct id, `<id>__in__<parent>`, and keeps the original
  * unique-id in `sourceId` for links.
  */
 export function buildContainerForest(
@@ -73,7 +71,7 @@ export function buildContainerForest(
     // A copy id must not reuse the id of a real node or of another copy
     const takenIds = new Set(nodes.map(n => n['unique-id']));
     const copyId = (id: string, parentInstanceId: string) => {
-        const base = instanceId(id, parentInstanceId);
+        const base = `${id}__in__${parentInstanceId}`;
         let candidate = base;
         for (let i = 2; takenIds.has(candidate); i++) candidate = `${base}_${i}`;
         takenIds.add(candidate);
@@ -95,7 +93,9 @@ export function buildContainerForest(
         kids.push(child);
         childrenOf.set(parent, kids);
     };
-    for (const cid of containerIdsToRender) {
+    // Relationship order, as before, so sibling containers with the same label keep their order
+    for (const cid of parentsOf.keys()) {
+        if (!containerIdsToRender.has(cid)) continue;
         for (const p of renderedParents(cid)) addChild(p, cid);
     }
     for (const n of nodes) {

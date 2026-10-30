@@ -184,14 +184,29 @@ describe('edge-builder', () => {
             ]);
         });
 
-        it('connects all copies when no copies share a container', () => {
+        it('draws one edge between the first drawings when no copies of the two ends share a container', () => {
             const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__C', 'db__in__D']]]);
             const ancestorsOf = new Map([
                 ['svc__in__A', ['A']], ['svc__in__B', ['B']],
                 ['db__in__C', ['C']], ['db__in__D', ['D']],
             ]);
 
-            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf)).toHaveLength(4);
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
+                ['svc__in__A', 'db__in__C'],
+            ]);
+        });
+
+        it('connects a copy across containers only when it has no partner in its own container', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__A', 'db__in__C']]]);
+            const ancestorsOf = new Map([
+                ['svc__in__A', ['A']], ['svc__in__B', ['B']],
+                ['db__in__A', ['A']], ['db__in__C', ['C']],
+            ]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
+                ['svc__in__A', 'db__in__A'],
+                ['svc__in__B', 'db__in__C'],
+            ]);
         });
     });
 });

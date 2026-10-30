@@ -70,7 +70,6 @@ describe('resolveVisibilityWithStrategies functional', () => {
     };
 
     const parentHierarchy: ParentHierarchyResult = {
-        parentOf: new Map([['db', 'svc']]),
         parentsOf: new Map([['db', ['svc']]]),
         allMentionedContainers: new Set(['svc']),
         childrenOfContainer: new Map([['svc', new Set(['db'])]]),
@@ -150,7 +149,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
         const res2 = resolveVisibilityWithStrategies(
             { ...baseCtx, relationships: [relConnect] },
             baseOpts({ edges: 'seeded', focusNodes: ['svc'], includeChildren: 'none' }),
-            { parentOf: new Map(), parentsOf: new Map(), allMentionedContainers: new Set(), childrenOfContainer: new Map() },
+            { parentsOf: new Map(), allMentionedContainers: new Set(), childrenOfContainer: new Map() },
             new Map(nodes.map((n) => [n['unique-id'], n]))
         );
         // only svc visible (no expansion to db because includeChildren=none, edges=seeded doesn’t expand)
@@ -200,7 +199,6 @@ describe('resolveVisibilityWithStrategies functional', () => {
             relationships: [],
         };
         const hierarchy: ParentHierarchyResult = {
-            parentOf: new Map([['ns', 'cluster-a']]),
             parentsOf: new Map([['ns', ['cluster-a', 'cluster-b']]]),
             allMentionedContainers: new Set(['cluster-a', 'cluster-b']),
             childrenOfContainer: new Map(),

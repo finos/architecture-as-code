@@ -5,8 +5,6 @@ import {
 } from '@finos/calm-models/canonical';
 
 export interface ParentHierarchyResult {
-    /** First parent of each node. */
-    parentOf: Map<string, string>;
     /** All parents of each node, in the order they were first seen. A node is drawn once in each. */
     parentsOf: Map<string, string[]>;
     allMentionedContainers: Set<string>;
@@ -87,8 +85,12 @@ export function buildParentHierarchy(relationships: CalmRelationshipCanonicalMod
         if (own.length > 0) parentsOf.set(id, own);
     }
 
-    const parentOf = new Map<string, string>();
-    for (const [id, parents] of parentsOf.entries()) parentOf.set(id, parents[0]);
+    // A parent that is already an ancestor through another parent adds no drawing,
+    // e.g. a service listed in both its cluster and its namespace
+    const isAncestor = (a: string, of: string) => createsCycle(parentsOf, of, a);
+    for (const [id, parents] of parentsOf.entries()) {
+        if (parents.length > 1) parentsOf.set(id, parents.filter(p => !parents.some(q => q !== p && isAncestor(p, q))));
+    }
 
-    return { parentOf, parentsOf, allMentionedContainers, childrenOfContainer };
+    return { parentsOf, allMentionedContainers, childrenOfContainer };
 }

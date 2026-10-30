@@ -1,5 +1,5 @@
 {{!-- Handle individual node (VMLeafNode) when called from looseNodes --}}
-{{!-- linkId is the CALM unique-id, also for copies of a node drawn in several containers --}}
+{{!-- linkId is the id of the original, also for copies of a node drawn in several containers --}}
 {{#if id}}
     {{!-- Generate click for the node itself --}}
     {{#if (lookup linkMap (linkId this))}}

@@ -1,18 +1,10 @@
 import { CalmCoreCanonicalModel, CalmNodeCanonicalModel, CalmRelationshipCanonicalModel, toKindView } from '@finos/calm-models/canonical';
 import { prettyLabel } from './utils';
-import { BlockArchVM, NormalizedOptions, VMContainer, VMLeafNode, VMAttach, VMEdge } from '../types';
+import { BlockArchVM, NormalizedOptions, VMContainer, VMLeafNode, VMEdge } from '../types';
 import { buildParentHierarchy, ParentHierarchyResult } from './relationship-analyzer';
 import { resolveVisibilityWithStrategies, VisibilityResult } from './visibility-resolver';
-import { buildContainerForest, pruneEmptyContainers } from './builders/container-builder';
+import { buildContainerForest, ContainerForest, pruneEmptyContainers } from './builders/container-builder';
 import { buildInterfaceNameMap, buildEdges, expandEdgesToInstances } from './builders/edge-builder';
-
-interface ContainerResult {
-    containers: VMContainer[];
-    attachments: VMAttach[];
-    looseNodes: VMLeafNode[];
-    instancesOf: Map<string, string[]>;
-    ancestorsOf: Map<string, string[]>;
-}
 
 /**
  * Builder class for constructing Block Architecture View Models.
@@ -24,7 +16,7 @@ export class BlockArchVMBuilder {
     private options: NormalizedOptions;
     private parentHierarchyResult?: ParentHierarchyResult;
     private visibilityResult?: VisibilityResult;
-    private containerResult?: ContainerResult;
+    private containerResult?: ContainerForest;
     private edges?: VMEdge[];
 
     constructor(context: CalmCoreCanonicalModel, options: NormalizedOptions) {

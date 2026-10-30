@@ -243,6 +243,36 @@ describe('vm-builder', () => {
             expect(vm.edges.map(e => [e.source, e.target])).toEqual([['x', 'ns']]);
         });
 
+        it('draws a node once when it is listed in both its cluster and its namespace', () => {
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('cluster'), node('ns'), node('svc', 'service'), node('db', 'database')],
+                relationships: [
+                    deployedIn('d1', 'cluster', ['ns', 'svc']),
+                    deployedIn('d2', 'ns', ['svc', 'db']),
+                    connects('c1', 'svc', 'db'),
+                ],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.containers[0].nodes).toEqual([]);
+            expect(vm.containers[0].containers[0].nodes.map(n => n.id).sort()).toEqual(['db', 'svc']);
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([['svc', 'db']]);
+        });
+
+        it('keeps sibling containers with the same label in the order of their parent relationships', () => {
+            const composedOf = (id: string, container: string, nodes: string[]) =>
+                ({ 'unique-id': id, 'relationship-type': { 'composed-of': { container, nodes } } });
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('P'), { ...node('X'), name: 'ns' }, { ...node('Y'), name: 'ns' }, node('a'), node('b')],
+                relationships: [composedOf('r1', 'P', ['X', 'Y']), composedOf('r2', 'Y', ['b']), composedOf('r3', 'X', ['a'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.containers[0].containers.map(c => c.id)).toEqual(['X', 'Y']);
+        });
+
         it('highlights every copy of a highlighted node', () => {
             const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
 
