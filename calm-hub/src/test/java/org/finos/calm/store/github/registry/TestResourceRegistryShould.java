@@ -246,21 +246,18 @@ class TestResourceRegistryShould {
     }
 
     @Test
-    void index_a_markdown_file_under_standard_nodes_as_a_standard() throws IOException {
-        // standard-nodes/ is aliased to STANDARD (Office Hours, 2026-09-10, #3052).
+    void not_index_a_markdown_file_under_standard_nodes_directory() throws IOException {
         Path bbDir = tempDir.resolve("standard-nodes");
         Files.createDirectories(bbDir);
         Files.writeString(bbDir.resolve("auth-block.md"), "# Auth Block\n\nDescribes the auth standard node.");
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
-        assertThat(entries, hasSize(1));
-        assertThat(entries.get(0).uniqueId(), equalTo("auth-block"));
+        assertThat(registryService.getSnapshot().listAll("finos"), empty());
     }
 
     @Test
-    void merge_standard_nodes_and_standards_entries_into_one_listing() throws IOException {
+    void index_only_standards_entries_and_ignore_standard_nodes_directory() throws IOException {
         Path stdDir = tempDir.resolve("standards");
         Files.createDirectories(stdDir);
         Files.writeString(stdDir.resolve("api-design.json"),
@@ -274,7 +271,8 @@ class TestResourceRegistryShould {
         registryService.rebuild(Map.of("finos", tempDir));
 
         List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
-        assertThat(entries, hasSize(2));
+        assertThat(entries, hasSize(1));
+        assertThat(entries.get(0).uniqueId(), equalTo("api-design"));
     }
 
     @Test
