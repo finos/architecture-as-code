@@ -588,6 +588,14 @@ describe('parseCALMData - nodes with several parents', () => {
         }
     });
 
+    it('keeps the parents main gave when a cycle is undone by a later relationship', () => {
+        const result = parseCALMData({
+            nodes: ['a', 'b', 'c'].map(node),
+            relationships: [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['a']), deployedIn('r3', 'c', ['b'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => [n.id, n.parentId]).sort()).toEqual([['a', 'b'], ['b', 'c'], ['c', undefined]]);
+    });
+
     it('draws a node once when it is listed in both a container and a container inside it', () => {
         const result = parseCALMData({
             nodes: ['cluster', 'ns', 'svc'].map(node),

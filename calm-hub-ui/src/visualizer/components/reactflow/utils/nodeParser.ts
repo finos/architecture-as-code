@@ -63,15 +63,17 @@ export function identifyContainerNodes(relationships: CalmRelationshipSchema[], 
         }
     });
 
-    // First the container each node was drawn in before nodes could have several: the last one that
-    // does not close a cycle. Then the others, last relationship first, except those that closed a cycle.
+    // First the container each node was drawn in before nodes could have several: the last one, unless it
+    // closes a cycle. Then the others, last relationship first, except those that closed a cycle.
+    const lastFirst = [...containments].reverse();
     const parentMap = new Map<string, string[]>();
     const closedCycle = new Set<string>();
-    for (const [childId, containerId] of containments) {
+    for (const [childId, containerId] of lastFirst) {
+        if (parentMap.has(childId)) continue;
         if (reaches(parentMap, containerId, childId)) closedCycle.add(`${childId}\u0000${containerId}`);
         else parentMap.set(childId, [containerId]);
     }
-    for (const [childId, containerId] of [...containments].reverse()) {
+    for (const [childId, containerId] of lastFirst) {
         const parents = parentMap.get(childId) ?? [];
         if (parents.includes(containerId) || closedCycle.has(`${childId}\u0000${containerId}`)) continue;
         if (reaches(parentMap, containerId, childId)) continue;
