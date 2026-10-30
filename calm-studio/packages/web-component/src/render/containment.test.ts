@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { planContainment, isNestedContainment, emptyContainmentPlan } from './containment.js';
 import type { CalmRelationship } from '@calmstudio/calm-core';
 import { renderELKDiagram } from './elkRender.js';
@@ -292,6 +292,25 @@ describe('renderELKDiagram nested containers (integration)', () => {
     const svg = await renderELKDiagram(arch, { theme: 'light' });
     expect((svg.match(/data-node-id="l11a"/g) ?? []).length).toBe(1);
     expect((svg.match(/<polyline/g) ?? []).length).toBeGreaterThan(0);
+  });
+
+  it('draws each node once, and warns, when the edges to copies would exceed the limit', async () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'service', name: id, description: id });
+    const containers = Array.from({ length: 40 }, (_, k) => `c${k}`);
+    const clients = Array.from({ length: 30 }, (_, k) => `client${k}`);
+    const arch: CalmArchitecture = {
+      nodes: [...containers, ...clients, 'svc'].map(node),
+      relationships: [
+        ...containers.map((c) => deployedIn(`in-${c}`, c, ['svc'])),
+        ...clients.map((c) => connects(`${c}-svc`, c, 'svc')),
+      ],
+    };
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    expect((svg.match(/class="calm-node" data-node-id="svc"/g) ?? []).length).toBe(1);
+    expect((svg.match(/<polyline/g) ?? []).length).toBe(30 + 39);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('one container'));
+    warn.mockRestore();
   });
 
   it('counts only copies against the limit, not every node', async () => {

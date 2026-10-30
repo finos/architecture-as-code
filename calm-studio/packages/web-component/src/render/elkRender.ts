@@ -49,7 +49,7 @@ export interface RenderOptions {
   containers?: 'nested' | 'edges';
 }
 
-/** Copies above which a node in several containers is nested under its first claim only. */
+/** Extra drawings, or extra edges to them, above which each node is nested under its first claim only. */
 const MAX_COPIES = 1000;
 
 /** Number of extra drawings when every node is drawn once in each container that claims it. */
@@ -112,19 +112,17 @@ export async function renderELKDiagram(
     : emptyContainmentPlan();
   // Copies multiply with each level of shared containers. Past the limit, nest
   // each node under its first claim only and draw the other claims as edges.
-  if (countCopies(plan) > MAX_COPIES) {
+  let copiesLimited = countCopies(plan) > MAX_COPIES;
+  if (copiesLimited) {
     plan = planContainment(relationships, knownNodeIds, { sharedMembers: false });
   }
 
   // Expand relationships into renderable edges. In nested mode, containment
   // relationships are represented by the plan (nesting + fallback edges) and
   // must not also expand into fan-out edges.
-  const diagramEdges: DiagramEdge[] = [
-    ...relationships
-      .filter((r) => containersMode === 'edges' || !isNestedContainment(r))
-      .flatMap((r) => relationshipToEdges(r)),
-    ...plan.fallbackEdges,
-  ];
+  const relationshipEdges = relationships
+    .filter((r) => containersMode === 'edges' || !isNestedContainment(r))
+    .flatMap((r) => relationshipToEdges(r));
 
   // Build ELK graph
   const NODE_WIDTH = 180;
@@ -145,37 +143,53 @@ export async function renderELKDiagram(
   // nested in it. The drawing in its first claim keeps the CALM id, as when only
   // that claim nested; each other drawing gets its own render id, mapped back
   // through calmIdOf.
-  const calmIdOf = new Map<string, string>();
-  const instancesOf = new Map<string, string[]>();
-  const ancestorsOf = new Map<string, string[]>();
-  const takenIds = new Set<string>(knownNodeIds);
-  function renderIdFor(id: string, parentRenderId: string | undefined): string {
-    if (parentRenderId === plan.parentsOf.get(id)?.[0]) return id;
-    return freeId(`${id}__in__${parentRenderId}`, takenIds);
-  }
-
-  function buildElkNode(id: string, parentRenderId?: string, ancestors: string[] = []): ElkNodeInput {
-    const renderId = renderIdFor(id, parentRenderId);
-    calmIdOf.set(renderId, id);
-    instancesOf.set(id, [...(instancesOf.get(id) ?? []), renderId]);
-    ancestorsOf.set(renderId, ancestors);
-    const members = plan.childrenOf.get(id);
-    const label = { text: nodeNameMap.get(id) ?? id };
-    if (members && members.length > 0) {
-      return {
-        id: renderId,
-        labels: [label],
-        layoutOptions: { 'elk.padding': '[top=44.0,left=16.0,bottom=16.0,right=16.0]' },
-        children: members.map((m) => buildElkNode(m, renderId, [...ancestors, renderId])),
-      };
+  function draw(plan: ContainmentPlan) {
+    const calmIdOf = new Map<string, string>();
+    const instancesOf = new Map<string, string[]>();
+    const ancestorsOf = new Map<string, string[]>();
+    const takenIds = new Set<string>(knownNodeIds);
+    function renderIdFor(id: string, parentRenderId: string | undefined): string {
+      if (parentRenderId === plan.parentsOf.get(id)?.[0]) return id;
+      return freeId(`${id}__in__${parentRenderId}`, takenIds);
     }
-    return { id: renderId, width: NODE_WIDTH, height: NODE_HEIGHT, labels: [label] };
+
+    function buildElkNode(id: string, parentRenderId?: string, ancestors: string[] = []): ElkNodeInput {
+      const renderId = renderIdFor(id, parentRenderId);
+      calmIdOf.set(renderId, id);
+      instancesOf.set(id, [...(instancesOf.get(id) ?? []), renderId]);
+      ancestorsOf.set(renderId, ancestors);
+      const members = plan.childrenOf.get(id);
+      const label = { text: nodeNameMap.get(id) ?? id };
+      if (members && members.length > 0) {
+        return {
+          id: renderId,
+          labels: [label],
+          layoutOptions: { 'elk.padding': '[top=44.0,left=16.0,bottom=16.0,right=16.0]' },
+          children: members.map((m) => buildElkNode(m, renderId, [...ancestors, renderId])),
+        };
+      }
+      return { id: renderId, width: NODE_WIDTH, height: NODE_HEIGHT, labels: [label] };
+    }
+
+    const topLevelIds = [...new Set(nodes.map((n) => n['unique-id']))]
+      .filter((id) => !plan.parentsOf.has(id));
+    const topLevelChildren = topLevelIds.map((id) => buildElkNode(id));
+    const diagramEdges: DiagramEdge[] = [...relationshipEdges, ...plan.fallbackEdges];
+    const renderEdges = expandEdgesToInstances(diagramEdges, instancesOf, ancestorsOf);
+    return { calmIdOf, topLevelChildren, diagramEdges, renderEdges };
   }
 
-  const topLevelIds = [...new Set(nodes.map((n) => n['unique-id']))]
-    .filter((id) => !plan.parentsOf.has(id));
-  const topLevelChildren = topLevelIds.map((id) => buildElkNode(id));
-  const renderEdges = expandEdgesToInstances(diagramEdges, instancesOf, ancestorsOf);
+  let drawn = draw(plan);
+  // Each copy of a node also gets the node's edges
+  if (drawn.renderEdges.length - drawn.diagramEdges.length > MAX_COPIES) {
+    plan = planContainment(relationships, knownNodeIds, { sharedMembers: false });
+    copiesLimited = true;
+    drawn = draw(plan);
+  }
+  if (copiesLimited) {
+    console.warn('The diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.');
+  }
+  const { calmIdOf, topLevelChildren, renderEdges } = drawn;
 
   const graph = {
     id: 'root',
