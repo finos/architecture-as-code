@@ -302,6 +302,20 @@ describe('vm-builder', () => {
             expect(vm.warnings).toEqual([expect.stringContaining('one container')]);
         });
 
+        it('keeps a node in its outer container when the container between it and the inner container is hidden', () => {
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('cluster'), node('mid'), node('ns'), node('svc', 'service')],
+                relationships: [deployedIn('d1', 'cluster', ['svc', 'mid']), deployedIn('d2', 'mid', ['ns']), deployedIn('d3', 'ns', ['svc'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts({ focusNodes: ['svc'], includeContainers: 'parents' }));
+
+            expect(vm.containers.map(c => [c.id, c.nodes.map(n => n.id)])).toEqual([
+                ['cluster', ['svc__in__cluster']],
+                ['ns', ['svc__in__ns']],
+            ]);
+        });
+
         it('highlights every copy of a highlighted node', () => {
             const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
 

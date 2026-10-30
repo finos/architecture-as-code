@@ -87,22 +87,24 @@ export function buildContainerForest(
         return candidate;
     };
 
+    const drawnParents = (id: string) => (parentsOf.get(id) ?? []).filter(p => p !== id && containerIdsToRender.has(p));
+    // Through drawn containers only: a hidden container breaks the nesting
     const isAncestor = (a: string, of: string) => {
         const seen = new Set<string>();
-        const stack = [...(parentsOf.get(of) ?? [])];
+        const stack = drawnParents(of);
         while (stack.length > 0) {
             const id = stack.pop()!;
             if (id === a) return true;
             if (seen.has(id)) continue;
             seen.add(id);
-            stack.push(...(parentsOf.get(id) ?? []));
+            stack.push(...drawnParents(id));
         }
         return false;
     };
     // A drawn container that is already an ancestor through another drawn container adds no drawing,
     // e.g. a service listed in both its cluster and its namespace
     const allRenderedParents = (id: string) => {
-        const rendered = (parentsOf.get(id) ?? []).filter(p => p !== id && containerIdsToRender.has(p));
+        const rendered = drawnParents(id);
         return rendered.filter(p => !rendered.some(q => q !== p && isAncestor(p, q)));
     };
     // Copies multiply with each level of shared containers. Past the limit, draw each node in its first container only.
