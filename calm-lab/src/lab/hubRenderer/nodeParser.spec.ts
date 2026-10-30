@@ -236,6 +236,25 @@ describe('parseCALMData with deeply shared containers', () => {
         const parsed = parseCALMData({ nodes: ids.flat().map((id) => node(id)), relationships });
         expect(parsed.nodes).toHaveLength(levels * 2);
         expect(parsed.nodes.find((n) => n.id === 'l11a')?.parentId).toBe('l10b');
+        expect(parsed.copiesLimited).toBe(true);
+    });
+
+    it('draws each node once when the edges to copies would exceed the limit', () => {
+        const containers = Array.from({ length: 40 }, (_, k) => `c${k}`);
+        const clients = Array.from({ length: 30 }, (_, k) => `client${k}`);
+        const parsed = parseCALMData({
+            nodes: [...containers, ...clients, 'svc'].map((id) => node(id)),
+            relationships: [
+                ...containers.map((c) => ({ ...composedOf(c, ['svc']), 'unique-id': `in-${c}` })),
+                ...clients.map((c) => ({
+                    'unique-id': `${c}-svc`,
+                    'relationship-type': { connects: { source: { node: c }, destination: { node: 'svc' } } },
+                })),
+            ],
+        });
+        expect(parsed.nodes.filter((n) => n.data['unique-id'] === 'svc').map((n) => n.parentId)).toEqual(['c39']);
+        expect(parsed.edges).toHaveLength(30);
+        expect(parsed.copiesLimited).toBe(true);
     });
 
     it('counts only copies against the limit, not every node', () => {

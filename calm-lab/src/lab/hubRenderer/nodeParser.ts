@@ -136,12 +136,14 @@ export interface ParsedNodes {
     instancesOf: Map<string, string[]>;
     /** Container ids enclosing each React Flow node, outermost first. */
     ancestorsOf: Map<string, string[]>;
+    /** True when a limit drew each node in its last container only. */
+    copiesLimited: boolean;
 }
 
-/** Copies above which a node in several containers is drawn in its last container only. */
-const MAX_COPIES = 1000;
+/** Extra drawings, or extra edges to them, above which each node is drawn in its last container only. */
+export const MAX_COPIES = 1000;
 
-export function parseNodes(nodes: LabCalmNode[], containerInfo: ContainerInfo, onShowDetailsCallback?: (node: LabCalmNode) => void): ParsedNodes {
+export function parseNodes(nodes: LabCalmNode[], containerInfo: ContainerInfo, onShowDetailsCallback?: (node: LabCalmNode) => void, drawOnce = false): ParsedNodes {
     const regularNodes: Node[] = [];
     const systemNodes: Node[] = [];
     const { containerNodeIds, parentMap } = containerInfo;
@@ -190,7 +192,7 @@ export function parseNodes(nodes: LabCalmNode[], containerInfo: ContainerInfo, o
         const parents = parentsOf.get(id)!;
         drawings.set(id, parents.length === 0 ? 1 : parents.reduce((sum, p) => sum + drawings.get(p)!, 0));
     }
-    const capped = ids.reduce((sum, id) => sum + drawings.get(id)! - 1, 0) > MAX_COPIES;
+    const capped = drawOnce || ids.reduce((sum, id) => sum + drawings.get(id)! - 1, 0) > MAX_COPIES;
 
     const resolved = new Map<string, Instance[]>();
     for (const id of order) {
@@ -225,5 +227,5 @@ export function parseNodes(nodes: LabCalmNode[], containerInfo: ContainerInfo, o
         }
     });
 
-    return { regularNodes, systemNodes, instancesOf, ancestorsOf };
+    return { regularNodes, systemNodes, instancesOf, ancestorsOf, copiesLimited: capped };
 }

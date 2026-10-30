@@ -662,6 +662,26 @@ describe('parseCALMData - nodes with several parents', () => {
         const result = parseCALMData({ nodes: ids.flat().map(node), relationships } as CalmArchitectureSchema);
         expect(result.nodes).toHaveLength(levels * 2);
         expect(result.nodes.find((n) => n.id === 'l11a')?.parentId).toBe('l10b');
+        expect(result.copiesLimited).toBe(true);
+    });
+
+    it('draws each node once when the edges to copies would exceed the limit', () => {
+        const containers = Array.from({ length: 40 }, (_, k) => `c${k}`);
+        const clients = Array.from({ length: 30 }, (_, k) => `client${k}`);
+        const result = parseCALMData({
+            nodes: [...containers, ...clients, 'svc'].map(node),
+            relationships: [
+                ...containers.map((c) => deployedIn(`in-${c}`, c, ['svc'])),
+                ...clients.map((c) => connects(`${c}-svc`, c, 'svc')),
+            ],
+        } as CalmArchitectureSchema);
+        expect(drawings(result, 'svc')).toEqual([['svc', 'c39']]);
+        expect(result.edges).toHaveLength(30);
+        expect(result.copiesLimited).toBe(true);
+    });
+
+    it('does not mark a diagram under the limits as limited', () => {
+        expect(parseCALMData(sharedNamespace()).copiesLimited).toBe(false);
     });
 
     it('counts only copies against the limit, not every node', () => {

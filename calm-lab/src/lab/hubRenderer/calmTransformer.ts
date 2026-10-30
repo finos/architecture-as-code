@@ -9,7 +9,7 @@ import {
     sortContainersDeepestFirst,
     sortNodesParentsBeforeChildren,
 } from './layoutUtils';
-import { identifyContainerNodes, parseNodes } from './nodeParser';
+import { identifyContainerNodes, MAX_COPIES, parseNodes } from './nodeParser';
 import { expandEdgesToInstances, extractFlowTransitions, parseRelationships } from './relationshipParser';
 import { GRAPH_LAYOUT } from './constants';
 import type { LabCalmDoc, LabCalmNode } from './types';
@@ -20,6 +20,8 @@ import type { LabCalmDoc, LabCalmNode } from './types';
 export interface ParsedCALMData {
     nodes: Node[];
     edges: Edge[];
+    /** True when a limit drew each node in its last container only. */
+    copiesLimited?: boolean;
 }
 
 /**
@@ -34,11 +36,17 @@ export function parseCALMData(data: LabCalmDoc | null | undefined, onShowDetails
         const flows = data.flows || [];
 
         const containerInfo = identifyContainerNodes(relationships, nodes);
-        const { regularNodes, systemNodes, instancesOf, ancestorsOf } = parseNodes(nodes, containerInfo, onShowDetailsCallback);
         const flowTransitions = extractFlowTransitions(flows);
-        const edges = expandEdgesToInstances(parseRelationships(relationships, flowTransitions), instancesOf, ancestorsOf);
+        const relationshipEdges = parseRelationships(relationships, flowTransitions);
+        let parsed = parseNodes(nodes, containerInfo, onShowDetailsCallback);
+        let edges = expandEdgesToInstances(relationshipEdges, parsed.instancesOf, parsed.ancestorsOf);
+        // Each copy of a node also gets the node's edges
+        if (edges.length - relationshipEdges.length > MAX_COPIES) {
+            parsed = parseNodes(nodes, containerInfo, onShowDetailsCallback, true);
+            edges = expandEdgesToInstances(relationshipEdges, parsed.instancesOf, parsed.ancestorsOf);
+        }
 
-        return applyLayout(regularNodes, systemNodes, edges);
+        return { ...applyLayout(parsed.regularNodes, parsed.systemNodes, edges), copiesLimited: parsed.copiesLimited };
     } catch (error) {
         console.error('Error parsing CALM data:', error);
         return { nodes: [], edges: [] };
