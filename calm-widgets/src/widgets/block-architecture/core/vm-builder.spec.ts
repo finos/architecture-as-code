@@ -329,6 +329,52 @@ describe('vm-builder', () => {
             expect(vm.warnings).toEqual(['Node "m" has multiple deployed-in parents: "D1" vs "D2" (keeping "D1")']);
         });
 
+        it('draws a loop on each copy for a relationship from a node to itself', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], [connects('c1', 'payments', 'payments')]), baseOpts());
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['payments__in__ns-payments__in__cluster-a', 'payments__in__ns-payments__in__cluster-a'],
+                ['payments__in__ns-payments__in__cluster-b', 'payments__in__ns-payments__in__cluster-b'],
+            ]);
+        });
+
+        it('connects an interacts actor drawn once to every copy', () => {
+            const interacts = { 'unique-id': 'i1', 'relationship-type': { interacts: { actor: 'user', nodes: ['payments'] } } };
+            const vm = buildBlockArchVM(sharedNamespaces([node('user', 'actor')], [interacts]), baseOpts());
+
+            expect(vm.edges.map(e => e.target)).toEqual([
+                'payments__in__ns-payments__in__cluster-a',
+                'payments__in__ns-payments__in__cluster-b',
+            ]);
+        });
+
+        it('gives the same diagram when the nodes and relationships are in reverse order', () => {
+            const context = sharedNamespaces([], [connects('c1', 'orders', 'payments')]);
+            const reversed = { nodes: [...context.nodes!].reverse(), relationships: [...context.relationships!].reverse() };
+
+            const ids = (vm: ReturnType<typeof buildBlockArchVM>) => ({
+                containers: JSON.stringify(vm.containers),
+                edges: vm.edges.map(e => [e.source, e.target]).sort(),
+            });
+            expect(ids(buildBlockArchVM(reversed, baseOpts()))).toEqual(ids(buildBlockArchVM(context, baseOpts())));
+        });
+
+        it('does not apply the limit to a large diagram with no shared nodes', () => {
+            const ids = Array.from({ length: 1500 }, (_, k) => `n${k}`);
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('cluster'), ...ids.map(id => node(id, 'service'))],
+                relationships: [
+                    deployedIn('d1', 'cluster', ids),
+                    ...ids.slice(1).map((id, k) => connects(`c${k}`, ids[k], id)),
+                ],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.edges).toHaveLength(ids.length - 1);
+            expect(vm.warnings).toEqual([]);
+        });
+
         it('highlights every copy of a highlighted node', () => {
             const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
 
