@@ -635,6 +635,28 @@ describe('parseCALMData - nodes with several parents', () => {
         expect(result.edges.length).toBeLessThan(8);
     });
 
+    it('connects a container to the copy of its member inside each of its drawings', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'ns', 'svc')]));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['ns', 'svc'],
+            ['ns__in__cluster-a', 'svc__in__ns__in__cluster-a'],
+        ]);
+    });
+
+    it('expands an interacts relationship to every copy', () => {
+        const interacts = { 'unique-id': 'i1', 'relationship-type': { interacts: { actor: 'user', nodes: ['svc'] } } };
+        const result = parseCALMData(sharedNamespace([interacts], ['user']));
+        expect(result.edges.map((e) => e.target)).toEqual(['svc', 'svc__in__ns__in__cluster-a']);
+    });
+
+    it('draws a loop on each copy for a relationship from a node to itself', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'svc', 'svc')]));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['svc', 'svc'],
+            ['svc__in__ns__in__cluster-a', 'svc__in__ns__in__cluster-a'],
+        ]);
+    });
+
     it('draws one edge when only a container around everything holds copies of both ends', () => {
         const result = parseCALMData({
             nodes: ['prod', 'c1', 'c2', 'c3', 'c4', 'a', 'b'].map(node),

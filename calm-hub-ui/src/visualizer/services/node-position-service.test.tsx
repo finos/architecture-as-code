@@ -293,6 +293,33 @@ describe('node-position-service', () => {
         });
     });
 
+    describe('applyPositions with a new child in a nested container', () => {
+        const parsed: Node[] = [
+            { id: 'ca', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'ns', type: 'group', position: { x: 0, y: 0 }, data: {}, parentId: 'ca' } as Node,
+            { id: 'svc', position: { x: 0, y: 0 }, data: {}, parentId: 'ns' } as Node,
+            { id: 'copy', position: { x: 0, y: 0 }, data: {}, parentId: 'ns' } as Node,
+            { id: 'cb', type: 'group', position: { x: 0, y: 0 }, data: {} },
+        ];
+        const positions: StoredNodePosition[] = [
+            { id: 'ca', position: { x: 0, y: 0 }, width: 400, height: 300 },
+            { id: 'ns', position: { x: 20, y: 40 }, width: 300, height: 200 },
+            { id: 'svc', position: { x: 20, y: 40 } },
+            { id: 'cb', position: { x: 0, y: 320 }, width: 400, height: 300 },
+        ];
+        const result = applyPositions(parsed, positions) as (Node & { height?: number; width?: number })[];
+        const byId = (id: string) => result.find((n) => n.id === id)!;
+
+        it('grows the inner container, then the outer container to hold it', () => {
+            expect(byId('ns').height).toBeGreaterThanOrEqual(byId('copy').position.y + GRAPH_LAYOUT.NODE_HEIGHT);
+            expect(byId('ca').height).toBeGreaterThanOrEqual(byId('ns').position.y + byId('ns').height!);
+        });
+
+        it('does not move the containers around it', () => {
+            expect(byId('cb')).toMatchObject({ position: { x: 0, y: 320 }, width: 400, height: 300 });
+        });
+    });
+
     describe('toStoredPositions with dimensions', () => {
         it('captures width and height from node.width/height', () => {
             const nodesWithDimensions: Node[] = [
