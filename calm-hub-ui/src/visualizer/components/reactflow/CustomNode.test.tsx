@@ -202,7 +202,7 @@ describe('CustomNode — external URL support', () => {
         expect(screen.getByTitle('Has detailed architecture')).toBeInTheDocument();
     });
 
-    describe('building-block-style metadata', () => {
+    describe('standard-node-style metadata', () => {
         const BLOCK_BLUE = '#1C4587';
 
         // Round-trips a colour through the DOM so hex and rgb() spellings compare equal.
@@ -218,21 +218,21 @@ describe('CustomNode — external URL support', () => {
         }
 
         it('applies the background and text colours', () => {
-            const nodeDiv = renderStyled({ 'building-block-style': { background: BLOCK_BLUE, text: '#ffffff' } });
+            const nodeDiv = renderStyled({ 'standard-node-style': { background: BLOCK_BLUE, text: '#ffffff' } });
 
             expect(nodeDiv.style.background).toBe(normalisedColor(BLOCK_BLUE));
             expect(nodeDiv.style.color).toBe(normalisedColor('#ffffff'));
         });
 
         it('uses the block background as the border when the node has no risk level', () => {
-            const nodeDiv = renderStyled({ 'building-block-style': { background: BLOCK_BLUE } });
+            const nodeDiv = renderStyled({ 'standard-node-style': { background: BLOCK_BLUE } });
 
             expect(nodeDiv.style.borderColor).toBe(normalisedColor(BLOCK_BLUE));
         });
 
         it('keeps the AIGF risk colour as the border when a block style is also set', () => {
             const nodeDiv = renderStyled({
-                'building-block-style': { background: BLOCK_BLUE },
+                'standard-node-style': { background: BLOCK_BLUE },
                 aigf: { 'risk-level': 'high' },
             });
 
@@ -252,7 +252,7 @@ describe('CustomNode — external URL support', () => {
             ['a non-string value', { not: 'a colour' }],
             ['a url()', 'url(https://host/pixel.png)'],
         ])('ignores %s as the background, keeping the default background and border', (_label, background) => {
-            const styled = renderStyled({ 'building-block-style': { background } });
+            const styled = renderStyled({ 'standard-node-style': { background } });
             const unstyled = renderStyled({});
 
             expect(styled.style.background).toBe(unstyled.style.background);
@@ -261,7 +261,7 @@ describe('CustomNode — external URL support', () => {
         });
 
         it('ignores a non-string text colour', () => {
-            const styled = renderStyled({ 'building-block-style': { text: 42 } });
+            const styled = renderStyled({ 'standard-node-style': { text: 42 } });
             const unstyled = renderStyled({});
 
             expect(styled.style.color).toBe(unstyled.style.color);

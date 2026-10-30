@@ -82,8 +82,8 @@ describe('SectionHeader', () => {
                 namespace="my namespace"
                 id="42"
                 version="1.0.0"
-                typeSegment="building blocks"
-                typeLabel="Building Block"
+                typeSegment="standard nodes"
+                typeLabel="Standard Node"
             />
         );
 
@@ -91,9 +91,9 @@ describe('SectionHeader', () => {
             'href',
             '/namespace/my%20namespace'
         );
-        expect(screen.getByRole('link', { name: 'Building Block' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: 'Standard Node' })).toHaveAttribute(
             'href',
-            '/namespace/my%20namespace?type=building%20blocks'
+            '/namespace/my%20namespace?type=standard%20nodes'
         );
     });
 
