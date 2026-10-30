@@ -201,7 +201,7 @@ describe('parseCALMData with repeated, redundant and cyclic containers', () => {
         expect(parsed.nodes.filter((n) => n.data['unique-id'] === 'svc').map((n) => [n.id, n.parentId])).toEqual([['svc', 'ns']]);
     });
 
-    it('pairs the copies left without a partner with each other', () => {
+    it('connects only the copies that share a container', () => {
         const parsed = parseCALMData({
             nodes: ['a', 'b', 'c', 'ns', 'svc', 'q'].map((id) => node(id)),
             relationships: [
@@ -212,10 +212,16 @@ describe('parseCALMData with repeated, redundant and cyclic containers', () => {
                 { 'unique-id': 'c1', 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'q' } } } },
             ],
         });
-        expect(parsed.edges.map((e) => [e.source, e.target])).toEqual([
-            ['svc', 'q'],
-            ['svc__in__ns__in__a', 'q__in__a'],
-        ]);
+        expect(parsed.edges.map((e) => [e.source, e.target])).toEqual([['svc__in__ns__in__a', 'q__in__a']]);
+    });
+
+    it('leaves a node top-level when main did, after a container that closed a cycle', () => {
+        const composed = (id: string, container: string, nodes: string[]) => ({ ...composedOf(container, nodes), 'unique-id': id });
+        const parsed = parseCALMData({
+            nodes: ['a', 'c', 'e'].map((id) => node(id)),
+            relationships: [composed('r1', 'a', ['c']), composed('r2', 'c', ['a']), composed('r3', 'e', ['c'])],
+        });
+        expect(parsed.nodes.find((n) => n.id === 'a')?.parentId).toBeUndefined();
     });
 });
 

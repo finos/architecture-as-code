@@ -596,7 +596,7 @@ describe('parseCALMData - nodes with several parents', () => {
         expect(drawings(result, 'svc')).toEqual([['svc', 'ns']]);
     });
 
-    it('pairs the copies left without a partner with each other', () => {
+    it('connects only the copies that share a container', () => {
         const result = parseCALMData({
             nodes: ['a', 'b', 'c', 'ns', 'svc', 'q'].map(node),
             relationships: [
@@ -607,10 +607,29 @@ describe('parseCALMData - nodes with several parents', () => {
                 connects('c1', 'svc', 'q'),
             ],
         } as CalmArchitectureSchema);
-        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
-            ['svc', 'q'],
-            ['svc__in__ns__in__a', 'q__in__a'],
-        ]);
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([['svc__in__ns__in__a', 'q__in__a']]);
+    });
+
+    it('draws one edge when only a container around everything holds copies of both ends', () => {
+        const result = parseCALMData({
+            nodes: ['prod', 'c1', 'c2', 'c3', 'c4', 'a', 'b'].map(node),
+            relationships: [
+                deployedIn('r1', 'prod', ['c1', 'c2', 'c3', 'c4']),
+                deployedIn('r2', 'c1', ['a']),
+                deployedIn('r3', 'c2', ['a']),
+                deployedIn('r4', 'c3', ['b']),
+                deployedIn('r5', 'c4', ['b']),
+                connects('c1x', 'a', 'b'),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.edges).toHaveLength(1);
+    });
+
+    it('ignores a container that is not a node before it chooses containers', () => {
+        const relationships = [deployedIn('r1', 'c', ['a']), deployedIn('r2', 'a', ['b']), deployedIn('r3', 'X', ['b']), deployedIn('r4', 'b', ['a'])];
+        const result = parseCALMData({ nodes: ['a', 'b', 'c'].map(node), relationships } as CalmArchitectureSchema);
+        const withoutX = parseCALMData({ nodes: ['a', 'b', 'c'].map(node), relationships: relationships.filter((r) => r['unique-id'] !== 'r3') } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => [n.id, n.parentId])).toEqual(withoutX.nodes.map((n) => [n.id, n.parentId]));
     });
 
     it('lists a parent once when relationships repeat it', () => {

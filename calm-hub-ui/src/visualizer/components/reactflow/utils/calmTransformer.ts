@@ -33,7 +33,7 @@ export function parseCALMData(
         const nodes = data.nodes || [];
         const flows = data.flows || [];
 
-        const containerInfo = identifyContainerNodes(relationships);
+        const containerInfo = identifyContainerNodes(relationships, nodes);
         const { regularNodes, systemNodes, instancesOf, ancestorsOf } = parseNodes(nodes, containerInfo, onShowDetailsCallback);
         const flowTransitions = extractFlowTransitions(flows);
         const edges = expandEdgesToInstances(parseRelationships(relationships, flowTransitions), instancesOf, ancestorsOf);

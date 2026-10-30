@@ -29,10 +29,12 @@ function reaches(parentMap: Map<string, string[]>, from: string, target: string)
 }
 
 /**
- * Identifies container nodes from deployed-in and composed-of relationships
+ * Identifies container nodes from deployed-in and composed-of relationships.
+ * Only containers that are in `nodes` can hold a node.
  */
-export function identifyContainerNodes(relationships: CalmRelationshipSchema[]): ContainerInfo {
+export function identifyContainerNodes(relationships: CalmRelationshipSchema[], nodes: CalmNodeSchema[]): ContainerInfo {
     const containerNodeIds = new Set<string>();
+    const knownNodeIds = new Set(nodes.map((node) => node['unique-id']));
     const containments: [string, string][] = [];
 
     relationships.forEach((rel) => {
@@ -43,7 +45,7 @@ export function identifyContainerNodes(relationships: CalmRelationshipSchema[]):
             if (containerId) {
                 containerNodeIds.add(containerId);
                 childNodeIds.forEach((childId: string) => {
-                    containments.push([childId, containerId]);
+                    if (knownNodeIds.has(containerId)) containments.push([childId, containerId]);
                 });
             }
         }
@@ -55,19 +57,24 @@ export function identifyContainerNodes(relationships: CalmRelationshipSchema[]):
             if (containerId) {
                 containerNodeIds.add(containerId);
                 childNodeIds.forEach((childId: string) => {
-                    containments.push([childId, containerId]);
+                    if (knownNodeIds.has(containerId)) containments.push([childId, containerId]);
                 });
             }
         }
     });
 
+    // First the container each node was drawn in before nodes could have several: the last one that
+    // does not close a cycle. Then the others, last relationship first, except those that closed a cycle.
     const parentMap = new Map<string, string[]>();
+    const closedCycle = new Set<string>();
     for (const [childId, containerId] of containments) {
-        if (!reaches(parentMap, containerId, childId)) parentMap.set(childId, [containerId]);
+        if (reaches(parentMap, containerId, childId)) closedCycle.add(`${childId}\u0000${containerId}`);
+        else parentMap.set(childId, [containerId]);
     }
     for (const [childId, containerId] of [...containments].reverse()) {
         const parents = parentMap.get(childId) ?? [];
-        if (parents.includes(containerId) || reaches(parentMap, containerId, childId)) continue;
+        if (parents.includes(containerId) || closedCycle.has(`${childId}\u0000${containerId}`)) continue;
+        if (reaches(parentMap, containerId, childId)) continue;
         parents.push(containerId);
         parentMap.set(childId, parents);
     }
@@ -150,8 +157,7 @@ export function parseNodes(
     // Each other drawing is a copy with its own id.
     type Instance = { id: string; parentId?: string; ancestors: string[] };
     const ids = [...new Set(nodes.map((n) => n['unique-id']).filter((id): id is string => Boolean(id)))];
-    const calmIds = new Set(ids);
-    const takenIds = new Set(calmIds);
+    const takenIds = new Set(ids);
     const copyId = (id: string, parentInstanceId: string) => {
         const base = `${id}__in__${parentInstanceId}`;
         let candidate = base;
@@ -161,10 +167,9 @@ export function parseNodes(
     };
     // A container that is already an ancestor through another container adds no drawing,
     // e.g. a service listed in both its cluster and its namespace
-    const known = new Map(ids.map((id) => [id, (parentMap.get(id) ?? []).filter((p) => calmIds.has(p))]));
     const parentsOf = new Map(ids.map((id) => {
-        const parents = known.get(id)!;
-        return [id, parents.filter((p) => !parents.some((q) => q !== p && reaches(known, q, p)))];
+        const parents = parentMap.get(id) ?? [];
+        return [id, parents.filter((p) => !parents.some((q) => q !== p && reaches(parentMap, q, p)))];
     }));
 
     // Parents before children

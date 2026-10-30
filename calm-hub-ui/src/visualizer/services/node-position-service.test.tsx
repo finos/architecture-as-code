@@ -11,6 +11,7 @@ import {
     toStoredPositions,
 } from './node-position-service.js';
 import { createMemoryStorage } from '../../test-support/memory-storage.js';
+import { GRAPH_LAYOUT } from '../components/reactflow/utils/constants.js';
 
 const STORAGE_PREFIX = 'calm-hub:node-positions:';
 const key = 'finos/conference-signup';
@@ -261,18 +262,34 @@ describe('node-position-service', () => {
     });
 
     describe('applyPositions with a child that has no stored position', () => {
-        it('reflows the container so a new child, e.g. a copy of a shared node, fits inside it', () => {
-            const parsed: Node[] = [
-                { id: 'group', type: 'group', position: { x: 0, y: 0 }, data: {} },
-                { id: 'child', position: { x: 0, y: 0 }, data: {}, parentId: 'group' } as Node,
-                { id: 'copy', position: { x: 80, y: 260 }, data: {}, parentId: 'group' } as Node,
-            ];
-            const positions: StoredNodePosition[] = [
-                { id: 'group', position: { x: 10, y: 10 }, width: 410, height: 260 },
-                { id: 'child', position: { x: 20, y: 40 }, width: 100, height: 50 },
-            ];
-            const group = applyPositions(parsed, positions).find((n) => n.id === 'group')! as Node & { height?: number };
-            expect(group.height).toBeGreaterThan(260);
+        const parsed: Node[] = [
+            { id: 'group', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'child', position: { x: 0, y: 0 }, data: {}, parentId: 'group' } as Node,
+            { id: 'copy', position: { x: 20, y: 40 }, data: {}, parentId: 'group' } as Node,
+            { id: 'other', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'x', position: { x: 0, y: 0 }, data: {}, parentId: 'other' } as Node,
+        ];
+        const positions: StoredNodePosition[] = [
+            { id: 'group', position: { x: 10, y: 10 }, width: 410, height: 260 },
+            { id: 'child', position: { x: 20, y: 40 } },
+            { id: 'other', position: { x: 500, y: 0 }, width: 600, height: 400 },
+            { id: 'x', position: { x: 200, y: 150 } },
+        ];
+        const result = applyPositions(parsed, positions) as (Node & { height?: number; width?: number })[];
+        const byId = (id: string) => result.find((n) => n.id === id)!;
+
+        it('places the new child, e.g. a copy of a shared node, below its stored siblings', () => {
+            expect(byId('copy').position.y).toBeGreaterThanOrEqual(40 + GRAPH_LAYOUT.NODE_HEIGHT);
+        });
+
+        it('grows its container to hold it', () => {
+            expect(byId('group').height).toBeGreaterThanOrEqual(byId('copy').position.y + GRAPH_LAYOUT.NODE_HEIGHT);
+        });
+
+        it('keeps every other container and child where they were stored', () => {
+            expect(byId('other')).toMatchObject({ position: { x: 500, y: 0 }, width: 600, height: 400 });
+            expect(byId('x').position).toEqual({ x: 200, y: 150 });
+            expect(byId('child').position).toEqual({ x: 20, y: 40 });
         });
     });
 

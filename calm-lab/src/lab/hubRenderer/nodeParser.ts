@@ -5,25 +5,6 @@ import type { Node } from 'reactflow';
 import { toDisplayText } from './calmHelpers';
 import type { LabCalmNode, LabCalmRelationship, LabContainment } from './types';
 
-/**
- * Records `childId`'s parent, unless doing so would produce a parent ReactFlow
- * cannot resolve.
- *
- * Lab addition (not in the Hub original): the lab parses the live editor
- * buffer, so a containment relationship can name a container that has not been
- * added to `nodes` yet — ReactFlow throws on a `parentId` with no matching
- * node — or close a loop (A in B, B in A), which the layout walks forever.
- */
-function assignParent(parentMap: Map<string, string[]>, childId: string | undefined, containerId: string, knownNodeIds: Set<string>): void {
-    if (!childId || !knownNodeIds.has(containerId)) {
-        return;
-    }
-    const parents = parentMap.get(childId) ?? [];
-    if (parents.includes(containerId) || reaches(parentMap, containerId, childId)) return;
-    parents.push(containerId);
-    parentMap.set(childId, parents);
-}
-
 /** True if `target` is `from` or one of its ancestors. */
 function reaches(parentMap: Map<string, string[]>, from: string, target: string): boolean {
     const seen = new Set<string>();
@@ -40,9 +21,12 @@ function reaches(parentMap: Map<string, string[]>, from: string, target: string)
 
 /**
  * Identifies container nodes from deployed-in and composed-of relationships.
+ * Only containers that are in `nodes` can hold a node.
  *
- * `nodes` is the document's node list: only containers that are actually
- * present in it can parent a node (see assignParent).
+ * Lab addition (not in the Hub original): the lab parses the live editor
+ * buffer, so a containment relationship can name a container that has not been
+ * added to `nodes` yet — ReactFlow throws on a `parentId` with no matching
+ * node — or close a loop (A in B, B in A), which the layout walks forever.
  */
 export interface ContainerInfo {
     containerNodeIds: Set<string>;
@@ -67,7 +51,7 @@ export function identifyContainerNodes(relationships: LabCalmRelationship[], nod
             if (containerId) {
                 containerNodeIds.add(containerId);
                 childNodeIds.forEach((childId) => {
-                    containments.push([childId, containerId]);
+                    if (childId && knownNodeIds.has(containerId)) containments.push([childId, containerId]);
                 });
             }
         }
@@ -79,17 +63,27 @@ export function identifyContainerNodes(relationships: LabCalmRelationship[], nod
             if (containerId) {
                 containerNodeIds.add(containerId);
                 childNodeIds.forEach((childId) => {
-                    containments.push([childId, containerId]);
+                    if (childId && knownNodeIds.has(containerId)) containments.push([childId, containerId]);
                 });
             }
         }
     });
 
+    // First the container each node was drawn in before nodes could have several: the last one that
+    // does not close a cycle. Then the others, last relationship first, except those that closed a cycle.
     const parentMap = new Map<string, string[]>();
+    const closedCycle = new Set<string>();
     for (const [childId, containerId] of containments) {
-        if (childId && knownNodeIds.has(containerId) && !reaches(parentMap, containerId, childId)) parentMap.set(childId, [containerId]);
+        if (reaches(parentMap, containerId, childId)) closedCycle.add(`${childId}\u0000${containerId}`);
+        else parentMap.set(childId, [containerId]);
     }
-    for (const [childId, containerId] of [...containments].reverse()) assignParent(parentMap, childId, containerId, knownNodeIds);
+    for (const [childId, containerId] of [...containments].reverse()) {
+        const parents = parentMap.get(childId) ?? [];
+        if (parents.includes(containerId) || closedCycle.has(`${childId}\u0000${containerId}`)) continue;
+        if (reaches(parentMap, containerId, childId)) continue;
+        parents.push(containerId);
+        parentMap.set(childId, parents);
+    }
 
     return { containerNodeIds, parentMap };
 }
@@ -157,8 +151,7 @@ export function parseNodes(nodes: LabCalmNode[], containerInfo: ContainerInfo, o
     // Each other drawing is a copy with its own id.
     type Instance = { id: string; parentId?: string; ancestors: string[] };
     const ids = [...new Set(nodes.map((n) => n['unique-id']).filter((id): id is string => Boolean(id)))];
-    const calmIds = new Set(ids);
-    const takenIds = new Set(calmIds);
+    const takenIds = new Set(ids);
     const copyId = (id: string, parentInstanceId: string) => {
         const base = `${id}__in__${parentInstanceId}`;
         let candidate = base;
