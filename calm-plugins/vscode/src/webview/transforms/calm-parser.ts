@@ -16,7 +16,7 @@ const CONTAINER_BASE_HEIGHT = 350;
 const CONTAINER_CHILD_WIDTH_INCREMENT = 150;
 const CONTAINER_CHILD_HEIGHT_INCREMENT = 120;
 
-/** Copies above which a node in several containers is drawn in its first container only. */
+/** Copies above which a node in several containers is drawn in its last container only. */
 const MAX_COPIES = 1000;
 
 export function parseCALMData(
@@ -77,7 +77,8 @@ export function parseCALMData(
     for (const cId of containerIds) countDescendants(cId, new Set());
 
     // Build nodes. A node with several parents is drawn once in each, with everything nested in it.
-    // The first drawing keeps the CALM id; the others are copies with the CALM id in data.calmId.
+    // The drawing in the last container keeps the CALM id, as before, so saved positions still apply.
+    // The others are copies with the CALM id in data.calmId.
     type Instance = { id: string; parent?: string; depth: number };
     const calmNodes = arch.nodes.map((n, i) => ({ n, id: (n['unique-id'] as string) ?? `node-${i}` }));
     const calmIds = new Set(calmNodes.map(({ id }) => id));
@@ -90,10 +91,10 @@ export function parseCALMData(
         return candidate;
     };
     const parentsOf = (id: string, path: Set<string>) =>
-        (parentsMap.get(id) ?? []).filter((p) => p !== id && calmIds.has(p) && !path.has(p));
+        [...(parentsMap.get(id) ?? [])].reverse().filter((p) => p !== id && calmIds.has(p) && !path.has(p));
 
     // Copies multiply with each level of shared containers. Past the limit, draw each node in its
-    // first container only; data.otherParents keeps the other memberships for the save.
+    // last container only; data.otherParents keeps the other memberships for the save.
     const counts = new Map<string, number>();
     const countDrawings = (id: string, path: Set<string>): number => {
         const known = counts.get(id);

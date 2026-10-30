@@ -163,15 +163,15 @@ describe('parseCALMData - nodes with several parents', () => {
         ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
     const byId = (nodes: { id: string }[], id: string) => nodes.find((n) => n.id === id) as any;
 
-    it('draws a node once in each parent', () => {
+    it('draws a node once in each parent, and keeps the CALM id in the last parent as before', () => {
         const result = parseCALMData(arch(
             [node('cluster-a'), node('cluster-b'), node('ns')],
             [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])],
         ));
         const copies = result.nodes.filter((n) => n.data.calmId === 'ns');
         expect(copies.map((n) => [n.id, n.parentId])).toEqual([
-            ['ns', 'cluster-a'],
-            ['ns__in__cluster-b', 'cluster-b'],
+            ['ns', 'cluster-b'],
+            ['ns__in__cluster-a', 'cluster-a'],
         ]);
         expect(copies[1].data.label).toBe('ns');
     });
@@ -185,10 +185,10 @@ describe('parseCALMData - nodes with several parents', () => {
                 deployedIn('r3', 'ns', ['svc']),
             ],
         ));
-        expect(byId(result.nodes, 'ns__in__cluster-b').type).toBe('container');
+        expect(byId(result.nodes, 'ns__in__cluster-a').type).toBe('container');
         expect(result.nodes.filter((n) => n.data.calmId === 'svc').map((n) => [n.id, n.parentId])).toEqual([
             ['svc', 'ns'],
-            ['svc__in__ns__in__cluster-b', 'ns__in__cluster-b'],
+            ['svc__in__ns__in__cluster-a', 'ns__in__cluster-a'],
         ]);
     });
 
@@ -214,12 +214,12 @@ describe('parseCALMData - nodes with several parents', () => {
 
     it('does not give a copy the id of a real node', () => {
         const result = parseCALMData(arch(
-            [node('a'), node('b'), node('x'), node('x__in__b')],
+            [node('a'), node('b'), node('x'), node('x__in__a')],
             [deployedIn('r1', 'a', ['x']), deployedIn('r2', 'b', ['x'])],
         ));
         const ids = result.nodes.map((n) => n.id);
         expect(new Set(ids).size).toBe(ids.length);
-        expect(byId(result.nodes, 'x__in__b').data.calmId).toBe('x__in__b');
+        expect(byId(result.nodes, 'x__in__a').data.calmId).toBe('x__in__a');
     });
 
     it('puts every container before the nodes inside it', () => {

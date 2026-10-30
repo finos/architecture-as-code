@@ -254,7 +254,7 @@ describe('flowToCalm - nodes with several parents', () => {
     it('writes the original ids for an edge drawn to a copy', () => {
         const { parsed } = roundTrip(sharedNamespace());
         const edges: Edge[] = [{
-            id: 'c2', source: 'client', target: 'svc__in__ns__in__cluster-b',
+            id: 'c2', source: 'client', target: 'svc__in__ns__in__cluster-a',
             data: { calmRelId: 'c2', calmVariant: 'connects' },
         }];
         const out = flowToCalm(parsed.nodes, edges);
@@ -283,6 +283,7 @@ describe('flowToCalm - nodes with several parents', () => {
         };
         const { parsed, out } = roundTrip(arch);
         expect(parsed.nodes).toHaveLength(levels * 2);
+        expect(parsed.nodes.find((n) => n.id === 'l11a')?.parentId).toBe('l10b');
         expect(containment(out)).toEqual(arch.relationships.map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in']]));
     });
 
@@ -297,11 +298,11 @@ describe('flowToCalm - nodes with several parents', () => {
 
     it('drops a membership when its copy is removed', () => {
         const { parsed } = roundTrip(sharedNamespace());
-        const nodes = parsed.nodes.filter((n) => !n.id.endsWith('__in__cluster-b'));
+        const nodes = parsed.nodes.filter((n) => !n.id.endsWith('__in__cluster-a'));
         const out = flowToCalm(nodes, parsed.edges);
         expect(containment(out)).toEqual([
-            ['r1', { container: 'cluster-a', nodes: ['ns'] }],
-            ['r2', { container: 'cluster-b', nodes: [] }],
+            ['r1', { container: 'cluster-a', nodes: [] }],
+            ['r2', { container: 'cluster-b', nodes: ['ns'] }],
             ['r3', { container: 'ns', nodes: ['svc'] }],
         ]);
     });

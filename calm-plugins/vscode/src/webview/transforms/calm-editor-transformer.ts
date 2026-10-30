@@ -102,8 +102,8 @@ export function flowToCalm(
         calmNodes.push(calmNode);
     }
 
-    // Build containment relationships in their original order: the parser draws a node with
-    // several parents first in the container of its first relationship.
+    // Build containment relationships in their original order: the parser keeps the CALM id of a
+    // node with several parents in the container of its last relationship.
     const originalOrder = (containerId: string) => {
         const index = (lastParsedArch?.relationships ?? []).findIndex((r) => {
             const rt = r['relationship-type'] as Record<string, unknown> | undefined;
