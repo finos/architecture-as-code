@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Node, Edge } from 'reactflow';
-import { updateInstances, reattachEdges, sameMembership, withDescendants, hasSharedDrawings } from './node-instances';
+import { updateInstances, reattachEdges, sameMembership, withDescendants, hasSharedDrawings, planDelete } from './node-instances';
 
 const flowNode = (id: string, calmId = id, parentId?: string): Node => ({
     id,
@@ -84,5 +84,37 @@ describe('hasSharedDrawings', () => {
 
     it('is false when each node has one drawing and every membership is drawn', () => {
         expect(hasSharedDrawings([flowNode('a'), flowNode('b', 'b', 'a')])).toBe(false);
+    });
+});
+
+describe('planDelete', () => {
+    const withOtherParents = (n: Node, otherParents: string[]): Node => ({ ...n, data: { ...n.data, otherParents } });
+
+    it('deletes the drawings nested in a deleted drawing, but not the other drawings of them', () => {
+        // ns is in cluster-a and cluster-b, svc is in ns. React Flow passes svc's drawing along with ns.
+        const nodes = [
+            flowNode('cluster-a'), flowNode('cluster-b'),
+            flowNode('ns', 'ns', 'cluster-a'), flowNode('ns__in__cluster-b', 'ns', 'cluster-b'),
+            flowNode('svc', 'svc', 'ns'), flowNode('svc__in__ns__in__cluster-b', 'svc', 'ns__in__cluster-b'),
+        ];
+        const { deletedIds } = planDelete([nodes[3], nodes[5]], nodes);
+        expect([...deletedIds].sort()).toEqual(['ns__in__cluster-b', 'svc__in__ns__in__cluster-b']);
+    });
+
+    it('also deletes the drawings of the same membership as a picked drawing', () => {
+        const nodes = [
+            flowNode('ns', 'ns', 'cluster'), flowNode('ns__in__cluster-b', 'ns', 'cluster-b'),
+            flowNode('svc', 'svc', 'ns'), flowNode('svc__in__ns__in__cluster-b', 'svc', 'ns__in__cluster-b'),
+        ];
+        const { deletedIds } = planDelete([nodes[2]], nodes);
+        expect([...deletedIds].sort()).toEqual(['svc', 'svc__in__ns__in__cluster-b']);
+    });
+
+    it('keeps a nested node that is also in a container that stays, at the top level', () => {
+        // s is in Y and in X, Y is in X. s is drawn in Y only. Deleting Y keeps s in X.
+        const nodes = [flowNode('X'), flowNode('Y', 'Y', 'X'), withOtherParents(flowNode('s', 's', 'Y'), ['X'])];
+        const { deletedIds, keptRoots } = planDelete([nodes[1], nodes[2]], nodes);
+        expect([...deletedIds]).toEqual(['Y']);
+        expect(keptRoots.map((n) => [n.id, n.parentId])).toEqual([['s', undefined]]);
     });
 });

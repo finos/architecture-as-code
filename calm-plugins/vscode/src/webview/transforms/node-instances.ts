@@ -60,11 +60,34 @@ export function withDescendants(ids: Set<string>, nodes: Node[]): Set<string> {
     return result;
 }
 
+const otherParentsOf = (n: Node): string[] => ((n.data as Record<string, unknown> | undefined)?.otherParents as string[] | undefined) ?? [];
+
+/**
+ * The drawings a delete removes. React Flow also passes the drawings nested in a deleted drawing: they go
+ * with it. A drawing the user picked also takes the other drawings of its membership. A nested node that
+ * is also in a container that stays (data.otherParents) is kept, moved to the top level, so that the save
+ * keeps it and the reload draws it in that container.
+ */
+export function planDelete(deletedNodes: Node[], nodes: Node[]): { deletedIds: Set<string>; keptRoots: Node[]; keptIds: Set<string> } {
+    const deletedSet = new Set(deletedNodes.map((n) => n.id));
+    const picked = deletedNodes.filter((n) => !n.parentId || !deletedSet.has(n.parentId));
+    const pickedIds = new Set([...picked, ...picked.flatMap((n) => sameMembership(n, nodes))].map((n) => n.id));
+    const removed = withDescendants(pickedIds, nodes);
+    const remainingCalmIds = new Set(nodes.filter((n) => !removed.has(n.id)).map(calmIdOf));
+    const candidates = nodes.filter((n) => removed.has(n.id) && !pickedIds.has(n.id) && !remainingCalmIds.has(calmIdOf(n))
+        && otherParentsOf(n).some((p) => remainingCalmIds.has(p)));
+    const keptIds = withDescendants(new Set(candidates.map((n) => n.id)), nodes);
+    const keptRoots = candidates
+        .filter((n) => !n.parentId || !keptIds.has(n.parentId))
+        .map((n) => ({ ...n, parentId: undefined, extent: undefined }));
+    return { deletedIds: new Set([...removed].filter((id) => !keptIds.has(id))), keptRoots, keptIds };
+}
+
 /** True when a node has several drawings, or a membership that is not drawn (data.otherParents). */
 export function hasSharedDrawings(nodes: Node[]): boolean {
     const seen = new Set<string>();
     for (const n of nodes) {
-        if ((((n.data as Record<string, unknown> | undefined)?.otherParents as string[] | undefined) ?? []).length > 0) return true;
+        if (otherParentsOf(n).length > 0) return true;
         if (seen.has(calmIdOf(n))) return true;
         seen.add(calmIdOf(n));
     }

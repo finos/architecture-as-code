@@ -47,7 +47,7 @@ import {
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
-import { updateInstances, reattachEdges, calmIdOf, sameMembership, withDescendants, hasSharedDrawings } from './transforms/node-instances';
+import { updateInstances, reattachEdges, calmIdOf, sameMembership, withDescendants, hasSharedDrawings, planDelete } from './transforms/node-instances';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
@@ -129,6 +129,8 @@ function CanvasApp() {
     const undoingOrRedoing = useRef(false);
     const loadGeneration = useRef(0);
     const pendingNodesRef = useRef<Node[] | null>(null);
+    // React Flow calls onNodesDelete before onNodesChange. A delete that reloads the canvas saves the file itself.
+    const reloadPending = useRef(false);
 
     // Copy/paste
     const clipboardNode = useRef<Node | null>(null);
@@ -448,7 +450,7 @@ function CanvasApp() {
             positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
             return;
         }
-        if (structural) setTimeout(() => emitChange(true), 0);
+        if (structural && !reloadPending.current) setTimeout(() => emitChange(true), 0);
         else if (hasDimensions) {
             if (positionDebounceTimer.current) clearTimeout(positionDebounceTimer.current);
             positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
@@ -483,18 +485,26 @@ function CanvasApp() {
     // --- Delete (reactflow v11 fires onNodesDelete after removal) ---
     const onNodesDelete = useCallback((deletedNodes: Node[]) => {
         if (store.readonlyMode) return;
-        // Deleting one drawing removes its container membership, so the other drawings of it go too
-        const others = deletedNodes.flatMap((d) => sameMembership(d, nodes));
-        const deletedIds = withDescendants(new Set([...deletedNodes, ...others].map((n) => n.id)), nodes);
+        const { deletedIds, keptRoots, keptIds } = planDelete(deletedNodes, nodes);
         const removed = nodes.filter((n) => deletedIds.has(n.id));
-        setNodes((nds) => nds.filter((n) => !deletedIds.has(n.id)));
+        const kept = nodes.filter((n) => keptIds.has(n.id)).map((n) => keptRoots.find((r) => r.id === n.id) ?? n);
+        setNodes((nds) => [...nds.filter((n) => !deletedIds.has(n.id) && !keptIds.has(n.id)), ...kept]);
         // React Flow has already removed the edges of the deleted nodes. Restore those that
         // another drawing of the same CALM node can keep.
         const remaining = nodes.filter((n) => !deletedIds.has(n.id));
-        const touched = edges.filter((e) => deletedIds.has(e.source) || deletedIds.has(e.target));
+        const touched = edges.filter((e) => [e.source, e.target].some((id) => deletedIds.has(id) || keptIds.has(id)));
         const reattached = reattachEdges(touched, removed, remaining);
-        setEdges((eds) => [...eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target)), ...reattached]);
-        setTimeout(() => (hasSharedDrawings(nodes) ? emitAndReload() : emitChange(true)), 0);
+        const touchedIds = new Set(touched.map((e) => e.id));
+        setEdges((eds) => [...eds.filter((e) => !touchedIds.has(e.id)), ...reattached]);
+        if (!hasSharedDrawings(nodes)) {
+            setTimeout(() => emitChange(true), 0);
+            return;
+        }
+        reloadPending.current = true;
+        setTimeout(() => {
+            reloadPending.current = false;
+            emitAndReload();
+        }, 0);
     }, [nodes, edges, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
 
     // --- Node click (select) ---
@@ -643,7 +653,8 @@ function CanvasApp() {
                         const absY = n.positionAbsolute?.y ?? n.position.y;
                         if (flowPos.x >= absX && flowPos.x <= absX + w
                             && flowPos.y >= absY && flowPos.y <= absY + h) {
-                            targetId = n.id;
+                            // Edges stay on the drawing that keeps the CALM id
+                            targetId = calmIdOf(n);
                             break;
                         }
                     }
