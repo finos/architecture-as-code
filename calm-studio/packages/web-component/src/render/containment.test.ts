@@ -50,10 +50,20 @@ describe('isNestedContainment', () => {
 });
 
 describe('planContainment', () => {
+  it('ignores a claim that is already an ancestor through another claim, with no fallback edge', () => {
+    const plan = planContainment(
+      [deployedIn('r1', 'cluster', ['sys', 'svc-a']), composedOf('r2', 'sys', ['svc-a'])],
+      KNOWN
+    );
+    expect(plan.parentsOf.get('svc-a')).toEqual(['sys']);
+    expect(plan.childrenOf.get('cluster')).toEqual(['sys']);
+    expect(plan.fallbackEdges).toEqual([]);
+  });
+
   it('nests a basic composed-of and consumes the relationship', () => {
     const plan = planContainment([composedOf('r1', 'sys', ['svc-a', 'svc-b'])], KNOWN);
     expect(plan.childrenOf.get('sys')).toEqual(['svc-a', 'svc-b']);
-    expect(plan.parentOf.get('svc-a')).toBe('sys');
+    expect(plan.parentsOf.get('svc-a')?.[0]).toBe('sys');
     expect(plan.fallbackEdges).toEqual([]);
     expect(plan.consumedRelationshipIds.has('r1')).toBe(true);
   });
@@ -63,8 +73,8 @@ describe('planContainment', () => {
       [composedOf('r1', 'sys', ['svc-a']), deployedIn('r2', 'cluster', ['sys'])],
       KNOWN
     );
-    expect(plan.parentOf.get('svc-a')).toBe('sys');
-    expect(plan.parentOf.get('sys')).toBe('cluster');
+    expect(plan.parentsOf.get('svc-a')?.[0]).toBe('sys');
+    expect(plan.parentsOf.get('sys')?.[0]).toBe('cluster');
   });
 
   it('double claim: the node nests in both containers and both relationships are consumed', () => {
@@ -72,7 +82,7 @@ describe('planContainment', () => {
       [composedOf('r1', 'sys', ['svc-a']), deployedIn('r2', 'cluster', ['svc-a'])],
       KNOWN
     );
-    expect(plan.parentOf.get('svc-a')).toBe('sys');
+    expect(plan.parentsOf.get('svc-a')?.[0]).toBe('sys');
     expect(plan.parentsOf.get('svc-a')).toEqual(['sys', 'cluster']);
     expect(plan.childrenOf.get('cluster')).toEqual(['svc-a']);
     expect(plan.fallbackEdges).toEqual([]);
@@ -103,7 +113,7 @@ describe('planContainment', () => {
 
   it('partial fallback uses __N suffixes when a relationship yields 2+ fallback edges', () => {
     const plan = planContainment([deployedIn('r2', 'cluster', ['cluster', 'ghost', 'db'])], KNOWN);
-    expect(plan.parentOf.get('db')).toBe('cluster');
+    expect(plan.parentsOf.get('db')?.[0]).toBe('cluster');
     expect(plan.fallbackEdges).toEqual([
       { id: 'r2__0', relationshipId: 'r2', source: 'cluster', target: 'cluster', variant: 'deployed-in' },
       { id: 'r2__1', relationshipId: 'r2', source: 'cluster', target: 'ghost', variant: 'deployed-in' },
@@ -126,7 +136,7 @@ describe('planContainment', () => {
       [composedOf('r1', 'sys', ['svc-a']), composedOf('r2', 'svc-a', ['sys'])],
       KNOWN
     );
-    expect(plan.parentOf.get('svc-a')).toBe('sys');
+    expect(plan.parentsOf.get('svc-a')?.[0]).toBe('sys');
     expect(plan.fallbackEdges).toEqual([
       { id: 'r2', relationshipId: 'r2', source: 'svc-a', target: 'sys', variant: 'composed-of' },
     ]);
@@ -134,7 +144,7 @@ describe('planContainment', () => {
 
   it('self-claim falls back to an edge', () => {
     const plan = planContainment([composedOf('r1', 'sys', ['sys', 'svc-a'])], KNOWN);
-    expect(plan.parentOf.get('svc-a')).toBe('sys');
+    expect(plan.parentsOf.get('svc-a')?.[0]).toBe('sys');
     expect(plan.fallbackEdges).toEqual([
       { id: 'r1', relationshipId: 'r1', source: 'sys', target: 'sys', variant: 'composed-of' },
     ]);
@@ -172,7 +182,7 @@ describe('planContainment', () => {
   it('emptyContainmentPlan returns an inert plan', () => {
     const plan = emptyContainmentPlan();
     expect(plan.childrenOf.size).toBe(0);
-    expect(plan.parentOf.size).toBe(0);
+    expect(plan.parentsOf.size).toBe(0);
     expect(plan.fallbackEdges).toEqual([]);
     expect(plan.consumedRelationshipIds.size).toBe(0);
   });

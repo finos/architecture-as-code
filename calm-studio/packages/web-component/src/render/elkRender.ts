@@ -10,7 +10,7 @@ import type { CalmArchitecture } from '@calmstudio/calm-core';
 import { renderNodeSvg, renderContainerSvg } from './nodeRenderer.js';
 import { renderEdgeSvg, renderEdgeMarkers } from './edgeRenderer.js';
 import { renderFlowOverlay, applyFlowDimming, getFlowNodeIds, type EdgeLayout } from './flowOverlay.js';
-import { relationshipToEdges, expandEdgesToInstances, type DiagramEdge } from './relationshipEdges.js';
+import { relationshipToEdges, expandEdgesToInstances, freeId, type DiagramEdge } from './relationshipEdges.js';
 import { planContainment, emptyContainmentPlan, isNestedContainment, type ContainmentPlan } from './containment.js';
 
 // ---------------------------------------------------------------------------
@@ -53,14 +53,6 @@ export interface RenderOptions {
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Render a CalmArchitecture to an interactive SVG string using ELK layout.
- * Supports pack-aware node coloring and icons for all registered packs.
- *
- * @param arch - The CALM architecture to render
- * @param options - Optional render options (theme, direction)
- * @returns Promise resolving to an SVG string
- */
 /** Copies above which a node in several containers is nested under its first claim only. */
 const MAX_COPIES = 1000;
 
@@ -78,6 +70,14 @@ function countCopies(plan: ContainmentPlan): number {
   return [...plan.parentsOf.keys()].reduce((sum, id) => sum + count(id) - 1, 0);
 }
 
+/**
+ * Render a CalmArchitecture to an interactive SVG string using ELK layout.
+ * Supports pack-aware node coloring and icons for all registered packs.
+ *
+ * @param arch - The CALM architecture to render
+ * @param options - Optional render options (theme, direction)
+ * @returns Promise resolving to an SVG string
+ */
 export async function renderELKDiagram(
   arch: CalmArchitecture,
   options: RenderOptions = {}
@@ -150,11 +150,7 @@ export async function renderELKDiagram(
   const takenIds = new Set<string>(knownNodeIds);
   function renderIdFor(id: string, parentRenderId: string | undefined): string {
     if (!instancesOf.has(id)) return id;
-    const base = `${id}__in__${parentRenderId ?? 'root'}`;
-    let candidate = base;
-    for (let i = 2; takenIds.has(candidate); i++) candidate = `${base}_${i}`;
-    takenIds.add(candidate);
-    return candidate;
+    return freeId(`${id}__in__${parentRenderId ?? 'root'}`, takenIds);
   }
 
   function buildElkNode(id: string, parentRenderId?: string, ancestors: string[] = []): ElkNodeInput {
@@ -177,7 +173,7 @@ export async function renderELKDiagram(
 
   const topLevelIds = nodes
     .map((n) => n['unique-id'])
-    .filter((id) => !plan.parentOf.has(id));
+    .filter((id) => !plan.parentsOf.has(id));
   const topLevelChildren = topLevelIds.map((id) => buildElkNode(id));
   const renderEdges = expandEdgesToInstances(diagramEdges, instancesOf, ancestorsOf);
 

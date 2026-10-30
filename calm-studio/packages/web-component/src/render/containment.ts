@@ -18,8 +18,6 @@ import { isFlatRelationship, type DiagramEdge } from './relationshipEdges.js';
 export interface ContainmentPlan {
   /** containerId -> member node ids (only satisfiable claims, document order) */
   childrenOf: Map<string, string[]>;
-  /** nodeId -> first containerId */
-  parentOf: Map<string, string>;
   /** nodeId -> every containerId, in document order (inverse of childrenOf). The node is drawn in each. */
   parentsOf: Map<string, string[]>;
   /** Unsatisfiable claims, as dashed edges with fan-out id rules */
@@ -31,7 +29,6 @@ export interface ContainmentPlan {
 export function emptyContainmentPlan(): ContainmentPlan {
   return {
     childrenOf: new Map(),
-    parentOf: new Map(),
     parentsOf: new Map(),
     fallbackEdges: [],
     consumedRelationshipIds: new Set(),
@@ -102,7 +99,6 @@ export function planContainment(
         siblings.push(member);
         plan.childrenOf.set(container, siblings);
         plan.parentsOf.set(member, [...parents, container]);
-        if (!plan.parentOf.has(member)) plan.parentOf.set(member, container);
       } else {
         rejected.push(member);
       }
@@ -129,6 +125,15 @@ export function planContainment(
         });
       });
     }
+  }
+
+  // A container that is already an ancestor through another container adds no drawing,
+  // e.g. a service listed in both its cluster and its namespace
+  for (const [member, parents] of plan.parentsOf) {
+    const redundant = parents.filter((p) => parents.some((q) => q !== p && hasAncestor(plan.parentsOf, q, p)));
+    if (redundant.length === 0) continue;
+    plan.parentsOf.set(member, parents.filter((p) => !redundant.includes(p)));
+    for (const p of redundant) plan.childrenOf.set(p, (plan.childrenOf.get(p) ?? []).filter((c) => c !== member));
   }
 
   return plan;
