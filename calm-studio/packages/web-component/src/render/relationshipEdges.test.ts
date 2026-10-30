@@ -265,11 +265,26 @@ describe('expandEdgesToInstances', () => {
     expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'd']]);
   });
 
-  it('draws one edge between the first drawings when no copies of the two ends share a container', () => {
-    const both = new Map([['a', ['a', 'a__in__y']], ['d', ['d', 'd__in__q']]]);
+  it('draws one edge between the drawings that keep the CALM ids when no copies of the two ends share a container', () => {
+    // A copy can be built before the drawing that keeps the CALM id
+    const both = new Map([['a', ['a__in__y', 'a']], ['d', ['d__in__q', 'd']]]);
     const ancestors = new Map([['a', ['x']], ['a__in__y', ['y']], ['d', ['p']], ['d__in__q', ['q']]]);
     const result = expandEdgesToInstances([edge('c', 'a', 'd')], both, ancestors);
     expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'd']]);
+  });
+
+  it('gives each drawing one edge when copies of both ends tie on shared containers', () => {
+    // Every copy is in x, and one copy of each end is outside x, so x does not hold every drawing
+    const both = new Map([
+      ['a', ['a', 'a__in__p1', 'a__in__p2', 'a__in__z']],
+      ['d', ['d', 'd__in__q1', 'd__in__q2', 'd__in__w']],
+    ]);
+    const ancestors = new Map<string, string[]>([
+      ['a', ['x', 'p0']], ['a__in__p1', ['x', 'p1']], ['a__in__p2', ['x', 'p2']], ['a__in__z', ['z']],
+      ['d', ['x', 'q0']], ['d__in__q1', ['x', 'q1']], ['d__in__q2', ['x', 'q2']], ['d__in__w', ['w']],
+    ]);
+    const result = expandEdgesToInstances([edge('c', 'a', 'd')], both, ancestors);
+    expect(result.length).toBeLessThan(8);
   });
 
   it('gives each copy edge an id that no other edge uses', () => {
