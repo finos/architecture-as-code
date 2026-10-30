@@ -284,6 +284,24 @@ describe('vm-builder', () => {
             expect(vm.containers.map(c => [c.id, c.nodes.map(n => n.id)])).toEqual([['cluster', ['svc']]]);
         });
 
+        it('draws each node once and warns when the edges to copies would exceed the limit', () => {
+            const containers = Array.from({ length: 40 }, (_, k) => `c${k}`);
+            const clients = Array.from({ length: 30 }, (_, k) => `client${k}`);
+            const context: CalmCoreCanonicalModel = {
+                nodes: [...containers, ...clients, 'svc'].map(id => node(id)),
+                relationships: [
+                    ...containers.map(c => deployedIn(`in-${c}`, c, ['svc'])),
+                    ...clients.map(c => connects(`${c}-svc`, c, 'svc')),
+                ],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.containers.filter(c => c.nodes.length > 0).map(c => c.nodes.map(n => n.id))).toEqual([['svc']]);
+            expect(vm.edges).toHaveLength(30);
+            expect(vm.warnings).toEqual([expect.stringContaining('one container')]);
+        });
+
         it('highlights every copy of a highlighted node', () => {
             const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
 

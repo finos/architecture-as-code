@@ -245,12 +245,13 @@ describe('container-builder', () => {
             const ids = Array.from({ length: levels }, (_, k) => [`l${k}a`, `l${k}b`]);
             const parentsOf = new Map(ids.slice(1).flatMap(([a, b], k) => [[a, ids[k]], [b, ids[k]]] as [string, string[]][]));
 
-            const { containers, instancesOf } =
+            const { containers, instancesOf, copiesLimited } =
                 buildContainerForest(ids.flat().map(id => node(id)), parentsOf, new Set(ids.flat()), false);
 
             const count = (cs: VMContainer[]): number => cs.reduce((sum, c) => sum + 1 + count(c.containers), 0);
             expect(count(containers)).toBe(levels * 2);
             expect(instancesOf.get('l11a')).toEqual(['l11a']);
+            expect(copiesLimited).toBe(true);
         });
 
         it('counts only copies against the limit, not every node', () => {

@@ -11,6 +11,8 @@ export interface ContainerForest {
     instancesOf: Map<string, string[]>;
     /** Rendered container ids enclosing each rendered id, outermost first. */
     ancestorsOf: Map<string, string[]>;
+    /** True when a limit drew each node in its first container only. */
+    copiesLimited: boolean;
 }
 
 /**
@@ -33,8 +35,8 @@ function append<T>(map: Map<string, T[]>, key: string, ...values: T[]): void {
     map.set(key, list);
 }
 
-/** Copies above which a node in several containers is drawn in its first container only. */
-const MAX_COPIES = 1000;
+/** Extra drawings, or extra edges to them, above which each node is drawn in its first container only. */
+export const MAX_COPIES = 1000;
 
 /** Number of times each id is drawn: one per drawing of each parent. */
 function drawingCounter(parentsOf: (id: string) => string[]): (id: string) => number {
@@ -65,7 +67,8 @@ export function buildContainerForest(
     parentsOf: Map<string, string[]>,
     containerIdsToRender: Set<string>,
     renderInterfaces: boolean,
-    activeInterfaceIds?: Set<string>
+    activeInterfaceIds?: Set<string>,
+    drawOnce = false
 ): ContainerForest {
     const byId = new Map(nodes.map(n => [n['unique-id'], n] as const));
     const attachmentsOf = new Map<string, VMAttach[]>();
@@ -105,7 +108,7 @@ export function buildContainerForest(
     // Copies multiply with each level of shared containers. Past the limit, draw each node in its first container only.
     const ids = new Set([...containerIdsToRender, ...nodes.map(n => n['unique-id'])]);
     const allDrawings = drawingCounter(allRenderedParents);
-    const capped = [...ids].reduce((sum, id) => sum + allDrawings(id) - 1, 0) > MAX_COPIES;
+    const capped = drawOnce || [...ids].reduce((sum, id) => sum + allDrawings(id) - 1, 0) > MAX_COPIES;
     const renderedParents = capped ? (id: string) => allRenderedParents(id).slice(0, 1) : allRenderedParents;
     const drawings = capped ? drawingCounter(renderedParents) : allDrawings;
 
@@ -181,5 +184,5 @@ export function buildContainerForest(
 
     // Input node order keeps the output stable for architectures without shared nodes
     const attachments = nodes.flatMap(n => attachmentsOf.get(n['unique-id']) ?? []);
-    return { containers, attachments, looseNodes, instancesOf, ancestorsOf };
+    return { containers, attachments, looseNodes, instancesOf, ancestorsOf, copiesLimited: capped };
 }

@@ -3,7 +3,7 @@ import { prettyLabel } from './utils';
 import { BlockArchVM, NormalizedOptions, VMContainer, VMLeafNode, VMEdge } from '../types';
 import { buildParentHierarchy, ParentHierarchyResult } from './relationship-analyzer';
 import { resolveVisibilityWithStrategies, VisibilityResult } from './visibility-resolver';
-import { buildContainerForest, ContainerForest, pruneEmptyContainers } from './builders/container-builder';
+import { buildContainerForest, ContainerForest, MAX_COPIES, pruneEmptyContainers } from './builders/container-builder';
 import { buildInterfaceNameMap, buildEdges, expandEdgesToInstances } from './builders/edge-builder';
 
 /**
@@ -53,9 +53,9 @@ export class BlockArchVMBuilder {
     }
 
     /**
-     * Step 3: Build container structure
+     * Step 3: Build container structure. `drawOnce` draws each node in its first container only.
      */
-    buildContainers(): this {
+    buildContainers(drawOnce = false): this {
         if (!this.visibilityResult || !this.parentHierarchyResult) {
             throw new Error('Must call resolveVisibility() first');
         }
@@ -80,12 +80,13 @@ export class BlockArchVMBuilder {
                 ? collectActiveInterfaceIds(this.visibilityResult.filteredRels)
                 : undefined;
 
-        const { containers: initialContainers, attachments, looseNodes: initialLooseNodes, instancesOf, ancestorsOf } = buildContainerForest(
+        const { containers: initialContainers, attachments, looseNodes: initialLooseNodes, instancesOf, ancestorsOf, copiesLimited } = buildContainerForest(
             filteredNodes,
             this.parentHierarchyResult.parentsOf,
             this.visibilityResult.containerIds,
             shouldRenderInterfaces,
-            activeInterfaceIds
+            activeInterfaceIds,
+            drawOnce
         );
 
         let looseNodes = initialLooseNodes;
@@ -103,7 +104,7 @@ export class BlockArchVMBuilder {
             .map(([id, rendered]) => [id, rendered.filter(r => !pruned.has(r))] as const)
             .filter(([, rendered]) => rendered.length > 0));
 
-        this.containerResult = { containers, attachments, looseNodes, instancesOf: drawnInstancesOf, ancestorsOf };
+        this.containerResult = { containers, attachments, looseNodes, instancesOf: drawnInstancesOf, ancestorsOf, copiesLimited };
         return this;
     }
 
@@ -133,6 +134,11 @@ export class BlockArchVMBuilder {
                 nodesById
             );
         this.edges = expandEdgesToInstances(edges, this.containerResult.instancesOf, this.containerResult.ancestorsOf);
+        // Each copy of a node also gets the node's edges
+        if (this.edges.length - edges.length > MAX_COPIES) {
+            this.buildContainers(true);
+            this.edges = expandEdgesToInstances(edges, this.containerResult.instancesOf, this.containerResult.ancestorsOf);
+        }
         return this;
     }
 
@@ -190,7 +196,9 @@ export class BlockArchVMBuilder {
             nodeTypeMap: this.options.nodeTypeMap,
             themeColors: this.options.themeColors,
             layoutEngine: this.options.layoutEngine,
-            warnings: this.visibilityResult.warnings,
+            warnings: this.containerResult.copiesLimited
+                ? [...this.visibilityResult.warnings, 'The diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.']
+                : this.visibilityResult.warnings,
         };
     }
 
