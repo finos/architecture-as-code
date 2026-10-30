@@ -180,8 +180,9 @@ export function parseRelationships(relationships: LabCalmRelationship[], flowTra
 }
 
 /**
- * Connects edges to the drawings of nodes that are in several containers. When both ends
- * have several drawings, each drawing connects only to those that share the most containers.
+ * Connects edges to the drawings of nodes that are in several containers. Each drawing connects
+ * to the drawings of the other end that share the most containers with it. When one end contains
+ * drawings of the other, only those drawings connect.
  */
 export function expandEdgesToInstances(
     edges: Edge[],
@@ -192,6 +193,7 @@ export function expandEdgesToInstances(
         const ofB = new Set(ancestorsOf.get(b) ?? []);
         return (ancestorsOf.get(a) ?? []).filter((x) => ofB.has(x)).length;
     };
+    const contains = (outer: string, inner: string) => (ancestorsOf.get(inner) ?? []).includes(outer);
 
     return edges.flatMap((edge) => {
         const sources = instancesOf.get(edge.source) ?? [edge.source];
@@ -201,14 +203,16 @@ export function expandEdgesToInstances(
         const pairs = sources.flatMap((source) =>
             targets.map((target) => ({ source, target, score: sharedContainers(source, target) }))
         );
+        const nested = pairs.filter((p) => contains(p.source, p.target) || contains(p.target, p.source));
         const bestForSource = new Map<string, number>();
         const bestForTarget = new Map<string, number>();
         for (const p of pairs) {
             bestForSource.set(p.source, Math.max(bestForSource.get(p.source) ?? 0, p.score));
             bestForTarget.set(p.target, Math.max(bestForTarget.get(p.target) ?? 0, p.score));
         }
-        return pairs
-            .filter((p) => p.score === bestForSource.get(p.source) || p.score === bestForTarget.get(p.target))
-            .map((p, i) => ({ ...edge, id: i === 0 ? edge.id : `${edge.id}__${i}`, source: p.source, target: p.target }));
+        const kept = nested.length > 0
+            ? nested
+            : pairs.filter((p) => p.score === bestForSource.get(p.source) || p.score === bestForTarget.get(p.target));
+        return kept.map((p, i) => ({ ...edge, id: i === 0 ? edge.id : `${edge.id}__${i}`, source: p.source, target: p.target }));
     });
 }

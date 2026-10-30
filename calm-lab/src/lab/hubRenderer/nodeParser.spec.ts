@@ -133,16 +133,29 @@ describe('parseCALMData with nodes in several containers', () => {
     const drawings = (calmId: string) =>
         sharedNamespace().nodes.filter((n) => n.data['unique-id'] === calmId).map((n) => [n.id, n.parentId]);
 
-    it('draws the node and everything in it once in each container', () => {
-        expect(drawings('ns')).toEqual([['ns', 'cluster-a'], ['ns__in__cluster-b', 'cluster-b']]);
-        expect(drawings('svc')).toEqual([['svc', 'ns'], ['svc__in__ns__in__cluster-b', 'ns__in__cluster-b']]);
+    it('draws the node and everything in it once in each container, with the CALM id in the last', () => {
+        expect(drawings('ns')).toEqual([['ns', 'cluster-b'], ['ns__in__cluster-a', 'cluster-a']]);
+        expect(drawings('svc')).toEqual([['svc', 'ns'], ['svc__in__ns__in__cluster-a', 'ns__in__cluster-a']]);
+    });
+
+    it('connects only the copy inside a container to that container', () => {
+        const { edges } = parseCALMData({
+            nodes: ['cluster-a', 'cluster-b', 'ns', 'svc'].map((id) => node(id)),
+            relationships: [
+                composedOf('cluster-a', ['ns']),
+                { ...composedOf('cluster-b', ['ns']), 'unique-id': 'cluster-b-ns' },
+                composedOf('ns', ['svc']),
+                connects('c1', 'svc', 'cluster-a'),
+            ],
+        });
+        expect(edges.map((e) => [e.source, e.target])).toEqual([['svc__in__ns__in__cluster-a', 'cluster-a']]);
     });
 
     it('connects the copies in the same container', () => {
         const { edges } = sharedNamespace();
         expect(edges.map((e) => [e.source, e.target])).toEqual([
             ['svc', 'db'],
-            ['svc__in__ns__in__cluster-b', 'db__in__ns__in__cluster-b'],
+            ['svc__in__ns__in__cluster-a', 'db__in__ns__in__cluster-a'],
         ]);
         expect(new Set(edges.map((e) => e.id)).size).toBe(2);
     });
@@ -167,6 +180,7 @@ describe('parseCALMData with deeply shared containers', () => {
         ]);
         const parsed = parseCALMData({ nodes: ids.flat().map((id) => node(id)), relationships });
         expect(parsed.nodes).toHaveLength(levels * 2);
+        expect(parsed.nodes.find((n) => n.id === 'l11a')?.parentId).toBe('l10b');
     });
 
     it('counts only copies against the limit, not every node', () => {

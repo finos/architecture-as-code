@@ -525,26 +525,33 @@ describe('parseCALMData - nodes with several parents', () => {
         ],
     }) as CalmArchitectureSchema;
 
-    it('draws a node once in each parent', () => {
+    it('draws a node once in each parent, and keeps the CALM id in the last parent as before', () => {
         const result = parseCALMData(sharedNamespace());
         expect(drawings(result, 'ns')).toEqual([
-            ['ns', 'cluster-a'],
-            ['ns__in__cluster-b', 'cluster-b'],
+            ['ns', 'cluster-b'],
+            ['ns__in__cluster-a', 'cluster-a'],
+        ]);
+    });
+
+    it('connects only the copy inside a container to that container', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'svc', 'cluster-a')]));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['svc__in__ns__in__cluster-a', 'cluster-a'],
         ]);
     });
 
     it('copies everything nested in a shared container', () => {
         const result = parseCALMData(sharedNamespace());
-        expect(result.nodes.find((n) => n.id === 'ns__in__cluster-b')?.type).toBe('group');
+        expect(result.nodes.find((n) => n.id === 'ns__in__cluster-a')?.type).toBe('group');
         expect(drawings(result, 'svc')).toEqual([
             ['svc', 'ns'],
-            ['svc__in__ns__in__cluster-b', 'ns__in__cluster-b'],
+            ['svc__in__ns__in__cluster-a', 'ns__in__cluster-a'],
         ]);
     });
 
     it('keeps the CALM node in the data of each copy', () => {
         const result = parseCALMData(sharedNamespace());
-        const copy = result.nodes.find((n) => n.id === 'svc__in__ns__in__cluster-b');
+        const copy = result.nodes.find((n) => n.id === 'svc__in__ns__in__cluster-a');
         expect(copy?.data).toEqual(expect.objectContaining({ 'unique-id': 'svc', label: 'svc' }));
     });
 
@@ -552,7 +559,7 @@ describe('parseCALMData - nodes with several parents', () => {
         const result = parseCALMData(sharedNamespace([connects('c1', 'svc', 'db')]));
         expect(result.edges.map((e) => [e.source, e.target])).toEqual([
             ['svc', 'db'],
-            ['svc__in__ns__in__cluster-b', 'db__in__ns__in__cluster-b'],
+            ['svc__in__ns__in__cluster-a', 'db__in__ns__in__cluster-a'],
         ]);
         expect(new Set(result.edges.map((e) => e.id)).size).toBe(2);
     });
@@ -561,7 +568,7 @@ describe('parseCALMData - nodes with several parents', () => {
         const result = parseCALMData(sharedNamespace([connects('c1', 'client', 'svc')], ['client']));
         expect(result.edges.map((e) => [e.source, e.target])).toEqual([
             ['client', 'svc'],
-            ['client', 'svc__in__ns__in__cluster-b'],
+            ['client', 'svc__in__ns__in__cluster-a'],
         ]);
     });
 
@@ -571,7 +578,7 @@ describe('parseCALMData - nodes with several parents', () => {
     });
 
     it('does not give a copy the id of a real node', () => {
-        const result = parseCALMData(sharedNamespace([], ['ns__in__cluster-b']));
+        const result = parseCALMData(sharedNamespace([], ['ns__in__cluster-a']));
         const ids = result.nodes.map((n) => n.id);
         expect(new Set(ids).size).toBe(ids.length);
     });
@@ -594,6 +601,7 @@ describe('parseCALMData - nodes with several parents', () => {
         ]);
         const result = parseCALMData({ nodes: ids.flat().map(node), relationships } as CalmArchitectureSchema);
         expect(result.nodes).toHaveLength(levels * 2);
+        expect(result.nodes.find((n) => n.id === 'l11a')?.parentId).toBe('l10b');
     });
 
     it('counts only copies against the limit, not every node', () => {

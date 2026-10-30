@@ -106,12 +106,12 @@ export interface ParsedNodes {
     ancestorsOf: Map<string, string[]>;
 }
 
+/** Copies above which a node in several containers is drawn in its last container only. */
+const MAX_COPIES = 1000;
+
 /**
  * Parses CALM nodes into ReactFlow nodes
  */
-/** Copies above which a node in several containers is drawn in its first container only. */
-const MAX_COPIES = 1000;
-
 export function parseNodes(
     nodes: CalmNodeSchema[],
     containerInfo: ContainerInfo,
@@ -122,7 +122,8 @@ export function parseNodes(
     const { containerNodeIds, parentMap } = containerInfo;
 
     // A node in several containers is drawn once in each, with everything nested in it.
-    // The first drawing keeps the CALM id; each other drawing is a copy with its own id.
+    // The drawing in the last container keeps the CALM id, as before, so saved positions still apply.
+    // Each other drawing is a copy with its own id.
     type Instance = { id: string; parentId?: string; ancestors: string[] };
     const calmIds = new Set(nodes.map((n) => n['unique-id']).filter(Boolean));
     const takenIds = new Set(calmIds);
@@ -134,9 +135,9 @@ export function parseNodes(
         return candidate;
     };
     const parentsOf = (id: string, path: Set<string>) =>
-        (parentMap.get(id) ?? []).filter((p) => p !== id && calmIds.has(p) && !path.has(p));
+        [...(parentMap.get(id) ?? [])].reverse().filter((p) => p !== id && calmIds.has(p) && !path.has(p));
 
-    // Copies multiply with each level of shared containers. Past the limit, draw each node in its first container only.
+    // Copies multiply with each level of shared containers. Past the limit, draw each node in its last container only.
     const counts = new Map<string, number>();
     const countDrawings = (id: string, path: Set<string>): number => {
         const known = counts.get(id);
