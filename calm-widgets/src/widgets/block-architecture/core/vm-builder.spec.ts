@@ -217,6 +217,32 @@ describe('vm-builder', () => {
             ]);
         });
 
+        it('connects only the copy inside a container to that container', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], [connects('c1', 'orders', 'cluster-b')]), baseOpts());
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['orders__in__ns-orders__in__cluster-b', 'cluster-b'],
+            ]);
+        });
+
+        it('points edges at the plain id when every copy is pruned', () => {
+            const composedOf = (id: string, container: string, nodes: string[]) =>
+                ({ 'unique-id': id, 'relationship-type': { 'composed-of': { container, nodes } } });
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('c1'), node('c2'), node('ns'), node('m'), node('x')],
+                relationships: [
+                    composedOf('r1', 'ns', ['m']),
+                    deployedIn('r2', 'c1', ['ns']),
+                    deployedIn('r3', 'c2', ['ns']),
+                    connects('r4', 'x', 'ns'),
+                ],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts({ focusNodes: ['x', 'ns'], includeChildren: 'none' }));
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([['x', 'ns']]);
+        });
+
         it('highlights every copy of a highlighted node', () => {
             const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
 

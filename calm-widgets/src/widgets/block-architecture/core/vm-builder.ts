@@ -103,7 +103,15 @@ export class BlockArchVMBuilder {
 
         const containers = pruneEmptyContainers(initialContainers);
 
-        this.containerResult = { containers, attachments, looseNodes, instancesOf, ancestorsOf };
+        // Edges must not point at pruned copies. With no copy left, they fall back to the plain id.
+        const containerIds = (cs: VMContainer[]): string[] => cs.flatMap(c => [c.id, ...containerIds(c.containers)]);
+        const kept = new Set(containerIds(containers));
+        const pruned = new Set(containerIds(initialContainers).filter(id => !kept.has(id)));
+        const drawnInstancesOf = new Map([...instancesOf]
+            .map(([id, rendered]) => [id, rendered.filter(r => !pruned.has(r))] as const)
+            .filter(([, rendered]) => rendered.length > 0));
+
+        this.containerResult = { containers, attachments, looseNodes, instancesOf: drawnInstancesOf, ancestorsOf };
         return this;
     }
 
