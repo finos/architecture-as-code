@@ -170,6 +170,55 @@ describe('parseCALMData with nodes in several containers', () => {
     });
 });
 
+describe('parseCALMData with repeated, redundant and cyclic containers', () => {
+    const deployedIn = (id: string, container: string, nodes: string[]) => ({
+        'unique-id': id,
+        'relationship-type': { 'deployed-in': { container, nodes } },
+    });
+    const placement = (parsed: ReturnType<typeof parseCALMData>) => parsed.nodes.map((n) => [n.id, n.parentId]).sort();
+
+    it('keeps the CALM id in the container of the last relationship when a container repeats', () => {
+        const parsed = parseCALMData({
+            nodes: ['A', 'B', 'N'].map((id) => node(id)),
+            relationships: [deployedIn('r1', 'A', ['N']), deployedIn('r2', 'B', ['N']), deployedIn('r3', 'A', ['N'])],
+        });
+        expect(placement(parsed)).toEqual([['A', undefined], ['B', undefined], ['N', 'A'], ['N__in__B', 'B']]);
+    });
+
+    it('breaks a cycle as before, whatever the node order', () => {
+        const relationships = [deployedIn('r1', 'B', ['A']), deployedIn('r2', 'C', ['A']), deployedIn('r3', 'A', ['B'])];
+        for (const order of [['A', 'B', 'C'], ['B', 'A', 'C']]) {
+            const parsed = parseCALMData({ nodes: order.map((id) => node(id)), relationships });
+            expect(placement(parsed)).toEqual([['A', 'C'], ['B', 'A'], ['C', undefined]]);
+        }
+    });
+
+    it('draws a node once when it is listed in both a container and a container inside it', () => {
+        const parsed = parseCALMData({
+            nodes: ['cluster', 'ns', 'svc'].map((id) => node(id)),
+            relationships: [deployedIn('r1', 'cluster', ['ns', 'svc']), deployedIn('r2', 'ns', ['svc'])],
+        });
+        expect(parsed.nodes.filter((n) => n.data['unique-id'] === 'svc').map((n) => [n.id, n.parentId])).toEqual([['svc', 'ns']]);
+    });
+
+    it('pairs the copies left without a partner with each other', () => {
+        const parsed = parseCALMData({
+            nodes: ['a', 'b', 'c', 'ns', 'svc', 'q'].map((id) => node(id)),
+            relationships: [
+                deployedIn('r1', 'a', ['ns', 'q']),
+                deployedIn('r2', 'b', ['ns']),
+                deployedIn('r3', 'ns', ['svc']),
+                deployedIn('r4', 'c', ['q']),
+                { 'unique-id': 'c1', 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'q' } } } },
+            ],
+        });
+        expect(parsed.edges.map((e) => [e.source, e.target])).toEqual([
+            ['svc', 'q'],
+            ['svc__in__ns__in__a', 'q__in__a'],
+        ]);
+    });
+});
+
 describe('parseCALMData with deeply shared containers', () => {
     it('draws each node once when copies would exceed the limit', () => {
         const levels = 12;

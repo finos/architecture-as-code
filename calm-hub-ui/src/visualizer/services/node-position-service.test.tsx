@@ -260,6 +260,22 @@ describe('node-position-service', () => {
         });
     });
 
+    describe('applyPositions with a child that has no stored position', () => {
+        it('reflows the container so a new child, e.g. a copy of a shared node, fits inside it', () => {
+            const parsed: Node[] = [
+                { id: 'group', type: 'group', position: { x: 0, y: 0 }, data: {} },
+                { id: 'child', position: { x: 0, y: 0 }, data: {}, parentId: 'group' } as Node,
+                { id: 'copy', position: { x: 80, y: 260 }, data: {}, parentId: 'group' } as Node,
+            ];
+            const positions: StoredNodePosition[] = [
+                { id: 'group', position: { x: 10, y: 10 }, width: 410, height: 260 },
+                { id: 'child', position: { x: 20, y: 40 }, width: 100, height: 50 },
+            ];
+            const group = applyPositions(parsed, positions).find((n) => n.id === 'group')! as Node & { height?: number };
+            expect(group.height).toBeGreaterThan(260);
+        });
+    });
+
     describe('toStoredPositions with dimensions', () => {
         it('captures width and height from node.width/height', () => {
             const nodesWithDimensions: Node[] = [

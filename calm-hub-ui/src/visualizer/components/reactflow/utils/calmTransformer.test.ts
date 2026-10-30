@@ -572,6 +572,47 @@ describe('parseCALMData - nodes with several parents', () => {
         ]);
     });
 
+    it('keeps the CALM id in the container of the last relationship when a container repeats', () => {
+        const result = parseCALMData({
+            nodes: ['A', 'B', 'N'].map(node),
+            relationships: [deployedIn('r1', 'A', ['N']), deployedIn('r2', 'B', ['N']), deployedIn('r3', 'A', ['N'])],
+        } as CalmArchitectureSchema);
+        expect(drawings(result, 'N')).toEqual([['N', 'A'], ['N__in__B', 'B']]);
+    });
+
+    it('breaks a cycle as before, whatever the node order', () => {
+        const relationships = [deployedIn('r1', 'B', ['A']), deployedIn('r2', 'C', ['A']), deployedIn('r3', 'A', ['B'])];
+        for (const order of [['A', 'B', 'C'], ['B', 'A', 'C']]) {
+            const result = parseCALMData({ nodes: order.map(node), relationships } as CalmArchitectureSchema);
+            expect(result.nodes.map((n) => [n.id, n.parentId]).sort()).toEqual([['A', 'C'], ['B', 'A'], ['C', undefined]]);
+        }
+    });
+
+    it('draws a node once when it is listed in both a container and a container inside it', () => {
+        const result = parseCALMData({
+            nodes: ['cluster', 'ns', 'svc'].map(node),
+            relationships: [deployedIn('r1', 'cluster', ['ns', 'svc']), deployedIn('r2', 'ns', ['svc'])],
+        } as CalmArchitectureSchema);
+        expect(drawings(result, 'svc')).toEqual([['svc', 'ns']]);
+    });
+
+    it('pairs the copies left without a partner with each other', () => {
+        const result = parseCALMData({
+            nodes: ['a', 'b', 'c', 'ns', 'svc', 'q'].map(node),
+            relationships: [
+                deployedIn('r1', 'a', ['ns', 'q']),
+                deployedIn('r2', 'b', ['ns']),
+                deployedIn('r3', 'ns', ['svc']),
+                deployedIn('r4', 'c', ['q']),
+                connects('c1', 'svc', 'q'),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['svc', 'q'],
+            ['svc__in__ns__in__a', 'q__in__a'],
+        ]);
+    });
+
     it('lists a parent once when relationships repeat it', () => {
         const result = parseCALMData(sharedNamespace([deployedIn('r4', 'cluster-a', ['ns'])]));
         expect(drawings(result, 'ns')).toHaveLength(2);
