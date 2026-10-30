@@ -2,6 +2,8 @@ package org.finos.calm.store.github;
 
 import io.quarkus.security.identity.SecurityIdentity;
 import org.finos.calm.domain.UserAccess;
+import org.finos.calm.domain.exception.GitHubModeNotSupportedException;
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.security.OidcRoleResolver;
 import org.finos.calm.store.github.registry.RegistryResourceType;
@@ -27,7 +29,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -186,49 +190,53 @@ class TestGitHubUserAccessStoreShould {
 
     @Test
     void throw_unsupported_on_get_user_access_for_namespace() {
-        assertThrows(UnsupportedOperationException.class,
+        GitHubModeNotSupportedException ex = assertThrows(GitHubModeNotSupportedException.class,
                 () -> store.getUserAccessForNamespace("finos"));
+        assertThat(ex, is(not(instanceOf(GitHubWriteNotSupportedException.class))));
     }
 
     @Test
     void throw_unsupported_on_get_user_access_for_namespace_and_id() {
-        assertThrows(UnsupportedOperationException.class,
+        GitHubModeNotSupportedException ex = assertThrows(GitHubModeNotSupportedException.class,
                 () -> store.getUserAccessForNamespaceAndId("finos", 1));
+        assertThat(ex, is(not(instanceOf(GitHubWriteNotSupportedException.class))));
     }
 
     @Test
     void throw_unsupported_on_get_user_access_for_domain() {
-        assertThrows(UnsupportedOperationException.class,
+        GitHubModeNotSupportedException ex = assertThrows(GitHubModeNotSupportedException.class,
                 () -> store.getUserAccessForDomain("security"));
+        assertThat(ex, is(not(instanceOf(GitHubWriteNotSupportedException.class))));
     }
 
     @Test
     void throw_unsupported_on_get_user_access_for_domain_and_id() {
-        assertThrows(UnsupportedOperationException.class,
+        GitHubModeNotSupportedException ex = assertThrows(GitHubModeNotSupportedException.class,
                 () -> store.getUserAccessForDomainAndId("security", 1));
+        assertThat(ex, is(not(instanceOf(GitHubWriteNotSupportedException.class))));
     }
 
     @Test
     void throw_unsupported_on_create_user_access_for_namespace() {
-        assertThrows(UnsupportedOperationException.class,
+        assertThrows(GitHubWriteNotSupportedException.class,
                 () -> store.createUserAccessForNamespace(new UserAccess()));
     }
 
     @Test
     void throw_unsupported_on_create_user_access_for_domain() {
-        assertThrows(UnsupportedOperationException.class,
+        assertThrows(GitHubWriteNotSupportedException.class,
                 () -> store.createUserAccessForDomain(new UserAccess()));
     }
 
     @Test
     void throw_unsupported_on_delete_user_access_for_namespace() {
-        assertThrows(UnsupportedOperationException.class,
+        assertThrows(GitHubWriteNotSupportedException.class,
                 () -> store.deleteUserAccessForNamespace("finos", 1));
     }
 
     @Test
     void throw_unsupported_on_delete_user_access_for_domain() {
-        assertThrows(UnsupportedOperationException.class,
+        assertThrows(GitHubWriteNotSupportedException.class,
                 () -> store.deleteUserAccessForDomain("security", 1));
     }
 
