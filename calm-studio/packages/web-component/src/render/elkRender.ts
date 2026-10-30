@@ -49,14 +49,10 @@ export interface RenderOptions {
   containers?: 'nested' | 'edges';
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
 /** Copies above which a node in several containers is nested under its first claim only. */
 const MAX_COPIES = 1000;
 
-/** Number of drawings when every node is drawn once in each container that claims it. */
+/** Number of extra drawings when every node is drawn once in each container that claims it. */
 function countCopies(plan: ContainmentPlan): number {
   const counts = new Map<string, number>();
   const count = (id: string): number => {
@@ -69,6 +65,10 @@ function countCopies(plan: ContainmentPlan): number {
   };
   return [...plan.parentsOf.keys()].reduce((sum, id) => sum + count(id) - 1, 0);
 }
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 /**
  * Render a CalmArchitecture to an interactive SVG string using ELK layout.
@@ -142,15 +142,16 @@ export async function renderELKDiagram(
   const nodeNameMap = new Map(nodes.map((n) => [n['unique-id'], n.name] as const));
 
   // A node nested in several containers is drawn once in each, with everything
-  // nested in it. The first drawing keeps the CALM id; each other drawing gets
-  // its own render id, mapped back through calmIdOf.
+  // nested in it. The drawing in its first claim keeps the CALM id, as when only
+  // that claim nested; each other drawing gets its own render id, mapped back
+  // through calmIdOf.
   const calmIdOf = new Map<string, string>();
   const instancesOf = new Map<string, string[]>();
   const ancestorsOf = new Map<string, string[]>();
   const takenIds = new Set<string>(knownNodeIds);
   function renderIdFor(id: string, parentRenderId: string | undefined): string {
-    if (!instancesOf.has(id)) return id;
-    return freeId(`${id}__in__${parentRenderId ?? 'root'}`, takenIds);
+    if (parentRenderId === plan.parentsOf.get(id)?.[0]) return id;
+    return freeId(`${id}__in__${parentRenderId}`, takenIds);
   }
 
   function buildElkNode(id: string, parentRenderId?: string, ancestors: string[] = []): ElkNodeInput {
@@ -171,8 +172,7 @@ export async function renderELKDiagram(
     return { id: renderId, width: NODE_WIDTH, height: NODE_HEIGHT, labels: [label] };
   }
 
-  const topLevelIds = nodes
-    .map((n) => n['unique-id'])
+  const topLevelIds = [...new Set(nodes.map((n) => n['unique-id']))]
     .filter((id) => !plan.parentsOf.has(id));
   const topLevelChildren = topLevelIds.map((id) => buildElkNode(id));
   const renderEdges = expandEdgesToInstances(diagramEdges, instancesOf, ancestorsOf);

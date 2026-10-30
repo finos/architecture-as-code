@@ -308,6 +308,29 @@ describe('renderELKDiagram nested containers (integration)', () => {
     expect((svg.match(/class="calm-node" data-node-id="ns"/g) ?? []).length).toBe(2);
   });
 
+  it('keeps the CALM id on the drawing in the first claim, whatever the node order', async () => {
+    const node = (id: string, type = 'system') => ({ 'unique-id': id, 'node-type': type, name: id, description: id });
+    const arch: CalmArchitecture = {
+      nodes: [node('c2'), node('c1'), node('s'), node('t', 'service')],
+      relationships: [deployedIn('r1', 'c1', ['s']), deployedIn('r2', 'c2', ['s']), deployedIn('r3', 's', ['t'])],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    const [c1x, c1y, c1w, c1h] = (containerBounds(svg, 'c1') ?? '').split(',').map(Number);
+    const [sx, sy] = (containerBounds(svg, 's') ?? '').split(',').map(Number);
+    expect(sx).toBeGreaterThanOrEqual(c1x as number);
+    expect(sx).toBeLessThan((c1x as number) + (c1w as number));
+    expect(sy).toBeGreaterThanOrEqual(c1y as number);
+    expect(sy).toBeLessThan((c1y as number) + (c1h as number));
+  });
+
+  it('draws a node with a duplicate unique-id once', async () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'service', name: id, description: id });
+    const arch: CalmArchitecture = { nodes: [node('a'), node('a'), node('b')], relationships: [connects('c1', 'a', 'b')] };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    expect(svg).not.toContain('__in__');
+    expect((svg.match(/<polyline/g) ?? []).length).toBe(1);
+  });
+
   it('copies a shared container with its members and connects the copies in the same container', async () => {
     const node = (id: string, type = 'service') => ({ 'unique-id': id, 'node-type': type, name: id, description: id });
     const arch: CalmArchitecture = {

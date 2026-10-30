@@ -251,11 +251,18 @@ describe('expandEdgesToInstances', () => {
     expect(result.map((e) => [e.source, e.target])).toEqual([['a__in__y', 'y']]);
   });
 
-  it('connects a copy across containers only when it has no partner in its own container', () => {
+  it('connects only the copies that share a container', () => {
     const both = new Map([['a', ['a', 'a__in__y']], ['b', ['b', 'b__in__z']]]);
     const ancestors = new Map([['a', ['x']], ['a__in__y', ['y']], ['b', ['x']], ['b__in__z', ['z']]]);
     const result = expandEdgesToInstances([edge('c', 'a', 'b')], both, ancestors);
-    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'b'], ['a__in__y', 'b__in__z']]);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'b']]);
+  });
+
+  it('ignores a container that holds every drawing of both ends', () => {
+    const both = new Map([['a', ['a', 'a__in__y']], ['d', ['d', 'd__in__q']]]);
+    const ancestors = new Map([['a', ['r', 'x']], ['a__in__y', ['r', 'y']], ['d', ['r', 'p']], ['d__in__q', ['r', 'q']]]);
+    const result = expandEdgesToInstances([edge('c', 'a', 'd')], both, ancestors);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'd']]);
   });
 
   it('draws one edge between the first drawings when no copies of the two ends share a container', () => {
