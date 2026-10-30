@@ -68,7 +68,7 @@ const otherParentsOf = (n: Node): string[] => ((n.data as Record<string, unknown
  * is also in a container that stays (data.otherParents) is kept, moved to the top level, so that the save
  * keeps it and the reload draws it in that container.
  */
-export function planDelete(deletedNodes: Node[], nodes: Node[]): { deletedIds: Set<string>; keptRoots: Node[]; keptIds: Set<string> } {
+export function planDelete(deletedNodes: Node[], nodes: Node[]): { deletedIds: Set<string>; keptRoots: Node[] } {
     const deletedSet = new Set(deletedNodes.map((n) => n.id));
     const picked = deletedNodes.filter((n) => !n.parentId || !deletedSet.has(n.parentId));
     const pickedIds = new Set([...picked, ...picked.flatMap((n) => sameMembership(n, nodes))].map((n) => n.id));
@@ -80,7 +80,7 @@ export function planDelete(deletedNodes: Node[], nodes: Node[]): { deletedIds: S
     const keptRoots = candidates
         .filter((n) => !n.parentId || !keptIds.has(n.parentId))
         .map((n) => ({ ...n, parentId: undefined, extent: undefined }));
-    return { deletedIds: new Set([...removed].filter((id) => !keptIds.has(id))), keptRoots, keptIds };
+    return { deletedIds: new Set([...removed].filter((id) => !keptIds.has(id))), keptRoots };
 }
 
 /** True when a node has several drawings, or a membership that is not drawn (data.otherParents). */

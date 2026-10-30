@@ -47,7 +47,8 @@ import {
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
-import { updateInstances, reattachEdges, calmIdOf, sameMembership, withDescendants, hasSharedDrawings, planDelete } from './transforms/node-instances';
+import { updateInstances } from './transforms/node-instances';
+import { deleteDrawings, unparentDrawing, isInSharedContainer, linkTargetOf, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
@@ -73,7 +74,7 @@ import { ToolbarMenu } from './panels/ToolbarMenu';
 import { nodeTypes } from './canvas/nodeTypes';
 import { edgeTypes } from './canvas/edgeTypes';
 import { minimapNodeClassName } from './canvas/minimap';
-import { makeContainment, removeContainment, isInsideBounds, getAbsolutePosition } from './utils/containment';
+import { makeContainment, isInsideBounds, getAbsolutePosition } from './utils/containment';
 import { mergeControls } from '@finos/calm-shared/browser';
 import { validateArchitecture } from './utils/validation';
 
@@ -265,7 +266,7 @@ function CanvasApp() {
             lastEmittedJson.current = json;
             // Request resolution for any nodes with definition-id references, once per CALM node:
             // the result is applied to every drawing of it
-            const originals = layoutedNodes.filter((n) => n.id === calmIdOf(n));
+            const originals = originalsOf(layoutedNodes);
             for (const node of originals) {
                 const defId = (node.data as Record<string, unknown>)?.['definition-id'] as string | undefined;
                 if (defId) {
@@ -338,19 +339,11 @@ function CanvasApp() {
 
     // --- Unparent ---
     const unparentNode = useCallback((nodeId: string) => {
-        const node = nodes.find((n) => n.id === nodeId);
-        // The membership leaves every drawing of it
-        const others = node ? withDescendants(new Set(sameMembership(node, nodes).map((n) => n.id)), nodes) : new Set<string>();
-        const remaining = nodes.filter((n) => !others.has(n.id));
-        setNodes((nds) => removeContainment(nodeId, nds.filter((n) => !others.has(n.id))));
-        if (others.size > 0) {
-            setEdges((eds) => {
-                const touches = (e: Edge) => others.has(e.source) || others.has(e.target);
-                return [...eds.filter((e) => !touches(e)), ...reattachEdges(eds.filter(touches), nodes.filter((n) => others.has(n.id)), remaining)];
-            });
-        }
-        setTimeout(() => (hasSharedDrawings(nodes) ? emitAndReload() : emitChange(true)), 0);
-    }, [nodes, setNodes, setEdges, emitChange, emitAndReload]);
+        const edit = unparentDrawing(nodes, edges, nodeId);
+        setNodes(edit.nodes);
+        setEdges(edit.edges);
+        setTimeout(() => (edit.reload ? emitAndReload() : emitChange(true)), 0);
+    }, [nodes, edges, setNodes, setEdges, emitChange, emitAndReload]);
 
     // --- Undo/Redo ---
     useEffect(() => {
@@ -395,28 +388,9 @@ function CanvasApp() {
                 if (store.readonlyMode || !clipboardNode.current) return;
                 e.preventDefault();
                 const src = clipboardNode.current;
-                const data = JSON.parse(JSON.stringify(src.data)) as Record<string, unknown>;
-                const calmType = (data.calmType as string) ?? 'system';
+                const calmType = ((src.data as Record<string, unknown>)?.calmType as string) ?? 'system';
                 const newId = `${calmType.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
-                data.calmId = newId;
-                data.label = `${data.label ?? ''} (copy)`;
-                // Strip resolved definition data — the copy is independent
-                delete data['definition-id'];
-                delete data._resolvedControls;
-                delete data.validationErrors;
-                delete data.validationWarnings;
-                delete data.otherParents;
-
-                const isContainer = src.type === 'container';
-                const newNode: Node = {
-                    id: newId,
-                    type: src.type ?? 'system',
-                    position: { x: src.position.x + 30, y: src.position.y + 30 },
-                    data,
-                    ...(isContainer && src.width && src.height
-                        ? { width: src.width, height: src.height, style: { width: src.width, height: src.height } }
-                        : {}),
-                };
+                const newNode = pastedNode(src, newId);
                 setNodes((nds) => [...nds, newNode]);
                 setSelectedNode(newNode);
                 store.selectNode(newId);
@@ -485,18 +459,11 @@ function CanvasApp() {
     // --- Delete (reactflow v11 fires onNodesDelete after removal) ---
     const onNodesDelete = useCallback((deletedNodes: Node[]) => {
         if (store.readonlyMode) return;
-        const { deletedIds, keptRoots, keptIds } = planDelete(deletedNodes, nodes);
-        const removed = nodes.filter((n) => deletedIds.has(n.id));
-        const kept = nodes.filter((n) => keptIds.has(n.id)).map((n) => keptRoots.find((r) => r.id === n.id) ?? n);
-        setNodes((nds) => [...nds.filter((n) => !deletedIds.has(n.id) && !keptIds.has(n.id)), ...kept]);
-        // React Flow has already removed the edges of the deleted nodes. Restore those that
-        // another drawing of the same CALM node can keep.
-        const remaining = nodes.filter((n) => !deletedIds.has(n.id));
-        const touched = edges.filter((e) => [e.source, e.target].some((id) => deletedIds.has(id) || keptIds.has(id)));
-        const reattached = reattachEdges(touched, removed, remaining);
-        const touchedIds = new Set(touched.map((e) => e.id));
-        setEdges((eds) => [...eds.filter((e) => !touchedIds.has(e.id)), ...reattached]);
-        if (!hasSharedDrawings(nodes)) {
+        // React Flow has already removed the deleted drawings and their edges. Set the result of the edit instead.
+        const edit = deleteDrawings(nodes, edges, deletedNodes);
+        setNodes(edit.nodes);
+        setEdges(edit.edges);
+        if (!edit.reload) {
             setTimeout(() => emitChange(true), 0);
             return;
         }
@@ -575,14 +542,7 @@ function CanvasApp() {
             }
             return nds;
         });
-        setTimeout(() => {
-            const current = reactFlowInstance.getNodes();
-            const parentId = current.find((n) => n.id === draggedNode.id)?.parentId;
-            const container = parentId ? current.find((n) => n.id === parentId) : undefined;
-            const sharedContainer = !!container && current.some((n) => n.id !== container.id && calmIdOf(n) === calmIdOf(container));
-            if (sharedContainer) emitAndReload();
-            else emitChange(true);
-        }, 0);
+        setTimeout(() => (isInSharedContainer(reactFlowInstance.getNodes(), draggedNode.id) ? emitAndReload() : emitChange(true)), 0);
     }, [setNodes, emitChange, emitAndReload, reactFlowInstance, store.readonlyMode]);
 
     // --- Node update (from properties panel) ---
@@ -640,7 +600,8 @@ function CanvasApp() {
                 const elements = document.elementsFromPoint(e.clientX, e.clientY);
                 for (const el of elements) {
                     const nodeEl = el.closest('.react-flow__node');
-                    if (nodeEl) { targetId = nodeEl.getAttribute('data-id'); break; }
+                    const drawingId = nodeEl?.getAttribute('data-id');
+                    if (drawingId) { targetId = linkTargetOf(nodes, drawingId); break; }
                 }
                 // Fallback: check flow coordinates against node bounds
                 if (!targetId) {
@@ -653,8 +614,7 @@ function CanvasApp() {
                         const absY = n.positionAbsolute?.y ?? n.position.y;
                         if (flowPos.x >= absX && flowPos.x <= absX + w
                             && flowPos.y >= absY && flowPos.y <= absY + h) {
-                            // Edges stay on the drawing that keeps the CALM id
-                            targetId = calmIdOf(n);
+                            targetId = linkTargetOf(nodes, n.id);
                             break;
                         }
                     }
@@ -841,21 +801,7 @@ function CanvasApp() {
         store.setValidationIssues(issues);
         store.setShowValidation(true);
         // Annotate nodes with error/warning counts so validation badges appear on them.
-        const counts: Record<string, { errors: number; warnings: number }> = {};
-        for (const issue of issues) {
-            if (!issue.nodeId) continue;
-            const c = counts[issue.nodeId] ?? { errors: 0, warnings: 0 };
-            if (issue.severity === 'error') c.errors++;
-            else if (issue.severity === 'warning') c.warnings++;
-            counts[issue.nodeId] = c;
-        }
-        setNodes(effectiveNodes.map((n) => {
-            const calmId = calmIdOf(n);
-            return {
-                ...n,
-                data: { ...(n.data as Record<string, unknown>), validationErrors: counts[calmId]?.errors ?? 0, validationWarnings: counts[calmId]?.warnings ?? 0 },
-            };
-        }));
+        setNodes(withIssueCounts(effectiveNodes, issues));
     }, [nodes, edges, store, setNodes]);
 
     // --- Layout ---
