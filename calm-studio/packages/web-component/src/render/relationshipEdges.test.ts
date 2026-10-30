@@ -287,6 +287,11 @@ describe('expandEdgesToInstances', () => {
     expect(result.length).toBeLessThan(8);
   });
 
+  it('draws a loop on each copy for a relationship from a node to itself', () => {
+    const result = expandEdgesToInstances([edge('c', 'a', 'a')], instancesOf, ancestorsOf);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'a'], ['a__in__y', 'a__in__y']]);
+  });
+
   it('gives each copy edge an id that no other edge uses', () => {
     const result = expandEdgesToInstances([edge('c', 'b', 'a'), edge('c__copy1', 'a', 'b')], instancesOf, ancestorsOf);
     const ids = result.map((e) => e.id);

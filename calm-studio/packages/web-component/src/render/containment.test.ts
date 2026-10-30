@@ -350,6 +350,59 @@ describe('renderELKDiagram nested containers (integration)', () => {
     expect((svg.match(/<polyline/g) ?? []).length).toBe(1);
   });
 
+  it('gives the CALM id to the drawing in the first claim when the relationships are reversed', async () => {
+    const node = (id: string, type = 'system') => ({ 'unique-id': id, 'node-type': type, name: id, description: id });
+    const arch: CalmArchitecture = {
+      nodes: [node('c1'), node('c2'), node('s'), node('t', 'service')],
+      relationships: [deployedIn('r2', 'c2', ['s']), deployedIn('r1', 'c1', ['s']), deployedIn('r3', 's', ['t'])],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    const [c2x, c2y, c2w, c2h] = (containerBounds(svg, 'c2') ?? '').split(',').map(Number);
+    const [sx, sy] = (containerBounds(svg, 's') ?? '').split(',').map(Number);
+    expect(sx).toBeGreaterThanOrEqual(c2x as number);
+    expect(sx).toBeLessThan((c2x as number) + (c2w as number));
+    expect(sy).toBeGreaterThanOrEqual(c2y as number);
+    expect(sy).toBeLessThan((c2y as number) + (c2h as number));
+  });
+
+  it('draws a node claimed by a container and by a container inside it once, with no fallback edge', async () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: id });
+    const arch: CalmArchitecture = {
+      nodes: [node('cluster'), node('ns'), node('svc')],
+      relationships: [deployedIn('r1', 'cluster', ['ns', 'svc']), deployedIn('r2', 'ns', ['svc'])],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    expect(svg.split('class="calm-node" data-node-id="svc"').length - 1).toBe(1);
+    expect(svg).not.toContain('<polyline');
+  });
+
+  it('connects each copy of a node to the drawing of its container that holds it', async () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: id });
+    const arch: CalmArchitecture = {
+      nodes: [node('ca'), node('cb'), node('ns'), node('svc')],
+      relationships: [deployedIn('r1', 'ca', ['ns']), deployedIn('r2', 'cb', ['ns']), deployedIn('r3', 'ns', ['svc']), connects('c1', 'svc', 'ns')],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    expect(svg.split('<polyline').length - 1).toBe(2);
+  });
+
+  it('connects to every copy when the relationship names an interface', async () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: id });
+    const arch: CalmArchitecture = {
+      nodes: [node('ca'), node('cb'), node('svc'), node('client')],
+      relationships: [
+        deployedIn('r1', 'ca', ['svc']),
+        deployedIn('r2', 'cb', ['svc']),
+        {
+          'unique-id': 'c1',
+          'relationship-type': { connects: { source: { node: 'client' }, destination: { node: 'svc', interfaces: ['http'] } } },
+        },
+      ],
+    };
+    const svg = await renderELKDiagram(arch, { theme: 'light' });
+    expect(svg.split('<polyline').length - 1).toBe(2);
+  });
+
   it('copies a shared container with its members and connects the copies in the same container', async () => {
     const node = (id: string, type = 'service') => ({ 'unique-id': id, 'node-type': type, name: id, description: id });
     const arch: CalmArchitecture = {
