@@ -9,6 +9,8 @@ export interface ParentHierarchyResult {
     parentsOf: Map<string, string[]>;
     allMentionedContainers: Set<string>;
     childrenOfContainer: Map<string, Set<string>>;
+    /** Parents that are not drawn */
+    warnings: string[];
 }
 
 /**
@@ -47,6 +49,7 @@ export function buildParentHierarchy(relationships: CalmRelationshipCanonicalMod
     const parentsOf = new Map<string, string[]>();
     const allMentionedContainers = new Set<string>();
     const childrenOfContainer = new Map<string, Set<string>>();
+    const warnings: string[] = [];
 
     const composedParents = new Map<string, string[]>();
     const deployedParents = new Map<string, string[]>();
@@ -73,8 +76,11 @@ export function buildParentHierarchy(relationships: CalmRelationshipCanonicalMod
     // This parent is inferred, so it is a single parent and never makes copies.
     for (const [node, composed] of composedParents.entries()) {
         const C = composed[0];
-        const D = deployedParents.get(node)?.[0];
+        const [D, ...others] = deployedParents.get(node) ?? [];
         if (D && C !== D && !createsCycle(parentsOf, D, C)) parentsOf.set(C, [D]);
+        for (const other of others) {
+            warnings.push(`Node "${node}" has multiple deployed-in parents: "${D}" vs "${other}" (keeping "${D}")`);
+        }
     }
 
     // First the parent each node had before nodes could have several: its first composed-of container,
@@ -96,5 +102,5 @@ export function buildParentHierarchy(relationships: CalmRelationshipCanonicalMod
         }
     }
 
-    return { parentsOf, allMentionedContainers, childrenOfContainer };
+    return { parentsOf, allMentionedContainers, childrenOfContainer, warnings };
 }

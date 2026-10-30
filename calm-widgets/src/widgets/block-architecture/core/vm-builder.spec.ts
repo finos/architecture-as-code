@@ -316,6 +316,19 @@ describe('vm-builder', () => {
             ]);
         });
 
+        it('warns, as before, when a composed node has a deployed-in parent that is not drawn', () => {
+            const composedOf = (id: string, container: string, nodes: string[]) =>
+                ({ 'unique-id': id, 'relationship-type': { 'composed-of': { container, nodes } } });
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('C'), node('D1'), node('D2'), node('m', 'service')],
+                relationships: [composedOf('r1', 'C', ['m']), deployedIn('r2', 'D1', ['m']), deployedIn('r3', 'D2', ['m'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.warnings).toEqual(['Node "m" has multiple deployed-in parents: "D1" vs "D2" (keeping "D1")']);
+        });
+
         it('highlights every copy of a highlighted node', () => {
             const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
 

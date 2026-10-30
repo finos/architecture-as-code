@@ -73,6 +73,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
         parentsOf: new Map([['db', ['svc']]]),
         allMentionedContainers: new Set(['svc']),
         childrenOfContainer: new Map([['svc', new Set(['db'])]]),
+        warnings: [],
     };
 
     const nodesById = new Map(nodes.map((n) => [n['unique-id'], n]));
@@ -149,7 +150,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
         const res2 = resolveVisibilityWithStrategies(
             { ...baseCtx, relationships: [relConnect] },
             baseOpts({ edges: 'seeded', focusNodes: ['svc'], includeChildren: 'none' }),
-            { parentsOf: new Map(), allMentionedContainers: new Set(), childrenOfContainer: new Map() },
+            { parentsOf: new Map(), allMentionedContainers: new Set(), childrenOfContainer: new Map(), warnings: [] },
             new Map(nodes.map((n) => [n['unique-id'], n]))
         );
         // only svc visible (no expansion to db because includeChildren=none, edges=seeded doesn’t expand)
@@ -189,6 +190,20 @@ describe('resolveVisibilityWithStrategies functional', () => {
         expect(res.containerIds.size).toBe(1);
     });
 
+    it('propagates warnings from parentHierarchy', () => {
+        const parentWithWarnings: ParentHierarchyResult = {
+            ...parentHierarchy,
+            warnings: ['cycle detected'],
+        };
+        const res = resolveVisibilityWithStrategies(
+            baseCtx,
+            baseOpts(),
+            parentWithWarnings,
+            nodesById
+        );
+        expect(res.warnings).toContain('cycle detected');
+    });
+
     it('includeContainers=parents includes every parent of a node', () => {
         const ctx: CalmCoreCanonicalModel = {
             nodes: [
@@ -202,6 +217,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
             parentsOf: new Map([['ns', ['cluster-a', 'cluster-b']]]),
             allMentionedContainers: new Set(['cluster-a', 'cluster-b']),
             childrenOfContainer: new Map(),
+            warnings: [],
         };
         const res = resolveVisibilityWithStrategies(
             ctx,
