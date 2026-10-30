@@ -120,7 +120,7 @@ export function flowToCalm(
         const done = written.get(containment.container) ?? new Set<string>();
         kept.forEach((c) => done.add(c));
         written.set(containment.container, done);
-        const out = { ...rel, 'relationship-type': { [variant]: { ...containment, nodes: kept } } };
+        const out = { 'unique-id': `containment-${containment.container}`, ...rel, 'relationship-type': { [variant]: { ...containment, nodes: kept } } };
         if (!firstRelOf.has(containment.container)) firstRelOf.set(containment.container, out);
         calmRelationships.push(out);
     }
@@ -138,6 +138,17 @@ export function flowToCalm(
             'unique-id': `containment-${containerId}`,
             'relationship-type': { [variant]: { container: containerId, nodes: added } },
         });
+    }
+
+    // A containment relationship needs a member. An empty one stays only as the one relationship of a drawn container.
+    const emptyKept = new Set<string>();
+    for (const rel of calmRelationships.splice(0)) {
+        const { container, nodes: members } = Object.values(rel['relationship-type'] as Record<string, { container: string; nodes: string[] }>)[0];
+        if (members.length === 0) {
+            if (!drawnCalmIds.has(container) || (membersOf.get(container)?.length ?? 0) > 0 || emptyKept.has(container)) continue;
+            emptyKept.add(container);
+        }
+        calmRelationships.push(rel);
     }
 
     // Build edge relationships — group interacts edges by calmRelId

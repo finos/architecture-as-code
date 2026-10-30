@@ -343,6 +343,29 @@ describe('flowToCalm - nodes with several parents', () => {
         expect(containment(out)).toEqual([['r1', { container: 'a', nodes: ['x'] }]]);
     });
 
+    it('drops a relationship that an edit leaves empty when its container has another one', () => {
+        const arch: CalmArchitecture = {
+            nodes: [node('c1'), node('a'), node('x')],
+            relationships: [deployedIn('r1', 'c1', ['a']), deployedIn('r3', 'c1', ['x'])],
+        };
+        const { parsed } = roundTrip(arch);
+        const out = flowToCalm(parsed.nodes.filter((n) => n.id !== 'x'), parsed.edges);
+        expect(containment(out)).toEqual([['r1', { container: 'c1', nodes: ['a'] }]]);
+    });
+
+    it('drops a relationship that an edit leaves empty when its container is not a node', () => {
+        const arch: CalmArchitecture = { nodes: [node('x'), node('y')], relationships: [deployedIn('r1', 'ghost', ['x'])] };
+        const { parsed } = roundTrip(arch);
+        const out = flowToCalm(parsed.nodes.filter((n) => n.id !== 'x'), parsed.edges);
+        expect(containment(out)).toEqual([]);
+    });
+
+    it('gives a containment relationship with no unique-id the id main gave it', () => {
+        const { 'unique-id': _, ...noId } = deployedIn('r1', 'c1', ['a']);
+        const { out } = roundTrip({ nodes: [node('c1'), node('a')], relationships: [noId] });
+        expect(containment(out)).toEqual([['containment-c1', { container: 'c1', nodes: ['a'] }]]);
+    });
+
     it('drops a membership when its copy is removed', () => {
         const { parsed } = roundTrip(sharedNamespace());
         const nodes = parsed.nodes.filter((n) => !n.id.endsWith('__in__cluster-a'));
