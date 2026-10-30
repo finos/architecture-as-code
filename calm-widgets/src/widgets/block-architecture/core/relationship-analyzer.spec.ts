@@ -49,13 +49,26 @@ describe('relationship-analyzer (extra cases)', () => {
         expect(res.parentsOf.get('x')).toEqual(['C1', 'C2']);
     });
 
-    it('ignores a parent that is already an ancestor through another parent', () => {
+    it('keeps a parent that is already an ancestor through another parent, for when the inner one is hidden', () => {
         const relationships: CalmRelationshipCanonicalModel[] = [
             rel('r1', { 'deployed-in': { container: 'cluster', nodes: ['ns', 'svc'] } }),
             rel('r2', { 'deployed-in': { container: 'ns', nodes: ['svc'] } }),
         ];
         const res = buildParentHierarchy(relationships);
-        expect(res.parentsOf.get('svc')).toEqual(['ns']);
+        expect(res.parentsOf.get('svc')).toEqual(['cluster', 'ns']);
+    });
+
+    it('gives each node the parent main gave it in a cycle, before any other parent', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'deployed-in': { container: 'a', nodes: ['b'] } }),
+            rel('r2', { 'deployed-in': { container: 'b', nodes: ['a', 'c'] } }),
+            rel('r3', { 'deployed-in': { container: 'c', nodes: ['a', 'svc'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('b')).toEqual(['a']);
+        expect(res.parentsOf.get('c')).toEqual(['b']);
+        expect(res.parentsOf.get('svc')).toEqual(['c']);
+        expect(res.parentsOf.get('a')).toBeUndefined();
     });
 
     it('lists a parent once when several relationships repeat it', () => {

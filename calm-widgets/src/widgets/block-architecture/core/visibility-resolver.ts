@@ -32,15 +32,18 @@ function collectContainerIdsForVisible(
     visible: Set<string>,
     parentsOf: Map<string, string[]>,
     include: IncludeContainers,
-    allMentioned: Set<string>
+    allMentioned: Set<string>,
+    excludedByType: (id: string) => boolean
 ): Set<string> {
     if (include === 'none') return new Set();
     if (include === 'all') return new Set(allMentioned);
 
-    // parents
+    // parents. A parent of a type the filter excludes is drawn only when the node has no other parent.
     const wanted = new Set<string>();
     for (const nid of visible) {
-        for (const p of parentsOf.get(nid) ?? []) wanted.add(p);
+        const parents = parentsOf.get(nid) ?? [];
+        const allowed = parents.filter(p => !excludedByType(p));
+        for (const p of allowed.length > 0 ? allowed : parents.slice(0, 1)) wanted.add(p);
     }
     return wanted;
 }
@@ -195,7 +198,8 @@ export function resolveVisibilityWithStrategies(
         result.visibleNodes,
         parentsOf,
         opts.includeContainers,
-        allMentionedContainers
+        allMentionedContainers,
+        id => !!opts.nodeTypes?.length && !opts.nodeTypes.includes(nodesById.get(id)?.['node-type'] ?? '')
     );
 
     return {

@@ -77,19 +77,23 @@ export function buildParentHierarchy(relationships: CalmRelationshipCanonicalMod
         if (D && C !== D && !createsCycle(parentsOf, D, C)) parentsOf.set(C, [D]);
     }
 
-    // A node's own parents replace an inferred one; composed-of wins over deployed-in
-    const acceptable = (id: string, parents: string[] = []) => parents.filter(p => !createsCycle(parentsOf, p, id));
+    // First the parent each node had before nodes could have several: its first composed-of container,
+    // else its first deployed-in container, unless that closes a cycle. It replaces an inferred parent.
+    const ownParents = new Map<string, string[]>();
     for (const id of new Set([...composedParents.keys(), ...deployedParents.keys()])) {
-        const composed = acceptable(id, composedParents.get(id));
-        const own = composed.length > 0 ? composed : acceptable(id, deployedParents.get(id));
-        if (own.length > 0) parentsOf.set(id, own);
+        const composed = composedParents.get(id);
+        const deployed = deployedParents.get(id);
+        if (composed && !createsCycle(parentsOf, composed[0], id)) ownParents.set(id, composed);
+        else if (deployed && !createsCycle(parentsOf, deployed[0], id)) ownParents.set(id, deployed);
+        else continue;
+        parentsOf.set(id, [ownParents.get(id)![0]]);
     }
 
-    // A parent that is already an ancestor through another parent adds no drawing,
-    // e.g. a service listed in both its cluster and its namespace
-    const isAncestor = (a: string, of: string) => createsCycle(parentsOf, of, a);
-    for (const [id, parents] of parentsOf.entries()) {
-        if (parents.length > 1) parentsOf.set(id, parents.filter(p => !parents.some(q => q !== p && isAncestor(p, q))));
+    // Then its other parents of the same kind, unless they close a cycle
+    for (const [id, parents] of ownParents) {
+        for (const p of parents.slice(1)) {
+            if (!createsCycle(parentsOf, p, id)) parentsOf.get(id)!.push(p);
+        }
     }
 
     return { parentsOf, allMentionedContainers, childrenOfContainer };

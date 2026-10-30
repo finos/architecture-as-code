@@ -273,6 +273,17 @@ describe('vm-builder', () => {
             expect(vm.containers[0].containers.map(c => c.id)).toEqual(['X', 'Y']);
         });
 
+        it('keeps a node in its outer container when its inner container is filtered out', () => {
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('cluster'), node('ns', 'namespace'), node('svc', 'service')],
+                relationships: [deployedIn('d1', 'cluster', ['svc']), deployedIn('d2', 'cluster', ['ns']), deployedIn('d3', 'ns', ['svc'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts({ nodeTypes: ['service', 'system'], includeContainers: 'parents' }));
+
+            expect(vm.containers.map(c => [c.id, c.nodes.map(n => n.id)])).toEqual([['cluster', ['svc']]]);
+        });
+
         it('highlights every copy of a highlighted node', () => {
             const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
 
