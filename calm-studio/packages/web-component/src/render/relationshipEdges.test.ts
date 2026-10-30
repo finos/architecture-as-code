@@ -246,6 +246,11 @@ describe('expandEdgesToInstances', () => {
     expect(result.map((e) => [e.target, e.relationshipId])).toEqual([['a', 'c'], ['a__in__y', 'c']]);
   });
 
+  it('connects only the copy inside a container to that container', () => {
+    const result = expandEdgesToInstances([edge('c', 'a', 'y')], instancesOf, ancestorsOf);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a__in__y', 'y']]);
+  });
+
   it('gives each copy edge an id that no other edge uses', () => {
     const result = expandEdgesToInstances([edge('c', 'b', 'a'), edge('c__copy1', 'a', 'b')], instancesOf, ancestorsOf);
     const ids = result.map((e) => e.id);

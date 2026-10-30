@@ -264,8 +264,8 @@ describe('renderELKDiagram nested containers (integration)', () => {
     expect((svg.match(/class="calm-node" data-node-id="svc-a"/g) ?? []).length).toBe(2);
     expect((svg.match(/<polyline/g) ?? []).length).toBe(0);
     // Two separate drawings, one in each box
-    const positions = [...svg.matchAll(/class="calm-node" data-node-id="svc-a"[^>]*>\s*<rect x="([\d.]+)" y="([\d.]+)"/g)]
-      .map((m) => `${m[1]},${m[2]}`);
+    const positions = svg.split('class="calm-node" data-node-id="svc-a"').slice(1)
+      .map((drawing) => drawing.slice(drawing.indexOf('<rect'), drawing.indexOf('>', drawing.indexOf('<rect'))));
     expect(new Set(positions).size).toBe(2);
   });
 
