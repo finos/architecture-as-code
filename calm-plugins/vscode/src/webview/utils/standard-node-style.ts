@@ -13,7 +13,7 @@ export function getNodeStyleOverride(
     data: Record<string, unknown>
 ): NodeStyleOverride {
     const metadata = data.metadata as Record<string, unknown> | undefined;
-    const style = (metadata?.['standard-node-style'] ?? metadata?.['fidelity-style']) as
+    const style = metadata?.['standard-node-style'] as
         | Record<string, unknown>
         | undefined;
     if (!style || typeof style !== 'object') return {};
