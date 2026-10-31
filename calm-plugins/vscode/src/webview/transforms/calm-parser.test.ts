@@ -156,3 +156,151 @@ describe('parseCALMData', () => {
         expect(result.edges[0].data.edgeMetadata.custom).toBe('value');
     });
 });
+
+describe('parseCALMData - nodes with several parents', () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id });
+    const deployedIn = (id: string, container: string, nodes: string[]) =>
+        ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
+    const byId = (nodes: { id: string }[], id: string) => nodes.find((n) => n.id === id) as any;
+
+    it('ignores a member of a containment relationship that is not a node', () => {
+        const result = parseCALMData(arch([node('c'), node('a')], [deployedIn('r1', 'c', ['ghost', 'a'])]));
+        expect(result.nodes.map((n) => [n.id, n.parentId])).toEqual([['c', undefined], ['a', 'c']]);
+    });
+
+    it('lists a membership that is not drawn once, however often the file repeats it', () => {
+        const result = parseCALMData(arch([node('x')], [deployedIn('r1', 'ghost', ['x']), deployedIn('r2', 'ghost', ['x'])]));
+        expect(byId(result.nodes, 'x').data.otherParents).toEqual(['ghost']);
+    });
+
+    it('sizes a container past the copy limit by the children drawn in it only', () => {
+        // Each level has two containers that are both in both containers of the level above.
+        // Past the limit, each is drawn in its last container only, so l0a holds nothing.
+        const ids = Array.from({ length: 12 }, (_, k) => [`l${k}a`, `l${k}b`]);
+        const result = parseCALMData(arch(
+            ids.flat().map(node),
+            ids.slice(1).flatMap(([a, b], k) => [deployedIn(`r${k}a`, ids[k][0], [a, b]), deployedIn(`r${k}b`, ids[k][1], [a, b])]),
+        ));
+        expect(result.nodes.some((n) => n.parentId === 'l0a')).toBe(false);
+        expect(byId(result.nodes, 'l0a').width).toBe(500);
+        expect(byId(result.nodes, 'l0b').width).toBeGreaterThan(500);
+    });
+
+    it('draws a node once in each parent, and keeps the CALM id in the last parent as before', () => {
+        const result = parseCALMData(arch(
+            [node('cluster-a'), node('cluster-b'), node('ns')],
+            [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])],
+        ));
+        const copies = result.nodes.filter((n) => n.data.calmId === 'ns');
+        expect(copies.map((n) => [n.id, n.parentId])).toEqual([
+            ['ns', 'cluster-b'],
+            ['ns__in__cluster-a', 'cluster-a'],
+        ]);
+        expect(copies[1].data.label).toBe('ns');
+    });
+
+    it('copies everything nested in a shared container', () => {
+        const result = parseCALMData(arch(
+            [node('cluster-a'), node('cluster-b'), node('ns'), node('svc')],
+            [
+                deployedIn('r1', 'cluster-a', ['ns']),
+                deployedIn('r2', 'cluster-b', ['ns']),
+                deployedIn('r3', 'ns', ['svc']),
+            ],
+        ));
+        expect(byId(result.nodes, 'ns__in__cluster-a').type).toBe('container');
+        expect(result.nodes.filter((n) => n.data.calmId === 'svc').map((n) => [n.id, n.parentId])).toEqual([
+            ['svc', 'ns'],
+            ['svc__in__ns__in__cluster-a', 'ns__in__cluster-a'],
+        ]);
+    });
+
+    it('lists a parent once when relationships repeat it', () => {
+        const result = parseCALMData(arch(
+            [node('cluster'), node('ns')],
+            [deployedIn('r1', 'cluster', ['ns']), deployedIn('r2', 'cluster', ['ns'])],
+        ));
+        expect(result.nodes.filter((n) => n.data.calmId === 'ns')).toHaveLength(1);
+    });
+
+    it('keeps edges on the original node', () => {
+        const result = parseCALMData(arch(
+            [node('cluster-a'), node('cluster-b'), node('ns'), node('client')],
+            [
+                deployedIn('r1', 'cluster-a', ['ns']),
+                deployedIn('r2', 'cluster-b', ['ns']),
+                { 'unique-id': 'c1', 'relationship-type': { connects: { source: { node: 'client' }, destination: { node: 'ns' } } } },
+            ],
+        ));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([['client', 'ns']]);
+    });
+
+    it('does not give a copy the id of a real node', () => {
+        const result = parseCALMData(arch(
+            [node('a'), node('b'), node('x'), node('x__in__a')],
+            [deployedIn('r1', 'a', ['x']), deployedIn('r2', 'b', ['x'])],
+        ));
+        const ids = result.nodes.map((n) => n.id);
+        expect(new Set(ids).size).toBe(ids.length);
+        expect(byId(result.nodes, 'x__in__a').data.calmId).toBe('x__in__a');
+    });
+
+    it('puts every container before the nodes inside it', () => {
+        const result = parseCALMData(arch(
+            [node('svc'), node('ns'), node('cluster-a'), node('cluster-b')],
+            [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns']), deployedIn('r3', 'ns', ['svc'])],
+        ));
+        const ids = result.nodes.map((n) => n.id);
+        for (const n of result.nodes) {
+            if (n.parentId) expect(ids.indexOf(n.parentId)).toBeLessThan(ids.indexOf(n.id));
+        }
+    });
+
+    it('ignores a node listed as its own container', () => {
+        const result = parseCALMData(arch([node('a'), node('b')], [deployedIn('r1', 'a', ['a', 'b'])]));
+        expect(result.nodes.map((n) => [n.id, n.parentId])).toEqual([['a', undefined], ['b', 'a']]);
+    });
+
+    it('counts only copies against the limit, not every node', () => {
+        const singles = Array.from({ length: 1001 }, (_, k) => node(`n${k}`));
+        const result = parseCALMData(arch(
+            [node('cluster-a'), node('cluster-b'), node('ns'), ...singles],
+            [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])],
+        ));
+        expect(result.nodes.filter((n) => n.data.calmId === 'ns')).toHaveLength(2);
+    });
+
+    it('keeps the CALM id in the container of the last relationship when a container repeats', () => {
+        const result = parseCALMData(arch(
+            [node('A'), node('B'), node('N')],
+            [deployedIn('r1', 'A', ['N']), deployedIn('r2', 'B', ['N']), deployedIn('r3', 'A', ['N'])],
+        ));
+        expect(result.nodes.filter((n) => n.data.calmId === 'N').map((n) => [n.id, n.parentId])).toEqual([
+            ['N', 'A'],
+            ['N__in__B', 'B'],
+        ]);
+    });
+
+    it('draws a node once when it is listed in both a container and a container inside it', () => {
+        const result = parseCALMData(arch(
+            [node('cluster'), node('ns'), node('svc')],
+            [deployedIn('r1', 'cluster', ['ns', 'svc']), deployedIn('r2', 'ns', ['svc'])],
+        ));
+        expect(result.nodes.filter((n) => n.data.calmId === 'svc').map((n) => [n.id, n.parentId])).toEqual([['svc', 'ns']]);
+    });
+
+    it('sizes a container listed as its own member like one without that member', () => {
+        const withSelf = parseCALMData(arch([node('a'), node('b')], [deployedIn('r1', 'a', ['a', 'b'])]));
+        const plain = parseCALMData(arch([node('a'), node('b')], [deployedIn('r1', 'a', ['b'])]));
+        expect(byId(withSelf.nodes, 'a').width).toBe(byId(plain.nodes, 'a').width);
+    });
+
+    it('stops at a containment cycle', () => {
+        const result = parseCALMData(arch(
+            [node('a'), node('b')],
+            [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['a'])],
+        ));
+        expect(result.nodes.map((n) => n.data.calmId).sort()).toEqual(['a', 'b']);
+    });
+});
+
