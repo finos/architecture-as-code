@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, it, expect } from 'vitest';
-import { relationshipToEdges } from './relationshipEdges.js';
+import { relationshipToEdges, expandEdgesToInstances, type DiagramEdge } from './relationshipEdges.js';
 import { renderELKDiagram } from './elkRender.js';
 import type { CalmArchitecture, CalmRelationship } from '@calmstudio/calm-core';
 
@@ -228,5 +228,81 @@ describe('renderELKDiagram with nested relationship-type (integration)', () => {
     expect(animCount).toBe(2);
     // ...and neither may be dimmed: the only relationship present IS the flow.
     expect(svg).not.toContain('opacity="0.3"');
+  });
+});
+
+describe('expandEdgesToInstances', () => {
+  const edge = (id: string, source: string, target: string): DiagramEdge =>
+    ({ id, relationshipId: id, source, target, variant: 'connects' });
+  const instancesOf = new Map([['a', ['a', 'a__in__y']]]);
+  const ancestorsOf = new Map([['a', ['x']], ['a__in__y', ['y']]]);
+
+  it('keeps an edge between nodes drawn once', () => {
+    expect(expandEdgesToInstances([edge('c', 'b', 'd')], instancesOf, ancestorsOf)).toEqual([edge('c', 'b', 'd')]);
+  });
+
+  it('connects a node drawn once to every copy, keeping the relationship id', () => {
+    const result = expandEdgesToInstances([edge('c', 'b', 'a')], instancesOf, ancestorsOf);
+    expect(result.map((e) => [e.target, e.relationshipId])).toEqual([['a', 'c'], ['a__in__y', 'c']]);
+  });
+
+  it('connects only the copy inside a container to that container', () => {
+    const result = expandEdgesToInstances([edge('c', 'a', 'y')], instancesOf, ancestorsOf);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a__in__y', 'y']]);
+  });
+
+  it('connects only the copies that share a container', () => {
+    const both = new Map([['a', ['a', 'a__in__y']], ['b', ['b', 'b__in__z']]]);
+    const ancestors = new Map([['a', ['x']], ['a__in__y', ['y']], ['b', ['x']], ['b__in__z', ['z']]]);
+    const result = expandEdgesToInstances([edge('c', 'a', 'b')], both, ancestors);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'b']]);
+  });
+
+  it('ignores a container that holds every drawing of both ends', () => {
+    const both = new Map([['a', ['a', 'a__in__y']], ['d', ['d', 'd__in__q']]]);
+    const ancestors = new Map([['a', ['r', 'x']], ['a__in__y', ['r', 'y']], ['d', ['r', 'p']], ['d__in__q', ['r', 'q']]]);
+    const result = expandEdgesToInstances([edge('c', 'a', 'd')], both, ancestors);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'd']]);
+  });
+
+  it('draws one edge between the drawings that keep the CALM ids when no copies of the two ends share a container', () => {
+    // A copy can be built before the drawing that keeps the CALM id
+    const both = new Map([['a', ['a__in__y', 'a']], ['d', ['d__in__q', 'd']]]);
+    const ancestors = new Map([['a', ['x']], ['a__in__y', ['y']], ['d', ['p']], ['d__in__q', ['q']]]);
+    const result = expandEdgesToInstances([edge('c', 'a', 'd')], both, ancestors);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'd']]);
+  });
+
+  it('gives each drawing one edge when copies of both ends tie on shared containers', () => {
+    // Every copy is in x, and one copy of each end is outside x, so x does not hold every drawing
+    const both = new Map([
+      ['a', ['a', 'a__in__p1', 'a__in__p2', 'a__in__z']],
+      ['d', ['d', 'd__in__q1', 'd__in__q2', 'd__in__w']],
+    ]);
+    const ancestors = new Map<string, string[]>([
+      ['a', ['x', 'p0']], ['a__in__p1', ['x', 'p1']], ['a__in__p2', ['x', 'p2']], ['a__in__z', ['z']],
+      ['d', ['x', 'q0']], ['d__in__q1', ['x', 'q1']], ['d__in__q2', ['x', 'q2']], ['d__in__w', ['w']],
+    ]);
+    const result = expandEdgesToInstances([edge('c', 'a', 'd')], both, ancestors);
+    expect(result.length).toBeLessThan(8);
+  });
+
+  it('draws a loop on each copy for a relationship from a node to itself', () => {
+    const result = expandEdgesToInstances([edge('c', 'a', 'a')], instancesOf, ancestorsOf);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'a'], ['a__in__y', 'a__in__y']]);
+  });
+
+  it('connects a pair only when it shares the most containers for both of its drawings', () => {
+    // a1 and d1 share x and b. a2 and d2 share only x. a3 keeps x from holding every drawing.
+    const both = new Map([['a', ['a', 'a2', 'a3']], ['d', ['d', 'd2']]]);
+    const ancestors = new Map([['a', ['x', 'b']], ['a2', ['x']], ['a3', ['z']], ['d', ['x', 'b']], ['d2', ['x']]]);
+    const result = expandEdgesToInstances([edge('c', 'a', 'd')], both, ancestors);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'd'], ['a2', 'd2']]);
+  });
+
+  it('gives each copy edge an id that no other edge uses', () => {
+    const result = expandEdgesToInstances([edge('c', 'b', 'a'), edge('c__copy1', 'a', 'b')], instancesOf, ancestorsOf);
+    const ids = result.map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
