@@ -103,6 +103,53 @@ describe('relationship-analyzer (extra cases)', () => {
         expect(res.parentsOf.get('svc2')).toEqual(['C']);
     });
 
+    it('takes the next parent of the same kind when the first one closes a cycle', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'deployed-in': { container: 'a', nodes: ['b'] } }),
+            rel('r2', { 'deployed-in': { container: 'b', nodes: ['a'] } }),
+            rel('r3', { 'deployed-in': { container: 'c', nodes: ['a'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('a')).toEqual(['c']);
+    });
+
+    it('rejects a later parent that closes a cycle', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'deployed-in': { container: 'p1', nodes: ['x'] } }),
+            rel('r2', { 'deployed-in': { container: 'p2', nodes: ['x'] } }),
+            rel('r3', { 'deployed-in': { container: 'x', nodes: ['p2'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('x')).toEqual(['p1']);
+        expect(res.parentsOf.get('p2')).toEqual(['x']);
+    });
+
+    it('accepts a parent whose ancestors meet again, as in a diamond', () => {
+        // x is in N1 and N2, both in K. y's second parent z is in x, so the walk up from z reaches K twice.
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'deployed-in': { container: 'K', nodes: ['N1', 'N2'] } }),
+            rel('r2', { 'deployed-in': { container: 'N1', nodes: ['x'] } }),
+            rel('r3', { 'deployed-in': { container: 'N2', nodes: ['x'] } }),
+            rel('r4', { 'deployed-in': { container: 'x', nodes: ['z'] } }),
+            rel('r5', { 'deployed-in': { container: 'w', nodes: ['y'] } }),
+            rel('r6', { 'deployed-in': { container: 'z', nodes: ['y'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('x')).toEqual(['N1', 'N2']);
+        expect(res.parentsOf.get('y')).toEqual(['w', 'z']);
+    });
+
+    it('nests only the first composing container under the deployed container', () => {
+        const relationships: CalmRelationshipCanonicalModel[] = [
+            rel('r1', { 'composed-of': { container: 'C1', nodes: ['m'] } }),
+            rel('r2', { 'composed-of': { container: 'C2', nodes: ['m'] } }),
+            rel('r3', { 'deployed-in': { container: 'D', nodes: ['m'] } }),
+        ];
+        const res = buildParentHierarchy(relationships);
+        expect(res.parentsOf.get('C1')).toEqual(['D']);
+        expect(res.parentsOf.has('C2')).toBe(false);
+    });
+
     it('falls back to deployed-in parents when every composed-of parent creates a cycle', () => {
         const relationships: CalmRelationshipCanonicalModel[] = [
             rel('r1', { 'composed-of': { container: 'X', nodes: ['Y', 'lx'] } }),

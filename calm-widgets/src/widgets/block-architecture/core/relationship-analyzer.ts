@@ -85,20 +85,26 @@ export function buildParentHierarchy(relationships: CalmRelationshipCanonicalMod
 
     // First the parent each node had before nodes could have several: its first composed-of container,
     // else its first deployed-in container, unless that closes a cycle. It replaces an inferred parent.
-    const ownParents = new Map<string, string[]>();
+    const otherParents = new Map<string, string[]>();
     for (const id of new Set([...composedParents.keys(), ...deployedParents.keys()])) {
         const composed = composedParents.get(id);
         const deployed = deployedParents.get(id);
-        if (composed && !createsCycle(parentsOf, composed[0], id)) ownParents.set(id, composed);
-        else if (deployed && !createsCycle(parentsOf, deployed[0], id)) ownParents.set(id, deployed);
-        else continue;
-        parentsOf.set(id, [ownParents.get(id)![0]]);
+        const own = composed && !createsCycle(parentsOf, composed[0], id) ? composed
+            : deployed && !createsCycle(parentsOf, deployed[0], id) ? deployed
+                : undefined;
+        if (own) {
+            parentsOf.set(id, [own[0]]);
+            otherParents.set(id, own.slice(1));
+        } else if (!parentsOf.has(id)) {
+            // Its first parent closes a cycle: try the next ones of the same kind
+            otherParents.set(id, composed?.slice(1) ?? deployed!.slice(1));
+        }
     }
 
     // Then its other parents of the same kind, unless they close a cycle
-    for (const [id, parents] of ownParents) {
-        for (const p of parents.slice(1)) {
-            if (!createsCycle(parentsOf, p, id)) parentsOf.get(id)!.push(p);
+    for (const [id, parents] of otherParents) {
+        for (const p of parents) {
+            if (!createsCycle(parentsOf, p, id)) parentsOf.set(id, [...(parentsOf.get(id) ?? []), p]);
         }
     }
 

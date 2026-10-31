@@ -41,15 +41,15 @@ export const MAX_COPIES = 1000;
 /** Number of times each id is drawn: one per drawing of each parent. */
 function drawingCounter(parentsOf: (id: string) => string[]): (id: string) => number {
     const counts = new Map<string, number>();
-    const count = (id: string, path: Set<string>): number => {
+    const count = (id: string): number => {
         const known = counts.get(id);
         if (known !== undefined) return known;
-        const parents = parentsOf(id).filter(p => !path.has(p));
-        const result = parents.length === 0 ? 1 : parents.reduce((sum, p) => sum + count(p, new Set(path).add(id)), 0);
+        const parents = parentsOf(id);
+        const result = parents.length === 0 ? 1 : parents.reduce((sum, p) => sum + count(p), 0);
         counts.set(id, result);
         return result;
     };
-    return id => count(id, new Set());
+    return count;
 }
 
 /**
@@ -87,7 +87,7 @@ export function buildContainerForest(
         return candidate;
     };
 
-    const drawnParents = (id: string) => (parentsOf.get(id) ?? []).filter(p => p !== id && containerIdsToRender.has(p));
+    const drawnParents = (id: string) => (parentsOf.get(id) ?? []).filter(p => containerIdsToRender.has(p));
     // Through drawn containers only: a hidden container breaks the nesting
     const isAncestor = (a: string, of: string) => {
         const seen = new Set<string>();
@@ -147,7 +147,7 @@ export function buildContainerForest(
         return leaf;
     };
 
-    const createContainer = (cid: string, rendered: string, ancestors: string[], path: Set<string>): VMContainer => {
+    const createContainer = (cid: string, rendered: string, ancestors: string[]): VMContainer => {
         const node = byId.get(cid);
         const container: VMContainer = {
             id: rendered,
@@ -160,12 +160,10 @@ export function buildContainerForest(
         record(cid, rendered, ancestors);
 
         const childAncestors = [...ancestors, rendered];
-        const childPath = new Set(path).add(cid);
         for (const child of childrenOf.get(cid) ?? []) {
-            if (childPath.has(child)) continue;
             const childRendered = drawings(child) > 1 ? copyId(child, rendered) : child;
             if (containerIdsToRender.has(child)) {
-                container.containers.push(createContainer(child, childRendered, childAncestors, childPath));
+                container.containers.push(createContainer(child, childRendered, childAncestors));
             } else {
                 const n = byId.get(child);
                 if (n) container.nodes.push(createLeaf(n, childRendered, childAncestors));
@@ -176,7 +174,7 @@ export function buildContainerForest(
 
     const containers = Array.from(containerIdsToRender)
         .filter(cid => renderedParents(cid).length === 0)
-        .map(cid => createContainer(cid, cid, [], new Set()));
+        .map(cid => createContainer(cid, cid, []));
 
     for (const n of nodes) {
         const nid = n['unique-id'];
