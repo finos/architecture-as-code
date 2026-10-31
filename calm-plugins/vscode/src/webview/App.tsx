@@ -55,6 +55,7 @@ import { NodeAppearance } from './panels/NodeAppearance';
 import { getNodeStyleOverride, isStandardNode } from './utils/standard-node-style';
 import { defaultNodeColours } from './canvas/node-colours';
 import { PatternPicker } from './panels/PatternPicker';
+import { mergePatternIntoArchitecture } from './panels/pattern-instantiation';
 import { StandardNodeCreator } from './panels/StandardNodeCreator';
 import { ControlPicker } from './panels/ControlPicker';
 import { ControlCreator } from './panels/ControlCreator';
@@ -953,41 +954,16 @@ function CanvasApp() {
     // --- Pattern handlers ---
     const handlePatterns = useCallback(() => { setPatternPickerMode('new'); setShowPatternPicker(true); }, []);
     const handleApplyPattern = useCallback(() => { setPatternPickerMode('apply'); setShowPatternPicker(true); }, []);
-    const handleArchApply = useCallback((arch: any, patternId?: string) => {
-        if (patternId) {
-            const metadata = (arch.metadata ?? {}) as Record<string, unknown>;
-            const patterns = (metadata.patterns as string[]) ?? [];
-            if (!patterns.includes(patternId)) patterns.push(patternId);
-            metadata.patterns = patterns;
-            arch.metadata = metadata;
-        }
+    const handleArchApply = useCallback((arch: any) => {
         const json = JSON.stringify(arch, null, 2);
         loadArchitecture(json);
         notifyCanvasChanged(json);
     }, [loadArchitecture]);
 
-    const handlePatternMerge = useCallback((arch: any, patternId: string) => {
+    const handlePatternMerge = useCallback((arch: any) => {
         const current = flowToCalm(nodes, edges, store.documentControls) as Record<string, unknown>;
-        const currentNodes = (current.nodes as Array<Record<string, unknown>>) ?? [];
-        const currentRels = (current.relationships as Array<Record<string, unknown>>) ?? [];
-        const incomingNodes = (arch.nodes ?? []) as Array<Record<string, unknown>>;
-        const incomingRels = (arch.relationships ?? []) as Array<Record<string, unknown>>;
-
-        const existingNodeIds = new Set(currentNodes.map((n) => n['unique-id']));
-        const existingRelIds = new Set(currentRels.map((r) => r['unique-id']));
-
-        for (const n of incomingNodes) { if (!existingNodeIds.has(n['unique-id'])) currentNodes.push(n); }
-        for (const r of incomingRels) { if (!existingRelIds.has(r['unique-id'])) currentRels.push(r); }
-
-        current.nodes = currentNodes;
-        current.relationships = currentRels;
-        const metadata = (current.metadata ?? {}) as Record<string, unknown>;
-        const patterns = (metadata.patterns as string[]) ?? [];
-        if (!patterns.includes(patternId)) patterns.push(patternId);
-        metadata.patterns = patterns;
-        current.metadata = metadata;
-
-        const json = JSON.stringify(current, null, 2);
+        const merged = mergePatternIntoArchitecture(current, arch);
+        const json = JSON.stringify(merged, null, 2);
         loadArchitecture(json);
         notifyCanvasChanged(json);
     }, [nodes, edges, store.documentControls, loadArchitecture]);
@@ -1260,9 +1236,9 @@ function CanvasApp() {
                 visible={showPatternPicker}
                 mode={patternPickerMode}
                 patterns={store.loadedPatterns as any[]}
-                onApply={(arch, patternId) => {
-                    if (patternPickerMode === 'apply') handlePatternMerge(arch, patternId);
-                    else handleArchApply(arch, patternId);
+                onApply={(arch) => {
+                    if (patternPickerMode === 'apply') handlePatternMerge(arch);
+                    else handleArchApply(arch);
                 }}
                 onClose={() => setShowPatternPicker(false)}
             />

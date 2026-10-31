@@ -29,7 +29,41 @@ export function instantiateFromPattern(schema: unknown, standardNodes?: Standard
             return r;
         });
 
-    return { nodes, relationships };
+    const result: Record<string, unknown> = {};
+    if (typeof p?.$id === 'string' && p.$id) {
+        result.$schema = p.$id;
+    }
+    result.nodes = nodes;
+    result.relationships = relationships;
+    return result;
+}
+
+export function mergePatternIntoArchitecture(
+    current: Record<string, unknown>,
+    incoming: Record<string, unknown>,
+): Record<string, unknown> {
+    const currentNodes = [...((current.nodes as Array<Record<string, unknown>>) ?? [])];
+    const currentRels = [...((current.relationships as Array<Record<string, unknown>>) ?? [])];
+    const incomingNodes = (incoming.nodes as Array<Record<string, unknown>>) ?? [];
+    const incomingRels = (incoming.relationships as Array<Record<string, unknown>>) ?? [];
+
+    const existingNodeIds = new Set(currentNodes.map((n) => n['unique-id']));
+    const existingRelIds = new Set(currentRels.map((r) => r['unique-id']));
+
+    for (const n of incomingNodes) {
+        if (!existingNodeIds.has(n['unique-id'])) currentNodes.push(n);
+    }
+    for (const r of incomingRels) {
+        if (!existingRelIds.has(r['unique-id'])) currentRels.push(r);
+    }
+
+    const merged: Record<string, unknown> = { ...current };
+    if (!merged.$schema && typeof incoming.$schema === 'string' && incoming.$schema) {
+        merged.$schema = incoming.$schema;
+    }
+    merged.nodes = currentNodes;
+    merged.relationships = currentRels;
+    return merged;
 }
 
 /**
