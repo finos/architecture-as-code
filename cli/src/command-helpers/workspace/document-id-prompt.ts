@@ -9,16 +9,16 @@ import {
     ResourceType,
 } from '@finos/calm-shared';
 import type { CalmDocumentType } from '@finos/calm-models/types';
-import { resourceTypeForDocumentType } from './document-id-type';
+import { documentTypeHasIdType, resourceTypeForDocumentType } from './document-id-type';
 
 const DEFAULT_VERSION = '1.0.0';
 
 type Scope = 'namespace' | 'requirement' | 'configuration';
 
 export interface BuiltDocumentId {
-    /** The constructed CalmHub `$id`. */
+    /** The constructed document `$id`. */
     id: string;
-    /** Namespace component (namespace resources only; unset for control documents). */
+    /** Namespace component (namespace resources only; unset for control documents and non-Hub types). */
     namespace?: string;
     /** A short slug suitable for a filename / manifest key (mapping, or control/config name). */
     slug: string;
@@ -55,15 +55,20 @@ function assertConformant(id: string): void {
 }
 
 /**
- * Interactively build a conformant CalmHub document `$id` from its components.
+ * Interactively build a document `$id`.
  *
- * Prompts for the resource scope (namespace resource, control requirement, or control
- * configuration) and then each `$id` segment, defaulting the version to 1.0.0 and the base URL
- * to the configured CalmHub URL. A document type that fixes the resource type skips the questions
- * it answers. A type with no resource type (such as `timeline`) still gets every question, so its
- * `$id` can still name a different resource type.
+ * For CalmHub resource types, prompts for the resource scope (namespace resource, control
+ * requirement, or control configuration) and then each `$id` segment, defaulting the version to
+ * 1.0.0 and the base URL to the configured CalmHub URL. A document type that fixes the resource
+ * type skips the questions it answers. A document type with no CalmHub `$id` form (`timeline`,
+ * `adr`) prompts only for a plain document id so it cannot receive another resource type's `$id`.
  */
 export async function promptForDocumentId(opts: PromptForDocumentIdOptions = {}): Promise<BuiltDocumentId> {
+    if (opts.documentType && !documentTypeHasIdType(opts.documentType)) {
+        const slug = await promptSegment('Document id:', 'Document id');
+        return { id: slug, slug };
+    }
+
     const knownResourceType = opts.documentType ? resourceTypeForDocumentType(opts.documentType) : undefined;
     const controlChoices: { name: string, value: Scope }[] = [
         { name: 'Control requirement', value: 'requirement' },

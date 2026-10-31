@@ -27,7 +27,7 @@ export function documentTypeForDocumentId(id: string): CalmDocumentType | undefi
 
 /**
  * Whether a conformant CalmHub `$id` can imply this document type. `timeline` and `adr` have no
- * `$id` form of their own, so their `$id` cannot be checked against the type (#3311).
+ * CalmHub `$id` form of their own.
  */
 export function documentTypeHasIdType(type: CalmDocumentType): boolean {
     return type === 'control' || resourceTypeForDocumentType(type) !== undefined;
