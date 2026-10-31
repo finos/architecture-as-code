@@ -242,6 +242,83 @@ describe('parseCALMData with ties between copies', () => {
     });
 });
 
+describe('parseCALMData with copies of shared nodes', () => {
+    const deployedIn = (id: string, container: string, nodes: string[]) =>
+        ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
+    const connects = (id: string, source: string, destination: string) =>
+        ({ 'unique-id': id, 'relationship-type': { connects: { source: { node: source }, destination: { node: destination } } } });
+    const edgesOf = (parsed: ReturnType<typeof parseCALMData>) => parsed.edges.map((e) => [e.source, e.target]);
+    const sharedNamespace = (extra: object[] = [], extraNodes: string[] = []) => ({
+        nodes: ['cluster-a', 'cluster-b', 'ns', 'svc', 'db', ...extraNodes].map((id) => node(id)),
+        relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns']), deployedIn('r3', 'ns', ['svc', 'db']), ...extra],
+    });
+
+    it('connects a node drawn once to every copy', () => {
+        const parsed = parseCALMData(sharedNamespace([connects('c1', 'client', 'svc')], ['client']));
+        expect(edgesOf(parsed)).toEqual([['client', 'svc'], ['client', 'svc__in__ns__in__cluster-a']]);
+    });
+
+    it('draws a loop on each copy for a relationship from a node to itself', () => {
+        const parsed = parseCALMData(sharedNamespace([connects('c1', 'svc', 'svc')]));
+        expect(edgesOf(parsed)).toEqual([['svc', 'svc'], ['svc__in__ns__in__cluster-a', 'svc__in__ns__in__cluster-a']]);
+    });
+
+    it('expands an interacts relationship to every copy', () => {
+        const interacts = { 'unique-id': 'i1', 'relationship-type': { interacts: { actor: 'user', nodes: ['svc'] } } };
+        const parsed = parseCALMData(sharedNamespace([interacts], ['user']));
+        expect(parsed.edges.map((e) => e.target)).toEqual(['svc', 'svc__in__ns__in__cluster-a']);
+    });
+
+    it('does not give a copy the id of a real node', () => {
+        const parsed = parseCALMData(sharedNamespace([], ['ns__in__cluster-a']));
+        const ids = parsed.nodes.map((n) => n.id);
+        expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('draws one edge when only a container around everything holds copies of both ends', () => {
+        const parsed = parseCALMData({
+            nodes: ['prod', 'c1', 'c2', 'c3', 'c4', 'a', 'b'].map((id) => node(id)),
+            relationships: [
+                deployedIn('r1', 'prod', ['c1', 'c2', 'c3', 'c4']),
+                deployedIn('r2', 'c1', ['a']),
+                deployedIn('r3', 'c2', ['a']),
+                deployedIn('r4', 'c3', ['b']),
+                deployedIn('r5', 'c4', ['b']),
+                connects('c1x', 'a', 'b'),
+            ],
+        });
+        expect(parsed.edges).toHaveLength(1);
+    });
+
+    it('connects only the copies that share the most containers', () => {
+        const parsed = parseCALMData({
+            nodes: ['ca', 'cb', 'ns1', 'ns2', 's', 't'].map((id) => node(id)),
+            relationships: [
+                deployedIn('r1', 'ca', ['ns1', 'ns2']),
+                deployedIn('r2', 'ns1', ['s', 't']),
+                deployedIn('r3', 'ns2', ['t']),
+                deployedIn('r4', 'cb', ['s']),
+                connects('c1', 's', 't'),
+            ],
+        });
+        expect(edgesOf(parsed)).toEqual([['s__in__ns1', 't__in__ns1']]);
+    });
+
+    it('does not apply the limit to a large diagram with few copies', () => {
+        const chain = Array.from({ length: 1002 }, (_, k) => `n${k}`);
+        const parsed = parseCALMData({
+            nodes: ['ca', 'cb', 'svc', ...chain].map((id) => node(id)),
+            relationships: [
+                deployedIn('r1', 'ca', ['svc']),
+                deployedIn('r2', 'cb', ['svc']),
+                ...chain.slice(1).map((id, k) => connects(`c${k}`, chain[k], id)),
+            ],
+        });
+        expect(parsed.copiesLimited).toBe(false);
+        expect(parsed.nodes.filter((n) => n.data['unique-id'] === 'svc')).toHaveLength(2);
+    });
+});
+
 describe('parseCALMData with deeply shared containers', () => {
     it('draws each node once when copies would exceed the limit', () => {
         const levels = 12;

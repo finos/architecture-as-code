@@ -618,6 +618,34 @@ describe('parseCALMData - nodes with several parents', () => {
         expect(result.edges.map((e) => [e.source, e.target])).toEqual([['svc__in__ns__in__a', 'q__in__a']]);
     });
 
+    it('connects only the copies that share the most containers', () => {
+        const result = parseCALMData({
+            nodes: ['ca', 'cb', 'ns1', 'ns2', 's', 't'].map(node),
+            relationships: [
+                deployedIn('r1', 'ca', ['ns1', 'ns2']),
+                deployedIn('r2', 'ns1', ['s', 't']),
+                deployedIn('r3', 'ns2', ['t']),
+                deployedIn('r4', 'cb', ['s']),
+                connects('c1', 's', 't'),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([['s__in__ns1', 't__in__ns1']]);
+    });
+
+    it('does not apply the limit to a large diagram with few copies', () => {
+        const chain = Array.from({ length: 1002 }, (_, k) => `n${k}`);
+        const result = parseCALMData({
+            nodes: ['ca', 'cb', 'svc', ...chain].map(node),
+            relationships: [
+                deployedIn('r1', 'ca', ['svc']),
+                deployedIn('r2', 'cb', ['svc']),
+                ...chain.slice(1).map((id, k) => connects(`c${k}`, chain[k], id)),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.copiesLimited).toBe(false);
+        expect(drawings(result, 'svc')).toHaveLength(2);
+    });
+
     it('gives each drawing one edge when copies of both ends tie on shared containers', () => {
         const ps = ['P0', 'P1', 'P2'];
         const qs = ['Q0', 'Q1', 'Q2'];
