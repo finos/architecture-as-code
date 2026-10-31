@@ -163,6 +163,29 @@ describe('parseCALMData - nodes with several parents', () => {
         ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
     const byId = (nodes: { id: string }[], id: string) => nodes.find((n) => n.id === id) as any;
 
+    it('ignores a member of a containment relationship that is not a node', () => {
+        const result = parseCALMData(arch([node('c'), node('a')], [deployedIn('r1', 'c', ['ghost', 'a'])]));
+        expect(result.nodes.map((n) => [n.id, n.parentId])).toEqual([['c', undefined], ['a', 'c']]);
+    });
+
+    it('lists a membership that is not drawn once, however often the file repeats it', () => {
+        const result = parseCALMData(arch([node('x')], [deployedIn('r1', 'ghost', ['x']), deployedIn('r2', 'ghost', ['x'])]));
+        expect(byId(result.nodes, 'x').data.otherParents).toEqual(['ghost']);
+    });
+
+    it('sizes a container past the copy limit by the children drawn in it only', () => {
+        // Each level has two containers that are both in both containers of the level above.
+        // Past the limit, each is drawn in its last container only, so l0a holds nothing.
+        const ids = Array.from({ length: 12 }, (_, k) => [`l${k}a`, `l${k}b`]);
+        const result = parseCALMData(arch(
+            ids.flat().map(node),
+            ids.slice(1).flatMap(([a, b], k) => [deployedIn(`r${k}a`, ids[k][0], [a, b]), deployedIn(`r${k}b`, ids[k][1], [a, b])]),
+        ));
+        expect(result.nodes.some((n) => n.parentId === 'l0a')).toBe(false);
+        expect(byId(result.nodes, 'l0a').width).toBe(500);
+        expect(byId(result.nodes, 'l0b').width).toBeGreaterThan(500);
+    });
+
     it('draws a node once in each parent, and keeps the CALM id in the last parent as before', () => {
         const result = parseCALMData(arch(
             [node('cluster-a'), node('cluster-b'), node('ns')],

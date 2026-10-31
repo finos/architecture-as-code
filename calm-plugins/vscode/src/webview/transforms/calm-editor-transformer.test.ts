@@ -383,6 +383,62 @@ describe('flowToCalm - nodes with several parents', () => {
         expect(out.nodes.map((n) => [n['unique-id'], n.name])).toEqual([['a', 'a']]);
     });
 
+    it('writes the CALM ids for an interacts edge drawn to a copy', () => {
+        const interacts = { 'unique-id': 'i1', 'relationship-type': { interacts: { actor: 'client', nodes: ['svc'] } } };
+        const { parsed } = roundTrip({ ...sharedNamespace(), relationships: [...sharedNamespace().relationships, interacts] });
+        const copy = parsed.nodes.find((n) => n.id !== 'svc' && n.data.calmId === 'svc')!;
+        const edges = parsed.edges.map((e) => (e.data?.calmRelId === 'i1' ? { ...e, target: copy.id } : e));
+        const out = flowToCalm(parsed.nodes, edges);
+        expect(out.relationships.find((r) => r['unique-id'] === 'i1')!['relationship-type']).toEqual({ interacts: { actor: 'client', nodes: ['svc'] } });
+    });
+
+    it('writes the CALM ids for both directions of a two-way edge drawn to a copy', () => {
+        const back = { 'unique-id': 'c2', 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'client' } } } };
+        const { parsed } = roundTrip({ ...sharedNamespace(), relationships: [...sharedNamespace().relationships, back] });
+        const copy = parsed.nodes.find((n) => n.id !== 'svc' && n.data.calmId === 'svc')!;
+        const edges = parsed.edges.map((e) => (e.data?.calmRelId === 'c1' ? { ...e, target: copy.id } : e));
+        const out = flowToCalm(parsed.nodes, edges);
+        const ends = (id: string) => (out.relationships.find((r) => r['unique-id'] === id)!['relationship-type'] as any).connects;
+        expect([ends('c1').source.node, ends('c1').destination.node]).toEqual(['client', 'svc']);
+        expect([ends('c2').source.node, ends('c2').destination.node]).toEqual(['svc', 'client']);
+    });
+
+    it('adds a new member to the first relationship of its container', () => {
+        const { parsed } = roundTrip({ nodes: [node('c1'), node('a'), node('x')], relationships: [deployedIn('r1', 'c1', ['a'])] });
+        const nodes = parsed.nodes.map((n) => (n.id === 'x' ? { ...n, parentId: 'c1' } : n));
+        expect(containment(flowToCalm(nodes, parsed.edges))).toEqual([['r1', { container: 'c1', nodes: ['a', 'x'] }]]);
+    });
+
+    it('keeps one empty relationship when an edit empties every relationship of a drawn container', () => {
+        const { parsed } = roundTrip({
+            nodes: [node('c1'), node('a'), node('b')],
+            relationships: [deployedIn('r1', 'c1', ['a']), deployedIn('r2', 'c1', ['b'])],
+        });
+        const out = flowToCalm(parsed.nodes.filter((n) => n.id === 'c1'), parsed.edges);
+        expect(containment(out)).toEqual([['r1', { container: 'c1', nodes: [] }]]);
+    });
+
+    it('writes a new empty container with the variant it was drawn as', () => {
+        const { parsed } = roundTrip({ nodes: [node('a')], relationships: [] });
+        const box: Node = { id: 'box', type: 'container', position: { x: 0, y: 0 }, data: { calmId: 'box', containmentType: 'composed-of' } };
+        const out = flowToCalm([...parsed.nodes, box], parsed.edges);
+        expect(out.relationships).toEqual([
+            { 'unique-id': 'containment-box', 'relationship-type': { 'composed-of': { container: 'box', nodes: [] } } },
+        ]);
+    });
+
+    it('keeps the place in the file of a node with no unique-id', () => {
+        const nameless = { 'node-type': 'system', name: 'x', description: '' };
+        const { out } = roundTrip({ nodes: [nameless, node('c')], relationships: [deployedIn('r1', 'c', ['node-0'])] });
+        expect(out.nodes.map((n) => n['unique-id'])).toEqual(['node-0', 'c']);
+    });
+
+    it('carries positions over for a reload in the order of the file', () => {
+        const arch: CalmArchitecture = { nodes: [node('b'), node('a')], relationships: [] };
+        const layout = relayoutByPath(arch, parseCALMData({ nodes: [node('a'), node('b')], relationships: [] }).nodes);
+        expect(Object.keys(layout)).toEqual(['b', 'a']);
+    });
+
     it('drops a membership when its copy is removed', () => {
         const { parsed } = roundTrip(sharedNamespace());
         const nodes = parsed.nodes.filter((n) => !n.id.endsWith('__in__cluster-a'));
