@@ -106,6 +106,40 @@ describe('normalizeCalmDocument', () => {
     expect(result).toBe(minimalV12DocWithAdrs); // Same reference — not mutated
   });
 
+  it('flattens a canonical nested relationship-type object', () => {
+    const doc = {
+      ...minimalV11Doc,
+      relationships: [
+        {
+          'unique-id': 'rel-1',
+          'relationship-type': { 'composed-of': { container: 'node-1', nodes: ['node-2'] } },
+        },
+      ],
+    };
+    const result = normalizeCalmDocument(doc, '1.1') as {
+      relationships: Array<Record<string, unknown>>;
+    };
+    expect(result.relationships[0]).toEqual({
+      'unique-id': 'rel-1',
+      'relationship-type': 'composed-of',
+      'composed-of': { container: 'node-1', nodes: ['node-2'] },
+    });
+  });
+
+  it('returns input unchanged when relationships are already flat', () => {
+    const doc = {
+      ...minimalV11Doc,
+      relationships: [
+        {
+          'unique-id': 'rel-1',
+          'relationship-type': 'composed-of',
+          'composed-of': { container: 'node-1', nodes: ['node-2'] },
+        },
+      ],
+    };
+    expect(normalizeCalmDocument(doc, '1.1')).toBe(doc);
+  });
+
   it('maps v1.0 node type: "apigateway" to node-type: "service"', () => {
     const doc = {
       nodes: [{ name: 'Gateway', type: 'apigateway', metadata: { description: 'The gateway' } }],

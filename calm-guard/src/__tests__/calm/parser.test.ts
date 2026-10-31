@@ -184,3 +184,141 @@ describe('parseCalm — version field (multi-version support)', () => {
     expect(result.version).toBe('1.0');
   });
 });
+
+// --- Canonical (nested) relationship-type tests ---
+
+// Canonical CALM relationships, as defined by calm/release/1.x/meta/core.json:
+// `relationship-type` is an object holding exactly one keyed variant.
+const canonicalNodes = [
+  makeNode('user', 'actor', 'User', 'A user'),
+  makeNode('a', 'service', 'A', 'Service A'),
+  makeNode('b', 'database', 'B', 'Database B'),
+  makeNode('cluster', 'system', 'Cluster', 'A cluster'),
+];
+
+const canonicalRelationships = [
+  {
+    'unique-id': 'a-to-b',
+    description: 'A reads from B',
+    protocol: 'JDBC',
+    'relationship-type': {
+      connects: {
+        source: { node: 'a' },
+        destination: { node: 'b', interfaces: ['jdbc'] },
+      },
+    },
+  },
+  {
+    'unique-id': 'user-uses-a',
+    'relationship-type': { interacts: { actor: 'user', nodes: ['a'] } },
+  },
+  {
+    'unique-id': 'a-in-cluster',
+    'relationship-type': { 'deployed-in': { container: 'cluster', nodes: ['a', 'b'] } },
+  },
+  {
+    'unique-id': 'cluster-has-a',
+    'relationship-type': { 'composed-of': { container: 'cluster', nodes: ['a'] } },
+  },
+];
+
+describe('parseCalm — canonical nested relationship-type', () => {
+  it('parses a canonical connects relationship', () => {
+    const result = parseCalm({ nodes: canonicalNodes, relationships: [canonicalRelationships[0]] });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+    const rel = result.data.relationships[0];
+    expect(rel['relationship-type']).toBe('connects');
+    if (rel['relationship-type'] !== 'connects') throw new Error('Expected connects');
+    expect(rel.connects.source.node).toBe('a');
+    expect(rel.connects.destination).toEqual({ node: 'b', interfaces: ['jdbc'] });
+    expect(rel.protocol).toBe('JDBC');
+    expect(rel.description).toBe('A reads from B');
+  });
+
+  it('parses canonical interacts, deployed-in and composed-of relationships', () => {
+    const result = parseCalm({ nodes: canonicalNodes, relationships: canonicalRelationships });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+    expect(result.data.relationships.map(r => r['relationship-type'])).toEqual([
+      'connects',
+      'interacts',
+      'deployed-in',
+      'composed-of',
+    ]);
+    const interacts = result.data.relationships[1];
+    if (interacts['relationship-type'] !== 'interacts') throw new Error('Expected interacts');
+    expect(interacts.interacts).toEqual({ actor: 'user', nodes: ['a'] });
+  });
+
+  it('parses a canonical options relationship', () => {
+    const options = [{ description: 'Option 1', nodes: ['a'], relationships: [] }];
+    const result = parseCalm({
+      nodes: canonicalNodes,
+      relationships: [{ 'unique-id': 'choice', 'relationship-type': { options } }],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+    const rel = result.data.relationships[0];
+    if (rel['relationship-type'] !== 'options') throw new Error('Expected options');
+    expect(rel.options).toEqual(options);
+  });
+
+  it('parses a v1.2 document with canonical relationships', () => {
+    const result = parseCalm({ ...v12Doc, nodes: canonicalNodes, relationships: canonicalRelationships });
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error('Expected success');
+    expect(result.version).toBe('1.2');
+    expect(result.data.relationships).toHaveLength(4);
+  });
+
+  it('does not mutate the input document', () => {
+    const input = { nodes: canonicalNodes, relationships: [canonicalRelationships[0]] };
+    const before = JSON.parse(JSON.stringify(input));
+
+    parseCalm(input);
+
+    expect(input).toEqual(before);
+  });
+
+  it('rejects a canonical relationship with an unknown relationship-type key', () => {
+    const result = parseCalm({
+      nodes: canonicalNodes,
+      relationships: [{ 'unique-id': 'bad', 'relationship-type': { 'depends-on': { nodes: ['a'] } } }],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a canonical relationship-type with more than one variant', () => {
+    const result = parseCalm({
+      nodes: canonicalNodes,
+      relationships: [
+        {
+          'unique-id': 'bad',
+          'relationship-type': {
+            interacts: { actor: 'user', nodes: ['a'] },
+            'composed-of': { container: 'cluster', nodes: ['a'] },
+          },
+        },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a canonical connects relationship that is missing its destination', () => {
+    const result = parseCalm({
+      nodes: canonicalNodes,
+      relationships: [
+        { 'unique-id': 'bad', 'relationship-type': { connects: { source: { node: 'a' } } } },
+      ],
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
