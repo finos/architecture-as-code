@@ -7,8 +7,8 @@ import {
     sortContainersDeepestFirst,
     sortNodesParentsBeforeChildren,
 } from './layoutUtils';
-import { identifyContainerNodes, parseNodes } from './nodeParser';
-import { extractFlowTransitions, parseRelationships } from './relationshipParser';
+import { identifyContainerNodes, MAX_COPIES, parseNodes } from './nodeParser';
+import { expandEdgesToInstances, extractFlowTransitions, parseRelationships } from './relationshipParser';
 import { GRAPH_LAYOUT } from './constants';
 
 /**
@@ -17,6 +17,8 @@ import { GRAPH_LAYOUT } from './constants';
 export interface ParsedCALMData {
     nodes: Node[];
     edges: Edge[];
+    /** True when a limit drew each node in its last container only. */
+    copiesLimited?: boolean;
 }
 
 /**
@@ -33,12 +35,18 @@ export function parseCALMData(
         const nodes = data.nodes || [];
         const flows = data.flows || [];
 
-        const containerInfo = identifyContainerNodes(relationships);
-        const { regularNodes, systemNodes } = parseNodes(nodes, containerInfo, onShowDetailsCallback);
+        const containerInfo = identifyContainerNodes(relationships, nodes);
         const flowTransitions = extractFlowTransitions(flows);
-        const edges = parseRelationships(relationships, flowTransitions);
+        const relationshipEdges = parseRelationships(relationships, flowTransitions);
+        let parsed = parseNodes(nodes, containerInfo, onShowDetailsCallback);
+        let edges = expandEdgesToInstances(relationshipEdges, parsed.instancesOf, parsed.ancestorsOf);
+        // Each copy of a node also gets the node's edges
+        if (edges.length - relationshipEdges.length > MAX_COPIES) {
+            parsed = parseNodes(nodes, containerInfo, onShowDetailsCallback, true);
+            edges = expandEdgesToInstances(relationshipEdges, parsed.instancesOf, parsed.ancestorsOf);
+        }
 
-        const result = applyLayout(regularNodes, systemNodes, edges);
+        const result = { ...applyLayout(parsed.regularNodes, parsed.systemNodes, edges), copiesLimited: parsed.copiesLimited };
 
         return applyFlowStyling(result, relationships);
     } catch (error) {
@@ -315,5 +323,5 @@ function applyFlowStyling(
         };
     });
 
-    return { nodes, edges };
+    return { ...result, nodes, edges };
 }

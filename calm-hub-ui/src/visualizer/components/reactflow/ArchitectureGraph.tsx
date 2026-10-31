@@ -574,6 +574,21 @@ export function ArchitectureGraph({
                             maskStrokeWidth={1.5}
                         />
                     )}
+                    {parsed.copiesLimited && (
+                        <Panel position="top-left">
+                            <div
+                                role="status"
+                                className="max-w-xs px-3 py-2 rounded-md text-[12px]"
+                                style={{
+                                    color: colors.redesign.primaryText,
+                                    border: `1px solid ${THEME.colors.border}`,
+                                    backgroundColor: colors.redesign.surface,
+                                }}
+                            >
+                                This diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.
+                            </div>
+                        </Panel>
+                    )}
                     {!externalSearch && (
                         <Panel position="top-right">
                             <SearchBar

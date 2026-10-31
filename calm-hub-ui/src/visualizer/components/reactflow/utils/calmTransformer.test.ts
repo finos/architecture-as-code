@@ -507,3 +507,303 @@ describe('parseCALMData flow animation state', () => {
     });
 });
 
+describe('parseCALMData - nodes with several parents', () => {
+    const node = (id: string) => ({ 'unique-id': id, name: id, 'node-type': 'service' });
+    const deployedIn = (id: string, container: string, nodes: string[]) =>
+        ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
+    const connects = (id: string, source: string, destination: string) =>
+        ({ 'unique-id': id, 'relationship-type': { connects: { source: { node: source }, destination: { node: destination } } } });
+    const drawings = (result: { nodes: { id: string; parentId?: string; data: Record<string, unknown> }[] }, calmId: string) =>
+        result.nodes.filter((n) => n.data['unique-id'] === calmId).map((n) => [n.id, n.parentId]);
+    const sharedNamespace = (extra: object[] = [], extraNodes: string[] = []) => ({
+        nodes: ['cluster-a', 'cluster-b', 'ns', 'svc', 'db', ...extraNodes].map(node),
+        relationships: [
+            deployedIn('r1', 'cluster-a', ['ns']),
+            deployedIn('r2', 'cluster-b', ['ns']),
+            deployedIn('r3', 'ns', ['svc', 'db']),
+            ...extra,
+        ],
+    }) as CalmArchitectureSchema;
+
+    it('draws a node once in each parent, and keeps the CALM id in the last parent as before', () => {
+        const result = parseCALMData(sharedNamespace());
+        expect(drawings(result, 'ns')).toEqual([
+            ['ns', 'cluster-b'],
+            ['ns__in__cluster-a', 'cluster-a'],
+        ]);
+    });
+
+    it('connects only the copy inside a container to that container', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'svc', 'cluster-a')]));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['svc__in__ns__in__cluster-a', 'cluster-a'],
+        ]);
+    });
+
+    it('copies everything nested in a shared container', () => {
+        const result = parseCALMData(sharedNamespace());
+        expect(result.nodes.find((n) => n.id === 'ns__in__cluster-a')?.type).toBe('group');
+        expect(drawings(result, 'svc')).toEqual([
+            ['svc', 'ns'],
+            ['svc__in__ns__in__cluster-a', 'ns__in__cluster-a'],
+        ]);
+    });
+
+    it('keeps the CALM node in the data of each copy', () => {
+        const result = parseCALMData(sharedNamespace());
+        const copy = result.nodes.find((n) => n.id === 'svc__in__ns__in__cluster-a');
+        expect(copy?.data).toEqual(expect.objectContaining({ 'unique-id': 'svc', label: 'svc' }));
+    });
+
+    it('connects the copies in the same container', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'svc', 'db')]));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['svc', 'db'],
+            ['svc__in__ns__in__cluster-a', 'db__in__ns__in__cluster-a'],
+        ]);
+        expect(new Set(result.edges.map((e) => e.id)).size).toBe(2);
+    });
+
+    it('connects a node drawn once to every copy', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'client', 'svc')], ['client']));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['client', 'svc'],
+            ['client', 'svc__in__ns__in__cluster-a'],
+        ]);
+    });
+
+    it('keeps the CALM id in the container of the last relationship when a container repeats', () => {
+        const result = parseCALMData({
+            nodes: ['A', 'B', 'N'].map(node),
+            relationships: [deployedIn('r1', 'A', ['N']), deployedIn('r2', 'B', ['N']), deployedIn('r3', 'A', ['N'])],
+        } as CalmArchitectureSchema);
+        expect(drawings(result, 'N')).toEqual([['N', 'A'], ['N__in__B', 'B']]);
+    });
+
+    it('breaks a cycle as before, whatever the node order', () => {
+        const relationships = [deployedIn('r1', 'B', ['A']), deployedIn('r2', 'C', ['A']), deployedIn('r3', 'A', ['B'])];
+        for (const order of [['A', 'B', 'C'], ['B', 'A', 'C']]) {
+            const result = parseCALMData({ nodes: order.map(node), relationships } as CalmArchitectureSchema);
+            expect(result.nodes.map((n) => [n.id, n.parentId]).sort()).toEqual([['A', 'C'], ['B', 'A'], ['C', undefined]]);
+        }
+    });
+
+    it('keeps the parents main gave when a cycle is undone by a later relationship', () => {
+        const result = parseCALMData({
+            nodes: ['a', 'b', 'c'].map(node),
+            relationships: [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['a']), deployedIn('r3', 'c', ['b'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => [n.id, n.parentId]).sort()).toEqual([['a', 'b'], ['b', 'c'], ['c', undefined]]);
+    });
+
+    it('draws a node once when it is listed in both a container and a container inside it', () => {
+        const result = parseCALMData({
+            nodes: ['cluster', 'ns', 'svc'].map(node),
+            relationships: [deployedIn('r1', 'cluster', ['ns', 'svc']), deployedIn('r2', 'ns', ['svc'])],
+        } as CalmArchitectureSchema);
+        expect(drawings(result, 'svc')).toEqual([['svc', 'ns']]);
+    });
+
+    it('connects only the copies that share a container', () => {
+        const result = parseCALMData({
+            nodes: ['a', 'b', 'c', 'ns', 'svc', 'q'].map(node),
+            relationships: [
+                deployedIn('r1', 'a', ['ns', 'q']),
+                deployedIn('r2', 'b', ['ns']),
+                deployedIn('r3', 'ns', ['svc']),
+                deployedIn('r4', 'c', ['q']),
+                connects('c1', 'svc', 'q'),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([['svc__in__ns__in__a', 'q__in__a']]);
+    });
+
+    it('connects only the copies that share the most containers', () => {
+        const result = parseCALMData({
+            nodes: ['ca', 'cb', 'ns1', 'ns2', 's', 't'].map(node),
+            relationships: [
+                deployedIn('r1', 'ca', ['ns1', 'ns2']),
+                deployedIn('r2', 'ns1', ['s', 't']),
+                deployedIn('r3', 'ns2', ['t']),
+                deployedIn('r4', 'cb', ['s']),
+                connects('c1', 's', 't'),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([['s__in__ns1', 't__in__ns1']]);
+    });
+
+    it('does not apply the limit to a large diagram with few copies', () => {
+        const chain = Array.from({ length: 1002 }, (_, k) => `n${k}`);
+        const result = parseCALMData({
+            nodes: ['ca', 'cb', 'svc', ...chain].map(node),
+            relationships: [
+                deployedIn('r1', 'ca', ['svc']),
+                deployedIn('r2', 'cb', ['svc']),
+                ...chain.slice(1).map((id, k) => connects(`c${k}`, chain[k], id)),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.copiesLimited).toBe(false);
+        expect(drawings(result, 'svc')).toHaveLength(2);
+    });
+
+    it('gives each drawing one edge when copies of both ends tie on shared containers', () => {
+        const ps = ['P0', 'P1', 'P2'];
+        const qs = ['Q0', 'Q1', 'Q2'];
+        const result = parseCALMData({
+            nodes: ['X', 'Z', 'W', ...ps, ...qs, 's', 't'].map(node),
+            relationships: [
+                deployedIn('rx', 'X', [...ps, ...qs]),
+                ...ps.map((p) => deployedIn(`in-${p}`, p, ['s'])),
+                deployedIn('in-Z', 'Z', ['s']),
+                ...qs.map((q) => deployedIn(`in-${q}`, q, ['t'])),
+                deployedIn('in-W', 'W', ['t']),
+                connects('c1', 's', 't'),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.edges.length).toBeLessThan(8);
+    });
+
+    it('connects a container to the copy of its member inside each of its drawings', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'ns', 'svc')]));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['ns', 'svc'],
+            ['ns__in__cluster-a', 'svc__in__ns__in__cluster-a'],
+        ]);
+    });
+
+    it('expands an interacts relationship to every copy', () => {
+        const interacts = { 'unique-id': 'i1', 'relationship-type': { interacts: { actor: 'user', nodes: ['svc'] } } };
+        const result = parseCALMData(sharedNamespace([interacts], ['user']));
+        expect(result.edges.map((e) => e.target)).toEqual(['svc', 'svc__in__ns__in__cluster-a']);
+    });
+
+    it('draws a loop on each copy for a relationship from a node to itself', () => {
+        const result = parseCALMData(sharedNamespace([connects('c1', 'svc', 'svc')]));
+        expect(result.edges.map((e) => [e.source, e.target])).toEqual([
+            ['svc', 'svc'],
+            ['svc__in__ns__in__cluster-a', 'svc__in__ns__in__cluster-a'],
+        ]);
+    });
+
+    it('draws one edge when only a container around everything holds copies of both ends', () => {
+        const result = parseCALMData({
+            nodes: ['prod', 'c1', 'c2', 'c3', 'c4', 'a', 'b'].map(node),
+            relationships: [
+                deployedIn('r1', 'prod', ['c1', 'c2', 'c3', 'c4']),
+                deployedIn('r2', 'c1', ['a']),
+                deployedIn('r3', 'c2', ['a']),
+                deployedIn('r4', 'c3', ['b']),
+                deployedIn('r5', 'c4', ['b']),
+                connects('c1x', 'a', 'b'),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.edges).toHaveLength(1);
+    });
+
+    it('ignores a container that is not a node before it chooses containers', () => {
+        const relationships = [deployedIn('r1', 'c', ['a']), deployedIn('r2', 'a', ['b']), deployedIn('r3', 'X', ['b']), deployedIn('r4', 'b', ['a'])];
+        const result = parseCALMData({ nodes: ['a', 'b', 'c'].map(node), relationships } as CalmArchitectureSchema);
+        const withoutX = parseCALMData({ nodes: ['a', 'b', 'c'].map(node), relationships: relationships.filter((r) => r['unique-id'] !== 'r3') } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => [n.id, n.parentId])).toEqual(withoutX.nodes.map((n) => [n.id, n.parentId]));
+    });
+
+    it('lists a parent once when relationships repeat it', () => {
+        const result = parseCALMData(sharedNamespace([deployedIn('r4', 'cluster-a', ['ns'])]));
+        expect(drawings(result, 'ns')).toHaveLength(2);
+    });
+
+    it('does not give a copy the id of a real node', () => {
+        const result = parseCALMData(sharedNamespace([], ['ns__in__cluster-a']));
+        const ids = result.nodes.map((n) => n.id);
+        expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('ignores a node listed as its own container', () => {
+        const result = parseCALMData({
+            nodes: [node('a'), node('b')],
+            relationships: [deployedIn('r1', 'a', ['a', 'b'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => [n.id, n.parentId]).sort()).toEqual([['a', undefined], ['b', 'a']]);
+    });
+
+    it('draws each node once when copies would exceed the limit', () => {
+        // Each level has two containers that are both in both containers of the level above
+        const levels = 12;
+        const ids = Array.from({ length: levels }, (_, k) => [`l${k}a`, `l${k}b`]);
+        const relationships = ids.slice(1).flatMap(([a, b], k) => [
+            deployedIn(`r${k}a`, ids[k][0], [a, b]),
+            deployedIn(`r${k}b`, ids[k][1], [a, b]),
+        ]);
+        const result = parseCALMData({ nodes: ids.flat().map(node), relationships } as CalmArchitectureSchema);
+        expect(result.nodes).toHaveLength(levels * 2);
+        expect(result.nodes.find((n) => n.id === 'l11a')?.parentId).toBe('l10b');
+        expect(result.copiesLimited).toBe(true);
+    });
+
+    it('draws each node once when the edges to copies would exceed the limit', () => {
+        const containers = Array.from({ length: 40 }, (_, k) => `c${k}`);
+        const clients = Array.from({ length: 30 }, (_, k) => `client${k}`);
+        const result = parseCALMData({
+            nodes: [...containers, ...clients, 'svc'].map(node),
+            relationships: [
+                ...containers.map((c) => deployedIn(`in-${c}`, c, ['svc'])),
+                ...clients.map((c) => connects(`${c}-svc`, c, 'svc')),
+            ],
+        } as CalmArchitectureSchema);
+        expect(drawings(result, 'svc')).toEqual([['svc', 'c39']]);
+        expect(result.edges).toHaveLength(30);
+        expect(result.copiesLimited).toBe(true);
+    });
+
+    it('keeps the limit mark when the diagram also has flow styling', () => {
+        const containers = Array.from({ length: 40 }, (_, k) => `c${k}`);
+        const clients = Array.from({ length: 30 }, (_, k) => `client${k}`);
+        const result = parseCALMData({
+            nodes: [...containers, ...clients, 'svc'].map(node),
+            relationships: [
+                ...containers.map((c) => deployedIn(`in-${c}`, c, ['svc'])),
+                ...clients.map((c) => ({ ...connects(`${c}-svc`, c, 'svc'), 'flow-state': 'active' })),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.copiesLimited).toBe(true);
+    });
+
+    it('ignores a composed-of container that is not a node', () => {
+        const result = parseCALMData({
+            nodes: ['svc'].map(node),
+            relationships: [{ 'unique-id': 'r1', 'relationship-type': { 'composed-of': { container: 'ghost', nodes: ['svc'] } } }],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => [n.id, n.parentId])).toEqual([['svc', undefined]]);
+    });
+
+    it('labels a copy of a node with no name by its CALM id', () => {
+        const nameless = { 'unique-id': 'ns', 'node-type': 'system' };
+        const result = parseCALMData({
+            nodes: [node('cluster-a'), node('cluster-b'), nameless, node('svc')],
+            relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns']), deployedIn('r3', 'ns', ['svc'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.filter((n) => n.data['unique-id'] === 'ns').map((n) => n.data.label)).toEqual(['ns', 'ns']);
+    });
+
+    it('does not mark a diagram under the limits as limited', () => {
+        expect(parseCALMData(sharedNamespace()).copiesLimited).toBe(false);
+    });
+
+    it('counts only copies against the limit, not every node', () => {
+        const singles = Array.from({ length: 1001 }, (_, k) => node(`n${k}`));
+        const result = parseCALMData({
+            nodes: [node('cluster-a'), node('cluster-b'), node('ns'), ...singles],
+            relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.filter((n) => n.data['unique-id'] === 'ns')).toHaveLength(2);
+    });
+
+    it('stops at a containment cycle', () => {
+        const result = parseCALMData({
+            nodes: [node('a'), node('b')],
+            relationships: [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['a'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => n.data['unique-id']).sort()).toEqual(['a', 'b']);
+    });
+});
+

@@ -11,6 +11,7 @@ import {
     toStoredPositions,
 } from './node-position-service.js';
 import { createMemoryStorage } from '../../test-support/memory-storage.js';
+import { GRAPH_LAYOUT } from '../components/reactflow/utils/constants.js';
 
 const STORAGE_PREFIX = 'calm-hub:node-positions:';
 const key = 'finos/conference-signup';
@@ -257,6 +258,101 @@ describe('node-position-service', () => {
             // With full dimensions, reflow is skipped — the group keeps its explicit size
             expect(group.width).toBe(500);
             expect(group.height).toBe(400);
+        });
+    });
+
+    describe('applyPositions with a child that has no stored position', () => {
+        const parsed: Node[] = [
+            { id: 'group', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'child', position: { x: 0, y: 0 }, data: {}, parentId: 'group' } as Node,
+            { id: 'copy', position: { x: 20, y: 40 }, data: {}, parentId: 'group' } as Node,
+            { id: 'other', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'x', position: { x: 0, y: 0 }, data: {}, parentId: 'other' } as Node,
+        ];
+        const positions: StoredNodePosition[] = [
+            { id: 'group', position: { x: 10, y: 10 }, width: 410, height: 260 },
+            { id: 'child', position: { x: 20, y: 40 } },
+            { id: 'other', position: { x: 500, y: 0 }, width: 600, height: 400 },
+            { id: 'x', position: { x: 200, y: 150 } },
+        ];
+        const result = applyPositions(parsed, positions) as (Node & { height?: number; width?: number })[];
+        const byId = (id: string) => result.find((n) => n.id === id)!;
+
+        it('places the new child, e.g. a copy of a shared node, below its stored siblings', () => {
+            expect(byId('copy').position.y).toBeGreaterThanOrEqual(40 + GRAPH_LAYOUT.NODE_HEIGHT);
+        });
+
+        it('grows its container to hold it', () => {
+            expect(byId('group').height).toBeGreaterThanOrEqual(byId('copy').position.y + GRAPH_LAYOUT.NODE_HEIGHT);
+        });
+
+        it('keeps every other container and child where they were stored', () => {
+            expect(byId('other')).toMatchObject({ position: { x: 500, y: 0 }, width: 600, height: 400 });
+            expect(byId('x').position).toEqual({ x: 200, y: 150 });
+            expect(byId('child').position).toEqual({ x: 20, y: 40 });
+        });
+    });
+
+    describe('applyPositions with a new child in a nested container', () => {
+        const parsed: Node[] = [
+            { id: 'ca', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'ns', type: 'group', position: { x: 0, y: 0 }, data: {}, parentId: 'ca' } as Node,
+            { id: 'svc', position: { x: 0, y: 0 }, data: {}, parentId: 'ns' } as Node,
+            { id: 'copy', position: { x: 0, y: 0 }, data: {}, parentId: 'ns' } as Node,
+            { id: 'cb', type: 'group', position: { x: 0, y: 0 }, data: {} },
+        ];
+        const positions: StoredNodePosition[] = [
+            { id: 'ca', position: { x: 0, y: 0 }, width: 400, height: 300 },
+            { id: 'ns', position: { x: 20, y: 40 }, width: 300, height: 200 },
+            { id: 'svc', position: { x: 20, y: 40 } },
+            { id: 'cb', position: { x: 0, y: 320 }, width: 400, height: 300 },
+        ];
+        const result = applyPositions(parsed, positions) as (Node & { height?: number; width?: number })[];
+        const byId = (id: string) => result.find((n) => n.id === id)!;
+
+        it('grows the inner container, then the outer container to hold it', () => {
+            expect(byId('ns').height).toBeGreaterThanOrEqual(byId('copy').position.y + GRAPH_LAYOUT.NODE_HEIGHT);
+            expect(byId('ca').height).toBeGreaterThanOrEqual(byId('ns').position.y + byId('ns').height!);
+        });
+
+        it('does not move the containers around it', () => {
+            expect(byId('cb')).toMatchObject({ position: { x: 0, y: 320 }, width: 400, height: 300 });
+        });
+    });
+
+    describe('applyPositions with a new copy of a container', () => {
+        // ns is in c1 and c2. The layout was saved before ns had a copy in c2.
+        const parsed: Node[] = [
+            { id: 'c1', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'ns', type: 'group', position: { x: 0, y: 0 }, data: {}, parentId: 'c1' } as Node,
+            { id: 'svc', position: { x: 0, y: 0 }, data: {}, parentId: 'ns' } as Node,
+            { id: 'c2', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'b', position: { x: 0, y: 0 }, data: {}, parentId: 'c2' } as Node,
+            { id: 'ns__in__c2', type: 'group', position: { x: 20, y: 40 }, data: {}, parentId: 'c2' } as Node,
+            { id: 'svc__in__ns__in__c2', position: { x: 0, y: 0 }, data: {}, parentId: 'ns__in__c2' } as Node,
+        ];
+        const positions: StoredNodePosition[] = [
+            { id: 'c1', position: { x: 0, y: 0 }, width: 400, height: 300 },
+            { id: 'ns', position: { x: 20, y: 40 }, width: 300, height: 200 },
+            { id: 'svc', position: { x: 20, y: 40 } },
+            { id: 'c2', position: { x: 500, y: 0 }, width: 400, height: 300 },
+            { id: 'b', position: { x: 20, y: 40 } },
+        ];
+        const result = applyPositions(parsed, positions) as (Node & { height?: number; width?: number })[];
+        const byId = (id: string) => result.find((n) => n.id === id)!;
+
+        it('places the copy below its stored siblings', () => {
+            expect(byId('ns__in__c2').position.y).toBeGreaterThanOrEqual(40 + GRAPH_LAYOUT.NODE_HEIGHT);
+        });
+
+        it('keeps the stored nodes where they were stored', () => {
+            expect(byId('b').position).toEqual({ x: 20, y: 40 });
+            expect(byId('c1')).toMatchObject({ position: { x: 0, y: 0 }, width: 400, height: 300 });
+            expect(byId('ns')).toMatchObject({ position: { x: 20, y: 40 }, width: 300, height: 200 });
+        });
+
+        it('grows the container of the copy to hold it', () => {
+            expect(byId('c2').height).toBeGreaterThanOrEqual(byId('ns__in__c2').position.y + byId('ns__in__c2').height!);
         });
     });
 
