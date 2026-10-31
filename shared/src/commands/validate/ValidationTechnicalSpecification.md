@@ -181,8 +181,9 @@ the **raw** `CalmCoreSchema` before it is adapted to `CalmCore`. Node-details va
 raw document (for Spectral + JSON-Schema), so the resolve seam is the natural place to centralise:
 
 - **caching**: a reference is fetched at most once; repeat requests return the cached raw document;
-- **tracking**: every attempted reference is recorded, giving dedupe ("validate each
-  detailed-architecture once") and cycle safety without each caller keeping its own `Set`.
+- **tracking**: every attempted reference is recorded in `seen` (for sibling/diamond deduplication)
+  and active ancestors are tracked in `activePath` (for cycle detection), without each caller keeping
+  its own `Set`.
 
 `CachingTrackingResolver` is a **decorator** that `implements CalmReferenceResolver`, wrapping any
 inner resolver. This is the single resolver interface used by both the model dereference path and
@@ -199,11 +200,16 @@ classDiagram
         -delegate: CalmReferenceResolver
         -cache: Map~string, unknown~
         -seen: Set~string~
+        -activePath: string[]
         +canResolve(ref) boolean
         +resolve(ref) Promise
         +has(ref) boolean
         +get(ref) unknown
         +markSeen(ref) void
+        +isInAncestry(ref) boolean
+        +withAncestry(ref, fn) Promise
+        +formatCycle(ref) string
+        +ancestry: readonly string[]
         +resolvedReferences: ReadonlySet~string~
     }
     class SchemaDirectoryReferenceResolver {
@@ -273,8 +279,10 @@ flowchart TD
   whole engine on the sub-architecture, with mode `architecture-with-pattern` or `architecture-only`
   depending on whether a pattern was found. Because re-entry runs every applicable phase, including
   this one, the traversal is depth-first: a sub-architecture whose own nodes reference further
-  detailed-architectures recurses again. The shared resolver guarantees each referenced document is
-  validated at most once and that cycles terminate (an already-seen reference is skipped). Under the
+  detailed-architectures recurses again. The shared resolver separates active-ancestry cycle
+  detection from sibling deduplication: a reference that is already in the current ancestry emits a
+  `cycle-detected` error (with the cycle path) without recursing, whereas a reference resolved in an
+  earlier completed branch is skipped silently. Under the
   shallow (default) policy no sub-architecture is resolvable, so the rule finds nothing to recurse
   into and only the supplied document is validated; a reference the policy forbids is skipped
   cleanly and does not produce an error.
@@ -297,7 +305,9 @@ JSON-Schema error two levels deep appears in the top-level outcome with a compou
 
 A sub-architecture reference the policy permits but that cannot be loaded or validated is reported as
 a single `node-details-validation` error at the referencing node's
-`/nodes/{i}/details/detailed-architecture` path. A reference the policy forbids is not an error.
+`/nodes/{i}/details/detailed-architecture` path. A cyclic reference in the active traversal ancestry
+is reported as a `cycle-detected` error at that path with the cycle chain. A reference the policy
+forbids is not an error.
 
 When more than one node references the same sub-architecture, the two cases are different on purpose:
 
