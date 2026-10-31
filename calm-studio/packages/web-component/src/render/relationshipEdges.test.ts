@@ -292,6 +292,14 @@ describe('expandEdgesToInstances', () => {
     expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'a'], ['a__in__y', 'a__in__y']]);
   });
 
+  it('connects a pair only when it shares the most containers for both of its drawings', () => {
+    // a1 and d1 share x and b. a2 and d2 share only x. a3 keeps x from holding every drawing.
+    const both = new Map([['a', ['a', 'a2', 'a3']], ['d', ['d', 'd2']]]);
+    const ancestors = new Map([['a', ['x', 'b']], ['a2', ['x']], ['a3', ['z']], ['d', ['x', 'b']], ['d2', ['x']]]);
+    const result = expandEdgesToInstances([edge('c', 'a', 'd')], both, ancestors);
+    expect(result.map((e) => [e.source, e.target])).toEqual([['a', 'd'], ['a2', 'd2']]);
+  });
+
   it('gives each copy edge an id that no other edge uses', () => {
     const result = expandEdgesToInstances([edge('c', 'b', 'a'), edge('c__copy1', 'a', 'b')], instancesOf, ancestorsOf);
     const ids = result.map((e) => e.id);
