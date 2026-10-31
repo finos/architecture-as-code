@@ -30,6 +30,7 @@ import {
     type ResolvedWorkspaceManifestEntry,
     type WorkspaceManifestEntryOperations,
 } from './document-kind';
+import { resourceTypeForDocumentType } from './document-id-type';
 
 // Re-exported for existing consumers (push.ts, tests) that import it from here.
 export { canonicalEqual };
@@ -214,10 +215,14 @@ function prepareChangedNarrativeEntry(
 }
 
 function prepareChangedMappingEntry(
-    _entry: MappingWorkspaceManifestEntry,
+    entry: MappingWorkspaceManifestEntry,
     context: DetectChangedEntryContext
 ): DetectChangedEntryCheck | undefined {
     const { client, filePath, id, raw } = context;
+    if (entry.type !== 'unknown' && !resourceTypeForDocumentType(entry.type)) {
+        logger.warn(`Skipping '${id}': document type '${entry.type}' has no CalmHub resource type.`);
+        return undefined;
+    }
     let metadata: DocumentMetadata;
     try {
         metadata = extractDocumentMetadata(raw);
@@ -356,6 +361,12 @@ export async function bumpWorkspace(
         for (const candidate of cascadeCandidates) {
             const entry = manifest[candidate.docId];
             if (!entry) continue;
+            const resolvedCandidate = resolveWorkspaceManifestEntry(entry);
+            if (resolvedCandidate.kind !== 'mapping' || (resolvedCandidate.entry.type !== 'unknown' && !resourceTypeForDocumentType(resolvedCandidate.entry.type))) {
+                logger.warn(`'${candidate.docId}' references ${triggerLabel} (updated) but document type '${entry.type}' has no CalmHub resource type; version not bumped.`);
+                bumpedIds.add(candidate.docId);
+                continue;
+            }
 
             const filePath = resolveFilePath(bundlePath, entry.path);
             let raw: string;
