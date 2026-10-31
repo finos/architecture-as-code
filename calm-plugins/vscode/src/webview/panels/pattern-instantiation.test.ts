@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import Ajv2020 from 'ajv/dist/2020.js';
 import type { StandardNodeDef } from '../../extension/services/workspace-asset-service';
-import { instantiateFromPattern } from './pattern-instantiation';
+import { instantiateFromPattern, mergePatternIntoArchitecture } from './pattern-instantiation';
 
 const node = (id: string) => ({
     type: 'object',
@@ -75,6 +76,34 @@ describe('instantiateFromPattern', () => {
 
     it('returns empty arrays for a pattern that declares nothing', () => {
         expect(instantiateFromPattern({})).toEqual({ nodes: [], relationships: [] });
+    });
+
+    it('sets $schema to the pattern $id, does not write metadata.patterns, and validates against the pattern', () => {
+        const pattern = {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            $id: 'https://example.com/patterns/web-api.pattern.json',
+            type: 'object',
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [node('gateway'), node('backend')],
+                },
+                relationships: {
+                    type: 'array',
+                    prefixItems: [connects('gw-to-backend', 'gateway', 'backend')],
+                },
+            },
+            required: ['nodes', 'relationships'],
+        };
+
+        const arch = instantiateFromPattern(pattern);
+
+        expect(arch.$schema).toBe('https://example.com/patterns/web-api.pattern.json');
+        expect(arch.metadata?.patterns).toBeUndefined();
+
+        const ajv = new Ajv2020({ strict: false });
+        const validate = ajv.compile(pattern);
+        expect(validate(arch)).toBe(true);
     });
 
     describe('choosing a relationship that fits the nodes it built', () => {
@@ -404,5 +433,42 @@ describe('instantiateFromPattern', () => {
             expect(arch.nodes[1]['definition-id']).toBeUndefined();
             expect(arch.nodes[1].controls).toHaveProperty('Data Classification');
         });
+    });
+});
+
+describe('mergePatternIntoArchitecture', () => {
+    it('sets $schema from the applied pattern when the architecture has none and does not write metadata.patterns', () => {
+        const current = {
+            nodes: [{ 'unique-id': 'existing', 'node-type': 'service', name: 'Existing' }],
+            relationships: [],
+        };
+        const incoming = instantiateFromPattern({
+            $id: 'patterns/added.pattern.json',
+            properties: { nodes: { prefixItems: [node('gateway')] } },
+        });
+
+        const merged = mergePatternIntoArchitecture(current, incoming);
+
+        expect(merged.$schema).toBe('patterns/added.pattern.json');
+        expect((merged.metadata as Record<string, unknown> | undefined)?.patterns).toBeUndefined();
+        expect(ids(merged.nodes as any[])).toEqual(['existing', 'gateway']);
+    });
+
+    it('keeps the first $schema when applying a pattern to an architecture that already names one', () => {
+        const current = {
+            $schema: 'patterns/first.pattern.json',
+            nodes: [{ 'unique-id': 'existing', 'node-type': 'service', name: 'Existing' }],
+            relationships: [],
+        };
+        const incoming = instantiateFromPattern({
+            $id: 'patterns/second.pattern.json',
+            properties: { nodes: { prefixItems: [node('gateway')] } },
+        });
+
+        const merged = mergePatternIntoArchitecture(current, incoming);
+
+        expect(merged.$schema).toBe('patterns/first.pattern.json');
+        expect((merged.metadata as Record<string, unknown> | undefined)?.patterns).toBeUndefined();
+        expect(ids(merged.nodes as any[])).toEqual(['existing', 'gateway']);
     });
 });

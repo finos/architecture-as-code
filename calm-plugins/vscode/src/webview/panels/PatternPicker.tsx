@@ -9,7 +9,7 @@ interface PatternPickerProps {
     visible: boolean;
     mode: 'new' | 'apply';
     patterns: PatternEntry[];
-    onApply: (arch: any, patternId: string) => void;
+    onApply: (arch: any) => void;
     onClose: () => void;
 }
 
@@ -32,7 +32,7 @@ export function PatternPicker({ visible, mode, patterns, onApply, onClose }: Pat
     const handleApply = (entry: PatternEntry) => {
         const standardNodes = useCanvasStore.getState().standardNodes as StandardNodeDef[];
         const arch = instantiateFromPattern(entry.schema, standardNodes);
-        onApply(arch, entry.id);
+        onApply(arch);
         onClose();
     };
 
