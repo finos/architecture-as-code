@@ -70,7 +70,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
     };
 
     const parentHierarchy: ParentHierarchyResult = {
-        parentOf: new Map([['db', 'svc']]),
+        parentsOf: new Map([['db', ['svc']]]),
         allMentionedContainers: new Set(['svc']),
         childrenOfContainer: new Map([['svc', new Set(['db'])]]),
         warnings: [],
@@ -150,7 +150,7 @@ describe('resolveVisibilityWithStrategies functional', () => {
         const res2 = resolveVisibilityWithStrategies(
             { ...baseCtx, relationships: [relConnect] },
             baseOpts({ edges: 'seeded', focusNodes: ['svc'], includeChildren: 'none' }),
-            { parentOf: new Map(), allMentionedContainers: new Set(), childrenOfContainer: new Map(), warnings: [] },
+            { parentsOf: new Map(), allMentionedContainers: new Set(), childrenOfContainer: new Map(), warnings: [] },
             new Map(nodes.map((n) => [n['unique-id'], n]))
         );
         // only svc visible (no expansion to db because includeChildren=none, edges=seeded doesn’t expand)
@@ -202,5 +202,29 @@ describe('resolveVisibilityWithStrategies functional', () => {
             nodesById
         );
         expect(res.warnings).toContain('cycle detected');
+    });
+
+    it('includeContainers=parents includes every parent of a node', () => {
+        const ctx: CalmCoreCanonicalModel = {
+            nodes: [
+                { 'unique-id': 'cluster-a', 'node-type': 'system', name: 'Cluster A', description: '' },
+                { 'unique-id': 'cluster-b', 'node-type': 'system', name: 'Cluster B', description: '' },
+                { 'unique-id': 'ns', 'node-type': 'system', name: 'Namespace', description: '' },
+            ],
+            relationships: [],
+        };
+        const hierarchy: ParentHierarchyResult = {
+            parentsOf: new Map([['ns', ['cluster-a', 'cluster-b']]]),
+            allMentionedContainers: new Set(['cluster-a', 'cluster-b']),
+            childrenOfContainer: new Map(),
+            warnings: [],
+        };
+        const res = resolveVisibilityWithStrategies(
+            ctx,
+            baseOpts({ includeContainers: 'parents' }),
+            hierarchy,
+            new Map(ctx.nodes!.map((n) => [n['unique-id'], n]))
+        );
+        expect(res.containerIds).toEqual(new Set(['cluster-a', 'cluster-b']));
     });
 });

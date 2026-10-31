@@ -258,6 +258,56 @@ describe('Widgets E2E - Handlebars Integration', () => {
     });
 
     describe('Block Architecture Widget', () => {
+        it('renders namespaces shared by every cluster of an environment', () => {
+            const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'shared-nodes');
+            const compiled = handlebars.compile(template);
+            const result = compiled(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+
+        it('draws a node with several parents in each parent, linking every copy to the original node', () => {
+            const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: '' });
+            const context = {
+                nodes: [node('cluster-a'), node('cluster-b'), node('ns-payments')],
+                relationships: [
+                    { 'unique-id': 'd1', 'relationship-type': { 'deployed-in': { container: 'cluster-a', nodes: ['ns-payments'] } } },
+                    { 'unique-id': 'd2', 'relationship-type': { 'deployed-in': { container: 'cluster-b', nodes: ['ns-payments'] } } },
+                ],
+            };
+            const compiled = handlebars.compile('{{block-architecture this link-prefix="#"}}');
+            const result = compiled(context);
+
+            expect(result).toContain('ns-payments__in__cluster-a["ns-payments"]:::node');
+            expect(result).toContain('ns-payments__in__cluster-b["ns-payments"]:::node');
+            expect(result).toContain('click ns-payments__in__cluster-a "#ns-payments" "Jump to ns-payments"');
+            expect(result).toContain('click ns-payments__in__cluster-b "#ns-payments" "Jump to ns-payments"');
+            expect(result).toContain('click cluster-a "#cluster-a" "Jump to cluster-a"');
+        });
+
+        it('links every copy of a node and its interfaces to the original, by link-map or link-prefix', () => {
+            const node = (id: string, extra = {}) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: '', ...extra });
+            const context = {
+                nodes: [node('cluster-a'), node('cluster-b'), node('ns'), node('svc', { interfaces: [{ 'unique-id': 'http', port: 80 }] })],
+                relationships: [
+                    { 'unique-id': 'd1', 'relationship-type': { 'deployed-in': { container: 'cluster-a', nodes: ['ns'] } } },
+                    { 'unique-id': 'd2', 'relationship-type': { 'deployed-in': { container: 'cluster-b', nodes: ['ns'] } } },
+                    { 'unique-id': 'd3', 'relationship-type': { 'deployed-in': { container: 'ns', nodes: ['svc'] } } },
+                ],
+            };
+            const render = (linkMap: string) => handlebars.compile(
+                `{{block-architecture this render-interfaces=true link-prefix="#" link-map='${linkMap}'}}`
+            )(context);
+
+            const mapped = render('{"ns":"/ns","svc":"/svc","svc__iface__http":"/http"}');
+            for (const cluster of ['cluster-a', 'cluster-b']) {
+                expect(mapped).toContain(`click ns__in__${cluster} "/ns" "Jump to ns"`);
+                expect(mapped).toContain(`click svc__in__ns__in__${cluster} "/svc" "Jump to svc"`);
+                expect(mapped).toContain(`click svc__in__ns__in__${cluster}__iface__http "/http" "Jump to ◻ http"`);
+            }
+            const prefixed = render('{}');
+            expect(prefixed).toContain('click svc__in__ns__in__cluster-a__iface__http "#svc__iface__http" "Jump to ◻ http"');
+        });
+
         it('renders basic architecture structures (empty, single system, multiple systems)', () => {
             const { context, template, expected } = fixtures.loadFixture('block-architecture-widget', 'basic-structures');
             const compiled = handlebars.compile(template);

@@ -5,99 +5,108 @@ import {
 } from '@finos/calm-models/canonical';
 
 export interface ParentHierarchyResult {
-    parentOf: Map<string, string>;
+    /** All parents of each node, in the order they were first seen. A node is drawn once in each. */
+    parentsOf: Map<string, string[]>;
     allMentionedContainers: Set<string>;
     childrenOfContainer: Map<string, Set<string>>;
+    /** Parents that are not drawn */
     warnings: string[];
 }
 
 /**
- * True if setting `child`'s parent to `container` would create a cycle.
- * Walks up the existing parent chain from `container` and:
- *  - returns true if we encounter `child`
- *  - bails out (true) if it detects an existing cycle in the chain
+ * True if making `container` a parent of `child` would create a cycle,
+ * i.e. `child` is already `container` or one of its ancestors.
  */
-function createsCycle(parentOf: Map<string, string>, container: string, child: string): boolean {
-    if (container === child) return true;
-    let cur: string | undefined = container;
+function createsCycle(parentsOf: Map<string, string[]>, container: string, child: string): boolean {
+    const stack = [container];
     const visited = new Set<string>();
-
-    while (cur) {
-        if (cur === child) return true;        // would create a cycle
-        if (visited.has(cur)) return true;     // existing cycle detected → unsafe
+    while (stack.length > 0) {
+        const cur = stack.pop()!;
+        if (cur === child) return true;
+        if (visited.has(cur)) continue;
         visited.add(cur);
-        cur = parentOf.get(cur);
+        stack.push(...(parentsOf.get(cur) ?? []));
     }
-    return false; // reached a root safely
+    return false;
+}
+
+function addTo(map: Map<string, string[]>, key: string, value: string): void {
+    const existing = map.get(key);
+    if (!existing) map.set(key, [value]);
+    else if (!existing.includes(value)) existing.push(value);
 }
 
 /**
  * Analyzes all relationships to build parent-child hierarchies for container structures.
- * Handles both composed-of and deployed-in relationships, resolving conflicts and
- * creating a unified hierarchy while detecting cycles and tracking warnings.
+ * Handles both composed-of and deployed-in relationships and rejects parents that would create cycles.
  *
+ * A node can have several parents, e.g. a namespace deployed in several clusters.
  * When both composition and deployment exist for the same node, composition takes
  * precedence for the node placement, and composed containers are nested under
  * deployed containers when possible.
  */
 export function buildParentHierarchy(relationships: CalmRelationshipCanonicalModel[]): ParentHierarchyResult {
-    const warnings: string[] = [];
-    const parentOf = new Map<string, string>();
+    const parentsOf = new Map<string, string[]>();
     const allMentionedContainers = new Set<string>();
     const childrenOfContainer = new Map<string, Set<string>>();
+    const warnings: string[] = [];
 
-    const composedParent = new Map<string, string>();
-    const deployedParent = new Map<string, string>();
+    const composedParents = new Map<string, string[]>();
+    const deployedParents = new Map<string, string[]>();
 
     for (const rel of relationships) {
         const rt = rel['relationship-type'];
-        if (isComposedOf(rt)) {
-            const C = rt['composed-of'].container;
-            allMentionedContainers.add(C);
-            const kids = new Set(rt['composed-of'].nodes || []);
-            const existing = childrenOfContainer.get(C) || new Set<string>();
-            for (const k of kids) existing.add(k);
-            childrenOfContainer.set(C, existing);
+        const entry = isComposedOf(rt)
+            ? { container: rt['composed-of'].container, nodes: rt['composed-of'].nodes, parents: composedParents }
+            : isDeployedIn(rt)
+                ? { container: rt['deployed-in'].container, nodes: rt['deployed-in'].nodes, parents: deployedParents }
+                : undefined;
+        if (!entry) continue;
 
-            for (const child of kids) {
-                const prev = composedParent.get(child);
-                if (prev && prev !== C)
-                    warnings.push(`Node "${child}" has multiple composed-of parents: "${prev}" vs "${C}" (keeping "${prev}")`);
-                else composedParent.set(child, C);
-            }
+        allMentionedContainers.add(entry.container);
+        const existing = childrenOfContainer.get(entry.container) || new Set<string>();
+        for (const child of entry.nodes || []) {
+            existing.add(child);
+            addTo(entry.parents, child, entry.container);
         }
-        if (isDeployedIn(rt)) {
-            const D = rt['deployed-in'].container;
-            allMentionedContainers.add(D);
-            const kids = new Set(rt['deployed-in'].nodes || []);
-            const existing = childrenOfContainer.get(D) || new Set<string>();
-            for (const k of kids) existing.add(k);
-            childrenOfContainer.set(D, existing);
+        childrenOfContainer.set(entry.container, existing);
+    }
 
-            for (const child of kids) {
-                const prev = deployedParent.get(child);
-                if (prev && prev !== D)
-                    warnings.push(`Node "${child}" has multiple deployed-in parents: "${prev}" vs "${D}" (keeping "${prev}")`);
-                else deployedParent.set(child, D);
-            }
+    // Nest a composed container under the deployed container of its members.
+    // This parent is inferred, so it is a single parent and never makes copies.
+    for (const [node, composed] of composedParents.entries()) {
+        const C = composed[0];
+        const [D, ...others] = deployedParents.get(node) ?? [];
+        if (D && C !== D && !createsCycle(parentsOf, D, C)) parentsOf.set(C, [D]);
+        for (const other of others) {
+            warnings.push(`Node "${node}" has multiple deployed-in parents: "${D}" vs "${other}" (keeping "${D}")`);
         }
     }
 
-    // Nest composed-container under deployed-container when both exist for the same node
-    for (const [node, C] of composedParent.entries()) {
-        const D = deployedParent.get(node);
-        if (C && D && C !== D) {
-            if (!createsCycle(parentOf, D, C)) parentOf.set(C, D);
+    // First the parent each node had before nodes could have several: its first composed-of container,
+    // else its first deployed-in container, unless that closes a cycle. It replaces an inferred parent.
+    const otherParents = new Map<string, string[]>();
+    for (const id of new Set([...composedParents.keys(), ...deployedParents.keys()])) {
+        const composed = composedParents.get(id);
+        const deployed = deployedParents.get(id);
+        const own = composed && !createsCycle(parentsOf, composed[0], id) ? composed
+            : deployed && !createsCycle(parentsOf, deployed[0], id) ? deployed
+                : undefined;
+        if (own) {
+            parentsOf.set(id, [own[0]]);
+            otherParents.set(id, own.slice(1));
+        } else if (!parentsOf.has(id)) {
+            // Its first parent closes a cycle: try the next ones of the same kind
+            otherParents.set(id, composed?.slice(1) ?? deployed!.slice(1));
         }
     }
 
-    // Assign node under composed or deployed parent
-    for (const node of new Set([...composedParent.keys(), ...deployedParent.keys()])) {
-        const C = composedParent.get(node);
-        const D = deployedParent.get(node);
-        if (C && !createsCycle(parentOf, C, node)) parentOf.set(node, C);
-        else if (D && !createsCycle(parentOf, D, node)) parentOf.set(node, D);
+    // Then its other parents of the same kind, unless they close a cycle
+    for (const [id, parents] of otherParents) {
+        for (const p of parents) {
+            if (!createsCycle(parentsOf, p, id)) parentsOf.set(id, [...(parentsOf.get(id) ?? []), p]);
+        }
     }
 
-    return { parentOf, allMentionedContainers, childrenOfContainer, warnings };
+    return { parentsOf, allMentionedContainers, childrenOfContainer, warnings };
 }
