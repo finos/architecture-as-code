@@ -163,13 +163,15 @@ export function applyPositions(nodes: Node[], positions: StoredNodePosition[] | 
     // Only skip reflow when every container's dimensions came from the stored
     // positions (not from the node's own pre-existing width/height). This ensures
     // position-only restores (legacy data, localStorage scratch) still reflow.
+    // A nested container with nothing stored is new, e.g. a copy, and is placed like any new child.
+    const parentOf = new Map(merged.map((n) => [n.id, n.parentId]));
     const containerIds = new Set(
         merged.filter((n) => n.parentId).map((n) => n.parentId!)
     );
     const allContainersDimensioned = containerIds.size === 0 ||
         [...containerIds].every((id) => {
             const stored = positionsById.get(id);
-            return stored?.width != null && stored?.height != null;
+            return stored ? stored.width != null && stored.height != null : !!parentOf.get(id);
         });
 
     return allContainersDimensioned ? placeNewChildren(merged, positionsById) : reflowContainersToFitChildren(merged);

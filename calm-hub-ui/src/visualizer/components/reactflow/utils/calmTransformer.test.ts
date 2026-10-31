@@ -755,6 +755,36 @@ describe('parseCALMData - nodes with several parents', () => {
         expect(result.copiesLimited).toBe(true);
     });
 
+    it('keeps the limit mark when the diagram also has flow styling', () => {
+        const containers = Array.from({ length: 40 }, (_, k) => `c${k}`);
+        const clients = Array.from({ length: 30 }, (_, k) => `client${k}`);
+        const result = parseCALMData({
+            nodes: [...containers, ...clients, 'svc'].map(node),
+            relationships: [
+                ...containers.map((c) => deployedIn(`in-${c}`, c, ['svc'])),
+                ...clients.map((c) => ({ ...connects(`${c}-svc`, c, 'svc'), 'flow-state': 'active' })),
+            ],
+        } as CalmArchitectureSchema);
+        expect(result.copiesLimited).toBe(true);
+    });
+
+    it('ignores a composed-of container that is not a node', () => {
+        const result = parseCALMData({
+            nodes: ['svc'].map(node),
+            relationships: [{ 'unique-id': 'r1', 'relationship-type': { 'composed-of': { container: 'ghost', nodes: ['svc'] } } }],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.map((n) => [n.id, n.parentId])).toEqual([['svc', undefined]]);
+    });
+
+    it('labels a copy of a node with no name by its CALM id', () => {
+        const nameless = { 'unique-id': 'ns', 'node-type': 'system' };
+        const result = parseCALMData({
+            nodes: [node('cluster-a'), node('cluster-b'), nameless, node('svc')],
+            relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns']), deployedIn('r3', 'ns', ['svc'])],
+        } as CalmArchitectureSchema);
+        expect(result.nodes.filter((n) => n.data['unique-id'] === 'ns').map((n) => n.data.label)).toEqual(['ns', 'ns']);
+    });
+
     it('does not mark a diagram under the limits as limited', () => {
         expect(parseCALMData(sharedNamespace()).copiesLimited).toBe(false);
     });

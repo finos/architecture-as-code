@@ -320,6 +320,42 @@ describe('node-position-service', () => {
         });
     });
 
+    describe('applyPositions with a new copy of a container', () => {
+        // ns is in c1 and c2. The layout was saved before ns had a copy in c2.
+        const parsed: Node[] = [
+            { id: 'c1', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'ns', type: 'group', position: { x: 0, y: 0 }, data: {}, parentId: 'c1' } as Node,
+            { id: 'svc', position: { x: 0, y: 0 }, data: {}, parentId: 'ns' } as Node,
+            { id: 'c2', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'b', position: { x: 0, y: 0 }, data: {}, parentId: 'c2' } as Node,
+            { id: 'ns__in__c2', type: 'group', position: { x: 20, y: 40 }, data: {}, parentId: 'c2' } as Node,
+            { id: 'svc__in__ns__in__c2', position: { x: 0, y: 0 }, data: {}, parentId: 'ns__in__c2' } as Node,
+        ];
+        const positions: StoredNodePosition[] = [
+            { id: 'c1', position: { x: 0, y: 0 }, width: 400, height: 300 },
+            { id: 'ns', position: { x: 20, y: 40 }, width: 300, height: 200 },
+            { id: 'svc', position: { x: 20, y: 40 } },
+            { id: 'c2', position: { x: 500, y: 0 }, width: 400, height: 300 },
+            { id: 'b', position: { x: 20, y: 40 } },
+        ];
+        const result = applyPositions(parsed, positions) as (Node & { height?: number; width?: number })[];
+        const byId = (id: string) => result.find((n) => n.id === id)!;
+
+        it('places the copy below its stored siblings', () => {
+            expect(byId('ns__in__c2').position.y).toBeGreaterThanOrEqual(40 + GRAPH_LAYOUT.NODE_HEIGHT);
+        });
+
+        it('keeps the stored nodes where they were stored', () => {
+            expect(byId('b').position).toEqual({ x: 20, y: 40 });
+            expect(byId('c1')).toMatchObject({ position: { x: 0, y: 0 }, width: 400, height: 300 });
+            expect(byId('ns')).toMatchObject({ position: { x: 20, y: 40 }, width: 300, height: 200 });
+        });
+
+        it('grows the container of the copy to hold it', () => {
+            expect(byId('c2').height).toBeGreaterThanOrEqual(byId('ns__in__c2').position.y + byId('ns__in__c2').height!);
+        });
+    });
+
     describe('toStoredPositions with dimensions', () => {
         it('captures width and height from node.width/height', () => {
             const nodesWithDimensions: Node[] = [
