@@ -178,9 +178,8 @@ export function expandEdgesToInstances(
     }
     let kept = nested;
     if (kept.length === 0) kept = sources.length === 1 || targets.length === 1 ? pairs : shared;
-    if (kept.length === 0) {
-      kept = [pairs.find((p) => p.source === edge.source && p.target === edge.target) ?? pairs[0]!];
-    }
+    // Every node with copies has a drawing that keeps its CALM id
+    if (kept.length === 0) kept = [pairs.find((p) => p.source === edge.source && p.target === edge.target)!];
     return kept.map((p, i) => ({ ...edge, id: i === 0 ? edge.id : copyEdgeId(edge.id, i), source: p.source, target: p.target }));
   });
 }
