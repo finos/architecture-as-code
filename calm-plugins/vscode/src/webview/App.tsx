@@ -48,7 +48,7 @@ import {
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
 import { updateInstances } from './transforms/node-instances';
-import { deleteDrawings, unparentDrawing, isInSharedContainer, linkTargetOf, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
+import { deleteDrawings, unparentDrawing, linkTargetOf, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
@@ -130,8 +130,9 @@ function CanvasApp() {
     const undoingOrRedoing = useRef(false);
     const loadGeneration = useRef(0);
     const pendingNodesRef = useRef<Node[] | null>(null);
-    // React Flow calls onNodesDelete, then onNodesChange with a remove change for each deleted drawing.
-    // A delete that reloads the canvas saves the file itself, and the drawings it keeps must not be removed.
+    // React Flow calls onEdgesChange for the edges of deleted drawings, then onNodesDelete, then onNodesChange
+    // with a remove change for each deleted drawing. A delete that reloads the canvas saves the file itself,
+    // and the drawings it keeps must not be removed.
     const reloadPending = useRef(false);
     const keptOnDelete = useRef<Set<string> | null>(null);
 
@@ -428,7 +429,7 @@ function CanvasApp() {
             positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
             return;
         }
-        if (structural && !reloadPending.current) setTimeout(() => emitChange(true), 0);
+        if (structural) setTimeout(() => { if (!reloadPending.current) emitChange(true); }, 0);
         else if (hasDimensions) {
             if (positionDebounceTimer.current) clearTimeout(positionDebounceTimer.current);
             positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
@@ -439,8 +440,9 @@ function CanvasApp() {
         if (store.readonlyMode) return;
         onEdgesChangeBase(changes);
         if (changes.some((c) => c.type === 'remove')) {
-            // Delay emit to allow ReactFlow's internal store to sync the removal
-            setTimeout(() => emitChange(true), 0);
+            // Delay emit to allow ReactFlow's internal store to sync the removal. A delete that
+            // reloads the canvas saves the file itself.
+            setTimeout(() => { if (!reloadPending.current) emitChange(true); }, 0);
         }
     }, [onEdgesChangeBase, emitChange, store.readonlyMode]);
 
@@ -460,7 +462,7 @@ function CanvasApp() {
         setTimeout(() => emitChange(true), 0);
     }, [setEdges, emitChange, store.readonlyMode]);
 
-    // --- Delete (reactflow v11 fires onNodesDelete after removal) ---
+    // --- Delete ---
     const onNodesDelete = useCallback((deletedNodes: Node[]) => {
         if (store.readonlyMode) return;
         const edit = deleteDrawings(nodes, edges, deletedNodes);
@@ -473,8 +475,9 @@ function CanvasApp() {
         }
         reloadPending.current = true;
         setTimeout(() => {
-            reloadPending.current = false;
             emitAndReload();
+            // After the saves that React Flow's change callbacks queued for this delete
+            setTimeout(() => { reloadPending.current = false; }, 0);
         }, 0);
     }, [nodes, edges, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
 
@@ -546,8 +549,8 @@ function CanvasApp() {
             }
             return nds;
         });
-        setTimeout(() => (isInSharedContainer(reactFlowInstance.getNodes(), draggedNode.id) ? emitAndReload() : emitChange(true)), 0);
-    }, [setNodes, emitChange, emitAndReload, reactFlowInstance, store.readonlyMode]);
+        setTimeout(() => emitChange(true), 0);
+    }, [setNodes, emitChange, store.readonlyMode]);
 
     // --- Node update (from properties panel) ---
     const onNodeUpdate = useCallback((nodeId: string, field: string, value: unknown) => {

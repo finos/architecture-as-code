@@ -75,7 +75,7 @@ export function flowToCalm(
     }
 
     // Build nodes in the order of the file. The canvas puts containers first, which can differ.
-    const fileOrder = new Map((lastParsedArch?.nodes ?? []).map((n, i) => [n['unique-id'] as string, i] as const));
+    const fileOrder = new Map((lastParsedArch?.nodes ?? []).map((n, i) => [(n['unique-id'] as string) ?? `node-${i}`, i] as const));
     const orderOf = (n: Node) => fileOrder.get(toCalmId(n.id)) ?? Number.MAX_SAFE_INTEGER;
     const writtenIds = new Set<string>();
     for (const n of [...nodes].sort((a, b) => orderOf(a) - orderOf(b))) {
@@ -114,7 +114,6 @@ export function flowToCalm(
         const variant = rt?.['deployed-in'] ? 'deployed-in' : rt?.['composed-of'] ? 'composed-of' : undefined;
         if (!variant) continue;
         const containment = rt![variant] as { container: string; nodes?: string[] };
-        if (deletedIds.has(containment.container)) continue;
         const members = membersOf.get(containment.container) ?? [];
         const kept = (containment.nodes ?? []).filter((c) => members.includes(c));
         const done = written.get(containment.container) ?? new Set<string>();
@@ -279,7 +278,7 @@ export function relayoutByPath(arch: CalmArchitecture, nodes: Node[]): LayoutMap
     const byPath = new Map(nodes.map((n) => [pathOf(n, current), n]));
     const reloaded = parseCALMData(arch).nodes;
     const reloadedById = new Map(reloaded.map((n) => [n.id, n]));
-    const fileOrder = new Map(arch.nodes.map((n, i) => [n['unique-id'] as string, i] as const));
+    const fileOrder = new Map(arch.nodes.map((n, i) => [(n['unique-id'] as string) ?? `node-${i}`, i] as const));
     return buildLayoutMap(reloaded
         .sort((a, b) => (fileOrder.get(calmIdOf(a)) ?? 0) - (fileOrder.get(calmIdOf(b)) ?? 0))
         .flatMap((n) => {

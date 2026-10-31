@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { Node } from 'reactflow';
 import { parseCALMData } from './calm-parser';
 import { flowToCalm, setLastParsedArch, type CalmArchitecture } from './calm-editor-transformer';
-import { deleteDrawings, unparentDrawing, isInSharedContainer, linkTargetOf, withIssueCounts, pastedNode, originalsOf } from './canvas-edits';
+import { deleteDrawings, unparentDrawing, linkTargetOf, withIssueCounts, pastedNode, originalsOf } from './canvas-edits';
 
 const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: id });
 const deployedIn = (id: string, container: string, nodes: string[]) =>
@@ -89,6 +89,9 @@ describe('deleteDrawings', () => {
         const out = flowToCalm(edit.nodes, edit.edges);
         expect(nodeIds(out)).toEqual(['X', 's']);
         expect(containment(out)).toEqual([['r2', ['s']]]);
+        // At the top level until the reload, where it was on the canvas
+        const [x, y, s] = ['X', 'Y', 's'].map((id) => byId(nodes, id).position);
+        expect(byId(edit.nodes, 's').position).toEqual({ x: x.x + y.x + s.x, y: x.y + y.y + s.y });
     });
 
     it('does not ask for a reload when no node has several drawings', () => {
@@ -114,15 +117,6 @@ describe('unparentDrawing', () => {
         const edit = unparentDrawing(nodes, edges, 'b');
         expect(byId(edit.nodes, 'b').parentId).toBeUndefined();
         expect(edit.reload).toBe(false);
-    });
-});
-
-describe('isInSharedContainer', () => {
-    it('is true when the drawing is in a container with several drawings', () => {
-        const { nodes } = load(sharedNamespace());
-        expect(isInSharedContainer(nodes, 'svc')).toBe(true);
-        expect(isInSharedContainer(nodes, 'ns')).toBe(false);
-        expect(isInSharedContainer(nodes, 'client')).toBe(false);
     });
 });
 

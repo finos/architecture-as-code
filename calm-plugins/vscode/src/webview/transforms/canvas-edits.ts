@@ -4,7 +4,7 @@ import { getAbsolutePosition, removeContainment } from '../utils/containment';
 import { calmIdOf, hasSharedDrawings, planDelete, reattachEdges, sameMembership, withDescendants } from './node-instances';
 
 /** The canvas after an edit. `reload` is true when the canvas must be rebuilt from the saved file. */
-export interface CanvasEdit {
+interface CanvasEdit {
     nodes: Node[];
     edges: Edge[];
     reload: boolean;
@@ -16,7 +16,9 @@ export interface CanvasEdit {
  */
 export function deleteDrawings(nodes: Node[], edges: Edge[], deletedNodes: Node[]): CanvasEdit {
     const { deletedIds, keptRoots } = planDelete(deletedNodes, nodes);
-    const moved = new Map(keptRoots.map((n) => [n.id, { ...n, position: getAbsolutePosition(n, nodes) }]));
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    // Measured from the drawing before it left its container
+    const moved = new Map(keptRoots.map((n) => [n.id, { ...n, position: getAbsolutePosition(byId.get(n.id)!, nodes) }]));
     const remaining = nodes.filter((n) => !deletedIds.has(n.id)).map((n) => moved.get(n.id) ?? n);
     const touches = (e: Edge) => deletedIds.has(e.source) || deletedIds.has(e.target);
     const removed = nodes.filter((n) => deletedIds.has(n.id));
@@ -38,13 +40,6 @@ export function unparentDrawing(nodes: Node[], edges: Edge[], nodeId: string): C
         edges: [...edges.filter((e) => !touches(e)), ...reattachEdges(edges.filter(touches), nodes.filter((n) => others.has(n.id)), remaining)],
         reload: hasSharedDrawings(nodes),
     };
-}
-
-/** True when the drawing is in a container that has several drawings, which must all show it. */
-export function isInSharedContainer(nodes: Node[], nodeId: string): boolean {
-    const parentId = nodes.find((n) => n.id === nodeId)?.parentId;
-    const container = parentId ? nodes.find((n) => n.id === parentId) : undefined;
-    return !!container && nodes.some((n) => n.id !== container.id && calmIdOf(n) === calmIdOf(container));
 }
 
 /** The drawing to link to for a drop on `drawingId`: edges stay on the drawing that keeps the CALM id. */
