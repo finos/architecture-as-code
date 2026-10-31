@@ -184,6 +184,28 @@ describe('edge-builder', () => {
             ]);
         });
 
+        it('connects a pair only when it shares the most containers for both of its drawings', () => {
+            // s1 and t1 share X and B. s2 and t2 share only X. s3 keeps X from holding every drawing.
+            const instancesOf = new Map([['svc', ['s1', 's2', 's3']], ['db', ['t1', 't2']]]);
+            const ancestorsOf = new Map([
+                ['s1', ['X', 'B']], ['s2', ['X']], ['s3', ['Z']],
+                ['t1', ['X', 'B']], ['t2', ['X']],
+            ]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
+                ['s1', 't1'],
+                ['s2', 't2'],
+            ]);
+        });
+
+        it('connects a container to the copy of a node inside it', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['A', ['A']]]);
+            const ancestorsOf = new Map([['svc__in__A', ['A']], ['svc__in__B', ['B']], ['A', []]]);
+
+            expect(expandEdgesToInstances([{ ...edge, source: 'A', target: 'svc' }], instancesOf, ancestorsOf)
+                .map(e => [e.source, e.target])).toEqual([['A', 'svc__in__A']]);
+        });
+
         it('gives each drawing one edge when copies of both ends tie on shared containers', () => {
             // Every copy is in X, and one copy of each end is outside X, so X does not hold every drawing
             const instancesOf = new Map([

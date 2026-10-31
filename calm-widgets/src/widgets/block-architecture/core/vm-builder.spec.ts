@@ -375,6 +375,17 @@ describe('vm-builder', () => {
             expect(vm.warnings).toEqual([]);
         });
 
+        it('draws a node in its first container when no container passes the node-types filter', () => {
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('k'), node('k2'), node('svc', 'service')],
+                relationships: [deployedIn('d1', 'k', ['svc']), deployedIn('d2', 'k2', ['svc'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts({ nodeTypes: ['service'], includeContainers: 'parents' }));
+
+            expect(vm.containers.map(c => [c.id, c.nodes.map(n => n.id)])).toEqual([['k', ['svc']]]);
+        });
+
         it('highlights every copy of a highlighted node', () => {
             const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
 
