@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { identifyContainerNodes, parseNodes } from './nodeParser';
 import { parseCALMData } from './calmTransformer';
+import type { LabCalmRelationship } from './types';
 
 const node = (id: string, extra: Record<string, unknown> = {}) => ({ 'unique-id': id, 'node-type': 'service', name: id, ...extra });
 
@@ -248,7 +249,7 @@ describe('parseCALMData with copies of shared nodes', () => {
     const connects = (id: string, source: string, destination: string) =>
         ({ 'unique-id': id, 'relationship-type': { connects: { source: { node: source }, destination: { node: destination } } } });
     const edgesOf = (parsed: ReturnType<typeof parseCALMData>) => parsed.edges.map((e) => [e.source, e.target]);
-    const sharedNamespace = (extra: object[] = [], extraNodes: string[] = []) => ({
+    const sharedNamespace = (extra: LabCalmRelationship[] = [], extraNodes: string[] = []) => ({
         nodes: ['cluster-a', 'cluster-b', 'ns', 'svc', 'db', ...extraNodes].map((id) => node(id)),
         relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns']), deployedIn('r3', 'ns', ['svc', 'db']), ...extra],
     });
