@@ -372,20 +372,18 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.addFileToBundle).not.toHaveBeenCalled();
         });
 
-        it('adds a timeline with a conformant $id of another resource type, with a warning', async () => {
-            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Timeline' }));
+        it.each(['timeline', 'adr'])('rejects --type %s for a conformant CalmHub $id, without adding the file', async (type) => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Doc' }));
 
-            await program.parseAsync(['node', 'test', 'workspace', 'add', 'timeline.json', '--type', 'timeline']);
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', `${type}.json`, '--type', type])
+            ).rejects.toThrow();
 
-            expect(exitSpy).not.toHaveBeenCalled();
-            expect(mocks.loggerWarn).toHaveBeenCalledWith(expect.stringContaining(
-                'Document type \'timeline\' has no CalmHub resource type, so push and bump use the type in the $id'
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                `Document type '${type}' does not match the $id '${CONFORMANT_ID}', which needs document type 'architecture'`
             ));
-            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
-                '/fake/bundle',
-                expect.stringContaining('timeline.json'),
-                expect.objectContaining({ id: 'My Timeline', type: 'timeline' })
-            );
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
         });
 
         it('fails before prompting for a type when the file cannot be read', async () => {

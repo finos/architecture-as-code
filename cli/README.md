@@ -867,7 +867,7 @@ To restore a removed narrative document without creating a new CalmHub document,
 
 **JSON document `$id` handling.** For JSON mapping documents, `add` inspects the file's CalmHub `$id`:
 - **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
-- **Conformant `$id`** → left untouched; the manifest namespace is derived from it. The document type must agree with the `$id`, or `add` fails and adds nothing: for a namespace resource, `push` and `bump` use the type in the `$id`, but `check` validates by the manifest type. The `$id` types map to `pattern`, `architecture`, `flow`, `schema` (standards), `interface` and `control` (requirements and configurations). A `timeline` or `adr` has no `$id` type of its own, so it is added with a warning that `push` and `bump` use the type in its `$id`.
+- **Conformant `$id`** → left untouched; the manifest namespace is derived from it. The document type must agree with the `$id`, or `add` fails and adds nothing: for a namespace resource, `push` and `bump` use the type in the `$id`, but `check` validates by the manifest type. The `$id` types map to `pattern`, `architecture`, `flow`, `schema` (standards), `interface` and `control` (requirements and configurations). A `timeline` or `adr` has no CalmHub `$id` type of its own, so a conformant CalmHub `$id` is rejected as a type mismatch.
 - **Non-conformant `$id`** → left as-is; a warning is printed and the document is still tracked, but it cannot be pushed to CalmHub until the `$id` is fixed (silently rewriting it would lose data for types that don't use CalmHub URLs, e.g. `adr`, `timeline`).
 
 **Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file (`name` for a flow with no `title`) or Markdown frontmatter, else an interactive prompt.
@@ -914,7 +914,7 @@ control requirement:   $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/requirem
 control configuration: $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/configurations/$CONFIG/versions/$VERSION
 ```
 
-where `$TYPE` is one of `patterns`, `architectures`, `flows`, `standards`, `interfaces`. When the document type fixes the resource type (for example `flow` gives `flows`), the scope and resource type are not asked. A `control` document is asked only whether it is a requirement or a configuration.
+where `$TYPE` is one of `patterns`, `architectures`, `flows`, `standards`, `interfaces`. When the document type fixes the resource type (for example `flow` gives `flows`), the scope and resource type are not asked. A `control` document is asked only whether it is a requirement or a configuration. A `timeline` or `adr` has no CalmHub resource type, so it asks only for a document id.
 
 #### `calm workspace push`
 

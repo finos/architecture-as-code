@@ -149,13 +149,17 @@ describe('promptForDocumentId', () => {
         expect(result.id).toBe('https://hub.example.com/calm/domains/security/controls/access-control/requirement/versions/1.0.0');
     });
 
-    it('asks for the scope and resource type for a document type with no resource type', async () => {
-        queueAnswers(['namespace', 'architectures'], ['https://hub.example.com', '1.0.0', 'finos', 'my-arch']);
+    it.each(['timeline', 'adr'] as const)('asks only for a document id for %s documents, which have no CalmHub resource type', async (documentType) => {
+        queueAnswers([], ['my-doc']);
 
-        const result = await promptForDocumentId({ documentType: 'timeline' });
+        const result = await promptForDocumentId({ documentType });
 
-        expect(mocks.select).toHaveBeenCalledTimes(2);
-        expect(result.id).toBe('https://hub.example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0');
+        expect(mocks.select).not.toHaveBeenCalled();
+        expect(mocks.input).toHaveBeenCalledTimes(1);
+        expect(result).toEqual({
+            id: 'my-doc',
+            slug: 'my-doc',
+        });
     });
 
     it('rejects empty and slash-containing segments via the input validator', async () => {

@@ -216,7 +216,7 @@ The command asks for each argument that you do not supply. It always [asks for t
 
 #### Building a `$id`
 
-When `new` or `add` makes a `$id`, it asks for the scope and then each part. The default version is `1.0.0`. The default base URL is `calmHubUrl` from `~/.calm.json`. When the document type sets the resource type, for example `flow`, the command does not ask for the scope or resource type. For a `control`, it asks only if the document is a requirement or a configuration.
+When `new` or `add` makes a `$id`, it asks for the scope and then each part. The default version is `1.0.0`. The default base URL is `calmHubUrl` from `~/.calm.json`. When the document type sets the resource type, for example `flow`, the command does not ask for the scope or resource type. For a `control`, it asks only if the document is a requirement or a configuration. A `timeline` or `adr` has no CALM Hub resource type, so it asks only for a document ID.
 
 ### push
 
