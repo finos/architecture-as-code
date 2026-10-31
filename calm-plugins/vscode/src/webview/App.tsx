@@ -130,8 +130,10 @@ function CanvasApp() {
     const undoingOrRedoing = useRef(false);
     const loadGeneration = useRef(0);
     const pendingNodesRef = useRef<Node[] | null>(null);
-    // React Flow calls onNodesDelete before onNodesChange. A delete that reloads the canvas saves the file itself.
+    // React Flow calls onNodesDelete, then onNodesChange with a remove change for each deleted drawing.
+    // A delete that reloads the canvas saves the file itself, and the drawings it keeps must not be removed.
     const reloadPending = useRef(false);
+    const keptOnDelete = useRef<Set<string> | null>(null);
 
     // Copy/paste
     const clipboardNode = useRef<Node | null>(null);
@@ -408,7 +410,9 @@ function CanvasApp() {
             if (safe.length > 0) onNodesChangeBase(safe);
             return;
         }
-        onNodesChangeBase(changes);
+        const kept = keptOnDelete.current;
+        keptOnDelete.current = null;
+        onNodesChangeBase(kept ? changes.filter((c) => c.type !== 'remove' || !kept.has(c.id)) : changes);
 
         let structural = false;
         let positionOnly = true;
@@ -459,8 +463,8 @@ function CanvasApp() {
     // --- Delete (reactflow v11 fires onNodesDelete after removal) ---
     const onNodesDelete = useCallback((deletedNodes: Node[]) => {
         if (store.readonlyMode) return;
-        // React Flow has already removed the deleted drawings and their edges. Set the result of the edit instead.
         const edit = deleteDrawings(nodes, edges, deletedNodes);
+        keptOnDelete.current = new Set(edit.nodes.map((n) => n.id));
         setNodes(edit.nodes);
         setEdges(edit.edges);
         if (!edit.reload) {
