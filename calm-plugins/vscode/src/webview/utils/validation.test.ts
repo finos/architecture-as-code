@@ -130,7 +130,7 @@ describe('validateControls', () => {
         ).toBe(true);
     });
 
-    it('validates solution-level controls', () => {
+    it('validates architecture-level controls', () => {
         const arch = {
             nodes: [],
             relationships: [],
@@ -140,7 +140,7 @@ describe('validateControls', () => {
         } as any;
         const issues = validateControls(arch);
         expect(issues).toHaveLength(1);
-        expect(issues[0].message).toContain('the solution');
+        expect(issues[0].message).toContain('the architecture');
     });
 });
 

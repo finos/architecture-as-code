@@ -33,7 +33,6 @@ import {
     notifyCanvasChanged,
     notifyDrillInto,
     notifyDrillUp,
-    notifyRequestGenerateSpec,
     notifySaveStandardNode,
     notifyRequestImportSvg,
     requestControlResolve,
@@ -878,7 +877,7 @@ function CanvasApp() {
                 store.selectNode(node.id);
             }
         } else {
-            // Solution-level control — surface the solution controls panel.
+            // Architecture-level control — surface the architecture controls panel.
             setSelectedNode(null);
             setSelectedEdge(null);
             store.selectNode(null);
@@ -1064,11 +1063,6 @@ function CanvasApp() {
         postMessage({ type: 'requestExportPattern', doc: JSON.stringify(doc) });
     }, [reactFlowInstance]);
 
-    // --- Generate spec ---
-    const handleGenerateSpec = useCallback(() => {
-        notifyRequestGenerateSpec();
-    }, []);
-
     if (!initialized) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--calm-fg-muted)' }}>Loading CALM architecture...</div>;
     }
@@ -1088,9 +1082,6 @@ function CanvasApp() {
                     <button onClick={handleValidate} className="fid-toolbar-btn fid-toolbar-btn--validate">Validate</button>
                     {!store.readonlyMode && (
                         <button onClick={handleApplyPattern} className="fid-toolbar-btn fid-toolbar-btn--apply" title="Apply a pattern to the canvas">Apply Pattern</button>
-                    )}
-                    {!store.readonlyMode && (
-                        <button onClick={handleGenerateSpec} className="fid-toolbar-btn fid-toolbar-btn--spec" title="Generate an architecture spec">Generate Spec</button>
                     )}
                     <button onClick={handleExportSvg} className="fid-toolbar-btn" title="Export the canvas as an SVG">Export SVG</button>
                     {!store.readonlyMode && (
@@ -1236,7 +1227,7 @@ function CanvasApp() {
                                 </>
                             ) : (
                                 <div style={{ padding: '12px' }}>
-                                    <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--calm-fg-muted)', marginBottom: '8px' }}>Solution Controls</div>
+                                    <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--calm-fg-muted)', marginBottom: '8px' }}>Architecture Controls</div>
                                     <ControlsList
                                         controls={store.documentControls as any}
                                         onUpdate={(ctrls) => { useCanvasStore.setState({ documentControls: ctrls }); setTimeout(() => emitChange(true), 0); }}
@@ -1245,7 +1236,7 @@ function CanvasApp() {
                                         onBrowseControls={() => { setControlPickerTarget({ type: 'document' }); setShowControlPicker(true); }}
                                     />
                                     {(!store.documentControls || Object.keys(store.documentControls).length === 0) && (
-                                        <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', textAlign: 'center', padding: '20px 0' }}>No solution-level controls. Select a node or drop a standard here.</p>
+                                        <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', textAlign: 'center', padding: '20px 0' }}>No architecture-level controls. Select a node or drop a standard here.</p>
                                     )}
                                 </div>
                             )}
