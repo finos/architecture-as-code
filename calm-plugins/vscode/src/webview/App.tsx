@@ -52,7 +52,7 @@ import { InterfaceList } from './panels/InterfaceList';
 import { ControlsList } from './panels/ControlsList';
 import { CustomMetadata } from './panels/CustomMetadata';
 import { NodeAppearance } from './panels/NodeAppearance';
-import { getNodeStyleOverride, isStandardNode } from './utils/standard-node-style';
+import { getNodeStyleOverride } from './utils/standard-node-style';
 import { applyStandardToNode } from './utils/standard-drop';
 import { defaultNodeColours } from './canvas/node-colours';
 import { PatternPicker } from './panels/PatternPicker';
@@ -1102,7 +1102,7 @@ function CanvasApp() {
                                     <NodeAppearance
                                         key={`${liveSelectedNode.id}-appearance`}
                                         style={getNodeStyleOverride(data as Record<string, unknown>)}
-                                        defaults={defaultNodeColours(liveSelectedNode.type, isStandardNode(data as Record<string, unknown>))}
+                                        defaults={defaultNodeColours(liveSelectedNode.type)}
                                         onUpdate={(style) => {
                                             const meta = { ...((data.metadata as Record<string, unknown>) ?? {}) };
                                             if (style) {
