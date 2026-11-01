@@ -29,6 +29,8 @@ export interface RequirementPropertyDef {
 export interface ParsedRequirement {
     identity: RequirementIdentity;
     properties: Record<string, RequirementPropertyDef>;
+    /** Raw requirement JSON Schema used to validate control `config` with Ajv. */
+    schema?: Record<string, unknown>;
 }
 
 export interface ParseResult {
@@ -190,7 +192,7 @@ export function parseRequirementSchema(
     }
 
     return {
-        parsed: { identity, properties },
+        parsed: { identity, properties, schema },
         warnings,
     };
 }

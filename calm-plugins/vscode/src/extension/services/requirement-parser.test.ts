@@ -38,6 +38,9 @@ describe('parseRequirementSchema', () => {
             description: 'Why',
             required: false,
         });
+        expect(parsed?.schema).toMatchObject({
+            required: ['control-id', 'name', 'description', 'permit-ingress'],
+        });
     });
 
     it('reads inline enum arrays and preserves native value types', () => {

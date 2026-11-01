@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
     seedBaseConstants,
-    isNewControlMetadata,
-    isLegacyControl,
     getRequirementUrl,
     hasConfigUrl,
     getPropertyValue,
@@ -34,22 +32,6 @@ describe('seedBaseConstants', () => {
             name: 'Micro-segmentation',
             description: 'Prevent lateral movement',
         });
-    });
-});
-
-describe('metadata discrimination', () => {
-    it('detects the new multi-property shape', () => {
-        expect(isNewControlMetadata({ identity: parsed.identity, properties: {} })).toBe(true);
-    });
-
-    it('rejects the legacy shape', () => {
-        expect(isNewControlMetadata({ pattern: '^x$' })).toBe(false);
-        expect(isNewControlMetadata(undefined)).toBe(false);
-    });
-
-    it('isLegacyControl is true for a control with no properties metadata', () => {
-        expect(isLegacyControl({ metadata: { validation: { pattern: '^x$' } } })).toBe(true);
-        expect(isLegacyControl({ metadata: { validation: { identity: parsed.identity, properties: {} } } })).toBe(false);
     });
 });
 
@@ -91,7 +73,7 @@ describe('requirement + config accessors', () => {
 });
 
 describe('buildControlEntry', () => {
-    it('builds a full entry with seeded base constants and validation metadata', () => {
+    it('builds a schema-valid entry with seeded base constants and no metadata.validation', () => {
         const entry = buildControlEntry('security:controls:micro-segmentation@1.0.0', parsed);
         expect(entry).toEqual({
             description: 'Prevent lateral movement',
@@ -105,15 +87,13 @@ describe('buildControlEntry', () => {
                     },
                 },
             ],
-            metadata: {
-                validation: { identity: parsed.identity, properties: parsed.properties },
-            },
         });
+        expect(entry.metadata).toBeUndefined();
     });
 });
 
 describe('enrichControlWithRequirement', () => {
-    it('attaches validation and seeds missing base constants while preserving user values', () => {
+    it('seeds missing base constants while preserving user values and omits metadata', () => {
         const control: ControlEntry = {
             description: '',
             requirements: [
@@ -122,6 +102,7 @@ describe('enrichControlWithRequirement', () => {
                     config: { reason: 'kept', 'control-id': 'user-override' },
                 },
             ],
+            metadata: { validation: { legacy: true } },
         };
         const enriched = enrichControlWithRequirement(control, parsed);
         // existing custom value preserved; user-set control-id preserved; missing name/description seeded
@@ -133,7 +114,7 @@ describe('enrichControlWithRequirement', () => {
         });
         // fallback description filled from identity
         expect(enriched.description).toBe('Prevent lateral movement');
-        expect(isNewControlMetadata(enriched.metadata?.validation)).toBe(true);
+        expect(enriched.metadata).toBeUndefined();
     });
 
     it('does not overwrite a non-empty description', () => {
@@ -143,7 +124,7 @@ describe('enrichControlWithRequirement', () => {
 });
 
 describe('needsEnrichment', () => {
-    it('is true when a requirement-url exists but no property metadata', () => {
+    it('is true when a requirement-url exists and config is not seeded', () => {
         expect(needsEnrichment({ requirements: [{ 'requirement-url': 'r' }] })).toBe(true);
     });
 
@@ -152,20 +133,11 @@ describe('needsEnrichment', () => {
         expect(needsEnrichment(enriched)).toBe(false);
     });
 
-    it('is false when metadata has identity even with empty properties', () => {
+    it('is false when config-url is present', () => {
         const stub: ControlEntry = {
-            requirements: [{ 'requirement-url': 'domain:controls:ctrl' }],
-            metadata: { validation: { identity: parsed.identity, properties: {} } },
+            requirements: [{ 'requirement-url': 'domain:controls:ctrl', 'config-url': 'https://hub/config.json' }],
         };
         expect(needsEnrichment(stub)).toBe(false);
-    });
-
-    it('is true when metadata has properties but no identity', () => {
-        const stub: ControlEntry = {
-            requirements: [{ 'requirement-url': 'domain:controls:ctrl' }],
-            metadata: { validation: { properties: { tier: { type: 'string', required: true } } } },
-        };
-        expect(needsEnrichment(stub)).toBe(true);
     });
 
     it('is false when there is no requirement-url', () => {

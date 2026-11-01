@@ -1,223 +1,251 @@
-import type { ValidationIssue } from '../stores/canvas-store';
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
+import { useCanvasStore, type ValidationIssue } from '../stores/canvas-store';
 import type { CalmArchitecture } from '../transforms/calm-editor-transformer';
-import type { RequirementPropertyDef } from '../../extension/services/requirement-parser';
-import type { ControlEntry } from '../panels/control-metadata';
+import type {
+    ParsedRequirement,
+    RequirementIdentity,
+} from '../../extension/services/requirement-parser';
+import {
+    type ControlEntry,
+    getRequirementUrl,
+    hasConfigUrl,
+    seedBaseConstants,
+} from '../panels/control-metadata';
 import { validateCalmArchitecture } from '../../core/validation.js';
 
-interface LegacyValidationMeta {
-    pattern?: string;
-    'allowed-values'?: string[];
-    example?: string;
-}
+export type RequirementSource = ParsedRequirement | Record<string, unknown>;
 
-interface NewValidationMeta {
-    identity?: { controlId: string; name: string; description: string };
-    properties?: Record<string, RequirementPropertyDef>;
-}
-
-type ControlValidationMeta = LegacyValidationMeta | NewValidationMeta;
-
-function isNewValidation(v: ControlValidationMeta): v is NewValidationMeta {
-    return !!v && typeof v === 'object' && 'properties' in v && !!v.properties;
-}
+const ajv = new Ajv2020({
+    allErrors: true,
+    strict: false,
+    allowUnionTypes: true,
+});
+const applyFormats =
+    typeof addFormats === 'function'
+        ? addFormats
+        : (addFormats as { default: typeof addFormats }).default;
+applyFormats(ajv);
 
 /** A config value is "present" unless it is undefined, null, or an empty string. `false` and `0` count. */
 function hasConfigValue(value: unknown): boolean {
     return value !== undefined && value !== null && value !== '';
 }
 
-/**
- * Validate the per-property inline config of a control against its resolved
- * requirement property definitions (the new multi-property shape).
- */
-export function validateControlProperties(
-    controlId: string,
-    properties: Record<string, RequirementPropertyDef>,
-    control: ControlEntry,
-    scopeLabel: string,
-    nodeId?: string
-): ValidationIssue[] {
-    const issues: ValidationIssue[] = [];
-    const config = (control?.requirements?.[0]?.config ?? {}) as Record<
-        string,
-        unknown
-    >;
+function hasAnyConfigValue(config: Record<string, unknown> | undefined): boolean {
+    if (!config) return false;
+    return Object.values(config).some(hasConfigValue);
+}
 
-    for (const [propName, def] of Object.entries(properties)) {
-        const value = config[propName];
-        if (!hasConfigValue(value)) {
-            if (def.required) {
-                issues.push({
-                    severity: 'error',
-                    message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" is required`,
-                    nodeId,
-                    controlId,
-                });
-            }
-            continue;
-        }
+function isParsedRequirement(req: RequirementSource): req is ParsedRequirement {
+    const candidate = req as ParsedRequirement;
+    return (
+        !!candidate &&
+        typeof candidate === 'object' &&
+        !!candidate.identity &&
+        typeof candidate.identity === 'object' &&
+        typeof candidate.identity.controlId === 'string' &&
+        !!candidate.properties &&
+        typeof candidate.properties === 'object'
+    );
+}
 
-        if (
-            def.type === 'enum' &&
-            def.allowedValues &&
-            !def.allowedValues.includes(value as string | number | boolean)
-        ) {
-            issues.push({
-                severity: 'error',
-                message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" value "${String(value)}" is not allowed (one of: ${def.allowedValues.join(', ')})`,
-                nodeId,
-                controlId,
-            });
-        }
+function buildSchemaFromParsed(parsed: ParsedRequirement): Record<string, unknown> {
+    const properties: Record<string, unknown> = {
+        'control-id': { const: parsed.identity.controlId },
+        name: { const: parsed.identity.name },
+        description: { const: parsed.identity.description },
+    };
+    const required: string[] = ['control-id', 'name', 'description'];
 
-        if (def.type === 'string' && def.pattern) {
-            let matches = true;
-            try {
-                matches = new RegExp(def.pattern).test(String(value));
-            } catch {
-                matches = true; // malformed pattern — don't punish the user
-            }
-            if (!matches) {
-                issues.push({
-                    severity: 'error',
-                    message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" value "${String(value)}" does not match pattern ${def.pattern}`,
-                    nodeId,
-                    controlId,
-                });
-            }
-        }
-
-        if (
-            (def.type === 'number' || def.type === 'integer') &&
-            typeof value !== 'number'
-        ) {
-            issues.push({
-                severity: 'error',
-                message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" must be a number`,
-                nodeId,
-                controlId,
-            });
-        } else if (
-            def.type === 'integer' &&
-            typeof value === 'number' &&
-            !Number.isInteger(value)
-        ) {
-            issues.push({
-                severity: 'error',
-                message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" must be an integer`,
-                nodeId,
-                controlId,
-            });
-        }
-
-        if (def.type === 'boolean' && typeof value !== 'boolean') {
-            issues.push({
-                severity: 'error',
-                message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" must be true or false`,
-                nodeId,
-                controlId,
-            });
+    for (const [propName, def] of Object.entries(parsed.properties)) {
+        if (def.required) required.push(propName);
+        if (def.type === 'enum' && def.allowedValues) {
+            properties[propName] = { enum: def.allowedValues };
+        } else {
+            const propSchema: Record<string, unknown> = { type: def.type };
+            if (def.pattern) propSchema.pattern = def.pattern;
+            properties[propName] = propSchema;
         }
     }
 
-    return issues;
+    return {
+        type: 'object',
+        properties,
+        required,
+    };
+}
+
+function extractConstString(prop: unknown): string | undefined {
+    if (prop && typeof prop === 'object' && 'const' in prop) {
+        const val = (prop as Record<string, unknown>).const;
+        return typeof val === 'string' ? val : undefined;
+    }
+    return undefined;
+}
+
+function toSchemaAndIdentity(req: RequirementSource): {
+    schema: Record<string, unknown>;
+    identity?: RequirementIdentity;
+} {
+    if (isParsedRequirement(req)) {
+        return {
+            schema: req.schema ?? buildSchemaFromParsed(req),
+            identity: req.identity,
+        };
+    }
+
+    const props =
+        req.properties && typeof req.properties === 'object'
+            ? (req.properties as Record<string, unknown>)
+            : undefined;
+    const controlId = extractConstString(props?.['control-id']);
+    const name = extractConstString(props?.name);
+    const description = extractConstString(props?.description);
+    const identity =
+        controlId && name && description
+            ? { controlId, name, description }
+            : undefined;
+
+    return { schema: req, identity };
 }
 
 /**
- * Validate a single control's configured value against its `metadata.validation`
- * constraints (allowed-values or regex pattern). Returns a warning when a
- * constrained control has no value, and an error when the value violates the
- * constraint.
+ * Validate a single control's inline `config` against its requirement JSON Schema
+ * using Ajv.
  */
 export function validateControlConfig(
     controlId: string,
     control: ControlEntry,
     scopeLabel: string,
-    nodeId?: string
+    nodeId?: string,
+    requirement?: RequirementSource | Record<string, RequirementSource>
 ): ValidationIssue[] {
-    const validation = control?.metadata?.validation;
+    const requirementUrl = getRequirementUrl(control);
+    let resolved: RequirementSource | undefined;
+    if (requirement) {
+        if (
+            requirementUrl &&
+            typeof requirement === 'object' &&
+            requirementUrl in requirement
+        ) {
+            resolved = (requirement as Record<string, RequirementSource>)[
+                requirementUrl
+            ];
+        } else if (
+            isParsedRequirement(requirement as RequirementSource) ||
+            'properties' in requirement ||
+            '$schema' in requirement ||
+            'type' in requirement
+        ) {
+            resolved = requirement as RequirementSource;
+        }
+    } else if (requirementUrl) {
+        resolved = useCanvasStore.getState().resolvedRequirements[requirementUrl];
+    }
+    const rawConfig = control?.requirements?.[0]?.config;
 
-    // New multi-property shape — validate each property's inline config value.
-    if (validation && isNewValidation(validation)) {
-        return validateControlProperties(
-            controlId,
-            validation.properties ?? {},
-            control,
-            scopeLabel,
-            nodeId
-        );
+    if (hasConfigUrl(control) && !rawConfig) {
+        return [];
     }
 
-    const requirementUrl = control?.requirements?.[0]?.['requirement-url'] as string | undefined;
-    const value = control?.requirements?.[0]?.config?.value ?? '';
-
-    // If control has a requirement-url (CURIE) but no config value, flag as unconfigured
-    if (!validation && requirementUrl && !value) {
-        return [{
-            severity: 'error',
-            message: `Control "${controlId}" on ${scopeLabel} is not configured`,
-            nodeId,
-            controlId,
-        }];
+    if (!resolved) {
+        if (requirementUrl && !hasAnyConfigValue(rawConfig)) {
+            return [
+                {
+                    severity: 'error',
+                    message: `Control "${controlId}" on ${scopeLabel} is not configured`,
+                    nodeId,
+                    controlId,
+                },
+            ];
+        }
+        return [];
     }
-    if (!validation) return [];
-    const legacy = validation as LegacyValidationMeta;
-    const allowed = legacy['allowed-values'];
-    const pattern = legacy.pattern;
+
+    const { schema, identity } = toSchemaAndIdentity(resolved);
+    const effectiveConfig: Record<string, unknown> = {
+        ...(identity ? seedBaseConstants(identity) : {}),
+    };
+    for (const [k, v] of Object.entries(rawConfig ?? {})) {
+        if (hasConfigValue(v)) {
+            effectiveConfig[k] = v;
+        } else {
+            delete effectiveConfig[k];
+        }
+    }
+
+    const { $schema: _ignoredSchema, $id: _ignoredId, ...compileTarget } = schema;
+    let validate: ReturnType<typeof ajv.compile>;
+    try {
+        validate = ajv.compile(compileTarget);
+    } catch {
+        return [];
+    }
+
+    const valid = validate(effectiveConfig);
+    if (valid || !validate.errors) return [];
+
     const issues: ValidationIssue[] = [];
+    for (const err of validate.errors) {
+        let message: string;
+        if (
+            err.keyword === 'required' &&
+            typeof (err.params as { missingProperty?: unknown })?.missingProperty ===
+                'string'
+        ) {
+            const prop = (err.params as { missingProperty: string }).missingProperty;
+            message = `Control "${controlId}" on ${scopeLabel}: property "${prop}" is required`;
+        } else if (
+            err.keyword === 'enum' &&
+            Array.isArray((err.params as { allowedValues?: unknown[] })?.allowedValues)
+        ) {
+            const prop = err.instancePath.replace(/^\//, '');
+            const allowed = (
+                err.params as { allowedValues: unknown[] }
+            ).allowedValues.join(', ');
+            message = prop
+                ? `Control "${controlId}" on ${scopeLabel}: property "${prop}" is not allowed (must be one of: ${allowed})`
+                : `Control "${controlId}" on ${scopeLabel}: ${err.message ?? 'value is not allowed'} (${allowed})`;
+        } else if (
+            err.keyword === 'pattern' &&
+            typeof (err.params as { pattern?: unknown })?.pattern === 'string'
+        ) {
+            const prop = err.instancePath.replace(/^\//, '');
+            const pat = (err.params as { pattern: string }).pattern;
+            message = prop
+                ? `Control "${controlId}" on ${scopeLabel}: property "${prop}" does not match pattern "${pat}"`
+                : `Control "${controlId}" on ${scopeLabel}: value does not match pattern "${pat}"`;
+        } else {
+            const prop = err.instancePath.replace(/^\//, '');
+            message = prop
+                ? `Control "${controlId}" on ${scopeLabel}: property "${prop}" ${err.message ?? 'is invalid'}`
+                : `Control "${controlId}" on ${scopeLabel}: ${err.message ?? 'invalid configuration'}`;
+        }
 
-    if (!value) {
-        const hint = allowed?.length
-            ? ` (allowed: ${allowed.join(', ')})`
-            : pattern
-              ? ` (pattern: ${pattern})`
-              : '';
         issues.push({
             severity: 'error',
-            message: `Control "${controlId}" on ${scopeLabel} is not configured${hint}`,
+            message,
             nodeId,
             controlId,
         });
-        return issues;
-    }
-
-    if (allowed?.length && !allowed.includes(value)) {
-        issues.push({
-            severity: 'error',
-            message: `Control "${controlId}" on ${scopeLabel}: "${value}" is not an allowed value (must be one of: ${allowed.join(', ')})`,
-            nodeId,
-            controlId,
-        });
-    }
-
-    if (pattern) {
-        let matches = true;
-        try {
-            matches = new RegExp(pattern).test(value);
-        } catch {
-            matches = true; // malformed pattern in the standard — don't punish the user
-        }
-        if (!matches) {
-            issues.push({
-                severity: 'error',
-                message: `Control "${controlId}" on ${scopeLabel}: "${value}" does not match required pattern ${pattern}`,
-                nodeId,
-                controlId,
-            });
-        }
     }
 
     return issues;
 }
 
 /**
- * Control-requirement validation: for every non-reference node (and the
- * architecture-level controls), check each control's configured value against its
- * `metadata.validation` (allowed-values / pattern). Structural/schema validation
- * is handled separately by calm-core.
+ * Control-requirement validation: for every node (and the architecture-level
+ * controls), validate each control's `config` against its requirement schema.
+ * Structural/schema validation is handled separately by calm-core.
  */
-export function validateControls(arch: CalmArchitecture): ValidationIssue[] {
+export function validateControls(
+    arch: CalmArchitecture,
+    requirements?: Record<string, RequirementSource>
+): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
+    const reqMap =
+        requirements ?? useCanvasStore.getState().resolvedRequirements;
 
     for (const node of arch.nodes ?? []) {
         const controls = node.controls as
@@ -228,8 +256,10 @@ export function validateControls(arch: CalmArchitecture): ValidationIssue[] {
         const name = node.name as string | undefined;
         const label = `"${name || id}"`;
         for (const [controlId, control] of Object.entries(controls)) {
+            const url = getRequirementUrl(control);
+            const req = url ? reqMap?.[url] : undefined;
             issues.push(
-                ...validateControlConfig(controlId, control, label, id)
+                ...validateControlConfig(controlId, control, label, id, req)
             );
         }
     }
@@ -239,8 +269,16 @@ export function validateControls(arch: CalmArchitecture): ValidationIssue[] {
         | undefined;
     if (docControls) {
         for (const [controlId, control] of Object.entries(docControls)) {
+            const url = getRequirementUrl(control);
+            const req = url ? reqMap?.[url] : undefined;
             issues.push(
-                ...validateControlConfig(controlId, control, 'the architecture')
+                ...validateControlConfig(
+                    controlId,
+                    control,
+                    'the architecture',
+                    undefined,
+                    req
+                )
             );
         }
     }
@@ -254,7 +292,8 @@ export function validateControls(arch: CalmArchitecture): ValidationIssue[] {
  * structural validation (missing unique-id/name, dangling refs, duplicates, …).
  */
 export function validateArchitecture(
-    arch: CalmArchitecture
+    arch: CalmArchitecture,
+    requirements?: Record<string, RequirementSource>
 ): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     try {
@@ -264,7 +303,7 @@ export function validateArchitecture(
     } catch {
         // calm-core threw on malformed input — the control checks below still run.
     }
-    issues.push(...validateControls(arch));
+    issues.push(...validateControls(arch, requirements));
     // Surface errors first, then warnings, then info.
     const order: Record<string, number> = { error: 0, warning: 1, info: 2 };
     issues.sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3));
