@@ -1,3 +1,5 @@
+import { constructControlDocumentId } from './document-id-utils.js';
+
 export interface CurieComponents {
     namespace: string;
     type: string;
@@ -34,5 +36,16 @@ export function expandCurie(curie: string, hubBaseUrl: string): string {
     if (!components.version) {
         throw new Error(`CURIE '${curie}' requires a version for Hub resolution (e.g. ${curie}@1.0.0)`);
     }
+    if (components.type === 'controls') {
+        return constructControlDocumentId({
+            rawDocumentId: curie,
+            baseUrl: base,
+            domain: components.namespace,
+            controlName: components.slug,
+            kind: 'requirement',
+            version: components.version,
+        });
+    }
     return `${base}/calm/namespaces/${components.namespace}/${components.type}/${components.slug}/versions/${components.version}`;
 }
+

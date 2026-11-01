@@ -8,6 +8,8 @@ import { initLogger, Logger } from '../../logger.js';
 import { getErrorMessage } from '../../error-utils.js';
 import { iterateControls } from '../../controls/control-iteration.js';
 import { tryParseCalmCore } from './calm-core-parse.js';
+import { CalmReferenceResolver } from '../../resolver/calm-reference-resolver.js';
+import { isCurie } from '../../hub/curie.js';
 
 type ControlDetailResult = { outputs: ValidationOutput[], hasErrors: boolean };
 
@@ -20,16 +22,18 @@ type ControlDetailResult = { outputs: ValidationOutput[], hasErrors: boolean };
  * If a requirement-url starts with '#', it is treated as a JSON pointer into the pattern
  * document, allowing control requirement schemas to be embedded in the pattern itself.
  *
- * @param architecture     Raw architecture object.
- * @param pattern          Pattern document (needed for '#'-prefixed requirement-url resolution).
- * @param schemaDirectory  For loading requirement schemas and configs by URL.
- * @param debug            Enable debug logging.
+ * @param architecture       Raw architecture object.
+ * @param pattern            Pattern document (needed for '#'-prefixed requirement-url resolution).
+ * @param schemaDirectory    For loading requirement schemas and configs by URL.
+ * @param debug              Enable debug logging.
+ * @param referenceResolver  Optional resolver chain for CURIE requirement-url and config-url values.
  */
 export async function validateAllControls(
     architecture: object,
     pattern: object | undefined,
     schemaDirectory: SchemaDirectory,
-    debug: boolean
+    debug: boolean,
+    referenceResolver?: CalmReferenceResolver
 ): Promise<{ jsonSchemaOutputs: ValidationOutput[], hasErrors: boolean, hasWarnings: boolean }> {
     const logger = initLogger(debug, 'validate-controls');
     const outputs: ValidationOutput[] = [];
@@ -49,7 +53,7 @@ export async function validateAllControls(
     for (const location of iterateControls(calmCore)) {
         for (const [reqIdx, detail] of location.control.requirements.entries()) {
             const controlPath = `${location.pathPrefix}/${location.controlId}/requirements/${reqIdx}`;
-            const result = await validateControlDetail(detail, controlPath, pattern, schemaDirectory, debug);
+            const result = await validateControlDetail(detail, controlPath, pattern, schemaDirectory, debug, referenceResolver);
             outputs.push(...result.outputs);
             if (result.hasErrors) hasErrors = true;
         }
@@ -63,7 +67,8 @@ async function validateControlDetail(
     controlPath: string,
     pattern: object | undefined,
     schemaDirectory: SchemaDirectory,
-    debug: boolean
+    debug: boolean,
+    referenceResolver?: CalmReferenceResolver
 ): Promise<ControlDetailResult> {
     const logger = initLogger(debug, 'validate-controls');
     const requirementUrl = detail.requirement.reference;
@@ -73,11 +78,11 @@ async function validateControlDetail(
         return nothing();
     }
 
-    const { schema: requirementSchema, error: schemaError } = await resolveRequirementSchema(requirementUrl, controlPath, pattern, schemaDirectory);
+    const { schema: requirementSchema, error: schemaError } = await resolveRequirementSchema(requirementUrl, controlPath, pattern, schemaDirectory, referenceResolver);
     if (schemaError) return fail(schemaError);
     if (!requirementSchema) return nothing();
 
-    const { config, error: configError } = await resolveConfig(detail, controlPath, schemaDirectory, logger);
+    const { config, error: configError } = await resolveConfig(detail, controlPath, schemaDirectory, logger, referenceResolver);
     if (configError) return fail(configError);
     if (!config) return nothing();
 
@@ -88,13 +93,14 @@ async function resolveRequirementSchema(
     requirementUrl: string,
     controlPath: string,
     pattern: object | undefined,
-    schemaDirectory: SchemaDirectory
+    schemaDirectory: SchemaDirectory,
+    referenceResolver?: CalmReferenceResolver
 ): Promise<{ schema?: object, error?: ValidationOutput }> {
     if (requirementUrl.startsWith('#')) {
         // resolve an in-pattern ref (i.e. inline control requirement schema)
         return resolvePointerInPattern(requirementUrl, controlPath, pattern);
     }
-    return loadSchemaFromDirectory(requirementUrl, controlPath, schemaDirectory);
+    return loadSchemaFromDirectory(requirementUrl, controlPath, schemaDirectory, referenceResolver);
 }
 
 /**
@@ -119,11 +125,14 @@ function resolvePointerInPattern(
 async function loadSchemaFromDirectory(
     requirementUrl: string,
     controlPath: string,
-    schemaDirectory: SchemaDirectory
+    schemaDirectory: SchemaDirectory,
+    referenceResolver?: CalmReferenceResolver
 ): Promise<{ schema?: object, error?: ValidationOutput }> {
     let schema: object | undefined;
     try {
-        schema = await schemaDirectory.getSchema(requirementUrl);
+        schema = isCurie(requirementUrl) && referenceResolver?.canResolve(requirementUrl)
+            ? await referenceResolver.resolve(requirementUrl) as object | undefined
+            : await schemaDirectory.getSchema(requirementUrl);
     } catch (err) {
         return { error: controlError(controlPath, `Could not load requirement schema from '${requirementUrl}': ${getErrorMessage(err)}`) };
     }
@@ -135,14 +144,15 @@ async function loadSchemaFromDirectory(
 
 /**
  * Resolve a control's config. Prefers an inline `config`; otherwise loads the `config-url`
- * document directly via the SchemaDirectory. Returns an empty result if neither is present
- * or the config document could not be found.
+ * document via the referenceResolver (for CURIEs) or directly via the SchemaDirectory.
+ * Returns an empty result if neither is present or the config document could not be found.
  */
 async function resolveConfig(
     detail: CalmControlDetail,
     controlPath: string,
     schemaDirectory: SchemaDirectory,
-    logger: Logger
+    logger: Logger,
+    referenceResolver?: CalmReferenceResolver
 ): Promise<{ config?: Record<string, unknown>, error?: ValidationOutput }> {
     if (detail.config) {
         return { config: detail.config };
@@ -154,7 +164,9 @@ async function resolveConfig(
 
     const configUrl = detail.configUrl.reference;
     try {
-        const config = await schemaDirectory.loadDocument(configUrl, 'control') as Record<string, unknown> | undefined;
+        const config = (isCurie(configUrl) && referenceResolver?.canResolve(configUrl)
+            ? await referenceResolver.resolve(configUrl)
+            : await schemaDirectory.loadDocument(configUrl, 'control')) as Record<string, unknown> | undefined;
         if (!config) {
             logger.debug(`Config document not found at '${configUrl}', skipping validation`);
             return {};
