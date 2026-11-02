@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/calmHelpers.ts (commit 8319a8f0).
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/calmHelpers.ts.
 // Typed against the lab's loose shapes (see ./types.ts) instead of
 // @finos/calm-models; Hub-navigation helpers omitted (they resolve CALM Hub
 // resource paths, which have no meaning inside the lab). Keep logic in sync

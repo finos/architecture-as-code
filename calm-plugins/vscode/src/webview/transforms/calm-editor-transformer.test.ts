@@ -61,7 +61,7 @@ describe('flowToCalm - definition-id handling', () => {
                     description: 'A locally defined service',
                     interfaces: [],
                     controls: { 'app-id': { description: 'App ID' } },
-                    metadata: { 'source-standard-node': 'microservice' },
+                    metadata: { team: 'payments' },
                 },
             },
         ];
@@ -76,7 +76,7 @@ describe('flowToCalm - definition-id handling', () => {
             'app-id': { description: 'App ID' },
         });
         expect(calmNode.metadata).toEqual({
-            'source-standard-node': 'microservice',
+            team: 'payments',
         });
     });
 
@@ -104,7 +104,7 @@ describe('flowToCalm - definition-id handling', () => {
                     label: 'Local DB',
                     description: '',
                     controls: { encryption: { description: 'AES256' } },
-                    metadata: { 'source-standard-node': 'rds' },
+                    metadata: { engine: 'postgres' },
                 },
             },
         ];
@@ -131,7 +131,7 @@ describe('flowToCalm - definition-id handling', () => {
             encryption: { description: 'AES256' },
         });
         expect(localCalm.metadata).toEqual({
-            'source-standard-node': 'rds',
+            engine: 'postgres',
         });
     });
 

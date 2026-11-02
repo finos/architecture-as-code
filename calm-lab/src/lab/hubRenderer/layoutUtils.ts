@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/layoutUtils.ts (commit 3967ca02).
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/layoutUtils.ts.
 // Keep logic in sync until the shared renderer package extraction.
 
 import dagre from '@dagrejs/dagre';

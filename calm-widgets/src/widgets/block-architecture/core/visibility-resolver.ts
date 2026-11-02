@@ -30,18 +30,20 @@ export interface VisibilityResult {
  */
 function collectContainerIdsForVisible(
     visible: Set<string>,
-    parentOf: Map<string, string>,
+    parentsOf: Map<string, string[]>,
     include: IncludeContainers,
-    allMentioned: Set<string>
+    allMentioned: Set<string>,
+    excludedByType: (id: string) => boolean
 ): Set<string> {
     if (include === 'none') return new Set();
     if (include === 'all') return new Set(allMentioned);
 
-    // parents
+    // parents. A parent of a type the filter excludes is drawn only when the node has no other parent.
     const wanted = new Set<string>();
     for (const nid of visible) {
-        const p = parentOf.get(nid);
-        if (p) wanted.add(p);
+        const parents = parentsOf.get(nid) ?? [];
+        const allowed = parents.filter(p => !excludedByType(p));
+        for (const p of allowed.length > 0 ? allowed : parents.slice(0, 1)) wanted.add(p);
     }
     return wanted;
 }
@@ -90,7 +92,7 @@ export function buildDefaultFilterChain(
  *      relationship kind (connects, interacts, composed-of, deployed-in).
  *    - containerIds: container IDs to render according to opts.includeContainers
  *      (none | parents of visible nodes | all mentioned containers).
- * 4. Aggregate warnings from the parentHierarchyResult and the filter chain and return a
+ * 4. Collect warnings from the parent hierarchy and the filter chain and return a
  *    VisibilityResult describing the final visibleNodes, filteredNodes, filteredRels,
  *    containerIds and warnings.
  *
@@ -120,7 +122,7 @@ export function resolveVisibilityWithStrategies(
     parentHierarchyResult: ParentHierarchyResult,
     nodesById: Map<string, CalmNodeCanonicalModel>
 ): VisibilityResult {
-    const { parentOf, allMentionedContainers, childrenOfContainer } = parentHierarchyResult;
+    const { parentsOf, allMentionedContainers, childrenOfContainer } = parentHierarchyResult;
     const nodes = context.nodes ?? [];
     const relationships = context.relationships ?? [];
     const allNodeIds = new Set(nodes.map(n => n['unique-id']));
@@ -194,9 +196,10 @@ export function resolveVisibilityWithStrategies(
 
     const containerIds = collectContainerIdsForVisible(
         result.visibleNodes,
-        parentOf,
+        parentsOf,
         opts.includeContainers,
-        allMentionedContainers
+        allMentionedContainers,
+        id => !!opts.nodeTypes?.length && !opts.nodeTypes.includes(nodesById.get(id)?.['node-type'] ?? '')
     );
 
     return {
