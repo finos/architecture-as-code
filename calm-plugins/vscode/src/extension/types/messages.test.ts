@@ -13,12 +13,12 @@ describe('message types', () => {
 
     it('WebviewToExtMessage covers all expected variants', () => {
         const variants: WebviewToExtMessage['type'][] = [
-            'ready', 'canvasChanged', 'drillInto', 'drillUp', 'requestGenerateSpec',
+            'ready', 'canvasChanged', 'drillInto', 'drillUp',
             'saveStandardNode', 'exportDiagram', 'requestImportSvg', 'requestControlBrowse',
             'requestControlsForDomain', 'requestControlVersions', 'requestControlResolve',
             'saveControl', 'savePattern', 'requestExportPattern', 'openControlInHub',
         ];
-        expect(variants).toHaveLength(16);
+        expect(variants).toHaveLength(15);
     });
 
     it('modelUpdated source includes import variant', () => {

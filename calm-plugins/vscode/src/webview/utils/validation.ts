@@ -212,7 +212,7 @@ export function validateControlConfig(
 
 /**
  * Control-requirement validation: for every non-reference node (and the
- * solution-level controls), check each control's configured value against its
+ * architecture-level controls), check each control's configured value against its
  * `metadata.validation` (allowed-values / pattern). Structural/schema validation
  * is handled separately by calm-core.
  */
@@ -240,7 +240,7 @@ export function validateControls(arch: CalmArchitecture): ValidationIssue[] {
     if (docControls) {
         for (const [controlId, control] of Object.entries(docControls)) {
             issues.push(
-                ...validateControlConfig(controlId, control, 'the solution')
+                ...validateControlConfig(controlId, control, 'the architecture')
             );
         }
     }

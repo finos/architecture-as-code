@@ -1,23 +1,5 @@
-/**
- * Solution metadata surfaced when drilling into a governed standard node that
- * links to a CALM solution. Shape matches calm-hub-ui's
- * `visualizer/contracts/editor-contracts.ts` `SolutionMetadata` so the two
- * editors stay protocol-compatible.
- */
 import type { ParsedRequirement } from '../services/requirement-parser';
 import type { ControlBrowseGroup } from '../services/control-asset-service';
-
-export interface SolutionMetadata {
-    id?: string;
-    name: string;
-    disposition?: string;
-    dispositionGuidance?: string;
-    coreAndCommon?: string;
-    capabilities?: string;
-    reuseModel?: string;
-    provider?: string;
-    resources?: string;
-}
 
 export type ExtToWebviewMessage =
     | {
@@ -34,7 +16,6 @@ export type ExtToWebviewMessage =
           label: string;
           filePath: string;
           readonly?: boolean;
-          solution?: SolutionMetadata;
       }
     | {
           type: 'definitionResolved';
@@ -69,7 +50,6 @@ export type WebviewToExtMessage =
     | { type: 'canvasChanged'; json: string }
     | { type: 'drillInto'; label: string; path: string; calmType: string }
     | { type: 'drillUp'; index: number; filePath?: string; readonly?: boolean }
-    | { type: 'requestGenerateSpec' }
     | { type: 'saveStandardNode'; filename: string; content: string }
     | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string }
     | { type: 'resolveDefinitionId'; nodeId: string; curie: string }

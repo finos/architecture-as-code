@@ -268,9 +268,6 @@ export class CanvasPanel {
             case 'drillUp':
                 void this.handleDrillUp(message.index, message.filePath);
                 break;
-            case 'requestGenerateSpec':
-                void this.handleGenerateSpec();
-                break;
             case 'saveStandardNode':
                 void this.handleSaveStandardNode(
                     message.filename,
@@ -464,43 +461,6 @@ export class CanvasPanel {
             vscode.window.showWarningMessage(`Cannot read: ${resolvedPath}`);
         }
     }
-
-    private async handleGenerateSpec(): Promise<void> {
-        if (!this.currentDocument) return;
-
-        const filePath = this.currentDocument.uri.fsPath;
-        const fileName = nodePath.basename(filePath);
-        const baseName = fileName.replace(/\.(calm\.)?json$/, '');
-        const sdFileName = `${baseName}-solution-design.md`;
-        const sdPath = nodePath.resolve(nodePath.dirname(filePath), sdFileName);
-
-        const prompt = [
-            `@CALM Generate a Solution Design document for the architecture at: ${filePath}`,
-            ``,
-            `Write the output to: ${sdPath}`,
-            ``,
-            `Instructions:`,
-            `- Read the architecture file at the path above`,
-            `- Follow the 13-section structure from .github/agents/calm-prompts/solution-design-creation.md`,
-            `- ALL diagrams MUST be Mermaid syntax`,
-            `- Include ALL 13 sections`,
-        ].join('\n');
-
-        const commands = await vscode.commands.getCommands(true);
-        if (commands.includes('workbench.action.chat.open')) {
-            await vscode.commands.executeCommand('workbench.action.chat.open', {
-                query: prompt,
-                isPartialQuery: false,
-                newChat: true,
-            });
-        } else {
-            vscode.window.showWarningMessage(
-                'Copilot Chat is not available in this VS Code version.'
-            );
-        }
-    }
-
-
 
     private async handleSaveStandardNode(
         filename: string,

@@ -29,8 +29,7 @@ type DrillResultCallback = (
     json: string,
     label: string,
     filePath: string,
-    readonly?: boolean,
-    solution?: unknown
+    readonly?: boolean
 ) => void;
 type DefinitionResolvedCallback = (
     nodeId: string,
@@ -142,8 +141,7 @@ export function initBridge(): void {
                         msg.json,
                         msg.label,
                         msg.filePath,
-                        msg.readonly,
-                        msg.solution
+                        msg.readonly
                     );
                     break;
                 case 'definitionResolved':
@@ -187,10 +185,6 @@ export function notifyDrillUp(
     readonly?: boolean
 ): void {
     postMessage({ type: 'drillUp', index, filePath, readonly });
-}
-
-export function notifyRequestGenerateSpec(): void {
-    postMessage({ type: 'requestGenerateSpec' });
 }
 
 export function notifySaveStandardNode(
