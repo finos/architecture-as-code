@@ -6,6 +6,7 @@ import type { CalmArchitecture } from './calm-editor-transformer';
 export interface ParsedCALMData {
     nodes: Node[];
     edges: Edge[];
+    copiesLimited: boolean;
 }
 
 const NODE_WIDTH = 250;
@@ -23,7 +24,7 @@ export function parseCALMData(
     arch: CalmArchitecture,
     direction: 'DOWN' | 'RIGHT' = 'DOWN'
 ): ParsedCALMData {
-    if (!arch || !arch.nodes) return { nodes: [], edges: [] };
+    if (!arch || !arch.nodes) return { nodes: [], edges: [], copiesLimited: false };
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
@@ -345,7 +346,7 @@ export function parseCALMData(
 
     // Apply Dagre auto-layout
     const layoutedNodes = applyDagreLayout(nodes, edges, direction);
-    return { nodes: layoutedNodes, edges };
+    return { nodes: layoutedNodes, edges, copiesLimited: capped };
 }
 
 const KNOWN_NODE_TYPES = new Set([

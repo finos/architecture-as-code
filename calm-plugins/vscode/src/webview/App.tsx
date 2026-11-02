@@ -105,6 +105,7 @@ function CanvasApp() {
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
     const [panelWidth, setPanelWidth] = useState(280);
+    const [copiesLimited, setCopiesLimited] = useState(false);
     const [panelCollapsed, setPanelCollapsed] = useState(false);
     const [showPatternPicker, setShowPatternPicker] = useState(false);
     const [patternPickerMode, setPatternPickerMode] = useState<'new' | 'apply'>('new');
@@ -254,14 +255,15 @@ function CanvasApp() {
         try {
             const arch = JSON.parse(json) as CalmArchitecture;
             if (!arch || !arch.nodes || arch.nodes.length === 0) {
-                setNodes([]); setEdges([]); setLastParsedArch(null);
+                setNodes([]); setEdges([]); setLastParsedArch(null); setCopiesLimited(false);
                 useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>)?.controls as Record<string, unknown> ?? {} });
                 lastEmittedJson.current = json;
                 return;
             }
             setLastParsedArch(arch);
             useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>).controls as Record<string, unknown> ?? {} });
-            const { nodes: parsedNodes, edges: parsedEdges } = parseCALMData(arch);
+            const { nodes: parsedNodes, edges: parsedEdges, copiesLimited: limited } = parseCALMData(arch);
+            setCopiesLimited(limited);
             const metadata = (arch as Record<string, unknown>).metadata as Record<string, unknown> | undefined;
             const layoutedNodes = applyLayoutFromMetadata(parsedNodes, metadata);
             setNodes(layoutedNodes);
@@ -995,6 +997,7 @@ function CanvasApp() {
 
             {/* Readonly banner */}
             {store.readonlyMode && <div style={{ background: 'var(--vscode-editorWarning-foreground, #fbbf24)', color: 'var(--calm-bg)', textAlign: 'center', padding: '4px', fontSize: '11px', fontWeight: 600 }}>Standard Node — Read Only</div>}
+            {copiesLimited && <div role="status" style={{ background: 'var(--vscode-editorWarning-foreground, #fbbf24)', color: 'var(--calm-bg)', textAlign: 'center', padding: '4px', fontSize: '11px' }}>This diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.</div>}
 
             {/* Main area */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>

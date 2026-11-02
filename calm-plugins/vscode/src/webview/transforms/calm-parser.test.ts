@@ -184,6 +184,7 @@ describe('parseCALMData - nodes with several parents', () => {
         expect(result.nodes.some((n) => n.parentId === 'l0a')).toBe(false);
         expect(byId(result.nodes, 'l0a').width).toBe(500);
         expect(byId(result.nodes, 'l0b').width).toBeGreaterThan(500);
+        expect(result.copiesLimited).toBe(true);
     });
 
     it('draws a node once in each parent, and keeps the CALM id in the last parent as before', () => {
@@ -268,6 +269,7 @@ describe('parseCALMData - nodes with several parents', () => {
             [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns'])],
         ));
         expect(result.nodes.filter((n) => n.data.calmId === 'ns')).toHaveLength(2);
+        expect(result.copiesLimited).toBe(false);
     });
 
     it('keeps the CALM id in the container of the last relationship when a container repeats', () => {

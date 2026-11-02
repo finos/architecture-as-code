@@ -215,6 +215,21 @@ describe('App: edits on a canvas with copies', () => {
         expect(flow.nodes.filter((n) => n.data.calmId === 'svc').map((n) => n.data.controls)).toEqual([controls, controls]);
     });
 
+    it('says so when the diagram is too large to draw a node in each of its containers', () => {
+        const notice = () => document.querySelector('[role="status"]')?.textContent;
+        open(sharedNamespace);
+        expect(notice()).toBeUndefined();
+        act(() => root.unmount());
+
+        // Each level has two containers that are both in both containers of the level above
+        const ids = Array.from({ length: 12 }, (_, k) => [`l${k}a`, `l${k}b`]);
+        open({
+            nodes: ids.flat().map(node),
+            relationships: ids.slice(1).flatMap(([a, b], k) => [deployedIn(`r${k}a`, ids[k][0], [a, b]), deployedIn(`r${k}b`, ids[k][1], [a, b])]),
+        });
+        expect(notice()).toBe('This diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.');
+    });
+
     it('saves once without a rebuild when no node has several drawings', () => {
         open({ nodes: [node('a'), node('b'), node('c')], relationships: [deployedIn('r1', 'a', ['b', 'c'])] });
         deleteDrawings(['b']);
