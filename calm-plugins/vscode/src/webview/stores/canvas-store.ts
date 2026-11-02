@@ -28,6 +28,7 @@ export interface CanvasState {
     panelWidth: number;
     expandControlKey: string | null;
     documentControls: Record<string, unknown>;
+    copiesLimited: boolean;
     standardNodes: unknown[];
     loadedPatterns: unknown[];
     hubLoading: boolean;
@@ -62,6 +63,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     panelWidth: 280,
     expandControlKey: null,
     documentControls: {},
+    copiesLimited: false,
     standardNodes: [],
     loadedPatterns: [],
     hubLoading: false,

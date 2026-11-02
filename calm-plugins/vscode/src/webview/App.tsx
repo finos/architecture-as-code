@@ -47,7 +47,7 @@ import {
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
-import { updateInstances } from './transforms/node-instances';
+import { updateInstances, hasSharedDrawings } from './transforms/node-instances';
 import { deleteDrawings, unparentDrawing, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
@@ -105,7 +105,6 @@ function CanvasApp() {
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
     const [panelWidth, setPanelWidth] = useState(280);
-    const [copiesLimited, setCopiesLimited] = useState(false);
     const [panelCollapsed, setPanelCollapsed] = useState(false);
     const [showPatternPicker, setShowPatternPicker] = useState(false);
     const [patternPickerMode, setPatternPickerMode] = useState<'new' | 'apply'>('new');
@@ -248,22 +247,21 @@ function CanvasApp() {
         // stale nodes would linger).
         if (!json || json.trim() === '') {
             setNodes([]); setEdges([]); setLastParsedArch(null);
-            useCanvasStore.setState({ documentControls: {} });
+            useCanvasStore.setState({ documentControls: {}, copiesLimited: false });
             lastEmittedJson.current = json;
             return;
         }
         try {
             const arch = JSON.parse(json) as CalmArchitecture;
             if (!arch || !arch.nodes || arch.nodes.length === 0) {
-                setNodes([]); setEdges([]); setLastParsedArch(null); setCopiesLimited(false);
-                useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>)?.controls as Record<string, unknown> ?? {} });
+                setNodes([]); setEdges([]); setLastParsedArch(null);
+                useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>)?.controls as Record<string, unknown> ?? {}, copiesLimited: false });
                 lastEmittedJson.current = json;
                 return;
             }
             setLastParsedArch(arch);
-            useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>).controls as Record<string, unknown> ?? {} });
-            const { nodes: parsedNodes, edges: parsedEdges, copiesLimited: limited } = parseCALMData(arch);
-            setCopiesLimited(limited);
+            const { nodes: parsedNodes, edges: parsedEdges, copiesLimited } = parseCALMData(arch);
+            useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>).controls as Record<string, unknown> ?? {}, copiesLimited });
             const metadata = (arch as Record<string, unknown>).metadata as Record<string, unknown> | undefined;
             const layoutedNodes = applyLayoutFromMetadata(parsedNodes, metadata);
             setNodes(layoutedNodes);
@@ -529,26 +527,23 @@ function CanvasApp() {
         }
 
         // Check if dropped inside a container
-        setNodes((nds) => {
-            const draggedAbsPos = getAbsolutePosition(draggedNode, nds);
-            for (const candidate of nds) {
-                if (candidate.id === draggedNode.id) continue;
-                if (candidate.type !== 'container') continue;
-                const containerAbsPos = getAbsolutePosition(candidate, nds);
-                const bounds = {
-                    x: containerAbsPos.x,
-                    y: containerAbsPos.y,
-                    width: ((candidate as any).width ?? 400) as number,
-                    height: ((candidate as any).height ?? 300) as number,
-                };
-                if (isInsideBounds(draggedAbsPos, bounds)) {
-                    return makeContainment(candidate.id, draggedNode.id, nds);
-                }
-            }
-            return nds;
+        const draggedAbsPos = getAbsolutePosition(draggedNode, nodes);
+        const container = nodes.find((candidate) => {
+            if (candidate.id === draggedNode.id) return false;
+            if (candidate.type !== 'container') return false;
+            const containerAbsPos = getAbsolutePosition(candidate, nodes);
+            const bounds = {
+                x: containerAbsPos.x,
+                y: containerAbsPos.y,
+                width: ((candidate as any).width ?? 400) as number,
+                height: ((candidate as any).height ?? 300) as number,
+            };
+            return isInsideBounds(draggedAbsPos, bounds);
         });
-        setTimeout(() => emitChange(true), 0);
-    }, [setNodes, emitChange, store.readonlyMode]);
+        if (container) setNodes((nds) => makeContainment(container.id, draggedNode.id, nds));
+        // A new member of a container with several drawings is drawn in each after a rebuild
+        setTimeout(() => (container && hasSharedDrawings(nodes) ? emitAndReload() : emitChange(true)), 0);
+    }, [nodes, setNodes, emitChange, emitAndReload, store.readonlyMode]);
 
     // --- Node update (from properties panel) ---
     const onNodeUpdate = useCallback((nodeId: string, field: string, value: unknown) => {
@@ -626,7 +621,7 @@ function CanvasApp() {
                 if (targetId) {
                     setNodes((nds) => applyStandardToNode(nds, targetId!, controlsCopy));
                     setTimeout(() => emitChange(true), 0);
-                    setTimeout(() => enrichAllControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
+                    setTimeout(() => enrichAllControls(originalsOf(reactFlowInstance.getNodes()), loadGeneration.current), 0);
                 }
                 return;
             }
@@ -705,8 +700,9 @@ function CanvasApp() {
         try {
             const arch = JSON.parse(lastEmittedJson.current) as CalmArchitecture;
             if (!arch?.nodes?.length) return;
-            const { nodes: laid, edges: parsedEdges } = parseCALMData(arch, direction);
+            const { nodes: laid, edges: parsedEdges, copiesLimited } = parseCALMData(arch, direction);
             setNodes(laid); setEdges(parsedEdges);
+            useCanvasStore.setState({ copiesLimited });
             setTimeout(() => emitChange(true), 0);
         } catch { /* */ }
     }, [setNodes, setEdges, emitChange]);
@@ -995,9 +991,9 @@ function CanvasApp() {
                 </div>
             )}
 
-            {/* Readonly banner */}
+            {/* Banners */}
             {store.readonlyMode && <div style={{ background: 'var(--vscode-editorWarning-foreground, #fbbf24)', color: 'var(--calm-bg)', textAlign: 'center', padding: '4px', fontSize: '11px', fontWeight: 600 }}>Standard Node — Read Only</div>}
-            {copiesLimited && <div role="status" style={{ background: 'var(--vscode-editorWarning-foreground, #fbbf24)', color: 'var(--calm-bg)', textAlign: 'center', padding: '4px', fontSize: '11px' }}>This diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.</div>}
+            {store.copiesLimited && <div role="status" style={{ background: 'var(--vscode-editorWarning-foreground, #fbbf24)', color: 'var(--calm-bg)', textAlign: 'center', padding: '4px', fontSize: '11px' }}>This diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.</div>}
 
             {/* Main area */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>

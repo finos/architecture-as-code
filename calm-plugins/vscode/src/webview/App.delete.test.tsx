@@ -14,6 +14,7 @@ type FlowProps = {
     onEdgesChange: (changes: EdgeChange[]) => void;
     onNodeClick: (event: unknown, node: Node) => void;
     onDrop: (event: unknown) => void;
+    onNodeDragStop: (event: unknown, node: Node) => void;
 };
 let flow: FlowProps;
 vi.mock('reactflow', async () => {
@@ -170,7 +171,7 @@ describe('App: edits on a canvas with copies', () => {
         expect(lastSave().nodes.find((n: { 'unique-id': string }) => n['unique-id'] === 'svc').name).toBe('renamed');
     });
 
-    it('adds the controls of a standard dropped on a copy to every drawing and saves them once', () => {
+    it('adds the controls of a standard dropped on a copy or the original to every drawing and saves them once', () => {
         open(sharedNamespace);
         act(() => window.dispatchEvent(new MessageEvent('message', {
             data: { type: 'standardNodesLoaded', nodes: [{ id: 'std', name: 'Standard', controls: { 'rate-limit': { description: 'Limit', requirements: [] } } }] },
@@ -182,6 +183,9 @@ describe('App: edits on a canvas with copies', () => {
             'application/standard-node-behaviour': 'apply-controls-on-drop',
         };
         const drop = { preventDefault: () => undefined, stopPropagation: () => undefined, clientX: 0, clientY: 0, dataTransfer: { getData: (k: string) => data[k] ?? '' } };
+        act(() => flow.onDrop(drop));
+        act(() => vi.runAllTimers());
+        document.elementsFromPoint = () => [{ closest: () => ({ getAttribute: () => 'svc' }) } as unknown as Element];
         act(() => flow.onDrop(drop));
         act(() => vi.runAllTimers());
 
@@ -228,6 +232,37 @@ describe('App: edits on a canvas with copies', () => {
             relationships: ids.slice(1).flatMap(([a, b], k) => [deployedIn(`r${k}a`, ids[k][0], [a, b]), deployedIn(`r${k}b`, ids[k][1], [a, b])]),
         });
         expect(notice()).toBe('This diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.');
+
+        act(() => window.dispatchEvent(new MessageEvent('message', { data: { type: 'modelUpdated', json: '', source: 'text-editor' } })));
+        expect(notice()).toBeUndefined();
+    });
+
+    it('rebuilds the canvas, with the notice, when a drag into a container passes the copy limit', () => {
+        // C is drawn in each of 20 containers, with 51 children: 988 copies, under the limit
+        const P = Array.from({ length: 20 }, (_, i) => `P${i}`);
+        const leaves = Array.from({ length: 51 }, (_, i) => `leaf${i}`);
+        open({
+            nodes: [...P, 'C', ...leaves, 'Y'].map(node),
+            relationships: [...P.map((p, i) => deployedIn(`rp${i}`, p, ['C'])), deployedIn('rc', 'C', leaves)],
+        });
+        expect(document.querySelector('[role="status"]')).toBeNull();
+        const byId = new Map(flow.nodes.map((n) => [n.id, n]));
+        const abs = (n: Node): { x: number; y: number } => {
+            const p = n.parentId ? abs(byId.get(n.parentId)!) : { x: 0, y: 0 };
+            return { x: p.x + n.position.x, y: p.y + n.position.y };
+        };
+        // A point in C that is outside the container C is drawn in, so the drop picks C
+        const c = byId.get('C')!;
+        const p = byId.get(c.parentId!)!;
+        const at = { x: abs(p).x + p.width! + 5, y: abs(c).y + 5 };
+        expect(at.x).toBeLessThan(abs(c).x + c.width!);
+
+        act(() => flow.onNodeDragStop({}, { ...byId.get('Y')!, position: at }));
+        act(() => vi.runAllTimers());
+
+        // Y makes 20 more copies: past the limit, each node is drawn once
+        expect(flow.nodes.filter((n) => n.data.calmId === 'C')).toHaveLength(1);
+        expect(document.querySelector('[role="status"]')).not.toBeNull();
     });
 
     it('saves once without a rebuild when no node has several drawings', () => {
