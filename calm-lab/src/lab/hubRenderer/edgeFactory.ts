@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/edgeFactory.ts (commit 705f4a14).
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/edgeFactory.ts.
 // Keep logic in sync until the shared renderer package extraction.
 
 import { Edge, MarkerType } from 'reactflow';

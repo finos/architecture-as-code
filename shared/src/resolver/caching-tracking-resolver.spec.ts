@@ -79,4 +79,51 @@ describe('CachingTrackingResolver', () => {
 
         expect(resolver.has('a')).toBe(true);
     });
+
+    it('tracks active traversal ancestry and cleans up via withAncestry()', async () => {
+        const resolver = new CachingTrackingResolver(fakeResolver());
+
+        expect(resolver.ancestry).toEqual([]);
+        expect(resolver.isInAncestry('a')).toBe(false);
+
+        await resolver.withAncestry('a', async () => {
+            expect(resolver.ancestry).toEqual(['a']);
+            expect(resolver.isInAncestry('a')).toBe(true);
+            expect(resolver.isInAncestry('b')).toBe(false);
+
+            await resolver.withAncestry('b', async () => {
+                expect(resolver.ancestry).toEqual(['a', 'b']);
+                expect(resolver.isInAncestry('b')).toBe(true);
+                expect(resolver.formatCycle('a')).toBe('a -> b -> a');
+                expect(resolver.formatCycle('b')).toBe('b -> b');
+            });
+
+            expect(resolver.ancestry).toEqual(['a']);
+            expect(resolver.isInAncestry('b')).toBe(false);
+        });
+
+        expect(resolver.ancestry).toEqual([]);
+        expect(resolver.isInAncestry('a')).toBe(false);
+    });
+
+    it('pops ancestry even when the callback throws', async () => {
+        const resolver = new CachingTrackingResolver(fakeResolver());
+
+        await expect(
+            resolver.withAncestry('a', async () => {
+                throw new Error('fail');
+            })
+        ).rejects.toThrow('fail');
+
+        expect(resolver.ancestry).toEqual([]);
+        expect(resolver.isInAncestry('a')).toBe(false);
+    });
+
+    it('handles leave() for a reference not in ancestry as a no-op', () => {
+        const resolver = new CachingTrackingResolver(fakeResolver());
+        resolver.enter('a');
+        resolver.leave('missing');
+        expect(resolver.ancestry).toEqual(['a']);
+        expect(resolver.formatCycle('c')).toBe('a -> c');
+    });
 });

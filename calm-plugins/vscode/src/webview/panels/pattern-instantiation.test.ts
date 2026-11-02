@@ -232,14 +232,14 @@ describe('instantiateFromPattern', () => {
             expect(req.config).toBeUndefined();
         });
 
-        it('removes definition-id and sets metadata for a local standard node', () => {
+        it('removes definition-id for a local standard node without setting source-standard-node metadata', () => {
             const arch = instantiateFromPattern(
                 { properties: { nodes: { prefixItems: [nodeWithDefId('db', 'database')] } } },
                 [localStdNode],
             );
 
             expect(arch.nodes[0]['definition-id']).toBeUndefined();
-            expect(arch.nodes[0].metadata).toEqual({ 'source-standard-node': 'database' });
+            expect(arch.nodes[0].metadata).toBeUndefined();
             expect(arch.nodes[0].controls).toHaveProperty('Data Classification');
         });
 
@@ -321,7 +321,7 @@ describe('instantiateFromPattern', () => {
             );
 
             expect(arch.nodes[0]['definition-id']).toBeUndefined();
-            expect(arch.nodes[0].metadata).toEqual({ 'source-standard-node': '42' });
+            expect(arch.nodes[0].metadata).toBeUndefined();
         });
 
         it('merges pattern-level controls on top of standard node controls', () => {

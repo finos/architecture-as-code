@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/SystemGroupNode.tsx (commit 2e08db88),
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/SystemGroupNode.tsx,
 // lab-skinned: same translucent dashed container with a clickable name chip and
 // pass-through pointer events; colours from the lab chassis palette.
 // Keep logic in sync until the shared renderer package extraction.

@@ -145,7 +145,7 @@ describe('buildCalmJson', () => {
         expect(doc.nodes[0].name).toBe('Unnamed system 1');
     });
 
-    it('preserves fill and font colors as fidelity-style metadata', () => {
+    it('preserves fill and font colors as standard-node-style metadata', () => {
         const graph: ParsedSvgGraph = {
             sourceFormat: 'drawio',
             nodes: [
@@ -157,11 +157,11 @@ describe('buildCalmJson', () => {
         const result = buildCalmJson(graph);
         const doc = JSON.parse(result.json);
         expect(doc.nodes[0].metadata).toEqual({
-            'fidelity-style': { background: '#1c4587', text: '#ffffff' },
+            'standard-node-style': { background: '#1c4587', text: '#ffffff' },
         });
     });
 
-    it('omits fidelity-style when no colors are set', () => {
+    it('omits standard-node-style when no colors are set', () => {
         const graph: ParsedSvgGraph = {
             sourceFormat: 'drawio',
             nodes: [

@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/CustomNode.tsx (commit 6547fb37),
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/CustomNode.tsx,
 // lab-skinned: keeps the fixed-width wrapper and the hidden source/target
 // handles the floating edges rely on; drops the Hub's hover panel, AIGF badges
 // and control chrome; node-type colour accents come from the ported THEME.

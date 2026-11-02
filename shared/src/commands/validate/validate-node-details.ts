@@ -64,12 +64,21 @@ export async function validateNodeDetails(
         return { jsonSchemaOutputs, spectralOutputs, hasErrors, hasWarnings };
     }
 
-    for (const [nodeIdx, node] of calmCore.nodes.entries()) {
-        const result = await validateNodeDetail(node, nodeIdx, schemaDirectory, debug, recursiveValidator, references);
-        jsonSchemaOutputs.push(...result.jsonSchemaOutputs);
-        spectralOutputs.push(...result.spectralOutputs);
-        if (result.hasErrors) hasErrors = true;
-        if (result.hasWarnings) hasWarnings = true;
+    const validateNodes = async () => {
+        for (const [nodeIdx, node] of calmCore.nodes.entries()) {
+            const result = await validateNodeDetail(node, nodeIdx, schemaDirectory, debug, recursiveValidator, references);
+            jsonSchemaOutputs.push(...result.jsonSchemaOutputs);
+            spectralOutputs.push(...result.spectralOutputs);
+            if (result.hasErrors) hasErrors = true;
+            if (result.hasWarnings) hasWarnings = true;
+        }
+    };
+
+    const rootId = (architecture as Record<string, unknown>)['$id'];
+    if (references.ancestry.length === 0 && typeof rootId === 'string' && rootId.length > 0) {
+        await references.withAncestry(rootId, validateNodes);
+    } else {
+        await validateNodes();
     }
 
     return { jsonSchemaOutputs, spectralOutputs, hasErrors, hasWarnings };
@@ -89,8 +98,15 @@ async function validateNodeDetail(
 
     if (!detailedArchitecture || !archUrl) return emptyNodeResult();
 
-    // A reference already resolved (or currently being resolved higher up the traversal) is skipped:
-    // this both dedupes "validate each detailed-architecture once" and keeps cyclic references safe.
+    const detailsPrefix = `/nodes/${nodeIdx}/details/detailed-architecture`;
+
+    if (references.isInAncestry(archUrl)) {
+        const cyclePath = references.formatCycle(archUrl);
+        logger.debug(`Detected cyclic detailed-architecture reference: ${cyclePath}`);
+        return nodeError(cycleDetectedError(detailsPrefix, cyclePath));
+    }
+
+    // A reference already resolved in a completed branch is skipped silently (sibling/diamond dedupe).
     // A reference whose previous load FAILED is deliberately not skipped, so the load error is
     // re-reported at every node that references it (the resolver returns the cached failure, so the
     // delegate is not re-fetched).
@@ -98,8 +114,6 @@ async function validateNodeDetail(
         logger.debug(`Skipping already-resolved architecture '${archUrl}'`);
         return emptyNodeResult();
     }
-
-    const detailsPrefix = `/nodes/${nodeIdx}/details/detailed-architecture`;
 
     const { subArch, error: loadError } = await loadSubArchitecture(references, archUrl, detailsPrefix);
     if (loadError) return nodeError(loadError);
@@ -182,7 +196,11 @@ async function runRecursiveValidator(
     detailsPrefix: string
 ): Promise<{ outcome?: ValidationOutcome, error?: ValidationOutput }> {
     try {
-        return { outcome: await recursiveValidator(subArch, pattern, freshDir, debug, references) };
+        const outcome = await references.withAncestry(
+            archUrl,
+            () => recursiveValidator(subArch, pattern, freshDir, debug, references)
+        );
+        return { outcome };
     } catch (err) {
         return { error: nodeDetailsError(detailsPrefix, `Validation of detailed-architecture '${archUrl}' failed: ${getErrorMessage(err)}`) };
     }
@@ -225,4 +243,13 @@ function nodeError(output: ValidationOutput): NodeDetailResult {
 
 function nodeDetailsError(path: string, message: string): ValidationOutput {
     return ValidationOutput.error('node-details-validation', message, path, { source: 'architecture' });
+}
+
+function cycleDetectedError(path: string, cyclePath: string): ValidationOutput {
+    return ValidationOutput.error(
+        'cycle-detected',
+        `Cyclic detailed-architecture reference detected: ${cyclePath}`,
+        path,
+        { source: 'architecture' }
+    );
 }

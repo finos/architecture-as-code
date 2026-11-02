@@ -24,7 +24,7 @@ export function buildCalmJson(graph: ParsedSvgGraph): ImportResult {
 
         const style = extractNodeStyle(n.styleProps);
         if (style) {
-            node.metadata = { 'fidelity-style': style };
+            node.metadata = { 'standard-node-style': style };
         }
 
         return node;

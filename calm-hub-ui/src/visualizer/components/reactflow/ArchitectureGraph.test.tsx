@@ -157,6 +157,37 @@ describe('ArchitectureGraph', () => {
         expect(typeof reactFlowProps()?.onInit).toBe('function');
     });
 
+    it('tells the viewer when each node is drawn in one container only', () => {
+        const containers = Array.from({ length: 40 }, (_, k) => `c${k}`);
+        const clients = Array.from({ length: 30 }, (_, k) => `client${k}`);
+        const limited = {
+            nodes: [...containers, ...clients, 'svc'].map((id) => ({ 'unique-id': id, name: id, description: '', 'node-type': 'service' })),
+            relationships: [
+                ...containers.map((c) => ({ 'unique-id': `in-${c}`, 'relationship-type': { 'deployed-in': { container: c, nodes: ['svc'] } } })),
+                ...clients.map((c) => ({ 'unique-id': `${c}-svc`, 'relationship-type': { connects: { source: { node: c }, destination: { node: 'svc' } } } })),
+            ],
+        } as CalmArchitectureSchema;
+        render(<ArchitectureGraph jsonData={limited} />);
+        expect(screen.getByRole('status')).toHaveTextContent('one container');
+    });
+
+    it('shows the details of the original node when a copy is clicked', () => {
+        const shared = {
+            nodes: ['cluster-a', 'cluster-b', 'svc'].map((id) => ({ 'unique-id': id, name: id, description: `${id} description`, 'node-type': 'service' })),
+            relationships: ['cluster-a', 'cluster-b'].map((c) => ({ 'unique-id': `in-${c}`, 'relationship-type': { 'deployed-in': { container: c, nodes: ['svc'] } } })),
+        } as CalmArchitectureSchema;
+        const onNodeClick = vi.fn();
+        render(<ArchitectureGraph jsonData={shared} onNodeClick={onNodeClick} />);
+        const copy = (reactFlowProps()?.nodes as Node[]).find((n) => n.id === 'svc__in__cluster-a')!;
+        act(() => (reactFlowProps()?.onNodeClick as (e: unknown, n: Node) => void)({}, copy));
+        expect(onNodeClick).toHaveBeenCalledWith(expect.objectContaining({ 'unique-id': 'svc', description: 'svc description' }));
+    });
+
+    it('shows no notice when every node is drawn in each of its containers', () => {
+        render(<ArchitectureGraph jsonData={mockCalmData} />);
+        expect(screen.queryByRole('status')).toBeNull();
+    });
+
     describe('fitToPane', () => {
         // The shared setup stubs ResizeObserver as a no-op. Swap in one that
         // records its callback so a pane resize can be simulated, and run
