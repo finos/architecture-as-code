@@ -11,10 +11,14 @@ import { createRequire } from 'module';
 const production = process.argv.includes('--production');
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// The diagram renderer is bundled from source, so the extension builds before @calmstudio/diagram does
+const diagramRenderSrc = resolve(__dirname, '../web-component/src/render/index.ts');
+
 // Bundle 1: VS Code extension host entry point
 await esbuild.build({
   entryPoints: ['src/extension.ts'],
   bundle: true,
+  alias: { '@calmstudio/diagram/render': diagramRenderSrc },
   format: 'cjs',           // REQUIRED — VS Code extension host requires CJS
   platform: 'node',
   target: 'node18',
