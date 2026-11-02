@@ -212,24 +212,23 @@ export function expandEdgesToInstances(
     parentOf: Map<string, string>
 ): Edge[] {
     const ancestors = (id: string) => {
-        const found: string[] = [];
-        for (let p = parentOf.get(id); p; p = parentOf.get(p)) found.push(p);
+        const found = new Set<string>();
+        for (let p = parentOf.get(id); p; p = parentOf.get(p)) found.add(p);
         return found;
     };
-    const contains = (outer: string, inner: string) => ancestors(inner).includes(outer);
 
     return edges.flatMap((edge) => {
         const sources = instancesOf.get(edge.source) ?? [edge.source];
         const targets = instancesOf.get(edge.target) ?? [edge.target];
         if (sources.length === 1 && targets.length === 1) return [edge];
 
-        // A container that holds every drawing of both ends does not tell which drawings belong together
         const drawings = [...sources, ...targets];
-        const everywhere = new Set(ancestors(drawings[0]).filter((x) => drawings.every((d) => ancestors(d).includes(x))));
-        const sharedContainers = (a: string, b: string) => {
-            const ofB = new Set(ancestors(b));
-            return ancestors(a).filter((x) => ofB.has(x) && !everywhere.has(x)).length;
-        };
+        const ancestorsOf = new Map(drawings.map((d) => [d, ancestors(d)]));
+        const contains = (outer: string, inner: string) => ancestorsOf.get(inner)!.has(outer);
+        // A container that holds every drawing of both ends does not tell which drawings belong together
+        const everywhere = new Set([...ancestorsOf.get(drawings[0])!].filter((x) => drawings.every((d) => ancestorsOf.get(d)!.has(x))));
+        const sharedContainers = (a: string, b: string) =>
+            [...ancestorsOf.get(a)!].filter((x) => ancestorsOf.get(b)!.has(x) && !everywhere.has(x)).length;
 
         const pairs = sources.flatMap((source) =>
             targets.map((target) => ({ source, target, score: sharedContainers(source, target) }))

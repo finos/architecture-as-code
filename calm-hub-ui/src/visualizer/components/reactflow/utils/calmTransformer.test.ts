@@ -3,6 +3,7 @@ import { parseCALMData } from './calmTransformer';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { GRAPH_LAYOUT } from './constants';
 import { parseNodes } from './nodeParser';
+import { expandEdgesToInstances } from './relationshipParser';
 
 describe('parseCALMData', () => {
     it('returns empty arrays for null data', () => {
@@ -815,5 +816,15 @@ describe('parseNodes with deep nesting', () => {
         const parentMap = new Map(nodes.slice(1).map((_, i) => [`n${i + 1}`, [`n${i}`]]));
         const parsed = parseNodes(nodes, { containerNodeIds: new Set(nodes.map((n) => n['unique-id'])), parentMap });
         expect(parsed.systemNodes.length + parsed.regularNodes.length).toBe(depth);
+    });
+
+    it('connects copies at the bottom of a chain of 20,000 nested containers', () => {
+        const depth = 20000;
+        const parentOf = new Map(Array.from({ length: depth - 1 }, (_, i) => [`n${i + 1}`, `n${i}`] as [string, string]));
+        parentOf.set('leaf', `n${depth - 1}`).set('other', `n${depth - 1}`);
+        parentOf.set('leaf__in__side', 'side').set('other__in__side', 'side');
+        const instancesOf = new Map([['leaf', ['leaf', 'leaf__in__side']], ['other', ['other', 'other__in__side']]]);
+        const edges = expandEdgesToInstances([{ id: 'e', source: 'leaf', target: 'other' }], instancesOf, parentOf);
+        expect(edges.map((e) => [e.source, e.target])).toEqual([['leaf', 'other'], ['leaf__in__side', 'other__in__side']]);
     });
 });
