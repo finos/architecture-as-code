@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/theme.ts (commit e7d692b3),
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/theme.ts,
 // with the neutral tokens resolved to the lab's dark chassis palette instead of
 // the Hub's CSS variables (the lab is theme-invariant dark), and the chromatic
 // node-type/edge hues copied from calm-hub-ui/src/theme/colors.ts.

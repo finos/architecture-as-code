@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/floatingEdges.ts (commit f0597f8d).
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/floatingEdges.ts.
 // Keep logic in sync until the shared renderer package extraction.
 
 import { Position, Node } from 'reactflow';
