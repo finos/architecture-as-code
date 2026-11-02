@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/nodeParser.ts (commit c4f983cc).
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/nodeParser.ts.
 // Keep logic in sync until the shared renderer package extraction.
 
 import type { Node } from 'reactflow';

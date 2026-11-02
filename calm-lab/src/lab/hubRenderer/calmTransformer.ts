@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/calmTransformer.ts (commit 56c9ee8f).
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/calmTransformer.ts.
 // Keep logic in sync until the shared renderer package extraction.
 
 import type { Node, Edge } from 'reactflow';
