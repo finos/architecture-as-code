@@ -2,7 +2,8 @@
  * CALM Version Normalizer
  *
  * Detects CALM document versions (v1.0, v1.1, v1.2) and normalizes
- * v1.0 documents to v1.1-compatible shape before Zod parsing.
+ * v1.0 documents to v1.1-compatible shape before Zod parsing. Canonical
+ * nested `relationship-type` objects are flattened for every version.
  *
  * Version detection priority:
  *   1. v1.0 — `calmSchemaVersion` field present OR legacy node types detected
@@ -254,10 +255,59 @@ function normalizeV10(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
+ * Checks whether a raw relationship uses the canonical nested `relationship-type` object.
+ */
+function isCanonicalRelationship(rawRel: unknown): rawRel is Record<string, unknown> & {
+  'relationship-type': Record<string, unknown>;
+} {
+  return isPlainObject(rawRel) && isPlainObject(rawRel['relationship-type']);
+}
+
+/**
+ * Flattens a canonical CALM relationship to the shape the Zod schema expects.
+ *
+ * Canonical CALM (every release, see `calm/release/<version>/meta/core.json`) nests the
+ * variant inside `relationship-type`:
+ *   `{ relationship-type: { connects: { source, destination } } }`
+ * The schema discriminates on a string instead:
+ *   `{ relationship-type: 'connects', connects: { source, destination } }`
+ *
+ * Anything other than a single-variant object is returned unchanged, so Zod still rejects it.
+ *
+ * @param rawRel - Raw relationship value
+ * @returns Flattened relationship, or the input unchanged
+ */
+function flattenCanonicalRelationship(rawRel: unknown): unknown {
+  if (!isCanonicalRelationship(rawRel)) return rawRel;
+
+  const relType = rawRel['relationship-type'];
+  const variants = Object.keys(relType);
+  if (variants.length !== 1) return rawRel;
+
+  const [variant] = variants;
+  return { ...rawRel, 'relationship-type': variant, [variant]: relType[variant] };
+}
+
+/**
+ * Flattens every canonical relationship in a raw CALM document.
+ * Returns the input itself when there is nothing to flatten.
+ *
+ * @param raw - Raw document value (unknown shape)
+ * @returns Document with flattened relationships, or the input unchanged
+ */
+function flattenCanonicalRelationships(raw: unknown): unknown {
+  if (!isPlainObject(raw) || !Array.isArray(raw['relationships'])) return raw;
+  if (!raw['relationships'].some(isCanonicalRelationship)) return raw;
+
+  return { ...raw, relationships: raw['relationships'].map(flattenCanonicalRelationship) };
+}
+
+/**
  * Normalizes a raw CALM document based on its detected version.
  *
- * - v1.1: returned unchanged (pass-through)
- * - v1.2: returned unchanged (extra fields already accepted by schema)
+ * - All versions: canonical nested `relationship-type` objects are flattened
+ * - v1.1: otherwise returned unchanged (pass-through)
+ * - v1.2: otherwise returned unchanged (extra fields already accepted by schema)
  * - v1.0: transformed to v1.1-compatible shape
  *
  * @param raw - Raw document value (unknown shape)
@@ -265,14 +315,16 @@ function normalizeV10(raw: Record<string, unknown>): Record<string, unknown> {
  * @returns Normalized document (or original if no normalization needed)
  */
 export function normalizeCalmDocument(raw: unknown, version: CalmVersion): unknown {
+  const flattened = flattenCanonicalRelationships(raw);
+
   if (version === '1.1' || version === '1.2') {
-    return raw; // Pass-through — no normalization needed
+    return flattened;
   }
 
   // v1.0: apply normalization
-  if (!isPlainObject(raw)) {
-    return raw;
+  if (!isPlainObject(flattened)) {
+    return flattened;
   }
 
-  return normalizeV10(raw);
+  return normalizeV10(flattened);
 }
