@@ -1,9 +1,5 @@
 # CALM Metadata Creation Guide
 
-## Critical Requirements
-
-🚨 **ALWAYS call the metadata creation tool before adding metadata**
-
 ## Official JSON Schema Definition
 
 The complete metadata schema from the FINOS CALM v1.3 specification:

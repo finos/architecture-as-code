@@ -47,8 +47,11 @@ node_modules
 
 coverage/
 /cli/test/template-bundles/
-.github/chatmodes
-.github/agents
+# Output of `calm init-ai` run inside this repository
+.github/skills/calm/
+.claude/skills/calm/
+.kiro/skills/calm/
+.agents/skills/calm/
 shared/test-output/
 .calm-workspace/
 cli/test_fixtures/getting-started/actual-output/

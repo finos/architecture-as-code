@@ -55,7 +55,7 @@ architecture-as-code/
 ├── calm-plugins/vscode/       # VSCode extension
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
-├── calm-ai/                   # AI agent tools & prompts
+├── calm-ai/                   # The CALM agent skill (SKILL.md) that `calm init-ai` installs
 ├── calm-studio/               # SvelteKit visual CALM editor — nested npm-workspace monorepo
 ├── calm-guard/                # Next.js continuous-compliance platform (CALMGuard)
 ├── shared/                    # Shared TypeScript utilities

@@ -1,10 +1,5 @@
 # CALM Moment Creation Guide
 
-## Critical Requirements
-
-⚠️ **ALWAYS call the moment creation tool before creating any moment**
-⚠️ **ALWAYS call the control creation tool before adding controls to a moment**
-
 ## What Are Moments?
 
 Moments represent the "major stages" an architecture progresses through over time. A moment represents a single point in time, and the architecture at that moment. They provide several key capabilities:
@@ -143,8 +138,8 @@ Every moment MUST have:
 
 - `valid-from` - Date string (YYYY-MM-DD) indicating when this moment came into effect. It is ONLY permitted on past or current moments.
 - `interfaces` - is NOT permitted on a moment
-- `controls` - Compliance controls (see control creation tool)
-- `metadata` - Additional information (see metadata creation tool for details)
+- `controls` - Compliance controls (see `control.md`)
+- `metadata` - Additional information (see `metadata.md`)
 
 ## Details Property Structure
 
@@ -175,7 +170,7 @@ The `details` property follows this exact schema:
 
 ## Metadata Schema Rules
 
-Critical: Metadata can be either an array OR an object (see metadata creation tool for complete guidance):
+Critical: Metadata can be either an array OR an object (see `metadata.md`):
 
 ```json
 {
@@ -222,12 +217,11 @@ Critical: Metadata can be either an array OR an object (see metadata creation to
 1. **Required Properties**: Must include `unique-id`, `node-type`, `name`, `description`, `details`.
 2. **Node Type**: Must be `moment`
 3. **Details Object**: Only allows `detailed-architecture` and `required-pattern` properties
-4. **Metadata**: Can be array of objects OR single object (see metadata creation tool)
+4. **Metadata**: Can be array of objects OR single object (see `metadata.md`)
 5. **Additional Properties**: Schema allows additional properties at node level (`"additionalProperties": true`)
 
 ## Key Reminders
 
-- Always use the moment creation tool before creating moments
-- Reference the metadata creation tool for metadata structure guidance
+- See `metadata.md` for metadata structure
 - The schema is authoritative - follow it exactly
 - Node unique-ids must be unique across the entire timeline

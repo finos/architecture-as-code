@@ -46,7 +46,7 @@ Every CALM architecture MUST include:
 - [ ] **Confirm output shows:** `"hasErrors": false, "hasWarnings": false`
 - [ ] **Document any warnings addressed**
 
-> **Note:** See **calm-cli-instructions.md** for complete CLI usage, validation modes, and options.
+> **Note:** See `cli.md` for complete CLI usage, validation modes, and options.
 
 ## Best Practices
 

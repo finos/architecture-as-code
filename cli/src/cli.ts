@@ -305,7 +305,7 @@ Validation requires:
 
     program
         .command('init-ai')
-        .description('Augment a git repository with AI assistance for CALM')
+        .description('Install the CALM agent skill for an AI coding assistant into a git repository')
         .addOption(providerOption)
         .option(AI_DIRECTORY_OPTION, 'Target directory (defaults to current directory)', '.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)

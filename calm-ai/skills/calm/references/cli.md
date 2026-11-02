@@ -122,17 +122,15 @@ calm validate -a my-arch.json --strict -f pretty
 calm validate -p pattern.json -a arch.json -f junit -o results.xml
 ```
 
-## AI Assistant Provider Setup
+## AI Assistant Setup
 
-Configure CALM-specific AI assistance inside a repo:
+Install this skill into a repository for an AI coding assistant:
 
 ```shell
 calm init-ai -p <provider> [--directory <path>] [--verbose]
 ```
 
-At present GitHub Copilot (`copilot`), AWS Kiro (`kiro`), Claude Code (`claude`), and Codex (`codex`) are supported as providers.
-
-This generates custom prompts for the specified <provider> to use CALM-aware tools (nodes, relationships, interfaces, controls, flows, patterns, metadata).
+Providers: GitHub Copilot (`copilot`, `.github/skills`), AWS Kiro (`kiro`, `.kiro/skills`), Claude Code (`claude`, `.claude/skills`) and Codex (`codex`, `.agents/skills`). The skill is installed as `<skills directory>/calm/SKILL.md` with its `references/`. Run the command again to refresh the skill after a CLI upgrade.
 
 ## Template Command
 
@@ -210,4 +208,4 @@ calm docify -a architecture.json -o docs/ --url-to-local-file-mapping url-mappin
 - Keep schema files accessible via `--schema-directory` for offline use.
 - Use `calm generate` + `calm validate` workflow to quickly iterate on architectures.
 - Leverage warnings to replace placeholder values before production.
-- Combine `calm init-ai` with VS Code for CALM-aware AI assistance.
+- Run `calm init-ai` in every CALM repository so the assistant gets the same guidance everywhere.

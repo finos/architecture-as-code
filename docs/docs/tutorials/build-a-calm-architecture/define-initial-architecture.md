@@ -18,13 +18,11 @@ with no nodes or relationships
 
 **Response from AI Assistant**
 ```text
-Loading FINOS CALM instructions...
+Using the calm skill. Let me read the references for this task.
 
-Let me read the CALM tool prompts to understand the current guidance. 
+Ran terminal command:  cat ".github/skills/calm/references/architecture.md"
 
-Ran terminal command:  cat ".github/chatmodes/calm-prompts/architecture-creation.md"
-
-Ran terminal command:  cat ".github/chatmodes/calm-prompts/calm-cli-instructions.md"
+Ran terminal command:  cat ".github/skills/calm/references/cli.md"
 
 I'm ready to assist with CALM architectures. Let me create the minimal architecture file for you. 
 
@@ -327,9 +325,9 @@ nodes and relationships.
 
 **Response from AI Assistant**
 ```text
-Ran terminal command:  cat ".github/chatmodes/calm-prompts/node-creation.md"
+Ran terminal command:  cat ".github/skills/calm/references/node.md"
 
-Ran terminal command:  cat ".github/chatmodes/calm-prompts/relationship-creation.md"
+Ran terminal command:  cat ".github/skills/calm/references/relationship.md"
 
 Now let me update the architecture file with all the nodes and relationships based on the business design: 
 

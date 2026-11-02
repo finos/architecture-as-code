@@ -133,105 +133,58 @@ describe('CLI Integration Tests', () => {
 
     test('calm init-ai --help shows help', async () => {
         const { stdout } = await cli.run(['init-ai', '--help']);
-        expect(stdout).toContain('Augment a git repository with AI assistance for CALM');
+        expect(stdout).toContain('Install the CALM agent skill for an AI coding assistant');
         expect(stdout).toContain('Options:');
     });
 
-    describe.each(['copilot', 'kiro', 'claude', 'codex'])('calm init-ai -p %s', (provider) => {
-        test('creates correct directory structure and files', async () => {
+    describe.each([
+        ['copilot', '.github/skills'],
+        ['kiro', '.kiro/skills'],
+        ['claude', '.claude/skills'],
+        ['codex', '.agents/skills'],
+    ])('calm init-ai -p %s', (provider, skillsDirectory) => {
+        test('installs the CALM skill in the provider skills directory', async () => {
             const testDir = path.join(tempDir, `init-ai-${provider}-test`);
             fs.mkdirSync(testDir, { recursive: true });
 
             // Initialize a git repository to avoid warning
             execSync('git init', { cwd: testDir, stdio: 'inherit' });
 
-            // Run calm init-ai with the specified provider
             await cli.run(['init-ai', '-p', provider, '--directory', testDir]);
 
-            // Define expected paths based on provider
-            const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string; frontmatterContains: string[]; frontmatterNotContains?: string[] }> = {
-                copilot: {
-                    topLevelDir: '.github/agents',
-                    mainPromptFile: '.github/agents/CALM.agent.md',
-                    skillPromptsDir: '.github/agents/calm-prompts',
-                    frontmatterContains: [
-                        'description:',
-                        'tools:',
-                        'search/codebase',
-                        'edit/editFiles',
-                        'web/fetch',
-                        'execute/runInTerminal',
-                    ],
-                    frontmatterNotContains: ['tools: [\'codebase\'', 'model:'],
-                },
-                kiro: {
-                    topLevelDir: '.kiro',
-                    mainPromptFile: '.kiro/steering/CALM.chatmode.md',
-                    skillPromptsDir: '.kiro/calm-prompts',
-                    frontmatterContains: ['inclusion: manual'],
-                },
-                claude: {
-                    topLevelDir: '.claude/skills/calm',
-                    mainPromptFile: '.claude/skills/calm/SKILL.md',
-                    skillPromptsDir: '.claude/skills/calm/calm-prompts',
-                    frontmatterContains: ['name: calm', 'description:', 'user-invocable: true'],
-                },
-                codex: {
-                    topLevelDir: '.agents/skills/calm',
-                    mainPromptFile: '.agents/skills/calm/SKILL.md',
-                    skillPromptsDir: '.agents/skills/calm/calm-prompts',
-                    frontmatterContains: ['name: calm', 'description:'],
-                },
-            };
+            const skillDir = path.join(testDir, skillsDirectory, 'calm');
+            const skill = fs.readFileSync(path.join(skillDir, 'SKILL.md'), 'utf8');
+            expect(skill).toContain('FINOS CALM');
+            expect(skill).toContain('Common Architecture Language Model');
 
-            const paths = expectedPaths[provider];
+            const frontmatter = mustMatch(skill, /^---\n([\s\S]*?)\n---/, 'SKILL.md frontmatter')[1];
+            expect(frontmatter).toContain('name: calm');
+            expect(frontmatter).toContain('description:');
 
-            // Verify top-level directory exists
-            expect(fs.existsSync(path.join(testDir, paths.topLevelDir))).toBe(true);
-
-            // Verify main prompt file exists and contains expected content
-            const mainPromptPath = path.join(testDir, paths.mainPromptFile);
-            expect(fs.existsSync(mainPromptPath)).toBe(true);
-            const mainPromptContent = fs.readFileSync(mainPromptPath, 'utf8');
-            expect(mainPromptContent).toContain('FINOS CALM');
-            expect(mainPromptContent).toContain('Common Architecture Language Model');
-
-            // Verify frontmatter content
-            const frontmatterMatch = mainPromptContent.match(/^---\n([\s\S]*?)\n---/);
-            expect(frontmatterMatch).not.toBeNull();
-            const frontmatter = frontmatterMatch![1];
-            paths.frontmatterContains.forEach((key) => expect(frontmatter).toContain(key));
-            paths.frontmatterNotContains?.forEach((key) => expect(frontmatter).not.toContain(key));
-
-            // Verify calm-prompts directory exists
-            const skillPromptsPath = path.join(testDir, paths.skillPromptsDir);
-            expect(fs.existsSync(skillPromptsPath)).toBe(true);
-
-            // Verify all 11 skill prompt files exist
-            const expectedSkillFiles = [
-                'architecture-creation.md',
-                'calm-cli-instructions.md',
-                'node-creation.md',
-                'relationship-creation.md',
-                'interface-creation.md',
-                'metadata-creation.md',
-                'control-creation.md',
-                'flow-creation.md',
-                'pattern-creation.md',
-                'documentation-creation.md',
-                'standards-creation.md',
-                'decorator-creation.md',
+            const expectedReferences = [
+                'architecture.md',
+                'cli.md',
+                'control.md',
+                'decorator.md',
+                'documentation.md',
+                'flow.md',
+                'interface.md',
+                'metadata.md',
+                'moment.md',
+                'node.md',
+                'pattern.md',
+                'relationship.md',
+                'standards.md',
+                'timeline.md',
             ];
+            const references = path.join(skillDir, 'references');
+            expect(fs.readdirSync(references).sort()).toEqual(expectedReferences);
+            for (const reference of expectedReferences) {
+                // Every reference is reachable from SKILL.md and has content
+                expect(skill).toContain(`references/${reference}`);
+                expect(fs.readFileSync(path.join(references, reference), 'utf8').length).toBeGreaterThan(0);
+            }
 
-            expectedSkillFiles.forEach((skillFile) => {
-                const skillFilePath = path.join(skillPromptsPath, skillFile);
-                expect(fs.existsSync(skillFilePath)).toBe(true);
-                // Verify file has content
-                const content = fs.readFileSync(skillFilePath, 'utf8');
-                expect(content.length).toBeGreaterThan(0);
-            });
-
-            // Clean up test directory
             fs.rmSync(testDir, { recursive: true, force: true });
         });
     });

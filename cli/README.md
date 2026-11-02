@@ -53,7 +53,7 @@ Commands:
   validate [options]          Validate a CALM document.
   template [options]          Generate files from a CALM model using a template bundle, a single file, or a directory of templates
   docify [options]            Generate a documentation website from your CALM model using a template or template directory
-  init-ai [options]           Augment a git repository with AI assistance for CALM
+  init-ai [options]           Install the CALM agent skill for an AI coding assistant into a git repository
   diff [options]              Compare two CALM documents (architectures or patterns), or the moments of a CALM timeline, and report what changed.
   timeline [options]          Synthesise an implied CALM timeline from a set of local versioned architecture files.
   init-config [options]       Create or update the CALM CLI configuration file (~/.calm.json).
@@ -452,13 +452,13 @@ This differs:
 
 ## CALM init-ai
 
-The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present four AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, and Codex.
+The `init-ai` command installs the `calm` agent skill into a repository, so that your AI coding assistant knows the CALM schema, its validation rules and this CLI. The skill uses the [Agent Skills](https://agentskills.io) format (`SKILL.md` plus reference files), so the same skill serves GitHub Copilot, AWS Kiro, Claude Code and Codex. Only the install location differs per provider.
 
 ```shell
 calm init-ai --help
 Usage: calm init-ai [options]
 
-Augment a git repository with AI assistance for CALM
+Install the CALM agent skill for an AI coding assistant into a git repository
 
 Options:
   -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex")
@@ -467,17 +467,14 @@ Options:
   -h, --help                 display help for command
 ```
 
-This command creates a custom chat prompt configuration for the specified <provider> that provides AI assistance with specialized knowledge about CALM architecture modeling, including:
-
-- **Schema-accurate guidance**: Complete JSON schema definitions for all CALM components
-- **Critical validation requirements**: Emphasis on oneOf constraints and other validation rules
-- **Best practice enforcement**: Naming conventions, relationship patterns, and proper structure
-- **Comprehensive examples**: Realistic architecture examples based on actual CALM patterns
-- **Tool specialization**: Separate tools for nodes, relationships, interfaces, controls, flows, patterns, and metadata
+| Provider | Installed to |
+|---|---|
+| `copilot` | `.github/skills/calm/` |
+| `kiro` | `.kiro/skills/calm/` |
+| `claude` | `.claude/skills/calm/` |
+| `codex` | `.agents/skills/calm/` |
 
 ### Setting up CALM AI assistance
-
-To set up AI assistance for your CALM project:
 
 ```shell
 # In your project directory
@@ -487,22 +484,13 @@ calm init-ai -p <provider>
 calm init-ai -p <provider> --directory /path/to/your/calm-project
 ```
 
-This will create the necessary assistant-specific configuration files to enable CALM-specific AI assistance. Once set up, your selected assistant can use specialized CALM tools that understand schema requirements, validation rules, and best practices. For Codex, this creates a CALM skill under `.agents/skills/calm` and does not create or modify root `AGENTS.md`.
+The command only writes the skill directory. It does not create or change `AGENTS.md`, `CLAUDE.md` or other instruction files. Run it again after a CLI upgrade to refresh the skill.
 
-### Tool Prompts
+### What the skill contains
 
-The agent includes specialized tools for each CALM component:
+`SKILL.md` holds what CALM is, the modelling workflow, the rules that always apply (schema release, interface and relationship `oneOf` constraints, control structure) and how to validate. It routes the assistant to one reference file per CALM element, read only when a task needs it: architecture, node, interface, relationship, metadata, control, flow, pattern, standards, timeline, moment, decorator, documentation and the CLI itself. Each reference holds the schema excerpt, a working example and the validation rules for that element.
 
-- **Node Creation**: Guide for creating nodes with proper validation and interface definitions
-- **Relationship Creation**: Guide for creating relationships with correct types and constraints
-- **Interface Creation**: Critical guidance for interface oneOf constraints and schema compliance
-- **Control Creation**: Guide for security controls, requirements, and configurations
-- **Flow Creation**: Guide for business process flows and transitions
-- **Pattern Creation**: Guide for reusable architectural patterns using JSON schema constructs
-- **Metadata Creation**: Guide for metadata structure options (single object vs. array)
-- **Standards Creation**: Guide for creating JSON Schema 2020-12 Standards that extend CALM components with organizational requirements
-
-Each tool includes complete schema definitions, validation rules, realistic examples, and cross-references to related tools.
+See [CALM AI Tools](https://calm.finos.org/working-with-calm/calm-ai-tools) for how to activate the skill in each assistant.
 
 ## Diffing two CALM documents
 

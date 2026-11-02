@@ -1,9 +1,5 @@
 # CALM Pattern Creation Guide
 
-## Critical Requirements
-
-🚨 **ALWAYS call the pattern creation tool before creating any patterns**
-
 ## Overview
 
 Patterns in CALM are JSON schemas that provide reusable, instantiable architecture templates. They define repeatable architectural solutions with configurable options that can be generated using the `calm generate` command.
@@ -773,4 +769,4 @@ calm generate -p my-pattern.json -o test-arch.json
 calm validate -p my-pattern.json -a test-arch.json
 ```
 
-> **Note:** See **calm-cli-instructions.md** for complete CLI usage, validation modes, and options.
+> **Note:** See `cli.md` for complete CLI usage, validation modes, and options.

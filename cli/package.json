@@ -23,7 +23,7 @@
         "copy-calm-schema": "copyfiles \"../calm/draft/**/meta/*\" dist/calm/ && node ../scripts/copy-calm-schemas.mjs dist/calm",
         "copy-docify-templates": "copyfiles \"../shared/dist/template-bundles/**/*\" dist --up 3",
         "copy-widgets": "copyfiles \"../calm-widgets/dist/cli/widgets/**/*\" dist --up 4",
-        "copy-ai-tools": "copyfiles \"../calm-ai/tools/**/*\" \"../calm-ai/ai-assistants/**/*\" \"../calm-ai/templates/**/*\" dist/calm-ai/ --up 2",
+        "copy-ai-tools": "copyfiles \"../calm-ai/skills/**/*\" \"../calm-ai/ai-assistants/**/*\" dist/calm-ai/ --up 2",
         "copy-workspace-templates": "copyfiles \"src/command-helpers/workspace/templates/**/*\" dist/ --up 3",
         "test": "vitest run",
         "test:smoke": "vitest run --config vitest.smoke.mts",

@@ -36,7 +36,7 @@ calm --help            # Test globally linked CLI
 npm run copy-calm-schema         # Copy CALM meta schemas from npm and ../calm/
 npm run copy-docify-templates    # Copy docify templates from ../shared/
 npm run copy-widgets             # Copy widget files from ../calm-widgets/
-npm run copy-ai-tools            # Copy AI agent files from ../calm-ai/
+npm run copy-ai-tools            # Copy the CALM skill and provider configs from ../calm-ai/
 npm run copy-workspace-templates # Copy `workspace new` templates from src/command-helpers/workspace/templates/
 ```
 
@@ -50,7 +50,7 @@ npm run copy-workspace-templates # Copy `workspace new` templates from src/comma
 ### Key Commands
 1. **generate** - Generate architecture from CALM pattern
 2. **validate** - Validate a CALM document (architecture, pattern, and/or timeline) against schemas
-3. **init-ai** - Install AI Assistant support for CALM
+3. **init-ai** - Install the CALM agent skill (`SKILL.md`) for an AI coding assistant
 4. **template** - Generate files from Handlebars templates
 5. **docify** - Generate documentation websites (supports `--scaffold` for two-stage workflow)
 6. **diff** - Compare two CALM documents (architectures or patterns), or adjacent/explicit moments of a CALM timeline, and report what changed. Supports `--exit-code` to gate CI on detected changes.
@@ -96,7 +96,7 @@ After `npm run build`, the `dist/` directory contains:
 dist/
 ├── index.js              # Compiled CLI entry point (bin)
 ├── calm/                 # Copied CALM meta schemas only (release + draft **/meta/* files)
-├── calm-ai/              # Copied AI agent files
+├── calm-ai/              # Copied CALM skill (skills/calm) and provider configs (ai-assistants)
 ├── template-bundles/     # Copied docify templates
 └── widgets/              # Copied widget files (copy-widgets uses --up 4)
 ```

@@ -1,9 +1,5 @@
 # CALM Flow Creation Guide
 
-## Critical Requirements
-
-🚨 **ALWAYS call the flow creation tool before creating any flows**
-
 ## Official JSON Schema Definition
 
 The complete flow schema from the FINOS CALM v1.3 specification:
@@ -187,7 +183,7 @@ Optional transition properties:
 "requirement-url": "https://docs.company.com/flows/trade-execution.md"
 ```
 
-**controls**: Reference to control requirements (see control creation tool)
+**controls**: Reference to control requirements (see `control.md`)
 
 ```json
 "controls": {
@@ -195,7 +191,7 @@ Optional transition properties:
 }
 ```
 
-**metadata**: Additional flow information (see metadata creation tool)
+**metadata**: Additional flow information (see `metadata.md`)
 
 ```json
 "metadata": {

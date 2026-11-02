@@ -2,7 +2,6 @@
 
 ## Critical Requirements
 
-⚠️ **ALWAYS call the standards creation tool before creating any Standards**
 ⚠️ **Standards must follow JSON Schema 2020-12 specification**
 ⚠️ **Standards compose with core CALM schemas using `$ref` and `allOf`**
 
@@ -194,7 +193,7 @@ When developing Standards locally before publishing to a public URL, use the `--
 calm validate -p pattern.json -a architecture.json -u url-mapping.json
 ```
 
-This allows patterns and architectures to reference Standards via their canonical URLs while the actual files exist locally. See **calm-cli-instructions.md** for complete URL mapping documentation.
+This allows patterns and architectures to reference Standards via their canonical URLs while the actual files exist locally. See `cli.md` for complete URL mapping documentation.
 
 ## Common Standard Examples
 
@@ -355,11 +354,11 @@ The FINOS community creates Standards for common financial services use cases:
 
 ## Cross-References
 
-- **Control Creation**: See control creation tool for integrating Standards with controls
+- **Control Creation**: See `control.md` for integrating Standards with controls
 - **Node Creation**: Reference for extending nodes with Standards
 - **Interface Creation**: Guidance for interface-specific Standards
 - **Architecture Creation**: How to structure architectures using Standards
-- **calm-cli-instructions.md**: Complete CLI usage including validation modes and options
+- `cli.md`: Complete CLI usage including validation modes and options
 
 ## Key Reminders
 

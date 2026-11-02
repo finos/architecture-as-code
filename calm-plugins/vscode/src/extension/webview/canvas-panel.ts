@@ -475,13 +475,12 @@ export class CanvasPanel {
         const sdPath = nodePath.resolve(nodePath.dirname(filePath), sdFileName);
 
         const prompt = [
-            `@CALM Generate a Solution Design document for the architecture at: ${filePath}`,
+            `Use the calm skill to generate a Solution Design document for the architecture at: ${filePath}`,
             ``,
             `Write the output to: ${sdPath}`,
             ``,
             `Instructions:`,
             `- Read the architecture file at the path above`,
-            `- Follow the 13-section structure from .github/agents/calm-prompts/solution-design-creation.md`,
             `- ALL diagrams MUST be Mermaid syntax`,
             `- Include ALL 13 sections`,
         ].join('\n');

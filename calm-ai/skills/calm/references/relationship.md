@@ -1,9 +1,5 @@
 # CALM Relationship Creation Guide
 
-## Critical Requirements
-
-⚠️ **ALWAYS call the relationship creation tool before creating any relationships**
-
 ## Overview
 
 Relationships connect nodes in your architecture and define how they interact or are organized.
@@ -250,8 +246,8 @@ Composition relationships:
 
 - `description` - Human-readable description (string)
 - `protocol` - Communication protocol from allowed enum values above
-- `metadata` - Additional information (see metadata creation tool for details)
-- `controls` - Compliance controls (see control creation tool for details)
+- `metadata` - Additional information (see `metadata.md`)
+- `controls` - Compliance controls (see `control.md`)
 
 ## Example Relationship
 
@@ -282,5 +278,5 @@ Composition relationships:
 5. **Protocol Enum**: Must be from the allowed protocol values if specified
 6. **Array Constraints**: `nodes` arrays must have minimum 1 item
 7. **Additional Properties**: Schema allows additional properties at relationship level (`"additionalProperties": true`)
-8. **Metadata**: Can be array or object (see metadata creation tool)
-9. **Controls**: Must follow control schema (see control creation tool)
+8. **Metadata**: Can be array or object (see `metadata.md`)
+9. **Controls**: Must follow control schema (see `control.md`)

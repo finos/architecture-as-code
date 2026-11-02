@@ -27,7 +27,7 @@ calm docify \
   --template-dir ./templates
 ```
 
-Add `--export-diagrams <svg|png>` to render the generated Mermaid diagrams to image files (via a local Chromium-based browser) instead of leaving them as Mermaid code blocks. See **calm-cli-instructions.md** for the full set of docify options.
+Add `--export-diagrams <svg|png>` to render the generated Mermaid diagrams to image files (via a local Chromium-based browser) instead of leaving them as Mermaid code blocks. See `cli.md` for the full set of docify options.
 
 ### 2. Custom Templates
 
@@ -267,4 +267,4 @@ calm validate -a architecture.json --strict
 
 This ensures documentation is generated from valid, schema-compliant CALM models.
 
-> **Note:** See **calm-cli-instructions.md** for complete CLI usage, validation modes, and options.
+> **Note:** See `cli.md` for complete CLI usage, validation modes, and options.

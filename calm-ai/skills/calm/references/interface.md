@@ -1,9 +1,5 @@
 # CALM Interface Creation Guide
 
-## Critical Requirements
-
-🚨 **ALWAYS call the interface creation tool before creating any interfaces**
-
 ## Official JSON Schema Definition
 
 The complete interface schema from the FINOS CALM v1.3 specification:

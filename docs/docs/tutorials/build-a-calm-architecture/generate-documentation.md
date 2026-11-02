@@ -19,15 +19,15 @@ create web viewable architecture documentation in folder docs/html
 
 **Response from AI Assistant**
 ```text
-Loading FINOS CALM instructions... 
+Using the calm skill.
 
 Searched codebase for "CALM architecture documentation creation HTML web viewable", 9 results
 
-Ran terminal command:  cat .github/chatmodes/calm-prompts/architecture-creation.md
+Ran terminal command:  cat .github/skills/calm/references/architecture.md
 
-Ran terminal command:  cat .github/chatmodes/calm-prompts/documentation-creation.md
+Ran terminal command:  cat .github/skills/calm/references/documentation.md
 
-Ran terminal command:  cat .github/chatmodes/calm-prompts/calm-cli-instructions.md | grep -A 30 "## Docify Command"
+Ran terminal command:  cat .github/skills/calm/references/cli.md | grep -A 30 "## Docify Command"
 
 Ran terminal command:  ls -la calm-demos/build-calm-architecture/
 

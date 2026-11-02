@@ -66,13 +66,13 @@ mkdir docs
 touch README.md
 ```
 
-### 4. Enable AI Assistance with Copilot Agent
+### 4. Install the CALM Skill for Copilot
 
 ```bash
 calm init-ai -p copilot -d .
 ```
 
-This creates `.github/agents/CALM.agent.md` with specialized CALM knowledge for GitHub Copilot. We'll use this agent in VSCode in the next tutorial.
+This installs the `calm` agent skill in `.github/skills/calm/`. Copilot activates it when you ask about CALM. We'll use the skill in VSCode in the next tutorial.
 
 ### 5. Add a .gitignore
 

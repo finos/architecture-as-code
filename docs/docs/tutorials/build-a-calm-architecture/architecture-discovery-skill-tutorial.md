@@ -135,7 +135,7 @@ Click the tab for you CALM AI Assistant.
 
 1. Select `Vibe` Coding
 
-2. Enable the CALM agent mode by typing `/CALM.chatmode` in the chat prompt.
+2. Enable CALM support by typing `/calm` in the chat prompt.
 
 3. In the chat, type `/calm-architecture-discovery <root_dir> <arch_file>`
 
@@ -191,7 +191,7 @@ The following chat log has been edited to remove repetitive messages.  The strin
 
 #### Start discovery process
 ```
-GitHub Copilot: Loading FINOS CALM instructions...  
+GitHub Copilot: Using the calm skill.
 
 Ran terminal command:  find <full_path_root_dir_parent>/discovery-skill-tutorial -maxdepth 1 -mindepth 1 -type d | sort
 

@@ -30,7 +30,7 @@ The extension provides syntax highlighting, validation, and additional CALM mode
 
 ---
 
-## Enabling GitHub Copilot AI Support for CALM
+## Installing the CALM Skill for GitHub Copilot
 
 For purposes of this tutorial we are using VS Code with GitHub Copilot, follow these steps:
 
@@ -38,7 +38,7 @@ For purposes of this tutorial we are using VS Code with GitHub Copilot, follow t
    ```sh
    calm init-ai -p copilot
    ```
-   This configures Copilot with CALM-specific prompts and knowledge for your workspace.
+   This installs the `calm` agent skill in `.github/skills/calm/`. Copilot activates it when a request is about CALM.
 
 For more details, see the CALM documentation or run `calm init-ai --help`.
 

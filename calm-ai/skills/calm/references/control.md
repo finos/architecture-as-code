@@ -1,9 +1,5 @@
 # CALM Control Creation Guide
 
-## Critical Requirements
-
-🚨 **ALWAYS call the control creation tool before creating any controls**
-
 ## Official JSON Schema Definition
 
 The complete control schema from the FINOS CALM v1.3 specification:
@@ -377,7 +373,7 @@ Each requirement MUST have exactly ONE of:
 
 ## Cross-References
 
-- **Standards Creation**: See standards creation tool for creating requirement Standards that controls reference
+- **Standards Creation**: See `standards.md` for creating requirement Standards that controls reference
 - **Node Creation**: Understand how controls are applied to individual nodes
 - **Flow Creation**: Learn how controls work with business processes and flows
 - **Architecture Creation**: See how controls are structured at the architecture document level
@@ -389,4 +385,4 @@ Each requirement MUST have exactly ONE of:
 - Controls can be applied at architecture, node, and flow levels
 - Each control must have both description and requirements properties
 - Use Standards for consistency in requirement files across compliance frameworks like NIST, ISO 27001, SOC 2
-- Reference the standards creation tool when creating base schemas for requirement files
+- See `standards.md` when creating base schemas for requirement files

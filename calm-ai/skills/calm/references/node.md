@@ -1,10 +1,5 @@
 # CALM Node Creation Guide
 
-## Critical Requirements
-
-⚠️ **ALWAYS call the node creation tool before creating any nodes**
-⚠️ **ALWAYS call the interface creation tool before adding interfaces to nodes**
-
 ## What Are Nodes?
 
 Nodes represent the "boxes" in a typical architecture diagram and are the fundamental building blocks of any CALM architecture. They provide several key capabilities:
@@ -133,10 +128,10 @@ Available node-type values:
 
 ## Optional Properties
 
-- `interfaces` - Communication endpoints (array) - Use interface creation tool for details
+- `interfaces` - Communication endpoints (array) (see `interface.md`)
 - `details` - Object with `detailed-architecture` or `required-pattern` properties
-- `controls` - Compliance controls (see control creation tool)
-- `metadata` - Additional information (see metadata creation tool for details)
+- `controls` - Compliance controls (see `control.md`)
+- `metadata` - Additional information (see `metadata.md`)
 
 ## Details Property Structure
 
@@ -167,7 +162,7 @@ The `details` property follows this exact schema:
 
 ## Metadata Schema Rules
 
-Critical: Metadata can be either an array OR an object (see metadata creation tool for complete guidance):
+Critical: Metadata can be either an array OR an object (see `metadata.md`):
 
 ```json
 {
@@ -243,14 +238,13 @@ Critical: Metadata can be either an array OR an object (see metadata creation to
 1. **Required Properties**: Must include `unique-id`, `node-type`, `name`, `description`
 2. **Node Type**: Must be from enum or custom string
 3. **Details Object**: Only allows `detailed-architecture` and `required-pattern` properties
-4. **Metadata**: Can be array of objects OR single object (see metadata creation tool)
+4. **Metadata**: Can be array of objects OR single object (see `metadata.md`)
 5. **Additional Properties**: Schema allows additional properties at node level (`"additionalProperties": true`)
-6. **Interfaces**: Must follow interface schema (use interface creation tool)
+6. **Interfaces**: Must follow interface schema (see `interface.md`)
 
 ## Key Reminders
 
-- Always use the node creation tool before creating nodes
-- Reference the interface creation tool for interface details
-- Reference the metadata creation tool for metadata structure guidance
+- See `interface.md` for interface details
+- See `metadata.md` for metadata structure
 - The schema is authoritative - follow it exactly
 - Node unique-ids must be unique across the entire architecture

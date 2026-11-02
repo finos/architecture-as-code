@@ -80,7 +80,8 @@ Commands:
                          bundle, a single file, or a directory of templates
   docify [options]       Generate a documentation website from your CALM model
                          using a template or template directory
-  init-ai [options]      Augment a git repository with AI assistance for CALM
+  init-ai [options]      Install the CALM agent skill for an AI coding assistant
+                         into a git repository
   diff [options]         Compare two CALM documents (architectures or patterns),
                          or the moments of a CALM timeline, and report what
                          changed.
@@ -95,7 +96,7 @@ Commands:
 
 ### AI-Powered Development
 
-CALM CLI includes AI-powered development assistance through the `init-ai` command. This feature integrates with various IDEs and Coding Assistants to provide intelligent help with architecture modeling. Learn more in the [CALM AI Tools](calm-ai-tools) section.
+CALM CLI installs the `calm` agent skill through the `init-ai` command. The skill gives GitHub Copilot, AWS Kiro, Claude Code and Codex the CALM schema, its validation rules and this CLI. Learn more in the [CALM AI Tools](calm-ai-tools) section.
 
 ## Commands
 
@@ -108,7 +109,7 @@ CALM CLI includes AI-powered development assistance through the `init-ai` comman
 | [`diff`](../calm-cli/diff.md) | Compare two CALM documents, or the moments of a timeline |
 | [`timeline`](../calm-cli/timeline.md) | Make a CALM timeline from a set of versioned architecture files |
 | [`init-config`](../calm-cli/configuration.md) | Create or update the CLI configuration file (`~/.calm.json`) |
-| [`init-ai`](calm-ai-tools) | Add CALM AI assistance to a git repository |
+| [`init-ai`](calm-ai-tools) | Install the CALM agent skill into a git repository |
 | [`hub`](../calm-cli/hub.md) | Push, pull and list documents in CALM Hub |
 | [`workspace`](../calm-cli/workspace.md) | Track a set of related CALM documents, version them and push them to CALM Hub |
 
