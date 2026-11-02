@@ -496,9 +496,6 @@ function CanvasApp() {
 
         if (details?.['detailed-architecture']) {
             notifyDrillInto(label, details['detailed-architecture'], calmType);
-        } else if (calmType.includes(':')) {
-            const safeName = calmType.replace(/^standard-node:/, '');
-            notifyDrillInto(label, `standard-nodes/${safeName}.calm.json`, calmType);
         } else {
             // No drill target — select and focus the name field for editing
             setSelectedNode(node);
@@ -582,21 +579,33 @@ function CanvasApp() {
         if (store.readonlyMode) return;
 
         const standardNodeId = e.dataTransfer.getData('application/standard-node-id');
-        const behaviour = e.dataTransfer.getData('application/standard-node-behaviour');
         const nodeType = e.dataTransfer.getData('application/calm-node-type');
         const nodeLabel = e.dataTransfer.getData('application/calm-node-label');
         const isContainer = e.dataTransfer.getData('application/calm-container') === 'true';
 
         const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
 
-        if (standardNodeId && behaviour) {
-            // Standard node / standard drop
+        if (standardNodeId) {
             const standardNode = (store.standardNodes as any[]).find((n: any) => n.id === standardNodeId);
             if (!standardNode) return;
             const isHubSourced = !!standardNode.namespace;
-            const controlsCopy = JSON.parse(JSON.stringify(standardNode.controls ?? {})) as Record<string, unknown>;
+            const defaultNode = standardNode.defaultNode
+                ? (JSON.parse(JSON.stringify(standardNode.defaultNode)) as Record<string, unknown>)
+                : undefined;
+            const controlsCopy = JSON.parse(
+                JSON.stringify(defaultNode?.controls ?? standardNode.controls ?? {})
+            ) as Record<string, unknown>;
+            const interfacesCopy = Array.isArray(defaultNode?.interfaces)
+                ? (JSON.parse(JSON.stringify(defaultNode.interfaces)) as unknown[])
+                : [];
+            const detailsCopy = defaultNode?.details && typeof defaultNode.details === 'object'
+                ? (JSON.parse(JSON.stringify(defaultNode.details)) as Record<string, unknown>)
+                : undefined;
+            const defaultMetadata = defaultNode?.metadata && typeof defaultNode.metadata === 'object' && !Array.isArray(defaultNode.metadata)
+                ? (JSON.parse(JSON.stringify(defaultNode.metadata)) as Record<string, unknown>)
+                : {};
 
-            if (behaviour === 'apply-controls-on-drop') {
+            if (Object.keys(controlsCopy).length > 0) {
                 // Find the node under the drop point.
                 // Try DOM-based detection first, fall back to coordinate hit-test.
                 let targetId: string | null = null;
@@ -625,29 +634,32 @@ function CanvasApp() {
                     setNodes((nds) => applyStandardToNode(nds, targetId!, controlsCopy));
                     setTimeout(() => emitChange(true), 0);
                     setTimeout(() => enrichAllControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
+                    return;
                 }
-                return;
             }
 
-            const id = `${standardNode.nodeType}-${Date.now()}`;
+            const effectiveType = (defaultNode?.['node-type'] as string) ?? standardNode.nodeType ?? 'system';
+            const id = `${effectiveType}-${Date.now()}`;
             const hasCustomId = standardNode.id && /[a-zA-Z]/.test(standardNode.id);
             const newNode: Node = {
                 id,
-                type: resolveFlowNodeType(standardNode.nodeType),
+                type: resolveFlowNodeType(effectiveType),
                 position,
                 data: {
-                    label: standardNode.name,
+                    label: (defaultNode?.name as string) ?? standardNode.name,
                     calmId: id,
-                    calmType: standardNode.nodeType,
-                    description: standardNode.description ?? '',
-                    interfaces: [],
+                    calmType: effectiveType,
+                    description: (defaultNode?.description as string) ?? standardNode.description ?? '',
+                    interfaces: interfacesCopy,
                     controls: controlsCopy,
+                    ...(detailsCopy ? { details: detailsCopy } : {}),
+                    ...(Object.keys(defaultMetadata).length > 0 ? { metadata: defaultMetadata } : {}),
                     ...(isHubSourced && hasCustomId && standardNode.sha ? { 'definition-id': `${standardNode.namespace}:standards:${standardNode.id}@${standardNode.sha}` } : {}),
                 },
             };
             setNodes((nds) => [...nds, newNode]);
             // Request resolution for Hub-sourced blocks so the webview can render controls
-            if (isHubSourced) {
+            if (isHubSourced && newNode.data['definition-id']) {
                 postMessage({ type: 'resolveDefinitionId', nodeId: id, curie: newNode.data['definition-id'] as string });
             }
             setTimeout(() => emitChange(true), 0);
@@ -670,7 +682,7 @@ function CanvasApp() {
             }]);
         }
         setTimeout(() => emitChange(true), 0);
-    }, [nodes, setNodes, setEdges, emitChange, reactFlowInstance, store.readonlyMode, store.standardNodes, enrichAllControls, enrichNodeControls]);
+    }, [nodes, setNodes, emitChange, reactFlowInstance, store.readonlyMode, store.standardNodes, enrichAllControls, enrichNodeControls]);
 
     // --- Validate ---
     const handleValidate = useCallback(() => {

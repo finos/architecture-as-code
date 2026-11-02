@@ -176,7 +176,6 @@ describe('instantiateFromPattern', () => {
         const hubStdNode: StandardNodeDef = {
             id: 'service',
             name: 'Service',
-            behaviour: 'create-node',
             controls: {
                 'Resiliency Tier': {
                     description: 'Recovery time commitments',
@@ -191,7 +190,6 @@ describe('instantiateFromPattern', () => {
         const localStdNode: StandardNodeDef = {
             id: 'database',
             name: 'Database',
-            behaviour: 'create-node',
             controls: {
                 'Data Classification': {
                     description: 'Highest data classification',
@@ -296,17 +294,6 @@ describe('instantiateFromPattern', () => {
         it('works without standardNodes (backward compatible)', () => {
             const arch = instantiateFromPattern(
                 { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
-            );
-
-            expect(arch.nodes[0]['definition-id']).toBe('service');
-            expect(arch.nodes[0].controls).toBeUndefined();
-        });
-
-        it('skips standard nodes with apply-controls-on-drop behaviour', () => {
-            const applyNode: StandardNodeDef = { ...hubStdNode, behaviour: 'apply-controls-on-drop' };
-            const arch = instantiateFromPattern(
-                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
-                [applyNode],
             );
 
             expect(arch.nodes[0]['definition-id']).toBe('service');

@@ -28,10 +28,11 @@ export interface BuiltStandardNode {
 export { generateId };
 
 /**
- * Build a CALM document (plus its target file name) for a governed building
- * block. Each attached control is emitted as a slim reference — just
- * `requirement-url` (CURIE or local path) and description. Config is filled
- * in when the standard node is instantiated on a node.
+ * Build a JSON Schema node Standard document (plus its target file name) for a
+ * governed building block. The schema extends `core.json#/defs/node` via `allOf`
+ * and carries the authored node template as its `default`. Each attached control
+ * is emitted as a slim reference — just `requirement-url` (CURIE or local path).
+ * Config is filled in when the standard node is instantiated on a node.
  */
 export function buildStandardNodeDoc(
     input: StandardNodeInput
@@ -47,22 +48,25 @@ export function buildStandardNodeDoc(
     }
 
     const doc = {
-        $schema: `${CALM_META_SCHEMA_BASE_URL}/core.json`,
-        nodes: [
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        title: input.name,
+        description: input.description,
+        allOf: [
             {
-                'unique-id': `standard-node-${nodeId}`,
-                'node-type': input.nodeType,
-                name: input.name,
-                description: input.description,
-                controls: controlsObj,
-                metadata: { 'standard-node-type': 'infrastructure' },
+                $ref: `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node`,
             },
         ],
-        relationships: [],
+        default: {
+            'unique-id': `standard-node-${nodeId}`,
+            'node-type': input.nodeType,
+            name: input.name,
+            description: input.description,
+            controls: controlsObj,
+        },
     };
 
     return {
         json: JSON.stringify(doc, null, 2),
-        fileName: `${nodeId}.calm.json`,
+        fileName: `${nodeId}.json`,
     };
 }

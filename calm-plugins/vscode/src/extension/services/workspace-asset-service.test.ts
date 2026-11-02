@@ -238,21 +238,107 @@ describe('WorkspaceAssetService.scanControls', () => {
     });
 });
 
+describe('WorkspaceAssetService.scanStandardNodes', () => {
+    beforeEach(() => {
+        (vscode.workspace as any).workspaceFolders = [
+            { uri: vscode.Uri.file('/ws') },
+        ];
+        (vscode.workspace as any).getConfiguration = () => ({
+            get: () => undefined,
+        });
+    });
+
+    it('discovers JSON Schema node Standards under standards/ and reads default node template', async () => {
+        (vscode.workspace as any).findFiles = vi.fn(
+            async (glob: { base: { fsPath: string }; pattern: string }) => {
+                if (glob.pattern === 'standards/**/*.json') {
+                    return [
+                        vscode.Uri.file('/ws/standards/networking/api-gateway.json'),
+                    ];
+                }
+                return [];
+            }
+        );
+        (vscode.workspace as any).fs = {
+            readFile: vi.fn(async () =>
+                encode(
+                    JSON.stringify({
+                        $schema: 'https://json-schema.org/draft/2020-12/schema',
+                        title: 'API Gateway',
+                        description: 'Edge gateway standard',
+                        allOf: [
+                            { $ref: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node' },
+                        ],
+                        default: {
+                            'unique-id': 'standard-node-api-gateway',
+                            'node-type': 'service',
+                            name: 'API Gateway',
+                            description: 'Edge gateway standard',
+                            controls: {
+                                tls: { requirements: [{ 'requirement-url': 'controls/tls.json' }] },
+                            },
+                        },
+                    })
+                )
+            ),
+        };
+
+        const svc = new WorkspaceAssetService('/ws');
+        await (svc as any).scanStandardNodes();
+        const nodes = svc.getStandardNodes();
+        expect(nodes).toHaveLength(1);
+        expect(nodes[0]).toMatchObject({
+            id: 'api-gateway',
+            name: 'API Gateway',
+            description: 'Edge gateway standard',
+            nodeType: 'service',
+            category: 'Networking',
+            controls: {
+                tls: { requirements: [{ 'requirement-url': 'controls/tls.json' }] },
+            },
+        });
+        expect(nodes[0].defaultNode).toMatchObject({
+            'unique-id': 'standard-node-api-gateway',
+            'node-type': 'service',
+            name: 'API Gateway',
+        });
+    });
+
+    it('skips non-node JSON schemas under standards/', async () => {
+        (vscode.workspace as any).findFiles = vi.fn(async () => [
+            vscode.Uri.file('/ws/standards/arch-standard.json'),
+        ]);
+        (vscode.workspace as any).fs = {
+            readFile: vi.fn(async () =>
+                encode(
+                    JSON.stringify({
+                        $schema: 'https://json-schema.org/draft/2020-12/schema',
+                        title: 'Architecture Standard',
+                        allOf: [
+                            { $ref: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/architecture' },
+                        ],
+                    })
+                )
+            ),
+        };
+
+        const svc = new WorkspaceAssetService('/ws');
+        await (svc as any).scanStandardNodes();
+        expect(svc.getStandardNodes()).toHaveLength(0);
+    });
+});
+
 describe('WorkspaceAssetService.stem', () => {
     const svc = new WorkspaceAssetService('/ws');
     const stem = (filePath: string): string =>
         (svc as any).stem(vscode.Uri.file(filePath));
 
-    it('strips .calm.json and .architecture.json suffixes', () => {
-        expect(stem('/ws/standard-nodes/payment-service.calm.json')).toBe('payment-service');
-        expect(stem('/ws/standard-nodes/checkout.architecture.json')).toBe('checkout');
+    it('strips .json and .standard.json suffixes', () => {
+        expect(stem('/ws/standards/payment-service.json')).toBe('payment-service');
+        expect(stem('/ws/standards/checkout.standard.json')).toBe('checkout');
     });
 
-    it('does not strip removed legacy suffixes or .md', () => {
-        expect(stem('/ws/standard-nodes/legacy.template.json')).toBe('legacy.template.json');
-        expect(stem('/ws/standard-nodes/legacy.solution.json')).toBe('legacy.solution.json');
-        expect(stem('/ws/standard-nodes/legacy.standard.json')).toBe('legacy.standard.json');
-        expect(stem('/ws/standard-nodes/legacy.guideline.json')).toBe('legacy.guideline.json');
-        expect(stem('/ws/standard-nodes/readme.md')).toBe('readme.md');
+    it('does not strip non-json suffixes', () => {
+        expect(stem('/ws/standards/readme.md')).toBe('readme.md');
     });
 });

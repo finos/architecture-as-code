@@ -111,29 +111,43 @@ export class HubAssetService {
                     const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
                     let nodeType = 'service';
                     let displayName = block.name || humanize(block.uniqueId);
+                    let description: string | undefined;
                     let controls: Record<string, unknown> = {};
+                    let defaultNode: Record<string, unknown> | undefined;
                     if (latestSha) {
                         try {
                             const content = await this.client.getResourceAtVersion(
                                 nsName, 'standards', String(block.numericId), latestSha
                             ) as Record<string, unknown>;
-                            const nodes = content?.nodes as Array<Record<string, unknown>> | undefined;
-                            if (nodes?.[0]?.['node-type']) nodeType = nodes[0]['node-type'] as string;
-                            if (nodes?.[0]?.name) displayName = nodes[0].name as string;
-                            else if (content?.title) displayName = content.title as string;
-                            if (nodes?.[0]?.controls && typeof nodes[0].controls === 'object') {
-                                controls = nodes[0].controls as Record<string, unknown>;
+                            const def = (content?.default && typeof content.default === 'object' && !Array.isArray(content.default))
+                                ? (content.default as Record<string, unknown>)
+                                : undefined;
+                            defaultNode = def;
+                            if (typeof def?.['node-type'] === 'string') nodeType = def['node-type'];
+                            if (typeof def?.name === 'string') displayName = def.name;
+                            else if (typeof content?.title === 'string') displayName = content.title;
+                            if (typeof def?.description === 'string') description = def.description;
+                            else if (typeof content?.description === 'string') description = content.description;
+                            if (def?.controls && typeof def.controls === 'object' && !Array.isArray(def.controls)) {
+                                controls = def.controls as Record<string, unknown>;
                                 await this.pinControlVersions(controls);
                             }
                         } catch { /* fallback */ }
                     }
-                    return { block, latestSha, nodeType, displayName, controls };
+                    return { block, latestSha, nodeType, displayName, description, controls, defaultNode };
                 })
             );
-            for (const { block, latestSha, nodeType, displayName, controls } of contentResults) {
+            for (const { block, latestSha, nodeType, displayName, description, controls, defaultNode } of contentResults) {
                 namespace.standardNodes.push({
-                    id: block.uniqueId || String(block.numericId), name: displayName, behaviour: 'create-node',
-                    controls, nodeType, namespace: nsName, sha: latestSha, hubId: block.numericId,
+                    id: block.uniqueId || String(block.numericId),
+                    name: displayName,
+                    ...(description !== undefined ? { description } : {}),
+                    controls,
+                    ...(defaultNode ? { defaultNode } : {}),
+                    nodeType,
+                    namespace: nsName,
+                    sha: latestSha,
+                    hubId: block.numericId,
                 });
             }
         } catch { /* namespace may not have standards */ }

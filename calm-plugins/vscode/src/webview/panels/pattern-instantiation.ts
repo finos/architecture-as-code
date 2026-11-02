@@ -98,7 +98,7 @@ function resolveStandardNode(node: any, standardNodes: StandardNodeDef[]): void 
     if (defId.includes('@')) return;
 
     const match = findStandardNode(defId, standardNodes);
-    if (!match || match.behaviour !== 'create-node') return;
+    if (!match) return;
 
     // Deep-copy controls; enrichment seeds the correct identity constants
     const stdControls = JSON.parse(JSON.stringify(match.controls ?? {}));
