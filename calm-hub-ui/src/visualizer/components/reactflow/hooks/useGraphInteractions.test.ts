@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import { act, render, renderHook } from '@testing-library/react';
+import { createElement, useCallback, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useNodesState } from 'reactflow';
 import type { Node, NodeChange } from 'reactflow';
 import { useGraphInteractions } from './useGraphInteractions.js';
-import { saveNodePositions } from '../../../services/node-position-service.js';
+import { saveNodePositions, type StoredNodePosition } from '../../../services/node-position-service.js';
 import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';
 
 vi.mock('../../../services/node-position-service.js', async (importOriginal) => {
@@ -30,12 +31,13 @@ function makeSetNodes() {
     return vi.fn((updater: (nodes: Node[]) => Node[]) => updater(currentNodes));
 }
 
-function setup(persistKey?: string, onPositionsChange?: (positions: unknown) => void) {
+function setup(persistKey?: string, onPositionsChange?: (positions: StoredNodePosition[]) => void) {
     const setNodes = makeSetNodes();
     const onNodesChangeBase = vi.fn();
     const { result } = renderHook(() =>
         useGraphInteractions({
-            setNodes,
+            nodes: currentNodes,
+            setNodes: setNodes as unknown as React.Dispatch<React.SetStateAction<Node[]>>,
             onNodesChangeBase,
             groupNodeTypes: ['group'],
             persistKey,
@@ -95,32 +97,133 @@ describe('useGraphInteractions persistence', () => {
         expect(saveNodePositions).not.toHaveBeenCalled();
     });
 
-    describe('onPositionsChange', () => {
-        it('reports the post-reflow positions at drag-end', () => {
-            const reflowedNodes: Node[] = [{ id: 'a', position: { x: 999, y: 888 }, data: {} }];
-            vi.mocked(reflowContainersToFitChildren).mockReturnValue(reflowedNodes);
-            const onPositionsChange = vi.fn();
+});
 
-            const { result } = setup('ns/id', onPositionsChange);
-            result.current.onNodesChange([dragEnd]);
+// #3503: the report hands positions to DiagramSection, which sets its own state,
+// so it must run outside the state updater React executes while rendering.
+// These use the real useNodesState wiring the graphs use: a setNodes mock that
+// invokes the updater itself leaves nothing queued before setNodes, so the
+// updater runs eagerly and the test covers a path the app never takes.
+describe('useGraphInteractions reporting (real state)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(reflowContainersToFitChildren).mockImplementation((nodes: Node[]) => nodes);
+    });
 
-            expect(onPositionsChange).toHaveBeenCalledWith([{ id: 'a', position: { x: 999, y: 888 } }]);
-        });
+    function renderHarness(props: {
+        onPositionsChange?: (positions: StoredNodePosition[]) => void;
+        persistKey?: string;
+    }) {
+        const api: { current: ReturnType<typeof useGraphInteractions> | null } = { current: null };
 
-        it('does not report mid-drag', () => {
-            const onPositionsChange = vi.fn();
-            const { result } = setup('ns/id', onPositionsChange);
-            result.current.onNodesChange([dragging]);
+        function Harness() {
+            const [nodes, setNodes, onNodesChangeBase] = useNodesState(currentNodes);
+            api.current = useGraphInteractions({
+                nodes,
+                setNodes,
+                onNodesChangeBase,
+                groupNodeTypes: ['group'],
+                persistKey: props.persistKey,
+                onPositionsChange: props.onPositionsChange,
+            });
+            return null;
+        }
+
+        render(createElement(Harness));
+        return api;
+    }
+
+    it('reports the reflowed positions once, after the commit', async () => {
+        const reflowedNodes: Node[] = [{ id: 'a', position: { x: 999, y: 888 }, data: {} }];
+        vi.mocked(reflowContainersToFitChildren).mockReturnValue(reflowedNodes);
+        const onPositionsChange = vi.fn();
+
+        const api = renderHarness({ persistKey: 'ns/id', onPositionsChange });
+
+        await act(async () => {
+            api.current?.onNodesChange([dragEnd]);
+            // The handler has returned and its state update still has to be
+            // applied: a report sent from the handler would already be here.
             expect(onPositionsChange).not.toHaveBeenCalled();
         });
 
-        it('reports even without a persistKey (report and persist are independent)', () => {
-            const onPositionsChange = vi.fn();
-            const { result } = setup(undefined, onPositionsChange);
-            result.current.onNodesChange([dragEnd]);
-            expect(onPositionsChange).toHaveBeenCalled();
-            expect(saveNodePositions).not.toHaveBeenCalled();
+        expect(onPositionsChange).toHaveBeenCalledTimes(1);
+        expect(onPositionsChange).toHaveBeenCalledWith([{ id: 'a', position: { x: 999, y: 888 } }]);
+    });
+
+    it('does not report mid-drag', async () => {
+        const onPositionsChange = vi.fn();
+        const api = renderHarness({ persistKey: 'ns/id', onPositionsChange });
+
+        await act(async () => {
+            api.current?.onNodesChange([dragging]);
         });
+
+        expect(onPositionsChange).not.toHaveBeenCalled();
+    });
+
+    it('reports even without a persistKey (report and persist are independent)', async () => {
+        const onPositionsChange = vi.fn();
+        const api = renderHarness({ onPositionsChange });
+
+        await act(async () => {
+            api.current?.onNodesChange([dragEnd]);
+        });
+
+        expect(onPositionsChange).toHaveBeenCalledTimes(1);
+        expect(saveNodePositions).not.toHaveBeenCalled();
+    });
+
+    it('lets the parent set its own state without a render-phase update warning', async () => {
+        // The #3503 symptom itself: onPositionsChange (DiagramSection's setState)
+        // ran while ArchitectureGraph rendered, so the state owner and the hook
+        // live in different components here.
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const messages: string[] = [];
+        const reported: StoredNodePosition[][] = [];
+        const api: { current: ReturnType<typeof useGraphInteractions> | null } = { current: null };
+
+        try {
+            consoleError.mockImplementation((...args: unknown[]) => {
+                messages.push(args.map(String).join(' '));
+            });
+
+            function Graph({ onPositionsChange }: { onPositionsChange: (positions: StoredNodePosition[]) => void }) {
+                const [nodes, setNodes, onNodesChangeBase] = useNodesState(currentNodes);
+                api.current = useGraphInteractions({
+                    nodes,
+                    setNodes,
+                    onNodesChangeBase,
+                    groupNodeTypes: ['group'],
+                    onPositionsChange,
+                });
+                return null;
+            }
+
+            function Diagram() {
+                const [positions, setPositions] = useState<StoredNodePosition[]>([]);
+                const reportPositions = useCallback((next: StoredNodePosition[]) => {
+                    reported.push(next);
+                    setPositions(next);
+                }, []);
+                return createElement(
+                    'span',
+                    null,
+                    createElement(Graph, { onPositionsChange: reportPositions }),
+                    `positions: ${positions.length}`
+                );
+            }
+
+            render(createElement(Diagram));
+            await act(async () => {
+                api.current?.onNodesChange([dragEnd]);
+            });
+
+            expect(messages.filter((message) => message.includes('Cannot update a component'))).toEqual([]);
+            expect(reported).toEqual([[{ id: 'a', position: { x: 10, y: 20 } }]]);
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 });
 
@@ -140,7 +243,12 @@ describe('useGraphInteractions hover z-index', () => {
             updated = updater(hoverNodes);
         });
         const { result } = renderHook(() =>
-            useGraphInteractions({ setNodes, onNodesChangeBase: vi.fn(), groupNodeTypes: ['group'] })
+            useGraphInteractions({
+                nodes: hoverNodes,
+                setNodes: setNodes as unknown as React.Dispatch<React.SetStateAction<Node[]>>,
+                onNodesChangeBase: vi.fn(),
+                groupNodeTypes: ['group'],
+            })
         );
         return { result, getUpdated: () => updated };
     }
@@ -162,7 +270,12 @@ describe('useGraphInteractions hover z-index', () => {
 
         const setNodes = vi.fn((updater: (nodes: Node[]) => Node[]) => updater(elevated));
         const { result: result2 } = renderHook(() =>
-            useGraphInteractions({ setNodes, onNodesChangeBase: vi.fn(), groupNodeTypes: ['group'] })
+            useGraphInteractions({
+                nodes: elevated,
+                setNodes: setNodes as unknown as React.Dispatch<React.SetStateAction<Node[]>>,
+                onNodesChangeBase: vi.fn(),
+                groupNodeTypes: ['group'],
+            })
         );
         result2.current.handleNodeMouseLeave();
 

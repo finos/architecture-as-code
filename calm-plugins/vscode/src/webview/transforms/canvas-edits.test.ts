@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { Node } from 'reactflow';
 import { parseCALMData } from './calm-parser';
 import { flowToCalm, setLastParsedArch, type CalmArchitecture } from './calm-editor-transformer';
-import { deleteDrawings, unparentDrawing, linkTargetOf, withIssueCounts, pastedNode, originalsOf } from './canvas-edits';
+import { deleteDrawings, unparentDrawing, withIssueCounts, pastedNode, originalsOf } from './canvas-edits';
 
 const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: id });
 const deployedIn = (id: string, container: string, nodes: string[]) =>
@@ -117,15 +117,6 @@ describe('unparentDrawing', () => {
         const edit = unparentDrawing(nodes, edges, 'b');
         expect(byId(edit.nodes, 'b').parentId).toBeUndefined();
         expect(edit.reload).toBe(false);
-    });
-});
-
-describe('linkTargetOf', () => {
-    it('gives the drawing that keeps the CALM id, where the edges are', () => {
-        const { nodes } = load(sharedNamespace());
-        const copy = nodes.find((n) => n.id !== 'svc' && n.data.calmId === 'svc')!;
-        expect(linkTargetOf(nodes, copy.id)).toBe('svc');
-        expect(linkTargetOf(nodes, 'unknown')).toBe('unknown');
     });
 });
 

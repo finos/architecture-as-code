@@ -271,6 +271,21 @@ describe('Widget Helpers', () => {
         });
     });
 
+    describe('linkId helper', () => {
+        it('returns sourceId when the item is a copy of another node', () => {
+            expect(helpers.linkId({ id: 'ns__in__cluster-a', sourceId: 'ns' })).toBe('ns');
+        });
+
+        it('returns id when the item has no sourceId', () => {
+            expect(helpers.linkId({ id: 'ns' })).toBe('ns');
+        });
+
+        it('returns an empty string for invalid input', () => {
+            expect(helpers.linkId(undefined)).toBe('');
+            expect(helpers.linkId('ns')).toBe('');
+        });
+    });
+
     describe('kebabCase helper', () => {
         it('converts strings to kebab-case', () => {
             expect(helpers.kebabCase('Hello World')).toBe('hello-world');

@@ -42,12 +42,6 @@ export function unparentDrawing(nodes: Node[], edges: Edge[], nodeId: string): C
     };
 }
 
-/** The drawing to link to for a drop on `drawingId`: edges stay on the drawing that keeps the CALM id. */
-export function linkTargetOf(nodes: Node[], drawingId: string): string {
-    const drawing = nodes.find((n) => n.id === drawingId);
-    return drawing ? calmIdOf(drawing) : drawingId;
-}
-
 /** Puts the error and warning counts of each CALM node on every drawing of it, for the badges. */
 export function withIssueCounts(nodes: Node[], issues: ValidationIssue[]): Node[] {
     const counts: Record<string, { errors: number; warnings: number }> = {};

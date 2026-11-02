@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-007",
+      "control-id": "AIR-OP-007",
       "name": "Availability of Foundational Model",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-7_availability-of-foundational-model.html",
-      "summary": "Foundation models often rely on GPU-heavy infrastructure hosted by third-party providers, introducing risks related to service availability and performance. Key threats include Denial of Wallet (DoW), TSP outages, and VRAM exhaustion.",
+      "description": "Foundation models often rely on GPU-heavy infrastructure hosted by third-party providers, introducing risks related to service availability and performance. Key threats include Denial of Wallet (DoW), TSP outages, and VRAM exhaustion.",
       "requirements": [
         "Implement API rate limiting and token budget controls to prevent Denial of Wallet (DoW) scenarios.",
         "Define SLAs with model providers and monitor compliance; establish escalation procedures for breaches.",

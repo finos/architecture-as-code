@@ -170,27 +170,25 @@ describe('App: edits on a canvas with copies', () => {
         expect(lastSave().nodes.find((n: { 'unique-id': string }) => n['unique-id'] === 'svc').name).toBe('renamed');
     });
 
-    it('links a standard dropped on a copy and on the original to the node once', () => {
+    it('adds the controls of a standard dropped on a copy to every drawing and saves them once', () => {
         open(sharedNamespace);
         act(() => window.dispatchEvent(new MessageEvent('message', {
             data: { type: 'standardNodesLoaded', nodes: [{ id: 'std', name: 'Standard', controls: { 'rate-limit': { description: 'Limit', requirements: [] } } }] },
         })));
         const copy = flow.nodes.find((n) => n.id !== 'svc' && n.data.calmId === 'svc')!;
-        // The drop finds the drawing under the pointer in the page: first the copy, then the original
-        const under = [copy.id, 'svc'];
-        document.elementsFromPoint = () => [{ closest: () => ({ getAttribute: () => under.shift() }) } as unknown as Element];
+        document.elementsFromPoint = () => [{ closest: () => ({ getAttribute: () => copy.id }) } as unknown as Element];
         const data: Record<string, string> = {
             'application/standard-node-id': 'std',
             'application/standard-node-behaviour': 'apply-controls-on-drop',
         };
         const drop = { preventDefault: () => undefined, stopPropagation: () => undefined, clientX: 0, clientY: 0, dataTransfer: { getData: (k: string) => data[k] ?? '' } };
-        for (let i = 0; i < 2; i++) {
-            act(() => flow.onDrop(drop));
-            act(() => vi.runAllTimers());
-        }
+        act(() => flow.onDrop(drop));
+        act(() => vi.runAllTimers());
 
-        const links = lastSave().relationships.filter((r: Record<string, any>) => r['relationship-type'].connects?.source.node === 'svc');
-        expect(links).toHaveLength(1);
+        expect(flow.nodes.filter((n) => n.data.calmId === 'svc').map((n) => Object.keys(n.data.controls ?? {}))).toEqual([['rate-limit'], ['rate-limit']]);
+        const saved = lastSave();
+        expect(saved.nodes.filter((n: { 'unique-id': string }) => n['unique-id'] === 'svc')).toHaveLength(1);
+        expect(Object.keys(saved.nodes.find((n: { 'unique-id': string }) => n['unique-id'] === 'svc').controls)).toEqual(['rate-limit']);
     });
 
     it('resolves a definition once per node and applies it to every drawing', () => {

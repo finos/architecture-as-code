@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-020",
+      "control-id": "AIR-OP-020",
       "name": "Reputational Risk",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-20_reputational-risk.html",
-      "summary": "AI failures or misuse—especially in customer-facing systems—can quickly escalate into public incidents that damage a firm's reputation and erode trust. Because AI systems can scale errors rapidly, each AI-driven decision reflects directly on brand and conduct.",
+      "description": "AI failures or misuse—especially in customer-facing systems—can quickly escalate into public incidents that damage a firm's reputation and erode trust. Because AI systems can scale errors rapidly, each AI-driven decision reflects directly on brand and conduct.",
       "requirements": [
         "Establish an AI incident response plan including public communications playbooks for AI-related failures.",
         "Implement content moderation and output filtering on all customer-facing AI systems.",

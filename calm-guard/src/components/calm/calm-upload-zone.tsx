@@ -56,7 +56,7 @@ export function CalmUploadZone() {
       if (!localResult.success) {
         setStatus('error');
         const msgs = localResult.error.issues?.map((i) => i.message) ?? [
-          'CALM schema validation failed — file does not match CALM v1.1 structure',
+          'CALM schema validation failed — file does not match the CALM schema',
         ];
         setErrors(msgs.slice(0, 5));
         return;

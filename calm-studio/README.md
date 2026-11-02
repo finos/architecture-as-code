@@ -119,7 +119,6 @@ calmstudio/
 | MCP | @modelcontextprotocol/sdk |
 | Styling | Tailwind CSS |
 | Testing | Vitest + Playwright |
-| Desktop | Tauri 2 (coming soon) |
 | Data format | CALM JSON (FINOS standard) |
 
 ## Roadmap
@@ -136,7 +135,6 @@ CalmStudio ships in phases. Each delivers a standalone, verifiable capability.
 | 6. CALM Validation | Next | Real-time schema validation with inline indicators |
 | 7. Extension Packs | Planned | AWS, GCP, Azure, Kubernetes, AI/Agentic node types |
 | 8. calmscript DSL | Planned | Mermaid-like text format for CALM |
-| 9. Desktop App | Planned | Tauri 2 native app (macOS, Windows, Linux) |
 | 10. Patterns & Docs | Planned | Architecture templates, Docusaurus site |
 | 11. Testing Suite | Planned | London School TDD, E2E, component tests |
 | 12. Ecosystem | Planned | VS Code extension, GitHub Action, web component |

@@ -75,6 +75,8 @@ function escapeXml(str: string): string {
 
 export interface RenderNodeInput {
   id: string;
+  /** CALM unique-id, when `id` is the render id of a copy of a node drawn in several containers. */
+  calmId?: string;
   x: number;
   y: number;
   width: number;
@@ -97,7 +99,7 @@ export function renderNodeSvg(node: RenderNodeInput): string {
 
   // Group element with tooltip data attributes
   parts.push(
-    `<g class="calm-node" data-node-id="${escapeXml(node.id)}" data-description="${escapeXml(description ?? '')}" style="cursor:pointer">`
+    `<g class="calm-node" data-node-id="${escapeXml(node.calmId ?? node.id)}" data-description="${escapeXml(description ?? '')}" style="cursor:pointer">`
   );
 
   // Background rect
@@ -146,6 +148,8 @@ export function renderNodeSvg(node: RenderNodeInput): string {
 
 export interface RenderContainerInput {
   id: string;
+  /** CALM unique-id, when `id` is the render id of a copy of a node drawn in several containers. */
+  calmId?: string;
   x: number;
   y: number;
   width: number;
@@ -171,13 +175,13 @@ function hexToRgba(hex: string, alpha: number): string {
  * container for tests and styling).
  */
 export function renderContainerSvg(input: RenderContainerInput): string {
-  const { id, x, y, width, height, name, nodeType, description, theme } = input;
+  const { id, calmId, x, y, width, height, name, nodeType, description, theme } = input;
   const style = getNodeStyle(nodeType);
   const fill = theme === 'dark' ? 'rgba(255,255,255,0.03)' : hexToRgba(style.fill, 0.06);
   const labelColor = theme === 'dark' ? '#e5e5e5' : '#333';
   const bounds = `${x},${y},${width},${height}`;
   return [
-    `<g class="calm-container" data-container-id="${escapeXml(id)}" data-node-id="${escapeXml(id)}" data-description="${escapeXml(description)}" data-bounds="${bounds}">`,
+    `<g class="calm-container" data-container-id="${escapeXml(id)}" data-node-id="${escapeXml(calmId ?? id)}" data-description="${escapeXml(description)}" data-bounds="${bounds}">`,
     `  <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="10" fill="${fill}" stroke="${style.fill}" stroke-width="1.5"/>`,
     `  <text x="${x + 12}" y="${y + 20}" font-family="sans-serif" font-size="13" font-weight="bold" fill="${labelColor}">${escapeXml(name)}</text>`,
     `  <text x="${x + 12}" y="${y + 34}" font-family="sans-serif" font-size="10" fill="${labelColor}" opacity="0.7">${escapeXml(nodeType)}</text>`,
