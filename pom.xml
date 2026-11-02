@@ -44,7 +44,7 @@
         <quarkus.platform.version>3.40.1.1</quarkus.platform.version>
         <jackson.version>2.22.3</jackson.version>
         <guava.version>33.7.2-jre</guava.version>
-        <jacoco.version>0.8.15</jacoco.version>
+        <jacoco.version>0.8.16</jacoco.version>
     </properties>
 
     <modules>
