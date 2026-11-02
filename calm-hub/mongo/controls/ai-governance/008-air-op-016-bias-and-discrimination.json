@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-016",
+      "control-id": "AIR-OP-016",
       "name": "Bias and Discrimination",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-16_bias-and-discrimination.html",
-      "summary": "AI systems can systematically disadvantage protected groups through biased training data, flawed design, or proxy variables that correlate with sensitive characteristics. In financial services, this manifests as discriminatory credit decisions, unfair fraud detection, or biased customer service.",
+      "description": "AI systems can systematically disadvantage protected groups through biased training data, flawed design, or proxy variables that correlate with sensitive characteristics. In financial services, this manifests as discriminatory credit decisions, unfair fraud detection, or biased customer service.",
       "requirements": [
         "Conduct bias audits on training data and model outputs prior to deployment and at regular intervals.",
         "Test AI systems for disparate impact across protected characteristics (race, gender, age, etc.) using statistical fairness metrics.",

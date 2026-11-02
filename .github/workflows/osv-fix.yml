@@ -3,7 +3,7 @@ name: OSV Fix
 # Opens a pull request that updates package-lock.json after the OSV Scanner run on
 # main fails. It only tries `npm update <package> --package-lock-only` for the
 # blocking npm findings, so a finding that needs a new major version, an override,
-# a Maven or Cargo change, or a suppression still needs a maintainer. The branch
+# a Maven change, or a suppression still needs a maintainer. The branch
 # name is fixed, so a later failure updates the open pull request instead of
 # opening another. See SECURITY.md, "Dependency and Code Scanning Policy".
 
@@ -39,7 +39,7 @@ jobs:
             github.event.workflow_run.head_repository.full_name == github.repository)
         steps:
             - name: Harden Runner
-              uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2
+              uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2
               with:
                   egress-policy: audit
 

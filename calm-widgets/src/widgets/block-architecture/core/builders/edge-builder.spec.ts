@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { buildInterfaceNameMap, buildEdges } from './edge-builder';
+import { buildInterfaceNameMap, buildEdges, expandEdgesToInstances } from './edge-builder';
 import { VMFactoryProvider } from '../factories/factory-provider';
 import {
     CalmNodeCanonicalModel,
@@ -152,5 +152,114 @@ describe('edge-builder', () => {
         expect(collapsedEdge).toBeDefined();
         expect(collapsedEdge!.id).toBe('r1|r2');
         expect(collapsedEdge!.label).toBe('r1, r2');
+    });
+
+    describe('expandEdgesToInstances', () => {
+        const edge: VMEdge = { id: 'r1', source: 'svc', target: 'db', label: 'reads' };
+
+        it('keeps an edge unchanged when neither end has copies', () => {
+            expect(expandEdgesToInstances([edge], new Map(), new Map())).toEqual([edge]);
+        });
+
+        it('connects every copy of one end to the single other end', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db']]]);
+            const ancestorsOf = new Map([['svc__in__A', ['A']], ['svc__in__B', ['B']], ['db', ['A']]]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf)).toEqual([
+                { id: 'r1__0', source: 'svc__in__A', target: 'db', label: 'reads' },
+                { id: 'r1__1', source: 'svc__in__B', target: 'db', label: 'reads' },
+            ]);
+        });
+
+        it('connects copies of both ends only where they share the most containers', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__A', 'db__in__B']]]);
+            const ancestorsOf = new Map([
+                ['svc__in__A', ['A']], ['svc__in__B', ['B']],
+                ['db__in__A', ['A']], ['db__in__B', ['B']],
+            ]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
+                ['svc__in__A', 'db__in__A'],
+                ['svc__in__B', 'db__in__B'],
+            ]);
+        });
+
+        it('connects a pair only when it shares the most containers for both of its drawings', () => {
+            // s1 and t1 share X and B. s2 and t2 share only X. s3 keeps X from holding every drawing.
+            const instancesOf = new Map([['svc', ['s1', 's2', 's3']], ['db', ['t1', 't2']]]);
+            const ancestorsOf = new Map([
+                ['s1', ['X', 'B']], ['s2', ['X']], ['s3', ['Z']],
+                ['t1', ['X', 'B']], ['t2', ['X']],
+            ]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
+                ['s1', 't1'],
+                ['s2', 't2'],
+            ]);
+        });
+
+        it('connects a container to the copy of a node inside it', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['A', ['A']]]);
+            const ancestorsOf = new Map([['svc__in__A', ['A']], ['svc__in__B', ['B']], ['A', []]]);
+
+            expect(expandEdgesToInstances([{ ...edge, source: 'A', target: 'svc' }], instancesOf, ancestorsOf)
+                .map(e => [e.source, e.target])).toEqual([['A', 'svc__in__A']]);
+        });
+
+        it('gives each drawing one edge when copies of both ends tie on shared containers', () => {
+            // Every copy is in X, and one copy of each end is outside X, so X does not hold every drawing
+            const instancesOf = new Map([
+                ['svc', ['svc__in__P0', 'svc__in__P1', 'svc__in__P2', 'svc__in__Z']],
+                ['db', ['db__in__Q0', 'db__in__Q1', 'db__in__Q2', 'db__in__W']],
+            ]);
+            const ancestorsOf = new Map([
+                ...['P0', 'P1', 'P2'].map(p => [`svc__in__${p}`, ['X', p]] as [string, string[]]),
+                ...['Q0', 'Q1', 'Q2'].map(q => [`db__in__${q}`, ['X', q]] as [string, string[]]),
+                ['svc__in__Z', ['Z']], ['db__in__W', ['W']],
+            ]);
+
+            const edges = expandEdgesToInstances([edge], instancesOf, ancestorsOf);
+
+            expect(edges.length).toBeLessThan(instancesOf.get('svc')!.length + instancesOf.get('db')!.length);
+            expect(new Set(edges.flatMap(e => [e.source, e.target]))).toEqual(new Set([
+                'svc__in__P0', 'svc__in__P1', 'svc__in__P2', 'db__in__Q0', 'db__in__Q1', 'db__in__Q2',
+            ]));
+        });
+
+        it('draws one edge between the first drawings when no copies of the two ends share a container', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__C', 'db__in__D']]]);
+            const ancestorsOf = new Map([
+                ['svc__in__A', ['A']], ['svc__in__B', ['B']],
+                ['db__in__C', ['C']], ['db__in__D', ['D']],
+            ]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
+                ['svc__in__A', 'db__in__C'],
+            ]);
+        });
+
+        it('connects only the copies that share a container, not the copies left without a partner', () => {
+            const instancesOf = new Map([['svc', ['svc__in__B', 'svc__in__A']], ['db', ['db__in__C', 'db__in__A']]]);
+            const ancestorsOf = new Map([
+                ['svc__in__B', ['B']], ['svc__in__A', ['A']],
+                ['db__in__C', ['C']], ['db__in__A', ['A']],
+            ]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
+                ['svc__in__A', 'db__in__A'],
+            ]);
+        });
+
+        it('ignores a container that holds every drawing of both ends', () => {
+            const instancesOf = new Map([['svc', ['svc__in__A', 'svc__in__B']], ['db', ['db__in__C', 'db__in__D']]]);
+            const ancestorsOf = new Map([
+                ['svc__in__A', ['prod', 'A']], ['svc__in__B', ['prod', 'B']],
+                ['db__in__C', ['prod', 'C']], ['db__in__D', ['prod', 'D']],
+            ]);
+
+            expect(expandEdgesToInstances([edge], instancesOf, ancestorsOf).map(e => [e.source, e.target])).toEqual([
+                ['svc__in__A', 'db__in__C'],
+            ]);
+        });
     });
 });

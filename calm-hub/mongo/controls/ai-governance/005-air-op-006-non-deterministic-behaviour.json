@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-006",
+      "control-id": "AIR-OP-006",
       "name": "Non-Deterministic Behaviour",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-6_non-deterministic-behaviour.html",
-      "summary": "LLMs exhibit non-deterministic behaviour, meaning they can generate different outputs for the same input due to probabilistic sampling and internal variability. This unpredictability can lead to inconsistent user experiences, undermine trust, and complicate testing, debugging, and performance evaluation.",
+      "description": "LLMs exhibit non-deterministic behaviour, meaning they can generate different outputs for the same input due to probabilistic sampling and internal variability. This unpredictability can lead to inconsistent user experiences, undermine trust, and complicate testing, debugging, and performance evaluation.",
       "requirements": [
         "Set deterministic decoding parameters (e.g., temperature=0, fixed random seeds) for consistency-critical applications.",
         "Define acceptable output variance thresholds and alert when outputs deviate beyond defined bounds.",

@@ -240,6 +240,7 @@ export function ArchitectureGraph({
         handleNodeMouseEnter,
         handleNodeMouseLeave,
     } = useGraphInteractions({
+        nodes,
         setNodes,
         onNodesChangeBase,
         onNodeClick,
