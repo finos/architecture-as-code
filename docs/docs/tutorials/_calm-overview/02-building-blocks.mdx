@@ -77,11 +77,16 @@
   <p style={{fontSize:'1.65rem', color:'#666', marginTop:'0.3rem'}}>
     Each relationship has a <code>unique-id</code>, <code>relationship-type</code>, optional <code>protocol</code>, and optional <code>controls</code>.
   </p>
+  <p style={{fontSize:'1.65rem', color:'#555', marginTop:'0.3rem'}}>
+    The tools draw <code>deployed-in</code> and <code>composed-of</code> as nested containers. In CALM Hub, a node can sit in more than one parent.
+  </p>
   <aside className="notes">
     `connects` is the most precise — it links specific interfaces (next slide shows how).
     `interacts` is higher-level — node-to-node without specifying which interface.
     `deployed-in` is great for showing containers, VMs, cloud regions.
     Controls on relationships are Part 3 — just plant the seed here.
+    A node's `details` can link to a detailed architecture. CALM Hub follows those links,
+    and validation reports cycles between detailed architectures.
   </aside>
 </section>
 

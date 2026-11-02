@@ -91,7 +91,7 @@
       <text x="515" y="199" textAnchor="middle" fontSize="20" fontWeight="bold" fill="#f57f17">📄 Architecture</text>
       <text x="515" y="222" textAnchor="middle" fontSize="18" fill="#555">instance</text>
       {/* Arrow Architecture → CALM Hub — label floated above boxes */}
-      <text x="612" y="150" textAnchor="middle" fontSize="18" fill="#555">calm hub push</text>
+      <text x="612" y="150" textAnchor="middle" fontSize="18" fill="#555">calm workspace push</text>
       <line x1="590" y1="204" x2="648" y2="204" stroke="#555" strokeWidth="2" markerEnd="url(#arr)"/>
       {/* CALM Hub */}
       <rect x="650" y="168" width="150" height="72" rx="8" fill="#fce4ec" stroke="#880e4f" strokeWidth="2"/>
@@ -124,5 +124,9 @@
     From the Hub: calm template + bundles generates IaC (Kustomize/Helm/Terraform);
     calm docify generates living documentation; calm generate produces environment config.
     Key insight: each step feeds the next automatically; the architecture JSON is the single source.
+    A CALM workspace groups related documents and pushes them to CALM Hub together.
+    `calm workspace bump` gives changed documents, and the documents that refer to them, new versions.
+    `calm workspace push` then creates those versions in CALM Hub; it never changes a version itself.
+    Use snapshot versions while you iterate, then publish a release.
   </aside>
 </section>
