@@ -69,9 +69,10 @@ export interface BlockArchOptions {
 /** -----------------------------
  * VM Types
  * ------------------------------ */
-export type VMInterface = { id: string; label: string };
-export type VMLeafNode = { id: string; label: string; nodeType?: string; interfaces?: VMInterface[] };
-export type VMContainer = { id: string; label: string; nodeType?: string; nodes: VMLeafNode[]; containers: VMContainer[] };
+/** `sourceId` is the id of the original when `id` is a copy of a node drawn in several containers. */
+export type VMInterface = { id: string; sourceId?: string; label: string };
+export type VMLeafNode = { id: string; sourceId?: string; label: string; nodeType?: string; interfaces?: VMInterface[] };
+export type VMContainer = { id: string; sourceId?: string; label: string; nodeType?: string; nodes: VMLeafNode[]; containers: VMContainer[] };
 export type VMEdge = { id: string; source: string; target: string; label?: string };
 export type VMAttach = { from: string; to: string };
 

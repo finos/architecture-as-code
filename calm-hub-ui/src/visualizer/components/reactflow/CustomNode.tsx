@@ -108,9 +108,9 @@ function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
   const isUnknownArch = !!detailedArchitecture && archResolution.type === 'unknown';
   const archPath = isSameOriginArch ? archResolution.path : undefined;
 
-    // Extract building-block-style colors from metadata (if present)
+    // Extract standard-node-style colors from metadata (if present)
     // Only a non-empty string is a usable CSS colour; anything else is ignored.
-    const rawBlockStyle = data.metadata?.['building-block-style'] as { background?: unknown; text?: unknown } | undefined;
+    const rawBlockStyle = data.metadata?.['standard-node-style'] as { background?: unknown; text?: unknown } | undefined;
     const blockBackground = usableColor(rawBlockStyle?.background);
     const blockText = usableColor(rawBlockStyle?.text);
 

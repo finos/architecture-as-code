@@ -1,4 +1,4 @@
-// Ported from calm-hub-ui/src/visualizer/components/reactflow/FloatingEdge.tsx (commit 9696b33b),
+// Ported from calm-hub-ui/src/visualizer/components/reactflow/FloatingEdge.tsx,
 // lab-skinned: keeps the floating-edge maths (node-boundary intersection via the
 // ported floatingEdges util, bidirectional perpendicular offsets, bezier path);
 // replaces the Hub's EdgeBadge/EdgeTooltip with an always-visible compact label

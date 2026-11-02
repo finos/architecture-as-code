@@ -106,3 +106,24 @@ reason = "deepmerge 4.3.1 runs only at build time: vite-plugin-svelte merges pro
 id = "GHSA-ccrj-gw8r-854m"
 ignoreUntil = 2026-11-30
 reason = "CALM Hub turns off the OpenTelemetry SDK by default, and Quarkus then does not parse inbound tracestate headers. Deployments that set CALM_OTEL_DISABLED=false are exposed until Quarkus manages OpenTelemetry >= 1.67.0. Remove when the Quarkus BOM moves to it."
+
+# glob 13.0.6 is bundled inside npm 11.21.1, which comes in only through
+# @semantic-release/npm for the CLI release job. npm overrides cannot change a bundled
+# dependency, and no npm 11.x release bundles the fix (14.0.2). The flaw is that an
+# aborted walk keeps reading directories, and npm never passes a signal to glob. The
+# root glob copy is overridden to 14.x.
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+ignoreUntil = 2026-12-31
+reason = "glob 13.0.6 is bundled in npm under @semantic-release/npm, used only by the CLI release job. npm never passes an AbortSignal to glob, so the abort bypass cannot occur. Not shipped. Remove when an npm release bundles glob >= 14.0.2."
+
+# minimatch has no fix below 11.0.1. The root copy is overridden to 11.x. Two kinds of
+# copy remain. 3.1.5 (eslint and its plugins, @stoplight/spectral-core, serve-handler)
+# cannot take an override, because minimatch 11 has a different export shape, and it does
+# not contain the vulnerable code: the globParts amplification is in the optimizationLevel 2
+# preprocessing that minimatch 7 added. 10.2.5 is bundled inside npm 11.21.1 for the CLI
+# release job, and npm never sets optimizationLevel, so it stays at the default of 1.
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2026-12-31
+reason = "minimatch 3.1.5 has no optimizationLevel preprocessing, so the vulnerable code is not present. minimatch 10.2.5 is bundled in npm for the CLI release job only, and npm never sets optimizationLevel 2. Remove when eslint, spectral-core and serve-handler move off minimatch 3 and an npm release bundles minimatch >= 11.0.1."

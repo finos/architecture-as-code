@@ -1,5 +1,11 @@
 import type { Node } from 'reactflow';
-import { reflowContainersToFitChildren } from '../components/reactflow/utils/layoutUtils.js';
+import {
+    getNodeHeight,
+    getNodeWidth,
+    reflowContainersToFitChildren,
+    sortContainersDeepestFirst,
+} from '../components/reactflow/utils/layoutUtils.js';
+import { GRAPH_LAYOUT } from '../components/reactflow/utils/constants.js';
 
 export interface StoredNodePosition {
     id: string;
@@ -157,16 +163,53 @@ export function applyPositions(nodes: Node[], positions: StoredNodePosition[] | 
     // Only skip reflow when every container's dimensions came from the stored
     // positions (not from the node's own pre-existing width/height). This ensures
     // position-only restores (legacy data, localStorage scratch) still reflow.
+    // A nested container with nothing stored is new, e.g. a copy, and is placed like any new child.
+    const parentOf = new Map(merged.map((n) => [n.id, n.parentId]));
     const containerIds = new Set(
         merged.filter((n) => n.parentId).map((n) => n.parentId!)
     );
     const allContainersDimensioned = containerIds.size === 0 ||
         [...containerIds].every((id) => {
             const stored = positionsById.get(id);
-            return stored?.width != null && stored?.height != null;
+            return stored ? stored.width != null && stored.height != null : !!parentOf.get(id);
         });
 
-    return allContainersDimensioned ? merged : reflowContainersToFitChildren(merged);
+    return allContainersDimensioned ? placeNewChildren(merged, positionsById) : reflowContainersToFitChildren(merged);
+}
+
+/**
+ * Places each child with no stored position, e.g. a new copy of a node in several containers,
+ * below its siblings, and grows its container and the containers around it to hold it.
+ * Every other node keeps its stored position and size.
+ */
+function placeNewChildren(nodes: Node[], positionsById: Map<string, StoredNodePosition>): Node[] {
+    const working = nodes.map((n) => ({ ...n, position: { ...n.position }, style: { ...n.style } }));
+    const byId = new Map(working.map((n) => [n.id, n]));
+    const affected = new Map<string, Node>();
+    for (const n of working) {
+        if (!n.parentId || positionsById.has(n.id)) continue;
+        for (let id: string | undefined = n.parentId; id && byId.has(id) && !affected.has(id); id = byId.get(id)!.parentId) {
+            affected.set(id, byId.get(id)!);
+        }
+    }
+
+    if (affected.size === 0) return nodes;
+
+    const padding = GRAPH_LAYOUT.SYSTEM_NODE_PADDING;
+    const placed = new Set(positionsById.keys());
+    for (const container of sortContainersDeepestFirst([...affected.values()])) {
+        const children = working.filter((n) => n.parentId === container.id);
+        for (const child of children.filter((n) => !placed.has(n.id))) {
+            const below = children.filter((n) => placed.has(n.id))
+                .reduce((y, n) => Math.max(y, n.position.y + getNodeHeight(n)), 0);
+            child.position = { x: padding, y: below + padding };
+            placed.add(child.id);
+        }
+        const width = Math.max(getNodeWidth(container), ...children.map((n) => n.position.x + getNodeWidth(n) + padding));
+        const height = Math.max(getNodeHeight(container), ...children.map((n) => n.position.y + getNodeHeight(n) + padding));
+        Object.assign(container, { width, height, style: { ...container.style, width, height } });
+    }
+    return working;
 }
 
 /**
