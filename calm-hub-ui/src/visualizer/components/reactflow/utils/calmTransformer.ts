@@ -39,11 +39,11 @@ export function parseCALMData(
         const flowTransitions = extractFlowTransitions(flows);
         const relationshipEdges = parseRelationships(relationships, flowTransitions);
         let parsed = parseNodes(nodes, containerInfo, onShowDetailsCallback);
-        let edges = expandEdgesToInstances(relationshipEdges, parsed.instancesOf, parsed.ancestorsOf);
+        let edges = expandEdgesToInstances(relationshipEdges, parsed.instancesOf, parsed.parentOf);
         // Each copy of a node also gets the node's edges
         if (edges.length - relationshipEdges.length > MAX_COPIES) {
             parsed = parseNodes(nodes, containerInfo, onShowDetailsCallback, true);
-            edges = expandEdgesToInstances(relationshipEdges, parsed.instancesOf, parsed.ancestorsOf);
+            edges = expandEdgesToInstances(relationshipEdges, parsed.instancesOf, parsed.parentOf);
         }
 
         const result = { ...applyLayout(parsed.regularNodes, parsed.systemNodes, edges), copiesLimited: parsed.copiesLimited };

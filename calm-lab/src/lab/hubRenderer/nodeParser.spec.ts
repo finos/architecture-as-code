@@ -365,3 +365,12 @@ describe('parseCALMData with deeply shared containers', () => {
     });
 });
 
+describe('parseNodes with deep nesting', () => {
+    it('parses a chain of 20,000 nested containers', () => {
+        const depth = 20000;
+        const nodes = Array.from({ length: depth }, (_, i) => node(`n${i}`));
+        const parentMap = new Map(nodes.slice(1).map((_, i) => [`n${i + 1}`, [`n${i}`]]));
+        const parsed = parseNodes(nodes, { containerNodeIds: new Set(nodes.map((n) => n['unique-id'])), parentMap });
+        expect(parsed.systemNodes.length + parsed.regularNodes.length).toBe(depth);
+    });
+});

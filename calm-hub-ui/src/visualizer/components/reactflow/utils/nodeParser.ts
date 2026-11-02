@@ -131,8 +131,8 @@ export interface ParsedNodes {
     systemNodes: Node[];
     /** React Flow ids of each CALM node. More than one when the node is in several containers. */
     instancesOf: Map<string, string[]>;
-    /** Container ids enclosing each React Flow node, outermost first. */
-    ancestorsOf: Map<string, string[]>;
+    /** Container that holds each nested React Flow node. */
+    parentOf: Map<string, string>;
     /** True when a limit drew each node in its last container only. */
     copiesLimited: boolean;
 }
@@ -156,7 +156,7 @@ export function parseNodes(
     // A node in several containers is drawn once in each, with everything nested in it.
     // The drawing in the last container keeps the CALM id, as before, so saved positions still apply.
     // Each other drawing is a copy with its own id.
-    type Instance = { id: string; parentId?: string; ancestors: string[] };
+    type Instance = { id: string; parentId?: string };
     const ids = [...new Set(nodes.map((n) => n['unique-id']).filter((id): id is string => Boolean(id)))];
     const takenIds = new Set(ids);
     const copyId = (id: string, parentInstanceId: string) => {
@@ -206,15 +206,15 @@ export function parseNodes(
         for (const p of parents) {
             for (const parent of resolved.get(p)!) {
                 const instanceId = instances.length === 0 ? id : copyId(id, parent.id);
-                instances.push({ id: instanceId, parentId: parent.id, ancestors: [...parent.ancestors, parent.id] });
+                instances.push({ id: instanceId, parentId: parent.id });
             }
         }
-        if (instances.length === 0) instances.push({ id, ancestors: [] });
+        if (instances.length === 0) instances.push({ id });
         resolved.set(id, instances);
     }
 
     const instancesOf = new Map<string, string[]>();
-    const ancestorsOf = new Map<string, string[]>();
+    const parentOf = new Map<string, string>();
     nodes.forEach((node) => {
         const id = node['unique-id'];
 
@@ -222,8 +222,8 @@ export function parseNodes(
 
         const instances = resolved.get(id)!;
         instancesOf.set(id, instances.map((i) => i.id));
-        for (const { id: instanceId, parentId, ancestors } of instances) {
-            ancestorsOf.set(instanceId, ancestors);
+        for (const { id: instanceId, parentId } of instances) {
+            if (parentId) parentOf.set(instanceId, parentId);
             if (containerNodeIds.has(id)) {
                 systemNodes.push(createSystemNode(node, instanceId, parentId));
             } else {
@@ -232,5 +232,5 @@ export function parseNodes(
         }
     });
 
-    return { regularNodes, systemNodes, instancesOf, ancestorsOf, copiesLimited: capped };
+    return { regularNodes, systemNodes, instancesOf, parentOf, copiesLimited: capped };
 }

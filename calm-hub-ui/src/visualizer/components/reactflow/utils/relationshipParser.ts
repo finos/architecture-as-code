@@ -209,9 +209,13 @@ export function parseRelationships(
 export function expandEdgesToInstances(
     edges: Edge[],
     instancesOf: Map<string, string[]>,
-    ancestorsOf: Map<string, string[]>
+    parentOf: Map<string, string>
 ): Edge[] {
-    const ancestors = (id: string) => ancestorsOf.get(id) ?? [];
+    const ancestors = (id: string) => {
+        const found: string[] = [];
+        for (let p = parentOf.get(id); p; p = parentOf.get(p)) found.push(p);
+        return found;
+    };
     const contains = (outer: string, inner: string) => ancestors(inner).includes(outer);
 
     return edges.flatMap((edge) => {

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { parseCALMData } from './calmTransformer';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { GRAPH_LAYOUT } from './constants';
+import { parseNodes } from './nodeParser';
 
 describe('parseCALMData', () => {
     it('returns empty arrays for null data', () => {
@@ -807,3 +808,12 @@ describe('parseCALMData - nodes with several parents', () => {
     });
 });
 
+describe('parseNodes with deep nesting', () => {
+    it('parses a chain of 20,000 nested containers', () => {
+        const depth = 20000;
+        const nodes = Array.from({ length: depth }, (_, i) => ({ 'unique-id': `n${i}`, 'node-type': 'system', name: `n${i}`, description: '' }));
+        const parentMap = new Map(nodes.slice(1).map((_, i) => [`n${i + 1}`, [`n${i}`]]));
+        const parsed = parseNodes(nodes, { containerNodeIds: new Set(nodes.map((n) => n['unique-id'])), parentMap });
+        expect(parsed.systemNodes.length + parsed.regularNodes.length).toBe(depth);
+    });
+});
