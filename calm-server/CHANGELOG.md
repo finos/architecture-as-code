@@ -5,6 +5,21 @@ All notable changes to the CALM Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.6.0...calm-server-v0.7.0) (2026-11-03)
+
+### 🚀 Features
+
+* detect and report cyclic detailed-architecture references ([#3590](https://github.com/finos/architecture-as-code/issues/3590)) ([9ff822c](https://github.com/finos/architecture-as-code/commit/9ff822c647a326a921a967eca752dd7dcf2f365c))
+* draw nodes with several parents in every parent ([#3570](https://github.com/finos/architecture-as-code/issues/3570)) ([efb37c1](https://github.com/finos/architecture-as-code/commit/efb37c1b3eba080f0f0907a1d41bf16da3ecbd08)), closes [#3569](https://github.com/finos/architecture-as-code/issues/3569)
+* model the CALM decorator ([#3458](https://github.com/finos/architecture-as-code/issues/3458)) ([d9489e5](https://github.com/finos/architecture-as-code/commit/d9489e591aac21a54b92aa4e8737d5ad329cbff3))
+* remove the 2026-03 draft ([#3496](https://github.com/finos/architecture-as-code/issues/3496)) ([732edbf](https://github.com/finos/architecture-as-code/commit/732edbf02e193618bf0c22d95db2c016f255c1bd))
+* remove the CALM 1.0 release candidates and the 2025-03 draft ([#3468](https://github.com/finos/architecture-as-code/issues/3468)) ([4dabad5](https://github.com/finos/architecture-as-code/commit/4dabad5e9242f09a419bf0ad8f6aae54ab5bbef2))
+
+### 🐛 Bug Fixes
+
+* unify node style metadata key on standard-node-style ([#3587](https://github.com/finos/architecture-as-code/issues/3587)) ([03f31f3](https://github.com/finos/architecture-as-code/commit/03f31f376ebcadcf2b2a7a95e0180bde748dc9f1))
+* update ajv-formats to v3; date-time and time now require a time zone (use iso-date-time or iso-time to make it optional) ([#3481](https://github.com/finos/architecture-as-code/issues/3481)) ([4a3582c](https://github.com/finos/architecture-as-code/commit/4a3582cdefa6878f1516e05f253aba03c91fb9dd))
+
 ## [0.6.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.5.0...calm-server-v0.6.0) (2026-10-24)
 
 ### 🚀 Features
