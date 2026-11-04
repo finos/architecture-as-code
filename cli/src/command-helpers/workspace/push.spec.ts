@@ -108,6 +108,19 @@ describe('pushWorkspaceToHub', () => {
         expect(client.getMappedResourceVersions).not.toHaveBeenCalled();
     });
 
+    it.each(['timeline', 'adr', 'control'] as const)('skips %s entries even when the file has a namespace resource $id', async (type) => {
+        await writeFile(path.join(filesPath, 'doc.json'), JSON.stringify(docA));
+        await saveManifest(bundlePath, {
+            'my-doc': { path: 'files/doc.json', type, namespace: 'com.example' }
+        });
+        const client = makeClient();
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect(client.getMappedResourceVersions).not.toHaveBeenCalled();
+        expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
+    });
+
     it('creates a narrative document and stores its server identity', async () => {
         const markdown = '---\ntitle: Payments SAD\ndescription: Decisions\n---\n# Payments\n';
         await writeFile(path.join(filesPath, 'payments.md'), markdown);
