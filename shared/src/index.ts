@@ -130,6 +130,14 @@ export {
     expandCurie,
     type CurieComponents,
 } from './hub/curie.js';
+export {
+    GITHUB_RESOURCE_DIRECTORIES,
+    GITHUB_DIRECTORY_ALIASES,
+    isKnownGitHubDirectory,
+    canonicalGitHubDirectory,
+    detectDirectorySegment,
+    type GitHubResourceDirectory,
+} from './hub/github-layout.js';
 export { CurieReferenceResolver } from './resolver/curie-resolver.js';
 export { LocalCurieReferenceResolver } from './resolver/local-curie-resolver.js';
 export { ShaCacheReferenceResolver } from './resolver/sha-cache-resolver.js';

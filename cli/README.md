@@ -989,6 +989,14 @@ or, if a document fails:
 
 The command exits non-zero if any documents need bumping **or** if any document fails validation. It also exits non-zero if validation cannot run. A `~/.calm.json` setting that stops `calm validate`, for example a direct-URL authentication setting that is not valid, also stops `check` before it compares the workspace with CalmHub.
 
+`check` also verifies that tracked documents match the directory layout required by CALM Hub GitHub storage mode (`architectures/`, `patterns/`, `standards/` [or `standard-nodes/`], `flows/`, `interfaces/`, `controls/`, `adrs/`, `timelines/`, `decorators/`). When a document's repository path does not match its expected type directory, `check` emits a warning:
+
+```
+Tracked file 'drafts/payments.json' has $id type 'architectures' but is not in an 'architectures/' directory. CALM Hub GitHub mode will not read it as its type.
+```
+
+Directory layout warnings alert authors to misplaced files before merge and do not change the exit code.
+
 #### `calm workspace bump`
 
 Bump the version of every document that has changed on disk relative to CalmHub, and update every reference to those documents across the workspace so everything stays in sync.

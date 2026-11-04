@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
         releaseSnapshot: vi.fn(async () => ({ id: 'doc-a', fromVersion: '1.1.0-SNAPSHOT', toVersion: '1.1.0' })),
         findSnapshotDependencyViolations: vi.fn(async () => []),
         listSnapshotCandidates: vi.fn(async () => ({ releases: ['doc-a'], snapshots: ['doc-b'] })),
+        checkWorkspaceLayout: vi.fn(async () => []),
         runPostBumpValidation: vi.fn(async () => []),
         loadPostBumpValidationOptions: vi.fn<() => Promise<object | undefined>>(async () => ({})),
         loadWorkspaceConfig: vi.fn(async () => ({ push: { failIfModified: false }, bump: { defaultIncrement: 'MINOR' } })),
@@ -101,6 +102,10 @@ vi.mock('./snapshot', () => ({
 vi.mock('./post-bump-validate', () => ({
     runPostBumpValidation: mocks.runPostBumpValidation,
     loadPostBumpValidationOptions: mocks.loadPostBumpValidationOptions,
+}));
+
+vi.mock('./layout-check', () => ({
+    checkWorkspaceLayout: mocks.checkWorkspaceLayout,
 }));
 
 vi.mock('./config', () => ({
@@ -1069,6 +1074,28 @@ describe('setupWorkspaceCommands', () => {
             mocks.detectChangedResources.mockResolvedValueOnce([]);
             mocks.findSnapshotDependencyViolations.mockResolvedValueOnce([]);
             await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('warns when tracked documents have directory layout issues without exiting non-zero', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            mocks.findSnapshotDependencyViolations.mockResolvedValueOnce([]);
+            mocks.checkWorkspaceLayout.mockResolvedValueOnce([
+                {
+                    id: 'arch-1',
+                    filePath: 'patterns/arch.json',
+                    expectedDirectory: 'architectures',
+                    actualDirectory: 'patterns',
+                    typeSegment: 'architectures',
+                    message:
+                        'Tracked file \'patterns/arch.json\' has $id type \'architectures\' but is in \'patterns/\'; expected directory \'architectures/\'. CALM Hub GitHub mode will read it as a pattern.',
+                },
+            ]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(mocks.checkWorkspaceLayout).toHaveBeenCalledWith('/fake/bundle', expect.anything());
+            expect(mocks.loggerWarn).toHaveBeenCalledWith(
+                expect.stringContaining('Tracked file \'patterns/arch.json\' has $id type \'architectures\' but is in \'patterns/\'')
+            );
             expect(exitSpy).not.toHaveBeenCalled();
         });
     });
