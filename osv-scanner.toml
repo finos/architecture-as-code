@@ -6,72 +6,58 @@
 # An ignored ID applies to every copy of the package, so check that the other copies are
 # outside the affected range before adding one.
 
-# http-cache-semantics 4.2.0 comes in through Docusaurus's update-notifier (got,
-# cacheable-request), which uses it only as a private client cache. The attack needs a
-# shared cache that serves responses to other users, which no CALM component runs. No
-# patched release exists yet.
-[[IgnoredVulns]]
-id = "GHSA-ch52-4w7c-c8xp"
-ignoreUntil = 2026-12-31
-reason = "http-cache-semantics 4.2.0 is used only as a private client cache by Docusaurus's update-notifier; no CALM component runs a shared cache. Remove when a patched release is available."
-
-# katex 0.16.47 comes in only through mermaid, which pins ^0.16.45 (still the pin at
-# mermaid 12.1.0). The fix is in 0.18.2, outside that range. The only place katex code
-# runs is the CLI `--export-diagrams` renderer, which serves mermaid's self-contained
-# ESM bundle with its own inlined katex copy, so an npm override cannot reach the code
-# that executes. mermaid loads katex only for math blocks, and the advisory needs an
-# already-polluted Object.prototype plus attacker-controlled math input.
+# katex 0.16.47 comes in only through mermaid 11, which pins ^0.16.45. The fix is in
+# 0.18.2. mermaid 12.2.0 moves to katex 0.18, but it needs @mermaid-js/layout-elk 1.x,
+# and layout-elk 1.0.1 (latest) still depends on katex ^0.16.47 and inlines 0.16.47 in
+# its ESM bundle. The only place katex code runs is the CLI `--export-diagrams` renderer,
+# which serves the self-contained mermaid and layout-elk ESM bundles with their inlined
+# katex copies, so an npm override cannot reach the code that executes. katex loads only
+# for math blocks, and the advisory needs an already-polluted Object.prototype plus
+# attacker-controlled math input.
 [[IgnoredVulns]]
 id = "GHSA-238p-pmpm-9mq7"
-ignoreUntil = 2026-12-31
-reason = "katex is reachable only through mermaid's inlined copy in the CLI diagram renderer, and only when a mermaid diagram contains math. The read-side gadget needs an already-polluted Object.prototype, which no CALM component provides. Remove when mermaid moves to katex >= 0.18.2."
+ignoreUntil = 2027-03-31
+reason = "katex is reachable only through the inlined copies in the CLI diagram renderer's mermaid and layout-elk bundles, and only when a mermaid diagram contains math. The read-side gadget needs an already-polluted Object.prototype, which no CALM component provides. Remove when the CLI moves to mermaid >= 12.2.0 and a layout-elk release that uses katex >= 0.18.2."
 
 # ip-address 10.7.2 is bundled inside npm 11.21.1, which comes in only through
 # @semantic-release/npm for the CLI release job. npm overrides cannot change a bundled
-# dependency, and no npm release bundles the fix (10.7.4) yet. The other copy in the
-# lockfile is already 10.7.4. npm parses only registry and proxy hosts from its own config.
+# dependency, and no npm release bundles the fix (10.7.4) yet: 12.2.1 also bundles 10.7.2.
+# The other copy in the lockfile is already 10.7.4. npm parses only registry and proxy
+# hosts from its own config.
 [[IgnoredVulns]]
 id = "GHSA-rxp7-6hxx-x8q5"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "ip-address 10.7.2 is bundled in npm under @semantic-release/npm, used only by the CLI release job; it parses only registry and proxy hosts from CI config, never user input. Not shipped. Remove when an npm release bundles ip-address >= 10.7.4."
 
 # undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm comes in only through
 # @semantic-release/npm for the CLI release job, which runs npm version and npm publish but
-# never node-gyp. npm overrides cannot change a bundled dependency, and no npm 11.x release
-# bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix.
+# never node-gyp. npm overrides cannot change a bundled dependency, and no npm release
+# bundles the fix (6.29.1) yet: 12.2.1 also bundles 6.29.0. The other undici copy in the
+# lockfile is 7.30.1, which has the fix.
 [[IgnoredVulns]]
 id = "GHSA-4qv8-2p9j-2685"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
 
 [[IgnoredVulns]]
 id = "GHSA-xjj6-f33q-929c"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
 
 [[IgnoredVulns]]
 id = "GHSA-2m5v-pch6-74hx"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
 
 [[IgnoredVulns]]
 id = "GHSA-9fm3-97px-rjf6"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
 
 [[IgnoredVulns]]
 id = "GHSA-qrxm-fqhp-jwvm"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
-
-# @azure/msal-node 6.0.1 comes in only through @azure/identity under @vscode/vsce, which
-# packages and publishes the VS Code extension. The fix is in 7.1.0, and @azure/identity
-# 4.14.0 (latest) still requires ^6.0.0. The release job publishes with VSCE_PAT, and the
-# credential chain behind vsce --azure-credential has no authorization code flow.
-[[IgnoredVulns]]
-id = "GHSA-xcx6-jx8p-x3h5"
-ignoreUntil = 2026-12-31
-reason = "@azure/msal-node 6.0.1 is used only by vsce through @azure/identity. CI publishes with a PAT, and vsce's --azure-credential chain has no authorization code flow. Not shipped. Remove when @azure/identity accepts @azure/msal-node >= 7.1.0."
 
 # @sveltejs/kit 2.70.2 comes in only through the CALM Studio app (calm-studio/apps/studio).
 # It is a single-page app built with adapter-static: ssr = false, prerender = false, an
@@ -80,12 +66,12 @@ reason = "@azure/msal-node 6.0.1 is used only by vsce through @azure/identity. C
 # TypeScript 6, and CALM Studio is to be retired.
 [[IgnoredVulns]]
 id = "GHSA-27mw-82g8-phjj"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app with prerender = false. It prerenders no pages and never calls setHeaders, so an untrusted cache-control header cannot reach a prerendered page. Remove when CALM Studio is retired or moves to kit 3."
 
 [[IgnoredVulns]]
 id = "GHSA-pfhg-q3qv-9q6r"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app with only the root route, no form actions and no use:enhance, so the enhanced form redirect cannot occur. Remove when CALM Studio is retired or moves to kit 3."
 
 # deepmerge 4.3.1 comes in through @sveltejs/vite-plugin-svelte (CALM Studio app and
@@ -95,26 +81,28 @@ reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app wi
 # vite-plugin-svelte still depends on it.
 [[IgnoredVulns]]
 id = "GHSA-gcqx-w48m-w2h4"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "deepmerge 4.3.1 runs only at build time: vite-plugin-svelte merges project-owned Svelte and Vite config, and @svgr/plugin-svgo never imports it. No untrusted object reaches mergeObject(). Remove when a patched release is available."
 
 # opentelemetry-api 1.62.0 comes in through the Quarkus BOM for CALM Hub. The quadratic
 # tracestate parsing runs only when the OpenTelemetry SDK is on. CALM Hub turns it off by
 # default (CALM_OTEL_DISABLED=true), and then Quarkus does not extract inbound trace context.
 # The fix (1.67.0) cannot be overridden: Quarkus 3.40 does not start with OpenTelemetry 1.67.
+# Quarkus 3.40.1.1, the latest 3.40 LTS release, still manages it at 1.62.0. Only the
+# Quarkus 4.0 pre-releases move on, and CALM Hub uses LTS releases only.
 [[IgnoredVulns]]
 id = "GHSA-ccrj-gw8r-854m"
-ignoreUntil = 2026-11-30
+ignoreUntil = 2027-02-28
 reason = "CALM Hub turns off the OpenTelemetry SDK by default, and Quarkus then does not parse inbound tracestate headers. Deployments that set CALM_OTEL_DISABLED=false are exposed until Quarkus manages OpenTelemetry >= 1.67.0. Remove when the Quarkus BOM moves to it."
 
 # glob 13.0.6 is bundled inside npm 11.21.1, which comes in only through
 # @semantic-release/npm for the CLI release job. npm overrides cannot change a bundled
-# dependency, and no npm 11.x release bundles the fix (14.0.2). The flaw is that an
-# aborted walk keeps reading directories, and npm never passes a signal to glob. The
-# root glob copy is overridden to 14.x.
+# dependency, and no npm release bundles the fix (14.0.2): 12.2.1 also bundles 13.0.6.
+# The flaw is that an aborted walk keeps reading directories, and npm never passes a
+# signal to glob. The root glob copy is overridden to 14.x.
 [[IgnoredVulns]]
 id = "GHSA-3g3m-2fjr-6pw4"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "glob 13.0.6 is bundled in npm under @semantic-release/npm, used only by the CLI release job. npm never passes an AbortSignal to glob, so the abort bypass cannot occur. Not shipped. Remove when an npm release bundles glob >= 14.0.2."
 
 # minimatch has no fix below 11.0.1. The root copy is overridden to 11.x. Two kinds of
@@ -122,8 +110,10 @@ reason = "glob 13.0.6 is bundled in npm under @semantic-release/npm, used only b
 # cannot take an override, because minimatch 11 has a different export shape, and it does
 # not contain the vulnerable code: the globParts amplification is in the optimizationLevel 2
 # preprocessing that minimatch 7 added. 10.2.5 is bundled inside npm 11.21.1 for the CLI
-# release job, and npm never sets optimizationLevel, so it stays at the default of 1.
+# release job (12.2.1 bundles it too), and npm never sets optimizationLevel, so it stays at
+# the default of 1. The latest eslint-plugin-import, eslint-plugin-jsx-a11y,
+# eslint-plugin-react, spectral-core and serve-handler still depend on minimatch 3.
 [[IgnoredVulns]]
 id = "GHSA-g3hv-75wg-m249"
-ignoreUntil = 2026-12-31
+ignoreUntil = 2027-03-31
 reason = "minimatch 3.1.5 has no optimizationLevel preprocessing, so the vulnerable code is not present. minimatch 10.2.5 is bundled in npm for the CLI release job only, and npm never sets optimizationLevel 2. Remove when eslint, spectral-core and serve-handler move off minimatch 3 and an npm release bundles minimatch >= 11.0.1."

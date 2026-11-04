@@ -163,10 +163,6 @@
     color: color-mix(in srgb, var(--vscode-charts-yellow, #cca700) 60%, var(--calm-text));
 }
 
-.fid-toolbar-btn--spec {
-    color: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 60%, var(--calm-text));
-}
-
 .fid-toolbar-sep {
     width: 1px;
     height: 18px;

@@ -20,7 +20,7 @@ describe('containerBorderWidth', () => {
 
 describe('containerRoleStyle', () => {
     it('sets the border colour and style for every role, so deselecting keeps the border', () => {
-        for (const role of ['default', 'region-primary', 'region-secondary', 'cluster', 'az', 'solution', 'unknown']) {
+        for (const role of ['default', 'region-primary', 'region-secondary', 'cluster', 'az', 'unknown']) {
             const style = containerRoleStyle(role);
             expect(style.borderColor, role).toBeTruthy();
             expect(style.borderStyle, role).toBeTruthy();

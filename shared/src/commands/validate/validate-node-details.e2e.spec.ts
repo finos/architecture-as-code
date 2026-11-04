@@ -65,13 +65,18 @@ describe('validate node-details E2E', () => {
         await schemaDirectory.loadSchemas();
     });
 
-    it('terminates (does not hang or overflow) on a cyclic detailed-architecture', async () => {
+    it('terminates and reports a cycle-detected error on a cyclic detailed-architecture', async () => {
         // Regression guard for the cycle bug: a pattern-less architecture whose
-        // detailed-architecture references itself must terminate.
+        // detailed-architecture references itself must terminate and emit cycle-detected.
         const outcome = await validate(topArchWithCycle, undefined, undefined, schemaDirectory, false);
         expect(outcome).toBeDefined();
-        // The cycle is detected and skipped, so validation completes without a stack overflow.
-        expect(Array.isArray(outcome.jsonSchemaValidationOutputs)).toBe(true);
+        expect(outcome.hasErrors).toBe(true);
+        const cycleOutputs = outcome.jsonSchemaValidationOutputs.filter(o => o.code === 'cycle-detected');
+        expect(cycleOutputs).toHaveLength(1);
+        expect(cycleOutputs[0].path).toBe(
+            '/nodes/0/details/detailed-architecture/nodes/0/details/detailed-architecture'
+        );
+        expect(cycleOutputs[0].message).toContain(`${CYCLIC_ARCH_URL} -> ${CYCLIC_ARCH_URL}`);
     }, 10000);
 
     it('recursively validates a well-formed nested detailed-architecture', async () => {
