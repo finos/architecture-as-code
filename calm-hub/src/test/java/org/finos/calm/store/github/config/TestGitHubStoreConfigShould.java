@@ -46,7 +46,7 @@ class TestGitHubStoreConfigShould {
         GitHubStoreConfig storeConfig = new GitHubStoreConfig(config);
 
         assertThat(storeConfig.getServiceToken(), equalTo(""));
-        assertThat(storeConfig.getCloneDirectory(), equalTo(Path.of("/tmp/calm-hub-clones")));
+        assertThat(storeConfig.getCloneDirectory(), equalTo(Path.of(System.getProperty("user.home"), ".calm-hub", "clones")));
         assertThat(storeConfig.getApiUrl(), equalTo("https://api.github.com"));
     }
 

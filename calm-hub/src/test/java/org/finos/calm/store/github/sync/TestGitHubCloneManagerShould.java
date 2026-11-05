@@ -57,7 +57,7 @@ class TestGitHubCloneManagerShould {
     @Test
     void transition_to_ready_when_all_clones_succeed() {
         cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main", Set.of());
-        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(false);
         when(repoSync.cloneRepo(eq("finos/architecture-as-code"), eq("main"), any(), eq("test-token")))
                 .thenReturn(true);
 
@@ -69,7 +69,7 @@ class TestGitHubCloneManagerShould {
     @Test
     void transition_to_failed_when_all_clones_fail() {
         cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main", Set.of());
-        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(false);
 
         cloneManager.cloneAll();
@@ -81,7 +81,7 @@ class TestGitHubCloneManagerShould {
     void transition_to_degraded_when_some_clones_fail() {
         cloneManager.registerNamespace("ns1", "org/repo1", "main", Set.of());
         cloneManager.registerNamespace("ns2", "org/repo2", "main", Set.of());
-        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(false);
         when(repoSync.cloneRepo(eq("org/repo1"), eq("main"), any(), any())).thenReturn(true);
         when(repoSync.cloneRepo(eq("org/repo2"), eq("main"), any(), any())).thenReturn(false);
 
@@ -93,11 +93,24 @@ class TestGitHubCloneManagerShould {
     @Test
     void pull_instead_of_clone_when_repo_already_exists() {
         cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main", Set.of());
-        when(repoSync.isValidRepo(any())).thenReturn(true);
+        when(repoSync.isValidRepo(Path.of("/tmp/test-clones/finos"), "finos/architecture-as-code")).thenReturn(true);
         when(repoSync.pullRepo(any(), any(), eq("test-token"))).thenReturn(true);
 
         cloneManager.cloneAll();
 
+        assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.READY));
+    }
+
+    @Test
+    void reclone_when_existing_directory_origin_does_not_match_configured_repo() {
+        cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main", Set.of());
+        when(repoSync.isValidRepo(Path.of("/tmp/test-clones/finos"), "finos/architecture-as-code")).thenReturn(false);
+        when(repoSync.cloneRepo("finos/architecture-as-code", "main", Path.of("/tmp/test-clones/finos"), "test-token"))
+                .thenReturn(true);
+
+        cloneManager.cloneAll();
+
+        verify(repoSync).cloneRepo("finos/architecture-as-code", "main", Path.of("/tmp/test-clones/finos"), "test-token");
         assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.READY));
     }
 
@@ -107,7 +120,7 @@ class TestGitHubCloneManagerShould {
         // configured branch changed) - cloneAll() must resync it to the CONFIGURED
         // branch, not silently keep whatever branch happens to be checked out locally.
         cloneManager.registerNamespace("finos", "finos/architecture-as-code", "release", Set.of());
-        when(repoSync.isValidRepo(any())).thenReturn(true);
+        when(repoSync.isValidRepo(Path.of("/tmp/test-clones/finos"), "finos/architecture-as-code")).thenReturn(true);
         when(repoSync.pullRepo(any(), eq("release"), eq("test-token"))).thenReturn(true);
 
         cloneManager.cloneAll();
@@ -127,11 +140,11 @@ class TestGitHubCloneManagerShould {
     @Test
     void pull_all_repos_and_stay_ready() {
         cloneManager.registerNamespace("finos", "finos/repo", "main", Set.of());
-        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
         cloneManager.cloneAll();
 
-        when(repoSync.isValidRepo(any())).thenReturn(true);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(true);
         when(repoSync.pullRepo(any(), any(), any())).thenReturn(true);
         cloneManager.pullAll();
 
@@ -141,13 +154,13 @@ class TestGitHubCloneManagerShould {
     @Test
     void transition_to_failed_on_pull_all_when_all_fail() {
         cloneManager.registerNamespace("ns1", "org/repo1", "main", Set.of());
-        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
         cloneManager.cloneAll();
 
         // pullAll falls back to cloneRepo when the dir is still invalid, same as cloneAll -
         // this only fails when that retry itself fails, not merely because the dir was invalid.
-        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(false);
         cloneManager.pullAll();
 
@@ -157,13 +170,13 @@ class TestGitHubCloneManagerShould {
     @Test
     void recover_via_clone_fallback_on_pull_all_when_the_clone_dir_is_invalid() {
         cloneManager.registerNamespace("ns1", "org/repo1", "main", Set.of());
-        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
         cloneManager.cloneAll();
 
         // A namespace whose initial clone left an invalid dir must be able to recover on the
         // very next pullAll tick, without a restart, by falling back to cloneRepo again.
-        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
         cloneManager.pullAll();
 
@@ -215,12 +228,12 @@ class TestGitHubCloneManagerShould {
     void transition_to_degraded_on_pull_all_when_some_fail() {
         cloneManager.registerNamespace("ns1", "org/repo1", "main", Set.of());
         cloneManager.registerNamespace("ns2", "org/repo2", "main", Set.of());
-        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.isValidRepo(any(), any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
         cloneManager.cloneAll();
 
-        when(repoSync.isValidRepo(Path.of("/tmp/test-clones/ns1"))).thenReturn(true);
-        when(repoSync.isValidRepo(Path.of("/tmp/test-clones/ns2"))).thenReturn(true);
+        when(repoSync.isValidRepo(Path.of("/tmp/test-clones/ns1"), "org/repo1")).thenReturn(true);
+        when(repoSync.isValidRepo(Path.of("/tmp/test-clones/ns2"), "org/repo2")).thenReturn(true);
         when(repoSync.pullRepo(Path.of("/tmp/test-clones/ns1"), "main", "test-token")).thenReturn(true);
         when(repoSync.pullRepo(Path.of("/tmp/test-clones/ns2"), "main", "test-token")).thenReturn(false);
         cloneManager.pullAll();
