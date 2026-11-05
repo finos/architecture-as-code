@@ -39,9 +39,71 @@ class TestGitHubRepoSyncShould {
     }
 
     @Test
-    void return_true_for_valid_repo_when_git_directory_exists() throws IOException {
+    void return_false_for_invalid_repo_when_git_directory_is_empty() throws IOException {
         Files.createDirectories(tempDir.resolve(".git"));
-        assertThat(repoSync.isValidRepo(tempDir), is(true));
+        assertThat(repoSync.isValidRepo(tempDir), is(false));
+    }
+
+    @Test
+    void return_true_for_valid_repo_when_real_git_repository_exists() throws GitAPIException {
+        try (Git ignored = Git.init().setDirectory(tempDir.toFile()).setInitialBranch("main").call()) {
+            assertThat(repoSync.isValidRepo(tempDir), is(true));
+        }
+    }
+
+    @Test
+    void return_false_when_existing_repo_origin_does_not_match_expected_repo_full_name() throws GitAPIException, IOException {
+        Path originDir = tempDir.resolve("wrong-origin.git");
+        Files.createDirectories(originDir);
+        try (Git origin = Git.init().setDirectory(originDir.toFile()).setInitialBranch("main").call()) {
+            Files.writeString(originDir.resolve("test.txt"), "wrong");
+            origin.add().addFilepattern("test.txt").call();
+            origin.commit().setMessage("init").call();
+        }
+
+        String baseUrl = tempDir.toUri().toString().replaceAll("/$", "");
+        GitHubRepoSync localRepoSync = new GitHubRepoSync(baseUrl, 30);
+        Path cloneTarget = tempDir.resolve("cloned-mismatch");
+
+        assertThat(localRepoSync.cloneRepo("wrong-origin", "main", cloneTarget, null), is(true));
+        assertThat(localRepoSync.isValidRepo(cloneTarget, "wrong-origin"), is(true));
+        assertThat(localRepoSync.isValidRepo(cloneTarget, "expected-origin"), is(false));
+        assertThat(localRepoSync.isValidRepo(cloneTarget, ""), is(false));
+        assertThat(localRepoSync.pullRepo(cloneTarget, "wrong-origin", "main", null), is(true));
+        assertThat(localRepoSync.pullRepo(cloneTarget, "expected-origin", "main", null), is(false));
+    }
+
+    @Test
+    void return_false_when_pull_on_repo_without_origin_remote() throws GitAPIException {
+        try (Git ignored = Git.init().setDirectory(tempDir.toFile()).setInitialBranch("main").call()) {
+            assertThat(repoSync.pullRepo(tempDir, "main", null), is(false));
+        }
+    }
+
+    @Test
+    void overwrite_pre_existing_directory_and_enforce_owner_only_permissions_on_clone() throws GitAPIException, IOException {
+        Path originDir = tempDir.resolve("fresh-origin.git");
+        Files.createDirectories(originDir);
+        try (Git origin = Git.init().setDirectory(originDir.toFile()).setInitialBranch("main").call()) {
+            Files.writeString(originDir.resolve("test.txt"), "expected content");
+            origin.add().addFilepattern("test.txt").call();
+            origin.commit().setMessage("init").call();
+        }
+
+        String baseUrl = tempDir.toUri().toString().replaceAll("/$", "");
+        GitHubRepoSync localRepoSync = new GitHubRepoSync(baseUrl, 30);
+        Path cloneTarget = tempDir.resolve("parent-clones").resolve("ns1");
+        Files.createDirectories(cloneTarget.resolve(".git"));
+        Files.writeString(cloneTarget.resolve("stale.txt"), "stale");
+
+        assertThat(localRepoSync.cloneRepo("fresh-origin", "main", cloneTarget, null), is(true));
+        assertThat(Files.exists(cloneTarget.resolve("stale.txt")), is(false));
+        assertThat(Files.readString(cloneTarget.resolve("test.txt")), is("expected content"));
+        if (cloneTarget.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+            assertThat(
+                    java.nio.file.attribute.PosixFilePermissions.toString(Files.getPosixFilePermissions(cloneTarget)),
+                    is("rwx------"));
+        }
     }
 
     @Test
