@@ -811,7 +811,7 @@ function CanvasApp() {
                 case 'edgeMetadata': data.edgeMetadata = value; break;
             }
             const variant = (data.calmVariant as string) ?? 'connects';
-            const STANDARD_VARIANTS = new Set(['connects', 'interacts', 'deployed-in', 'composed-of', 'options']);
+            const STANDARD_VARIANTS = new Set(['connects', 'interacts', 'deployed-in', 'composed-of']);
             const customVariantLabel = !STANDARD_VARIANTS.has(variant) ? variant : '';
             const label = (data.protocol as string) || (data.description as string) || customVariantLabel;
             const direction = (data.direction as string) ?? 'source-to-target';

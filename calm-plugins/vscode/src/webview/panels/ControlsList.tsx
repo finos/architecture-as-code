@@ -33,6 +33,14 @@ export function coerceValue(def: RequirementPropertyDef, raw: string): unknown {
     return raw;
 }
 
+/** Create an empty control entry that satisfies the CALM control-detail schema. */
+export function createEmptyControl(): ControlEntry {
+    return {
+        description: '',
+        requirements: [{ 'requirement-url': '', config: {} }],
+    };
+}
+
 export function ControlsList({ controls, onUpdate, readonly = false, expandControl = null, onBrowseControls }: ControlsListProps) {
     const [sectionExpanded, setSectionExpanded] = useState(false);
     const [expandedControls, setExpandedControls] = useState<Set<string>>(new Set());
@@ -65,7 +73,7 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
             const updated = { ...latest };
             const ctrl = { ...updated[key] };
             const reqs = [...(ctrl.requirements ?? [])];
-            if (reqs.length === 0) reqs.push({ 'requirement-url': '' });
+            if (reqs.length === 0) reqs.push({ 'requirement-url': '', config: {} });
             reqs[0] = { ...reqs[0], config: { value } };
             ctrl.requirements = reqs;
             updated[key] = ctrl;
@@ -96,7 +104,7 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
     };
     const handleAdd = () => {
         const key = `custom-control-${Date.now()}`;
-        onUpdate({ ...(controls ?? {}), [key]: { description: '', requirements: [{ 'requirement-url': '' }] } });
+        onUpdate({ ...(controls ?? {}), [key]: createEmptyControl() });
         setExpandedControls(new Set([...expandedControls, key]));
         setSectionExpanded(true);
     };

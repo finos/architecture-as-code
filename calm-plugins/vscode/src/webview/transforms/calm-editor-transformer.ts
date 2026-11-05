@@ -91,6 +91,7 @@ export function flowToCalm(
 
     // Build containment relationships
     for (const [parentId, children] of containerChildren) {
+        if (children.length === 0) continue;
         const parentNode = nodes.find((n) => n.id === parentId);
         const variant = ((parentNode?.data as Record<string, unknown>)?.containmentType as string) ?? 'deployed-in';
         const existingRel = lastParsedArch?.relationships.find((r) => {
@@ -222,8 +223,9 @@ export function flowToCalm(
 function buildRelationshipType(variant: string, source: string, target: string): Record<string, unknown> {
     switch (variant) {
         case 'interacts': return { interacts: { actor: source, nodes: [target] } };
-        case 'connects': return { connects: { source: { node: source }, destination: { node: target } } };
-        default: return { [variant]: { source: { node: source }, destination: { node: target } } };
+        case 'connects':
+        default:
+            return { connects: { source: { node: source }, destination: { node: target } } };
     }
 }
 
