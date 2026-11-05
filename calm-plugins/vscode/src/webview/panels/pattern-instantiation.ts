@@ -58,12 +58,20 @@ export function mergePatternIntoArchitecture(
     }
 
     const merged: Record<string, unknown> = { ...current };
-    if (!merged.$schema && typeof incoming.$schema === 'string' && incoming.$schema) {
+    if (
+        (!merged.$schema || isCalmMetaSchemaUrl(merged.$schema)) &&
+        typeof incoming.$schema === 'string' &&
+        incoming.$schema
+    ) {
         merged.$schema = incoming.$schema;
     }
     merged.nodes = currentNodes;
     merged.relationships = currentRels;
     return merged;
+}
+
+function isCalmMetaSchemaUrl(schema: unknown): boolean {
+    return typeof schema === 'string' && /\/meta\/calm\.json(?:[?#].*)?$/.test(schema);
 }
 
 /**

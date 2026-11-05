@@ -454,6 +454,24 @@ describe('mergePatternIntoArchitecture', () => {
         expect(ids(merged.nodes as any[])).toEqual(['existing', 'gateway']);
     });
 
+    it('replaces $schema when the architecture currently names a CALM meta-schema URL', () => {
+        const current = {
+            $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+            nodes: [{ 'unique-id': 'existing', 'node-type': 'service', name: 'Existing' }],
+            relationships: [],
+        };
+        const incoming = instantiateFromPattern({
+            $id: 'patterns/added.pattern.json',
+            properties: { nodes: { prefixItems: [node('gateway')] } },
+        });
+
+        const merged = mergePatternIntoArchitecture(current, incoming);
+
+        expect(merged.$schema).toBe('patterns/added.pattern.json');
+        expect((merged.metadata as Record<string, unknown> | undefined)?.patterns).toBeUndefined();
+        expect(ids(merged.nodes as any[])).toEqual(['existing', 'gateway']);
+    });
+
     it('keeps the first $schema when applying a pattern to an architecture that already names one', () => {
         const current = {
             $schema: 'patterns/first.pattern.json',
