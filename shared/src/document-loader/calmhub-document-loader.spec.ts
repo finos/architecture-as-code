@@ -93,6 +93,21 @@ describe('calmhub-document-loader', () => {
             .rejects.toThrow('directory traversal');
     });
 
+    it.each([
+        'calm:/schemas/2025-03/%2e%2e/%2e%2e/admin/secrets.json',
+        'calm:/schemas/2025-03/.%2E/admin/secrets.json',
+        `${calmHubBaseUrl}/schemas/%2e%2e/admin/secrets.json`,
+        `${calmHubBaseUrl}/schemas\\..\\admin/secrets.json`,
+        'calm:/schemas/2025-03/.\n./admin/secrets.json',
+    ])('rejects traversal that the URL parser resolves before the path check: %s', async (traversalUrl) => {
+        const getSpy = vi.spyOn(ax, 'get');
+        const promise = calmHubDocumentLoader.loadMissingDocument(traversalUrl, 'schema');
+        await expect(promise).rejects.toThrow('directory traversal');
+        await expect(promise).rejects.toMatchObject({ recoverable: false });
+        expect(getSpy).not.toHaveBeenCalled();
+        getSpy.mockRestore();
+    });
+
     it('rejects paths with disallowed characters', async () => {
         const maliciousUrl = 'calm:/schemas/%00malicious';
         await expect(calmHubDocumentLoader.loadMissingDocument(maliciousUrl, 'schema'))
