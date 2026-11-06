@@ -122,4 +122,9 @@ describe('expandCurie', () => {
         const result = expandCurie('ns:type:Slug@v1', 'http://hub.example.com/');
         expect(result).toBe('http://hub.example.com/calm/namespaces/ns/type/Slug/versions/v1');
     });
+
+    it('produces domain-scoped Hub URL for control CURIEs', () => {
+        const result = expandCurie('security:controls:micro-segmentation@1.0.0', hubBaseUrl);
+        expect(result).toBe('http://hub.example.com/calm/domains/security/controls/micro-segmentation/requirement/versions/1.0.0');
+    });
 });

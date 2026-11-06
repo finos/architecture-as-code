@@ -25,7 +25,7 @@ If the architecture does not match the pattern, the command will output a list o
 - **`    --timeline <timeline>`**: Path to the timeline file to validate.
 - **`-s, --schema-directory <path>`**: Path to the directory containing the meta schemas to use.
 - **`-c, --calm-hub-url <url>`**: URL to CALMHub instance.
-- **`--assets-path <path>`**: Local path to a CALM assets directory. Resolves `detailed-architecture` CURIEs from the filesystem without a Hub.
+- **`--assets-path <path>`**: Local path to a CALM assets directory. Resolves `detailed-architecture` and control CURIEs from the filesystem without a Hub.
 - **`-u, --url-to-local-file-mapping <path>`**: Path to a JSON file that maps URLs to local file paths (see [URL to Local File Mapping](#url-to-local-file-mapping-validate) below).
 - **`--strict`**: When enabled, the CLI will fail if any warnings are reported (default: false).
 - **`-f, --format <format>`**: The format of the output (choices: "json", "junit", "pretty", default: "json").

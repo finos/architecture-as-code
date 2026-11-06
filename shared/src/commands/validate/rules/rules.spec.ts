@@ -67,10 +67,11 @@ describe('ControlsValidationRule', () => {
             hasErrors: true,
             hasWarnings: false
         });
+        const context = ctx({ architecture: { a: 1 }, pattern: { p: 1 }, schemaDirectory: fakeDir });
 
-        const result = await rule.run(ctx({ architecture: { a: 1 }, pattern: { p: 1 }, schemaDirectory: fakeDir }));
+        const result = await rule.run(context);
 
-        expect(validateAllControls).toHaveBeenCalledWith({ a: 1 }, { p: 1 }, fakeDir, false);
+        expect(validateAllControls).toHaveBeenCalledWith({ a: 1 }, { p: 1 }, fakeDir, false, context.references);
         expect(result.jsonSchemaOutputs).toEqual([{ code: 'c' }]);
         expect(result.spectralOutputs).toEqual([]);
         expect(result.hasErrors).toBe(true);

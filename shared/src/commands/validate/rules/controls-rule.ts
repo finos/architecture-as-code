@@ -17,7 +17,13 @@ export class ControlsValidationRule implements ValidationRule {
     }
 
     async run(context: ValidationContext): Promise<RuleResult> {
-        const result = await validateAllControls(context.architecture!, context.pattern, context.schemaDirectory!, context.debug);
+        const result = await validateAllControls(
+            context.architecture!,
+            context.pattern,
+            context.schemaDirectory!,
+            context.debug,
+            context.references
+        );
         return {
             jsonSchemaOutputs: result.jsonSchemaOutputs,
             spectralOutputs: [],
