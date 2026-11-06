@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildBlockArchVM, BlockArchVMBuilder } from './vm-builder';
-import { CalmCoreCanonicalModel } from '@finos/calm-models/canonical';
+import { CalmCoreCanonicalModel, CalmRelationshipCanonicalModel } from '@finos/calm-models/canonical';
 import { NormalizedOptions } from '../types';
 
 const baseOpts = (over: Partial<NormalizedOptions> = {}): NormalizedOptions => ({
@@ -121,5 +121,278 @@ describe('vm-builder', () => {
         };
         const vm = buildBlockArchVM(context, baseOpts());
         expect(Array.isArray(vm.warnings)).toBe(true);
+    });
+
+    it('draws a focused node in its container when the container parent is not drawn', () => {
+        const context: CalmCoreCanonicalModel = {
+            nodes: [
+                { 'unique-id': 'N', 'node-type': 'service', name: 'N', description: '' },
+                { 'unique-id': 'C', 'node-type': 'system', name: 'C', description: '' },
+                { 'unique-id': 'D', 'node-type': 'system', name: 'D', description: '' },
+            ],
+            relationships: [
+                { 'unique-id': 'r1', 'relationship-type': { 'composed-of': { container: 'C', nodes: ['N'] } } },
+                { 'unique-id': 'r2', 'relationship-type': { 'deployed-in': { container: 'D', nodes: ['C'] } } },
+            ],
+        };
+        const vm = buildBlockArchVM(context, baseOpts({ focusNodes: ['N'], includeContainers: 'parents' }));
+        expect(vm.containers.map(c => [c.id, c.nodes.map(n => n.id)])).toEqual([['C', ['N']]]);
+    });
+
+    describe('nodes shared between clusters', () => {
+        const node = (id: string, type = 'system') => ({ 'unique-id': id, 'node-type': type, name: id, description: '' });
+        const deployedIn = (id: string, container: string, nodes: string[]) =>
+            ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
+        const connects = (id: string, source: string, destination: string) =>
+            ({ 'unique-id': id, 'relationship-type': { connects: { source: { node: source }, destination: { node: destination } } } });
+
+        const sharedNamespaces = (extraNodes: ReturnType<typeof node>[], extraRels: CalmRelationshipCanonicalModel[]): CalmCoreCanonicalModel => ({
+            nodes: [
+                node('cluster-a'), node('cluster-b'), node('ns-orders'), node('ns-payments'),
+                node('orders', 'service'), node('payments', 'service'),
+                ...extraNodes,
+            ],
+            relationships: [
+                deployedIn('d1', 'cluster-a', ['ns-orders', 'ns-payments']),
+                deployedIn('d2', 'cluster-b', ['ns-orders', 'ns-payments']),
+                deployedIn('d3', 'ns-orders', ['orders']),
+                deployedIn('d4', 'ns-payments', ['payments']),
+                ...extraRels,
+            ],
+        });
+
+        it('draws a shared namespace and its services in every cluster', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts());
+
+            expect(vm.containers.map(c => c.id)).toEqual(['cluster-a', 'cluster-b']);
+            for (const cluster of ['cluster-a', 'cluster-b']) {
+                const c = vm.containers.find(x => x.id === cluster)!;
+                expect(c.containers.map(x => x.id)).toEqual([`ns-orders__in__${cluster}`, `ns-payments__in__${cluster}`]);
+                expect(c.containers[1].nodes.map(n => n.id)).toEqual([`payments__in__ns-payments__in__${cluster}`]);
+            }
+            expect(vm.looseNodes).toEqual([]);
+            expect(vm.warnings).toEqual([]);
+        });
+
+        it('connects copies of shared nodes inside the same cluster only', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], [connects('c1', 'orders', 'payments')]), baseOpts());
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['orders__in__ns-orders__in__cluster-a', 'payments__in__ns-payments__in__cluster-a'],
+                ['orders__in__ns-orders__in__cluster-b', 'payments__in__ns-payments__in__cluster-b'],
+            ]);
+            expect(new Set(vm.edges.map(e => e.id)).size).toBe(2);
+        });
+
+        it('connects a node drawn once to every copy of a shared node', () => {
+            const vm = buildBlockArchVM(
+                sharedNamespaces([node('client', 'actor')], [connects('c1', 'client', 'payments')]),
+                baseOpts()
+            );
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['client', 'payments__in__ns-payments__in__cluster-a'],
+                ['client', 'payments__in__ns-payments__in__cluster-b'],
+            ]);
+        });
+
+        it('requires containers before edges, because edges point at drawn copies', () => {
+            const builder = new BlockArchVMBuilder(sharedNamespaces([], []), baseOpts());
+            builder.analyzeRelationships().resolveVisibility();
+            expect(() => builder.buildEdges()).toThrowError('Must call buildContainers() first');
+        });
+
+        it('connects edges to the interfaces of each copy', () => {
+            const context = sharedNamespaces([], [{
+                'unique-id': 'c1',
+                'relationship-type': { connects: { source: { node: 'orders' }, destination: { node: 'payments', interfaces: ['api'] } } },
+            }]);
+            context.nodes!.find(n => n['unique-id'] === 'payments')!.interfaces = [{ 'unique-id': 'api', name: 'API' }];
+
+            const vm = buildBlockArchVM(context, baseOpts({ renderInterfaces: true }));
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['orders__in__ns-orders__in__cluster-a', 'payments__in__ns-payments__in__cluster-a__iface__api'],
+                ['orders__in__ns-orders__in__cluster-b', 'payments__in__ns-payments__in__cluster-b__iface__api'],
+            ]);
+        });
+
+        it('connects only the copy inside a container to that container', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], [connects('c1', 'orders', 'cluster-b')]), baseOpts());
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['orders__in__ns-orders__in__cluster-b', 'cluster-b'],
+            ]);
+        });
+
+        it('points edges at the plain id when every copy is pruned', () => {
+            const composedOf = (id: string, container: string, nodes: string[]) =>
+                ({ 'unique-id': id, 'relationship-type': { 'composed-of': { container, nodes } } });
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('c1'), node('c2'), node('ns'), node('m'), node('x')],
+                relationships: [
+                    composedOf('r1', 'ns', ['m']),
+                    deployedIn('r2', 'c1', ['ns']),
+                    deployedIn('r3', 'c2', ['ns']),
+                    connects('r4', 'x', 'ns'),
+                ],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts({ focusNodes: ['x', 'ns'], includeChildren: 'none' }));
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([['x', 'ns']]);
+        });
+
+        it('draws a node once when it is listed in both its cluster and its namespace', () => {
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('cluster'), node('ns'), node('svc', 'service'), node('db', 'database')],
+                relationships: [
+                    deployedIn('d1', 'cluster', ['ns', 'svc']),
+                    deployedIn('d2', 'ns', ['svc', 'db']),
+                    connects('c1', 'svc', 'db'),
+                ],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.containers[0].nodes).toEqual([]);
+            expect(vm.containers[0].containers[0].nodes.map(n => n.id).sort()).toEqual(['db', 'svc']);
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([['svc', 'db']]);
+        });
+
+        it('keeps sibling containers with the same label in the order of their parent relationships', () => {
+            const composedOf = (id: string, container: string, nodes: string[]) =>
+                ({ 'unique-id': id, 'relationship-type': { 'composed-of': { container, nodes } } });
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('P'), { ...node('X'), name: 'ns' }, { ...node('Y'), name: 'ns' }, node('a'), node('b')],
+                relationships: [composedOf('r1', 'P', ['X', 'Y']), composedOf('r2', 'Y', ['b']), composedOf('r3', 'X', ['a'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.containers[0].containers.map(c => c.id)).toEqual(['X', 'Y']);
+        });
+
+        it('keeps a node in its outer container when its inner container is filtered out', () => {
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('cluster'), node('ns', 'namespace'), node('svc', 'service')],
+                relationships: [deployedIn('d1', 'cluster', ['svc']), deployedIn('d2', 'cluster', ['ns']), deployedIn('d3', 'ns', ['svc'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts({ nodeTypes: ['service', 'system'], includeContainers: 'parents' }));
+
+            expect(vm.containers.map(c => [c.id, c.nodes.map(n => n.id)])).toEqual([['cluster', ['svc']]]);
+        });
+
+        it('draws each node once and warns when the edges to copies would exceed the limit', () => {
+            const containers = Array.from({ length: 40 }, (_, k) => `c${k}`);
+            const clients = Array.from({ length: 30 }, (_, k) => `client${k}`);
+            const context: CalmCoreCanonicalModel = {
+                nodes: [...containers, ...clients, 'svc'].map(id => node(id)),
+                relationships: [
+                    ...containers.map(c => deployedIn(`in-${c}`, c, ['svc'])),
+                    ...clients.map(c => connects(`${c}-svc`, c, 'svc')),
+                ],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.containers.filter(c => c.nodes.length > 0).map(c => c.nodes.map(n => n.id))).toEqual([['svc']]);
+            expect(vm.edges).toHaveLength(30);
+            expect(vm.warnings).toEqual([expect.stringContaining('one container')]);
+        });
+
+        it('keeps a node in its outer container when the container between it and the inner container is hidden', () => {
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('cluster'), node('mid'), node('ns'), node('svc', 'service')],
+                relationships: [deployedIn('d1', 'cluster', ['svc', 'mid']), deployedIn('d2', 'mid', ['ns']), deployedIn('d3', 'ns', ['svc'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts({ focusNodes: ['svc'], includeContainers: 'parents' }));
+
+            expect(vm.containers.map(c => [c.id, c.nodes.map(n => n.id)])).toEqual([
+                ['cluster', ['svc__in__cluster']],
+                ['ns', ['svc__in__ns']],
+            ]);
+        });
+
+        it('warns, as before, when a composed node has a deployed-in parent that is not drawn', () => {
+            const composedOf = (id: string, container: string, nodes: string[]) =>
+                ({ 'unique-id': id, 'relationship-type': { 'composed-of': { container, nodes } } });
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('C'), node('D1'), node('D2'), node('m', 'service')],
+                relationships: [composedOf('r1', 'C', ['m']), deployedIn('r2', 'D1', ['m']), deployedIn('r3', 'D2', ['m'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.warnings).toEqual(['Node "m" has multiple deployed-in parents: "D1" vs "D2" (keeping "D1")']);
+        });
+
+        it('draws a loop on each copy for a relationship from a node to itself', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], [connects('c1', 'payments', 'payments')]), baseOpts());
+
+            expect(vm.edges.map(e => [e.source, e.target])).toEqual([
+                ['payments__in__ns-payments__in__cluster-a', 'payments__in__ns-payments__in__cluster-a'],
+                ['payments__in__ns-payments__in__cluster-b', 'payments__in__ns-payments__in__cluster-b'],
+            ]);
+        });
+
+        it('connects an interacts actor drawn once to every copy', () => {
+            const interacts = { 'unique-id': 'i1', 'relationship-type': { interacts: { actor: 'user', nodes: ['payments'] } } };
+            const vm = buildBlockArchVM(sharedNamespaces([node('user', 'actor')], [interacts]), baseOpts());
+
+            expect(vm.edges.map(e => e.target)).toEqual([
+                'payments__in__ns-payments__in__cluster-a',
+                'payments__in__ns-payments__in__cluster-b',
+            ]);
+        });
+
+        it('gives the same diagram when the nodes and relationships are in reverse order', () => {
+            const context = sharedNamespaces([], [connects('c1', 'orders', 'payments')]);
+            const reversed = { nodes: [...context.nodes!].reverse(), relationships: [...context.relationships!].reverse() };
+
+            const ids = (vm: ReturnType<typeof buildBlockArchVM>) => ({
+                containers: JSON.stringify(vm.containers),
+                edges: vm.edges.map(e => [e.source, e.target]).sort(),
+            });
+            expect(ids(buildBlockArchVM(reversed, baseOpts()))).toEqual(ids(buildBlockArchVM(context, baseOpts())));
+        });
+
+        it('does not apply the limit to a large diagram with no shared nodes', () => {
+            const ids = Array.from({ length: 1500 }, (_, k) => `n${k}`);
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('cluster'), ...ids.map(id => node(id, 'service'))],
+                relationships: [
+                    deployedIn('d1', 'cluster', ids),
+                    ...ids.slice(1).map((id, k) => connects(`c${k}`, ids[k], id)),
+                ],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts());
+
+            expect(vm.edges).toHaveLength(ids.length - 1);
+            expect(vm.warnings).toEqual([]);
+        });
+
+        it('draws a node in its first container when no container passes the node-types filter', () => {
+            const context: CalmCoreCanonicalModel = {
+                nodes: [node('k'), node('k2'), node('svc', 'service')],
+                relationships: [deployedIn('d1', 'k', ['svc']), deployedIn('d2', 'k2', ['svc'])],
+            };
+
+            const vm = buildBlockArchVM(context, baseOpts({ nodeTypes: ['service'], includeContainers: 'parents' }));
+
+            expect(vm.containers.map(c => [c.id, c.nodes.map(n => n.id)])).toEqual([['k', ['svc']]]);
+        });
+
+        it('highlights every copy of a highlighted node', () => {
+            const vm = buildBlockArchVM(sharedNamespaces([], []), baseOpts({ highlightNodes: ['payments'] }));
+
+            expect(vm.highlightNodeIds).toEqual([
+                'payments__in__ns-payments__in__cluster-a',
+                'payments__in__ns-payments__in__cluster-b',
+            ]);
+        });
     });
 });

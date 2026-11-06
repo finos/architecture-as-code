@@ -58,15 +58,6 @@
 		markClean,
 		resetFileState
 	} from '$lib/io/fileState.svelte';
-	import { isTauri } from '$lib/desktop/isTauri';
-	import { updateWindowTitle } from '$lib/desktop/titleBar';
-	import { buildAppMenu, updateRecentFilesMenu } from '$lib/desktop/menu';
-	import { addRecentFile, getRecentFiles } from '$lib/desktop/recentFiles';
-	import { startMcpSidecar, stopMcpSidecar } from '$lib/desktop/sidecarMcp';
-	import { registerFileDrop } from '$lib/desktop/dragDrop';
-	import { checkForUpdates } from '$lib/desktop/updater';
-	import { registerFileOpenHandler } from '$lib/desktop/fileOpen';
-	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsCalmscript, exportAsScalerToml } from '$lib/io/export';
 	import type { CalmArchitecture, CalmRelationship } from '@calmstudio/calm-core';
 	import { getReferencedNodeIds } from '@calmstudio/calm-core';
@@ -101,16 +92,6 @@
 	let edges = $state.raw<Edge[]>([]);
 
 	let canvas: CalmCanvas;
-
-	// ─── Desktop: native title bar sync ───────────────────────────────────────
-
-	// Reactively update the native OS window title when filename or dirty state changes.
-	// Only active in Tauri desktop mode — no-ops in browser builds.
-	$effect(() => {
-		if (isTauri()) {
-			updateWindowTitle(getFileName(), getIsDirty());
-		}
-	});
 
 	// ─── C4 View Mode ─────────────────────────────────────────────────────────
 
@@ -671,11 +652,6 @@
 			await importCalmFile(result.content, result.name);
 			// On success, importCalmFile clears importError; mark clean with new file info
 			markClean(result.name, result.handle);
-			// Desktop: add to recent files and refresh menu
-			if (isTauri() && typeof result.handle === 'string') {
-				const recent = await addRecentFile(result.handle);
-				await updateRecentFilesMenu(recent);
-			}
 		} catch (e) {
 			// User cancelled the file picker — not an error
 		}
@@ -702,16 +678,7 @@
 		try {
 			const json = getModelJson();
 			const handle = await saveFileAs(json, getFileName() ?? 'architecture.calm.json');
-			// saveFileAs returns:
-			// - string path (Tauri desktop)
-			// - FileSystemFileHandle (browser FSA)
-			// - null (Blob download fallback or user cancel)
-			if (typeof handle === 'string') {
-				// Tauri desktop: extract filename from path
-				const name = handle.split(/[\\/]/).pop() ?? getFileName() ?? undefined;
-				markClean(name, handle);
-			} else if (handle) {
-				// Browser FSA: use handle.name
+			if (handle) {
 				markClean(handle.name ?? getFileName() ?? undefined, handle);
 			} else {
 				// Blob download — we can mark clean since content was "saved" (downloaded)
@@ -734,96 +701,6 @@
 		nodes = [];
 		edges = [];
 	}
-
-	// ─── Desktop: open file from path (drag-drop, file association, recent files) ─
-
-	/**
-	 * Open a .calm.json file given an absolute path (Tauri desktop only).
-	 * Used by drag-drop, single-instance file association, macOS deep-link,
-	 * and recent file menu items.
-	 */
-	async function handleOpenFromPath(path: string) {
-		try {
-			const content = await readTextFile(path);
-			const name = path.split(/[\\/]/).pop() ?? path;
-			await importCalmFile(content, name);
-			markClean(name, path);
-			const recent = await addRecentFile(path);
-			await updateRecentFilesMenu(recent);
-		} catch (e) {
-			console.error('Failed to open file from path:', e);
-		}
-	}
-
-	// ─── Desktop: native feature initialization (onMount) ─────────────────────
-
-	onMount(() => {
-		if (!isTauri()) return;
-
-		const cleanups: (() => void)[] = [];
-
-		// 1. Build native menu bar
-		void buildAppMenu({
-			open: handleOpen,
-			openFromPath: handleOpenFromPath,
-			save: handleSave,
-			saveAs: handleSaveAs,
-			newFile: handleNew,
-			exportCalm: handleExportCalm,
-			exportSvg: handleExportSvg,
-			exportPng: handleExportPng,
-			undo: () => {
-				const snapshot = undo();
-				if (snapshot) {
-					nodes = snapshot.nodes;
-					edges = snapshot.edges;
-				}
-			},
-			redo: () => {
-				const snapshot = redo();
-				if (snapshot) {
-					nodes = snapshot.nodes;
-					edges = snapshot.edges;
-				}
-			},
-			zoomIn: () => { /* TODO: wire to canvas zoom via useSvelteFlow */ },
-			zoomOut: () => { /* TODO: wire to canvas zoom via useSvelteFlow */ },
-			zoomFit: () => { canvas?.fitViewport(); },
-			togglePalette: () => { /* TODO: expose palette visibility state */ },
-			toggleCode: () => { /* TODO: expose code panel visibility state */ },
-			toggleProperties: () => { /* TODO: expose properties panel visibility state */ },
-			about: () => {
-				alert('CalmStudio v0.1.0\nVisual CALM Architecture Editor\nhttps://calmstudio.dev');
-			},
-			docs: () => { window.open('https://calmstudio.dev/docs', '_blank'); },
-		});
-
-		// 2. Register drag-and-drop (.calm.json files dropped onto app window)
-		const unlistenDrop = registerFileDrop(handleOpenFromPath);
-		cleanups.push(unlistenDrop);
-
-		// 3. Register file-open events (single-instance on Windows/Linux + macOS cold-start)
-		const unlistenFileOpen = registerFileOpenHandler(handleOpenFromPath);
-		cleanups.push(unlistenFileOpen);
-
-		// 4. Start MCP sidecar (fire-and-forget — never blocks startup)
-		startMcpSidecar().catch((e) => console.warn('MCP sidecar failed to start:', e));
-
-		// 5. Check for updates (fire-and-forget — never blocks startup)
-		checkForUpdates().catch((e) => console.warn('Update check failed:', e));
-
-		// 6. Populate recent files in menu on startup
-		void getRecentFiles().then((recent) => {
-			if (recent.length > 0) {
-				void updateRecentFilesMenu(recent);
-			}
-		});
-
-		return () => {
-			cleanups.forEach((fn) => fn());
-			stopMcpSidecar().catch(() => {});
-		};
-	});
 
 	// ─── Export operations ────────────────────────────────────────────────────
 

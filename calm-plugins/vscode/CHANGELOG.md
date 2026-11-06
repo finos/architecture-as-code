@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Odd minor versions (e.g. 0.9.x) are published as pre-releases.
 
+## [0.9.4](https://github.com/finos/architecture-as-code/compare/vscode-v0.9.3...vscode-v0.9.4) (2026-11-05)
+
+### 🐛 Bug Fixes
+
+* unify node style metadata key on standard-node-style ([#3587](https://github.com/finos/architecture-as-code/issues/3587)) ([03f31f3](https://github.com/finos/architecture-as-code/commit/03f31f376ebcadcf2b2a7a95e0180bde748dc9f1))
+* **vscode:** add a Standard's controls to the target node on drop ([#3568](https://github.com/finos/architecture-as-code/issues/3568)) ([4fb8363](https://github.com/finos/architecture-as-code/commit/4fb8363a4a3eae8712ba43c5421244f01f3c3402))
+* **vscode:** remove the Solution concept from CALM Canvas ([#3545](https://github.com/finos/architecture-as-code/issues/3545)) ([#3594](https://github.com/finos/architecture-as-code/issues/3594)) ([753a41c](https://github.com/finos/architecture-as-code/commit/753a41ccdb41fd81b7628eff50d14c82ce7359e6))
+
 ## [0.9.3](https://github.com/finos/architecture-as-code/compare/vscode-v0.9.2...vscode-v0.9.3) (2026-10-28)
 
 ### 🚀 Features

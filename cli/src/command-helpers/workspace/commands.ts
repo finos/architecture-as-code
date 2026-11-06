@@ -7,7 +7,7 @@ import { printBundleTree } from './tree';
 import { removeDocumentFromManifest } from './rm';
 import { createNewDocument, getTemplatesForType } from './new';
 import { promptForDocumentId } from './document-id-prompt';
-import { documentTypeForContent, documentTypeForDocumentId, documentTypeHasIdType } from './document-id-type';
+import { documentTypeForContent, documentTypeForDocumentId } from './document-id-type';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
 import { markAsSnapshot, releaseSnapshot, findSnapshotDependencyViolations, listSnapshotCandidates } from './snapshot';
@@ -156,8 +156,6 @@ async function addMappingDocument(
             // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
             // Silently rewriting would be data loss for types that don't use CalmHub URLs (adr, timeline, etc.).
             logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
-        } else if (!documentTypeHasIdType(type)) {
-            logger.warn(`Document type '${type}' has no CalmHub resource type, so push and bump use the type in the $id '${existingId}'.`);
         } else {
             // push and bump take the type from the $id, but check validates by the manifest type,
             // so a mismatch would skip validation.

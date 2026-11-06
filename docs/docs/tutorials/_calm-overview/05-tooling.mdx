@@ -29,30 +29,41 @@ calm validate -p pattern.json -a architecture.json
 # Render a documentation website from your CALM model
 calm docify -a architecture.json -o ./docs-output
 
-# Export architecture diagrams as SVG while rendering docs
-calm docify -a architecture.json -o ./docs-output --export-diagrams svg
-
 # Generate files (e.g. Kubernetes manifests) from a template bundle
 calm template -a architecture.json -b ./bundles/k8s -o ./output
 
 # Compare two CALM documents and report what changed
 calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
+  <p style={{fontSize:'1.65rem', color:'#555', marginTop:'0.3rem'}}>
+    Also: <code>calm hub</code> (push and pull architectures, patterns, standards and more) · <code>calm workspace</code> · <code style={{whiteSpace:'nowrap'}}>calm validate --timeline</code>
+  </p>
   <aside className="notes">
     The CLI is the backbone. Everything else builds on top of these operations.
     `calm docify` generates a full static documentation site from your architecture JSON.
     `calm template` renders Handlebars bundles — Kubernetes manifests, Terraform, whatever you need.
     `calm diff` is a CI superpower: gate version bumps when the architecture changes.
+    Add `--export-diagrams svg` to `calm docify` to export the diagrams too. This needs a
+    Chromium-based browser on the machine.
+    `calm hub` pushes and pulls architectures, patterns, standards, controls, flows and interfaces.
+    `calm workspace` comes back in Part 7.
+    The validation server is now its own package, `@finos/calm-server` (`calm server` was removed).
+    Java users can use `calm-models` from Maven Central.
   </aside>
 </section>
 
 <section>
   <h2>🧩 VSCode Extension</h2>
   <p>First-class IDE support for working with CALM architectures.</p>
-  <img src="/img/vscode/04-preview-hero.png" alt="VSCode CALM preview" style={{maxHeight:'460px', maxWidth:'95%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0 auto'}} />
+  <p style={{fontSize:'1.65rem', color:'#555', marginTop:'-0.3rem', marginBottom:'0.5rem'}}>
+    CALM Hub connection and login · import SVG → CALM · export diagrams · themes, including high contrast · ELK or dagre layout
+  </p>
+  <img src="/img/vscode/04-preview-hero.png" alt="VSCode CALM preview" style={{maxHeight:'400px', maxWidth:'95%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0 auto'}} />
   <aside className="notes">
     The VSCode extension gives you a live preview of your architecture as a diagram,
     a tree view of nodes and relationships, real-time validation, and timeline visualisation.
     It's the best way to author CALM files.
+    It can also connect to CALM Hub, turn an SVG diagram into a CALM architecture,
+    and export diagrams as SVG or PNG.
   </aside>
 </section>
 
@@ -78,15 +89,18 @@ calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
   <h2>🏛️ CALM Hub</h2>
   <p>A versioned, queryable architecture repository — the shared source of truth that files in Git alone can't give you.</p>
   <p style={{fontSize:'1.65rem', color:'#555', marginTop:'-0.3rem', marginBottom:'0.5rem'}}>
-    Browse architectures across teams · compare timeline moments · view control compliance · REST API &amp; MCP for AI tools
+    Versioned releases and snapshots · namespaces and entitlements · ADR decisions and control evaluations on the diagram · deployment view · which architectures use a pattern · search · REST API &amp; MCP for AI tools
   </p>
   <img src="/img/hub-ui/diagram-view.png" alt="CALM Hub diagram view" style={{maxHeight:'380px', maxWidth:'90%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0.4rem auto'}} />
   <aside className="notes">
     CALM Hub is a Quarkus-backed REST API + React UI for storing, browsing, and viewing
     architectures. It gives teams a shared source of truth for the whole architecture landscape.
-    The key differentiator from "just Git": Hub has structured search, timeline comparison,
-    a control compliance view, and an MCP API for AI tools — things you'd have to build
-    yourself on top of raw files.
+    The key differentiator from "just Git": versioned releases, access control per namespace,
+    decisions and control results on the diagram, search, and an MCP API for AI tools — things
+    you'd have to build yourself on top of raw files. The next slide shows timeline comparison
+    and the controls view.
+    Teams can push snapshot versions while they iterate, then publish a release.
+    There is also a read-only Hub image with a built-in database, for demos and docs.
   </aside>
 </section>
 
@@ -147,7 +161,7 @@ calm init-ai -p codex     # OpenAI Codex`}</code></pre>
     <div style={{background:'#e8f5e9', borderRadius:'8px', padding:'0.9rem 1.1rem'}}>
       <p style={{fontSize:'1.65rem', margin:0, fontWeight:'bold', marginBottom:'0.4rem'}}>What gets installed:</p>
       <ul style={{fontSize:'1.65rem', margin:0, lineHeight:'1.8'}}>
-        <li>14 task-specific prompt files (node-creation, flow-creation, control-creation …)</li>
+        <li>14 task-specific prompt files (node-creation, decorator-creation, timeline-creation …)</li>
         <li>Schema v1.3 rules, examples, pitfall warnings</li>
         <li>AI assistant config (<code>.github/copilot-instructions</code> etc.)</li>
       </ul>

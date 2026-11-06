@@ -1,16 +1,10 @@
 import { CalmCoreCanonicalModel, CalmNodeCanonicalModel, CalmRelationshipCanonicalModel, toKindView } from '@finos/calm-models/canonical';
 import { prettyLabel } from './utils';
-import { BlockArchVM, NormalizedOptions, VMContainer, VMLeafNode, VMAttach, VMEdge } from '../types';
+import { BlockArchVM, NormalizedOptions, VMContainer, VMLeafNode, VMEdge } from '../types';
 import { buildParentHierarchy, ParentHierarchyResult } from './relationship-analyzer';
 import { resolveVisibilityWithStrategies, VisibilityResult } from './visibility-resolver';
-import { buildContainerForest, pruneEmptyContainers } from './builders/container-builder';
-import { buildInterfaceNameMap, buildEdges } from './builders/edge-builder';
-
-interface ContainerResult {
-    containers: VMContainer[];
-    attachments: VMAttach[];
-    looseNodes: VMLeafNode[];
-}
+import { buildContainerForest, ContainerForest, MAX_COPIES, pruneEmptyContainers } from './builders/container-builder';
+import { buildInterfaceNameMap, buildEdges, expandEdgesToInstances } from './builders/edge-builder';
 
 /**
  * Builder class for constructing Block Architecture View Models.
@@ -22,7 +16,7 @@ export class BlockArchVMBuilder {
     private options: NormalizedOptions;
     private parentHierarchyResult?: ParentHierarchyResult;
     private visibilityResult?: VisibilityResult;
-    private containerResult?: ContainerResult;
+    private containerResult?: ContainerForest;
     private edges?: VMEdge[];
 
     constructor(context: CalmCoreCanonicalModel, options: NormalizedOptions) {
@@ -59,9 +53,9 @@ export class BlockArchVMBuilder {
     }
 
     /**
-     * Step 3: Build container structure
+     * Step 3: Build container structure. `drawOnce` draws each node in its first container only.
      */
-    buildContainers(): this {
+    buildContainers(drawOnce = false): this {
         if (!this.visibilityResult || !this.parentHierarchyResult) {
             throw new Error('Must call resolveVisibility() first');
         }
@@ -86,12 +80,13 @@ export class BlockArchVMBuilder {
                 ? collectActiveInterfaceIds(this.visibilityResult.filteredRels)
                 : undefined;
 
-        const { containers: initialContainers, attachments, looseNodes: initialLooseNodes } = buildContainerForest(
+        const { containers: initialContainers, attachments, looseNodes: initialLooseNodes, instancesOf, ancestorsOf, copiesLimited } = buildContainerForest(
             filteredNodes,
-            this.parentHierarchyResult.parentOf,
+            this.parentHierarchyResult.parentsOf,
             this.visibilityResult.containerIds,
             shouldRenderInterfaces,
-            activeInterfaceIds
+            activeInterfaceIds,
+            drawOnce
         );
 
         let looseNodes = initialLooseNodes;
@@ -101,7 +96,15 @@ export class BlockArchVMBuilder {
 
         const containers = pruneEmptyContainers(initialContainers);
 
-        this.containerResult = { containers, attachments, looseNodes };
+        // Edges must not point at pruned copies. With no copy left, they fall back to the plain id.
+        const containerIds = (cs: VMContainer[]): string[] => cs.flatMap(c => [c.id, ...containerIds(c.containers)]);
+        const kept = new Set(containerIds(containers));
+        const pruned = new Set(containerIds(initialContainers).filter(id => !kept.has(id)));
+        const drawnInstancesOf = new Map([...instancesOf]
+            .map(([id, rendered]) => [id, rendered.filter(r => !pruned.has(r))] as const)
+            .filter(([, rendered]) => rendered.length > 0));
+
+        this.containerResult = { containers, attachments, looseNodes, instancesOf: drawnInstancesOf, ancestorsOf, copiesLimited };
         return this;
     }
 
@@ -112,12 +115,15 @@ export class BlockArchVMBuilder {
         if (!this.visibilityResult) {
             throw new Error('Must call resolveVisibility() first');
         }
+        if (!this.containerResult) {
+            throw new Error('Must call buildContainers() first');
+        }
 
         const nodes = this.context.nodes ?? [];
         const nodesById = new Map(nodes.map(n => [n['unique-id'], n] as const));
         const ifaceNames = buildInterfaceNameMap(nodes);
 
-        this.edges = this.options.edges === 'none'
+        const edges = this.options.edges === 'none'
             ? []
             : buildEdges(
                 this.visibilityResult.filteredRels,
@@ -127,6 +133,12 @@ export class BlockArchVMBuilder {
                 ifaceNames,
                 nodesById
             );
+        this.edges = expandEdgesToInstances(edges, this.containerResult.instancesOf, this.containerResult.ancestorsOf);
+        // Each copy of a node also gets the node's edges
+        if (this.edges.length - edges.length > MAX_COPIES) {
+            this.buildContainers(true);
+            this.edges = expandEdgesToInstances(edges, this.containerResult.instancesOf, this.containerResult.ancestorsOf);
+        }
         return this;
     }
 
@@ -169,7 +181,8 @@ export class BlockArchVMBuilder {
 
         const highlightSet = new Set<string>(this.options.highlightNodes ?? []);
         for (const id of this.options.focusNodes ?? []) highlightSet.add(id);
-        const highlightNodeIds = Array.from(highlightSet);
+        const { instancesOf } = this.containerResult;
+        const highlightNodeIds = Array.from(highlightSet).flatMap(id => instancesOf.get(id) ?? [id]);
 
         return {
             containers: this.containerResult.containers,
@@ -183,7 +196,9 @@ export class BlockArchVMBuilder {
             nodeTypeMap: this.options.nodeTypeMap,
             themeColors: this.options.themeColors,
             layoutEngine: this.options.layoutEngine,
-            warnings: this.visibilityResult.warnings,
+            warnings: this.containerResult.copiesLimited
+                ? [...this.visibilityResult.warnings, 'The diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.']
+                : this.visibilityResult.warnings,
         };
     }
 

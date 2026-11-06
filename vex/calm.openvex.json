@@ -3,141 +3,10 @@
   "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-10-28T00:00:00Z",
-  "version": 18,
+  "timestamp": "2026-11-02T00:00:00Z",
+  "version": 21,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
-    {
-      "vulnerability": {
-        "name": "GHSA-wrw7-89jp-8q8g"
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/glib@0.18.5"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "glib 0.18 is pinned by the Tauri GTK stack used by the CALM Studio desktop app. CALM Studio does not call the unsound glib::VariantStrIter iterator implementations. The fix (glib 0.20) needs a Tauri release that moves to gtk-rs 0.20."
-    },
-    {
-      "vulnerability": {
-        "name": "RUSTSEC-2026-0367",
-        "aliases": [
-          "GHSA-vv5m-jxxh-4627"
-        ]
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/zip@4.6.1"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_present",
-      "impact_statement": "zip comes in only through tauri-plugin-updater, which depends on it only for Windows builds, to unpack update archives after it verifies their signature. The flaw is that extraction keeps SUID, SGID and sticky bits when it applies Unix permissions, and zip compiles that step only for Unix targets. The Linux and macOS builds do not include zip, and the Windows build does not include the vulnerable code. The fix (zip 9) needs a tauri-plugin-updater release that moves to it: 2.14.0 and 3.0.0-alpha.3 still require zip ^4."
-    },
-    {
-      "vulnerability": {
-        "name": "RUSTSEC-2026-0369",
-        "aliases": [
-          "GHSA-4684-h2q9-2vcp"
-        ]
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/zip@4.6.1"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_present",
-      "impact_statement": "zip comes in only through tauri-plugin-updater, which depends on it only for Windows builds, to unpack update archives after it verifies their signature. The flaw is in the step that applies Unix permissions during extraction, and zip compiles that step only for Unix targets. The Linux and macOS builds do not include zip, and the Windows build does not include the vulnerable code. The fix (zip 9) needs a tauri-plugin-updater release that moves to it: 2.14.0 and 3.0.0-alpha.3 still require zip ^4."
-    },
-    {
-      "vulnerability": {
-        "name": "GHSA-m665-v7pm-7grj"
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/zip@4.6.1"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "zip comes in only through tauri-plugin-updater, which depends on it only for Windows builds, to unpack update archives after it verifies their signature. The flaw is a differential between ZipArchive, which reads the central directory, and ZipStreamReader, which reads the local file headers. It needs one archive to be read by both. tauri-plugin-updater reads the archive only with ZipArchive, and CALM Studio does not use ZipStreamReader. The fix (zip 9.0.5) needs a tauri-plugin-updater release that moves to it: 3.0.0-alpha.3 still requires zip ^4."
-    },
-    {
-      "vulnerability": {
-        "name": "GHSA-qwgh-2vcv-g2f7"
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
-          "subcomponents": [
-            {
-              "@id": "pkg:cargo/block-buffer@0.10.4"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_present",
-      "impact_statement": "block-buffer comes in only through sha2 0.10, which tauri-codegen and wry use. The flaw is that a caught panic can leave an invalid cursor in the buffer block, which then permits out-of-bounds access. block-buffer 0.11.0-pre and later keep the cursor inside the block. Version 0.10.4 keeps it in a separate field that a panic does not change, so it does not include the vulnerable code, although the advisory range (< 0.12.1) includes it. The fix (block-buffer 0.12.1) needs digest 0.11, and tauri-codegen 2.7.4 and wry 0.57.1 still require sha2 ^0.10."
-    },
-    {
-      "vulnerability": {
-        "name": "GHSA-ch52-4w7c-c8xp",
-        "aliases": [
-          "CVE-2026-93748"
-        ]
-      },
-      "products": [
-        {
-          "@id": "pkg:npm/%40finos/calm-docusaurus-plugin",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/http-cache-semantics@4.2.0"
-            }
-          ]
-        },
-        {
-          "@id": "pkg:github/finos/architecture-as-code#docs",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/http-cache-semantics@4.2.0"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
-      "impact_statement": "http-cache-semantics 4.2.0 is used only as a private client cache, by got and cacheable-request under the Docusaurus update-notifier. The attack needs a shared cache that serves cached responses to other users, with attacker-controlled request headers. No CALM component runs a shared HTTP cache, and no published CALM package includes http-cache-semantics at runtime. No patched release exists yet."
-    },
     {
       "vulnerability": {
         "name": "GHSA-238p-pmpm-9mq7"
@@ -153,9 +22,9 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
-      "impact_statement": "katex is pulled in only by mermaid, which pins ^0.16.45 (still the pin at mermaid 12.1.0); the fix is in 0.18.2, outside that range. The only place katex code runs is the CLI --export-diagrams renderer, which serves mermaid's self-contained ESM bundle with its own inlined katex copy, so an npm override cannot reach the code that executes. mermaid loads katex only when a diagram contains a math block. The advisory describes a read-side prototype pollution gadget: it needs an already-polluted Object.prototype plus attacker-controlled math input, and no CALM component pollutes the prototype or renders untrusted math."
+      "impact_statement": "katex 0.16.47 is pulled in only by mermaid 11, which pins ^0.16.45; the fix is in 0.18.2. mermaid 12.2.0 moves to katex 0.18, but it needs @mermaid-js/layout-elk 1.x, and layout-elk 1.0.1 (latest) still depends on katex ^0.16.47 and inlines 0.16.47 in its ESM bundle. The only place katex code runs is the CLI --export-diagrams renderer, which serves the self-contained mermaid and layout-elk ESM bundles with their own inlined katex copies, so an npm override cannot reach the code that executes. katex loads only when a diagram contains a math block. The advisory describes a read-side prototype pollution gadget: it needs an already-polluted Object.prototype plus attacker-controlled math input, and no CALM component pollutes the prototype or renders untrusted math."
     },
     {
       "vulnerability": {
@@ -175,9 +44,9 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
-      "impact_statement": "ip-address 10.7.2 is bundled inside npm 11.21.1, which is pulled in only by @semantic-release/npm for the CLI release job. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (10.7.4) yet. Inside npm, socks passes Address6 only the registry and proxy hosts from npm config, which the release workflow sets, so an attacker cannot supply the long zone identifier that causes the slow parse. The other ip-address copy in the lockfile is 10.7.4."
+      "impact_statement": "ip-address 10.7.2 is bundled inside npm 11.21.1, which is pulled in only by @semantic-release/npm for the CLI release job. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (10.7.4) yet: npm 12.2.1 also bundles 10.7.2. Inside npm, socks passes Address6 only the registry and proxy hosts from npm config, which the release workflow sets, so an attacker cannot supply the long zone identifier that causes the slow parse. The other ip-address copy in the lockfile is 10.7.4."
     },
     {
       "vulnerability": {
@@ -197,9 +66,9 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (6.29.1) yet: npm 12.2.1 also bundles 6.29.0. The other undici copy in the lockfile is 7.30.1, which has the fix."
     },
     {
       "vulnerability": {
@@ -219,9 +88,9 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (6.29.1) yet: npm 12.2.1 also bundles 6.29.0. The other undici copy in the lockfile is 7.30.1, which has the fix."
     },
     {
       "vulnerability": {
@@ -241,9 +110,9 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (6.29.1) yet: npm 12.2.1 also bundles 6.29.0. The other undici copy in the lockfile is 7.30.1, which has the fix."
     },
     {
       "vulnerability": {
@@ -263,9 +132,9 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (6.29.1) yet: npm 12.2.1 also bundles 6.29.0. The other undici copy in the lockfile is 7.30.1, which has the fix."
     },
     {
       "vulnerability": {
@@ -285,31 +154,9 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
-    },
-    {
-      "vulnerability": {
-        "name": "GHSA-xcx6-jx8p-x3h5",
-        "aliases": [
-          "CVE-2026-109461"
-        ]
-      },
-      "products": [
-        {
-          "@id": "pkg:github/finos/architecture-as-code#calm-plugins/vscode",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/%40azure/msal-node@6.0.1"
-            }
-          ]
-        }
-      ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "@azure/msal-node 6.0.1 is pulled in only by @azure/identity under @vscode/vsce, which packages and publishes the VS Code extension. It is not part of the published extension. The release job publishes with VSCE_PAT. The credential chain behind vsce --azure-credential (environment, Azure CLI, managed identity, Azure PowerShell, Azure Developer CLI) has no authorization code flow. The fix is in 7.1.0, and @azure/identity 4.14.0 still requires ^6.0.0."
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (6.29.1) yet: npm 12.2.1 also bundles 6.29.0. The other undici copy in the lockfile is 7.30.1, which has the fix."
     },
     {
       "vulnerability": {
@@ -329,7 +176,7 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "@sveltejs/kit 2.70.2 is used only by the CALM Studio app, a single-page app built with adapter-static for the web and the desktop app (ssr = false, prerender = false, index.html fallback). The flaw is in prerendered pages that set a cache-control header from an untrusted source with setHeaders. CALM Studio prerenders no pages, has no server routes and does not call setHeaders. The fix is only in kit 3, which needs TypeScript 6."
     },
@@ -351,7 +198,7 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "@sveltejs/kit 2.70.2 is used only by the CALM Studio app, a single-page app built with adapter-static. The flaw is an open redirect in enhanced form actions (use:enhance) on routes that accept paths that begin with //. CALM Studio has only the root route, no form actions and no use:enhance. The fix is only in kit 3, which needs TypeScript 6."
     },
@@ -381,7 +228,7 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
       "impact_statement": "deepmerge 4.3.1 is a build-time dependency only. @sveltejs/vite-plugin-svelte uses it in the CALM Studio app and @calmstudio/diagram builds to merge the project-owned Svelte and Vite config. @svgr/plugin-svgo, through Docusaurus preset-classic in the docs site, declares it but never imports it. No untrusted object reaches mergeObject(), and no built CALM artefact includes deepmerge. No patched release exists."
     },
@@ -403,10 +250,89 @@
         }
       ],
       "status": "not_affected",
-      "status_notes": "Review again by 2026-11-30, when the suppression in osv-scanner.toml expires.",
+      "status_notes": "Review again by 2027-02-28, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "opentelemetry-api 1.62.0 comes in through the Quarkus 3.40 BOM. The flaw is quadratic CPU use when the W3C propagator parses an inbound tracestate header. CALM Hub turns off the OpenTelemetry SDK by default (CALM_OTEL_DISABLED=true). Quarkus then builds a no-op SDK and disables the HTTP server instrumenter, so it does not parse tracestate. A deployment that sets CALM_OTEL_DISABLED=false is exposed. The fix (1.67.0) cannot be overridden, because Quarkus 3.40 does not start with OpenTelemetry 1.67. It needs a Quarkus release that manages OpenTelemetry 1.67.0 or later."
+      "impact_statement": "opentelemetry-api 1.62.0 comes in through the Quarkus 3.40 BOM. The flaw is quadratic CPU use when the W3C propagator parses an inbound tracestate header. CALM Hub turns off the OpenTelemetry SDK by default (CALM_OTEL_DISABLED=true). Quarkus then builds a no-op SDK and disables the HTTP server instrumenter, so it does not parse tracestate. A deployment that sets CALM_OTEL_DISABLED=false is exposed. The fix (1.67.0) cannot be overridden, because Quarkus 3.40 does not start with OpenTelemetry 1.67. Quarkus 3.40.1.1, the latest 3.40 LTS release, still manages 1.62.0, and only the Quarkus 4.0 pre-releases move on. It needs a Quarkus release that manages OpenTelemetry 1.67.0 or later."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-3g3m-2fjr-6pw4",
+        "aliases": [
+          "CVE-2026-118773"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/glob@13.0.6"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "glob 13.0.6 is bundled inside npm 11.21.1, which is pulled in only by @semantic-release/npm for the CLI release job. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (14.0.2): npm 12.2.1 also bundles 13.0.6. The flaw is that a walk keeps reading directories after its AbortSignal fires. npm never passes a signal to glob, so no walk is aborted. The other glob copy in the lockfile is 14.0.3, which has the fix."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-g3hv-75wg-m249",
+        "aliases": [
+          "CVE-2026-118764"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/minimatch@3.1.5"
+            },
+            {
+              "@id": "pkg:npm/minimatch@10.2.5"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-plugins/vscode",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/minimatch@3.1.5"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-lab",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/minimatch@3.1.5"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-docusaurus-plugin",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/minimatch@3.1.5"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#docs",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/minimatch@3.1.5"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The flaw is unbounded growth of globParts in the preprocessing that minimatch runs at optimizationLevel 2 or higher. minimatch 3.1.5 comes in through @stoplight/spectral-core (in @finos/calm-shared, so the CLI, the VS Code extension and CALM Lab), serve-handler (Docusaurus), and eslint and its plugins (development only). minimatch 3 has no optimizationLevel option and no such preprocessing, so the vulnerable code is not present. An override to 11.x is not possible, because minimatch 11 has a different export shape. minimatch 10.2.5 is bundled inside npm 11.21.1, which is pulled in only by @semantic-release/npm for the CLI release job and is not part of the published package. npm never sets optimizationLevel, so the default of 1 applies and the vulnerable code does not run. The other minimatch 10 copies are overridden to 11.0.4, which has the fix."
     }
   ],
-  "last_updated": "2026-10-28T00:00:00Z"
+  "last_updated": "2026-11-02T00:00:00Z"
 }

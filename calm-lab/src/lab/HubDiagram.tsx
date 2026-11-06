@@ -92,6 +92,11 @@ export default function HubDiagram({jsonText}: {jsonText: string}) {
             <div className={styles.diagramCaption}>
                 live preview — rendered with the CALM Hub visualizer pipeline
             </div>
+            {parsed.copiesLimited && (
+                <div role="status" className={styles.diagramCaption}>
+                    too large to draw a node in each of its containers — each node is drawn in one container only
+                </div>
+            )}
         </div>
     );
 }

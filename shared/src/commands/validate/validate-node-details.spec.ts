@@ -203,7 +203,7 @@ describe('validateNodeDetails', () => {
         expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/details/detailed-architecture');
     });
 
-    it('skips already-visited architecture URL (cycle detection)', async () => {
+    it('skips already-visited architecture URL that is not in active ancestry (sibling deduplication)', async () => {
         const archUrl = 'https://example.com/sub-arch.json';
         const arch = {
             nodes: [{
@@ -221,6 +221,115 @@ describe('validateNodeDetails', () => {
         expect(noop).not.toHaveBeenCalled();
         expect(result.hasErrors).toBe(false);
         expect(schemaDir.loadDocument).not.toHaveBeenCalled();
+    });
+
+    it('emits a single cycle-detected finding with the cycle path on A -> B -> A', async () => {
+        const urlA = 'https://example.com/arch-a.json';
+        const urlB = 'https://example.com/arch-b.json';
+        const archA = {
+            $id: urlA,
+            nodes: [{
+                'unique-id': 'n-a',
+                'node-type': 'service',
+                name: 'Node A',
+                description: 'References B',
+                details: { 'detailed-architecture': urlB }
+            }]
+        };
+        const archB = {
+            $id: urlB,
+            nodes: [{
+                'unique-id': 'n-b',
+                'node-type': 'service',
+                name: 'Node B',
+                description: 'References A (cycle)',
+                details: { 'detailed-architecture': urlA }
+            }]
+        };
+
+        const docs: Record<string, object> = { [urlA]: archA, [urlB]: archB };
+        const loadDocument = vi.fn().mockImplementation((url: string) => Promise.resolve(docs[url]));
+        const schemaDir = makeSchemaDirectory({
+            loadDocument,
+            fork: vi.fn().mockImplementation(() => makeSchemaDirectory({ loadDocument }))
+        });
+        const references = makeResolver(schemaDir);
+
+        const recursiveValidator: ArchitectureValidator = async (subArch, _pattern, dir, dbg, refs) => {
+            const subResult = await validateNodeDetails(subArch, dir, dbg, recursiveValidator, refs);
+            return new ValidationOutcome(subResult.jsonSchemaOutputs, subResult.spectralOutputs, subResult.hasErrors, subResult.hasWarnings);
+        };
+
+        const result = await validateNodeDetails(archA, schemaDir, false, recursiveValidator, references);
+
+        expect(result.hasErrors).toBe(true);
+        expect(result.jsonSchemaOutputs).toHaveLength(1);
+        expect(result.jsonSchemaOutputs[0].code).toBe('cycle-detected');
+        expect(result.jsonSchemaOutputs[0].severity).toBe('error');
+        expect(result.jsonSchemaOutputs[0].path).toBe(
+            '/nodes/0/details/detailed-architecture/nodes/0/details/detailed-architecture'
+        );
+        expect(result.jsonSchemaOutputs[0].message).toContain(`${urlA} -> ${urlB} -> ${urlA}`);
+    });
+
+    it('validates C once and emits no cycle finding on a diamond graph (A -> B -> C and A -> C)', async () => {
+        const urlB = 'https://example.com/arch-b.json';
+        const urlC = 'https://example.com/arch-c.json';
+        const archA = {
+            $id: 'https://example.com/arch-a.json',
+            nodes: [
+                {
+                    'unique-id': 'n-b',
+                    'node-type': 'service',
+                    name: 'Node B',
+                    description: 'References B',
+                    details: { 'detailed-architecture': urlB }
+                },
+                {
+                    'unique-id': 'n-c-direct',
+                    'node-type': 'service',
+                    name: 'Node C Direct',
+                    description: 'References C',
+                    details: { 'detailed-architecture': urlC }
+                }
+            ]
+        };
+        const archB = {
+            $id: urlB,
+            nodes: [{
+                'unique-id': 'n-c-from-b',
+                'node-type': 'service',
+                name: 'Node C via B',
+                description: 'References C',
+                details: { 'detailed-architecture': urlC }
+            }]
+        };
+        const archC = {
+            $id: urlC,
+            nodes: [{ 'unique-id': 'leaf', 'node-type': 'service', name: 'Leaf', description: 'Leaf' }]
+        };
+
+        const docs: Record<string, object> = { [urlB]: archB, [urlC]: archC };
+        const loadDocument = vi.fn().mockImplementation((url: string) => Promise.resolve(docs[url]));
+        const schemaDir = makeSchemaDirectory({
+            loadDocument,
+            fork: vi.fn().mockImplementation(() => makeSchemaDirectory({ loadDocument }))
+        });
+        const references = makeResolver(schemaDir);
+        const validatedDocs: object[] = [];
+
+        const recursiveValidator: ArchitectureValidator = async (subArch, _pattern, dir, dbg, refs) => {
+            validatedDocs.push(subArch);
+            const subResult = await validateNodeDetails(subArch, dir, dbg, recursiveValidator, refs);
+            return new ValidationOutcome(subResult.jsonSchemaOutputs, subResult.spectralOutputs, subResult.hasErrors, subResult.hasWarnings);
+        };
+
+        const result = await validateNodeDetails(archA, schemaDir, false, recursiveValidator, references);
+
+        expect(result.hasErrors).toBe(false);
+        expect(result.jsonSchemaOutputs).toHaveLength(0);
+        expect(validatedDocs).toEqual([archB, archC]);
+        expect(loadDocument).toHaveBeenCalledTimes(2);
     });
 
     it('validates both nodes when two nodes have detailed-architecture', async () => {
