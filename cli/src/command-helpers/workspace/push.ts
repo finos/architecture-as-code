@@ -33,6 +33,7 @@ import {
     type WorkspaceManifestEntryOperations,
 } from './document-kind';
 import { findSnapshotDependencyViolations } from './snapshot';
+import { resourceTypeForDocumentType } from './document-id-type';
 
 const logger: Logger = initLogger(false, 'workspace');
 const DEFINITE_CREATE_REJECTION_STATUSES = new Set([400, 401, 403, 404]);
@@ -255,6 +256,10 @@ async function pushMappingEntry(
     context: PushEntryContext
 ): Promise<void> {
     const { bundlePath, client, conflicts, failIfModified, id, manifest, mappingFailures, raw, snapshotBlocked, snapshotDependencies } = context;
+    if (entry.type !== 'unknown' && !resourceTypeForDocumentType(entry.type)) {
+        logger.warn(`Skipping '${id}': document type '${entry.type}' has no CalmHub resource type.`);
+        return;
+    }
     // The mapping API addresses resources by (namespace, type, mappingId, version),
     // all encoded in the document's $id. Documents without a well-formed mapping $id
     // (or whose type has no ResourceType, e.g. adr/timeline) cannot be pushed and are skipped.
