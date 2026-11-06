@@ -1,404 +1,181 @@
 ---
 id: vscode-extension
 title: VS Code Extension
-sidebar_label: CALM Tools (VS Code)
+sidebar_label: CALM Canvas (VS Code)
 sidebar_position: 2
 ---
 
-# VS Code Extension
+# VS Code Extension (CALM Canvas)
 
-The **CALM Tools** VS Code extension turns your editor into a live workbench for CALM architecture models. It validates documents on the fly, renders an interactive preview, and surfaces model elements in a navigable sidebar — all without leaving the file you're editing.
+**CALM Canvas** (`FINOS.calm-vscode-plugin`) is the visual architecture editor for [CALM](https://calm.finos.org) models in Visual Studio Code. It provides a ReactFlow canvas side-by-side with your JSON source so you can author nodes, relationships, [Controls](../core-concepts/controls), [Standards](../core-concepts/standards), and [Patterns](../core-concepts/patterns), validate against the CALM meta-schemas, connect to CALM Hub, and import or export SVG diagrams.
 
 ---
 
 ## Installation
 
-The extension is published to the Visual Studio Code Marketplace.
+CALM Canvas requires Visual Studio Code **1.88.0** or newer.
 
 1. Open VS Code.
 2. Open the Extensions view (`Cmd+Shift+X` on macOS, `Ctrl+Shift+X` on Windows/Linux).
-3. Search for **CALM Tools**.
+3. Search for **CALM Canvas** (`FINOS.calm-vscode-plugin`).
 4. Click **Install**.
 
-Alternative install paths:
+Alternative installation methods:
 
-- **Marketplace web page:** [marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin](https://marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin)
-- **VSIX file:** download the latest `.vsix` from the [GitHub releases](https://github.com/finos/architecture-as-code/releases) and run **Extensions: Install from VSIX…** in the Command Palette.
+- **VS Code Marketplace:** [marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin](https://marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin)
+- **VSIX package:** Download the `.vsix` asset from [GitHub Releases](https://github.com/finos/architecture-as-code/releases) and run **Extensions: Install from VSIX…** from the Command Palette.
 
-Once installed, open any CALM JSON file (one whose `$schema` points at `https://calm.finos.org/.../meta/calm.json`) and the extension activates automatically.
-
----
-
-## Interface Layout
-
-The extension contributes a dedicated **CALM** entry to the activity bar. Selecting it opens the **Model Elements** view, which lists the contents of the active CALM document.
-
-![CALM activity bar entry](/img/vscode/01-activity-bar.png)
-
-The right-hand preview panel is opened explicitly — see [Interactive Preview](#interactive-preview) below.
+The extension activates automatically when your workspace contains `*.calm.json` or `*.architecture.json` files.
 
 ---
 
-## Tree View Navigation
+## Opening CALM Canvas
 
-The **Model Elements** view groups the active document's contents into three top-level branches: **Nodes**, **Relationships**, and **Flows**. Expanding a branch reveals every element of that type defined in the document.
+Open any file ending in `.calm.json` or `.architecture.json` and launch the visual editor using any of the following:
 
-![Model Elements tree expanded](/img/vscode/02-tree-view.png)
+- **CodeLens:** Click **View in CALM Canvas** at the top of a `.calm.json` or `.architecture.json` file.
+- **Keyboard shortcut:** `Cmd+Shift+K` (macOS) or `Ctrl+Shift+K` (Windows/Linux) while focused on a `.calm.json` or `.architecture.json` editor.
+- **Editor title bar / context menu:** Click the **View in CALM Canvas** icon in the editor title bar, or right-click inside the editor or Explorer and select **View in CALM Canvas**.
+- **Command Palette:** Run **CALM: View in CALM Canvas** (`calm.openCanvas`).
 
-Clicking any element focuses the corresponding range in the JSON editor. The view stays in sync with the active document — switching tabs updates the tree.
-
-### Search & Filter
-
-For larger architectures, use **Search Model Elements** (the magnifier icon at the top of the view, or the command of the same name in the palette) to filter the tree to elements matching a substring. The input box prompt reads *"Search CALM Architecture Elements"*; type any node-id substring and press **Enter**.
-
-![Model Elements tree filtered by 'api'](/img/vscode/03-tree-search.png)
-
-A **Filtering by …** banner appears at the bottom of the view while a filter is active. Click its clear button (or run **Clear Search**) to restore the full tree.
+The canvas opens beside your JSON editor. Changes made on the canvas update the open JSON document buffer (persisting layout coordinates under `metadata._layout`), and saving edits in the JSON text editor updates the canvas automatically.
 
 ---
 
-## Interactive Preview
+## Workspace Layout
 
-The preview panel renders the active CALM document as an interactive diagram next to the JSON source.
+CALM Canvas is divided into four areas:
 
-![Live preview of a three-tier architecture](/img/vscode/04-preview-hero.png)
-
-**Open the preview** with any of:
-
-- Keyboard: `Cmd+Shift+C` (macOS) / `Ctrl+Shift+C` (Windows / Linux)
-- Command Palette → **CALM: Open Preview**
-- Right-click in the editor → **CALM: Open Preview**
-
-**Diagram interactions:**
-
-- Click any node to focus its definition in the JSON editor.
-- The preview re-renders automatically when you save the file.
-- Use the floating controls in the top-right of the diagram to zoom or reset the view.
-
-The preview has three tabs at the top — **Docify** (the rendered view shown above), **Template** (the raw template source for the active document), and **Model** (the parsed model). See [Documentation Generation](#documentation-generation) below for the full breakdown.
+1. **Toolbar (top)** — Automatic layout (`↓ Layout` top-to-bottom, `→ Layout` left-to-right), **Validate**, **Apply Pattern**, **Export SVG**, **Import SVG**, and the overflow menu (`⋮`) for **New from Pattern**, **Create Node**, **Create Control**, and **Export as Pattern**.
+2. **Node Palette (left)** — Drag-and-drop palette containing core CALM node types (`actor`, `system`, `service`, `database`, `network`, `webclient`, `ecosystem`, `ldap`, `data-asset`), domain extension packs (`core`, `fluxnova`, `ai`, `aws`, `gcp`, `azure`, `k8s`, `messaging`, `identity`, `opengris`), and reusable **Standards** loaded from the workspace, `calm.externalAssetsPath`, or CALM Hub.
+3. **Interactive Canvas (center)** — ReactFlow canvas supporting pan, zoom, minimap navigation, node resizing, container nesting (`deployed-in` and `composed-of`), relationship drawing (`connects`, `interacts`, `deployed-in`, `composed-of`, `options`), and drill-down navigation with breadcrumbs for nodes that reference a `details.detailed-architecture` document or Standard.
+4. **Properties Panel (right)** — Contextual inspector for the selected element:
+   - **Node selected:** Edit `unique-id`, `name`, `node-type`, `description`, `interfaces`, node-level `controls`, custom `metadata`, and visual appearance (`metadata['standard-node-style']`).
+   - **Relationship selected:** Edit `unique-id`, `description`, `relationship-type` (`connects`, `interacts`, `deployed-in`, `composed-of`), `protocol` (from the CALM `protocol` enum), and relationship-level `controls`.
+   - **No selection:** Inspect and edit architecture-level `controls`.
 
 ---
 
-## Themes
+## Validation
 
-The preview's colour palette is controlled by the `calm.docify.theme` setting. Four explicit themes are available, plus `auto` which follows your VS Code colour theme.
+Click **Validate** in the canvas toolbar to validate the active architecture. Validation runs two checks:
 
-| Light | Dark |
-| --- | --- |
-| ![Preview rendered with the light theme](/img/vscode/05-theme-light.png) | ![Preview rendered with the dark theme](/img/vscode/05-theme-dark.png) |
+1. **CALM schema and semantic validation** — Validates the document against the bundled `@finos/calm-schema` meta-schemas (JSON Schema draft 2020-12) and checks semantic rules including duplicate `unique-id` values, dangling node references, self-loops, empty containers, and orphan nodes.
+2. **Control requirement validation** — Validates architecture-level and node-level `controls` against their resolved JSON Schema requirement definitions (`requirement-url`) and inline `config` constraints (required properties, enums, regex patterns, and numeric/boolean types).
 
-The two high-contrast themes (`high-contrast-light` and `high-contrast-dark`) follow the same pattern but use VSCode's higher-contrast palettes for accessibility — set the `calm.docify.theme` setting and your editor's high-contrast workbench theme together to use them.
-
-Configure in `settings.json`:
-
-```json
-"calm.docify.theme": "auto"
-```
-
-Acceptable values: `light`, `dark`, `high-contrast-light`, `high-contrast-dark`, `auto`.
+Validation issues are listed in the bottom **Validation Results** panel, sorted by severity (`error`, `warning`, `info`). Clicking an issue associated with a node selects and focuses that node on the canvas.
 
 ---
 
-## Layout Engines
+## Standards, Controls, and Patterns
 
-The diagram supports two layout engines, configured by `calm.preview.layout`:
+CALM Canvas works directly with core CALM governance primitives:
 
-| ELK (default) | Dagre |
-| --- | --- |
-| ![Preview with ELK layout](/img/vscode/06-layout-elk.png) | ![Preview with Dagre layout](/img/vscode/06-layout-dagre.png) |
+### Standards
 
-- **ELK** (Eclipse Layout Kernel) — better automatic placement for complex diagrams; improved edge routing and hierarchy handling. Recommended for most architectures.
-- **Dagre** — the classic Mermaid layout engine. Choose this if you prefer Mermaid's traditional layout behaviour.
+- Reusable [Standards](../core-concepts/standards) discovered in your workspace, `calm.externalAssetsPath`, or connected CALM Hub namespaces appear in the **Node Palette**.
+- Dragging a Standard onto an empty area of the canvas instantiates a node pre-populated with the Standard's controls and metadata (`source-standard-node`).
+- Dragging a Standard onto an existing node merges the Standard's controls onto that target node.
+- Use **Create Node** from the toolbar overflow menu (`⋮`) to author a new reusable node definition.
 
-The setting applies workspace-wide. Individual templates can override it from the widget's frontmatter — see [widget configuration](../core-concepts/widgets) — for example:
+### Controls
 
-```yaml
----
-widget-options:
-  block-architecture:
-    layout-engine: dagre
----
-```
+- Add and configure [Controls](../core-concepts/controls) on individual nodes or at the architecture level (when no node or relationship is selected).
+- Each control entry references a JSON Schema requirement via `requirement-url` (a URL or Hub CURIE) and stores configuration values in `config` or `config-url`.
+- Use **Create Control** from the toolbar overflow menu (`⋮`) to author a new JSON Schema control requirement (`*.requirement.json`) in your workspace.
 
-Or inline in a Handlebars template:
+### Patterns
 
-```handlebars
-{{block-architecture this layout-engine="dagre"}}
-```
+- **New from Pattern** (`⋮` menu): Create a new architecture pre-populated from a [Pattern](../core-concepts/patterns) in your workspace, external assets path, or CALM Hub.
+- **Apply Pattern** (toolbar): Apply a pattern to the current architecture and set the document's top-level `$schema` to the pattern's schema URI.
+- **Export as Pattern** (`⋮` menu): Export the current canvas architecture as a reusable CALM Pattern JSON Schema.
 
 ---
 
-## Real-Time Validation
+## Connecting to CALM Hub
 
-Open or save a CALM document and the extension validates it against the bundled CALM schemas. Errors and warnings appear in the **Problems** panel; clicking an entry jumps to the offending line.
+CALM Canvas integrates with CALM Hub to browse and reuse published Standards, Controls, and Patterns across namespaces:
 
-![Problems panel showing validation errors](/img/vscode/07-validation-problems.png)
-
-Validation is triggered on:
-
-- Opening a CALM document
-- Saving (`Cmd+S` / `Ctrl+S`)
-- Switching to a different editor tab
-
-The extension identifies a file as CALM by its `$schema` reference, so non-CALM JSON files are left untouched. Schemas are bundled with the VSIX — validation works offline.
+1. Set `calm.hub.url` in your VS Code settings (for example, `"https://calmhub.example.com"`), or run **CALM: Connect to Hub** (`calm.connectToHub`) from the Command Palette.
+2. Authenticate when prompted. A status bar item indicates the current Hub connection state.
+3. Use `calm.hub.selectedNamespaces` to filter which Hub namespaces are shown in the palette, or leave it empty to include all namespaces.
+4. Run **CALM: Refresh from Hub** (`calm.refreshFromHub`) to fetch updated assets (cached locally by SHA for offline use), or **CALM: Disconnect from Hub** (`calm.disconnectFromHub`) to end the session.
 
 ---
 
-## Timeline Navigation
+## SVG Import and Export
 
-When the active editor is a CALM timeline document — a JSON file whose `$schema` references `calm-timeline.json` and whose top-level shape includes a `moments` array — the **Model Elements** sidebar switches into **timeline mode**. Each moment in the timeline becomes a navigable item in the sidebar, with the **current moment** marked by a star.
+### Importing an SVG Diagram
 
-![CALM sidebar in timeline mode showing two architecture moments](/img/vscode/09-timeline.png)
+You can convert existing architecture diagrams (such as Draw.io `.svg` exports or generic SVG diagrams) into CALM JSON architectures:
 
-### Authoring a timeline document
+- Right-click an `.svg` file in the VS Code Explorer and select **Import SVG as CALM Architecture**, or
+- Run **CALM: Import SVG as CALM Architecture** (`calm.importSvg`) from the Command Palette, or
+- Click **Import SVG** in the CALM Canvas toolbar.
 
-A minimal `calm-timeline.json` document looks like this:
+The importer maps SVG shapes and containers to CALM node types, creates `connects` relationships from edges and `deployed-in` relationships from container geometry, preserves node coordinates in `metadata._layout`, and records fill/text colours in `metadata['standard-node-style']`.
 
-```json
-{
-    "$schema": "https://calm.finos.org/release/1.3/meta/calm-timeline.json",
-    "current-moment": "initial",
-    "moments": [
-        {
-            "unique-id": "initial",
-            "node-type": "moment",
-            "name": "Initial Architecture",
-            "description": "The first version of the system",
-            "valid-from": "2024-01-01",
-            "details": {
-                "detailed-architecture": "arch-v1.json"
-            }
-        },
-        {
-            "unique-id": "enhanced",
-            "node-type": "moment",
-            "name": "Enhanced Architecture",
-            "description": "Adds a caching layer and an API gateway",
-            "valid-from": "2024-06-01",
-            "details": {
-                "detailed-architecture": "arch-v2.json"
-            }
-        }
-    ],
-    "metadata": {
-        "title": "Payments Platform Timeline",
-        "description": "Architecture evolution across 2024"
-    }
-}
-```
+### Exporting to SVG
 
-Each moment is a versioned snapshot. The `details.detailed-architecture` field points to the architecture file representing the system at that moment — either a relative path (resolved against the timeline document's folder) or a URL that you map via [Multi-Document Navigation](#multi-document-navigation).
-
-The `current-moment` field tells the extension which moment is the current production-deployed state. That moment renders with the star icon in the sidebar; non-current moments use a hollow circle.
-
-### How the extension uses it
-
-- **Sidebar grouping** — the **Model Elements** view replaces its usual Nodes / Relationships / Flows groups with the single **📅 Architecture Timeline** group. Each child item is a moment, labelled with its `name` and `valid-from` date.
-- **Click to open** — clicking a moment opens the architecture file referenced by its `details.detailed-architecture`. The preview, validator, and tree all re-target the newly opened file.
-- **Current-moment indicator** — the star marker means "this is the baseline" — useful for orienting yourself when a timeline contains many historical snapshots.
-- **Relative-path resolution** — paths inside `details.detailed-architecture` are resolved relative to the timeline document. If you need to resolve URLs to local files, configure `calm.urlMapping` (see [Multi-Document Navigation](#multi-document-navigation)).
-
-### When to use a timeline
-
-A timeline document is the right tool when:
-
-- The architecture has evolved through multiple distinct versions you want to keep traceable side-by-side.
-- You need an at-a-glance view of "what we have today" vs "what we had before" vs "what's planned".
-- Reviewers and architects need to navigate between versions without remembering filenames.
-
-If you only have a single architecture, you don't need a timeline document — the extension's standard tree view is sufficient.
-
-For the concept behind timelines (explicit vs implied, how the Hub renders them) see [Explicit vs. Implied Timelines](../core-concepts/timelines#explicit-vs-implied-timelines).
+Click **Export SVG** in the canvas toolbar and choose a destination path in the save dialog to export the rendered diagram as an `.svg` file.
 
 ---
 
-## Multi-Document Navigation
+## Commands Reference
 
-Real-world CALM models are usually split across many files. A top-level system architecture references downstream service architectures by URL, each service architecture may reference deployment-detail files, and so on. The extension uses a **URL-to-local-path mapping** to resolve these references against files on your disk, so clicking through the diagram opens the right file every time.
+All commands contributed by `calm-plugins/vscode/package.json`:
 
-### How it works
-
-A node in a parent architecture uses the `details.detailed-architecture` field to point at a child document:
-
-```json
-{
-    "unique-id": "payment-service",
-    "name": "Payment Service",
-    "node-type": "container",
-    "details": {
-        "detailed-architecture": "https://specs.internal/payment-service"
-    }
-}
-```
-
-In production, that URL would resolve to a real document published in CALM Hub. While authoring locally, you tell the extension *where the local copy of each URL lives* via a mapping document. The extension reads that mapping, swaps URLs for paths, and clicks in the preview open the local file.
-
-### Creating `calm-mapping.json`
-
-The mapping is a flat JSON object — keys are URLs (exactly as they appear in `detailed-architecture` fields), values are paths to the local files.
-
-```json
-{
-    "https://specs.internal/payment-service": "./services/payment-service.json",
-    "https://specs.internal/inventory":       "./services/inventory.json",
-    "https://specs.internal/notifications":   "./services/notifications.json"
-}
-```
-
-**Rules and gotchas:**
-
-| Rule | Detail |
-| --- | --- |
-| **One mapping file per workspace** | The extension reads a single mapping document. If you maintain multiple, combine them or switch the active one via the setting. |
-| **Keys must match exactly** | URL matching is a string compare. A trailing slash, casing difference, or extra path segment in the key vs. the `detailed-architecture` value will silently miss. |
-| **Values are paths, not URLs** | Use a relative path (recommended) or an absolute file-system path. Don't put another URL on the right-hand side. |
-| **Relative paths resolve against the mapping file's directory** | `"./services/foo.json"` from a mapping at `<workspace>/calm/calm-mapping.json` resolves to `<workspace>/calm/services/foo.json` — **not** to `<workspace>/services/foo.json`. Put the mapping file in the folder whose relative paths you want to use. |
-| **The mapping file can sit anywhere in the workspace** | Convention is the workspace root, but a `calm/` or `architecture/` subfolder is equally valid. |
-| **The filename can be anything** | `calm-mapping.json` is the convention but the extension doesn't enforce it — it reads whichever path you point the setting at. |
-| **Invalid JSON is logged, not fatal** | The extension surfaces a warning in its log channel and proceeds without the mapping. Navigation falls back to "no mapping configured" behaviour. |
-
-### Pointing the extension at it
-
-Add the workspace-relative path to your VS Code settings (either `.vscode/settings.json` for the workspace, or your user settings if you always use the same layout):
-
-```json
-"calm.urlMapping": "calm-mapping.json"
-```
-
-Or, if the mapping sits in a subfolder:
-
-```json
-"calm.urlMapping": "calm/calm-mapping.json"
-```
-
-The path is resolved against the first workspace folder. The extension watches this setting — changing it resets the navigation service so the next click picks up the new mapping immediately, without needing a window reload.
-
-### A complete example
-
-Workspace layout:
-
-```
-my-architecture/
-├── .vscode/
-│   └── settings.json
-├── calm-mapping.json
-├── system.json
-└── services/
-    ├── payment-service.json
-    └── inventory.json
-```
-
-`.vscode/settings.json`:
-
-```json
-{
-    "calm.urlMapping": "calm-mapping.json"
-}
-```
-
-`calm-mapping.json` (note: paths are relative to *this file*, which sits in the workspace root):
-
-```json
-{
-    "https://specs.internal/payment-service": "./services/payment-service.json",
-    "https://specs.internal/inventory":       "./services/inventory.json"
-}
-```
-
-`system.json` (excerpt):
-
-```json
-{
-    "nodes": [
-        {
-            "unique-id": "payment-service",
-            "name": "Payment Service",
-            "node-type": "container",
-            "details": {
-                "detailed-architecture": "https://specs.internal/payment-service"
-            }
-        }
-    ]
-}
-```
-
-With this setup, clicking the **Payment Service** node in the preview of `system.json` opens `services/payment-service.json` in a new editor column. The same mapping is also used by the CALM CLI's `docify` command (see [`calm docify`](../calm-cli/docify.md)) — so authoring once works for both interactive and batch documentation generation.
-
-### Troubleshooting
-
-- **Clicking a node does nothing, or shows "No URL mapping configured"** — the setting isn't set, the path is wrong, or the mapping file is missing. Open VS Code's **Output** panel and switch the channel to **CALM** to see the navigation service's diagnostic log.
-- **Click opens the wrong file** — your mapping value is interpreted relative to the mapping file's location, not the workspace root. Move the mapping file or adjust the paths.
-- **Click logs "Invalid JSON in URL mapping file"** — there's a syntax error in the mapping (missing comma, trailing comma, etc.). The extension keeps running without the mapping until you fix it.
-
----
-
-## Documentation Generation
-
-The preview panel has three tabs at the top of the webview — each shows a different view of the active architecture:
-
-| Tab | What it shows |
-| --- | --- |
-| **Docify** | The rendered documentation view — heading plus an interactive Mermaid diagram of the architecture, produced through the CALM widget pipeline. This is the default tab shown when you open the preview. |
-| **Template** | The raw source of the active Handlebars / Markdown template, shown as syntax-highlighted text. A source viewer, not a renderer — use it to confirm which template is in scope, not to preview output. |
-| **Model** | The CALM model as the extension sees it after parsing — useful for debugging schema or normalisation issues. |
-
-The Docify tab is what most users mean when they say "the preview":
-
-![Docify tab rendering the architecture through CALM widgets](/img/vscode/10-docify.png)
-
-To produce static documentation outside the preview, use either of:
-
-- **CALM: Create Documentation Website** (`calm.createWebsite`) — runs the docify pipeline against the workspace and writes an HTML site to disk.
-- The equivalent CLI command — see [`calm docify`](../calm-cli/docify.md) — for batch generation in CI or scripts.
-
-Both consume the same `calm.urlMapping` configuration (see [Multi-Document Navigation](#multi-document-navigation)), so authoring once works for interactive, batch, and CI documentation flows.
-
-Pair this with the [Handlebars Templates](../tutorials/intermediate/13-handlebars-templates) tutorial if you're new to authoring custom templates.
+| Command ID | Title | Description |
+| --- | --- | --- |
+| `calm.openCanvas` | **CALM: View in CALM Canvas** | Open the active `.calm.json` or `.architecture.json` file in the visual canvas editor. |
+| `calm.connectToHub` | **CALM: Connect to Hub** | Connect to a configured CALM Hub instance and load Hub assets. |
+| `calm.disconnectFromHub` | **CALM: Disconnect from Hub** | Disconnect from the active CALM Hub session. |
+| `calm.refreshFromHub` | **CALM: Refresh from Hub** | Refresh Standards, Controls, and Patterns from CALM Hub. |
+| `calm.importSvg` | **CALM: Import SVG as CALM Architecture** | Convert an `.svg` diagram into a `.calm.json` architecture file. |
 
 ---
 
 ## Configuration Reference
 
-All settings live under the `calm.*` prefix in `settings.json` (`Cmd+,` / `Ctrl+,`).
+All settings contributed under `calm.*` in `settings.json` (`Cmd+,` / `Ctrl+,`):
 
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
-| `calm.cli.path` | string | `./cli` | Path to the CALM CLI entry. Falls back to internal validation when absent. |
-| `calm.files.globs` | string[] | `["calm/**/*.json", "calm/**/*.y?(a)ml"]` | Glob patterns the extension uses to discover CALM model files. |
-| `calm.template.globs` | string[] | `["**/*.md", "**/*.markdown", "**/*.hbs", "**/*.handlebars"]` | Glob patterns for template files that may reference architectures. |
-| `calm.docify.theme` | enum | `auto` | Diagram colour theme. See [Themes](#themes). |
-| `calm.preview.layout` | enum | `elk` | Layout engine for the diagram. See [Layout Engines](#layout-engines). |
-| `calm.urlMapping` | string | `""` | Path to a JSON file mapping URLs to local files. See [Multi-Document Navigation](#multi-document-navigation). |
-| `calm.schemas.additionalFolders` | string[] | `[]` | Extra folders to load CALM schemas from. See [Schema Development](#schema-development). |
+| `calm.externalAssetsPath` | `string` | `""` | Absolute path to an external folder containing shared `nodes/`, `standards/`, `patterns/`, and `templates/` folders. |
+| `calm.packs.enabled` | `string[]` | `[]` | List of extension pack IDs to show in the palette (e.g. `["aws", "k8s"]`). Leave empty to show all packs. Available packs: `core`, `fluxnova`, `ai`, `aws`, `gcp`, `azure`, `k8s`, `messaging`, `identity`, `opengris`. |
+| `calm.packs.excludeNodes` | `string[]` | `[]` | List of node type IDs to hide from the palette (e.g. `["core:ldap", "aws:s3"]`). Use the `packId:nodeType` format. |
+| `calm.hub.url` | `string` | `""` | CalmHub endpoint URL (e.g. `https://calmhub.example.com`). |
+| `calm.hub.autoConnect` | `boolean` | `true` | Automatically connect to CalmHub on startup when URL is configured. |
+| `calm.hub.selectedNamespaces` | `string[]` | `undefined` | Selected Hub namespaces to show in the palette. Empty or not set shows all namespaces. |
 
----
-
-## Schema Development
-
-If you're authoring custom CALM schemas (extending the official ones, or experimenting with a new domain), the extension can load schemas from arbitrary folders so your models validate against your in-progress definitions:
+Example `.vscode/settings.json`:
 
 ```json
-"calm.schemas.additionalFolders": ["./my-schemas", "./custom-calm-schemas"]
+{
+  "calm.externalAssetsPath": "/path/to/shared-calm-assets",
+  "calm.packs.enabled": ["core", "aws", "k8s"],
+  "calm.packs.excludeNodes": ["core:ldap"],
+  "calm.hub.url": "https://calmhub.example.com",
+  "calm.hub.autoConnect": true,
+  "calm.hub.selectedNamespaces": ["platform", "security"]
+}
 ```
-
-Each file in those folders is indexed by its `$id`. Reference the `$id` from your CALM documents' `$schema` field and the extension uses your local copy without a round-trip to the network.
 
 ---
 
 ## Keyboard Shortcuts
 
-| Action | macOS | Windows / Linux |
-| --- | --- | --- |
-| Open preview | `Cmd+Shift+C` | `Ctrl+Shift+C` |
-| Command Palette | `Cmd+Shift+P` | `Ctrl+Shift+P` |
-| Show Hover | `Cmd+K Cmd+I` | `Ctrl+K Ctrl+I` |
-| Show Problems Panel | `Cmd+Shift+M` | `Ctrl+Shift+M` |
+| Action | Command | macOS | Windows / Linux | When |
+| --- | --- | --- | --- | --- |
+| View in CALM Canvas | `calm.openCanvas` | `Cmd+Shift+K` | `Ctrl+Shift+K` | `resourceFilename =~ /\.(calm\|architecture)\.json$/` |
+| Delete selected node / edge | Canvas action | `Backspace` / `Delete` | `Backspace` / `Delete` | Canvas focused (editable mode) |
+| Multi-select on canvas | Canvas action | `Shift` + drag | `Shift` + drag | Canvas focused |
 
 ---
 
 ## Getting Help
 
 - **Issues & feature requests:** [github.com/finos/architecture-as-code/issues](https://github.com/finos/architecture-as-code/issues)
-- **Source:** [calm-plugins/vscode](https://github.com/finos/architecture-as-code/tree/main/calm-plugins/vscode)
+- **Extension source:** [calm-plugins/vscode](https://github.com/finos/architecture-as-code/tree/main/calm-plugins/vscode)
 - **Beginner walkthrough:** [Install the CALM VS Code Extension](../tutorials/beginner/04-vscode-extension)
-- **CLI equivalent:** [`calm` CLI](cli) for batch use outside the editor
+- **CLI companion:** [`calm` CLI](cli) for command-line validation and automation
