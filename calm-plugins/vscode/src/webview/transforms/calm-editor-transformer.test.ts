@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Node, Edge } from 'reactflow';
-import { flowToCalm, setLastParsedArch } from './calm-editor-transformer';
+import { flowToCalm, setLastParsedArch, type CalmArchitecture } from './calm-editor-transformer';
+import { parseCALMData } from './calm-parser';
 
 describe('flowToCalm - definition-id handling', () => {
     beforeEach(() => {
@@ -208,3 +209,254 @@ describe('flowToCalm - definition-id handling', () => {
     });
 });
 
+
+describe('flowToCalm - round trip', () => {
+    const fullArchitecture = (): CalmArchitecture => ({
+        $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+        'unique-id': 'round-trip',
+        name: 'Round trip',
+        description: 'Uses each optional field',
+        adrs: ['https://example.com/adr/1'],
+        nodes: [
+            {
+                'unique-id': 'cluster',
+                'node-type': 'system',
+                name: 'Cluster',
+                description: 'Holds the services',
+                'run-as': 'k8s',
+                metadata: { region: 'eu' },
+            },
+            {
+                'unique-id': 'user',
+                'node-type': 'actor',
+                name: 'User',
+                description: 'A person',
+            },
+            {
+                'unique-id': 'api',
+                'node-type': 'service',
+                name: 'API',
+                description: 'Serves requests',
+                'development-language': 'TypeScript',
+                'data-classification': 'Confidential',
+                instance: 'api-1',
+                interfaces: [{ 'unique-id': 'api-http', port: 443 }],
+                controls: { security: { description: 'TLS', requirements: [{ 'requirement-url': 'https://example.com/tls' }] } },
+                details: { 'detailed-architecture': 'https://example.com/api.json' },
+                metadata: { owner: 'team-a' },
+            },
+            {
+                'unique-id': 'db',
+                'node-type': 'database',
+                name: 'DB',
+                description: 'Stores data',
+                interfaces: [{ 'unique-id': 'db-sql', port: 5432 }],
+            },
+            {
+                'unique-id': 'platform',
+                'node-type': 'system',
+                name: 'Platform',
+                description: 'Groups the services',
+            },
+            {
+                'unique-id': 'worker',
+                'node-type': 'service',
+                name: 'Worker',
+                description: 'Runs jobs',
+            },
+        ],
+        relationships: [
+            {
+                'unique-id': 'api-db',
+                description: 'Reads data',
+                protocol: 'JDBC',
+                authentication: 'OAuth2',
+                'relationship-type': {
+                    connects: {
+                        source: { node: 'api', interfaces: ['api-http'] },
+                        destination: { node: 'db', interfaces: ['db-sql'] },
+                    },
+                },
+                controls: { audit: { description: 'Logged', requirements: [{ 'requirement-url': 'https://example.com/audit' }] } },
+                metadata: { 'line-style': 'dashed', criticality: 'high' },
+            },
+            {
+                'unique-id': 'user-api',
+                description: 'Calls the API',
+                protocol: 'HTTPS',
+                'relationship-type': { interacts: { actor: 'user', nodes: ['api', 'db'] } },
+                controls: { access: { description: 'SSO', requirements: [{ 'requirement-url': 'https://example.com/sso' }] } },
+                metadata: [{ channel: 'web' }],
+            },
+            {
+                'unique-id': 'platform-api',
+                description: 'Contains the API',
+                'relationship-type': { 'composed-of': { container: 'platform', nodes: ['api'] } },
+            },
+            {
+                'unique-id': 'cluster-contents',
+                description: 'Services run in the cluster',
+                'relationship-type': { 'deployed-in': { container: 'cluster', nodes: ['db', 'api'] } },
+                metadata: { zone: 'a' },
+            },
+            {
+                'unique-id': 'platform-worker',
+                description: 'Contains the worker',
+                'relationship-type': { 'composed-of': { container: 'platform', nodes: ['worker'] } },
+            },
+            {
+                'unique-id': 'api-pending',
+                description: 'Destination not chosen yet',
+                'relationship-type': { connects: { source: { node: 'api' }, destination: { interfaces: ['db-sql'] } } },
+            },
+            {
+                'unique-id': 'api-observes-db',
+                description: 'Custom type',
+                'relationship-type': { observes: { source: { node: 'api', interfaces: ['api-http'] }, destination: { node: 'db' } } },
+            },
+        ],
+        flows: ['https://example.com/flow/1'],
+        controls: { governance: { description: 'Doc control', requirements: [{ 'requirement-url': 'https://example.com/gov' }] } },
+        metadata: { version: '1.0.0' },
+    });
+
+    function openCanvas(arch: CalmArchitecture) {
+        setLastParsedArch(arch);
+        return parseCALMData(arch);
+    }
+
+    function withoutLayout(arch: CalmArchitecture): CalmArchitecture {
+        const { _layout, ...metadata } = arch.metadata as Record<string, unknown>;
+        return { ...arch, metadata };
+    }
+
+    const relationship = (arch: CalmArchitecture, id: string) =>
+        arch.relationships.find((r) => r['unique-id'] === id) as Record<string, any>;
+
+    const containedNodes = (arch: CalmArchitecture, id: string) => {
+        const rt = relationship(arch, id)['relationship-type'];
+        return (rt['deployed-in'] ?? rt['composed-of']).nodes;
+    };
+
+    beforeEach(() => {
+        setLastParsedArch(null);
+    });
+
+    it('writes the same document when the canvas changes nothing', () => {
+        const original = fullArchitecture();
+        const { nodes, edges } = openCanvas(fullArchitecture());
+
+        const result = flowToCalm(nodes, edges, original.controls as Record<string, unknown>);
+
+        expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
+    });
+
+    it('applies canvas edits and keeps the other fields', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        const api = nodes.find((n) => n.id === 'api')!;
+        api.data = { ...api.data, description: 'Edited', details: undefined };
+        const apiDb = edges.find((e) => e.id === 'api-db')!;
+        apiDb.data = { ...apiDb.data, protocol: 'TLS' };
+
+        const result = flowToCalm(nodes, edges);
+
+        const apiNode = result.nodes.find((n) => n['unique-id'] === 'api')!;
+        expect(apiNode.description).toBe('Edited');
+        expect(apiNode.details).toBeUndefined();
+        expect(apiNode['development-language']).toBe('TypeScript');
+        const rel = relationship(result, 'api-db');
+        expect(rel.protocol).toBe('TLS');
+        expect(rel.authentication).toBe('OAuth2');
+        expect(rel['relationship-type'].connects.source.interfaces).toEqual(['api-http']);
+    });
+
+    it('removes the interfaces of an end that is connected to a different node', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        const apiDb = edges.find((e) => e.id === 'api-db')!;
+        apiDb.target = 'cluster';
+
+        const ends = relationship(flowToCalm(nodes, edges), 'api-db')['relationship-type'].connects;
+
+        expect(ends.source).toEqual({ node: 'api', interfaces: ['api-http'] });
+        expect(ends.destination).toEqual({ node: 'cluster' });
+    });
+
+    it('keeps relationships that the canvas does not draw, and removes deleted edges', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+
+        const result = flowToCalm(nodes, edges.filter((e) => e.id !== 'api-db'));
+
+        expect(relationship(result, 'api-pending')).toEqual(relationship(fullArchitecture(), 'api-pending'));
+        expect(relationship(result, 'api-db')).toBeUndefined();
+    });
+
+    it('keeps the fields of the reverse relationship of a bidirectional edge', () => {
+        const arch = fullArchitecture();
+        arch.relationships.push({
+            'unique-id': 'db-api',
+            authentication: 'mTLS',
+            'relationship-type': {
+                connects: { source: { node: 'db', interfaces: ['db-sql'] }, destination: { node: 'api' } },
+            },
+        });
+        const { nodes, edges } = openCanvas(arch);
+
+        const reverse = relationship(flowToCalm(nodes, edges), 'db-api');
+
+        expect(reverse.authentication).toBe('mTLS');
+        expect(reverse['relationship-type'].connects.source).toEqual({ node: 'db', interfaces: ['db-sql'] });
+    });
+
+    it('keeps the containment fields when a child moves out', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        const db = nodes.find((n) => n.id === 'db')!;
+        delete db.parentId;
+
+        const rel = relationship(flowToCalm(nodes, edges), 'cluster-contents');
+
+        expect(rel.description).toBe('Services run in the cluster');
+        expect(rel.metadata).toEqual({ zone: 'a' });
+        expect(rel['relationship-type']).toEqual({ 'deployed-in': { container: 'cluster', nodes: ['api'] } });
+    });
+
+    it('removes a moved child only from the containment relationship of the container it was drawn in', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        delete nodes.find((n) => n.id === 'api')!.parentId;
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(containedNodes(result, 'cluster-contents')).toEqual(['db']);
+        expect(containedNodes(result, 'platform-api')).toEqual(['api']);
+    });
+
+    it('adds a new child to the first containment relationship of the container', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        nodes.find((n) => n.id === 'db')!.parentId = 'platform';
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(containedNodes(result, 'cluster-contents')).toEqual(['api']);
+        expect(containedNodes(result, 'platform-api')).toEqual(['api', 'db']);
+        expect(containedNodes(result, 'platform-worker')).toEqual(['worker']);
+    });
+
+    it('removes a deleted node from each containment relationship', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+
+        const result = flowToCalm(nodes.filter((n) => n.id !== 'api'), edges);
+
+        expect(containedNodes(result, 'cluster-contents')).toEqual(['db']);
+        expect(containedNodes(result, 'platform-api')).toEqual([]);
+    });
+
+    it('creates a containment relationship for a new container', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        nodes.push({ id: 'zone', type: 'container', position: { x: 0, y: 0 }, data: { calmId: 'zone', containmentType: 'deployed-in' } });
+        nodes.find((n) => n.id === 'worker')!.parentId = 'zone';
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(containedNodes(result, 'platform-worker')).toEqual([]);
+        expect(relationship(result, 'containment-zone')['relationship-type']).toEqual({ 'deployed-in': { container: 'zone', nodes: ['worker'] } });
+    });
+});
