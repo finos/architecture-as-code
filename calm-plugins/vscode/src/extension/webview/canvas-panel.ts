@@ -406,9 +406,7 @@ export class CanvasPanel {
             `[CanvasPanel] drillInto: label="${label}", path="${filePath}", type="${calmType}"`
         );
 
-        const isReadonly =
-            calmType.startsWith('standard-node:') ||
-            filePath.includes('standard-nodes/');
+        const isReadonly = calmType.startsWith('standard-node:');
 
         const workspaceRoots = (vscode.workspace.workspaceFolders ?? []).map(f => f.uri.fsPath);
         const externalPath = vscode.workspace
@@ -422,30 +420,12 @@ export class CanvasPanel {
             const docDir = this.currentDocument ? nodePath.dirname(this.currentDocument.uri.fsPath) : undefined;
             const fromDoc = docDir ? resolveLocalPath(filePath, [docDir]) : null;
 
-            // Glob search for standard-nodes
-            let fromGlob: string | null = null;
-            if (!fromDoc && filePath.includes('standard-nodes/')) {
-                const stem = nodePath.basename(filePath, '.calm.json');
-                for (const folder of vscode.workspace.workspaceFolders ?? []) {
-                    const pattern = new vscode.RelativePattern(folder, `standard-nodes/**/${stem}.calm.json`);
-                    const files = await vscode.workspace.findFiles(pattern, null, 1);
-                    if (files.length > 0) {
-                        fromGlob = resolveLocalPath(
-                            nodePath.relative(folder.uri.fsPath, files[0].fsPath),
-                            [folder.uri.fsPath]
-                        );
-                        if (fromGlob) break;
-                    }
-                }
-            }
-
-            const target = fromDoc ?? fromGlob;
-            if (!target) {
+            if (!fromDoc) {
                 this.log.appendLine(`[CanvasPanel] drillInto FAILED: no safe resolution for "${filePath}"`);
                 vscode.window.showWarningMessage(`Cannot find: ${filePath}`);
                 return;
             }
-            return this.drillIntoFile(target, label, isReadonly);
+            return this.drillIntoFile(fromDoc, label, isReadonly);
         }
         return this.drillIntoFile(resolved, label, isReadonly);
     }
@@ -472,17 +452,17 @@ export class CanvasPanel {
             return;
         }
 
-        const standardNodesDir = vscode.Uri.joinPath(
+        const standardsDir = vscode.Uri.joinPath(
             workspaceFolder.uri,
-            'standard-nodes'
+            'standards'
         );
         try {
-            await vscode.workspace.fs.stat(standardNodesDir);
+            await vscode.workspace.fs.stat(standardsDir);
         } catch {
-            await vscode.workspace.fs.createDirectory(standardNodesDir);
+            await vscode.workspace.fs.createDirectory(standardsDir);
         }
 
-        const writePath = resolveSafeWritePath(`standard-nodes/${filename}`, workspaceFolder.uri.fsPath);
+        const writePath = resolveSafeWritePath(`standards/${filename}`, workspaceFolder.uri.fsPath);
         if (!writePath) {
             vscode.window.showErrorMessage(`Invalid standard node filename: ${filename}`);
             return;
@@ -505,7 +485,7 @@ export class CanvasPanel {
             Buffer.from(content, 'utf-8')
         );
         vscode.window.showInformationMessage(
-            `Standard node saved: standard-nodes/${filename}`
+            `Standard node saved: standards/${filename}`
         );
 
         const doc = await vscode.workspace.openTextDocument(fileUri);
@@ -964,8 +944,9 @@ export class CanvasPanel {
                 numericId,
                 version
             ) as Record<string, unknown>;
-            const docNodes = (doc.nodes as Array<Record<string, unknown>>) ?? [];
-            const docNode = docNodes[0];
+            const docNode = (doc.default && typeof doc.default === 'object' && !Array.isArray(doc.default))
+                ? (doc.default as Record<string, unknown>)
+                : undefined;
             const controls = (docNode?.controls as Record<string, unknown>) ?? {};
             await this.pinControlVersions(controls);
             this.postMessage({ type: 'definitionResolved', nodeId, controls });

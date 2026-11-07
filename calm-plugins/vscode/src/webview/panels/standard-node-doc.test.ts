@@ -27,7 +27,7 @@ describe('generateId', () => {
 });
 
 describe('buildStandardNodeDoc', () => {
-    it('builds a CALM document and file name for a node with no controls', () => {
+    it('builds a JSON Schema node Standard document and file name for a node with no controls', () => {
         const { json, fileName } = buildStandardNodeDoc({
             name: 'API Gateway',
             nodeType: 'service',
@@ -35,19 +35,21 @@ describe('buildStandardNodeDoc', () => {
             controls: [],
         });
 
-        expect(fileName).toBe('api-gateway.calm.json');
+        expect(fileName).toBe('api-gateway.json');
         const doc = JSON.parse(json);
-        expect(doc.$schema).toBe(`${CALM_META_SCHEMA_BASE_URL}/core.json`);
-        expect(doc.nodes).toHaveLength(1);
-        expect(doc.nodes[0]).toMatchObject({
+        expect(doc.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
+        expect(doc.title).toBe('API Gateway');
+        expect(doc.description).toBe('Edge gateway');
+        expect(doc.allOf).toEqual([
+            { $ref: `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node` },
+        ]);
+        expect(doc.default).toEqual({
             'unique-id': 'standard-node-api-gateway',
             'node-type': 'service',
             name: 'API Gateway',
             description: 'Edge gateway',
-            metadata: { 'standard-node-type': 'infrastructure' },
+            controls: {},
         });
-        expect(doc.nodes[0].controls).toEqual({});
-        expect(doc.relationships).toEqual([]);
     });
 
     it('emits a Hub CURIE control as a slim reference (no config or metadata)', () => {
@@ -60,7 +62,7 @@ describe('buildStandardNodeDoc', () => {
             description: '',
             controls,
         });
-        const map = JSON.parse(json).nodes[0].controls;
+        const map = JSON.parse(json).default.controls;
         const control = map['security--micro-segmentation'];
         expect(control.description).toBeUndefined();
         expect(control.requirements[0]['requirement-url']).toBe(
@@ -80,7 +82,7 @@ describe('buildStandardNodeDoc', () => {
             description: '',
             controls,
         });
-        const map = JSON.parse(json).nodes[0].controls;
+        const map = JSON.parse(json).default.controls;
         expect(Object.keys(map)).toEqual(['micro-segmentation']);
         expect(map['micro-segmentation'].requirements[0]['requirement-url']).toBe(
             'controls/micro-segmentation.requirement.json'

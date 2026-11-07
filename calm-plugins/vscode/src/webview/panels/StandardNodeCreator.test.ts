@@ -11,10 +11,10 @@ describe('StandardNodeCreator integration', () => {
             controls: [],
         });
         const doc = JSON.parse(json);
-        expect(fileName).toContain('api-gateway');
-        expect(doc.nodes).toHaveLength(1);
-        expect(doc.nodes[0].name).toBe('API Gateway');
-        expect(doc.nodes[0]['node-type']).toBe('service');
+        expect(fileName).toBe('api-gateway.json');
+        expect(doc.default).toBeDefined();
+        expect(doc.default.name).toBe('API Gateway');
+        expect(doc.default['node-type']).toBe('service');
     });
 
     it('includes controls in standard node', () => {
@@ -27,7 +27,7 @@ describe('StandardNodeCreator integration', () => {
             ],
         });
         const doc = JSON.parse(json);
-        const node = doc.nodes[0];
+        const node = doc.default;
         expect(node.controls).toBeDefined();
     });
 
