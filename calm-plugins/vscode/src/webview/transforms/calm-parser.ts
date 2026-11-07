@@ -16,6 +16,8 @@ const CONTAINER_BASE_HEIGHT = 350;
 const CONTAINER_CHILD_WIDTH_INCREMENT = 150;
 const CONTAINER_CHILD_HEIGHT_INCREMENT = 120;
 
+interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; edgeMetadata: Record<string, unknown> }
+
 export function parseCALMData(
     arch: CalmArchitecture,
     direction: 'DOWN' | 'RIGHT' = 'DOWN'
@@ -119,7 +121,6 @@ export function parseCALMData(
     }
 
     // Build edges from non-containment relationships
-    interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; edgeMetadata: Record<string, unknown> }
     const connectsList: ConnectsEntry[] = [];
     for (const rel of arch.relationships ?? []) {
         const rt = rel['relationship-type'] as
@@ -223,12 +224,14 @@ export function parseCALMData(
         }
     }
 
-    // Detect bidirectional connects pairs (A→B + B→A) and merge into single edge
+    // Merge a connects pair (A→B + B→A) into one bidirectional edge only when the canvas would
+    // write the same data back to both; otherwise each relationship keeps its own edge
     const consumed = new Set<string>();
     for (const entry of connectsList) {
         if (consumed.has(entry.relId)) continue;
         const reverse = connectsList.find(
             (e) => !consumed.has(e.relId) && e.relId !== entry.relId && e.src === entry.dst && e.dst === entry.src
+                && sameEdgeData(entry, e)
         );
         const isBidi = !!reverse;
         if (reverse) consumed.add(reverse.relId);
@@ -265,6 +268,18 @@ export function parseCALMData(
     // Apply Dagre auto-layout
     const layoutedNodes = applyDagreLayout(nodes, edges, direction);
     return { nodes: layoutedNodes, edges };
+}
+
+function sameEdgeData(a: ConnectsEntry, b: ConnectsEntry): boolean {
+    const editable = (e: ConnectsEntry) => canonicalJson([e.protocol, e.description, e.controls, e.lineStyle, e.routing, e.edgeMetadata]);
+    return editable(a) === editable(b);
+}
+
+function canonicalJson(value: unknown): string {
+    return JSON.stringify(value, (_key, v) =>
+        v && typeof v === 'object' && !Array.isArray(v)
+            ? Object.fromEntries(Object.entries(v).sort(([x], [y]) => x.localeCompare(y)))
+            : v);
 }
 
 const KNOWN_NODE_TYPES = new Set([

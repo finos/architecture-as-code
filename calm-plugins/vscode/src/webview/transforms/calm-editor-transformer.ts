@@ -149,6 +149,7 @@ export function flowToCalm(
                 'relationship-type': buildRelationshipType(variant, edge.target, edge.source, reverseOriginal),
                 protocol: data.protocol || undefined,
                 description: data.description || undefined,
+                controls: data.controls || undefined,
                 metadata,
             }));
         }
