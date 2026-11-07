@@ -10,7 +10,7 @@ import { saveManifest, type WorkspaceManifest } from './bundle';
 
 describe('layout-check', () => {
     describe('extractTypeSegmentFromDocumentId', () => {
-        it('extracts type segment from namespace $id URLs', () => {
+        it('extracts type segment from conformant namespace $id URLs', () => {
             expect(
                 extractTypeSegmentFromDocumentId(
                     'https://example.com/calm/namespaces/finos/architectures/payment-svc/versions/1.0.0'
@@ -40,24 +40,6 @@ describe('layout-check', () => {
                     'https://example.com/calm/namespaces/finos/interfaces/api/versions/1.0.0'
                 )
             ).toBe('interfaces');
-
-            expect(
-                extractTypeSegmentFromDocumentId(
-                    'https://example.com/calm/namespaces/finos/timelines/t1/versions/1.0.0'
-                )
-            ).toBe('timelines');
-
-            expect(
-                extractTypeSegmentFromDocumentId(
-                    'https://example.com/calm/namespaces/finos/adrs/adr1/versions/1.0.0'
-                )
-            ).toBe('adrs');
-
-            expect(
-                extractTypeSegmentFromDocumentId(
-                    'https://example.com/calm/namespaces/finos/decorators/eval1/versions/1.0.0'
-                )
-            ).toBe('decorators');
         });
 
         it('returns controls for domain control requirement and configuration $id URLs', () => {
@@ -74,9 +56,19 @@ describe('layout-check', () => {
             ).toBe('controls');
         });
 
-        it('returns undefined for non-CALM-Hub IDs', () => {
+        it('returns undefined for non-conformant or non-CALM-Hub IDs', () => {
             expect(extractTypeSegmentFromDocumentId('my-architecture')).toBeUndefined();
             expect(extractTypeSegmentFromDocumentId('https://example.com/schemas/my-schema.json')).toBeUndefined();
+            expect(
+                extractTypeSegmentFromDocumentId(
+                    'https://example.com/calm/namespaces/finos/adrs/adr1/versions/1.0.0'
+                )
+            ).toBeUndefined();
+            expect(
+                extractTypeSegmentFromDocumentId(
+                    'https://example.com/calm/namespaces/finos/architectures/arch/versions/1.0.0/extra'
+                )
+            ).toBeUndefined();
             expect(extractTypeSegmentFromDocumentId('')).toBeUndefined();
             expect(extractTypeSegmentFromDocumentId(null as unknown as string)).toBeUndefined();
         });
@@ -197,19 +189,144 @@ describe('layout-check', () => {
             expect(warnings).toHaveLength(0);
         });
 
+        it('does not warn when content sets the type in a directory that is not its type directory (rules 1 and 3)', async () => {
+            const specsDir = path.join(testDir, 'specs');
+            await mkdir(specsDir, { recursive: true });
+
+            const flowFile = path.join(specsDir, 'payment-flow.json');
+            await writeFile(
+                flowFile,
+                JSON.stringify({
+                    $id: 'https://example.com/calm/namespaces/finos/flows/payment-flow/versions/1.0.0',
+                    $schema: 'https://calm.finos.org/release/1.2/meta/flow.json',
+                    name: 'Payment Flow',
+                })
+            );
+
+            const interfaceFile = path.join(specsDir, 'payment-api.json');
+            await writeFile(
+                interfaceFile,
+                JSON.stringify({
+                    $id: 'https://example.com/calm/namespaces/finos/interfaces/payment-api/versions/1.0.0',
+                    $schema: 'https://calm.finos.org/release/1.2/meta/interface.json',
+                })
+            );
+
+            const controlFile = path.join(specsDir, 'tls-control.json');
+            await writeFile(
+                controlFile,
+                JSON.stringify({
+                    $id: 'https://example.com/calm/domains/security/controls/tls/requirement/versions/1.0.0',
+                    $schema: 'https://calm.finos.org/release/1.2/meta/control.json',
+                })
+            );
+
+            const timelineMomentsFile = path.join(specsDir, 'roadmap-moments.json');
+            await writeFile(
+                timelineMomentsFile,
+                JSON.stringify({
+                    moments: [{ date: '2026-01-01' }],
+                })
+            );
+
+            const timelineSchemaFile = path.join(specsDir, 'roadmap-schema.json');
+            await writeFile(
+                timelineSchemaFile,
+                JSON.stringify({
+                    $schema: 'https://calm.finos.org/release/1.3/meta/calm-timeline.json',
+                })
+            );
+
+            const manifest: WorkspaceManifest = {
+                'payment-flow': {
+                    path: path.relative(bundlePath, flowFile),
+                    type: 'flow',
+                },
+                'payment-api': {
+                    path: path.relative(bundlePath, interfaceFile),
+                    type: 'interface',
+                },
+                'tls-control': {
+                    path: path.relative(bundlePath, controlFile),
+                    type: 'control',
+                },
+                'roadmap-moments': {
+                    path: path.relative(bundlePath, timelineMomentsFile),
+                    type: 'timeline',
+                },
+                'roadmap-schema': {
+                    path: path.relative(bundlePath, timelineSchemaFile),
+                    type: 'timeline',
+                },
+            };
+            await saveManifest(bundlePath, manifest);
+
+            const warnings = await checkWorkspaceLayout(bundlePath, manifest);
+            expect(warnings).toHaveLength(0);
+        });
+
         it('warns when a file is placed in another known directory of different type', async () => {
             const patDir = path.join(testDir, 'patterns');
+            const adrDir = path.join(testDir, 'adrs');
             await mkdir(patDir, { recursive: true });
-            const misplacedArch = path.join(patDir, 'misplaced-arch.json');
+            await mkdir(adrDir, { recursive: true });
+
+            const misplacedInPatterns = path.join(patDir, 'misplaced-arch.json');
             await writeFile(
-                misplacedArch,
+                misplacedInPatterns,
                 JSON.stringify({
                     $id: 'https://example.com/calm/namespaces/finos/architectures/arch-in-patterns/versions/1.0.0',
                 })
             );
 
+            const misplacedInAdrs = path.join(adrDir, 'misplaced-arch.json');
+            await writeFile(
+                misplacedInAdrs,
+                JSON.stringify({
+                    $id: 'https://example.com/calm/namespaces/finos/architectures/arch-in-adrs/versions/1.0.0',
+                })
+            );
+
             const manifest: WorkspaceManifest = {
-                'misplaced-arch': {
+                'misplaced-in-patterns': {
+                    path: path.relative(bundlePath, misplacedInPatterns),
+                    type: 'architecture',
+                },
+                'misplaced-in-adrs': {
+                    path: path.relative(bundlePath, misplacedInAdrs),
+                    type: 'architecture',
+                },
+            };
+            await saveManifest(bundlePath, manifest);
+
+            const warnings = await checkWorkspaceLayout(bundlePath, manifest);
+            expect(warnings).toHaveLength(2);
+            expect(warnings[0].expectedDirectory).toBe('architectures');
+            expect(warnings[0].actualDirectory).toBe('patterns');
+            expect(warnings[0].message).toBe(
+                'Tracked file \'patterns/misplaced-arch.json\' has $id type \'architectures\' but is in \'patterns/\'; expected directory \'architectures/\'. CALM Hub GitHub mode will read it as a pattern.'
+            );
+            expect(warnings[1].expectedDirectory).toBe('architectures');
+            expect(warnings[1].actualDirectory).toBe('adrs');
+            expect(warnings[1].message).toBe(
+                'Tracked file \'adrs/misplaced-arch.json\' has $id type \'architectures\' but is in \'adrs/\'; expected directory \'architectures/\'. CALM Hub GitHub mode will read it as an adr.'
+            );
+        });
+
+        it('states that CALM Hub will not import an architecture with nodes in controls/', async () => {
+            const controlsDir = path.join(testDir, 'controls');
+            await mkdir(controlsDir, { recursive: true });
+            const misplacedArch = path.join(controlsDir, 'arch-with-nodes.json');
+            await writeFile(
+                misplacedArch,
+                JSON.stringify({
+                    $id: 'https://example.com/calm/namespaces/finos/architectures/arch-with-nodes/versions/1.0.0',
+                    nodes: [],
+                })
+            );
+
+            const manifest: WorkspaceManifest = {
+                'arch-with-nodes': {
                     path: path.relative(bundlePath, misplacedArch),
                     type: 'architecture',
                 },
@@ -219,14 +336,18 @@ describe('layout-check', () => {
             const warnings = await checkWorkspaceLayout(bundlePath, manifest);
             expect(warnings).toHaveLength(1);
             expect(warnings[0].expectedDirectory).toBe('architectures');
-            expect(warnings[0].actualDirectory).toBe('patterns');
-            expect(warnings[0].message).toContain('has $id type \'architectures\' but is in \'patterns/\'');
-            expect(warnings[0].message).toContain('CALM Hub GitHub mode will read it as a pattern');
+            expect(warnings[0].actualDirectory).toBe('controls');
+            expect(warnings[0].message).toBe(
+                'Tracked file \'controls/arch-with-nodes.json\' has $id type \'architectures\' but is in \'controls/\'; expected directory \'architectures/\'. CALM Hub GitHub mode will not import the file.'
+            );
         });
 
-        it('warns when a file is placed in an unknown directory', async () => {
+        it('warns when a file is placed in an unknown directory, including one starting with ..', async () => {
             const draftDir = path.join(testDir, 'drafts');
+            const dotDotDraftDir = path.join(testDir, '..drafts');
             await mkdir(draftDir, { recursive: true });
+            await mkdir(dotDotDraftDir, { recursive: true });
+
             const draftArch = path.join(draftDir, 'draft-arch.json');
             await writeFile(
                 draftArch,
@@ -235,18 +356,34 @@ describe('layout-check', () => {
                 })
             );
 
+            const dotDotDraftArch = path.join(dotDotDraftDir, 'draft-arch.json');
+            await writeFile(
+                dotDotDraftArch,
+                JSON.stringify({
+                    $id: 'https://example.com/calm/namespaces/finos/architectures/dotdot-arch/versions/1.0.0',
+                })
+            );
+
             const manifest: WorkspaceManifest = {
                 'draft-arch': {
                     path: path.relative(bundlePath, draftArch),
+                    type: 'architecture',
+                },
+                'dotdot-arch': {
+                    path: path.relative(bundlePath, dotDotDraftArch),
                     type: 'architecture',
                 },
             };
             await saveManifest(bundlePath, manifest);
 
             const warnings = await checkWorkspaceLayout(bundlePath, manifest);
-            expect(warnings).toHaveLength(1);
-            expect(warnings[0].message).toContain('has $id type \'architectures\' but is not in an \'architectures/\' directory');
-            expect(warnings[0].message).toContain('CALM Hub GitHub mode will not read it as its type');
+            expect(warnings).toHaveLength(2);
+            expect(warnings[0].message).toBe(
+                'Tracked file \'drafts/draft-arch.json\' has $id type \'architectures\' but is not in an \'architectures/\' directory. CALM Hub GitHub mode will not import the file.'
+            );
+            expect(warnings[1].message).toBe(
+                'Tracked file \'..drafts/draft-arch.json\' has $id type \'architectures\' but is not in an \'architectures/\' directory. CALM Hub GitHub mode will not import the file.'
+            );
         });
 
         it('warns when a file is in the project root with no directory', async () => {
@@ -268,7 +405,9 @@ describe('layout-check', () => {
 
             const warnings = await checkWorkspaceLayout(bundlePath, manifest);
             expect(warnings).toHaveLength(1);
-            expect(warnings[0].message).toContain('has $id type \'architectures\' but is not in an \'architectures/\' directory');
+            expect(warnings[0].message).toBe(
+                'Tracked file \'root-arch.json\' has $id type \'architectures\' but is not in an \'architectures/\' directory. CALM Hub GitHub mode will not import the file.'
+            );
         });
 
         it('warns when a file is inside .calm-workspace directory', async () => {
@@ -292,7 +431,9 @@ describe('layout-check', () => {
 
             const warnings = await checkWorkspaceLayout(bundlePath, manifest);
             expect(warnings).toHaveLength(1);
-            expect(warnings[0].message).toContain('inside \'.calm-workspace/\' which is ignored by git');
+            expect(warnings[0].message).toBe(
+                'Tracked file \'.calm-workspace/bundles/default/files/copied.json\' is inside \'.calm-workspace/\' which is ignored by git. CALM Hub GitHub mode will not find it.'
+            );
         });
 
         it('skips narrative documents like sad and knowledge', async () => {
@@ -331,7 +472,9 @@ describe('layout-check', () => {
             const warnings = await checkWorkspaceLayout(bundlePath, manifest);
             expect(warnings).toHaveLength(1);
             expect(warnings[0].expectedDirectory).toBe('flows');
-            expect(warnings[0].message).toContain('has type \'flow\' but is not in an \'flows/\' directory');
+            expect(warnings[0].message).toBe(
+                'Tracked file \'misc/flow.json\' has type \'flow\' but is not in a \'flows/\' directory. CALM Hub GitHub mode will not import the file.'
+            );
         });
 
         it('skips tracked files that do not exist on disk', async () => {
@@ -387,7 +530,9 @@ describe('layout-check', () => {
 
                 const warnings = await checkWorkspaceLayout(bundlePath, manifest);
                 expect(warnings).toHaveLength(1);
-                expect(warnings[0].message).toContain('is outside the repository');
+                expect(warnings[0].message).toBe(
+                    `Tracked file '${outsideFile}' is outside the repository. CALM Hub GitHub mode will not find it.`
+                );
             } finally {
                 await rm(outsideDir, { recursive: true, force: true });
             }
@@ -399,3 +544,4 @@ describe('layout-check', () => {
         });
     });
 });
+

@@ -64,3 +64,70 @@ export function detectDirectorySegment(relativePath: string): string | undefined
     }
     return dirSegments[dirSegments.length - 1].toLowerCase();
 }
+
+export type GitHubContentClassification =
+    | { source: 'content'; directory: GitHubResourceDirectory }
+    | { source: 'directory'; directory: GitHubResourceDirectory | undefined };
+
+function hasSchemaMatching(json: Record<string, unknown>, keyword: string): boolean {
+    const schema = json['$schema'];
+    return typeof schema === 'string' && schema.toLowerCase().includes(keyword);
+}
+
+function isTimeline(json: Record<string, unknown>): boolean {
+    return Object.prototype.hasOwnProperty.call(json, 'moments') || hasSchemaMatching(json, 'timeline');
+}
+
+function hasNodesOrRelationships(json: Record<string, unknown>): boolean {
+    return (
+        Object.prototype.hasOwnProperty.call(json, 'nodes') ||
+        Object.prototype.hasOwnProperty.call(json, 'relationships')
+    );
+}
+
+function detectByDirectoryHint(parentDir: string | undefined): GitHubResourceDirectory | undefined {
+    const canonical = parentDir ? canonicalGitHubDirectory(parentDir) : undefined;
+    if (canonical === 'controls' || canonical === 'timelines') {
+        return undefined;
+    }
+    return canonical;
+}
+
+function detectByDirectoryOnly(parentDir: string | undefined): GitHubResourceDirectory | undefined {
+    return parentDir ? canonicalGitHubDirectory(parentDir) : undefined;
+}
+
+/**
+ * Classify a JSON document using the same rules and precedence as `CalmContentDetector.detect`:
+ * 1. `moments`, or `$schema` contains `timeline` -> timeline (from content)
+ * 2. `nodes` or `relationships` -> from directory via `detectByDirectoryHint` (no `controls` or `timelines` case)
+ * 3. `$schema` contains `flow`, `interface`, `control`, or `decorator` -> that type (from content)
+ * 4. Anything else -> from directory via `detectByDirectoryOnly`
+ */
+export function classifyGitHubDocument(
+    json: Record<string, unknown> | undefined,
+    parentDir: string | undefined
+): GitHubContentClassification {
+    if (json) {
+        if (isTimeline(json)) {
+            return { source: 'content', directory: 'timelines' };
+        }
+        if (hasNodesOrRelationships(json)) {
+            return { source: 'directory', directory: detectByDirectoryHint(parentDir) };
+        }
+        if (hasSchemaMatching(json, 'flow')) {
+            return { source: 'content', directory: 'flows' };
+        }
+        if (hasSchemaMatching(json, 'interface')) {
+            return { source: 'content', directory: 'interfaces' };
+        }
+        if (hasSchemaMatching(json, 'control')) {
+            return { source: 'content', directory: 'controls' };
+        }
+        if (hasSchemaMatching(json, 'decorator')) {
+            return { source: 'content', directory: 'decorators' };
+        }
+    }
+    return { source: 'directory', directory: detectByDirectoryOnly(parentDir) };
+}
+

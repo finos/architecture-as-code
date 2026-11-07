@@ -1094,7 +1094,7 @@ describe('setupWorkspaceCommands', () => {
             await program.parseAsync(['node', 'test', 'workspace', 'check']);
             expect(mocks.checkWorkspaceLayout).toHaveBeenCalledWith('/fake/bundle', expect.anything());
             expect(mocks.loggerWarn).toHaveBeenCalledWith(
-                expect.stringContaining('Tracked file \'patterns/arch.json\' has $id type \'architectures\' but is in \'patterns/\'')
+                'Tracked file \'patterns/arch.json\' has $id type \'architectures\' but is in \'patterns/\'; expected directory \'architectures/\'. CALM Hub GitHub mode will read it as a pattern.'
             );
             expect(exitSpy).not.toHaveBeenCalled();
         });

@@ -5,6 +5,7 @@ import {
     isKnownGitHubDirectory,
     canonicalGitHubDirectory,
     detectDirectorySegment,
+    classifyGitHubDocument,
 } from './github-layout';
 
 describe('github-layout', () => {
@@ -87,4 +88,100 @@ describe('github-layout', () => {
             expect(detectDirectorySegment('misc\\payment.json')).toBe('misc');
         });
     });
+
+    describe('classifyGitHubDocument', () => {
+        it('rule 1: classifies timeline from moments or timeline $schema in any directory', () => {
+            expect(classifyGitHubDocument({ moments: [] }, 'specs')).toEqual({
+                source: 'content',
+                directory: 'timelines',
+            });
+            expect(
+                classifyGitHubDocument(
+                    { $schema: 'https://calm.finos.org/release/1.3/meta/calm-timeline.json' },
+                    'architectures'
+                )
+            ).toEqual({
+                source: 'content',
+                directory: 'timelines',
+            });
+        });
+
+        it('rule 2: classifies documents with nodes or relationships from directory hint (excluding controls and timelines)', () => {
+            expect(classifyGitHubDocument({ nodes: [] }, 'architectures')).toEqual({
+                source: 'directory',
+                directory: 'architectures',
+            });
+            expect(classifyGitHubDocument({ relationships: [] }, 'patterns')).toEqual({
+                source: 'directory',
+                directory: 'patterns',
+            });
+            expect(classifyGitHubDocument({ nodes: [] }, 'standard-nodes')).toEqual({
+                source: 'directory',
+                directory: 'standards',
+            });
+            expect(classifyGitHubDocument({ nodes: [] }, 'controls')).toEqual({
+                source: 'directory',
+                directory: undefined,
+            });
+            expect(classifyGitHubDocument({ nodes: [] }, 'timelines')).toEqual({
+                source: 'directory',
+                directory: undefined,
+            });
+            expect(classifyGitHubDocument({ nodes: [] }, 'specs')).toEqual({
+                source: 'directory',
+                directory: undefined,
+            });
+        });
+
+        it('rule 3: classifies flow, interface, control, and decorator from $schema in any directory', () => {
+            expect(
+                classifyGitHubDocument({ $schema: 'https://calm.finos.org/release/1.2/meta/flow.json' }, 'specs')
+            ).toEqual({
+                source: 'content',
+                directory: 'flows',
+            });
+            expect(
+                classifyGitHubDocument({ $schema: 'https://calm.finos.org/release/1.2/meta/interface.json' }, 'specs')
+            ).toEqual({
+                source: 'content',
+                directory: 'interfaces',
+            });
+            expect(
+                classifyGitHubDocument({ $schema: 'https://calm.finos.org/release/1.2/meta/control.json' }, 'specs')
+            ).toEqual({
+                source: 'content',
+                directory: 'controls',
+            });
+            expect(
+                classifyGitHubDocument({ $schema: 'https://calm.finos.org/release/1.2/meta/decorators.json' }, 'specs')
+            ).toEqual({
+                source: 'content',
+                directory: 'decorators',
+            });
+        });
+
+        it('rule 4: classifies other documents from directory only across all known directories', () => {
+            expect(classifyGitHubDocument({ title: 'Control' }, 'controls')).toEqual({
+                source: 'directory',
+                directory: 'controls',
+            });
+            expect(classifyGitHubDocument({ title: 'Timeline' }, 'timelines')).toEqual({
+                source: 'directory',
+                directory: 'timelines',
+            });
+            expect(classifyGitHubDocument({ title: 'Standard' }, 'standards')).toEqual({
+                source: 'directory',
+                directory: 'standards',
+            });
+            expect(classifyGitHubDocument({ title: 'Unknown' }, 'drafts')).toEqual({
+                source: 'directory',
+                directory: undefined,
+            });
+            expect(classifyGitHubDocument(undefined, 'architectures')).toEqual({
+                source: 'directory',
+                directory: 'architectures',
+            });
+        });
+    });
 });
+

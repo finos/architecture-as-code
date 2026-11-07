@@ -136,7 +136,9 @@ export {
     isKnownGitHubDirectory,
     canonicalGitHubDirectory,
     detectDirectorySegment,
+    classifyGitHubDocument,
     type GitHubResourceDirectory,
+    type GitHubContentClassification,
 } from './hub/github-layout.js';
 export { CurieReferenceResolver } from './resolver/curie-resolver.js';
 export { LocalCurieReferenceResolver } from './resolver/local-curie-resolver.js';
