@@ -1,8 +1,9 @@
 # ADR 0015: Architecture validation is a Hub feature behind an SPI, recorded async first
 
 **Status**: Proposed. Not built. It needs the write seam in
-[ADR 0016](0016-store-write-seam-and-outbox-for-post-write-events.md) and changes
-to calm-server.
+[ADR 0016](0016-store-write-seam-and-outbox-for-post-write-events.md), the
+decorator rules in [ADR 0017](0017-reserved-decorator-types-and-decorator-history.md),
+a `validation` decorator Standard and changes to calm-server.
 
 ## Context
 
@@ -33,6 +34,8 @@ Facts in the code:
   deletes snapshot versions. Versions are not always immutable.
 - `DecoratorResource` and the MCP `DecoratorTools` accept a decorator of any type
   from a caller with WRITE scope.
+- The control-evaluation Standard records `status`, `findings`, `engine` and
+  `evaluated-at` for one control.
 - `decorators.json` in calm-schema 1.3.0 requires at least one `applies-to` item.
   A pass, or an issue on the whole document, has no element id.
 
@@ -67,21 +70,36 @@ Only the operator can set a binding to fail open. No request header can skip a
 `deny` binding.
 
 **A failed call is never a pass.** If the validator fails or times out, Hub
-records `status: error`.
+records an `error` result.
 
 **Results key on content, not only on the version.** Each result holds the
 version URL and the content SHA-256. When the content changes, the old result is
 `stale`, and Hub validates again.
 
-**Only Hub writes `validation` decorators.** The decorator store wrapper rejects
-a `validation` decorator from any other writer, through REST and MCP. Hub writes
-one decorator for each source. A new result supersedes the old one, and Hub does
-not edit a decorator in place. Hub's own writes run as `actor: system` and do not
-start validation again.
+**`validation` is a reserved decorator type.** Only Hub, as `actor: system`,
+writes it ([ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)).
+Hub writes one decorator for each source. A new result supersedes the old one.
+Hub's own writes do not start validation again.
+
+**The result has the shape of a control evaluation.** A new `validation`
+decorator Standard in calm-schema uses the field names and meanings of the
+control-evaluation Standard, so one diagram overlay and one generic view
+([#3620](https://github.com/finos/architecture-as-code/issues/3620)) show both.
+
+| Field in `data` | Content |
+|---|---|
+| `source` | The rule source: id, version, role and binding. It takes the place of `control` |
+| `status` | `met`, `not-met` or `not-applicable`. A validator `fail` is `not-met`. A validator `error` is `not-met` with one finding whose `cause` is `validator-error` |
+| `findings` | One for each issue: `subject` (element `unique-id`, or the architecture id), `check` (issue code), `description` (message), and `severity` and JSON `path` |
+| `engine` | Validator name and version |
+| `evaluated-at` | When Hub validated |
+| `subject-sha256` | The content SHA-256 that the result is for |
 
 **`applies-to` sentinel.** Until calm-schema allows an empty or missing
-`applies-to`, a result with no element id uses the architecture's own id. A
-proposal to make `applies-to` optional goes to finos/calm-schema.
+`applies-to`, a result with no element id uses the architecture's own id. All
+reserved types use this convention, control-evaluation too. The proposal to make
+`applies-to` optional, and to state this convention in the Standards until then,
+is [finos/calm-schema#52](https://github.com/finos/calm-schema/issues/52).
 
 ## Consequences
 
@@ -92,7 +110,7 @@ proposal to make `applies-to` optional goes to finos/calm-schema.
 - A publish is never slower and never fails because of validation until a `deny`
   binding exists.
 - A version can be published and then shown as failing. The UI must show
-  `fail`, `error` and `stale` clearly.
+  `not-met`, `validator-error` and `stale` clearly.
 - Revalidation after a binding change can make many calls to calm-server. The
   relay limits the rate.
 - Organisation rules that JSON Schema cannot express (for example Spectral rules,

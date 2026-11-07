@@ -33,3 +33,4 @@ assuming anything here reflects current behaviour.
 | [0014](0014-extension-commands-in-the-cli-and-mcp.md) | Extension commands in the CLI and MCP | Proposed |
 | [0015](0015-architecture-validation-is-a-hub-feature-behind-an-spi.md) | Architecture validation is a Hub feature behind an SPI, recorded async first | Proposed |
 | [0016](0016-store-write-seam-and-outbox-for-post-write-events.md) | Store write seam and outbox for post-write events | Proposed |
+| [0017](0017-reserved-decorator-types-and-decorator-history.md) | Reserved decorator types and decorator history | Proposed |

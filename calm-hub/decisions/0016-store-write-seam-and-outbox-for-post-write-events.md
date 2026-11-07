@@ -16,8 +16,9 @@ Facts in the code:
   service, promotion and `StandaloneDemoSeeder`. A JAX-RS filter sees only REST.
 - Each store bean comes from a producer in `store/producer/`, which selects the
   MongoDB, NitriteDB or GitHub implementation. A CDI `@Decorator` does not apply
-  to a bean from a producer method. (Confirm this against the CDI specification
-  before the ADR is accepted.)
+  to a bean from a producer method. A spike `@QuarkusTest` in calm-hub confirmed
+  this in ArC: the same `@Decorator` applied to a class bean and not to a
+  producer bean.
 - Hub uses no MongoDB transactions. The compose files run MongoDB with no replica
   set, so transactions and change streams are not available.
 - A version document has a `metadata` field that is empty on insert and kept on
@@ -30,8 +31,8 @@ Facts in the code:
 `ObservedXStore` that implements the store interface and wraps the selected
 implementation. The order is:
 
-1. Before: `warn` and `deny` validators, when they exist, and the decorator trust
-   rule.
+1. Before: `warn` and `deny` validators, when they exist, and the decorator
+   rules in [ADR 0017](0017-reserved-decorator-types-and-decorator-history.md).
 2. The delegate write.
 3. After: record the outbox entry.
 
