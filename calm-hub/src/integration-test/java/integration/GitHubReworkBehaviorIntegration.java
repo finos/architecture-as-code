@@ -30,8 +30,8 @@ import static org.hamcrest.Matchers.not;
  * verify because they depend on real clone/registry wiring:
  *
  * <ul>
- *   <li>a {@code standard-nodes/} file classifies as a {@code Standard}, not a dropped or
- *       separately-typed concept (Phase 1)</li>
+ *   <li>a {@code standard-nodes/} file is not classified as a {@code Standard}; only
+ *       {@code standards/} is recognized as the folder for Standards</li>
  *   <li>a version list never contains the literal {@code "latest"} - it's either a real SHA
  *       or the clone's current HEAD SHA (Phase 3/5)</li>
  *   <li>{@code GET .../versions/latest} is rejected with 400 by the shared validation regex,
@@ -79,18 +79,18 @@ class GitHubReworkBehaviorIntegration {
 
     @Test
     @TestSecurity(user = "alice", roles = "group1")
-    void classify_a_standard_nodes_file_as_a_standard() {
+    void not_classify_a_standard_nodes_file_as_a_standard() {
         given()
                 .when().get("/api/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(200)
-                .body("values.name", hasItem("Rate Limit Policy"));
+                .body("values.name", not(hasItem("Rate Limit Policy")));
     }
 
     @Test
     @TestSecurity(user = "alice", roles = "group1")
     void never_return_the_literal_latest_in_a_version_list_and_return_a_real_sha_instead() {
-        int standardId = rateLimitPolicyStandardId();
+        int standardId = searchableStandardId();
 
         List<String> versions = given()
                 .when().get("/api/calm/namespaces/finos/standards/" + standardId + "/versions")
@@ -107,7 +107,7 @@ class GitHubReworkBehaviorIntegration {
     @Test
     @TestSecurity(user = "alice", roles = "group1")
     void reject_the_latest_version_alias_with_a_400_in_github_mode_too() {
-        int standardId = rateLimitPolicyStandardId();
+        int standardId = searchableStandardId();
 
         given()
                 .when().get("/api/calm/namespaces/finos/standards/" + standardId + "/versions/latest")
@@ -149,11 +149,11 @@ class GitHubReworkBehaviorIntegration {
                 .body("standards.name", containsInAnyOrder("Searchable Standard", "Searchable Other"));
     }
 
-    private int rateLimitPolicyStandardId() {
+    private int searchableStandardId() {
         return given()
                 .when().get("/api/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(200)
-                .extract().jsonPath().getInt("values.find { it.name == 'Rate Limit Policy' }.id");
+                .extract().jsonPath().getInt("values.find { it.name == 'Searchable Standard' }.id");
     }
 }

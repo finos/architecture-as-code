@@ -15,16 +15,6 @@ import java.util.Optional;
  * Ported from the VSCode plugin's self-discovery logic: uses a combination of
  * JSON structure signals (nodes[], relationships[], moments[]) and parent
  * directory naming conventions (architectures/, patterns/, etc.).
- *
- * <p>{@code standard-nodes/} is deliberately aliased to {@link RegistryResourceType#STANDARD}
- * rather than kept as its own type. "Building Block" was introduced as a new CALM Hub
- * resource type without going through the CALM concept design process; Office Hours
- * (2026-09-10, #3052) agreed it should be modelled as a {@code Standard} instead. Keeping
- * the directory case here (rather than deleting it) means repos already using the VSCode
- * plugin's standard-nodes-directory convention for CALM/architecture JSON files keep
- * working — only the domain concept goes away, not the file layout. This alias covers
- * the schema-contract half of the original ask only; a distributable catalogue of
- * concrete, reusable node definitions is tracked separately in #3102.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
@@ -94,7 +84,7 @@ public class CalmContentDetector {
         return switch (parentDir.toLowerCase()) {
             case "patterns" -> Optional.of(RegistryResourceType.PATTERN);
             case "architectures" -> Optional.of(RegistryResourceType.ARCHITECTURE);
-            case "standards", "standard-nodes" -> Optional.of(RegistryResourceType.STANDARD);
+            case "standards" -> Optional.of(RegistryResourceType.STANDARD);
             case "flows" -> Optional.of(RegistryResourceType.FLOW);
             case "interfaces" -> Optional.of(RegistryResourceType.INTERFACE);
             case "adrs" -> Optional.of(RegistryResourceType.ADR);
@@ -108,7 +98,7 @@ public class CalmContentDetector {
         return switch (parentDir.toLowerCase()) {
             case "architectures" -> Optional.of(RegistryResourceType.ARCHITECTURE);
             case "patterns" -> Optional.of(RegistryResourceType.PATTERN);
-            case "standards", "standard-nodes" -> Optional.of(RegistryResourceType.STANDARD);
+            case "standards" -> Optional.of(RegistryResourceType.STANDARD);
             case "controls" -> Optional.of(RegistryResourceType.CONTROL);
             case "adrs" -> Optional.of(RegistryResourceType.ADR);
             case "flows" -> Optional.of(RegistryResourceType.FLOW);
@@ -139,8 +129,7 @@ public class CalmContentDetector {
     private boolean isKnownDirectory(String name) {
         return switch (name) {
             case "architectures", "patterns", "standards",
-                 "controls", "adrs", "flows", "interfaces", "timelines", "decorators",
-                 "standard-nodes" -> true;
+                 "controls", "adrs", "flows", "interfaces", "timelines", "decorators" -> true;
             default -> false;
         };
     }
