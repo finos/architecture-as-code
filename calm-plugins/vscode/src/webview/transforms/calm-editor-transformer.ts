@@ -89,24 +89,7 @@ export function flowToCalm(
         }));
     }
 
-    // Build containment relationships
-    for (const [parentId, children] of containerChildren) {
-        const parentNode = nodes.find((n) => n.id === parentId);
-        const variant = ((parentNode?.data as Record<string, unknown>)?.containmentType as string) ?? 'deployed-in';
-        const existingRel = lastParsedArch?.relationships.find((r) => {
-            const rt = r['relationship-type'] as Record<string, unknown> | undefined;
-            const rel = rt?.['deployed-in'] ?? rt?.['composed-of'];
-            return (rel as any)?.container === parentId;
-        });
-        const relId = (existingRel?.['unique-id'] as string) ?? `containment-${parentId}`;
-        const originalInner = originalVariant(existingRel, variant);
-        calmRelationships.push(applyCanvasFields(existingRel, {
-            'unique-id': relId,
-            'relationship-type': {
-                [variant]: { ...originalInner, container: parentId, nodes: inOriginalOrder(children, originalInner?.nodes) },
-            },
-        }));
-    }
+    calmRelationships.push(...buildContainment(nodes, containerChildren));
 
     // Build edge relationships — group interacts edges by calmRelId
     const interactsGroups = new Map<string, { actor: string; targets: string[]; data: Record<string, unknown>; edge: Edge }>();
@@ -222,21 +205,77 @@ function originalVariant(
     return rt?.[variant] as Record<string, unknown> | undefined;
 }
 
-function inOriginalOrder(ids: string[], originalIds: unknown): string[] {
-    if (!Array.isArray(originalIds)) return ids;
-    const order = new Map(originalIds.map((id, i) => [id as string, i]));
-    return [...ids].sort((a, b) => (order.get(a) ?? Infinity) - (order.get(b) ?? Infinity));
+/**
+ * Writes each original containment relationship back with its own nodes. A node in two containers is
+ * drawn in one only, so a relationship loses a node only if it was drawn in that container and is not now.
+ */
+function buildContainment(nodes: Node[], containerChildren: Map<string, string[]>): Array<Record<string, unknown>> {
+    const canvasIds = new Set(nodes.map((n) => n.id));
+    const canvasParent = new Map(nodes.filter((n) => n.parentId).map((n) => [n.id, n.parentId!]));
+    const originals = (lastParsedArch?.relationships ?? []).flatMap((rel) => {
+        const variant = containmentVariant(rel);
+        return variant ? [{ rel, variant, inner: originalVariant(rel, variant)! }] : [];
+    });
+
+    // Mirrors parseCALMData: the last relationship that lists a node is the container it is drawn in
+    const drawnParent = new Map<string, string>();
+    for (const { inner } of originals) {
+        for (const id of (inner.nodes as string[] | undefined) ?? []) drawnParent.set(id, inner.container as string);
+    }
+
+    const placed = new Set<string>();
+    const written = originals
+        .filter(({ inner }) => canvasIds.has(inner.container as string))
+        .map(({ rel, variant, inner }) => {
+            const container = inner.container as string;
+            const kept = ((inner.nodes as string[] | undefined) ?? []).filter((id) =>
+                canvasIds.has(id) && (canvasParent.get(id) === container || drawnParent.get(id) !== container));
+            kept.filter((id) => canvasParent.get(id) === container).forEach((id) => placed.add(`${container}/${id}`));
+            return { rel, variant, inner, container, nodes: kept };
+        });
+
+    const created: Array<Record<string, unknown>> = [];
+    for (const [parentId, children] of containerChildren) {
+        const added = children.filter((id) => !placed.has(`${parentId}/${id}`));
+        const first = written.find((w) => w.container === parentId);
+        if (first) {
+            first.nodes.push(...added);
+            continue;
+        }
+        const parentNode = nodes.find((n) => n.id === parentId);
+        const variant = ((parentNode?.data as Record<string, unknown>)?.containmentType as string) ?? 'deployed-in';
+        created.push({
+            'unique-id': `containment-${parentId}`,
+            'relationship-type': { [variant]: { container: parentId, nodes: added } },
+        });
+    }
+
+    return [
+        ...written.map(({ rel, variant, inner, nodes: kept }) => applyCanvasFields(rel, {
+            'relationship-type': { [variant]: { ...inner, nodes: kept } },
+        })),
+        ...created,
+    ];
+}
+
+function containmentVariant(rel: Record<string, unknown>): string | undefined {
+    const rt = rel['relationship-type'] as Record<string, unknown> | undefined;
+    if (rt?.['deployed-in']) return 'deployed-in';
+    if (rt?.['composed-of']) return 'composed-of';
+    return undefined;
 }
 
 function buildEdgeMetadata(
     data: Record<string, unknown>,
     original: Record<string, unknown> | undefined,
-): Record<string, unknown> | undefined {
+): Record<string, unknown> | unknown[] | undefined {
     const lineStyle = (data.lineStyle as string) ?? 'solid';
     const routing = (data.routing as string) ?? 'bezier';
     const meta: Record<string, unknown> = { ...((data.edgeMetadata as Record<string, unknown>) ?? {}) };
     if (lineStyle && lineStyle !== 'solid') meta['line-style'] = lineStyle;
     if (routing && routing !== 'bezier') meta['routing'] = routing;
+    const originalMeta = original?.metadata;
+    if (Array.isArray(originalMeta) && JSON.stringify(meta) === JSON.stringify({ ...originalMeta })) return originalMeta;
     if (Object.keys(meta).length === 0) return undefined;
     // The parser holds line-style and routing apart from the other metadata, so put them back where they were
     const originalKeys = Object.keys((original?.metadata as Record<string, unknown> | undefined) ?? {});
