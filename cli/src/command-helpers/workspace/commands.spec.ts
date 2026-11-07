@@ -65,7 +65,8 @@ vi.mock('./workspace', () => ({
     cleanAllWorkspaces: mocks.cleanAllWorkspaces,
 }));
 
-vi.mock('./bundle', () => ({
+vi.mock('./bundle', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('./bundle')>()),
     addFileToBundle: mocks.addFileToBundle,
     loadManifest: mocks.loadManifest,
 }));
@@ -1078,21 +1079,22 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('warns when tracked documents have directory layout issues without exiting non-zero', async () => {
+            const actualLayoutCheck = await vi.importActual<typeof import('./layout-check')>('./layout-check');
+            mocks.checkWorkspaceLayout.mockImplementationOnce(actualLayoutCheck.checkWorkspaceLayout);
+            mocks.loadManifest.mockResolvedValueOnce({
+                'arch-1': { path: '../repo/patterns/arch.json', type: 'architecture' },
+            });
+            mocks.loadPostBumpValidationOptions.mockResolvedValueOnce(undefined);
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/namespaces/ns/architectures/arch-1/versions/1.0.0',
+                nodes: [],
+            }));
             mocks.detectChangedResources.mockResolvedValueOnce([]);
             mocks.findSnapshotDependencyViolations.mockResolvedValueOnce([]);
-            mocks.checkWorkspaceLayout.mockResolvedValueOnce([
-                {
-                    id: 'arch-1',
-                    filePath: 'patterns/arch.json',
-                    expectedDirectory: 'architectures',
-                    actualDirectory: 'patterns',
-                    typeSegment: 'architectures',
-                    message:
-                        'Tracked file \'patterns/arch.json\' has $id type \'architectures\' but is in \'patterns/\'; expected directory \'architectures/\'. CALM Hub GitHub mode will read it as a pattern.',
-                },
-            ]);
             await program.parseAsync(['node', 'test', 'workspace', 'check']);
-            expect(mocks.checkWorkspaceLayout).toHaveBeenCalledWith('/fake/bundle', expect.anything());
+            expect(mocks.checkWorkspaceLayout).toHaveBeenCalledWith('/fake/bundle', {
+                'arch-1': { path: '../repo/patterns/arch.json', type: 'architecture' },
+            });
             expect(mocks.loggerWarn).toHaveBeenCalledWith(
                 'Tracked file \'patterns/arch.json\' has $id type \'architectures\' but is in \'patterns/\'; expected directory \'architectures/\'. CALM Hub GitHub mode will read it as a pattern.'
             );

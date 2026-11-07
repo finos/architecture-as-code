@@ -221,6 +221,14 @@ describe('layout-check', () => {
                 })
             );
 
+            const decoratorFile = path.join(specsDir, 'decorator.json');
+            await writeFile(
+                decoratorFile,
+                JSON.stringify({
+                    $schema: 'https://calm.finos.org/release/1.2/meta/decorators.json',
+                })
+            );
+
             const timelineMomentsFile = path.join(specsDir, 'roadmap-moments.json');
             await writeFile(
                 timelineMomentsFile,
@@ -250,6 +258,10 @@ describe('layout-check', () => {
                     path: path.relative(bundlePath, controlFile),
                     type: 'control',
                 },
+                decorator: {
+                    path: path.relative(bundlePath, decoratorFile),
+                    type: 'schema',
+                },
                 'roadmap-moments': {
                     path: path.relative(bundlePath, timelineMomentsFile),
                     type: 'timeline',
@@ -263,6 +275,34 @@ describe('layout-check', () => {
 
             const warnings = await checkWorkspaceLayout(bundlePath, manifest);
             expect(warnings).toHaveLength(0);
+        });
+
+        it('warns when a document has nodes (rule 2) even if its $schema contains flow (rule 3)', async () => {
+            const specsDir = path.join(testDir, 'specs');
+            await mkdir(specsDir, { recursive: true });
+            const archFile = path.join(specsDir, 'flow-arch.json');
+            await writeFile(
+                archFile,
+                JSON.stringify({
+                    $id: 'https://example.com/calm/namespaces/finos/architectures/flow-arch/versions/1.0.0',
+                    $schema: 'https://example.com/calm/namespaces/finos/patterns/payment-flow/versions/1.0.0',
+                    nodes: [],
+                })
+            );
+
+            const manifest: WorkspaceManifest = {
+                'flow-arch': {
+                    path: path.relative(bundlePath, archFile),
+                    type: 'architecture',
+                },
+            };
+            await saveManifest(bundlePath, manifest);
+
+            const warnings = await checkWorkspaceLayout(bundlePath, manifest);
+            expect(warnings).toHaveLength(1);
+            expect(warnings[0].message).toBe(
+                'Tracked file \'specs/flow-arch.json\' has $id type \'architectures\' but is not in an \'architectures/\' directory. CALM Hub GitHub mode will not import the file.'
+            );
         });
 
         it('warns when a file is placed in another known directory of different type', async () => {

@@ -1,6 +1,5 @@
 import path from 'path';
 import { readFile } from 'fs/promises';
-import { existsSync } from 'fs';
 import {
     classifyGitHubDocument,
     detectDirectorySegment,
@@ -72,11 +71,9 @@ export function expectedDirectoryForDocument(
     docId?: string,
     manifestType?: string
 ): GitHubResourceDirectory | undefined {
-    if (docId) {
-        const typeSegment = extractTypeSegmentFromDocumentId(docId);
-        if (typeSegment) {
-            return typeSegment;
-        }
+    const typeSegment = docId ? extractTypeSegmentFromDocumentId(docId) : undefined;
+    if (typeSegment) {
+        return typeSegment;
     }
     if (manifestType && manifestType in DOCUMENT_TYPE_TO_DIRECTORY) {
         return DOCUMENT_TYPE_TO_DIRECTORY[manifestType];
@@ -106,14 +103,16 @@ export async function checkWorkspaceLayout(
             }
 
             const absPath = resolveFilePath(bundlePath, entry.path);
-            if (!existsSync(absPath)) {
+            let raw: string;
+            try {
+                raw = await readFile(absPath, 'utf8');
+            } catch {
                 return undefined;
             }
 
             let docId = id;
             let parsedJson: Record<string, unknown> | undefined;
             try {
-                const raw = await readFile(absPath, 'utf8');
                 const parsed = JSON.parse(raw);
                 if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
                     parsedJson = parsed as Record<string, unknown>;
