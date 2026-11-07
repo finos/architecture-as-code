@@ -6,7 +6,6 @@
 import type {
     ParsedRequirement,
     RequirementIdentity,
-    RequirementPropertyDef,
 } from '../../extension/services/requirement-parser';
 
 export interface ControlRequirement {
@@ -15,15 +14,9 @@ export interface ControlRequirement {
     config?: Record<string, unknown>;
 }
 
-export interface NewControlMetadata {
-    identity: RequirementIdentity;
-    properties: Record<string, RequirementPropertyDef>;
-}
-
 export interface ControlEntry {
     description?: string;
     requirements?: ControlRequirement[];
-    metadata?: { validation?: unknown };
 }
 
 /** Base fields seeded into inline config from a requirement's identity constants. */
@@ -35,23 +28,6 @@ export function seedBaseConstants(
         name: identity.name,
         description: identity.description,
     };
-}
-
-/** Discriminate the new multi-property metadata shape from the legacy single-value one. */
-export function isNewControlMetadata(
-    validation: unknown
-): validation is NewControlMetadata {
-    return (
-        !!validation &&
-        typeof validation === 'object' &&
-        'properties' in (validation as Record<string, unknown>) &&
-        !!(validation as NewControlMetadata).properties
-    );
-}
-
-/** True when the control still uses the legacy single `config.value` shape. */
-export function isLegacyControl(control: ControlEntry): boolean {
-    return !isNewControlMetadata(control?.metadata?.validation);
 }
 
 /** The first requirement's `requirement-url`, if any. */
@@ -81,7 +57,11 @@ export function setPropertyValue(
     const reqs = [...(control.requirements ?? [])];
     if (reqs.length === 0) reqs.push({ 'requirement-url': '' });
     const config = { ...(reqs[0].config ?? {}) };
-    config[propName] = value;
+    if (value === undefined) {
+        delete config[propName];
+    } else {
+        config[propName] = value;
+    }
     reqs[0] = { ...reqs[0], config };
     return { ...control, requirements: reqs };
 }
@@ -102,19 +82,13 @@ export function buildControlEntry(
                 config: seedBaseConstants(parsed.identity),
             },
         ],
-        metadata: {
-            validation: {
-                identity: parsed.identity,
-                properties: parsed.properties,
-            },
-        },
     };
 }
 
 /**
- * Attach resolved requirement metadata to an existing control entry and seed any
- * missing base constants — preserving values the user has already filled in.
- * Used by the webview enrichment flow after `requestControlResolve` succeeds.
+ * Seed any missing base constants into an existing control entry — preserving
+ * values the user has already filled in. Used by the webview enrichment flow
+ * after `requestControlResolve` succeeds.
  */
 export function enrichControlWithRequirement(
     control: ControlEntry,
@@ -136,26 +110,37 @@ export function enrichControlWithRequirement(
             ? parsed.identity.description
             : control.description;
 
+    const { metadata: _ignoredMetadata, ...rest } = control as ControlEntry & {
+        metadata?: unknown;
+    };
     return {
-        ...control,
+        ...rest,
         description,
         requirements: reqs,
-        metadata: {
-            ...(control.metadata ?? {}),
-            validation: {
-                identity: parsed.identity,
-                properties: parsed.properties,
-            },
-        },
     };
 }
 
-/** Whether a control needs enrichment: it has a requirement-url but no resolved property metadata. */
-export function needsEnrichment(control: ControlEntry): boolean {
-    if (!getRequirementUrl(control)) return false;
-    const validation = control?.metadata?.validation;
-    if (!isNewControlMetadata(validation)) return true;
-    return !validation.identity;
+/**
+ * Whether a control needs enrichment: it has a `requirement-url` that has not
+ * been resolved into canvas state yet, or its base identity constants /
+ * description have not been seeded.
+ */
+export function needsEnrichment(
+    control: ControlEntry,
+    resolvedRequirements?: Record<string, ParsedRequirement>
+): boolean {
+    const ref = getRequirementUrl(control);
+    if (!ref) return false;
+    if (resolvedRequirements && !resolvedRequirements[ref]) return true;
+    if (hasConfigUrl(control)) return false;
+    if (!control.description || control.description.trim() === '') return true;
+    const config = control?.requirements?.[0]?.config;
+    return Boolean(
+        !config ||
+            config['control-id'] === undefined ||
+            config.name === undefined ||
+            config.description === undefined
+    );
 }
 
 /** Sort ascending Hub versions and return the latest (last element), or undefined. */

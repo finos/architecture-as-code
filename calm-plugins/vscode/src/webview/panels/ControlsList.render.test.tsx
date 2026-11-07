@@ -3,22 +3,31 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { ControlsList } from './ControlsList';
 import type { ControlEntry } from './control-metadata';
+import type { ParsedRequirement } from '../../extension/services/requirement-parser';
 
 const controls: Record<string, ControlEntry> = {
     'rate-limit': {
         description: 'Limit request rate',
         requirements: [{ 'requirement-url': './controls/rate-limit.json' }],
-        metadata: {
-            validation: {
-                identity: { controlId: 'rate-limit', name: 'Rate Limit', description: '' },
-                properties: { 'max-rps': { type: 'integer', required: true } },
-            },
-        },
+    },
+};
+
+const resolvedRequirements: Record<string, ParsedRequirement> = {
+    './controls/rate-limit.json': {
+        identity: { controlId: 'rate-limit', name: 'Rate Limit', description: '' },
+        properties: { 'max-rps': { type: 'integer', required: true } },
     },
 };
 
 const render = (expandControl: string | null) =>
-    renderToStaticMarkup(<ControlsList controls={controls} onUpdate={() => {}} expandControl={expandControl} />);
+    renderToStaticMarkup(
+        <ControlsList
+            controls={controls}
+            onUpdate={() => {}}
+            expandControl={expandControl}
+            resolvedRequirements={resolvedRequirements}
+        />
+    );
 
 describe('ControlsList', () => {
     it('is collapsed when no control is requested', () => {

@@ -206,5 +206,51 @@ describe('flowToCalm - definition-id handling', () => {
         const arch = flowToCalm(nodes, []);
         expect(arch.nodes[0].metadata).toEqual({ 'standard-node-style': { background: '#1c4587' } });
     });
+
+    it('strips metadata.validation from local node controls and architecture-level controls', () => {
+        const nodes: Node[] = [{
+            id: 'svc-local',
+            type: 'service',
+            position: { x: 0, y: 0 },
+            data: {
+                calmId: 'svc-local',
+                calmType: 'service',
+                label: 'Local Service',
+                description: '',
+                controls: {
+                    'security-001': {
+                        description: 'Micro-segmentation',
+                        requirements: [{
+                            'requirement-url': 'controls/seg.requirement.json',
+                            config: { 'control-id': 'security-001', 'permit-ingress': false },
+                        }],
+                        metadata: { validation: { identity: { controlId: 'security-001' }, properties: {} } },
+                    },
+                },
+            },
+        }];
+
+        const documentControls = {
+            'arch-ctrl': {
+                description: 'Solution control',
+                requirements: [{
+                    'requirement-url': 'controls/arch.requirement.json',
+                    config: { 'control-id': 'arch-ctrl' },
+                }],
+                metadata: { validation: { identity: { controlId: 'arch-ctrl' }, properties: {} } },
+            },
+        };
+
+        const arch = flowToCalm(nodes, [], documentControls);
+        const nodeCtrl = (arch.nodes[0].controls as Record<string, any>)['security-001'];
+        expect(nodeCtrl.metadata).toBeUndefined();
+        expect(nodeCtrl.requirements[0].config).toEqual({
+            'control-id': 'security-001',
+            'permit-ingress': false,
+        });
+
+        const docCtrl = (arch.controls as Record<string, any>)['arch-ctrl'];
+        expect(docCtrl.metadata).toBeUndefined();
+    });
 });
 

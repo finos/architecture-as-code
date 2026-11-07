@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Node, Edge } from 'reactflow';
+import type { ParsedRequirement } from '../../extension/services/requirement-parser';
 
 export interface ValidationIssue {
     severity: 'error' | 'warning' | 'info';
@@ -28,6 +29,7 @@ export interface CanvasState {
     panelWidth: number;
     expandControlKey: string | null;
     documentControls: Record<string, unknown>;
+    resolvedRequirements: Record<string, ParsedRequirement>;
     standardNodes: unknown[];
     loadedPatterns: unknown[];
     hubLoading: boolean;
@@ -47,6 +49,7 @@ export interface CanvasState {
     setPanelWidth: (width: number) => void;
     setExpandControlKey: (key: string | null) => void;
     setHubLoading: (loading: boolean) => void;
+    setResolvedRequirement: (ref: string, parsed: ParsedRequirement) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set) => ({
@@ -62,6 +65,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     panelWidth: 280,
     expandControlKey: null,
     documentControls: {},
+    resolvedRequirements: {},
     standardNodes: [],
     loadedPatterns: [],
     hubLoading: false,
@@ -82,4 +86,8 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     setPanelWidth: (width) => set({ panelWidth: width }),
     setExpandControlKey: (key) => set({ expandControlKey: key }),
     setHubLoading: (loading) => set({ hubLoading: loading }),
+    setResolvedRequirement: (ref, parsed) =>
+        set((s) => ({
+            resolvedRequirements: { ...s.resolvedRequirements, [ref]: parsed },
+        })),
 }));

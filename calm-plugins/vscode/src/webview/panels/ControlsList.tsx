@@ -1,10 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import type { RequirementPropertyDef } from '../../extension/services/requirement-parser';
+import type {
+    ParsedRequirement,
+    RequirementPropertyDef,
+} from '../../extension/services/requirement-parser';
 import { isControlCurie } from '../../extension/services/control-curie';
 import { notifyOpenControlInHub } from '../stores/sync-bridge';
+import { useCanvasStore } from '../stores/canvas-store';
 import {
     type ControlEntry,
-    isNewControlMetadata,
+    getRequirementUrl,
     getPropertyValue,
     setPropertyValue,
     hasConfigUrl,
@@ -16,6 +20,7 @@ interface ControlsListProps {
     readonly?: boolean;
     expandControl?: string | null;
     onBrowseControls?: () => void;
+    resolvedRequirements?: Record<string, ParsedRequirement>;
 }
 
 /** Coerce a raw input string back to the native type declared by the property. */
@@ -33,7 +38,9 @@ export function coerceValue(def: RequirementPropertyDef, raw: string): unknown {
     return raw;
 }
 
-export function ControlsList({ controls, onUpdate, readonly = false, expandControl = null, onBrowseControls }: ControlsListProps) {
+export function ControlsList({ controls, onUpdate, readonly = false, expandControl = null, onBrowseControls, resolvedRequirements }: ControlsListProps) {
+    const storeRequirements = useCanvasStore((s) => s.resolvedRequirements);
+    const requirementsByRef = resolvedRequirements ?? storeRequirements;
     const [sectionExpanded, setSectionExpanded] = useState(false);
     const [expandedControls, setExpandedControls] = useState<Set<string>>(new Set());
     const valueTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -102,15 +109,18 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
     };
 
     const getConfigValue = (ctrl: ControlEntry): string => (ctrl?.requirements?.[0]?.config?.value as string) ?? '';
-    const getValidation = (ctrl: ControlEntry) => ctrl?.metadata?.validation ?? null;
+    const getRequirement = (ctrl: ControlEntry): ParsedRequirement | null => {
+        const url = getRequirementUrl(ctrl);
+        return (url && requirementsByRef?.[url]) ?? null;
+    };
     const getDisplayName = (ctrl: ControlEntry, key: string): string => {
-        const v = ctrl?.metadata?.validation;
-        if (isNewControlMetadata(v) && v.identity?.name && v.identity.name !== key) return v.identity.name;
+        const req = getRequirement(ctrl);
+        if (req?.identity?.name && req.identity.name !== key) return req.identity.name;
         return key;
     };
     const getProperties = (ctrl: ControlEntry): Record<string, RequirementPropertyDef> | null => {
-        const v = ctrl?.metadata?.validation;
-        return isNewControlMetadata(v) ? v.properties : null;
+        const req = getRequirement(ctrl);
+        return req ? req.properties : null;
     };
 
     const handlePropInput = useCallback((key: string, propName: string, def: RequirementPropertyDef, raw: string, immediate = false) => {
@@ -139,7 +149,6 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
                 <div style={{ padding: '0 14px 10px' }}>
                     {entries.length === 0 && <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', fontStyle: 'italic' }}>No controls defined</p>}
                     {entries.map(([key, control]) => {
-                        const validation = getValidation(control);
                         const properties = getProperties(control);
                         const configUrlLocked = hasConfigUrl(control);
                         const isExpanded = expandedControls.has(key);
@@ -188,13 +197,8 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
                                                 <span style={fieldLabelStyle}>Value</span>
                                                 {readonly ? (
                                                     <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', margin: 0 }}>{getConfigValue(control) || '— not configured —'}</p>
-                                                ) : legacyAllowedValues(validation) ? (
-                                                    <select defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value, true)} style={ctrlInputStyle}>
-                                                        <option value="">— Select —</option>
-                                                        {legacyAllowedValues(validation)!.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                                                    </select>
                                                 ) : (
-                                                    <input type="text" defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} placeholder={legacyExample(validation) ?? 'Enter value...'} style={ctrlInputStyle} />
+                                                    <input type="text" defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} placeholder="Enter value..." style={ctrlInputStyle} />
                                                 )}
                                             </div>
                                         )}
@@ -274,22 +278,6 @@ function PropertyField({ controlKey, propName, def, value, readonly, onPropInput
             {def.description && <p style={helpTextStyle}>{def.description}</p>}
         </div>
     );
-}
-
-function legacyAllowedValues(v: unknown): string[] | undefined {
-    if (v && typeof v === 'object' && 'allowed-values' in v) {
-        const a = (v as Record<string, unknown>)['allowed-values'];
-        return Array.isArray(a) ? (a as string[]) : undefined;
-    }
-    return undefined;
-}
-
-function legacyExample(v: unknown): string | undefined {
-    if (v && typeof v === 'object' && 'example' in v) {
-        const e = (v as Record<string, unknown>).example;
-        return typeof e === 'string' ? e : undefined;
-    }
-    return undefined;
 }
 
 const toggleStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg)' };

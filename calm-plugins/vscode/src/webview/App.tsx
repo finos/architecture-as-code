@@ -193,7 +193,13 @@ function CanvasApp() {
             const ref = getRequirementUrl(ctrl);
             if (!ref || !isControlRef(ref)) continue;
             const local = isLocalControlPath(ref);
-            if (!needsEnrichment(ctrl) && !local) continue;
+            const resolvedMap = useCanvasStore.getState().resolvedRequirements;
+            if (!needsEnrichment(ctrl, resolvedMap) && !local) continue;
+            const cached = resolvedMap[ref];
+            if (cached && !local) {
+                apply(ckey, (c) => enrichControlWithRequirement(c, cached));
+                continue;
+            }
             requestControlResolve(ref, (result) => {
                 if (generation !== loadGeneration.current) {
                     console.warn(`[CALM] Control resolve for ${ref} discarded: generation ${generation} !== ${loadGeneration.current}`);
@@ -204,6 +210,7 @@ function CanvasApp() {
                     return;
                 }
                 console.log(`[CALM] Control resolved for ${ref}: ${Object.keys(result.parsed.properties).length} properties`);
+                useCanvasStore.getState().setResolvedRequirement(ref, result.parsed);
                 apply(ckey, (c) => enrichControlWithRequirement(c, result.parsed));
             });
         }
@@ -675,7 +682,7 @@ function CanvasApp() {
     // --- Validate ---
     const handleValidate = useCallback(() => {
         const arch = flowToCalm(nodes, edges, store.documentControls);
-        const issues = validateArchitecture(arch);
+        const issues = validateArchitecture(arch, store.resolvedRequirements);
         // Count controls actually present so the result makes it clear whether there was
         // anything to validate (a common confusion: plain node-type nodes have no controls).
         let controlCount = Object.keys((arch.controls as Record<string, unknown>) ?? {}).length;
@@ -881,6 +888,7 @@ function CanvasApp() {
 
     // --- Control picker attach ---
     const handleControlAttach = useCallback((ref: string, parsed: ParsedRequirement) => {
+        useCanvasStore.getState().setResolvedRequirement(ref, parsed);
         const key = makeControlMapKey(ref);
         const entry = buildControlEntry(ref, parsed);
         const target = controlPickerTarget;

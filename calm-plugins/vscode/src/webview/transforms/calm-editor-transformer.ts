@@ -81,7 +81,7 @@ export function flowToCalm(
                 // For ref-based nodes: only save requirement-url + config (strip resolved descriptions)
                 calmNode.controls = stripResolvedNoise(data.controls as Record<string, unknown>);
             } else {
-                calmNode.controls = data.controls;
+                calmNode.controls = stripControlValidationMetadata(data.controls as Record<string, unknown>);
             }
         }
         if (data.details) calmNode.details = data.details;
@@ -207,7 +207,7 @@ export function flowToCalm(
     }
 
     if (documentControls && Object.keys(documentControls).length > 0) {
-        arch.controls = documentControls;
+        arch.controls = stripControlValidationMetadata(documentControls);
     }
 
     // Persist layout
@@ -225,6 +225,27 @@ function buildRelationshipType(variant: string, source: string, target: string):
         case 'connects': return { connects: { source: { node: source }, destination: { node: target } } };
         default: return { [variant]: { source: { node: source }, destination: { node: target } } };
     }
+}
+
+function stripControlValidationMetadata(controls: Record<string, unknown>): Record<string, unknown> {
+    const cleaned: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(controls)) {
+        if (!value || typeof value !== 'object') {
+            cleaned[key] = value;
+            continue;
+        }
+        const ctrl = { ...(value as Record<string, unknown>) };
+        if (ctrl.metadata && typeof ctrl.metadata === 'object') {
+            const { validation: _ignoredValidation, ...restMeta } = ctrl.metadata as Record<string, unknown>;
+            if (Object.keys(restMeta).length > 0) {
+                ctrl.metadata = restMeta;
+            } else {
+                delete ctrl.metadata;
+            }
+        }
+        cleaned[key] = ctrl;
+    }
+    return cleaned;
 }
 
 function stripResolvedNoise(controls: Record<string, unknown>): Record<string, unknown> {
