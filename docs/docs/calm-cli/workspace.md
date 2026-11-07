@@ -260,6 +260,14 @@ New documents, documents with a version that is higher than CALM Hub, and change
   my-arch (2 error(s)) — run `calm validate -a .calm-workspace/files/my-arch.json` to see full output
 ```
 
+`check` also warns when a tracked file is in a directory where CALM Hub GitHub mode will not import it as its type. In GitHub mode, CALM Hub sets a document's type from its content (`moments` or `$schema`) or from its directory (`architectures/`, `patterns/`, `standards/` or `standard-nodes/`, `flows/`, `interfaces/`, `controls/`, `adrs/`, `timelines/`, `decorators/`):
+
+```
+Tracked file 'drafts/payments.json' has $id type 'architectures' but is not in an 'architectures/' directory. CALM Hub GitHub mode will not import the file.
+```
+
+Layout warnings do not change the exit code.
+
 ### bump
 
 Give each changed document a new version, and update all references to it. See [Bump Behaviour](#bump-behaviour).

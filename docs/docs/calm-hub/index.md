@@ -49,6 +49,9 @@ CALM Hub is published as four container image variants, each combining a **JVM r
 | **MongoDB** (default) | External MongoDB 4.4+ | Yes — `QUARKUS_MONGODB_CONNECTION_STRING` | ✅ Yes |
 | **Standalone** (NitriteDB) | Embedded file-based DB | No | ✅ Yes (file persisted at `CALM_STANDALONE_DATA_DIRECTORY`) |
 | **Read-only** | Pre-seeded NitriteDB | No | ❌ No — HTTP 405 for POST/PUT/DELETE/PATCH |
+| **GitHub** (`calm.database.mode=github`) | Cloned GitHub repositories | Yes — GitHub API | ❌ No — read-only from Git |
+
+In GitHub mode, CALM Hub classifies `.json` and `.md` files in each configured repository from content signals (`moments` or `$schema`) and from parent directory names (`architectures/`, `patterns/`, `standards/` or `standard-nodes/`, `flows/`, `interfaces/`, `controls/`, `adrs/`, `timelines/`, `decorators/`).
 
 ### The Four Image Variants
 
