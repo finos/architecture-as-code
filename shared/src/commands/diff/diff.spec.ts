@@ -5,6 +5,7 @@ import path from 'node:path';
 import { runDiff, formatDiff, hasChanges, detectDocumentType, diffDocuments } from './diff.js';
 import type { NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
 import type { TimelineInput } from '@finos/calm-models/diff';
+import testArchitectures from '../../../../calm-models/src/diff/fixtures/diff-test-architectures.json' with { type: 'json' };
 
 const loggerMock = {
     info: vi.fn(),
@@ -257,6 +258,9 @@ describe('hasChanges', () => {
         ['edgesRemoved'],
         ['edgesModified'],
         ['edgesRenamed'],
+        ['flowsAdded'],
+        ['flowsRemoved'],
+        ['flowsModified'],
     ] as const)('returns true when %s has entries', (key) => {
         const r: NodesAndRelationshipsDiffResult = { ...emptyResult, [key]: [{ placeholder: true }] as never };
         expect(hasChanges(r)).toBe(true);
@@ -382,6 +386,21 @@ describe('formatDiff', () => {
 });
 
 describe('diff core', () => {
+    it.each([
+        ['flowTwoMissingIdsArchitecture', 'flowOneMissingIdArchitecture', 3],
+        ['flowTwoMissingIdsArchitecture', 'flowRemovalArchitecture', 2],
+        ['flowRemovalArchitecture', 'flowOneMissingIdArchitecture', 1],
+    ] as const)('flags invalid flows from %s versus %s', async (a, b, count) => {
+        const { diffDocuments } = await import('./diff-core');
+        const result = diffDocuments(testArchitectures[a], testArchitectures[b], { format: 'summary' });
+        expect(result.hasChanges).toBe(true);
+        expect(result.diff.invalidItems?.flows).toHaveLength(count);
+        expect(result.diff.flowsSame).toEqual([]);
+        expect(result.formatted).toContain(`+ ${count} flow(s) skipped (missing unique-id)`);
+        expect(loggerMock.warn).toHaveBeenCalledWith(expect.stringContaining(`${count} flow(s)`));
+        expect(JSON.parse(formatDiff(result.diff, 'json')).invalidItems.flows).toHaveLength(count);
+    });
+
     const archA = { nodes: [{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'x' }], relationships: [] };
     const archB = { nodes: [...archA.nodes, { 'unique-id': 'b', 'node-type': 'service', name: 'B', description: 'y' }], relationships: [] };
 
@@ -391,6 +410,15 @@ describe('diff core', () => {
         expect(result.hasChanges).toBe(true);
         expect(result.diff.nodesAdded.map((n) => n['unique-id'])).toEqual(['b']);
         expect(result.formatted).toContain('Nodes added:');
+    });
+
+    it('reports flow changes in the summary and hasChanges result', async () => {
+        const { diffDocuments } = await import('./diff-core');
+        const withFlow = testArchitectures.flowBaseArchitecture;
+        const result = diffDocuments(testArchitectures.flowRemovalArchitecture, withFlow, { format: 'summary' });
+        expect(result.hasChanges).toBe(true);
+        expect(result.formatted).toContain('Flows:         +1  -0  ~0  =0');
+        expect(result.formatted).toContain('Flows added:\n  - write-flow');
     });
 
     it('uses labels in the mismatch error instead of file paths', async () => {

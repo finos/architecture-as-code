@@ -506,7 +506,7 @@ Each tool includes complete schema definitions, validation rules, realistic exam
 
 ## Diffing two CALM documents
 
-This command compares two versions of a CALM document and reports what changed between them. It works on **architectures**, **patterns**, and the moments of a **CALM timeline**, matching nodes and relationships by their `unique-id` and classifying each as added, removed, modified, or renamed. For two-document diffing, the document type is auto-detected; use `--type` to override detection.
+This command compares two versions of a CALM document and reports what changed between them. It works on **architectures**, **patterns**, and the moments of a **CALM timeline**, matching nodes and relationships by their `unique-id` and classifying each as added, removed, modified, or renamed. Architecture diffs also report flows, matched by `unique-id` and classified as added, removed, modified, or unchanged. For two-document diffing, the document type is auto-detected; use `--type` to override detection.
 
 ```shell
 % calm diff --help
@@ -545,6 +545,7 @@ CALM architecture diff
 ----------------------
 Nodes:         +1  -0  ~1  ↔0  =3
 Relationships: +1  -0  ~0  ↔0  =2
+Flows:         +0  -0  ~0  =0
 
 Nodes added:
   - audit-service

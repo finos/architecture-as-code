@@ -7,6 +7,8 @@ import { parseStringPromise } from 'xml2js';
 import { expectDirectoryMatch, expectFilesMatch } from '../../shared/src/test/file-comparison';
 import { installPackedCli, type CliInstall } from './test_helpers/cli-runner';
 import { patchJson } from './test_helpers/json-file';
+import testArchitectures from '../../calm-models/src/diff/fixtures/diff-test-architectures.json' with { type: 'json' };
+import testPatterns from '../../calm-models/src/diff/fixtures/diff-test-patterns.json' with { type: 'json' };
 import { STATIC_GETTING_STARTED_MAPPING_PATH } from './test_helpers/getting-started-url-mapping';
 import { CALM_META_SCHEMA_BASE_URL } from './command-helpers/calm-schema-release';
 
@@ -1030,6 +1032,40 @@ describe('CLI Integration Tests', () => {
         expect(parsed).toHaveLength(1);
         expect(parsed[0]).toMatchObject({ from: 'moment-v1', to: 'moment-v2' });
         expect(parsed[0].diff.nodesAdded.map((n: { 'unique-id': string }) => n['unique-id'])).toContain('service-c');
+    });
+
+    test.each([
+        ['flowTwoMissingIdsArchitecture', 'flowOneMissingIdArchitecture', 3],
+        ['flowTwoMissingIdsArchitecture', 'flowRemovalArchitecture', 2],
+        ['flowRemovalArchitecture', 'flowOneMissingIdArchitecture', 1],
+    ] as const)('diff --exit-code rejects missing flow IDs from %s versus %s', async (a, b, count) => {
+        const fileA = path.join(tempDir, 'flow-a.json');
+        const fileB = path.join(tempDir, 'flow-b.json');
+        fs.writeFileSync(fileA, JSON.stringify(testArchitectures[a]));
+        fs.writeFileSync(fileB, JSON.stringify(testArchitectures[b]));
+        await expect(cli.run(['diff', '-a', fileA, '-b', fileB, '--format', 'summary', '--exit-code']))
+            .rejects.toMatchObject({
+                exitCode: 1,
+                stdout: expect.stringContaining(`+ ${count} flow(s) skipped (missing unique-id)`),
+            });
+    });
+
+    test('diff --exit-code passes unchanged valid flows and rejects changed valid flows', async () => {
+        const fileA = path.join(tempDir, 'valid-flow-a.json');
+        const fileB = path.join(tempDir, 'valid-flow-b.json');
+        fs.writeFileSync(fileA, JSON.stringify(testArchitectures.flowBaseArchitecture));
+        const unchanged = await cli.run(['diff', '-a', fileA, '-b', fileA, '--exit-code']);
+        expect(JSON.parse(unchanged.stdout).flowsSame).toHaveLength(1);
+        fs.writeFileSync(fileB, JSON.stringify(testArchitectures.flowChangedArchitecture));
+        await expect(cli.run(['diff', '-a', fileA, '-b', fileB, '--exit-code']))
+            .rejects.toHaveProperty('exitCode', 1);
+    });
+
+    test('diff --exit-code preserves pattern diffs without flow fields', async () => {
+        const patternPath = path.join(tempDir, 'flow-regression.pattern.json');
+        fs.writeFileSync(patternPath, JSON.stringify(testPatterns.basePattern));
+        const result = await cli.run(['diff', '-a', patternPath, '-b', patternPath, '--exit-code']);
+        expect(JSON.parse(result.stdout)).not.toHaveProperty('flowsSame');
     });
 
     test('diff --timeline --exit-code exits non-zero when moments differ', async () => {
