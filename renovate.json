@@ -199,11 +199,7 @@
       "matchFileNames": ["calm-studio/**"],
       "matchPackageNames": [
         "svelte",
-        "svelte-*",
-        "@sveltejs/*",
-        "@svelte-put/*",
-        "@xyflow/svelte",
-        "@testing-library/svelte"
+        "@sveltejs/*"
       ],
       "matchUpdateTypes": ["major"],
       "enabled": false
