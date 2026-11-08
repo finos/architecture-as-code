@@ -477,6 +477,16 @@ describe('flowToCalm - round trip', () => {
         expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
     });
 
+    it('keeps array metadata an array in a new reverse relationship', () => {
+        const arch = fullArchitecture();
+        relationship(arch, 'worker-api').metadata = [{ owner: 'team' }];
+        const { nodes, edges } = openCanvas(arch);
+        const workerApi = edges.find((e) => e.id === 'worker-api')!;
+        workerApi.data = { ...workerApi.data, direction: 'bidirectional' };
+
+        expect(relationship(flowToCalm(nodes, edges), 'worker-api-reverse').metadata).toEqual([{ owner: 'team' }]);
+    });
+
     it('writes an edit of a bidirectional edge to both relationships', () => {
         const arch = fullArchitecture();
         const { 'unique-id': _id, 'relationship-type': _type, authentication: _auth, ...editedFields } = arch.relationships[0];

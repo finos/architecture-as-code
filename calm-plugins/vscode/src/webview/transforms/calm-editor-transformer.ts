@@ -133,7 +133,7 @@ export function flowToCalm(
                 protocol: data.protocol || undefined,
                 description: data.description || undefined,
                 controls: data.controls || undefined,
-                metadata: joinEdgeMetadata(data, reverseOriginal?.metadata),
+                metadata: joinEdgeMetadata(data, (reverseOriginal ?? original)?.metadata),
             }));
         }
     }
