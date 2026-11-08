@@ -12,6 +12,7 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
@@ -20,6 +21,8 @@ import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
 import org.finos.calm.domain.timeline.CreateTimelineRequest;
 import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.CustomIdEnrichmentService;
+import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.TimelineStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +40,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 public class TimelineResource {
 
     private final TimelineStore store;
+    private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(TimelineResource.class);
 
@@ -44,8 +49,10 @@ public class TimelineResource {
     Boolean allowPutOperations;
 
     @Inject
-    public TimelineResource(TimelineStore store) {
+    public TimelineResource(TimelineStore store, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
+        this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -60,7 +67,8 @@ public class TimelineResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getTimelinesForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.TIMELINE,
+                    store.getTimelinesForNamespace(namespace)))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving timelines", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -131,7 +139,7 @@ public class TimelineResource {
     public Response getTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("timelineId") int timelineId,
-            @PathParam("version") @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
         Timeline timeline = new Timeline.TimelineBuilder()
                 .setNamespace(namespace)
@@ -259,6 +267,7 @@ public class TimelineResource {
             logger.error("Invalid timeline [{}] when deleting timeline", timelineId, e);
             return invalidTimelineResponse(timelineId);
         }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.TIMELINE, timelineId);
         return Response.noContent().build();
     }
 
