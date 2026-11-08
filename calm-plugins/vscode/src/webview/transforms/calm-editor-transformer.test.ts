@@ -446,7 +446,7 @@ describe('flowToCalm - round trip', () => {
         const result = flowToCalm(nodes.filter((n) => n.id !== 'api'), edges);
 
         expect(containedNodes(result, 'cluster-contents')).toEqual(['db']);
-        expect(containedNodes(result, 'platform-api')).toEqual([]);
+        expect(relationship(result, 'platform-api')).toBeUndefined();
     });
 
     it('creates a containment relationship for a new container', () => {
@@ -456,7 +456,7 @@ describe('flowToCalm - round trip', () => {
 
         const result = flowToCalm(nodes, edges);
 
-        expect(containedNodes(result, 'platform-worker')).toEqual([]);
+        expect(relationship(result, 'platform-worker')).toBeUndefined();
         expect(relationship(result, 'containment-zone')['relationship-type']).toEqual({ 'deployed-in': { container: 'zone', nodes: ['worker'] } });
     });
 });

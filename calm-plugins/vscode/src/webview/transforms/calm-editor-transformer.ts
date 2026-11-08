@@ -250,8 +250,10 @@ function buildContainment(nodes: Node[], containerChildren: Map<string, string[]
         });
     }
 
+    // The schema needs at least one node, so drop an emptied relationship if its container has another
+    const occupied = new Set(written.filter((w) => w.nodes.length > 0).map((w) => w.container));
     return [
-        ...written.map(({ rel, variant, inner, nodes: kept }) => applyCanvasFields(rel, {
+        ...written.filter((w) => w.nodes.length > 0 || !occupied.has(w.container)).map(({ rel, variant, inner, nodes: kept }) => applyCanvasFields(rel, {
             'relationship-type': { [variant]: { ...inner, nodes: kept } },
         })),
         ...created,
