@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useId, useMemo, useState, useSyncExternalStore } from 'react';
 import type { CalmArchitecture } from '@finos/calm-diagram';
 import { InteractiveDiagram } from './InteractiveDiagram.js';
 import type { CalmDiagramProps } from './types.js';
@@ -49,6 +49,8 @@ async function loadArchitecture(architecture: unknown, remoteSrc: string | undef
 export function CalmDiagram(props: CalmDiagramProps): React.ReactElement | null {
   const { src, data, theme, flow, containers, interactive = true, __bundle } = props;
   const hydrated = useHydrated();
+  // Unique on the page, so that the flow path ids of two diagrams do not collide.
+  const idPrefix = `calm${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [domTheme, setDomTheme] = useState<'light' | 'dark'>('light');
   const [clientRender, setClientRender] = useState<ClientRender | null>(null);
 
@@ -82,6 +84,7 @@ export function CalmDiagram(props: CalmDiagramProps): React.ReactElement | null 
       ]);
       const svg = await renderELKDiagram(arch as CalmArchitecture, {
         theme: effectiveTheme,
+        idPrefix,
         ...(flow ? { flow } : {}),
         ...(containers ? { containers } : {}),
       });
@@ -94,7 +97,7 @@ export function CalmDiagram(props: CalmDiagramProps): React.ReactElement | null 
     return () => {
       cancelled = true;
     };
-  }, [interactive, hasInput, needsClientRender, renderKey, architectureKey, remote, src, effectiveTheme, flow, containers]);
+  }, [interactive, hasInput, needsClientRender, renderKey, architectureKey, remote, src, effectiveTheme, flow, containers, idPrefix]);
 
   // Keep the last SVG on screen while a new one renders, but show only the current error.
   const clientSvg = clientRender?.svg;

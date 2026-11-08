@@ -82,6 +82,32 @@ describe('InteractiveDiagram', () => {
     expect(viewport().style.cursor).toBe('grab');
   });
 
+  it('does not drag with a button other than the primary one', () => {
+    render(<InteractiveDiagram svg={NODE_SVG} height={150} />);
+    const host = screen.getByRole('application');
+
+    fireEvent.pointerDown(host, { button: 2, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(host, { clientX: 40, clientY: 30 });
+    expect(viewport().style.transform).toBe('translate(0px, 0px) scale(1)');
+    expect(viewport().style.cursor).toBe('grab');
+  });
+
+  it('ends the drag when the pointer is cancelled or loses capture', () => {
+    render(<InteractiveDiagram svg={NODE_SVG} height={150} />);
+    const host = screen.getByRole('application');
+
+    fireEvent.pointerDown(host, { clientX: 10, clientY: 10 });
+    fireEvent.pointerCancel(host);
+    fireEvent.pointerMove(host, { clientX: 40, clientY: 30 });
+    expect(viewport().style.transform).toBe('translate(0px, 0px) scale(1)');
+    expect(viewport().style.cursor).toBe('grab');
+
+    fireEvent.pointerDown(host, { clientX: 10, clientY: 10 });
+    fireEvent.lostPointerCapture(host);
+    fireEvent.pointerMove(host, { clientX: 40, clientY: 30 });
+    expect(viewport().style.transform).toBe('translate(0px, 0px) scale(1)');
+  });
+
   it('pans and zooms with the keyboard', () => {
     render(<InteractiveDiagram svg={NODE_SVG} height={150} />);
     const host = screen.getByRole('application');
@@ -190,7 +216,7 @@ describe('CalmDiagram in the browser', () => {
     const data = { nodes: [], relationships: [] };
     render(<CalmDiagram data={data} />);
     await waitFor(() => expect(viewport().innerHTML).toContain('CLIENT light'));
-    expect(renderELKDiagram).toHaveBeenCalledWith(data, { theme: 'light' });
+    expect(renderELKDiagram).toHaveBeenCalledWith(data, { theme: 'light', idPrefix: expect.stringMatching(/^calm[\w-]+$/) });
     expect(screen.getByRole('application').style.height).toBe('480px');
   });
 
@@ -199,10 +225,26 @@ describe('CalmDiagram in the browser', () => {
     await waitFor(() => expect(viewport().innerHTML).toContain('CLIENT light'));
     expect(renderELKDiagram).toHaveBeenCalledWith(bundle.architecture, {
       theme: 'light',
+      idPrefix: expect.stringMatching(/^calm[\w-]+$/),
       flow: 'flow-1',
       containers: 'edges',
     });
     expect(screen.getByRole('application').style.height).toBe('150px');
+  });
+
+  it('gives each diagram on a page its own id prefix', async () => {
+    // Mount the second diagram later: vitest can resolve two concurrent first imports of a mocked module to the real one.
+    const { rerender } = render(<div><CalmDiagram key="a" __bundle={bundle} flow="flow-1" /></div>);
+    await waitFor(() => expect(renderELKDiagram).toHaveBeenCalledTimes(1));
+    rerender(
+      <div>
+        <CalmDiagram key="a" __bundle={bundle} flow="flow-1" />
+        <CalmDiagram key="b" __bundle={bundle} flow="flow-1" />
+      </div>
+    );
+    await waitFor(() => expect(renderELKDiagram).toHaveBeenCalledTimes(2));
+    const [first, second] = renderELKDiagram.mock.calls.map((call) => call[1].idPrefix);
+    expect(first).not.toBe(second);
   });
 
   it('fetches and renders a remote src without credentials', async () => {

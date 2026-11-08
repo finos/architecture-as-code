@@ -47,6 +47,8 @@ export interface RenderOptions {
   direction?: 'DOWN' | 'RIGHT';
   flow?: string;
   containers?: 'nested' | 'edges';
+  /** Prefix for element ids, so that several diagrams can share one page. */
+  idPrefix?: string;
 }
 
 /** Extra drawings, or extra edges to them, above which each node is nested under its first claim only. */
@@ -82,7 +84,7 @@ export async function renderELKDiagram(
   arch: CalmArchitecture,
   options: RenderOptions = {}
 ): Promise<string> {
-  const { theme = 'light', direction = 'DOWN', flow: flowId, containers = 'nested' } = options;
+  const { theme = 'light', direction = 'DOWN', flow: flowId, containers = 'nested', idPrefix = 'calm' } = options;
 
   // CALM's meta-schema requires no top-level properties, so `nodes` and
   // `relationships` may both be absent on a valid architecture document.
@@ -402,7 +404,7 @@ export async function renderELKDiagram(
 
   // Append flow overlay ABOVE edges and nodes so animated dots are not dimmed
   if (activeFlow) {
-    parts.push(renderFlowOverlay(activeFlow, edgeLayoutsByRelationship));
+    parts.push(renderFlowOverlay(activeFlow, edgeLayoutsByRelationship, idPrefix));
   }
 
   parts.push('</svg>');

@@ -228,6 +228,10 @@ describe('renderELKDiagram with nested relationship-type (integration)', () => {
     expect(animCount).toBe(2);
     // ...and neither may be dimmed: the only relationship present IS the flow.
     expect(svg).not.toContain('opacity="0.3"');
+
+    const prefixed = await renderELKDiagram(arch, { theme: 'light', flow: 'usage-flow', idPrefix: 'second' });
+    expect(prefixed).toContain('<mpath href="#second-flow-path-0"/>');
+    expect(prefixed).toContain('<mpath href="#second-flow-path-1"/>');
   });
 });
 

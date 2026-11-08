@@ -202,10 +202,36 @@ describe('renderFlowOverlay', () => {
     const svg = renderFlowOverlay(fanFlow, fanOutLayouts);
     const animCount = (svg.match(/<animateMotion/g) ?? []).length;
     expect(animCount).toBe(2);
-    expect(svg).toContain('flow-path-rel-fan__0');
-    expect(svg).toContain('flow-path-rel-fan__1');
+    expect(svg).toContain('<mpath href="#calm-flow-path-0"/>');
+    expect(svg).toContain('<mpath href="#calm-flow-path-1"/>');
     const badgeCount = (svg.match(/class="flow-badge"/g) ?? []).length;
     expect(badgeCount).toBe(1);
+  });
+
+  it('uses the id prefix for every path id and href', () => {
+    const svg = renderFlowOverlay(sampleFlow, twoEdgeLayouts, 'diagram-2');
+    expect(svg).toContain('<path id="diagram-2-flow-path-0"');
+    expect(svg).toContain('<mpath href="#diagram-2-flow-path-0"/>');
+    expect(svg).not.toContain('"calm-flow-path');
+  });
+
+  it('keeps relationship unique-ids out of path ids and hrefs', () => {
+    const hostile = 'x"/><img src=x onerror=alert(1)>';
+    const layouts = new Map([[hostile, [{ id: hostile, points: [{ x: 0, y: 0 }, { x: 10, y: 10 }] }]]]);
+    const flow = {
+      'unique-id': 'f',
+      name: 'F',
+      description: 'F',
+      transitions: [{ 'relationship-unique-id': hostile, 'sequence-number': 1, description: 'step' }],
+    } as CalmFlow;
+    const svg = renderFlowOverlay(flow, layouts);
+    expect(svg).not.toContain('<img');
+    expect(svg).not.toContain('onerror');
+  });
+
+  it('escapes the id prefix', () => {
+    const svg = renderFlowOverlay(sampleFlow, twoEdgeLayouts, 'a"b');
+    expect(svg).toContain('id="a&quot;b-flow-path-0"');
   });
 
   it('Test 7: handles flow with 3+ transitions (multi-edge flow)', () => {

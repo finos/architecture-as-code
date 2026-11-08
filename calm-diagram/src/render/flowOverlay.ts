@@ -30,13 +30,17 @@ export interface EdgeLayout {
  * @param flow - The active CalmFlow to render
  * @param edgeLayoutsByRelationship - Map from relationship-unique-id to the EdgeLayouts
  *   of every render edge expanded from that relationship
+ * @param idPrefix - Prefix for the path ids, unique to this diagram on the page
  * @returns SVG group string containing animated dots and sequence badge circles
  */
 export function renderFlowOverlay(
   flow: CalmFlow,
-  edgeLayoutsByRelationship: Map<string, EdgeLayout[]>
+  edgeLayoutsByRelationship: Map<string, EdgeLayout[]>,
+  idPrefix = 'calm'
 ): string {
   const parts: string[] = ['<g class="flow-overlay">'];
+  // Ids are numbered, so that no text from the architecture reaches an id or href.
+  let pathIndex = 0;
 
   for (const transition of flow.transitions) {
     const layouts = (edgeLayoutsByRelationship.get(transition['relationship-unique-id']) ?? []).filter(
@@ -49,7 +53,7 @@ export function renderFlowOverlay(
     const keyPoints = direction === 'destination-to-source' ? '1;0' : '0;1';
 
     for (const edge of layouts) {
-      const pathId = `flow-path-${edge.id}`;
+      const pathId = escapeAttr(`${idPrefix}-flow-path-${pathIndex++}`);
 
       // Build SVG path from edge points (M x,y L x,y L x,y ...)
       const pathD = edge.points

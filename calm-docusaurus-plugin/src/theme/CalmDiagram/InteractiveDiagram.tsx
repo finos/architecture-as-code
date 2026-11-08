@@ -33,7 +33,7 @@ const DiagramSvg = memo(function DiagramSvg({ svg }: { svg: string }) {
 });
 
 export interface InteractiveDiagramProps {
-  /** SVG markup made by @finos/calm-diagram, which escapes all text from the architecture. */
+  /** SVG markup made by @finos/calm-diagram, which escapes all text from the architecture and keeps it out of ids. */
   svg: string;
   height: number;
 }
@@ -62,6 +62,7 @@ export function InteractiveDiagram({ svg, height }: InteractiveDiagramProps): Re
   }, []);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
     dragRef.current = { x: e.clientX, y: e.clientY };
     pressRef.current = { target: e.target as Element, x: e.clientX, y: e.clientY };
     setDragging(true);
@@ -78,9 +79,19 @@ export function InteractiveDiagram({ svg, height }: InteractiveDiagramProps): Re
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    endDrag();
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  };
+
+  const endDrag = () => {
     dragRef.current = null;
     setDragging(false);
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  };
+
+  // A cancelled pointer or lost capture sends no pointerup, so end the drag and drop the press.
+  const onPointerCancel = () => {
+    pressRef.current = null;
+    endDrag();
   };
 
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -131,6 +142,8 @@ export function InteractiveDiagram({ svg, height }: InteractiveDiagramProps): Re
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      onLostPointerCapture={endDrag}
       onClick={onClick}
       onKeyDown={onKeyDown}
     >

@@ -75,6 +75,19 @@ export const TOOLS = {
             'npm run test --if-present --workspace=@calmstudio/mcp',
         ],
     },
+    // calm-diagram takes its CALM types from calm-models, and the Docusaurus plugin renders with it.
+    'calm-diagram': {
+        workflow: 'build-calm-diagram.yml',
+        commands: [
+            'npm run build --workspace=calm-models',
+            'npm run build --workspace=calm-diagram',
+            'npm run build --workspace=calm-docusaurus-plugin',
+            'npm run typecheck --workspace=calm-diagram',
+            'npm run typecheck --workspace=calm-docusaurus-plugin',
+            'npm run test --workspace=calm-diagram',
+            'npm run test --workspace=calm-docusaurus-plugin',
+        ],
+    },
     vscode: {
         workflow: 'build-vscode-extension.yml',
         commands: ['npm run test:vscode'],
