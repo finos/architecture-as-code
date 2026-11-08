@@ -215,13 +215,19 @@ export function parseCALMData(
 
     // Merge a connects pair (A→B + B→A) into one bidirectional edge only when the canvas would
     // write the same data back to both; otherwise each relationship keeps its own edge
+    const editableData = new Map(connectsList.map((e) =>
+        [e, JSON.stringify([e.protocol, e.description, e.controls, e.lineStyle, e.routing, e.edgeMetadata])]));
+    const pairKey = (src: string, dst: string, e: ConnectsEntry) => JSON.stringify([src, dst]) + editableData.get(e);
+    const byPairKey = new Map<string, ConnectsEntry[]>();
+    for (const e of connectsList) {
+        const key = pairKey(e.src, e.dst, e);
+        byPairKey.set(key, [...(byPairKey.get(key) ?? []), e]);
+    }
     const consumed = new Set<string>();
     for (const entry of connectsList) {
         if (consumed.has(entry.relId)) continue;
-        const reverse = connectsList.find(
-            (e) => !consumed.has(e.relId) && e.relId !== entry.relId && e.src === entry.dst && e.dst === entry.src
-                && sameEdgeData(entry, e)
-        );
+        const reverse = byPairKey.get(pairKey(entry.dst, entry.src, entry))
+            ?.find((e) => !consumed.has(e.relId) && e.relId !== entry.relId);
         const isBidi = !!reverse;
         if (reverse) consumed.add(reverse.relId);
         consumed.add(entry.relId);
@@ -257,11 +263,6 @@ export function parseCALMData(
     // Apply Dagre auto-layout
     const layoutedNodes = applyDagreLayout(nodes, edges, direction);
     return { nodes: layoutedNodes, edges };
-}
-
-function sameEdgeData(a: ConnectsEntry, b: ConnectsEntry): boolean {
-    const editable = (e: ConnectsEntry) => JSON.stringify([e.protocol, e.description, e.controls, e.lineStyle, e.routing, e.edgeMetadata]);
-    return editable(a) === editable(b);
 }
 
 const KNOWN_NODE_TYPES = new Set([

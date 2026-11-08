@@ -87,6 +87,19 @@ describe('parseCALMData', () => {
         expect(result.edges[0].data.direction).toBe('bidirectional');
     });
 
+    it('merges each relationship into one pair at most', () => {
+        const connects = (id: string, src: string, dst: string) =>
+            ({ 'unique-id': id, 'relationship-type': { connects: { source: { node: src }, destination: { node: dst } } } });
+        const result = parseCALMData(arch(
+            [
+                { 'unique-id': 'a', 'node-type': 'service', name: 'A' },
+                { 'unique-id': 'b', 'node-type': 'service', name: 'B' },
+            ],
+            [connects('r1', 'a', 'b'), connects('r2', 'a', 'b'), connects('r3', 'b', 'a'), connects('r4', 'b', 'a'), connects('r5', 'a', 'b')]
+        ));
+        expect(result.edges.map((e) => [e.id, e.data.calmReverseRelId])).toEqual([['r1', 'r3'], ['r2', 'r4'], ['r5', undefined]]);
+    });
+
     it('does not merge a connects pair whose data differs only in key order', () => {
         const result = parseCALMData(arch(
             [
