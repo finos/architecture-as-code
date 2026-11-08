@@ -19,7 +19,7 @@ on:
         type: boolean
         default: false
       release-type:
-        description: 'Release type (only used with force-release). preview = next odd minor, stable = next even minor'
+        description: 'Version increment (used with force-release). preview = next odd minor, stable = next even minor'
         required: false
         type: choice
         default: 'patch'
@@ -28,6 +28,15 @@ on:
           - preview
           - stable
           - major
+      release-channel:
+        description: 'Marketplace channel. auto preserves odd/even minor version behavior.'
+        required: false
+        type: choice
+        default: 'auto'
+        options:
+          - auto
+          - stable
+          - prerelease
   pull_request:
     types:
       - closed
@@ -40,6 +49,7 @@ jobs:
     outputs:
       should-release: ${{ steps.check.outputs.should-release }}
       release-type: ${{ steps.check.outputs.release-type }}
+      release-channel: ${{ steps.check.outputs.release-channel }}
       next-version: ${{ steps.check.outputs.next-version }}
       current-version: ${{ steps.check.outputs.current-version }}
     steps:
@@ -79,18 +89,45 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check release type
+      - name: Check release type and channel
         id: check
         env:
           FORCE_RELEASE: ${{ github.event.inputs.force-release }}
           FORCE_RELEASE_TYPE: ${{ github.event.inputs.release-type }}
+          REQUESTED_CHANNEL: ${{ github.event.inputs.release-channel }}
         run: |
           set -o pipefail
+
           if [ "$FORCE_RELEASE" = "true" ]; then
             node scripts/vscode-release-version.mjs --force "$FORCE_RELEASE_TYPE" | tee -a "$GITHUB_OUTPUT"
           else
             node scripts/vscode-release-version.mjs | tee -a "$GITHUB_OUTPUT"
           fi
+
+          # Read the version selected by the version script.
+          NEXT_VERSION=$(grep '^next-version=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)
+          if [ -z "$NEXT_VERSION" ]; then
+            echo "❌ The version script did not output next-version."
+            exit 1
+          fi
+
+          # An explicit channel overrides the legacy odd/even minor-version rule.
+          # Scheduled runs and manual runs set to auto retain the legacy behavior.
+          if [ "$REQUESTED_CHANNEL" = "stable" ]; then
+            CHANNEL="stable"
+          elif [ "$REQUESTED_CHANNEL" = "prerelease" ]; then
+            CHANNEL="prerelease"
+          else
+            MINOR=$(echo "$NEXT_VERSION" | cut -d. -f2)
+            if [ $((MINOR % 2)) -eq 1 ]; then
+              CHANNEL="prerelease"
+            else
+              CHANNEL="stable"
+            fi
+          fi
+
+          echo "release-channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          echo "Selected release channel: $CHANNEL for version $NEXT_VERSION"
 
   create-version-pr:
     needs: analyze
@@ -122,8 +159,7 @@ jobs:
         env:
           NEXT_VERSION: ${{ needs.analyze.outputs.next-version }}
         run: |
-          # Not npm version or npm pkg set: they also sync unrelated lockfile entries and reformat
-          # package.json. Change only the extension's version.
+          # Change only the extension version and its lockfile entry.
           node -e '
             const fs = require("fs");
             const pkgFile = "calm-plugins/vscode/package.json";
@@ -132,7 +168,6 @@ jobs:
             lock.packages["calm-plugins/vscode"].version = process.argv[1];
             fs.writeFileSync("package-lock.json", JSON.stringify(lock, null, 4) + "\n");
           ' "$NEXT_VERSION"
-          # The changelog gives the untagged package.json version a section for the changes since the last tag.
           npm run changelog --workspace calm-plugins/vscode
 
           git checkout -b "release/vscode-v$NEXT_VERSION"
@@ -148,24 +183,29 @@ jobs:
           CURRENT_VERSION: ${{ needs.analyze.outputs.current-version }}
           NEXT_VERSION: ${{ needs.analyze.outputs.next-version }}
           RELEASE_TYPE: ${{ needs.analyze.outputs.release-type }}
+          RELEASE_CHANNEL: ${{ needs.analyze.outputs.release-channel }}
         run: |
-          if [ $(( $(echo "$NEXT_VERSION" | cut -d. -f2) % 2 )) -eq 1 ]; then
-            CHANNEL="a pre-release (odd minor version)"
+          if [ "$RELEASE_CHANNEL" = "prerelease" ]; then
+            CHANNEL_DESCRIPTION="a pre-release"
           else
-            CHANNEL="a stable release (even minor version)"
+            CHANNEL_DESCRIPTION="a stable release"
           fi
+
           PR_BODY="🚀 **Automated Release PR**
 
-          This PR updates the VS Code extension version from $CURRENT_VERSION to $NEXT_VERSION ($RELEASE_TYPE). It is published as $CHANNEL.
+          This PR updates the VS Code extension version from $CURRENT_VERSION to $NEXT_VERSION ($RELEASE_TYPE).
+
+          **Release channel:** $RELEASE_CHANNEL
+          **Publishing target:** $CHANNEL_DESCRIPTION
 
           **Changes:**
           - Updated package.json version to $NEXT_VERSION
           - Updated CHANGELOG.md with release notes
 
           **Next Steps:**
-          Upon merging this PR, the automated publish workflow will publish the extension to the VS Code Marketplace, tag the release and create a GitHub release.
+          Upon merging this PR, the publish workflow will publish the extension to the VS Code Marketplace, tag the release and create a GitHub release.
 
-          ⚠️ Do not edit this PR manually - it is generated automatically"
+          ⚠️ Do not edit this PR manually - it is generated automatically."
 
           gh pr create \
             --title "ci(vscode): release version $NEXT_VERSION" \
@@ -174,8 +214,9 @@ jobs:
             --base main \
             --label "automated-release"
 
-          echo "📋 Version update PR created for branch: release/vscode-v$NEXT_VERSION" >> $GITHUB_STEP_SUMMARY
-          echo "**Version**: $CURRENT_VERSION → $NEXT_VERSION ($RELEASE_TYPE)" >> $GITHUB_STEP_SUMMARY
+          echo "📋 Version update PR created for branch: release/vscode-v$NEXT_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Version**: $CURRENT_VERSION → $NEXT_VERSION ($RELEASE_TYPE)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Release channel**: $RELEASE_CHANNEL" >> "$GITHUB_STEP_SUMMARY"
 
   publish-on-merge:
     runs-on: ubuntu-latest
@@ -189,7 +230,7 @@ jobs:
         with:
           egress-policy: audit
 
-      # The merge commit, not main: the tag must be on the commit that is published.
+      # Use the merge commit: the tag must point to the commit being published.
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -199,9 +240,6 @@ jobs:
 
       - name: Check dependency scan status
         run: |
-          # Publish only if OSV Scanner passed on the commit being released.
-          # Wait for the push-triggered scan of that commit; a missing or failed scan blocks the release.
-          # Only push runs count: a pull request run can report the same branch name or commit.
           SHA=$(git rev-parse HEAD)
           RUN='{}'
           for _ in $(seq 1 30); do
@@ -237,19 +275,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Get version from package.json
+      - name: Get version and release channel
         id: version
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         working-directory: ./calm-plugins/vscode
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-          if [ $((MINOR % 2)) -eq 1 ]; then
-            echo "pre-release=true" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          # The channel is recorded in the automated release PR body.
+          # Older release PRs without this field fall back to odd/even minor behavior.
+          if echo "$PR_BODY" | grep -Eq '^\*\*Release channel:\*\* stable[[:space:]]*$'; then
+            PRE_RELEASE=false
+          elif echo "$PR_BODY" | grep -Eq '^\*\*Release channel:\*\* prerelease[[:space:]]*$'; then
+            PRE_RELEASE=true
           else
-            echo "pre-release=false" >> $GITHUB_OUTPUT
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+            if [ $((MINOR % 2)) -eq 1 ]; then
+              PRE_RELEASE=true
+            else
+              PRE_RELEASE=false
+            fi
           fi
-          echo "Publishing VS Code extension version: $VERSION"
+
+          echo "pre-release=$PRE_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "Publishing version $VERSION; pre-release=$PRE_RELEASE"
 
       - name: Package VS Code Extension
         env:
@@ -265,8 +316,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "vscode-v$VERSION" -m "CALM VS Code extension $VERSION, as published to the VS Code Marketplace"
-          git push origin "vscode-v$VERSION"
+          TAG="vscode-v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "❌ Git tag $TAG already exists. Refusing to create a duplicate release."
+            exit 1
+          fi
+          git tag -a "$TAG" -m "CALM VS Code extension $VERSION, as published to the VS Code Marketplace"
+          git push origin "$TAG"
 
       - name: Create GitHub Release
         env:
@@ -279,6 +335,7 @@ jobs:
           if [ -z "$RELEASE_NOTES" ]; then
             RELEASE_NOTES="Release of VS Code extension version $VERSION"
           fi
+
           PRE_RELEASE_ARG=""
           if [ "$PRE_RELEASE" = "true" ]; then
             PRE_RELEASE_ARG="--prerelease"
@@ -299,5 +356,4 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           npx @vscode/vsce publish $PRE_RELEASE_FLAG --packagePath ./*.vsix
-
-          echo "✅ Successfully published CALM VS Code extension $VERSION to the VS Code Marketplace" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Successfully published CALM VS Code extension $VERSION to the VS Code Marketplace" >> "$GITHUB_STEP_SUMMARY"
