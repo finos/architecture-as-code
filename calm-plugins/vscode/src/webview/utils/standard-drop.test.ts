@@ -43,10 +43,10 @@ describe('applyStandardToNode', () => {
 
         const arch = flowToCalm(updatedNodes, edges);
         expect(arch.nodes).toHaveLength(1);
-        expect(arch.nodes[0]['unique-id']).toBe('svc-1');
-        expect(arch.nodes[0]['node-type']).toBe('service');
-        expect(arch.nodes[0].controls).toEqual(standardControls);
-        expect((arch.nodes[0].metadata as Record<string, unknown> | undefined)?.['source-standard-node']).toBeUndefined();
+        expect(arch.nodes![0]['unique-id']).toBe('svc-1');
+        expect(arch.nodes![0]['node-type']).toBe('service');
+        expect(arch.nodes![0].controls).toEqual(standardControls);
+        expect((arch.nodes![0].metadata as Record<string, unknown> | undefined)?.['source-standard-node']).toBeUndefined();
         expect(arch.relationships).toEqual([]);
     });
 

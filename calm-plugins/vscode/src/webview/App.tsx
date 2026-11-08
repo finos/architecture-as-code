@@ -260,7 +260,9 @@ function CanvasApp() {
         try {
             const arch = JSON.parse(json) as CalmArchitecture;
             if (!arch || !arch.nodes || arch.nodes.length === 0) {
-                setNodes([]); setEdges([]); setLastParsedArch(null);
+                // Keep the document, so that the first node added does not remove its other fields
+                setNodes([]); setEdges([]);
+                setLastParsedArch(arch);
                 useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>)?.controls as Record<string, unknown> ?? {}, copiesLimited: false });
                 lastEmittedJson.current = json;
                 return;
@@ -695,8 +697,9 @@ function CanvasApp() {
         const issues = validateArchitecture(arch);
         // Count controls actually present so the result makes it clear whether there was
         // anything to validate (a common confusion: plain node-type nodes have no controls).
+        const archNodes = arch.nodes ?? [];
         let controlCount = Object.keys((arch.controls as Record<string, unknown>) ?? {}).length;
-        for (const n of arch.nodes) {
+        for (const n of archNodes) {
             const c = n.controls as Record<string, unknown> | undefined;
             if (c) controlCount += Object.keys(c).length;
         }
@@ -704,8 +707,8 @@ function CanvasApp() {
             issues.push({
                 severity: 'info',
                 message: controlCount === 0
-                    ? `Valid — ${arch.nodes.length} node(s), but 0 controls found. Drop a standard node that defines controls (e.g. "Microservice") onto a node, then Validate.`
-                    : `Valid — checked ${arch.nodes.length} node(s) and ${controlCount} control(s); all requirements satisfied.`,
+                    ? `Valid — ${archNodes.length} node(s), but 0 controls found. Drop a standard node that defines controls (e.g. "Microservice") onto a node, then Validate.`
+                    : `Valid — checked ${archNodes.length} node(s) and ${controlCount} control(s); all requirements satisfied.`,
             });
         }
         store.setValidationIssues(issues);

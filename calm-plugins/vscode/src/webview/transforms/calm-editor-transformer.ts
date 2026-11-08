@@ -6,15 +6,16 @@ export interface LayoutEntry { x: number; y: number; w?: number; h?: number }
 export type LayoutMap = Record<string, LayoutEntry>;
 
 export interface CalmArchitecture {
-    nodes: Array<Record<string, unknown>>;
-    relationships: Array<Record<string, unknown>>;
+    nodes?: Array<Record<string, unknown>>;
+    relationships?: Array<Record<string, unknown>>;
     [key: string]: unknown;
 }
 
 let lastParsedArch: CalmArchitecture | null = null;
 
 export function setLastParsedArch(arch: CalmArchitecture | null): void {
-    lastParsedArch = arch;
+    // JSON.parse can give any value; only an object is a document to keep
+    lastParsedArch = arch && typeof arch === 'object' && !Array.isArray(arch) ? arch : null;
 }
 
 export function buildLayoutMap(nodes: Node[]): LayoutMap {
@@ -213,12 +214,10 @@ export function flowToCalm(
     }
 
     // Passthrough: relationships that the canvas does not draw must be kept verbatim
-    if (lastParsedArch) {
-        const emittedIds = new Set(calmRelationships.map((r) => r['unique-id'] as string));
-        for (const rel of lastParsedArch.relationships) {
-            if (emittedIds.has(rel['unique-id'] as string)) continue;
-            if (!isDrawnOnCanvas(rel)) calmRelationships.push(rel);
-        }
+    const emittedIds = new Set(calmRelationships.map((r) => r['unique-id'] as string));
+    for (const rel of lastParsedArch?.relationships ?? []) {
+        if (emittedIds.has(rel['unique-id'] as string)) continue;
+        if (!isDrawnOnCanvas(rel)) calmRelationships.push(rel);
     }
 
     // Keep the document order, so that an unchanged document gives the same text
@@ -227,6 +226,9 @@ export function flowToCalm(
         (relOrder.get(a['unique-id'] as string) ?? Infinity) - (relOrder.get(b['unique-id'] as string) ?? Infinity));
 
     const arch: CalmArchitecture = { ...lastParsedArch, nodes: calmNodes, relationships: calmRelationships };
+    // Both keys are optional in the schema: do not add an empty one to a document that has none
+    if (lastParsedArch && !('nodes' in lastParsedArch) && calmNodes.length === 0) delete arch.nodes;
+    if (lastParsedArch && !('relationships' in lastParsedArch) && calmRelationships.length === 0) delete arch.relationships;
 
     if (documentControls && Object.keys(documentControls).length > 0) {
         arch.controls = documentControls;
@@ -252,7 +254,7 @@ export function relayoutByPath(arch: CalmArchitecture, nodes: Node[]): LayoutMap
     const byPath = new Map(nodes.map((n) => [pathOf(n, current), n]));
     const reloaded = parseCALMData(arch).nodes;
     const reloadedById = new Map(reloaded.map((n) => [n.id, n]));
-    const fileOrder = new Map(arch.nodes.map((n, i) => [(n['unique-id'] as string) ?? `node-${i}`, i] as const));
+    const fileOrder = new Map((arch.nodes ?? []).map((n, i) => [(n['unique-id'] as string) ?? `node-${i}`, i] as const));
     return buildLayoutMap(reloaded
         .sort((a, b) => (fileOrder.get(calmIdOf(a)) ?? 0) - (fileOrder.get(calmIdOf(b)) ?? 0))
         .flatMap((n) => {
