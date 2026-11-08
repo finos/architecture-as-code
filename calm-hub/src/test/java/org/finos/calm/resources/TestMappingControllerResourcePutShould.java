@@ -6,6 +6,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.*;
 import org.finos.calm.domain.exception.*;
+import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +40,7 @@ public class TestMappingControllerResourcePutShould {
     @InjectMock FlowStore mockFlowStore;
     @InjectMock StandardStore mockStandardStore;
     @InjectMock InterfaceStore mockInterfaceStore;
+    @InjectMock TimelineStore mockTimelineStore;
     @InjectMock CalmHubPermissionChecker mockPermissionChecker;
 
     @org.junit.jupiter.api.BeforeEach
@@ -279,5 +281,21 @@ public class TestMappingControllerResourcePutShould {
                 .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0", "test pattern"))
                 .when().put("/calm")
                 .then().statusCode(500);
+    }
+
+    @Test
+    void return_201_when_updating_existing_timeline() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "my-timeline")).thenReturn(existing);
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "timelines", "my-timeline", "1.0.0", "test timeline"))
+                .when().put("/calm")
+                .then().statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0"));
+
+        verify(mockTimelineStore).updateTimelineForVersion(any(Timeline.class));
     }
 }

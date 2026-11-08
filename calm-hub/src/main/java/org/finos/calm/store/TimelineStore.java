@@ -13,6 +13,7 @@ import java.util.List;
 public interface TimelineStore {
     List<NamespaceTimelineSummary> getTimelinesForNamespace(String namespace) throws NamespaceNotFoundException;
     Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace) throws NamespaceNotFoundException;
+    Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace, String version) throws NamespaceNotFoundException;
     List<String> getTimelineVersions(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException;
     String getTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException;
     Timeline createTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionExistsException;
@@ -22,4 +23,12 @@ public interface TimelineStore {
      * Deletes a timeline and all of its versions.
      */
     void deleteTimeline(String namespace, int timelineId) throws NamespaceNotFoundException, TimelineNotFoundException;
+
+    /**
+     * Deletes a single version of a timeline, leaving the timeline header and other versions intact.
+     *
+     * @return {@code true} if the version was present and deleted, {@code false} if no such version was stored.
+     */
+    boolean deleteTimelineVersion(String namespace, int timelineId, String version)
+            throws NamespaceNotFoundException, TimelineNotFoundException;
 }

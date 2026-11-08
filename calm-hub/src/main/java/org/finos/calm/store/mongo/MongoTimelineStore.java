@@ -77,6 +77,11 @@ public class MongoTimelineStore implements TimelineStore {
 
     @Override
     public Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace) throws NamespaceNotFoundException {
+        return createTimelineForNamespace(timelineRequest, namespace, INITIAL_VERSION);
+    }
+
+    @Override
+    public Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace, String version) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         // Parsed before the counter is drawn and before anything is written, so malformed
@@ -85,11 +90,11 @@ public class MongoTimelineStore implements TimelineStore {
 
         int id = counterStore.getNextTimelineSequenceValue();
         documentStore.createHeader(namespace, id, timelineRequest.getName(), timelineRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, content);
+        documentStore.createFirstVersion(namespace, id, version, content);
 
         return new Timeline.TimelineBuilder()
                 .setId(id)
-                .setVersion(INITIAL_VERSION)
+                .setVersion(version)
                 .setNamespace(namespace)
                 .setTimeline(timelineRequest.getTimelineJson())
                 .build();
@@ -158,5 +163,15 @@ public class MongoTimelineStore implements TimelineStore {
         if (!documentStore.deleteResource(namespace, timelineId)) {
             throw new TimelineNotFoundException();
         }
+    }
+
+    @Override
+    public boolean deleteTimelineVersion(String namespace, int timelineId, String version)
+            throws NamespaceNotFoundException, TimelineNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, timelineId)) {
+            throw new TimelineNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, timelineId, version);
     }
 }

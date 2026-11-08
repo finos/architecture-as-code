@@ -15,6 +15,8 @@ import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.standards.CreateStandardRequest;
+import org.finos.calm.domain.timeline.CreateTimelineRequest;
+import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,6 +54,7 @@ public class TestMappingControllerResourceShould {
     @InjectMock FlowStore mockFlowStore;
     @InjectMock StandardStore mockStandardStore;
     @InjectMock InterfaceStore mockInterfaceStore;
+    @InjectMock TimelineStore mockTimelineStore;
     @InjectMock DomainStore mockDomainStore;
     @InjectMock ControlStore mockControlStore;
     @InjectMock CalmHubPermissionChecker mockPermissionChecker;
@@ -2180,5 +2183,138 @@ public class TestMappingControllerResourceShould {
                 .body(body)
                 .when().post("/calm")
                 .then().statusCode(400);
+    }
+
+    // --- Timelines ---
+
+    @Test
+    void return_201_when_creating_a_new_timeline_resource() throws Exception {
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "my-timeline")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("my-timeline"), eq(ResourceType.TIMELINE), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("my-timeline")
+                        .setResourceType(ResourceType.TIMELINE).setNumericId(0).build());
+        Timeline timeline = new Timeline.TimelineBuilder()
+                .setNamespace("finos").setId(6).setVersion("1.0.0").setTimeline("{}").build();
+        when(mockTimelineStore.createTimelineForNamespace(any(CreateTimelineRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(timeline);
+
+        given().header("Content-Type", "application/json").body(versionedDoc("finos", "timelines", "my-timeline", "1.0.0")).when()
+                .post("/calm")
+                .then().statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0"));
+
+        verify(mockMappingStore).updateMappingNumericId("finos", ResourceType.TIMELINE, "my-timeline", 6);
+    }
+
+    @Test
+    void return_201_when_adding_explicit_version_to_existing_timeline() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "my-timeline")).thenReturn(existing);
+        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json").body(versionedDoc("finos", "timelines", "my-timeline", "2.0.0")).when()
+                .post("/calm")
+                .then().statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/timelines/my-timeline/versions/2.0.0"));
+
+        verify(mockTimelineStore).createTimelineForVersion(any(Timeline.class));
+    }
+
+    @Test
+    void overwrite_a_timeline_snapshot_that_already_exists() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(50).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "snap-timeline")).thenReturn(existing);
+        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("2.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "timelines", "snap-timeline", "2.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/timelines/snap-timeline/versions/2.0.0-SNAPSHOT")
+                .then().statusCode(200);
+
+        verify(mockTimelineStore).updateTimelineForVersion(any(Timeline.class));
+        verify(mockTimelineStore, never()).createTimelineForVersion(any(Timeline.class));
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_a_timeline_release() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("promo-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(65).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "promo-timeline")).thenReturn(existing);
+        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "timelines", "promo-timeline", "1.0.0")).when()
+                .post("/calm/namespaces/finos/timelines/promo-timeline/versions/1.0.0")
+                .then().statusCode(201);
+
+        verify(mockTimelineStore).deleteTimelineVersion("finos", 65, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void return_200_with_timeline_version_list() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "my-timeline")).thenReturn(mapping);
+        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0", "1.1.0"));
+
+        given().when().get("/calm/namespaces/finos/timelines/my-timeline/versions")
+                .then().statusCode(200)
+                .body("values", hasSize(2))
+                .body("values[0]", is("1.0.0"))
+                .body("values[1]", is("1.1.0"));
+    }
+
+    @Test
+    void return_404_when_timeline_not_found_on_list_versions() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("missing-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "missing-timeline")).thenReturn(mapping);
+        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenThrow(new TimelineNotFoundException());
+
+        given().when().get("/calm/namespaces/finos/timelines/missing-timeline/versions")
+                .then().statusCode(404).body(containsString("missing-timeline"));
+    }
+
+    @Test
+    void return_200_for_specific_timeline_version() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "my-timeline")).thenReturn(mapping);
+        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class))).thenReturn("{\"v\": \"1.0.0\"}");
+
+        given().when().get("/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0")
+                .then().statusCode(200).body(containsString("1.0.0"));
+    }
+
+    @Test
+    void return_404_when_timeline_not_found_on_get_version() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("missing-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "missing-timeline")).thenReturn(mapping);
+        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class))).thenThrow(new TimelineNotFoundException());
+
+        given().when().get("/calm/namespaces/finos/timelines/missing-timeline/versions/1.0.0")
+                .then().statusCode(404).body(containsString("missing-timeline"));
+    }
+
+    @Test
+    void return_404_when_timeline_version_not_found_on_get_version() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "my-timeline")).thenReturn(mapping);
+        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class))).thenThrow(new TimelineVersionNotFoundException());
+
+        given().when().get("/calm/namespaces/finos/timelines/my-timeline/versions/9.9.9")
+                .then().statusCode(404);
     }
 }

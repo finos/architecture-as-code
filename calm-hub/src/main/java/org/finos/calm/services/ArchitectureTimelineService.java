@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.ResourceMapping;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.domain.Semver;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
@@ -17,6 +19,7 @@ import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.TimelineStore;
 import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
@@ -51,13 +54,17 @@ public class ArchitectureTimelineService {
 
     private final ArchitectureStore architectureStore;
     private final TimelineStore timelineStore;
+    private final ResourceMappingStore mappingStore;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Logger logger = LoggerFactory.getLogger(ArchitectureTimelineService.class);
 
     @Inject
-    public ArchitectureTimelineService(ArchitectureStore architectureStore, TimelineStore timelineStore) {
+    public ArchitectureTimelineService(ArchitectureStore architectureStore,
+                                       TimelineStore timelineStore,
+                                       ResourceMappingStore mappingStore) {
         this.architectureStore = architectureStore;
         this.timelineStore = timelineStore;
+        this.mappingStore = mappingStore;
     }
 
     /**
@@ -85,14 +92,19 @@ public class ArchitectureTimelineService {
      * timeline references the architecture.
      *
      * <p>A timeline "belongs to" an architecture when any moment's {@code detailed-architecture}
-     * reference contains {@code /architectures/{id}/versions/}. The {@code /versions/} suffix
-     * keeps the match exact so e.g. architecture 6 is not matched by a reference to 60.</p>
+     * reference contains {@code /architectures/{id}/versions/} or, when the architecture has a
+     * name mapping in the namespace, {@code /calm/namespaces/{namespace}/architectures/{name}/versions/}.
+     * The {@code /versions/} suffix keeps the match exact so e.g. architecture 6 is not matched
+     * by a reference to 60.</p>
      */
     private String findExplicitTimeline(String namespace, int architectureId)
             throws NamespaceNotFoundException {
 
-        String marker = "/architectures/" + architectureId + "/versions/";
         List<NamespaceTimelineSummary> summaries = timelineStore.getTimelinesForNamespace(namespace);
+        if (summaries.isEmpty()) {
+            return null;
+        }
+        List<String> markers = architectureMarkers(namespace, architectureId);
 
         for (NamespaceTimelineSummary summary : summaries) {
             try {
@@ -114,7 +126,7 @@ public class ArchitectureTimelineService {
                         .build();
 
                 String timelineJson = timelineStore.getTimelineForVersion(versioned);
-                if (referencesArchitecture(timelineJson, marker)) {
+                if (referencesArchitecture(timelineJson, markers)) {
                     return timelineJson;
                 }
             } catch (TimelineNotFoundException | TimelineVersionNotFoundException e) {
@@ -125,14 +137,30 @@ public class ArchitectureTimelineService {
         return null;
     }
 
-    private boolean referencesArchitecture(String timelineJson, String marker) {
+    private List<String> architectureMarkers(String namespace, int architectureId)
+            throws NamespaceNotFoundException {
+        List<String> markers = new ArrayList<>();
+        markers.add("/architectures/" + architectureId + "/versions/");
+        for (ResourceMapping mapping : mappingStore.listMappingsByNumericIds(
+                namespace, ResourceType.ARCHITECTURE, List.of(architectureId))) {
+            markers.add("/calm/namespaces/" + namespace + "/architectures/" + mapping.getCustomId() + "/versions/");
+        }
+        return markers;
+    }
+
+    private boolean referencesArchitecture(String timelineJson, List<String> markers) {
         try {
             JsonNode moments = objectMapper.readTree(timelineJson).path("moments");
             if (moments.isArray()) {
                 for (JsonNode moment : moments) {
                     JsonNode ref = moment.path("details").path("detailed-architecture");
-                    if (ref.isTextual() && ref.asText().contains(marker)) {
-                        return true;
+                    if (ref.isTextual()) {
+                        String refText = ref.asText();
+                        for (String marker : markers) {
+                            if (refText.contains(marker)) {
+                                return true;
+                            }
+                        }
                     }
                 }
             }

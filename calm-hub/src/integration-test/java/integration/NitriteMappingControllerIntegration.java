@@ -443,4 +443,50 @@ public class NitriteMappingControllerIntegration {
                 .statusCode(200)
                 .body(containsString("\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/capitalised-type/versions/1.0.0\""));
     }
+
+    @Test
+    @Order(36)
+    void create_and_read_timeline_via_name_based_api_and_resolve_architecture_timeline() {
+        String timelinePayload = "{\"title\": \"Repo Timeline\", "
+                + "\"$id\": \"http://localhost:8080/calm/namespaces/finos/timelines/repo-timeline/versions/1.0.0\", "
+                + "\"current-moment\": \"m1\", "
+                + "\"moments\": [{\"unique-id\": \"m1\", \"node-type\": \"moment\", \"name\": \"Repo Go-Live\", "
+                + "\"description\": \"Mapped architecture moment\", "
+                + "\"details\": {\"detailed-architecture\": \"http://localhost:8080/calm/namespaces/finos/architectures/repo/versions/1.0.0\"}}]}";
+
+        given()
+                .body(timelinePayload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/timelines/repo-timeline/versions/1.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/timelines/repo-timeline/versions/1.0.0"));
+
+        given()
+                .when().get("/calm/namespaces/finos/timelines/repo-timeline/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body(containsString("\"$id\":\"http://localhost:8080/calm/namespaces/finos/timelines/repo-timeline/versions/1.0.0\""))
+                .body(containsString("Repo Go-Live"));
+
+        given()
+                .when().get("/calm/namespaces/finos/timelines")
+                .then()
+                .statusCode(200)
+                .body("values.customId", hasItem("repo-timeline"));
+
+        int repoNumericId = given()
+                .when().get("/calm/namespaces/finos/architectures")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("values.find { it.customId == 'repo' }.numericId");
+
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures/" + repoNumericId + "/timeline")
+                .then()
+                .statusCode(200)
+                .body("current-moment", equalTo("m1"))
+                .body("moments[0].name", equalTo("Repo Go-Live"));
+    }
 }

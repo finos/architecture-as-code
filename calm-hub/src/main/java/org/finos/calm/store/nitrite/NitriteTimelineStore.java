@@ -80,17 +80,22 @@ public class NitriteTimelineStore implements TimelineStore {
 
     @Override
     public Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace) throws NamespaceNotFoundException {
+        return createTimelineForNamespace(timelineRequest, namespace, INITIAL_VERSION);
+    }
+
+    @Override
+    public Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace, String version) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
         validateTimelineJson(timelineRequest.getTimelineJson());
 
         int id = counterStore.getNextTimelineSequenceValue();
         documentStore.createHeader(namespace, id, timelineRequest.getName(), timelineRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, timelineRequest.getTimelineJson());
+        documentStore.createFirstVersion(namespace, id, version, timelineRequest.getTimelineJson());
 
         LOG.info("Created timeline with ID {} for namespace '{}'", id, namespace);
         return new Timeline.TimelineBuilder()
                 .setId(id)
-                .setVersion(INITIAL_VERSION)
+                .setVersion(version)
                 .setNamespace(namespace)
                 .setTimeline(timelineRequest.getTimelineJson())
                 .build();
@@ -189,5 +194,19 @@ public class NitriteTimelineStore implements TimelineStore {
             throw new TimelineNotFoundException();
         }
         LOG.info("Deleted timeline with ID {} from namespace '{}'", timelineId, namespace);
+    }
+
+    @Override
+    public boolean deleteTimelineVersion(String namespace, int timelineId, String version)
+            throws NamespaceNotFoundException, TimelineNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, timelineId)) {
+            throw new TimelineNotFoundException();
+        }
+        boolean deleted = documentStore.deleteVersion(namespace, timelineId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of timeline {} from namespace '{}'", version, timelineId, namespace);
+        }
+        return deleted;
     }
 }

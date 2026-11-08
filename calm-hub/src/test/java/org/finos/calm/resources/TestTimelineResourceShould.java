@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.exception.TimelineVersionExistsException;
@@ -11,6 +12,7 @@ import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
 import org.finos.calm.domain.timeline.CreateTimelineRequest;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.domain.timeline.Timeline;
+import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.TimelineStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,8 +25,8 @@ import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_OR_SHA_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,6 +39,9 @@ public class TestTimelineResourceShould {
 
     @InjectMock
     TimelineStore mockTimelineStore;
+
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
 
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_timelines() throws NamespaceNotFoundException {
@@ -207,7 +212,7 @@ public class TestTimelineResourceShould {
                 .get("/api/calm/namespaces/finos/timelines/12/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_OR_SHA_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
     }
 
     @Test
@@ -217,19 +222,22 @@ public class TestTimelineResourceShould {
                 .get("/api/calm/namespaces/finos/timelines/12/versions/latest")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_OR_SHA_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
     }
 
     @Test
-    void return_400_when_a_snapshot_version_is_provided_on_get_timeline_version() {
-        // Timeline endpoints keep VERSION_OR_SHA_REGEX -- snapshots are scoped to the five
-        // namespace resource types only, and must stay refused here.
+    void not_reject_a_snapshot_version_on_get_timeline_version() throws Exception {
+        // GET keeps SNAPSHOT_VERSION_OR_SHA_REGEX, so a snapshot created via the name-based API stays
+        // readable here. A 404 (not 400) proves the path param passed validation and reached
+        // the store.
+        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
+                .thenThrow(new TimelineVersionNotFoundException());
+
         given()
                 .when()
                 .get("/api/calm/namespaces/finos/timelines/12/versions/1.0.0-SNAPSHOT")
                 .then()
-                .statusCode(400)
-                .body(containsString(VERSION_OR_SHA_MESSAGE));
+                .statusCode(404);
     }
 
     static Stream<Arguments> provideParametersForGetTimelineTests() {
@@ -410,5 +418,29 @@ public class TestTimelineResourceShould {
                 .statusCode(expectedStatusCode);
 
         verify(mockTimelineStore, times(1)).deleteTimeline(namespace, 12);
+    }
+
+    @Test
+    void delete_timeline_also_cleans_up_its_resource_mapping() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/timelines/12")
+                .then()
+                .statusCode(204);
+
+        verify(mockResourceMappingStore, times(1)).deleteMappingByNumericId("valid", ResourceType.TIMELINE, 12);
+    }
+
+    @Test
+    void not_clean_up_the_resource_mapping_when_deleting_a_missing_timeline() throws Exception {
+        doThrow(new TimelineNotFoundException()).when(mockTimelineStore).deleteTimeline("valid", 12);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/timelines/12")
+                .then()
+                .statusCode(404);
+
+        verifyNoInteractions(mockResourceMappingStore);
     }
 }

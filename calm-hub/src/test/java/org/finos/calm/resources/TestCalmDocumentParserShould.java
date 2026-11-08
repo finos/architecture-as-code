@@ -272,7 +272,7 @@ class TestCalmDocumentParserShould {
     // -------------------------------------------------------------------------
 
     @ParameterizedTest
-    @CsvSource({"PATTERN,patterns", "ARCHITECTURE,architectures", "FLOW,flows", "STANDARD,standards", "INTERFACE,interfaces"})
+    @CsvSource({"PATTERN,patterns", "ARCHITECTURE,architectures", "FLOW,flows", "STANDARD,standards", "INTERFACE,interfaces", "TIMELINE,timelines"})
     void build_the_canonical_path_with_the_lowercase_plural(ResourceType type, String plural) {
         assertEquals("/calm/namespaces/finos/" + plural + "/x/versions/1.0.0",
                 CalmDocumentParser.namedResourcePath("finos", type, "x", "1.0.0"));
@@ -387,7 +387,7 @@ class TestCalmDocumentParserShould {
     // -------------------------------------------------------------------------
 
     @ParameterizedTest
-    @ValueSource(strings = {"patterns", "architectures", "flows", "standards", "interfaces"})
+    @ValueSource(strings = {"patterns", "architectures", "flows", "standards", "interfaces", "timelines"})
     void recognises_all_supported_types(String type) {
         assertNotNull(parser.parseTypePlural(type));
     }

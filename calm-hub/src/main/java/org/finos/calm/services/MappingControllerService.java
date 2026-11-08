@@ -15,6 +15,8 @@ import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.standards.CreateStandardRequest;
+import org.finos.calm.domain.timeline.CreateTimelineRequest;
+import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.resources.CalmDocumentParser;
 import org.finos.calm.resources.CalmResourceErrorResponses;
 import org.finos.calm.security.AuditRequestFilter;
@@ -47,6 +49,7 @@ public class MappingControllerService {
     private final FlowStore flowStore;
     private final StandardStore standardStore;
     private final InterfaceStore interfaceStore;
+    private final TimelineStore timelineStore;
     private final DomainStore domainStore;
     private final ControlStore controlStore;
     private final CalmDocumentParser documentParser;
@@ -58,6 +61,7 @@ public class MappingControllerService {
                                     FlowStore flowStore,
                                     StandardStore standardStore,
                                     InterfaceStore interfaceStore,
+                                    TimelineStore timelineStore,
                                     DomainStore domainStore,
                                     ControlStore controlStore,
                                     CalmDocumentParser documentParser) {
@@ -67,6 +71,7 @@ public class MappingControllerService {
         this.flowStore = flowStore;
         this.standardStore = standardStore;
         this.interfaceStore = interfaceStore;
+        this.timelineStore = timelineStore;
         this.domainStore = domainStore;
         this.controlStore = controlStore;
         this.documentParser = documentParser;
@@ -159,6 +164,13 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardVersions(mapping.getNamespace(), mapping.getNumericId());
             case INTERFACE -> interfaceStore.getInterfaceVersions(mapping.getNamespace(), mapping.getNumericId());
+            case TIMELINE -> {
+                Timeline timeline = new Timeline.TimelineBuilder()
+                        .setNamespace(mapping.getNamespace())
+                        .setId(mapping.getNumericId())
+                        .build();
+                yield timelineStore.getTimelineVersions(timeline);
+            }
         };
     }
 
@@ -190,6 +202,14 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
             case INTERFACE -> interfaceStore.getInterfaceForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
+            case TIMELINE -> {
+                Timeline timeline = new Timeline.TimelineBuilder()
+                        .setNamespace(mapping.getNamespace())
+                        .setId(mapping.getNumericId())
+                        .setVersion(version)
+                        .build();
+                yield timelineStore.getTimelineForVersion(timeline);
+            }
         };
     }
 
@@ -608,6 +628,11 @@ public class MappingControllerService {
                 CalmInterface created = interfaceStore.createInterfaceForNamespace(req, namespace, version);
                 yield created.getId();
             }
+            case TIMELINE -> {
+                CreateTimelineRequest req = new CreateTimelineRequest(resourceName, description, json);
+                Timeline created = timelineStore.createTimelineForNamespace(req, namespace, version);
+                yield created.getId();
+            }
         };
     }
 
@@ -660,12 +685,23 @@ public class MappingControllerService {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
                 interfaceStore.createInterfaceForVersion(req, namespace, numericId, version);
             }
+            case TIMELINE -> {
+                Timeline timeline = new Timeline.TimelineBuilder()
+                        .setNamespace(namespace)
+                        .setId(numericId)
+                        .setVersion(version)
+                        .setTimeline(json)
+                        .setName(title)
+                        .setDescription(description)
+                        .build();
+                timelineStore.createTimelineForVersion(timeline);
+            }
         }
     }
 
     /**
      * Updates an existing version of a resource in the type-specific store.
-     * Supported for all five {@link ResourceType} values.
+     * Supported for all {@link ResourceType} values.
      */
     private void updateVersionedResourceInStore(ResourceType type, String namespace, int numericId,
                                                 String version, String json, String title, String description) throws Exception {
@@ -710,6 +746,17 @@ public class MappingControllerService {
             case INTERFACE -> {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
                 interfaceStore.updateInterfaceForVersion(req, namespace, numericId, version);
+            }
+            case TIMELINE -> {
+                Timeline timeline = new Timeline.TimelineBuilder()
+                        .setNamespace(namespace)
+                        .setId(numericId)
+                        .setVersion(version)
+                        .setTimeline(json)
+                        .setName(title)
+                        .setDescription(description)
+                        .build();
+                timelineStore.updateTimelineForVersion(timeline);
             }
             default -> throw new UnsupportedOperationException("Update not supported for resource type: " + type);
         }
@@ -768,6 +815,7 @@ public class MappingControllerService {
             case FLOW -> flowStore.deleteFlowVersion(namespace, id, version);
             case STANDARD -> standardStore.deleteStandardVersion(namespace, id, version);
             case INTERFACE -> interfaceStore.deleteInterfaceVersion(namespace, id, version);
+            case TIMELINE -> timelineStore.deleteTimelineVersion(namespace, id, version);
             default -> throw new UnsupportedOperationException(
                     "Delete not supported for resource type: " + mapping.getResourceType());
         }

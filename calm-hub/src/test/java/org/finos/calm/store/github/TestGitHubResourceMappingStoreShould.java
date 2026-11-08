@@ -179,6 +179,7 @@ class TestGitHubResourceMappingStoreShould {
         assertThat(GitHubResourceMappingStore.toRegistryResourceType(ResourceType.FLOW), equalTo(RegistryResourceType.FLOW));
         assertThat(GitHubResourceMappingStore.toRegistryResourceType(ResourceType.STANDARD), equalTo(RegistryResourceType.STANDARD));
         assertThat(GitHubResourceMappingStore.toRegistryResourceType(ResourceType.INTERFACE), equalTo(RegistryResourceType.INTERFACE));
+        assertThat(GitHubResourceMappingStore.toRegistryResourceType(ResourceType.TIMELINE), equalTo(RegistryResourceType.TIMELINE));
     }
 
     private RegistryEntry createEntry(String uniqueId, RegistryResourceType type) {

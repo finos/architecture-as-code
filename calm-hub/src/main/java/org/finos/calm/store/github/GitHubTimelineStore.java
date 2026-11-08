@@ -61,6 +61,11 @@ public class GitHubTimelineStore extends AbstractReadOnlyGitHubStore implements 
     }
 
     @Override
+    public Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace, String version) throws NamespaceNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
     public List<String> getTimelineVersions(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
         verifyNamespace(timeline.getNamespace());
         RegistryEntry entry = findEntry(timeline.getNamespace(), RegistryResourceType.TIMELINE, timeline.getId())
@@ -94,6 +99,12 @@ public class GitHubTimelineStore extends AbstractReadOnlyGitHubStore implements 
 
     @Override
     public void deleteTimeline(String namespace, int timelineId) throws NamespaceNotFoundException, TimelineNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public boolean deleteTimelineVersion(String namespace, int timelineId, String version)
+            throws NamespaceNotFoundException, TimelineNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 }
