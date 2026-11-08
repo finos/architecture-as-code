@@ -35,11 +35,18 @@ Hub holds no schema rules
 ([#2716](https://github.com/finos/architecture-as-code/issues/2716)). A decorator
 with an unknown `$schema` is accepted as today.
 
+**Hub's own writes skip these checks**
+([ADR 0016](0016-store-write-seam-and-outbox-for-post-write-events.md)). Thus
+Hub can record a `validator-error` result when calm-server is not available.
+
 **Reserved types are append-only.** Hub rejects an update of a reserved-type
-decorator with 409. A writer creates a new decorator, and Hub records
-`supersedes` with the id of the old one. Hub stores `supersedes` beside the
-decorator, not in the decorator document or in `data`, so the document stays
-valid against its Standard and a writer cannot set it. A list returns only the
+decorator with 409. A writer creates a new decorator. Each type in the map has a
+key field in `data`: `source.id` for `validation` and `control.unique-id` for
+`control-evaluation`. The operator sets the key for each type that it adds. A
+new decorator supersedes the current decorator with the same type, target and
+key value, and Hub records `supersedes` with the id of the old one. Hub stores
+`supersedes` beside the decorator, not in the decorator document or in `data`,
+so the document stays valid against its Standard and a writer cannot set it. A list returns only the
 current decorators, unless the caller asks for history. Only GLOBAL_ADMIN can
 delete a reserved-type decorator.
 
@@ -48,7 +55,7 @@ delete a reserved-type decorator.
 - Validation and control evaluations are trusted by type, not by the caller's
   claim.
 - A write of a decorator with a known Standard needs calm-server. If calm-server
-  is not available, the write fails.
+  is not available, the write fails. Hub's own writes do not need calm-server.
 - Reserved-type decorators grow without limit. Retention is a later decision.
 - Decorator storage needs a Hub-owned field. This is the first part of the
   decorator design that ADR 0004 deferred.

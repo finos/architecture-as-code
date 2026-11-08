@@ -29,7 +29,7 @@ Facts in the code:
 - calm-server fetches each `$ref` itself, only from allowed hosts. A request
   cannot carry documents that Hub has already resolved.
 - calm-server allows 100 requests per IP per 15 minutes by default. Hub is one
-  client.
+  client. `--rate-limit-window` and `--rate-limit-max` change the limit.
 - With `allow.put.operations=true`, a PUT overwrites a version, and promotion
   deletes snapshot versions. Versions are not always immutable.
 - `DecoratorResource` and the MCP `DecoratorTools` accept a decorator of any type
@@ -105,8 +105,8 @@ is [finos/calm-schema#52](https://github.com/finos/calm-schema/issues/52).
 
 - #3399 does not wait for the extension proxy. It needs ADR 0016 and these
   calm-server changes: a standards mode that skips the `$schema` check, a map of
-  resolved documents in the request, a source id on each output, and a
-  configurable rate limit.
+  resolved documents in the request, and a source id on each output. The
+  deployment sets a calm-server rate limit that is sufficient for Hub.
 - A publish is never slower and never fails because of validation until a `deny`
   binding exists.
 - A version can be published and then shown as failing. The UI must show

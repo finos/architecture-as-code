@@ -21,8 +21,8 @@ Facts in the code:
   producer bean.
 - Hub uses no MongoDB transactions. The compose files run MongoDB with no replica
   set, so transactions and change streams are not available.
-- A version document has a `metadata` field that is empty on insert and kept on
-  upsert.
+- A version document in MongoDB and in NitriteDB has a `metadata` field that is
+  empty on insert and kept on upsert.
 - Hub already uses `quarkus-scheduler`.
 
 ## Decision
@@ -38,7 +38,9 @@ implementation. The order is:
 
 A request-scoped `WriteContext` holds the actor, the channel (REST, MCP, mapping,
 seed) and the dry-run flag. Store signatures do not change. Seed and migration
-writes run as the system actor and skip the hooks.
+writes run as the system actor and skip the hooks. Hub's own decorator writes,
+for example `validation` results, skip the checks in ADR 0017, but Hub records
+an outbox entry for them, so subscribers see them.
 
 **Outbox.**
 
@@ -49,7 +51,8 @@ writes run as the system actor and skip the hooks.
   removes them.
 - A reconcile sweep finds versions with no validation result for their content
   hash and adds them again.
-- NitriteDB uses an outbox collection and the same sweep.
+- MongoDB and NitriteDB use the same `metadata` field, outbox collection and
+  sweep.
 
 **Delivery.** At least once, with a stable event id. Order is kept only for one
 resource in one namespace. More than one Hub replica needs the lease.
@@ -74,5 +77,3 @@ emits one "synced" event for each commit.
   once.
 - An event can arrive seconds after the write. Nothing in Hub depends on it
   arriving in the same request.
-- Whether NitriteDB version documents have a `metadata` field is not checked.
-  If they do not, NitriteDB uses only the outbox collection.
