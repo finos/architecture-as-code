@@ -152,6 +152,7 @@ export function parseCALMData(
             }
         } else if (interacts) {
             const actor = interacts.actor;
+            const protocol = (rel as any).protocol as string | undefined;
             const description = (rel as any).description as string | undefined;
             const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
             const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
@@ -168,7 +169,9 @@ export function parseCALMData(
                         data: {
                             calmVariant: 'interacts',
                             calmRelId: relId,
+                            protocol,
                             description,
+                            controls: (rel as any).controls,
                             direction: 'source-to-target',
                             lineStyle,
                             routing,
