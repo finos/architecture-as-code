@@ -112,7 +112,6 @@ export function flowToCalm(
 
         const direction = (data.direction as string) ?? 'source-to-target';
         const original = originalRels.get(relId);
-        const metadata = buildEdgeMetadata(data, original);
 
         calmRelationships.push(applyCanvasFields(original, {
             'unique-id': relId,
@@ -120,7 +119,7 @@ export function flowToCalm(
             protocol: data.protocol || undefined,
             description: data.description || undefined,
             controls: data.controls || undefined,
-            metadata,
+            metadata: buildEdgeMetadata(data, original),
         }));
 
         // Bidirectional: emit a second relationship in the reverse direction
@@ -133,7 +132,7 @@ export function flowToCalm(
                 protocol: data.protocol || undefined,
                 description: data.description || undefined,
                 controls: data.controls || undefined,
-                metadata,
+                metadata: buildEdgeMetadata(data, reverseOriginal),
             }));
         }
     }

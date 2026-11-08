@@ -435,6 +435,21 @@ describe('flowToCalm - round trip', () => {
         expect(reverse['relationship-type'].connects.source).toEqual({ node: 'db', interfaces: ['db-sql'] });
     });
 
+    it('keeps the metadata of each relationship of a bidirectional edge', () => {
+        const arch = fullArchitecture();
+        arch.relationships.push({
+            'unique-id': 'db-worker',
+            'relationship-type': { connects: { source: { node: 'db' }, destination: { node: 'worker' } } },
+        });
+        const original = JSON.parse(JSON.stringify(arch));
+        const { nodes, edges } = openCanvas(arch);
+        expect(edges.find((e) => e.id === 'worker-db')!.data.calmReverseRelId).toBe('db-worker');
+
+        const result = flowToCalm(nodes, edges, original.controls);
+
+        expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
+    });
+
     it('keeps the data of each relationship of an A→B and B→A pair that differ', () => {
         const arch = fullArchitecture();
         arch.relationships.push({
