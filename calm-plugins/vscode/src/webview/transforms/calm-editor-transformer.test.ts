@@ -376,6 +376,16 @@ describe('flowToCalm - round trip', () => {
         expect(relationship(flowToCalm(nodes, edges), 'worker-db').metadata).toEqual({ 'line-style': 'dotted' });
     });
 
+    it('keeps array metadata an array when the line style changes', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        for (const edge of edges.filter((e) => e.data.calmRelId === 'user-api')) edge.data = { ...edge.data, lineStyle: 'dotted' };
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(relationship(result, 'user-api').metadata).toEqual([{ channel: 'web' }, { 'line-style': 'dotted' }]);
+        expect(openCanvas(result).edges.find((e) => e.data.calmRelId === 'user-api')!.data.lineStyle).toBe('dotted');
+    });
+
     it('applies canvas edits and keeps the other fields', () => {
         const { nodes, edges } = openCanvas(fullArchitecture());
         const api = nodes.find((n) => n.id === 'api')!;
