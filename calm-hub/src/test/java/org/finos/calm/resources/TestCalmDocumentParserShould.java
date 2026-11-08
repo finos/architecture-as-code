@@ -359,6 +359,7 @@ class TestCalmDocumentParserShould {
     void extractTitle_ignores_name_of_a_resource_that_is_not_a_flow() {
         assertEquals("", parser.extractTitle("{\"name\":\"My Pattern\"}", ResourceType.PATTERN));
         assertEquals("", parser.extractTitle("{\"title\":\" \",\"name\":\"My Standard\"}", ResourceType.STANDARD));
+        assertEquals("", parser.extractTitle("{\"name\":\"My Timeline\",\"metadata\":{\"title\":\"Meta Title\"}}", ResourceType.TIMELINE));
     }
 
     @Test
@@ -380,6 +381,7 @@ class TestCalmDocumentParserShould {
     void missingTitleMessage_names_the_fields_the_type_accepts() {
         assertEquals("'title' or 'name' is required in the document body", CalmDocumentParser.missingTitleMessage(ResourceType.FLOW));
         assertEquals("'title' is required in the document body", CalmDocumentParser.missingTitleMessage(ResourceType.PATTERN));
+        assertEquals("'title' is required in the document body", CalmDocumentParser.missingTitleMessage(ResourceType.TIMELINE));
     }
 
     // -------------------------------------------------------------------------

@@ -42,7 +42,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * Name-based resource controller for the CALM Hub.
  *
- * <p>Exposes CALM resources (patterns, architectures, flows, standards, interfaces) at
+ * <p>Exposes CALM resources (patterns, architectures, flows, standards, interfaces, timelines) at
  * human-readable URLs under {@code /calm/namespaces/{namespace}/{type}/{name}}.  A mapping
  * from the friendly name to the underlying MongoDB numeric ID is maintained transparently.</p>
  *

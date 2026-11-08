@@ -57,6 +57,8 @@ GET  /calm/namespaces/{namespace}/architectures
 
 The type segment is not case-sensitive in a request, so `Architectures` and `architectures` name the same resource. This also applies to the type segment in a `$id` that you send. CALM Hub always writes the type segment in lowercase, in the `$id` of a returned document and in the `Location` header. The CALM CLI reads only the lowercase form.
 
+Writes to the name-based API require a top-level `"title"` field in the document body (or `"name"` for a flow), including for timelines.
+
 The full endpoint list with request/response schemas is visible in the Swagger UI at `/q/swagger-ui`.
 
 ### Finding the architectures that implement a pattern
@@ -91,7 +93,7 @@ The hub answers on demand and caches nothing, reading the architectures you are 
 
 ### Snapshot Versions
 
-A version ending in `-SNAPSHOT` (e.g. `1.0.0-SNAPSHOT`) is mutable — it can be re-posted with new content. A release version (e.g. `1.0.0`) is immutable once created. Publishing a release deletes the matching snapshot, if one exists. Snapshots are supported on architectures, patterns, flows, standards, and interfaces only.
+A version ending in `-SNAPSHOT` (e.g. `1.0.0-SNAPSHOT`) is mutable — it can be re-posted with new content. A release version (e.g. `1.0.0`) is immutable once created. Publishing a release deletes the matching snapshot, if one exists. Snapshots are supported on architectures, patterns, flows, standards, interfaces, and timelines only.
 
 | Request | Effect | Status |
 |:--------|:-------|:-------|

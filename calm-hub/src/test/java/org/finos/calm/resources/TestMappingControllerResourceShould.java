@@ -2317,4 +2317,34 @@ public class TestMappingControllerResourceShould {
         given().when().get("/calm/namespaces/finos/timelines/my-timeline/versions/9.9.9")
                 .then().statusCode(404);
     }
+
+    @Test
+    void return_400_when_a_timeline_has_no_title() throws Exception {
+        when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "no-title-timeline"))
+                .thenThrow(new MappingNotFoundException());
+        String body = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/timelines/no-title-timeline/versions/1.0.0\","
+                + "\"moments\":[],\"metadata\":{\"title\":\"Nested Title\"}}";
+
+        given().header("Content-Type", "application/json").body(body).when()
+                .post("/calm")
+                .then().statusCode(400).body(containsString("'title' is required"));
+        verify(mockTimelineStore, never()).createTimelineForNamespace(any(CreateTimelineRequest.class), anyString(), anyString());
+    }
+
+    @Test
+    void return_200_with_all_timelines_for_namespace() throws Exception {
+        ResourceMapping m1 = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("arch-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(1).build();
+        ResourceMapping m2 = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("payments-timeline")
+                .setResourceType(ResourceType.TIMELINE).setNumericId(2).build();
+        when(mockMappingStore.listMappings("finos", ResourceType.TIMELINE)).thenReturn(List.of(m1, m2));
+
+        given().when().get("/calm/namespaces/finos/timelines")
+                .then().statusCode(200)
+                .body("values", hasSize(2))
+                .body("values[0].customId", equalTo("arch-timeline"))
+                .body("values[1].customId", equalTo("payments-timeline"));
+    }
 }
