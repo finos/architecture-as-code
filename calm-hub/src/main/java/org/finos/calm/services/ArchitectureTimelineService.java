@@ -118,7 +118,7 @@ public class ArchitectureTimelineService {
                     continue;
                 }
 
-                String latest = orderVersions(versions).get(versions.size() - 1);
+                String latest = ResourceVersion.latestRelease(orderVersions(versions));
                 Timeline versioned = new Timeline.TimelineBuilder()
                         .setNamespace(namespace)
                         .setId(summary.getId())

@@ -27,6 +27,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -397,5 +398,42 @@ public class TestArchitectureTimelineServiceShould {
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
         assertThat(timeline.get("moments").get(0).get("name").asText(), is("1.0.0"));
+    }
+
+    @Test
+    void read_the_latest_release_of_an_explicit_timeline_when_a_newer_snapshot_exists() throws Exception {
+        when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
+                .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
+        when(mockTimelineStore.getTimelineVersions(any(Timeline.class)))
+                .thenReturn(List.of("1.0.0", "1.1.0-SNAPSHOT"));
+        when(mockTimelineStore.getTimelineForVersion(
+                new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(7).setVersion("1.0.0").build()))
+                .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
+        lenient().when(mockTimelineStore.getTimelineForVersion(
+                new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(7).setVersion("1.1.0-SNAPSHOT").build()))
+                .thenReturn("{\"$schema\":\"" + ArchitectureTimelineService.TIMELINE_SCHEMA + "\",\"moments\":[]}");
+        lenient().when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class)))
+                .thenReturn(List.of("1.0.0"));
+
+        JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
+
+        assertThat(timeline.get("current-moment").asText(), is("go-live"));
+        assertThat(timeline.get("moments").get(0).get("name").asText(), is("Risk go-live"));
+    }
+
+    @Test
+    void read_the_snapshot_of_an_explicit_timeline_when_no_release_is_published_yet() throws Exception {
+        when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
+                .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
+        when(mockTimelineStore.getTimelineVersions(any(Timeline.class)))
+                .thenReturn(List.of("1.0.0-SNAPSHOT"));
+        when(mockTimelineStore.getTimelineForVersion(
+                new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(7).setVersion("1.0.0-SNAPSHOT").build()))
+                .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
+
+        JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
+
+        assertThat(timeline.get("current-moment").asText(), is("go-live"));
+        assertThat(timeline.get("moments").get(0).get("name").asText(), is("Risk go-live"));
     }
 }
