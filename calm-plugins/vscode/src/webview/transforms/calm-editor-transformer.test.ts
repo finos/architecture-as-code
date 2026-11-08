@@ -1,6 +1,12 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Node, Edge } from 'reactflow';
+import coreSchema from '@finos/calm-schema/schema/core.json' with { type: 'json' };
 import { flowToCalm, setLastParsedArch } from './calm-editor-transformer';
+import { EdgeProperties, PROTOCOLS, RELATIONSHIP_TYPES } from '../panels/EdgeProperties';
+import { createEmptyControl } from '../panels/ControlsList';
+import { validateCalmArchitecture } from '../../core/validation';
 
 describe('flowToCalm - definition-id handling', () => {
     beforeEach(() => {
@@ -205,6 +211,159 @@ describe('flowToCalm - definition-id handling', () => {
 
         const arch = flowToCalm(nodes, []);
         expect(arch.nodes[0].metadata).toEqual({ 'standard-node-style': { background: '#1c4587' } });
+    });
+});
+
+describe('CALM Canvas schema validation (#3549)', () => {
+    beforeEach(() => {
+        setLastParsedArch(null);
+    });
+
+    const baseNodes: Node[] = [
+        {
+            id: 'node-a',
+            type: 'service',
+            position: { x: 0, y: 0 },
+            data: {
+                calmId: 'node-a',
+                calmType: 'service',
+                label: 'Service A',
+                description: 'Source service',
+            },
+        },
+        {
+            id: 'node-b',
+            type: 'service',
+            position: { x: 200, y: 0 },
+            data: {
+                calmId: 'node-b',
+                calmType: 'service',
+                label: 'Service B',
+                description: 'Target service',
+            },
+        },
+    ];
+
+    it('populates PROTOCOLS from the CALM schema protocol enum and passes validation for every protocol', () => {
+        expect(PROTOCOLS).toEqual(coreSchema.defs.protocol.enum);
+        expect(PROTOCOLS).not.toContain('gRPC');
+        expect(PROTOCOLS).not.toContain('Kafka');
+
+        for (const protocol of PROTOCOLS) {
+            const edges: Edge[] = [
+                {
+                    id: `rel-${protocol}`,
+                    source: 'node-a',
+                    target: 'node-b',
+                    data: {
+                        calmRelId: `rel-${protocol}`,
+                        calmVariant: 'connects',
+                        protocol,
+                        description: `Connection over ${protocol}`,
+                    },
+                },
+            ];
+            const arch = flowToCalm(baseNodes, edges);
+            const errors = validateCalmArchitecture(arch as any).filter((i) => i.severity === 'error');
+            expect(errors).toEqual([]);
+        }
+    });
+
+    it('removes Options and Custom... from EdgeProperties dropdowns', () => {
+        expect(RELATIONSHIP_TYPES).not.toContain('options');
+        const edge: Edge = {
+            id: 'rel-1',
+            source: 'node-a',
+            target: 'node-b',
+            data: { calmRelId: 'rel-1', calmVariant: 'connects' },
+        };
+        const html = renderToStaticMarkup(React.createElement(EdgeProperties, { edge }));
+        expect(html).not.toContain('Custom...');
+        expect(html).not.toContain('__custom__');
+        expect(html).not.toContain('>Options<');
+    });
+
+    it('falls back to connects instead of writing invalid custom or options relationship types', () => {
+        const edges: Edge[] = [
+            {
+                id: 'rel-custom',
+                source: 'node-a',
+                target: 'node-b',
+                data: {
+                    calmRelId: 'rel-custom',
+                    calmVariant: 'custom-type',
+                    description: 'Fallback relationship',
+                },
+            },
+        ];
+        const arch = flowToCalm(baseNodes, edges);
+        expect(arch.relationships[0]['relationship-type']).toEqual({
+            connects: {
+                source: { node: 'node-a' },
+                destination: { node: 'node-b' },
+            },
+        });
+        const errors = validateCalmArchitecture(arch as any).filter((i) => i.severity === 'error');
+        expect(errors).toEqual([]);
+    });
+
+    it('does not write deployed-in or composed-of relationships for empty containers', () => {
+        const nodes: Node[] = [
+            ...baseNodes,
+            {
+                id: 'empty-container',
+                type: 'container',
+                position: { x: 400, y: 0 },
+                data: {
+                    calmId: 'empty-container',
+                    calmType: 'system',
+                    label: 'Empty Container',
+                    description: 'Container with no children',
+                    containmentType: 'deployed-in',
+                },
+            },
+        ];
+        const edges: Edge[] = [
+            {
+                id: 'rel-1',
+                source: 'node-a',
+                target: 'node-b',
+                data: { calmRelId: 'rel-1', calmVariant: 'connects', description: 'A to B' },
+            },
+        ];
+
+        const arch = flowToCalm(nodes, edges);
+        expect(arch.relationships).toHaveLength(1);
+        expect(arch.relationships[0]['unique-id']).toBe('rel-1');
+        const errors = validateCalmArchitecture(arch as any).filter((i) => i.severity === 'error');
+        expect(errors).toEqual([]);
+    });
+
+    it('writes a valid control with empty config when a control is added without a requirement', () => {
+        const nodes: Node[] = [
+            {
+                ...baseNodes[0],
+                data: {
+                    ...baseNodes[0].data,
+                    controls: {
+                        'custom-control-1': createEmptyControl(),
+                    },
+                },
+            },
+            baseNodes[1],
+        ];
+        const edges: Edge[] = [
+            {
+                id: 'rel-1',
+                source: 'node-a',
+                target: 'node-b',
+                data: { calmRelId: 'rel-1', calmVariant: 'connects', description: 'A to B' },
+            },
+        ];
+
+        const arch = flowToCalm(nodes, edges);
+        const errors = validateCalmArchitecture(arch as any).filter((i) => i.severity === 'error');
+        expect(errors).toEqual([]);
     });
 });
 
