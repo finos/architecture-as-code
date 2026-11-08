@@ -59,15 +59,12 @@ id = "GHSA-qrxm-fqhp-jwvm"
 ignoreUntil = 2027-03-31
 reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
 
-# deepmerge 4.3.1 comes in through @sveltejs/vite-plugin-svelte (@calmstudio/diagram) and
-# @svgr/plugin-svgo (Docusaurus preset-classic in docs). Both are
-# build-time only. vite-plugin-svelte merges our own Svelte and Vite config with it, and
-# plugin-svgo declares it but never imports it. No patched release exists, and the latest
-# vite-plugin-svelte still depends on it.
+# deepmerge 4.3.1 comes in through @svgr/plugin-svgo (Docusaurus preset-classic in docs), at
+# build time only. plugin-svgo declares it but never imports it. No patched release exists.
 [[IgnoredVulns]]
 id = "GHSA-gcqx-w48m-w2h4"
 ignoreUntil = 2027-03-31
-reason = "deepmerge 4.3.1 runs only at build time: vite-plugin-svelte merges project-owned Svelte and Vite config, and @svgr/plugin-svgo never imports it. No untrusted object reaches mergeObject(). Remove when a patched release is available."
+reason = "deepmerge 4.3.1 is a build-time dependency of @svgr/plugin-svgo, which never imports it. No untrusted object reaches mergeObject(). Remove when a patched release is available."
 
 # opentelemetry-api 1.62.0 comes in through the Quarkus BOM for CALM Hub. The quadratic
 # tracestate parsing runs only when the OpenTelemetry SDK is on. CALM Hub turns it off by

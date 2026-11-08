@@ -19,6 +19,7 @@
 - [ ] Schema (`calm/`)
 - [ ] CALM AI (`calm-ai/`)
 - [ ] CALM Hub (`calm-hub/`)
+- [ ] CALM Diagram (`calm-diagram/`, `calm-docusaurus-plugin/`)
 - [ ] CALM Hub UI (`calm-hub-ui/`)
 - [ ] CALM Lab (`calm-lab/`)
 - [ ] CALM Models (`calm-models/`)

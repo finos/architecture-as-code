@@ -256,6 +256,7 @@ jobs:
           PRE_RELEASE_FLAG: ${{ steps.version.outputs.pre-release == 'true' && '--pre-release' || '' }}
         run: |
           npm run build:shared
+          npm run build --workspace calm-diagram
           npm run build --workspace calm-plugins/vscode
           (cd calm-plugins/vscode && npx @vscode/vsce package $PRE_RELEASE_FLAG --no-dependencies)
 

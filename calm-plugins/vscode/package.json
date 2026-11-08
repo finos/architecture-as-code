@@ -142,6 +142,7 @@
     "changelog": "node ../../scripts/vscode-changelog.mjs"
   },
   "dependencies": {
+    "@finos/calm-diagram": "*",
     "@finos/calm-models": "file:../../calm-models",
     "@finos/calm-shared": "file:../../shared",
     "react": "^19.1.0",

@@ -34,11 +34,9 @@ jobs:
 
             - name: Build CALM diagram packages (docs plugin deps)
               run: |
-                  npm run build --if-present --workspace=@finos/calm-models
-                  npm run build --if-present --workspace=@calmstudio/calm-core
-                  npm run build --if-present --workspace=@calmstudio/extensions
-                  npm run build --if-present --workspace=@calmstudio/diagram
-                  npm run build --if-present --workspace=@finos/calm-docusaurus-plugin
+                  npm run build --workspace=@finos/calm-models
+                  npm run build --workspace=@finos/calm-diagram
+                  npm run build --workspace=@finos/calm-docusaurus-plugin
 
             - name: Build Docs
               run: npm run build:docs
