@@ -56,7 +56,9 @@ export function joinEdgeMetadata(
 
 function joinArrayMetadata(edgeMetadata: Record<string, unknown>, style: Record<string, unknown>): unknown[] | undefined {
     const isIndex = (k: string) => /^\d+$/.test(k);
-    const elements = Object.entries(edgeMetadata).filter(([k]) => isIndex(k)).map(([, v]) => v);
+    // The schema needs each element to be an object
+    const elements = Object.entries(edgeMetadata).filter(([k]) => isIndex(k))
+        .map(([k, v]) => (v && typeof v === 'object' ? v : { [k]: v }));
     // Fields added on the canvas have names, not indexes, so they go into an element of their own
     const added = Object.fromEntries(Object.entries(edgeMetadata).filter(([k]) => !isIndex(k)));
     if (Object.keys(added).length > 0) elements.push(added);

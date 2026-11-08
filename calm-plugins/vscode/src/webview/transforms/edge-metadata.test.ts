@@ -70,6 +70,13 @@ describe('joinEdgeMetadata', () => {
             .toEqual([{ owner: 'team' }, { 'line-style': 'dotted', routing: 'step' }]);
     });
 
+    it('keeps each element of array metadata an object when a value is typed over one', () => {
+        const original = [{ owner: 'team' }, { tier: 1 }];
+        const fields = splitEdgeMetadata(original);
+        expect(joinEdgeMetadata({ ...fields, edgeMetadata: { ...fields.edgeMetadata, 0: 'gold' } }, original))
+            .toEqual([{ 0: 'gold' }, { tier: 1 }]);
+    });
+
     it('removes array metadata that the canvas emptied', () => {
         expect(joinEdgeMetadata({ edgeMetadata: {} }, [{ owner: 'team' }])).toBeUndefined();
     });
