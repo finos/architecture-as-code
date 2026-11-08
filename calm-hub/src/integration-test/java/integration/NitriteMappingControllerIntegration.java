@@ -488,5 +488,23 @@ public class NitriteMappingControllerIntegration {
                 .statusCode(200)
                 .body("current-moment", equalTo("m1"))
                 .body("moments[0].name", equalTo("Repo Go-Live"));
+
+        int timelineNumericId = given()
+                .when().get("/calm/namespaces/finos/timelines")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("values.find { it.customId == 'repo-timeline' }.numericId");
+
+        given()
+                .when().delete("/api/calm/namespaces/finos/timelines/" + timelineNumericId)
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/calm/namespaces/finos/timelines")
+                .then()
+                .statusCode(200)
+                .body("values.customId", not(hasItem("repo-timeline")));
     }
 }
