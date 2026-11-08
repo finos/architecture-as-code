@@ -1,4 +1,5 @@
 import type { Node, Edge } from 'reactflow';
+import { joinEdgeMetadata } from './edge-metadata';
 
 export interface LayoutEntry { x: number; y: number; w?: number; h?: number }
 export type LayoutMap = Record<string, LayoutEntry>;
@@ -119,7 +120,7 @@ export function flowToCalm(
             protocol: data.protocol || undefined,
             description: data.description || undefined,
             controls: data.controls || undefined,
-            metadata: buildEdgeMetadata(data, original),
+            metadata: joinEdgeMetadata(data, original?.metadata),
         }));
 
         // Bidirectional: emit a second relationship in the reverse direction
@@ -132,7 +133,7 @@ export function flowToCalm(
                 protocol: data.protocol || undefined,
                 description: data.description || undefined,
                 controls: data.controls || undefined,
-                metadata: buildEdgeMetadata(data, reverseOriginal),
+                metadata: joinEdgeMetadata(data, reverseOriginal?.metadata),
             }));
         }
     }
@@ -149,7 +150,7 @@ export function flowToCalm(
             protocol: data.protocol || undefined,
             description: data.description || undefined,
             controls: data.controls || undefined,
-            metadata: buildEdgeMetadata(data, original),
+            metadata: joinEdgeMetadata(data, original?.metadata),
         }));
     }
 
@@ -265,26 +266,6 @@ function containmentVariant(rel: Record<string, unknown>): string | undefined {
     if (rt?.['deployed-in']) return 'deployed-in';
     if (rt?.['composed-of']) return 'composed-of';
     return undefined;
-}
-
-function buildEdgeMetadata(
-    data: Record<string, unknown>,
-    original: Record<string, unknown> | undefined,
-): Record<string, unknown> | unknown[] | undefined {
-    const lineStyle = (data.lineStyle as string) ?? 'solid';
-    const routing = (data.routing as string) ?? 'bezier';
-    // If the canvas did not change the metadata, keep its original form (an array, {}, or explicit defaults)
-    const originalMeta = original?.metadata as Record<string, unknown> | undefined;
-    const parsedMeta = Object.fromEntries(Object.entries(originalMeta ?? {}).filter(([k]) => k !== 'line-style' && k !== 'routing'));
-    if (originalMeta && lineStyle === (originalMeta['line-style'] ?? 'solid') && routing === (originalMeta.routing ?? 'bezier')
-        && JSON.stringify(data.edgeMetadata ?? {}) === JSON.stringify(parsedMeta)) return originalMeta;
-    const meta: Record<string, unknown> = { ...((data.edgeMetadata as Record<string, unknown>) ?? {}) };
-    if (lineStyle && lineStyle !== 'solid') meta['line-style'] = lineStyle;
-    if (routing && routing !== 'bezier') meta['routing'] = routing;
-    if (Object.keys(meta).length === 0) return undefined;
-    // The parser holds line-style and routing apart from the other metadata, so put them back where they were
-    const originalKeys = Object.keys(originalMeta ?? {});
-    return { ...Object.fromEntries(originalKeys.filter((k) => k in meta).map((k) => [k, meta[k]])), ...meta };
 }
 
 function buildRelationshipType(

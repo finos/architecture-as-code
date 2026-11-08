@@ -2,6 +2,7 @@ import type { Node, Edge } from 'reactflow';
 import { MarkerType } from 'reactflow';
 import dagre from '@dagrejs/dagre';
 import type { CalmArchitecture } from './calm-editor-transformer';
+import { splitEdgeMetadata } from './edge-metadata';
 
 export interface ParsedCALMData {
     nodes: Node[];
@@ -144,22 +145,14 @@ export function parseCALMData(
                 const description = (rel as any).description as
                     | string
                     | undefined;
-                const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
-                const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
-                const routing = (relMeta?.['routing'] as string) ?? 'bezier';
-                const edgeMetadata: Record<string, unknown> = {};
-                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
+                const { lineStyle, routing, edgeMetadata } = splitEdgeMetadata((rel as any).metadata);
                 connectsList.push({ relId, src, dst, protocol, description, controls: (rel as any).controls, lineStyle, routing, edgeMetadata });
             }
         } else if (interacts) {
             const actor = interacts.actor;
             const protocol = (rel as any).protocol as string | undefined;
             const description = (rel as any).description as string | undefined;
-            const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
-            const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
-            const routing = (relMeta?.['routing'] as string) ?? 'bezier';
-            const edgeMetadata: Record<string, unknown> = {};
-            if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
+            const { lineStyle, routing, edgeMetadata } = splitEdgeMetadata((rel as any).metadata);
             for (const target of interacts.nodes ?? []) {
                 if (actor && target) {
                     edges.push({
@@ -195,11 +188,7 @@ export function parseCALMData(
             if (src && dst) {
                 const protocol = (rel as any).protocol as string | undefined;
                 const description = (rel as any).description as string | undefined;
-                const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
-                const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
-                const routing = (relMeta?.['routing'] as string) ?? 'bezier';
-                const edgeMetadata: Record<string, unknown> = {};
-                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
+                const { lineStyle, routing, edgeMetadata } = splitEdgeMetadata((rel as any).metadata);
                 edges.push({
                     id: relId,
                     source: src,
