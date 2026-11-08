@@ -157,7 +157,7 @@ export function flowToCalm(
     // Passthrough: relationships that the canvas does not draw must be kept verbatim
     if (lastParsedArch) {
         const emittedIds = new Set(calmRelationships.map((r) => r['unique-id'] as string));
-        for (const rel of lastParsedArch.relationships) {
+        for (const rel of lastParsedArch.relationships ?? []) {
             if (emittedIds.has(rel['unique-id'] as string)) continue;
             if (!isDrawnOnCanvas(rel)) calmRelationships.push(rel);
         }
@@ -274,14 +274,17 @@ function buildEdgeMetadata(
 ): Record<string, unknown> | unknown[] | undefined {
     const lineStyle = (data.lineStyle as string) ?? 'solid';
     const routing = (data.routing as string) ?? 'bezier';
+    // If the canvas did not change the metadata, keep its original form (an array, {}, or explicit defaults)
+    const originalMeta = original?.metadata as Record<string, unknown> | undefined;
+    const parsedMeta = Object.fromEntries(Object.entries(originalMeta ?? {}).filter(([k]) => k !== 'line-style' && k !== 'routing'));
+    if (originalMeta && lineStyle === (originalMeta['line-style'] ?? 'solid') && routing === (originalMeta.routing ?? 'bezier')
+        && JSON.stringify(data.edgeMetadata ?? {}) === JSON.stringify(parsedMeta)) return originalMeta;
     const meta: Record<string, unknown> = { ...((data.edgeMetadata as Record<string, unknown>) ?? {}) };
     if (lineStyle && lineStyle !== 'solid') meta['line-style'] = lineStyle;
     if (routing && routing !== 'bezier') meta['routing'] = routing;
-    const originalMeta = original?.metadata;
-    if (Array.isArray(originalMeta) && JSON.stringify(meta) === JSON.stringify({ ...originalMeta })) return originalMeta;
     if (Object.keys(meta).length === 0) return undefined;
     // The parser holds line-style and routing apart from the other metadata, so put them back where they were
-    const originalKeys = Object.keys((original?.metadata as Record<string, unknown> | undefined) ?? {});
+    const originalKeys = Object.keys(originalMeta ?? {});
     return { ...Object.fromEntries(originalKeys.filter((k) => k in meta).map((k) => [k, meta[k]])), ...meta };
 }
 

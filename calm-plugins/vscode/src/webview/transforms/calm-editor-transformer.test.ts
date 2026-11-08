@@ -305,6 +305,16 @@ describe('flowToCalm - round trip', () => {
                 'relationship-type': { 'composed-of': { container: 'platform', nodes: ['worker'] } },
             },
             {
+                'unique-id': 'worker-db',
+                'relationship-type': { connects: { source: { node: 'worker' }, destination: { node: 'db' } } },
+                metadata: { 'line-style': 'solid', routing: 'bezier' },
+            },
+            {
+                'unique-id': 'worker-api',
+                'relationship-type': { connects: { source: { node: 'worker' }, destination: { node: 'api' } } },
+                metadata: {},
+            },
+            {
                 'unique-id': 'api-pending',
                 description: 'Destination not chosen yet',
                 'relationship-type': { connects: { source: { node: 'api' }, destination: { interfaces: ['db-sql'] } } },
@@ -349,6 +359,21 @@ describe('flowToCalm - round trip', () => {
         const result = flowToCalm(nodes, edges, original.controls as Record<string, unknown>);
 
         expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
+    });
+
+    it('writes a document that has no relationships', () => {
+        const { relationships: _, ...withoutRelationships } = fullArchitecture();
+        const { nodes, edges } = openCanvas(withoutRelationships as CalmArchitecture);
+
+        expect(flowToCalm(nodes, edges).nodes).toHaveLength(nodes.length);
+    });
+
+    it('writes edited line style and routing into metadata that held their defaults', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        const workerDb = edges.find((e) => e.id === 'worker-db')!;
+        workerDb.data = { ...workerDb.data, lineStyle: 'dotted' };
+
+        expect(relationship(flowToCalm(nodes, edges), 'worker-db').metadata).toEqual({ 'line-style': 'dotted' });
     });
 
     it('applies canvas edits and keeps the other fields', () => {
