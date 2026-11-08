@@ -87,7 +87,7 @@ describe('parseCALMData', () => {
         expect(result.edges[0].data.direction).toBe('bidirectional');
     });
 
-    it('merges a connects pair whose data differs only in key order', () => {
+    it('does not merge a connects pair whose data differs only in key order', () => {
         const result = parseCALMData(arch(
             [
                 { 'unique-id': 'a', 'node-type': 'service', name: 'A' },
@@ -98,8 +98,7 @@ describe('parseCALMData', () => {
                 { 'unique-id': 'r2', 'relationship-type': { connects: { source: { node: 'b' }, destination: { node: 'a' } } }, metadata: { y: 2, x: 1 } },
             ]
         ));
-        expect(result.edges).toHaveLength(1);
-        expect(result.edges[0].data.calmReverseRelId).toBe('r2');
+        expect(result.edges).toHaveLength(2);
     });
 
     it('does not merge a connects pair with different data', () => {

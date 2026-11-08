@@ -271,15 +271,8 @@ export function parseCALMData(
 }
 
 function sameEdgeData(a: ConnectsEntry, b: ConnectsEntry): boolean {
-    const editable = (e: ConnectsEntry) => canonicalJson([e.protocol, e.description, e.controls, e.lineStyle, e.routing, e.edgeMetadata]);
+    const editable = (e: ConnectsEntry) => JSON.stringify([e.protocol, e.description, e.controls, e.lineStyle, e.routing, e.edgeMetadata]);
     return editable(a) === editable(b);
-}
-
-function canonicalJson(value: unknown): string {
-    return JSON.stringify(value, (_key, v) =>
-        v && typeof v === 'object' && !Array.isArray(v)
-            ? Object.fromEntries(Object.entries(v).sort(([x], [y]) => x.localeCompare(y)))
-            : v);
 }
 
 const KNOWN_NODE_TYPES = new Set([
