@@ -232,7 +232,6 @@ function JourneyRoadmap() {
 const TOOL_CHIPS = [
     {to: '/working-with-calm/cli', name: 'CLI', desc: 'Generate, validate & document from the terminal.'},
     {to: '/working-with-calm/calm-hub', name: 'CALM Hub', desc: 'A registry of architectures, patterns & controls.'},
-    {to: '/working-with-calm/calm-studio', name: 'CALM Studio', desc: 'Draw diagrams, get validated CALM as you go.'},
     {to: '/working-with-calm/vscode-extension', name: 'VS Code', desc: 'Live-validate & visualize inside your editor.'},
     {to: '/working-with-calm/validation-server', name: 'Validation Server', desc: 'Remote HTTP validation for any toolchain.'},
 ];

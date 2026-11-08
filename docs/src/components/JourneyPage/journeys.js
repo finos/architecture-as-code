@@ -58,12 +58,7 @@ export const journeys = {
                 kicker: 'Tools',
                 title: 'Visualize it',
                 to: '/working-with-calm/vscode-extension',
-                description: (
-                    <>
-                        Live-validate and visualize inside your editor — or draw in{' '}
-                        <Link to="/working-with-calm/calm-studio">CALM Studio</Link>.
-                    </>
-                ),
+                description: 'Live-validate, visualize and edit inside your editor.',
             },
         ],
         outcome: 'A complete, validated CALM architecture rendered as a live diagram.',
