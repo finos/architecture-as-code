@@ -12,6 +12,7 @@ import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
 import { markAsSnapshot, releaseSnapshot, findSnapshotDependencyViolations, listSnapshotCandidates } from './snapshot';
 import { loadPostBumpValidationOptions, runPostBumpValidation } from './post-bump-validate';
+import { checkWorkspaceLayout } from './layout-check';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
 import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId, resourceTypeFromDocumentId, documentName } from '@finos/calm-shared';
@@ -591,6 +592,12 @@ export function setupWorkspaceCommands(program: Command) {
                 const snapshotViolations = await findSnapshotDependencyViolations(bundlePath);
                 for (const v of snapshotViolations) {
                     logger.error(`'${v.id}' depends on snapshot version(s) of: ${v.dependsOn.join(', ')} — release those first, or pin a released version.`);
+                }
+
+                // Warn when tracked files are in directories that CALM Hub GitHub mode will not read as their type (#3208)
+                const layoutWarnings = await checkWorkspaceLayout(bundlePath, manifest);
+                for (const w of layoutWarnings) {
+                    logger.warn(w.message);
                 }
 
                 if (needsBump || validationFailed || snapshotViolations.length > 0) {

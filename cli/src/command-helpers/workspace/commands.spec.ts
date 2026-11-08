@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
         releaseSnapshot: vi.fn(async () => ({ id: 'doc-a', fromVersion: '1.1.0-SNAPSHOT', toVersion: '1.1.0' })),
         findSnapshotDependencyViolations: vi.fn(async () => []),
         listSnapshotCandidates: vi.fn(async () => ({ releases: ['doc-a'], snapshots: ['doc-b'] })),
+        checkWorkspaceLayout: vi.fn(async () => []),
         runPostBumpValidation: vi.fn(async () => []),
         loadPostBumpValidationOptions: vi.fn<() => Promise<object | undefined>>(async () => ({})),
         loadWorkspaceConfig: vi.fn(async () => ({ push: { failIfModified: false }, bump: { defaultIncrement: 'MINOR' } })),
@@ -64,7 +65,8 @@ vi.mock('./workspace', () => ({
     cleanAllWorkspaces: mocks.cleanAllWorkspaces,
 }));
 
-vi.mock('./bundle', () => ({
+vi.mock('./bundle', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('./bundle')>()),
     addFileToBundle: mocks.addFileToBundle,
     loadManifest: mocks.loadManifest,
 }));
@@ -101,6 +103,10 @@ vi.mock('./snapshot', () => ({
 vi.mock('./post-bump-validate', () => ({
     runPostBumpValidation: mocks.runPostBumpValidation,
     loadPostBumpValidationOptions: mocks.loadPostBumpValidationOptions,
+}));
+
+vi.mock('./layout-check', () => ({
+    checkWorkspaceLayout: mocks.checkWorkspaceLayout,
 }));
 
 vi.mock('./config', () => ({
@@ -1067,6 +1073,29 @@ describe('setupWorkspaceCommands', () => {
             mocks.detectChangedResources.mockResolvedValueOnce([]);
             mocks.findSnapshotDependencyViolations.mockResolvedValueOnce([]);
             await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('warns when tracked documents have directory layout issues without exiting non-zero', async () => {
+            const actualLayoutCheck = await vi.importActual<typeof import('./layout-check')>('./layout-check');
+            mocks.checkWorkspaceLayout.mockImplementationOnce(actualLayoutCheck.checkWorkspaceLayout);
+            mocks.loadManifest.mockResolvedValueOnce({
+                'arch-1': { path: '../repo/patterns/arch.json', type: 'architecture' },
+            });
+            mocks.loadPostBumpValidationOptions.mockResolvedValueOnce(undefined);
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/namespaces/ns/architectures/arch-1/versions/1.0.0',
+                nodes: [],
+            }));
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            mocks.findSnapshotDependencyViolations.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(mocks.checkWorkspaceLayout).toHaveBeenCalledWith('/fake/bundle', {
+                'arch-1': { path: '../repo/patterns/arch.json', type: 'architecture' },
+            });
+            expect(mocks.loggerWarn).toHaveBeenCalledWith(
+                'Tracked file \'patterns/arch.json\' has $id type \'architectures\' but is in \'patterns/\'; expected directory \'architectures/\'. CALM Hub GitHub mode will read it as a pattern.'
+            );
             expect(exitSpy).not.toHaveBeenCalled();
         });
     });

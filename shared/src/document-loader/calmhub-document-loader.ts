@@ -2,12 +2,12 @@ import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, assertJsonObject, DocumentLoadError, CALM_HUB_PROTOS } from './document-loader';
 import { assertResponseOrigin } from './response-origin.js';
+import { assertNoTraversal, assertSafeRequestPath } from './request-guards.js';
 import { initLogger, Logger } from '../logger';
 import { AuthPlugin } from '../auth/auth-plugin';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 export class CalmHubDocumentLoader implements DocumentLoader {
-    private static readonly SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_\-.]+(\.json)?$/;
     private readonly ax: Axios;
     private readonly logger: Logger;
     private readonly authPlugin?: AuthPlugin;
@@ -98,24 +98,9 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         // From here the reference is ours: any failure is fatal and must not fall through to
         // another loader (which would mask the real reason with an unrelated error).
 
-        // The URL constructor normalizes '..' segments, so url.pathname is already resolved.
-        // Reject if the original input contained traversal sequences before normalization.
-        if (documentId.includes('/..')) {
-            throw new DocumentLoadError({
-                name: 'UNKNOWN',
-                message: `CalmHubDocumentLoader rejected path containing directory traversal in: ${documentId}`,
-                recoverable: false
-            });
-        }
+        assertNoTraversal(documentId, 'CalmHubDocumentLoader');
         const path = url.pathname;
-
-        if (!CalmHubDocumentLoader.SAFE_PATH_PATTERN.test(path)) {
-            throw new DocumentLoadError({
-                name: 'UNKNOWN',
-                message: `CalmHubDocumentLoader rejected path with disallowed characters: ${path}`,
-                recoverable: false
-            });
-        }
+        assertSafeRequestPath(path, 'CalmHubDocumentLoader');
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
 

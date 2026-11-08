@@ -73,10 +73,10 @@ describe('ControlsList handleValueInput logic', () => {
         };
         const { handleValueInput } = createFlushLogic(controlsRef, onUpdate);
 
-        handleValueInput('api-gw', 'Stratum', true);
+        handleValueInput('api-gw', 'Kong', true);
 
         expect(onUpdate).toHaveBeenCalledTimes(1);
-        expect(onUpdate.mock.calls[0][0]['api-gw'].requirements[0].config.value).toBe('Stratum');
+        expect(onUpdate.mock.calls[0][0]['api-gw'].requirements[0].config.value).toBe('Kong');
     });
 
     it('immediate=false debounces onUpdate by 300ms', () => {
@@ -86,7 +86,7 @@ describe('ControlsList handleValueInput logic', () => {
         };
         const { handleValueInput } = createFlushLogic(controlsRef, onUpdate);
 
-        handleValueInput('api-gw', 'S');
+        handleValueInput('api-gw', 'K');
         expect(onUpdate).not.toHaveBeenCalled();
 
         vi.advanceTimersByTime(299);
@@ -94,7 +94,7 @@ describe('ControlsList handleValueInput logic', () => {
 
         vi.advanceTimersByTime(1);
         expect(onUpdate).toHaveBeenCalledTimes(1);
-        expect(onUpdate.mock.calls[0][0]['api-gw'].requirements[0].config.value).toBe('S');
+        expect(onUpdate.mock.calls[0][0]['api-gw'].requirements[0].config.value).toBe('K');
     });
 
     it('rapid keystrokes reset the debounce — only the last value fires', () => {
@@ -104,19 +104,19 @@ describe('ControlsList handleValueInput logic', () => {
         };
         const { handleValueInput } = createFlushLogic(controlsRef, onUpdate);
 
-        handleValueInput('api-gw', 'S');
+        handleValueInput('api-gw', 'K');
         vi.advanceTimersByTime(100);
-        handleValueInput('api-gw', 'St');
+        handleValueInput('api-gw', 'Ko');
         vi.advanceTimersByTime(100);
-        handleValueInput('api-gw', 'Str');
+        handleValueInput('api-gw', 'Kon');
         vi.advanceTimersByTime(100);
-        handleValueInput('api-gw', 'Stra');
+        handleValueInput('api-gw', 'Kong');
 
         expect(onUpdate).not.toHaveBeenCalled();
 
         vi.advanceTimersByTime(300);
         expect(onUpdate).toHaveBeenCalledTimes(1);
-        expect(onUpdate.mock.calls[0][0]['api-gw'].requirements[0].config.value).toBe('Stra');
+        expect(onUpdate.mock.calls[0][0]['api-gw'].requirements[0].config.value).toBe('Kong');
     });
 
     it('debounced flush reads the latest controls ref (no stale closure)', () => {
@@ -130,7 +130,7 @@ describe('ControlsList handleValueInput logic', () => {
         const { handleValueInput } = createFlushLogic(controlsRef, onUpdate);
 
         // Start typing in api-gw
-        handleValueInput('api-gw', 'Stratum');
+        handleValueInput('api-gw', 'Kong');
 
         // Simulate: another update changes the health control before the timer fires
         controlsRef.current = {
@@ -142,8 +142,8 @@ describe('ControlsList handleValueInput logic', () => {
 
         expect(onUpdate).toHaveBeenCalledTimes(1);
         const result = onUpdate.mock.calls[0][0];
-        // api-gw was updated to Stratum
-        expect(result['api-gw'].requirements[0].config.value).toBe('Stratum');
+        // api-gw was updated to Kong
+        expect(result['api-gw'].requirements[0].config.value).toBe('Kong');
         // health was NOT reverted to /health — it kept the ref-updated /actuator
         expect(result['health'].requirements[0].config.value).toBe('/actuator');
     });
@@ -158,14 +158,14 @@ describe('ControlsList handleValueInput logic', () => {
         };
         const { handleValueInput } = createFlushLogic(controlsRef, onUpdate);
 
-        handleValueInput('api-gw', 'Stratum');
+        handleValueInput('api-gw', 'Kong');
         vi.advanceTimersByTime(200);
         handleValueInput('health', '/health');
 
         // api-gw fires at 300ms, health at 500ms
         vi.advanceTimersByTime(100);
         expect(onUpdate).toHaveBeenCalledTimes(1);
-        expect(onUpdate.mock.calls[0][0]['api-gw'].requirements[0].config.value).toBe('Stratum');
+        expect(onUpdate.mock.calls[0][0]['api-gw'].requirements[0].config.value).toBe('Kong');
 
         // Update the ref to include api-gw's new value (simulates React re-render)
         controlsRef.current = onUpdate.mock.calls[0][0];
@@ -175,7 +175,7 @@ describe('ControlsList handleValueInput logic', () => {
         const result = onUpdate.mock.calls[1][0];
         expect(result['health'].requirements[0].config.value).toBe('/health');
         // api-gw's value is preserved because flush reads from the ref
-        expect(result['api-gw'].requirements[0].config.value).toBe('Stratum');
+        expect(result['api-gw'].requirements[0].config.value).toBe('Kong');
     });
 
     it('removing a control cancels its pending debounce timer', () => {
@@ -189,7 +189,7 @@ describe('ControlsList handleValueInput logic', () => {
         const { handleValueInput, handleRemove } = createFlushLogic(controlsRef, onUpdate);
 
         // Start typing in api-gw (sets 300ms timer)
-        handleValueInput('api-gw', 'Stratum');
+        handleValueInput('api-gw', 'Kong');
         expect(onUpdate).not.toHaveBeenCalled();
 
         // Remove api-gw before the timer fires
@@ -212,7 +212,7 @@ describe('ControlsList handleValueInput logic', () => {
         const { handleValueInput, handleRename } = createFlushLogic(controlsRef, onUpdate);
 
         // Start typing in api-gw (sets 300ms timer)
-        handleValueInput('api-gw', 'Stratum');
+        handleValueInput('api-gw', 'Kong');
 
         // Rename api-gw → gateway before the timer fires
         handleRename('api-gw', 'gateway');
