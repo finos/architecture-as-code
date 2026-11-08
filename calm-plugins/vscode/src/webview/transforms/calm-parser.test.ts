@@ -131,6 +131,20 @@ describe('parseCALMData', () => {
         ]);
     });
 
+    it('draws the second edge of an unmerged pair to the other target handle', () => {
+        const result = parseCALMData(arch(
+            [
+                { 'unique-id': 'a', 'node-type': 'service', name: 'A' },
+                { 'unique-id': 'b', 'node-type': 'service', name: 'B' },
+            ],
+            [
+                { 'unique-id': 'r1', description: 'A calls B', 'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } } },
+                { 'unique-id': 'r2', description: 'B reads A', 'relationship-type': { connects: { source: { node: 'b' }, destination: { node: 'a' } } } },
+            ]
+        ));
+        expect(result.edges.map((e) => [e.id, e.targetHandle])).toEqual([['r1', undefined], ['r2', 'left-target']]);
+    });
+
     it('parses deployed-in containment', () => {
         const result = parseCALMData(arch(
             [

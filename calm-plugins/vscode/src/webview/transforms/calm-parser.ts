@@ -224,6 +224,7 @@ export function parseCALMData(
         byPairKey.set(key, [...(byPairKey.get(key) ?? []), e]);
     }
     const consumed = new Set<string>();
+    const drawnEnds = new Set<string>();
     for (const entry of connectsList) {
         if (consumed.has(entry.relId)) continue;
         const reverse = byPairKey.get(pairKey(entry.dst, entry.src, entry))
@@ -235,11 +236,15 @@ export function parseCALMData(
         const directionValue = isBidi ? 'bidirectional' : 'source-to-target';
         const markerEnd = { type: MarkerType.ArrowClosed, width: 15, height: 15 };
         const markerStart = isBidi ? { type: MarkerType.ArrowClosed, width: 15, height: 15 } : undefined;
+        // The second edge of an unmerged pair uses the other target handle, so that the two do not draw over each other
+        const overlapsReverse = drawnEnds.has(JSON.stringify([entry.dst, entry.src]));
+        drawnEnds.add(JSON.stringify([entry.src, entry.dst]));
 
         edges.push({
             id: entry.relId,
             source: entry.src,
             target: entry.dst,
+            ...(overlapsReverse ? { targetHandle: 'left-target' } : {}),
             label: entry.protocol || entry.description || undefined,
             data: {
                 calmVariant: 'connects',
