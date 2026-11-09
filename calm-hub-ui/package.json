@@ -65,8 +65,8 @@
         "vite-plugin-svgr": "^4.3.0"
     },
     "overrides": {
-        "d3-selection": "3.0.0",
-        "d3-transition": "3.0.1"
+        "d3-selection": "3.0.1",
+        "d3-transition": "3.0.2"
     },
     "proxy": "http://127.0.0.1:8080/",
     "eslintConfig": {
