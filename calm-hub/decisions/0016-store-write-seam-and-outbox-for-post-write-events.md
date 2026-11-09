@@ -33,24 +33,39 @@ implementation. The order is:
 
 1. Before: `warn` and `deny` validators, when they exist, and the decorator
    rules in [ADR 0017](0017-reserved-decorator-types-and-decorator-history.md).
+   For a write that does not create or overwrite a version, write a `prepared`
+   outbox entry.
 2. The delegate write.
-3. After: record the outbox entry.
+3. After: mark the outbox entry `ready`.
 
 A request-scoped `WriteContext` holds the actor, the channel (REST, MCP, mapping,
-seed) and the dry-run flag. Store signatures do not change. Seed and migration
+seed), the dry-run flag and the pending event. Store signatures do not change.
+Data that must be in the same write as the document is below the wrapper: the
+version-document helpers read the pending event from `WriteContext`, and the
+decorator store reads `supersedes`
+([ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)) from it. Seed and migration
 writes run as the system actor and skip the hooks. Hub's own decorator writes,
 for example `validation` results, skip the checks in ADR 0017, but Hub records
 an outbox entry for them, so subscribers see them.
 
 **Outbox.**
 
-- For a new version, Hub writes `metadata.hooks.pending` in the same insert as
-  the version document, so the event and the data commit together.
-- For decorators and deletes, Hub writes to an outbox collection.
-- A `@Scheduled` relay claims pending entries with a lease, delivers them, then
-  removes them.
-- A reconcile sweep finds versions with no validation result for their content
-  hash and adds them again.
+- For a new version, the version-document helpers write
+  `metadata.hooks.pending` from `WriteContext` in the same insert as the version
+  document, so the event and the data commit together. A PUT overwrite
+  (`allow.put.operations`) sets it in the same update as `content`, with a
+  `version.updated` event.
+- For decorators and deletes, Hub writes the outbox entry before the write, as
+  above.
+- A `@Scheduled` relay claims `ready` and pending entries with a lease, delivers
+  them, then removes them. When a `prepared` entry is older than the lease, the
+  write may not have happened. The relay checks the store (the decorator
+  exists, or the resource is gone), then delivers the entry or drops it.
+- A reconcile sweep finds versions that have at least one rule source and no
+  validation result for their content hash, and adds them again. It also
+  retries `validator-error` results, with an exponential backoff up to a limit.
+- The relay and the sweep do not run when `calm.readonly=true`, because the
+  database is read-only.
 - MongoDB and NitriteDB use the same `metadata` field, outbox collection and
   sweep.
 

@@ -59,8 +59,12 @@ revalidation.
 
 **Record asynchronously first.** Hub validates after the write, through the
 outbox in ADR 0016. A binding change starts a background revalidation of the
-versions it affects. In GitHub mode Hub validates after each sync and keeps
-results in memory.
+versions it affects. When a binding is removed, Hub writes a `not-applicable`
+result for that source on each affected version, which supersedes the old
+result.
+
+**GitHub mode is out of scope.** It has no store for decorators, so Hub does not
+validate in GitHub mode. A repository can validate in its own CI.
 
 **Severity and enforcement are separate.** The binding's `level` (`mandatory` or
 `recommended`) sets severity. A new binding field, `action`, sets enforcement:
@@ -73,11 +77,13 @@ Only the operator can set a binding to fail open. No request header can skip a
 records an `error` result.
 
 **Results key on content, not only on the version.** Each result holds the
-version URL and the content SHA-256. When the content changes, the old result is
-`stale`, and Hub validates again.
+version URL and the content SHA-256. The hash is of the RFC 8785 (JCS) form of
+the document, so it is the same for each store, and a subscriber can calculate
+it again from the document that it reads. When the content changes, the old
+result is `stale`, and Hub validates again.
 
-**`validation` is a reserved decorator type.** Only Hub, as `actor: system`,
-writes it ([ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)).
+**`validation` is a reserved decorator type.** Only Hub's own code (the `system`
+flag) writes it ([ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)).
 Hub writes one decorator for each source. A new result supersedes the old one.
 Hub's own writes do not start validation again.
 
@@ -90,13 +96,15 @@ control-evaluation Standard, so one diagram overlay and one generic view
 |---|---|
 | `source` | The rule source: id, version, role and binding. It takes the place of `control` |
 | `status` | `met`, `not-met` or `not-applicable`. A validator `fail` is `not-met`. A validator `error` is `not-met` with one finding whose `cause` is `validator-error` |
-| `findings` | One for each issue: `subject` (element `unique-id`, or the architecture id), `check` (issue code), `description` (message), and `severity` and JSON `path` |
+| `findings` | One for each issue: `subject` (element `unique-id`, or the version URL), `check` (issue code), `description` (message), and `severity` and JSON `path`. Unlike control-evaluation, findings are allowed on any status, so a `met` result keeps the warnings from a `recommended` binding. On `met`, each finding is `warning` or `info`. A generic view uses `status`, not the presence of findings |
 | `engine` | Validator name and version |
 | `evaluated-at` | When Hub validated |
-| `subject-sha256` | The content SHA-256 that the result is for |
+| `subject-sha256` | The content SHA-256 (of the JCS form) that the result is for |
 
 **`applies-to` sentinel.** Until calm-schema allows an empty or missing
-`applies-to`, a result with no element id uses the architecture's own id. All
+`applies-to`, a result with no element id uses the version URL from `target`. An
+architecture does not always have a top-level `unique-id`, but it always has a
+version URL. All
 reserved types use this convention, control-evaluation too. The proposal to make
 `applies-to` optional, and to state this convention in the Standards until then,
 is [finos/calm-schema#52](https://github.com/finos/calm-schema/issues/52).
@@ -104,7 +112,9 @@ is [finos/calm-schema#52](https://github.com/finos/calm-schema/issues/52).
 ## Consequences
 
 - #3399 does not wait for the extension proxy. It needs ADR 0016 and these
-  calm-server changes: a standards mode that skips the `$schema` check, a map of
+  calm-server changes: a standards mode that skips the `$schema` check, a
+  schema-only mode that checks a document that is not an architecture (for
+  example a decorator) against a JSON Schema with no architecture rules, a map of
   resolved documents in the request, and a source id on each output. The
   deployment sets a calm-server rate limit that is sufficient for Hub.
 - A publish is never slower and never fails because of validation until a `deny`
