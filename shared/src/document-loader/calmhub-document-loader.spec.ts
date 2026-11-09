@@ -99,13 +99,36 @@ describe('calmhub-document-loader', () => {
         `${calmHubBaseUrl}/schemas/%2e%2e/admin/secrets.json`,
         `${calmHubBaseUrl}/schemas\\..\\admin/secrets.json`,
         'calm:/schemas/2025-03/.\n./admin/secrets.json',
-    ])('rejects traversal that the URL parser resolves before the path check: %s', async (traversalUrl) => {
+        'calm:..',
+        'calm:../admin/secrets.json',
+        ` ${calmHubBaseUrl}/schemas\\..\\admin/secrets.json`,
+        `\u0001${calmHubBaseUrl}/schemas\\..\\admin/secrets.json`,
+    ])('rejects traversal before a request is sent: %s', async (traversalUrl) => {
         const getSpy = vi.spyOn(ax, 'get');
-        const promise = calmHubDocumentLoader.loadMissingDocument(traversalUrl, 'schema');
-        await expect(promise).rejects.toThrow('directory traversal');
-        await expect(promise).rejects.toMatchObject({ recoverable: false });
-        expect(getSpy).not.toHaveBeenCalled();
-        getSpy.mockRestore();
+        try {
+            const promise = calmHubDocumentLoader.loadMissingDocument(traversalUrl, 'schema');
+            await expect(promise).rejects.toThrow('directory traversal');
+            await expect(promise).rejects.toMatchObject({ recoverable: false });
+            expect(getSpy).not.toHaveBeenCalled();
+        } finally {
+            getSpy.mockRestore();
+        }
+    });
+
+    it.each([
+        ['calm:schemas/core.json', 'does not start with a single \'/\''],
+        ['calm:/.//evil.example/x', 'does not start with a single \'/\''],
+        ['calm:/schemas/a\\b.json', 'disallowed characters'],
+    ])('rejects an unsafe calm: path before a request is sent: %s', async (reference, message) => {
+        const getSpy = vi.spyOn(ax, 'get');
+        try {
+            const promise = calmHubDocumentLoader.loadMissingDocument(reference, 'schema');
+            await expect(promise).rejects.toThrow(message);
+            await expect(promise).rejects.toMatchObject({ recoverable: false });
+            expect(getSpy).not.toHaveBeenCalled();
+        } finally {
+            getSpy.mockRestore();
+        }
     });
 
     it('rejects paths with disallowed characters', async () => {
