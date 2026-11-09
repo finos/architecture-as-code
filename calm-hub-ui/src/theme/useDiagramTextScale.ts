@@ -23,7 +23,7 @@ function defaultStorage(): Storage | undefined {
 
 function readStoredIndex(storage: Storage | undefined): number {
     try {
-        const index = SCALES.indexOf(Number(storage?.getItem(DIAGRAM_TEXT_SCALE_KEY) ?? undefined));
+        const index = SCALES.indexOf(Number(storage?.getItem(DIAGRAM_TEXT_SCALE_KEY)));
         return index === -1 ? DEFAULT_INDEX : index;
     } catch {
         return DEFAULT_INDEX;

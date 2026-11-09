@@ -62,7 +62,7 @@ function DecisionGroupNodeComponent({ data, textScaleStore }: DecisionGroupNodeP
                 <div
                     style={{
                         position: 'absolute',
-                        top: '40px',
+                        top: scalePx(40, scale),
                         left: '16px',
                         fontSize: scalePx(11, scale),
                         color: borderColor,

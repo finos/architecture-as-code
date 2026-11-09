@@ -135,11 +135,10 @@ function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: Cu
     const { presenting } = usePresentationMode(presentationStore);
     const { scale } = useDiagramTextScale(textScaleStore);
     const base = presenting
-        ? { width: 320, padding: '20px', text: 24, icon: 24, zoomIcon: 26, badgeText: 18, badgeIcon: 18, badgePadding: '3px 8px' }
-        : { width: 220, padding: '16px', text: 14, icon: 16, zoomIcon: 20, badgeText: 12, badgeIcon: 12, badgePadding: '2px 6px' };
+        ? { width: '320px', padding: '20px', text: 24, icon: 24, zoomIcon: 26, badgeText: 18, badgeIcon: 18, badgePadding: '3px 8px' }
+        : { width: '220px', padding: '16px', text: 14, icon: 16, zoomIcon: 20, badgeText: 12, badgeIcon: 12, badgePadding: '2px 6px' };
     const size = {
         ...base,
-        width: scalePx(base.width, scale),
         text: scalePx(base.text, scale),
         icon: scalePx(base.icon, scale),
         zoomIcon: scalePx(base.zoomIcon, scale),
@@ -305,7 +304,7 @@ function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: Cu
       </div>
       </div>
 
-      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} />}
+      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} scale={scale} />}
 
       {/* Hover details panel - absolutely positioned to float over other elements */}
       {isHovered && (

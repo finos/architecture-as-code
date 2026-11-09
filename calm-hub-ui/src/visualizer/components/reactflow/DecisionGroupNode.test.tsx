@@ -19,5 +19,6 @@ describe('DecisionGroupNode diagram text size', () => {
         expect(screen.getByText('oneOf').parentElement!.style.fontSize).toBe('18px');
         expect(screen.getByText('Choose exactly one').style.fontSize).toBe('15px');
         expect(screen.getByText('Pick a database').style.fontSize).toBe('16.5px');
+        expect(screen.getByText('Pick a database').style.top).toBe('60px');
     });
 });

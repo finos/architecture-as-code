@@ -234,7 +234,7 @@ function FloatingEdgeComponent({
                                     background: THEME.colors.card,
                                     border: `1px solid ${THEME.colors.border}`,
                                     color: THEME.colors.muted,
-                                    maxWidth: presenting ? '220px' : '160px',
+                                    maxWidth: scalePx(presenting ? 220 : 160, scale),
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     ...(presenting

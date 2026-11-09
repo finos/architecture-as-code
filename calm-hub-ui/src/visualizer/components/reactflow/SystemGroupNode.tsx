@@ -62,7 +62,7 @@ function SystemGroupNodeComponent({ id, data, textScaleStore }: SystemGroupNodeP
         {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} scale={scale} />}
       </div>
       {/* Below the container, as below a node, so the callout does not cover the nodes inside it. */}
-      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} width={Math.round((presenting ? 320 : 220) * scale)} />}
+      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} scale={scale} width={presenting ? 320 : 220} />}
     </div>
   );
 }

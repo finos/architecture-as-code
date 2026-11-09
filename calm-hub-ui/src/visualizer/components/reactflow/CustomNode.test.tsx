@@ -319,17 +319,17 @@ describe('diagram text size', () => {
         );
     };
 
-    it('scales the text, the badges and the node width', () => {
+    it('scales the text and the badges, and keeps the node width the layout expects', () => {
         renderNode(scaleStore('1.5'));
         expect(textSize()).toBe('21px');
         expect(controlBadge().style.fontSize).toBe('18px');
-        expect(screen.getByTestId('custom-node').style.width).toBe('330px');
+        expect(screen.getByTestId('custom-node').style.width).toBe('220px');
     });
 
     it('multiplies the presentation sizes', () => {
         renderNode(scaleStore('1.5'), true);
         expect(textSize()).toBe('36px');
-        expect(screen.getByTestId('custom-node').style.width).toBe('480px');
+        expect(screen.getByTestId('custom-node').style.width).toBe('320px');
     });
 
     it('follows a change of the setting without a remount', () => {
@@ -458,7 +458,14 @@ describe('decision overlay', () => {
         vi.restoreAllMocks();
     });
 
-    function renderOverlay(showDecisions: boolean, map: Map<string, ElementEvaluation> = new Map(), presenting = false) {
+    function renderOverlay(
+        showDecisions: boolean,
+        map: Map<string, ElementEvaluation> = new Map(),
+        presenting = false,
+        textScale?: string,
+    ) {
+        const textStorage = createMemoryStorage();
+        if (textScale) textStorage.setItem(DIAGRAM_TEXT_SCALE_KEY, textScale);
         const store = createPresentationModeStore(createMemoryStorage());
         store.set(presenting);
         return render(
@@ -471,7 +478,11 @@ describe('decision overlay', () => {
                 }}
             >
                 <ControlEvaluationContext.Provider value={map}>
-                    <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} presentationStore={store} />
+                    <CustomNode
+                        {...makeNodeProps(undefined, { 'unique-id': 'node-1' })}
+                        presentationStore={store}
+                        textScaleStore={createDiagramTextScaleStore(textStorage)}
+                    />
                 </ControlEvaluationContext.Provider>
             </DecisionOverlayContext.Provider>
         );
@@ -555,5 +566,10 @@ describe('decision overlay', () => {
         unmount();
         renderOverlay(true, notMet(), true);
         expect(screen.getByTestId('decision-callout').style.fontSize).toBe('16px');
+    });
+
+    it('sizes the callout text with the diagram text size', () => {
+        renderOverlay(true, notMet(), false, '1.5');
+        expect(screen.getByTestId('decision-callout').style.fontSize).toBe('18px');
     });
 });

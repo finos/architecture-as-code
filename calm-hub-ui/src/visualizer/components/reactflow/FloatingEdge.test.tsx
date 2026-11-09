@@ -472,5 +472,6 @@ describe('FloatingEdge diagram text size', () => {
             </svg>
         );
         expect(screen.getByText('writes').style.fontSize).toBe('15px');
+        expect(screen.getByText('writes').style.maxWidth).toBe('240px');
     });
 });

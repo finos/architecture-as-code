@@ -48,6 +48,18 @@ describe('createDiagramTextScaleStore', () => {
         expect(onChange).toHaveBeenCalledTimes(1);
     });
 
+    it('still steps when storage cannot keep the step', () => {
+        const storage = createMemoryStorage();
+        storage.setItem = () => {
+            throw new Error('blocked');
+        };
+        const store = createDiagramTextScaleStore(storage);
+
+        store.step(1);
+
+        expect(store.getSnapshot()).toBe(1.15);
+    });
+
     it('does not go past the largest or the smallest step', () => {
         const largest = storeAt('1.5');
         const smallest = storeAt('0.8');
