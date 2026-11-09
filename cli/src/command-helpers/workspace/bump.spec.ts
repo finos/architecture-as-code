@@ -974,6 +974,35 @@ describe('bump', () => {
             expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('document type \'adr\' has no CalmHub resource type'));
         });
 
+        it.each(['pattern', 'flow', 'schema', 'interface', 'timeline'] as const)(
+            'skips a %s entry in detectChangedResources and cascade bump when its $id has a different resource type',
+            async (type) => {
+                await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+                await write('b.json', { $id: idAt('b', '1.0.0'), title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] });
+                await saveManifest(bundlePath, {
+                    'a': { path: 'files/a.json', type: 'architecture' },
+                    'b': { path: 'files/b.json', type },
+                });
+                const client = makeClient({
+                    versions: { a: ['1.0.0'], b: ['1.0.0'] },
+                    remote: {
+                        'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' },
+                        'b@1.0.0': { $id: idAt('b', '1.0.0'), title: 'Old B' },
+                    },
+                });
+
+                const changed = await detectChangedResources(bundlePath, client);
+                expect(changed.map(c => c.id)).toEqual(['a']);
+
+                const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR', preDetectedChanges: changed });
+
+                expect(result.bumped.map(b => b.id)).toEqual(['a']);
+                expect((await read('b.json')).nodes[0].$ref).toBe(idAt('a', '1.1.0'));
+                expect((await read('b.json')).$id).toBe(idAt('b', '1.0.0'));
+                expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining(`document type '${type}' expects resource type`));
+            }
+        );
+
         it('detects changes and bumps a timeline entry with a timelines $id', async () => {
             const timelineId = (version: string) => idAt('tl', version, 'timelines');
             await write('tl.json', { $id: timelineId('1.0.0'), title: 'My Timeline', moments: [{ 'unique-id': 'm1' }] });
