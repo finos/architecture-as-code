@@ -10,7 +10,7 @@ export function resolveLiveSelectedNode(selectedNode: Node | null, nodes: Node[]
     const drawings = nodes.filter((n) => calmIdOf(n) === calmIdOf(selectedNode));
     const byId = new Map(nodes.map((n) => [n.id, n]));
     return (place !== null ? drawings.find((n) => pathOf(n, byId) === place) : undefined)
-        ?? byId.get(selectedNode.id)
+        ?? drawings.find((n) => n.id === selectedNode.id)
         ?? drawings[0]
         ?? null;
 }

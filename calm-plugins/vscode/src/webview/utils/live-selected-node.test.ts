@@ -47,6 +47,14 @@ describe('liveSelectedNode derivation', () => {
         expect(resolveLiveSelectedNode(b, nodes, pathOf(b, new Map(nodes.map((n) => [n.id, n]))))).toBe(b);
     });
 
+    it('does not take a node of another CALM node that a load gave the selected id', () => {
+        const stale = makeNode('x__in__y', { data: { calmId: 'x' }, parentId: 'y' });
+        const x = makeNode('x', { data: { calmId: 'x' }, parentId: 'c' });
+        const other = makeNode('x__in__y', { data: { calmId: 'x__in__y' } });
+
+        expect(resolveLiveSelectedNode(stale, [makeNode('c', { data: { calmId: 'c' } }), x, other], null)).toBe(x);
+    });
+
     it('returns null when the node was deleted', () => {
         const nodes = [makeNode('a'), makeNode('b')];
 
