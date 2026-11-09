@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Node, Edge, NodeChange } from 'reactflow';
 import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';
 import { saveNodePositions, toStoredPositions, type StoredNodePosition } from '../../../services/node-position-service.js';
+import { useDiagramTextScale } from '../../../../theme/useDiagramTextScale.js';
+import { usePresentationMode } from '../../../../theme/usePresentationMode.js';
 
 interface UseGraphInteractionsOptions {
     /** The graph's current nodes; the drag-end report fires on the commit that changes them. */
@@ -37,6 +39,14 @@ export function useGraphInteractions({
     // (DiagramSection) while rendering a different component
     // (ArchitectureGraph)" (issue #3503).
     const pendingReport = useRef<StoredNodePosition[] | null>(null);
+
+    // Cards size themselves to the viewer's text size and presentation mode, and the reflow fits containers to them.
+    // Away from 100% text size, or in presentation mode, a drag drops the cards' measured sizes and fits the containers
+    // to the standard node size again, so a saved layout does not carry the viewer's sizes. Positions do not depend on
+    // sizes, so they do not move. On screen the containers keep fitting the cards until the layout loads again.
+    const { scale } = useDiagramTextScale();
+    const { presenting } = usePresentationMode();
+    const keepSizes = scale === 1 && !presenting;
 
     // Only ever called from the effect below, never from the updater: React
     // reports "Cannot update a component while rendering a different component"
@@ -82,22 +92,27 @@ export function useGraphInteractions({
             if (hasPositionChanges) {
                 setNodes((currentNodes) => {
                     const reflowed = reflowContainersToFitChildren(currentNodes);
-                    // Persist the post-reflow positions so a restore needs no
-                    // further adjustment. Writing in the updater reads the
+                    const toKeep = keepSizes
+                        ? reflowed
+                        : reflowContainersToFitChildren(
+                              reflowed.map((node) => (node.type === 'custom' ? { ...node, width: undefined, height: undefined } : node))
+                          );
+                    // Persist the post-reflow positions and container sizes so a
+                    // restore needs no further reflow. Writing in the updater reads the
                     // latest state; the write is idempotent so StrictMode's
                     // double-invoke is harmless.
-                    if (dragEnded && persistKey) saveNodePositions(persistKey, reflowed);
+                    if (dragEnded && persistKey) saveNodePositions(persistKey, toKeep);
                     // Report at drag-end only (not every position change during
                     // the drag) so "Save as default layout" always reflects the
                     // latest settled arrangement without re-rendering on every
                     // frame. The call itself happens in the effect above, after
                     // this updater has finished.
-                    if (dragEnded) pendingReport.current = toStoredPositions(reflowed);
+                    if (dragEnded) pendingReport.current = toStoredPositions(toKeep);
                     return reflowed;
                 });
             }
         },
-        [onNodesChangeBase, setNodes, persistKey]
+        [onNodesChangeBase, setNodes, persistKey, keepSizes]
     );
 
     const handleNodeClick = useCallback(
