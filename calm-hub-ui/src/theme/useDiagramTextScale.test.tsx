@@ -35,6 +35,24 @@ describe('createDiagramTextScaleStore', () => {
         expect(createDiagramTextScaleStore(storage).getSnapshot()).toBe(1);
     });
 
+    it('starts at 1 and still steps when the storage global itself throws', () => {
+        const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+        Object.defineProperty(globalThis, 'localStorage', {
+            configurable: true,
+            get() {
+                throw new DOMException('blocked', 'SecurityError');
+            },
+        });
+        try {
+            const store = createDiagramTextScaleStore();
+            expect(store.getSnapshot()).toBe(1);
+            store.step(1);
+            expect(store.getSnapshot()).toBe(1.15);
+        } finally {
+            Object.defineProperty(globalThis, 'localStorage', original!);
+        }
+    });
+
     it('steps up, keeps the step and tells the subscribers', () => {
         const storage = createMemoryStorage();
         const store = createDiagramTextScaleStore(storage);

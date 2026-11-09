@@ -59,9 +59,16 @@ function SystemGroupNodeComponent({ id, data, textScaleStore, presentationStore 
           color: THEME.colors.group.label,
           border: `1px solid ${THEME.colors.border}`,
           pointerEvents: 'auto', // Re-enable pointer events for the label so it's clickable
+          ...(scale > 1 && { maxWidth: 'calc(100% - 32px)' }),
         }}
       >
-        <span>{data.label}</span>
+        {/* A larger label that wraps would reach the children, so it keeps to one line. */}
+        <span
+          style={scale > 1 ? { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } : undefined}
+          title={scale > 1 ? data.label : undefined}
+        >
+          {data.label}
+        </span>
         {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} scale={labelScale} />}
       </div>
       {/* Below the container, as below a node, so the callout does not cover the nodes inside it. */}
