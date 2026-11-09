@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader.js';
 import { SchemaDirectory } from '../../schema-directory.js';
-import { TEST_1_1_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA, calmSchemaDir, setCalmSchema } from '../../test/test-utils';
+import { TEST_1_1_SCHEMA_AND_ABOVE, TEST_1_2_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA, calmSchemaDir, setCalmSchema } from '../../test/test-utils';
 import { generate } from '../generate/generate-core.js';
 import { CalmChoice } from '../generate/components/options.js';
 
@@ -449,6 +449,37 @@ describe('validate E2E', () => {
             expect(response.jsonSchemaValidationOutputs[0].code).toBe('control-requirement-validation');
             expect(response.jsonSchemaValidationOutputs[0].path).toBe('/controls/security/requirements/0');
             expect(response.jsonSchemaValidationOutputs[0].message).toContain('description');
+        });
+    });
+
+    describe('timeline with CalmHub $id', () => {
+        it.each(TEST_1_2_SCHEMA_AND_ABOVE)('accepts a valid timeline containing $id, title, and description (%s)', async (schemaVersion) => {
+            const timelineSchemaUrl = `https://calm.finos.org/release/${schemaVersion}/meta/calm-timeline.json`;
+            const timeline = {
+                $schema: timelineSchemaUrl,
+                $id: 'https://calmhub.example.com/calm/namespaces/finos/timelines/api-gateway-timeline/versions/1.0.0',
+                title: 'API Gateway Architecture Evolution',
+                description: 'Timeline tracking the evolution of the API Gateway architecture',
+                'current-moment': 'api-gateway-v1',
+                moments: [
+                    {
+                        'unique-id': 'api-gateway-v1',
+                        'node-type': 'moment',
+                        name: 'API Gateway v1',
+                        description: 'First version of the API Gateway',
+                        details: {
+                            'detailed-architecture': 'https://calmhub.example.com/calm/namespaces/finos/architectures/api-gateway/versions/1.0.0'
+                        }
+                    }
+                ]
+            };
+
+            const schema = await schemaDirectory.getSchema(timelineSchemaUrl);
+            const response = await validate(undefined, schema, timeline, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeFalsy();
+            expect(response.jsonSchemaValidationOutputs).toHaveLength(0);
+            expect(response.spectralSchemaValidationOutputs).toHaveLength(0);
         });
     });
 });

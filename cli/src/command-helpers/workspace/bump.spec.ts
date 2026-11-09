@@ -948,12 +948,12 @@ describe('bump', () => {
             expect((await read('b.json')).$id).toBe('bare-id');
         });
 
-        it.each(['timeline', 'adr'] as const)('skips %s entries in detectChangedResources and cascade bump even with a namespace resource $id', async (type) => {
+        it('skips adr entries in detectChangedResources and cascade bump even with a namespace resource $id', async () => {
             await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
             await write('b.json', { $id: idAt('b', '1.0.0'), title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] });
             await saveManifest(bundlePath, {
                 'a': { path: 'files/a.json', type: 'architecture' },
-                'b': { path: 'files/b.json', type },
+                'b': { path: 'files/b.json', type: 'adr' },
             });
             const client = makeClient({
                 versions: { a: ['1.0.0'], b: ['1.0.0'] },
@@ -971,7 +971,31 @@ describe('bump', () => {
             expect(result.bumped.map(b => b.id)).toEqual(['a']);
             expect((await read('b.json')).nodes[0].$ref).toBe(idAt('a', '1.1.0'));
             expect((await read('b.json')).$id).toBe(idAt('b', '1.0.0'));
-            expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining(`document type '${type}' has no CalmHub resource type`));
+            expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('document type \'adr\' has no CalmHub resource type'));
+        });
+
+        it('detects changes and bumps a timeline entry with a timelines $id', async () => {
+            const timelineId = (version: string) => idAt('tl', version, 'timelines');
+            await write('tl.json', { $id: timelineId('1.0.0'), title: 'My Timeline', moments: [{ 'unique-id': 'm1' }] });
+            await saveManifest(bundlePath, {
+                'tl': { path: 'files/tl.json', type: 'timeline' },
+            });
+            const client = makeClient({
+                versions: { tl: ['1.0.0'] },
+                remote: {
+                    'tl@1.0.0': { $id: timelineId('1.0.0'), title: 'My Timeline', moments: [] },
+                },
+            });
+
+            const changed = await detectChangedResources(bundlePath, client);
+            expect(changed.map(c => c.id)).toEqual(['tl']);
+
+            const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR', preDetectedChanges: changed });
+
+            expect(result.bumped).toEqual([
+                expect.objectContaining({ id: 'tl', fromVersion: '1.0.0', toVersion: '1.1.0' }),
+            ]);
+            expect((await read('tl.json')).$id).toBe(timelineId('1.1.0'));
         });
 
         it('only bumps once across edit -> bump -> edit -> bump', async () => {

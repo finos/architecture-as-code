@@ -108,7 +108,7 @@ describe('pushWorkspaceToHub', () => {
         expect(client.getMappedResourceVersions).not.toHaveBeenCalled();
     });
 
-    it.each(['timeline', 'adr', 'control'] as const)('skips %s entries even when the file has a namespace resource $id', async (type) => {
+    it.each(['adr', 'control'] as const)('skips %s entries even when the file has a namespace resource $id', async (type) => {
         await writeFile(path.join(filesPath, 'doc.json'), JSON.stringify(docA));
         await saveManifest(bundlePath, {
             'my-doc': { path: 'files/doc.json', type, namespace: 'com.example' }
@@ -119,6 +119,32 @@ describe('pushWorkspaceToHub', () => {
 
         expect(client.getMappedResourceVersions).not.toHaveBeenCalled();
         expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
+    });
+
+    it('pushes a timeline to its CalmHub timelines mapping', async () => {
+        const timeline = {
+            $id: mappingId('my-timeline', '1.0.0', 'timelines'),
+            title: 'My Timeline',
+            description: 'A timeline',
+            moments: [],
+        };
+        await writeFile(path.join(filesPath, 'timeline.json'), JSON.stringify(timeline));
+        await saveManifest(bundlePath, {
+            'timeline': { path: 'files/timeline.json', type: 'timeline', namespace: 'com.example' }
+        });
+        const locationUrl = mappingId('my-timeline', '1.0.0', 'timelines');
+        const client = makeClient({
+            createMappedResourceVersion: vi.fn().mockResolvedValue(locationUrl),
+        });
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect(client.getMappedResourceVersions).toHaveBeenCalledWith('com.example', 'my-timeline', 'timelines');
+        expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+            expect.objectContaining({ namespace: 'com.example', mapping: 'my-timeline', type: 'timelines', version: '1.0.0', name: 'My Timeline' }),
+            JSON.stringify(timeline)
+        );
+        expect((await loadManifest(bundlePath))['timeline'].calmHubId).toBe(locationUrl);
     });
 
     it('creates a narrative document and stores its server identity', async () => {
