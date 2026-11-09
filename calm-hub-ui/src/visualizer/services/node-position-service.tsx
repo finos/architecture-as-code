@@ -155,8 +155,7 @@ export function applyPositions(nodes: Node[], positions: StoredNodePosition[] | 
         if (stored.width != null && stored.height != null) {
             updated.width = stored.width;
             updated.height = stored.height;
-            // A card sizes itself to its text, which the diagram text size changes. Fixing it would leave a stale box.
-            if (node.type !== 'custom') updated.style = { ...updated.style, width: stored.width, height: stored.height };
+            updated.style = { ...updated.style, width: stored.width, height: stored.height };
         }
         return updated;
     });
