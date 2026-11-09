@@ -43,21 +43,21 @@ describe('TextSizeButtons', () => {
     });
 
     it('disables the larger button at the largest size', () => {
-        render(<TextSizeButtons store={storeAt('1.5')} />);
+        render(<TextSizeButtons store={storeAt('2')} />);
 
         expect(screen.getByRole('button', { name: 'Larger diagram text' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Smaller diagram text' })).toBeEnabled();
     });
 
     it('dims the label of a disabled button', () => {
-        render(<TextSizeButtons store={storeAt('1.5')} />);
+        render(<TextSizeButtons store={storeAt('2')} />);
 
         expect(screen.getByText('A+')).toHaveStyle({ opacity: '0.4' });
         expect(screen.getByText('A−')).toHaveStyle({ opacity: '1' });
     });
 
     it('disables the smaller button at the smallest size', () => {
-        render(<TextSizeButtons store={storeAt('0.8')} />);
+        render(<TextSizeButtons store={storeAt('0.7')} />);
 
         expect(screen.getByRole('button', { name: 'Smaller diagram text' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Larger diagram text' })).toBeEnabled();

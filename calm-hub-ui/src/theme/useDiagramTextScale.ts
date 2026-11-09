@@ -3,7 +3,7 @@ import { useSyncExternalStore } from 'react';
 /** Key under which the diagram text scale is kept. Browser-local only. */
 export const DIAGRAM_TEXT_SCALE_KEY = 'calmHub.diagramTextScale';
 
-const SCALES = [0.8, 0.9, 1, 1.15, 1.3, 1.5];
+const SCALES = [0.7, 0.8, 0.9, 1, 1.15, 1.3, 1.5, 1.75, 2];
 const DEFAULT_INDEX = SCALES.indexOf(1);
 
 export interface DiagramTextScaleStore {

@@ -19,8 +19,8 @@ describe('createDiagramTextScaleStore', () => {
         expect(createDiagramTextScaleStore(createMemoryStorage()).getSnapshot()).toBe(1);
     });
 
-    it('starts at the stored step', () => {
-        expect(storeAt('1.3').getSnapshot()).toBe(1.3);
+    it.each([0.7, 0.8, 0.9, 1, 1.15, 1.3, 1.5, 1.75, 2])('starts at the stored step %d', (step) => {
+        expect(storeAt(String(step)).getSnapshot()).toBe(step);
     });
 
     it.each(['abc', '7', '1.2', ''])('starts at 1 when the stored value is %j', (stored) => {
@@ -61,8 +61,8 @@ describe('createDiagramTextScaleStore', () => {
     });
 
     it('does not go past the largest or the smallest step', () => {
-        const largest = storeAt('1.5');
-        const smallest = storeAt('0.8');
+        const largest = storeAt('2');
+        const smallest = storeAt('0.7');
         const onChange = vi.fn();
         largest.subscribe(onChange);
         smallest.subscribe(onChange);
@@ -70,21 +70,21 @@ describe('createDiagramTextScaleStore', () => {
         largest.step(1);
         smallest.step(-1);
 
-        expect(largest.getSnapshot()).toBe(1.5);
-        expect(smallest.getSnapshot()).toBe(0.8);
+        expect(largest.getSnapshot()).toBe(2);
+        expect(smallest.getSnapshot()).toBe(0.7);
         expect(onChange).not.toHaveBeenCalled();
     });
 });
 
 describe('useDiagramTextScale', () => {
     it('cannot shrink at the smallest step', () => {
-        const { result } = renderHook(() => useDiagramTextScale(storeAt('0.8')));
+        const { result } = renderHook(() => useDiagramTextScale(storeAt('0.7')));
         expect(result.current.canShrink).toBe(false);
         expect(result.current.canGrow).toBe(true);
     });
 
     it('cannot grow at the largest step', () => {
-        const { result } = renderHook(() => useDiagramTextScale(storeAt('1.5')));
+        const { result } = renderHook(() => useDiagramTextScale(storeAt('2')));
         expect(result.current.canGrow).toBe(false);
         expect(result.current.canShrink).toBe(true);
     });
