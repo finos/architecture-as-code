@@ -29,7 +29,7 @@ control requirement:   $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/requirem
 control configuration: $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/configurations/$CONFIG/versions/$VERSION
 ```
 
-`$TYPE` is one of `patterns`, `architectures`, `flows`, `standards` or `interfaces`.
+`$TYPE` is one of `patterns`, `architectures`, `flows`, `standards`, `interfaces` or `timelines`.
 
 **Snapshot** — a version with a `-SNAPSHOT` suffix, for example `1.1.0-SNAPSHOT`. CALM Hub lets you push a snapshot again with changed content. All other versions are immutable.
 
@@ -97,7 +97,7 @@ Use a snapshot when you want to push a document many times while you work on it:
 3. `calm workspace release <id>` removes the `-SNAPSHOT` suffix.
 4. `calm workspace push` creates the release version.
 
-Only `pattern`, `architecture`, `flow`, `standard` and `interface` documents can be snapshots.
+Only `pattern`, `architecture`, `flow`, `standard`, `interface` and `timeline` documents can be snapshots.
 
 :::warning
 A released document must not refer to a snapshot, because the content of a snapshot can change. `check` and `push` fail if a document that is not a snapshot refers to a tracked snapshot, or to a `-SNAPSHOT` version of any document. Release the snapshot first, or refer to a released version.
@@ -216,7 +216,7 @@ The command asks for each argument that you do not supply. It always [asks for t
 
 #### Building a `$id`
 
-When `new` or `add` makes a `$id`, it asks for the scope and then each part. The default version is `1.0.0`. The default base URL is `calmHubUrl` from `~/.calm.json`. When the document type sets the resource type, for example `flow`, the command does not ask for the scope or resource type. For a `control`, it asks only if the document is a requirement or a configuration. A `timeline` or `adr` has no CALM Hub resource type, so it asks only for a document ID.
+When `new` or `add` makes a `$id`, it asks for the scope and then each part. The default version is `1.0.0`. The default base URL is `calmHubUrl` from `~/.calm.json`. When the document type sets the resource type, for example `flow`, the command does not ask for the scope or resource type. For a `control`, it asks only if the document is a requirement or a configuration. An `adr` has no CALM Hub resource type, so it asks only for a document ID.
 
 ### push
 

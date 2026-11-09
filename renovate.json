@@ -164,6 +164,12 @@
       "allowedVersions": "<10"
     },
     {
+      "description": "Keep the minimatch overrides on v3: eslint, Spectral and serve-handler call require('minimatch') as a function, which v4+ removed",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["minimatch"],
+      "allowedVersions": "<4"
+    },
+    {
       "description": "Never update the calm-schema-x.y release aliases (matched by depName)",
       "matchManagers": ["npm"],
       "matchDepNames": ["calm-schema-*"],
