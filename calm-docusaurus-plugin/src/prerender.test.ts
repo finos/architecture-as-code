@@ -15,6 +15,13 @@ describe('prerenderCalmSvg', () => {
     expect(bundle.svg.light).not.toEqual(bundle.svg.dark);
   });
 
+  it('gives each variant its own marker ids', async () => {
+    const bundle = await prerenderCalmSvg(fixture);
+    expect(bundle.svg.light).toContain('<marker id="calm-light-arrow" ');
+    expect(bundle.svg.dark).toContain('<marker id="calm-dark-arrow" ');
+    expect(bundle.svg.dark).not.toContain('calm-light-');
+  });
+
   it('extracts intrinsic size from the SVG', async () => {
     const bundle = await prerenderCalmSvg(fixture);
     expect(bundle.size.width).toBeGreaterThan(0);

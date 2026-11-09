@@ -37,7 +37,7 @@ html[data-theme='dark'] .calm-diagram-static-light {
   position: relative;
   overflow: hidden;
   width: 100%;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .calm-diagram-interactive svg {

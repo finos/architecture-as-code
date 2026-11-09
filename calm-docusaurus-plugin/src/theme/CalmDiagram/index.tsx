@@ -49,9 +49,12 @@ async function loadArchitecture(architecture: unknown, remoteSrc: string | undef
 export function CalmDiagram(props: CalmDiagramProps): React.ReactElement | null {
   const { src, data, theme, flow, containers, interactive = true, __bundle } = props;
   const hydrated = useHydrated();
-  // Unique on the page, so that the flow path ids of two diagrams do not collide.
+  // Unique on the page, so that the marker and flow path ids of two diagrams do not collide.
   const idPrefix = `calm${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const [domTheme, setDomTheme] = useState<'light' | 'dark'>('light');
+  // Read on the first render: a client-side navigation has no hydration, so the effect would correct it only after a paint.
+  const [domTheme, setDomTheme] = useState<'light' | 'dark'>(() =>
+    typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
+  );
   const [clientRender, setClientRender] = useState<ClientRender | null>(null);
 
   const architecture = __bundle ? __bundle.architecture : data;

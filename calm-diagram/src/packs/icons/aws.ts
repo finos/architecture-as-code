@@ -17,7 +17,9 @@ export const awsIcons: Record<string, string> = {
 
   eks: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><polygon points="8,2 14,5.5 14,10.5 8,14 2,10.5 2,5.5" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.5"/><path d="M8 2v3.5M8 10.5V14M2 5.5l3 2M11 8.5l3 2M14 5.5l-3 2M5 8.5l-3 2"/></svg>`,
 
+  sqs: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="4" width="14" height="8" rx="1.5"/><path d="M4 8h2M7 8h2M10 8h2" stroke-linecap="round"/><path d="M13 4V3a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1"/></svg>`,
 
+  sns: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="8" r="3"/><path d="M8 5V2M11 6l2-2M12 9l2 1M8 11v3M5 10l-2 2M4 7L2 6" stroke-linecap="round"/></svg>`,
 
   'api-gateway': `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="5" width="14" height="6" rx="1.5"/><path d="M5 8h6M3 8v0M13 8v0" stroke-linecap="round"/><path d="M7 5V3M9 5V3M7 11v2M9 11v2" stroke-linecap="round"/></svg>`,
 
@@ -35,13 +37,19 @@ export const awsIcons: Record<string, string> = {
 
   ec2: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="10" height="10" rx="1.5"/><path d="M1 6h2M1 10h2M13 6h2M13 10h2M6 1v2M10 1v2M6 13v2M10 13v2" stroke-linecap="round"/></svg>`,
 
+  fargate: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="10" height="10" rx="1.5"/><path d="M6 6h4M6 8h4M6 10h2" stroke-linecap="round"/><circle cx="12" cy="4" r="1.5" fill="currentColor" stroke="none"/></svg>`,
 
+  eventbridge: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2 8h3l2-4 2 8 2-4h3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 
+  'step-functions': `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="2" width="5" height="3" rx="0.8"/><rect x="9" y="6" width="5" height="3" rx="0.8"/><rect x="2" y="10" width="5" height="3" rx="0.8"/><path d="M4.5 5l4.5 1M11.5 9l-4.5 1" stroke-linecap="round"/></svg>`,
 
+  cognito: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="8" cy="5.5" r="2.5"/><path d="M4 14c0-2.2 1.8-4 4-4s4 1.8 4 4"/><circle cx="3" cy="5.5" r="1.5"/><path d="M1 11.5c0-1.5 1-2.5 2-2.5"/><circle cx="13" cy="5.5" r="1.5"/><path d="M15 11.5c0-1.5-1-2.5-2-2.5"/></svg>`,
 
   elasticache: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><ellipse cx="8" cy="5" rx="5" ry="2"/><path d="M3 5v6c0 1.1 2.24 2 5 2s5-.9 5-2V5"/><path d="M6 8l1.5 1.5L11 7" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 
+  kinesis: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2 4l4 4-4 4M6 8h8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="8" r="1.5"/></svg>`,
 
+  redshift: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><ellipse cx="8" cy="4.5" rx="5" ry="2"/><path d="M3 4.5v7c0 1.1 2.24 2 5 2s5-.9 5-2v-7"/><path d="M3 8c0 1.1 2.24 2 5 2s5-.9 5-2"/><path d="M6 6h4" stroke-linecap="round"/></svg>`,
 
   sagemaker: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="5" width="12" height="7" rx="1.5"/><path d="M5 5V3.5a3 3 0 0 1 6 0V5"/><circle cx="8" cy="8.5" r="1.5"/></svg>`,
 

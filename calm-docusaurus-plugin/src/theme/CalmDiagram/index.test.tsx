@@ -199,6 +199,13 @@ describe('CalmDiagram in the browser', () => {
     await waitFor(() => expect(viewport().innerHTML).toContain('DARK'));
   });
 
+  it('uses the site theme on the first render', async () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    render(<CalmDiagram data={{ nodes: [], relationships: [] }} />);
+    await waitFor(() => expect(viewport().innerHTML).toContain('CLIENT dark'));
+    expect(renderELKDiagram).toHaveBeenCalledTimes(1);
+  });
+
   it('uses the theme prop over the site theme', async () => {
     document.documentElement.setAttribute('data-theme', 'dark');
     render(<CalmDiagram __bundle={bundle} theme="light" />);

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import { escapeAttr } from './flowOverlay.js';
+
 // ---------------------------------------------------------------------------
 // Edge stroke styles per CALM relationship type
 // ---------------------------------------------------------------------------
@@ -18,16 +20,18 @@ const DEFAULT_DASH = 'none';
 
 /**
  * Returns SVG <defs> containing arrow markers for each relationship type.
+ * @param idPrefix - Prefix for the marker ids, unique to this diagram on the page
  */
-export function renderEdgeMarkers(): string {
+export function renderEdgeMarkers(idPrefix = 'calm'): string {
+  const prefix = escapeAttr(idPrefix);
   return [
     '<defs>',
     // Single reusable arrow marker
-    '<marker id="calm-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse">',
+    `<marker id="${prefix}-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse">`,
     '  <path d="M 0 0 L 10 5 L 0 10 z" fill="#555"/>',
     '</marker>',
     // Dashed edge marker (same shape, different color for interacts)
-    '<marker id="calm-arrow-dashed" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse">',
+    `<marker id="${prefix}-arrow-dashed" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto-start-reverse">`,
     '  <path d="M 0 0 L 10 5 L 0 10 z" fill="#888"/>',
     '</marker>',
     '</defs>',
@@ -49,13 +53,13 @@ export interface RenderEdgeInput {
  * Build SVG for a single edge: polyline with arrow marker.
  * Stroke style varies by relationship type.
  */
-export function renderEdgeSvg(edge: RenderEdgeInput): string {
+export function renderEdgeSvg(edge: RenderEdgeInput, idPrefix = 'calm'): string {
   if (edge.points.length < 2) return '';
 
   const relType = edge.relationshipType ?? 'connects';
   const dashArray = RELATIONSHIP_DASH[relType] ?? DEFAULT_DASH;
   const strokeColor = relType === 'interacts' ? '#888' : '#555';
-  const markerId = relType === 'interacts' ? 'calm-arrow-dashed' : 'calm-arrow';
+  const markerId = escapeAttr(`${idPrefix}-${relType === 'interacts' ? 'arrow-dashed' : 'arrow'}`);
 
   const pointsStr = edge.points.map((p) => `${p.x},${p.y}`).join(' ');
   const dashAttr = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';

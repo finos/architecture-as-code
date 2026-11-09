@@ -163,7 +163,7 @@ function getReferencedNodeIdsWithFlatFallback(rel: CalmRelationship): string[] {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function escapeAttr(str: string): string {
+export function escapeAttr(str: string): string {
   return str
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')

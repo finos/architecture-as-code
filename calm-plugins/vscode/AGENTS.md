@@ -110,10 +110,10 @@ the parity of the minor. A preview gets a patch for each release. A stable `feat
 (1.2.x → 1.4.0). To start a new line, run the workflow with `force-release` and a `release-type`:
 `preview` (next odd minor), `stable` (next even minor), `major` or `patch`.
 
-A change releases the extension when it touched `calm-plugins/vscode` and is a `feat`, `fix`,
-`perf` or `revert`, or has a breaking-change note. A PR for another package that changes the
-extension counts too. Dependency updates do not. The changelog lists the same changes, plus scoped
-`docs` and `refactor` changes. `npm run changelog --workspace calm-plugins/vscode` writes the whole
+A change releases the extension when it touched `calm-plugins/vscode` or `calm-diagram/src/packs`
+and is a `feat`, `fix`, `perf` or `revert`, or has a breaking-change note. A PR for another package
+that changes the extension counts too. Dependency updates do not. The changelog lists the same
+changes, plus scoped `docs` and `refactor` changes. `npm run changelog --workspace calm-plugins/vscode` writes the whole
 file again from the tags.
 
 ## Bundled Schemas

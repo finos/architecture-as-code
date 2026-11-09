@@ -288,7 +288,7 @@ export async function renderELKDiagram(
   );
 
   // Arrow markers
-  parts.push(renderEdgeMarkers());
+  parts.push(renderEdgeMarkers(idPrefix));
 
   // Resolve active flow (if any) and build edge layout map for overlay
   const activeFlow = flowId
@@ -357,7 +357,7 @@ export async function renderELKDiagram(
           id: edge.id,
           points,
           relationshipType: relType,
-        })
+        }, idPrefix)
           .replace('stroke="#555"', `stroke="${edgeColor}"`)
           .replace('stroke="#888"', `stroke="${edgeColor}"`);
 

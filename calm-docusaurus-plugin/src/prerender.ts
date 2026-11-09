@@ -32,8 +32,8 @@ function extractSvgSize(svg: string): { width: number; height: number } | null {
 export async function prerenderCalmSvg(architecture: unknown): Promise<CalmSvgBundle> {
   const arch = architecture as CalmArchitecture;
   const [light, dark] = await Promise.all([
-    renderELKDiagram(arch, { theme: 'light' }),
-    renderELKDiagram(arch, { theme: 'dark' }),
+    renderELKDiagram(arch, { theme: 'light', idPrefix: 'calm-light' }),
+    renderELKDiagram(arch, { theme: 'dark', idPrefix: 'calm-dark' }),
   ]);
   const size = extractSvgSize(light) ?? FALLBACK_SIZE;
   return { svg: { light, dark }, size };

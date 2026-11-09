@@ -232,6 +232,9 @@ describe('renderELKDiagram with nested relationship-type (integration)', () => {
     const prefixed = await renderELKDiagram(arch, { theme: 'light', flow: 'usage-flow', idPrefix: 'second' });
     expect(prefixed).toContain('<mpath href="#second-flow-path-0"/>');
     expect(prefixed).toContain('<mpath href="#second-flow-path-1"/>');
+    expect(prefixed).toContain('<marker id="second-arrow-dashed" ');
+    expect(prefixed).toContain('marker-end="url(#second-arrow-dashed)"');
+    expect(prefixed).not.toContain('calm-arrow');
   });
 });
 
