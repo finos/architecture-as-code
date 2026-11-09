@@ -11,6 +11,7 @@ describe('document-id-type', () => {
             ['flows', 'flow'],
             ['standards', 'schema'],
             ['interfaces', 'interface'],
+            ['timelines', 'timeline'],
         ])('maps a %s $id to the %s document type', (resourceType, documentType) => {
             expect(documentTypeForDocumentId(namespaceId(resourceType))).toBe(documentType);
         });
@@ -30,21 +31,22 @@ describe('document-id-type', () => {
         it('returns the resource type for a document type that has one', () => {
             expect(resourceTypeForDocumentType('flow')).toBe('flows');
             expect(resourceTypeForDocumentType('schema')).toBe('standards');
+            expect(resourceTypeForDocumentType('timeline')).toBe('timelines');
         });
 
         it('returns undefined for a document type with no namespace resource type', () => {
             expect(resourceTypeForDocumentType('control')).toBeUndefined();
-            expect(resourceTypeForDocumentType('timeline')).toBeUndefined();
+            expect(resourceTypeForDocumentType('adr')).toBeUndefined();
         });
     });
 
     describe('documentTypeHasIdType', () => {
-        it.each(['pattern', 'architecture', 'flow', 'schema', 'interface', 'control'] as const)('is true for %s', (type) => {
+        it.each(['pattern', 'architecture', 'flow', 'schema', 'interface', 'timeline', 'control'] as const)('is true for %s', (type) => {
             expect(documentTypeHasIdType(type)).toBe(true);
         });
 
-        it.each(['timeline', 'adr'] as const)('is false for %s, which has no $id form', (type) => {
-            expect(documentTypeHasIdType(type)).toBe(false);
+        it('is false for adr, which has no $id form', () => {
+            expect(documentTypeHasIdType('adr')).toBe(false);
         });
     });
 

@@ -378,6 +378,23 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.addFileToBundle).not.toHaveBeenCalled();
         });
 
+        it('takes the timeline type from a timelines $id when --type is omitted', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/namespaces/ns/timelines/my-timeline/versions/1.0.0',
+                title: 'My Timeline',
+                moments: [],
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'my-timeline.json']);
+
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('my-timeline.json'),
+                expect.objectContaining({ id: 'My Timeline', type: 'timeline', namespace: 'ns' })
+            );
+        });
+
         it.each(['timeline', 'adr'])('rejects --type %s for a conformant CalmHub $id, without adding the file', async (type) => {
             mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Doc' }));
 
