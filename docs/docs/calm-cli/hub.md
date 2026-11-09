@@ -278,7 +278,7 @@ calm hub list timelines --namespace my-namespace -c http://localhost:8080
 
 ### Push a timeline
 
-The document's `$id` field determines the target namespace, resource type, and mapping slug. The CLI computes the next version, rewrites `$id` in the local file, and uploads the document.
+The file must include a top-level `title` alongside `$id`. The document's `$id` field determines the target namespace, resource type, and mapping slug. The CLI computes the next version, rewrites `$id` in the local file, and uploads the document.
 
 ```shell
 calm hub push timeline my-timeline.json -c http://localhost:8080
@@ -286,7 +286,7 @@ calm hub push timeline my-timeline.json -c http://localhost:8080
 
 **Options:**
 
-- **`--name <name>`**: Optional display name override (falls back to the document's `title` field).
+- **`--name <name>`**: Optional display name override (replaces the document's `title` field when pushed; `title` must still be present in the file).
 - **`--description <description>`**: Optional description override (falls back to the document's `description` field).
 - **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
 - **`--fail-if-modified`**: Skip if the document is unchanged from the latest published version; fail if it has changed.
