@@ -7,7 +7,6 @@ import shared from '@site/src/components/shared.module.css';
 const TOOLS = [
     {to: '/working-with-calm/cli', title: 'CLI', desc: 'Install, navigate and use the CALM CLI to generate, validate and document architectures, and interact with CALM Hub.'},
     {to: '/working-with-calm/calm-hub', title: 'CALM Hub', desc: 'Explore and inspect the visual registry of architectures, patterns and compliance controls.'},
-    {to: '/working-with-calm/calm-studio', title: 'CALM Studio', desc: 'Design architecture diagrams visually and generate validated CALM as you draw.'},
     {to: '/working-with-calm/vscode-extension', title: 'VS Code Extension', desc: 'Live-validate, visualize and navigate CALM architectures directly inside your editor.'},
     {to: '/working-with-calm/validation-server', title: 'Validation Server', desc: 'Run a standalone HTTP server for remote CALM architecture validation.'},
     {to: '/working-with-calm/voice-mode', title: 'Voice Mode', desc: 'Enable hands-free interaction with CALM Copilot Chat using voice commands.'},

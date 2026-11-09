@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { validateControls, validateControlConfig } from './validation';
+import { validateControls, validateControlConfig, validateArchitecture } from './validation';
+import sampleCalm from '../../../sample.calm.json';
 
 const control = (validation: unknown, value?: string) => ({
     requirements: [{ config: value === undefined ? {} : { value } }],
@@ -10,14 +11,14 @@ describe('validateControlConfig', () => {
     it('errors (unconfigured) when an allowed-values control has no value', () => {
         const issues = validateControlConfig(
             'api-gw',
-            control({ 'allowed-values': ['Stratum', 'AWS API GW'] }),
+            control({ 'allowed-values': ['Kong', 'AWS API GW'] }),
             '"Svc"',
             'svc-1'
         );
         expect(issues).toHaveLength(1);
         expect(issues[0].severity).toBe('error');
         expect(issues[0].message).toContain('not configured');
-        expect(issues[0].message).toContain('Stratum');
+        expect(issues[0].message).toContain('Kong');
         expect(issues[0].nodeId).toBe('svc-1');
         expect(issues[0].controlId).toBe('api-gw');
     });
@@ -25,7 +26,7 @@ describe('validateControlConfig', () => {
     it('errors when the value is not one of the allowed values', () => {
         const issues = validateControlConfig(
             'api-gw',
-            control({ 'allowed-values': ['Stratum'] }, 'Nginx'),
+            control({ 'allowed-values': ['Kong'] }, 'Nginx'),
             '"Svc"'
         );
         expect(issues).toHaveLength(1);
@@ -37,7 +38,7 @@ describe('validateControlConfig', () => {
         expect(
             validateControlConfig(
                 'api-gw',
-                control({ 'allowed-values': ['Stratum'] }, 'Stratum'),
+                control({ 'allowed-values': ['Kong'] }, 'Kong'),
                 '"Svc"'
             )
         ).toEqual([]);
@@ -103,7 +104,7 @@ describe('validateControls', () => {
                     name: 'Microservice',
                     controls: {
                         'api-gateway': control({
-                            'allowed-values': ['Stratum'],
+                            'allowed-values': ['Kong'],
                         }),
                         'health-api': control(
                             { pattern: '^/[a-z]+$' },
@@ -246,5 +247,12 @@ describe('validateControlConfig (multi-property shape)', () => {
                 '"Svc"'
             )
         ).toEqual([]);
+    });
+});
+
+describe('sample.calm.json', () => {
+    it('passes full CALM architecture and control validation without errors or warnings', () => {
+        const issues = validateArchitecture(sampleCalm as any);
+        expect(issues).toEqual([]);
     });
 });

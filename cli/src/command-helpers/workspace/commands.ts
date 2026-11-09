@@ -7,11 +7,12 @@ import { printBundleTree } from './tree';
 import { removeDocumentFromManifest } from './rm';
 import { createNewDocument, getTemplatesForType } from './new';
 import { promptForDocumentId } from './document-id-prompt';
-import { documentTypeForContent, documentTypeForDocumentId, documentTypeHasIdType } from './document-id-type';
+import { documentTypeForContent, documentTypeForDocumentId } from './document-id-type';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
 import { markAsSnapshot, releaseSnapshot, findSnapshotDependencyViolations, listSnapshotCandidates } from './snapshot';
 import { loadPostBumpValidationOptions, runPostBumpValidation } from './post-bump-validate';
+import { checkWorkspaceLayout } from './layout-check';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
 import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId, resourceTypeFromDocumentId, documentName } from '@finos/calm-shared';
@@ -156,8 +157,6 @@ async function addMappingDocument(
             // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
             // Silently rewriting would be data loss for types that don't use CalmHub URLs (adr, timeline, etc.).
             logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
-        } else if (!documentTypeHasIdType(type)) {
-            logger.warn(`Document type '${type}' has no CalmHub resource type, so push and bump use the type in the $id '${existingId}'.`);
         } else {
             // push and bump take the type from the $id, but check validates by the manifest type,
             // so a mismatch would skip validation.
@@ -593,6 +592,12 @@ export function setupWorkspaceCommands(program: Command) {
                 const snapshotViolations = await findSnapshotDependencyViolations(bundlePath);
                 for (const v of snapshotViolations) {
                     logger.error(`'${v.id}' depends on snapshot version(s) of: ${v.dependsOn.join(', ')} — release those first, or pin a released version.`);
+                }
+
+                // Warn when tracked files are in directories that CALM Hub GitHub mode will not read as their type (#3208)
+                const layoutWarnings = await checkWorkspaceLayout(bundlePath, manifest);
+                for (const w of layoutWarnings) {
+                    logger.warn(w.message);
                 }
 
                 if (needsBump || validationFailed || snapshotViolations.length > 0) {

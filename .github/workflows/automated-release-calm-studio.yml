@@ -46,7 +46,6 @@ jobs:
                   npm run build --if-present --workspace=@calmstudio/calm-core
                   npm run build --if-present --workspace=@calmstudio/extensions
                   npm run build --if-present --workspace=@calmstudio/mcp
-                  npm run build --if-present --workspace=@calmstudio/studio
                   npm run build --if-present --workspace=calmstudio
                   npm run build --if-present --workspace=@calmstudio/github-action
                   npm run build --if-present --workspace=@calmstudio/diagram

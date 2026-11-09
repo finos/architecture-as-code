@@ -60,7 +60,6 @@ export const TOOLS = {
         ],
     },
     // calm-core reads the schema. The other packages bundle or call calm-core, so test them all.
-    // The Playwright e2e job of build-calm-studio.yml is left out.
     'calm-studio': {
         workflow: 'build-calm-studio.yml',
         commands: [
@@ -69,7 +68,6 @@ export const TOOLS = {
             'npm run build --if-present --workspace=@calmstudio/extensions',
             'npm run build --if-present --workspace=@calmstudio/mcp',
             'npm run build --if-present --workspace=@calmstudio/diagram',
-            'npm run build --if-present --workspace=@calmstudio/studio',
             'npm run build --if-present --workspace=calmstudio',
             'npm run build --if-present --workspace=@calmstudio/github-action',
             'npm run build --if-present --workspace=@finos/calm-docusaurus-plugin',
@@ -81,7 +79,6 @@ export const TOOLS = {
             'npm run test --if-present --workspace=@calmstudio/calm-core',
             'npm run test --if-present --workspace=@calmstudio/extensions',
             'npm run test --if-present --workspace=@calmstudio/mcp',
-            'npm run test --if-present --workspace=@calmstudio/studio',
             'npm run test --if-present --workspace=@calmstudio/diagram',
             'npm run test --if-present --workspace=@finos/calm-docusaurus-plugin',
         ],

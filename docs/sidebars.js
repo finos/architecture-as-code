@@ -61,7 +61,6 @@ const sidebars = {
             'working-with-calm/calm-hub-entitlements',
           ],
         },
-        'working-with-calm/calm-studio',
         'working-with-calm/vscode-extension',
         {
           type: 'category',

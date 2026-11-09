@@ -7,7 +7,6 @@
     "node": ">=26.0.0"
   },
   "workspaces": [
-    "apps/studio",
     "packages/calm-core",
     "packages/extensions",
     "packages/mcp-server",

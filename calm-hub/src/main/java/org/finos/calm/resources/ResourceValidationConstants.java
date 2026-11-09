@@ -17,16 +17,16 @@ public class ResourceValidationConstants {
     public static final String VERSION_REGEX = "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$";
     public static final String VERSION_OR_SHA_REGEX = "^((0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)|[0-9a-f]{7,40})$";
     public static final String VERSION_MESSAGE = "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$'";
-    // The same pattern as VERSION_REGEX, plus an optional fixed -SNAPSHOT marker. Applied only
-    // to the five namespace resource types. ADR, timeline, control and layout endpoints keep
-    // VERSION_REGEX: ADR runs on the NUMERIC version scheme, where a suffixed value is an
-    // unparseable revision rather than a version.
+    // The same pattern as VERSION_REGEX, plus an optional fixed -SNAPSHOT marker. Applied to
+    // the six namespace resource types on the name-based API. ADR, control, layout, and numeric
+    // timeline write endpoints keep VERSION_REGEX: ADR runs on the NUMERIC version scheme, where
+    // a suffixed value is an unparseable revision rather than a version.
     public static final String SNAPSHOT_VERSION_REGEX =
             "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(" + ResourceVersion.SNAPSHOT_SUFFIX + ")?$";
     public static final String SNAPSHOT_VERSION_MESSAGE =
             "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(-SNAPSHOT)?$'";
     public static final String VERSION_OR_SHA_MESSAGE = "version must be semver (e.g. 1.0.0) or a hex SHA (7-40 chars)";
-    // Read endpoints of the five namespace resource types also accept a commit SHA (GitHub-backed storage).
+    // Read endpoints of the six namespace resource types also accept a commit SHA (GitHub-backed storage).
     public static final String SNAPSHOT_VERSION_OR_SHA_REGEX =
             "^((0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(" + ResourceVersion.SNAPSHOT_SUFFIX + ")?|[0-9a-f]{7,40})$";
     public static final String SNAPSHOT_VERSION_OR_SHA_MESSAGE =

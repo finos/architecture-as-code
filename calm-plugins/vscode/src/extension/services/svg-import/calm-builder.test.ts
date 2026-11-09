@@ -179,7 +179,7 @@ describe('buildCalmJson', () => {
         const graph: ParsedSvgGraph = {
             sourceFormat: 'drawio',
             nodes: [
-                { id: 'c1', label: 'ECTA Zone', shapeHint: 'rounded-rectangle', geometry: { x: 0, y: 0, width: 600, height: 400 }, styleProps: { dashed: '1', fillColor: 'none' } },
+                { id: 'c1', label: 'App Zone', shapeHint: 'rounded-rectangle', geometry: { x: 0, y: 0, width: 600, height: 400 }, styleProps: { dashed: '1', fillColor: 'none' } },
                 { id: 'n1', label: 'API', shapeHint: 'rounded-rectangle', geometry: { x: 50, y: 50, width: 150, height: 60 }, styleProps: { fillColor: '#38761d' } },
                 { id: 'n2', label: 'DB', shapeHint: 'cylinder', geometry: { x: 300, y: 50, width: 100, height: 80 }, styleProps: { fillColor: '#1c4587' } },
             ],
@@ -191,7 +191,7 @@ describe('buildCalmJson', () => {
         const deployedIn = doc.relationships.find((r: any) => r['relationship-type']['deployed-in']);
 
         expect(deployedIn).toBeDefined();
-        expect(deployedIn['relationship-type']['deployed-in'].container).toBe('network-ecta-zone');
+        expect(deployedIn['relationship-type']['deployed-in'].container).toBe('network-app-zone');
         expect(deployedIn['relationship-type']['deployed-in'].nodes).toContain('service-api');
         expect(deployedIn['relationship-type']['deployed-in'].nodes).toContain('database-db');
     });
@@ -249,16 +249,16 @@ describe('buildCalmJson', () => {
         const graph: ParsedSvgGraph = {
             sourceFormat: 'drawio',
             nodes: [
-                { id: 'v1', label: 'ECTA\nEnterprise Click to Agree [AP167757]', shapeHint: 'rounded-rectangle', geometry: { x: 0, y: 0, width: 100, height: 50 }, styleProps: {} },
+                { id: 'v1', label: 'OrderService\nOrder Processing Service [APP-101]', shapeHint: 'rounded-rectangle', geometry: { x: 0, y: 0, width: 100, height: 50 }, styleProps: {} },
             ],
             edges: [],
         };
 
         const result = buildCalmJson(graph);
         const doc = JSON.parse(result.json);
-        expect(doc.nodes[0].name).toBe('ECTA');
-        expect(doc.nodes[0].description).toBe('Enterprise Click to Agree [AP167757]');
-        expect(doc.nodes[0]['unique-id']).toBe('service-ecta');
+        expect(doc.nodes[0].name).toBe('OrderService');
+        expect(doc.nodes[0].description).toBe('Order Processing Service [APP-101]');
+        expect(doc.nodes[0]['unique-id']).toBe('service-orderservice');
     });
 
     it('uses parent-relative coordinates in _layout for contained nodes', () => {

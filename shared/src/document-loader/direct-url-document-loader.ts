@@ -3,6 +3,7 @@ import { ipLiteralVersion } from '../util/ip-literal.js';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { assertResponseOrigin } from './response-origin.js';
+import { assertNoTraversal, assertSafeRequestPath } from './request-guards.js';
 import { Logger, initLogger } from '../logger';
 import type { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin.js';
 import type { CalmDocumentType } from '@finos/calm-models/types';
@@ -24,10 +25,6 @@ const PRIVATE_IPV6_PATTERNS = [
     /^fd/i,
     /^fe80:/i,
 ];
-
-// Mirrors CalmHubDocumentLoader.SAFE_PATH_PATTERN: a strict character allowlist for the request
-// path, checked in addition to (not instead of) the host allowlist below.
-const SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_.-]+$/;
 
 const TLS_CERTIFICATE_ERROR_CODES = new Set([
     'ERR_TLS_CERT_ALTNAME_INVALID',
@@ -271,24 +268,9 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     recoverable: false
                 });
             }
-            // The URL constructor normalizes '..' segments, so parsedUrl.pathname is already
-            // resolved. Reject if the original input contained traversal sequences before
-            // normalization, rather than silently trusting the normalized result.
-            if (documentId.includes('/..')) {
-                throw new DocumentLoadError({
-                    name: 'UNKNOWN',
-                    message: `Direct URL loading rejected a path containing directory traversal: ${documentId}`,
-                    recoverable: false
-                });
-            }
+            assertNoTraversal(documentId, 'Direct URL loading');
             const requestPath = toRequestPath(parsedUrl);
-            if (!SAFE_PATH_PATTERN.test(requestPath)) {
-                throw new DocumentLoadError({
-                    name: 'UNKNOWN',
-                    message: `Direct URL loading rejected a path with disallowed characters: ${requestPath}`,
-                    recoverable: false
-                });
-            }
+            assertSafeRequestPath(requestPath, 'Direct URL loading');
             if (parsedUrl.search) {
                 throw new DocumentLoadError({
                     name: 'UNKNOWN',

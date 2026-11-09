@@ -518,6 +518,19 @@ describe('direct-url-document-loader', () => {
             .rejects.toThrow('directory traversal');
     });
 
+    it.each([
+        'https://calm.finos.org/calm/%2e%2e/secret.json',
+        'https://calm.finos.org/calm/%2E%2E/secret.json',
+        'https://calm.finos.org/calm/.%2e/secret.json',
+        'https://calm.finos.org/calm\\..\\secret.json',
+        'https://calm.finos.org/calm/.\t./secret.json',
+    ])('rejects traversal that the URL parser resolves before the path check: %s', async (url) => {
+        const promise = directUrlDocumentLoader.loadMissingDocument(url, 'schema');
+        await expect(promise).rejects.toThrow('directory traversal');
+        await expect(promise).rejects.toMatchObject({ recoverable: false });
+        expect(mock.history.get).toHaveLength(0);
+    });
+
     it('does not call the direct URL auth plugin for unsafe URLs', async () => {
         const directUrlAuthPlugin = {
             getAuthHeaders: vi.fn()

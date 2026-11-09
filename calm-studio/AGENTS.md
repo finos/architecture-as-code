@@ -1,10 +1,11 @@
 # CalmStudio
 
-Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, npm workspaces monorepo.
+The packages that remain from the retired CALM Studio app. The docs diagram embed uses
+`calm-core`, `extensions`, `web-component` and `docusaurus-plugin`. TypeScript strict.
 
 ## Structure
-Each entry below is a root npm workspace, matched by `calm-studio/packages/*` and
-`calm-studio/apps/*` in the root `package.json`. Run npm commands from the repo root.
+Each entry below is a root npm workspace, matched by `calm-studio/packages/*` in the root
+`package.json`. Run npm commands from the repo root.
 
 - `packages/calm-core/` (`@calmstudio/calm-core`) — CALM types, validation
 - `packages/extensions/` (`@calmstudio/extensions`) — Node type packs (core, fluxnova, ai, aws, gcp, azure, k8s, messaging, identity, opengris)
@@ -13,19 +14,6 @@ Each entry below is a root npm workspace, matched by `calm-studio/packages/*` an
 - `packages/vscode-extension/` (`calmstudio`) — VSCode extension build target
 - `packages/web-component/` (`@calmstudio/diagram`) — embeddable web component build target
 - `packages/docusaurus-plugin/` (`@finos/calm-docusaurus-plugin`) — Docusaurus plugin
-- `apps/studio/` (`@calmstudio/studio`) — the SvelteKit app; `src/lib/` holds canvas, editor, io, layout, palette, properties, stores, validation, governance, templates (also c4, desktop, search, toolbar; list illustrative)
-
-## Commands
-`npm run dev --workspace=@calmstudio/studio` | `npm run build --workspace=@calmstudio/studio` | `npm run test --workspace=@calmstudio/studio` | `npm run typecheck --workspace=@calmstudio/studio` (from repo root)
-
-## Testing gotcha — `localStorage` under Node 26
-
-`apps/studio/src/lib/stores/theme.svelte.ts` reads `localStorage` in production code.
-On Node 26 the global Web Storage API throws a `DOMException` when accessed without
-`--localstorage-file`, and in jsdom it shadows jsdom's own working implementation. No
-test exercises this path today, so the first jsdom test written against it will fail
-unless it stubs Storage. See [../calm-hub-ui/AGENTS.md](../calm-hub-ui/AGENTS.md) for the injection pattern
-used elsewhere in the repo.
 
 ## CALM 1.2 Rules
 
@@ -64,7 +52,7 @@ The flat shape (`'relationship-type': 'connects'` + sibling `source`/`destinatio
 Docs: `docs/AIGF_CATALOGUE.json`, `docs/CALM_1.2_CONTROLS_SCHEMA.md`, `docs/REQ_fluxnova_aigf_integration.md`. Follow control rules above.
 
 ## Conventions
-- TS strict, no `any`. Svelte 5 runes only. kebab-case files, PascalCase components/types.
+- TS strict, no `any`. Svelte 5 runes only (`web-component`). kebab-case files, PascalCase components/types.
 - Conventional commits.
 
 ## Refs

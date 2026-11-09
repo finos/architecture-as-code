@@ -4,9 +4,8 @@
 
 /**
  * Pure helpers for AIGF governance decorator computation.
- * Mirrors the studio's export-time decorator generator (apps/studio/src/lib/io/export.ts)
- * so MCP-driven architecture mutations attach the same governance overlay shape that
- * exported artifacts carry. Idempotent: running on its own output produces the same value.
+ * MCP-driven architecture mutations attach this governance overlay.
+ * Idempotent: running on its own output produces the same value.
  */
 
 import type {
