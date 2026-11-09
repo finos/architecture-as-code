@@ -469,7 +469,7 @@ function CanvasApp() {
         const edit = deleteDrawings(nodes, edges, deletedNodes);
         const deletedIds = new Set(deletedNodes.map((n) => n.id));
         keptOnDelete.current = new Set(edit.nodes.map((n) => n.id));
-        if (selectedNode && deletedIds.has(selectedNode.id)) setSelectedNode(null);
+        if (selectedNode && !edit.nodes.some((n) => n.id === selectedNode.id)) setSelectedNode(null);
         setNodes(edit.nodes);
         // React Flow has already removed the picked edges and the edges of the deleted drawings.
         // The edit decides on the edges of the drawings only: some stay, or move to another drawing.

@@ -211,6 +211,30 @@ describe('App: edits on a canvas with copies', () => {
         expect(saves()).toHaveLength(saved);
     });
 
+    it('keeps the selection when the delete keeps the selected node in another container', () => {
+        open({
+            nodes: [node('X'), node('Y'), node('s'), node('z')],
+            relationships: [deployedIn('r1', 'Y', ['s']), deployedIn('r2', 'X', ['Y', 's']), connects('c1', 's', 'z')],
+        });
+        act(() => flow.onNodeClick({}, flow.nodes.find((n) => n.id === 's')!));
+        deleteDrawings(['Y']);
+
+        expect([...document.querySelectorAll('input')].some((i) => i.value === 's')).toBe(true);
+    });
+
+    it('clears the selection when the delete removes the selected drawing with another one', () => {
+        // N__in__C is drawn in both drawings of C. Deleting one removes N from C, so both go.
+        open({
+            nodes: [node('P1'), node('P2'), node('C'), node('D'), node('N')],
+            relationships: [deployedIn('r1', 'P1', ['C']), deployedIn('r2', 'P2', ['C']), deployedIn('r3', 'C', ['N']), deployedIn('r4', 'D', ['N'])],
+        });
+        const inC = flow.nodes.filter((n) => n.data.calmId === 'N' && flow.nodes.find((m) => m.id === n.parentId)?.data.calmId === 'C');
+        act(() => flow.onNodeClick({}, inC[1]));
+        deleteDrawings([inC[0].id]);
+
+        expect([...document.querySelectorAll('button')].some((b) => b.textContent === 'Remove from Container')).toBe(false);
+    });
+
     it('removes the shown drawing from its container with the shortcut after a rebuild', () => {
         open({
             nodes: [node('cluster-a'), node('cluster-b'), node('cluster-c'), node('ns')],
@@ -370,7 +394,7 @@ describe('App: edits on a canvas with copies', () => {
         expect(document.querySelector('[role="status"]')).not.toBeNull();
     });
 
-    it('saves once without a rebuild when no node has several drawings', () => {
+    it('saves without a rebuild when no node has several drawings', () => {
         open({ nodes: [node('a'), node('b'), node('c')], relationships: [deployedIn('r1', 'a', ['b', 'c'])] });
         deleteDrawings(['b']);
 
