@@ -46,7 +46,7 @@ import {
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
-import { updateInstances, hasSharedDrawings } from './transforms/node-instances';
+import { updateInstances, hasSharedDrawings, samePlace } from './transforms/node-instances';
 import { resolveLiveSelectedNode } from './utils/live-selected-node';
 import { deleteDrawings, unparentDrawing, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
 import { NodePalette } from './panels/NodePalette';
@@ -281,6 +281,7 @@ function CanvasApp() {
             // document-level controls are scanned; local refs always re-resolve.
             const generation = loadGeneration.current;
             setTimeout(() => enrichAllControls(originals, generation), 0);
+            return layoutedNodes;
         } catch (err) {
             console.error('[CALM Canvas] Failed to load architecture:', err);
         }
@@ -290,9 +291,13 @@ function CanvasApp() {
     // so every drawing of a container shows the same members
     const emitAndReload = useCallback(() => {
         const before = lastEmittedJson.current;
+        const drawn = reactFlowInstance.getNodes();
         emitChange(true, true);
-        if (lastEmittedJson.current && lastEmittedJson.current !== before) loadArchitecture(lastEmittedJson.current);
-    }, [emitChange, loadArchitecture]);
+        if (!lastEmittedJson.current || lastEmittedJson.current === before) return;
+        const rebuilt = loadArchitecture(lastEmittedJson.current);
+        // Keep the selection on the drawing at the same place; the rebuild can change its id
+        if (rebuilt) setSelectedNode((sel) => (sel && samePlace(sel.id, drawn, rebuilt)) ?? sel);
+    }, [emitChange, loadArchitecture, reactFlowInstance]);
 
     // --- Bridge setup ---
     useEffect(() => {
@@ -469,7 +474,8 @@ function CanvasApp() {
         const edit = deleteDrawings(nodes, edges, deletedNodes);
         const deletedIds = new Set(deletedNodes.map((n) => n.id));
         keptOnDelete.current = new Set(edit.nodes.map((n) => n.id));
-        if (selectedNode && !edit.nodes.some((n) => n.id === selectedNode.id)) setSelectedNode(null);
+        const selected = resolveLiveSelectedNode(selectedNode, nodes);
+        if (selected && !edit.nodes.some((n) => n.id === selected.id)) setSelectedNode(null);
         setNodes(edit.nodes);
         // React Flow has already removed the picked edges and the edges of the deleted drawings.
         // The edit decides on the edges of the drawings only: some stay, or move to another drawing.

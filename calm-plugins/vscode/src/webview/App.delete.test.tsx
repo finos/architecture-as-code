@@ -223,7 +223,7 @@ describe('App: edits on a canvas with copies', () => {
     });
 
     it('clears the selection when the delete removes the selected drawing with another one', () => {
-        // N__in__C is drawn in both drawings of C. Deleting one removes N from C, so both go.
+        // N is drawn in both drawings of C. Deleting one removes N from C, so both go.
         open({
             nodes: [node('P1'), node('P2'), node('C'), node('D'), node('N')],
             relationships: [deployedIn('r1', 'P1', ['C']), deployedIn('r2', 'P2', ['C']), deployedIn('r3', 'C', ['N']), deployedIn('r4', 'D', ['N'])],
@@ -232,7 +232,26 @@ describe('App: edits on a canvas with copies', () => {
         act(() => flow.onNodeClick({}, inC[1]));
         deleteDrawings([inC[0].id]);
 
-        expect([...document.querySelectorAll('button')].some((b) => b.textContent === 'Remove from Container')).toBe(false);
+        expect([...document.querySelectorAll('input')].some((i) => i.value === 'N')).toBe(false);
+    });
+
+    it('keeps the selection on the same drawing when a rebuild renames it', () => {
+        const removeFromContainer = () => {
+            act(() => [...document.querySelectorAll('button')].find((b) => b.textContent === 'Remove from Container')!.click());
+            act(() => vi.runAllTimers());
+        };
+        const r = (id: string) => lastSave().relationships.find((x: { 'unique-id': string }) => x['unique-id'] === id)['relationship-type']['deployed-in'].nodes;
+        open({
+            nodes: [node('P1'), node('P2'), node('C'), node('D'), node('N'), node('z')],
+            relationships: [deployedIn('r1', 'P1', ['C']), deployedIn('r2', 'P2', ['C']), deployedIn('r3', 'C', ['N']), deployedIn('r4', 'D', ['N'])],
+        });
+        // N in C in P1. The rebuild after P2 goes draws C only in P1, and renames this drawing.
+        act(() => flow.onNodeClick({}, flow.nodes.find((n) => n.data.calmId === 'N' && n.parentId === 'C__in__P1')!));
+        deleteDrawings(['P2']);
+        deleteDrawings(['z']);
+
+        removeFromContainer();
+        expect([r('r3'), r('r4')]).toEqual([[], ['N']]);
     });
 
     it('removes the shown drawing from its container with the shortcut after a rebuild', () => {

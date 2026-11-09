@@ -3,6 +3,23 @@ import type { Node, Edge } from 'reactflow';
 // A CALM node in several containers is drawn once per container. All drawings share data.calmId.
 export const calmIdOf = (n: Node): string => ((n.data as Record<string, unknown> | undefined)?.calmId as string) ?? n.id;
 
+/** The CALM ids from the top-level container down to the drawing: the same after a rebuild that keeps it. */
+export function pathOf(n: Node, byId: Map<string, Node>): string {
+    const path: string[] = [];
+    for (let c: Node | undefined = n; c; c = c.parentId ? byId.get(c.parentId) : undefined) path.unshift(calmIdOf(c));
+    return path.join('/');
+}
+
+/** The drawing in `after` at the place of drawing `id` in `before`. */
+export function samePlace(id: string, before: Node[], after: Node[]): Node | undefined {
+    const beforeById = new Map(before.map((n) => [n.id, n]));
+    const drawing = beforeById.get(id);
+    if (!drawing) return undefined;
+    const path = pathOf(drawing, beforeById);
+    const afterById = new Map(after.map((n) => [n.id, n]));
+    return after.find((n) => pathOf(n, afterById) === path);
+}
+
 /** Applies `update` to every drawing of the CALM node drawn as `nodeId`. */
 export function updateInstances(nodes: Node[], nodeId: string, update: (n: Node) => Node): Node[] {
     const target = nodes.find((n) => n.id === nodeId);

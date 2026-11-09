@@ -1,5 +1,5 @@
 import type { Node, Edge } from 'reactflow';
-import { calmIdOf } from './node-instances';
+import { calmIdOf, pathOf } from './node-instances';
 import { parseCALMData } from './calm-parser';
 
 export interface LayoutEntry { x: number; y: number; w?: number; h?: number }
@@ -269,11 +269,6 @@ export function flowToCalm(
  * drawing of the same node goes, so each position is found by the drawing's path of CALM ids.
  */
 export function relayoutByPath(arch: CalmArchitecture, nodes: Node[]): LayoutMap {
-    const pathOf = (n: Node, byId: Map<string, Node>) => {
-        const path: string[] = [];
-        for (let c: Node | undefined = n; c; c = c.parentId ? byId.get(c.parentId) : undefined) path.unshift(calmIdOf(c));
-        return path.join('/');
-    };
     const current = new Map(nodes.map((n) => [n.id, n]));
     const byPath = new Map(nodes.map((n) => [pathOf(n, current), n]));
     const reloaded = parseCALMData(arch).nodes;
