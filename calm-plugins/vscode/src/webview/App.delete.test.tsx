@@ -64,14 +64,14 @@ const open = (arch: object) => {
 };
 // ReactFlow deletes the picked drawings and those nested in them. It calls onEdgesChange for their edges,
 // then onNodesDelete, then onNodesChange.
-const deleteDrawings = (picked: string[]) => {
+const deleteDrawings = (picked: string[], pickedEdges: string[] = []) => {
     const ids = new Set(picked);
     for (let grew = true; grew;) {
         grew = false;
         for (const n of flow.nodes) if (n.parentId && ids.has(n.parentId) && !ids.has(n.id)) { ids.add(n.id); grew = true; }
     }
     const deleted = flow.nodes.filter((n) => ids.has(n.id));
-    const deletedEdges = flow.edges.filter((e) => ids.has(e.source) || ids.has(e.target));
+    const deletedEdges = flow.edges.filter((e) => pickedEdges.includes(e.id) || ids.has(e.source) || ids.has(e.target));
     act(() => {
         if (deletedEdges.length > 0) flow.onEdgesChange(deletedEdges.map((e) => ({ id: e.id, type: 'remove' })));
         flow.onNodesDelete(deleted);
@@ -154,6 +154,51 @@ describe('App: edits on a canvas with copies', () => {
         expect(saved.nodes.map((n: { 'unique-id': string }) => n['unique-id'])).toContain('svc');
         expect(containment(saved)).toContainEqual(['r3', []]);
         expect(flow.nodes.filter((n) => n.data.calmId === 'svc')).toHaveLength(1);
+    });
+
+    it('keeps an edge deleted with a node deleted', () => {
+        // client has no copies; ns has, so its delete rebuilds the canvas
+        for (const picked of ['client', 'ns__in__cluster-a']) {
+            open({ nodes: [...sharedNamespace.nodes, node('x'), node('y')], relationships: [...sharedNamespace.relationships, connects('c2', 'x', 'y')] });
+            deleteDrawings([picked], ['c2']);
+
+            expect(flow.edges.map((e) => e.id), picked).not.toContain('c2');
+            expect(lastSave().relationships.map((r: { 'unique-id': string }) => r['unique-id']), picked).not.toContain('c2');
+            act(() => root.unmount());
+        }
+        open(sharedNamespace);
+    });
+
+    it('puts a node dropped in a nested container into the innermost one', () => {
+        open({ nodes: [node('C'), node('N'), node('S'), node('Y')], relationships: [deployedIn('r1', 'C', ['N']), deployedIn('r2', 'N', ['S'])] });
+        const byId = new Map(flow.nodes.map((n) => [n.id, n]));
+        const n = byId.get('N')!;
+        const at = { x: byId.get('C')!.position.x + n.position.x + 5, y: byId.get('C')!.position.y + n.position.y + 5 };
+
+        act(() => flow.onNodeDragStop({}, { ...byId.get('Y')!, position: at }));
+        act(() => vi.runAllTimers());
+
+        expect(flow.nodes.find((m) => m.id === 'Y')!.parentId).toBe('N');
+        expect(lastSave().relationships.find((r: Record<string, any>) => r['relationship-type']['deployed-in']?.nodes.includes('Y'))['relationship-type']['deployed-in'].container).toBe('N');
+    });
+
+    it('edits the node that stays after a copy leaves its container', () => {
+        open(sharedNamespace);
+        const copy = flow.nodes.find((n) => n.id !== 'ns' && n.data.calmId === 'ns')!;
+        act(() => flow.onNodeClick({}, copy));
+        const button = [...document.querySelectorAll('button')].find((b) => b.textContent === 'Remove from Container')!;
+        act(() => button.click());
+        act(() => vi.runAllTimers());
+        expect(flow.nodes.some((n) => n.id === copy.id)).toBe(false);
+
+        const input = [...document.querySelectorAll('input')].find((i) => i.value === 'ns')!;
+        act(() => {
+            input.value = 'renamed';
+            input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        });
+        act(() => vi.runAllTimers());
+
+        expect(lastSave().nodes.find((n: { 'unique-id': string }) => n['unique-id'] === 'ns').name).toBe('renamed');
     });
 
     it('renames every drawing when a copy is renamed', () => {

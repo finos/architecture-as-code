@@ -46,7 +46,7 @@ import {
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
-import { updateInstances, hasSharedDrawings } from './transforms/node-instances';
+import { updateInstances, hasSharedDrawings, calmIdOf } from './transforms/node-instances';
 import { deleteDrawings, unparentDrawing, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
@@ -467,7 +467,11 @@ function CanvasApp() {
         const edit = deleteDrawings(nodes, edges, deletedNodes);
         keptOnDelete.current = new Set(edit.nodes.map((n) => n.id));
         setNodes(edit.nodes);
-        setEdges(edit.edges);
+        // React Flow has already removed the picked edges. Keep those removals; the moved edges are new objects.
+        setEdges((eds) => {
+            const live = new Set(eds.map((e) => e.id));
+            return edit.edges.filter((e) => live.has(e.id) || !edges.includes(e));
+        });
         if (!edit.reload) {
             setTimeout(() => emitChange(true), 0);
             return;
@@ -527,7 +531,7 @@ function CanvasApp() {
 
         // Check if dropped inside a container
         const draggedAbsPos = getAbsolutePosition(draggedNode, nodes);
-        const container = nodes.find((candidate) => {
+        const containers = nodes.filter((candidate) => {
             if (candidate.id === draggedNode.id) return false;
             if (candidate.type !== 'container') return false;
             const containerAbsPos = getAbsolutePosition(candidate, nodes);
@@ -539,6 +543,8 @@ function CanvasApp() {
             };
             return isInsideBounds(draggedAbsPos, bounds);
         });
+        // Containers come before the containers inside them, so the last match is the innermost
+        const container = containers[containers.length - 1];
         if (container) setNodes((nds) => makeContainment(container.id, draggedNode.id, nds));
         // A new member of a container with several drawings is drawn in each after a rebuild
         setTimeout(() => (container && hasSharedDrawings(nodes) ? emitAndReload() : emitChange(true)), 0);
@@ -938,7 +944,10 @@ function CanvasApp() {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--calm-fg-muted)' }}>Loading CALM architecture...</div>;
     }
 
-    const liveSelectedNode = selectedNode ? nodes.find((n) => n.id === selectedNode.id) ?? selectedNode : null;
+    // A rebuild can change or remove the selected drawing: show another drawing of the same node
+    const liveSelectedNode = selectedNode
+        ? nodes.find((n) => n.id === selectedNode.id) ?? nodes.find((n) => calmIdOf(n) === calmIdOf(selectedNode)) ?? null
+        : null;
     const data = liveSelectedNode ? (liveSelectedNode.data as Record<string, unknown>) : null;
 
     return (
