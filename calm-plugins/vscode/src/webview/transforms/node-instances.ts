@@ -7,7 +7,8 @@ export const calmIdOf = (n: Node): string => ((n.data as Record<string, unknown>
 export function pathOf(n: Node, byId: Map<string, Node>): string {
     const path: string[] = [];
     for (let c: Node | undefined = n; c; c = c.parentId ? byId.get(c.parentId) : undefined) path.unshift(calmIdOf(c));
-    return path.join('/');
+    // A CALM id can contain any separator
+    return JSON.stringify(path);
 }
 
 /** Applies `update` to every drawing of the CALM node drawn as `nodeId`. */

@@ -330,6 +330,13 @@ describe('flowToCalm - nodes with several parents', () => {
         expect(relayoutByPath(out, remaining).ns).toMatchObject({ x: 11, y: 22 });
     });
 
+    it('keeps the position of a nested drawing apart from a node whose id has the same path in it', () => {
+        const { parsed } = roundTrip({ nodes: [node('a'), node('a/b'), node('b')], relationships: [deployedIn('r1', 'a', ['b'])] });
+        const moved = parsed.nodes.map((n) => (n.id === 'b' ? { ...n, position: { x: 11, y: 22 } } : n.id === 'a/b' ? { ...n, position: { x: 33, y: 44 } } : n));
+        const layout = relayoutByPath(flowToCalm(moved, []), moved);
+        expect([layout.b, layout['a/b']]).toMatchObject([{ x: 11, y: 22 }, { x: 33, y: 44 }]);
+    });
+
     it('drops a hidden membership when its container is deleted', () => {
         setLastParsedArch({
             nodes: [node('a'), node('x'), node('gone')],

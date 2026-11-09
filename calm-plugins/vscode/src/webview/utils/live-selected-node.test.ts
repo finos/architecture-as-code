@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Node } from 'reactflow';
 import { resolveLiveSelectedNode } from './live-selected-node';
+import { pathOf } from '../transforms/node-instances';
 
 function makeNode(id: string, overrides?: Partial<Node>): Node {
     return {
@@ -15,7 +16,7 @@ function makeNode(id: string, overrides?: Partial<Node>): Node {
 describe('liveSelectedNode derivation', () => {
     it('returns null when no node is selected', () => {
         const nodes = [makeNode('a'), makeNode('b')];
-        expect(resolveLiveSelectedNode(null, nodes)).toBeNull();
+        expect(resolveLiveSelectedNode(null, nodes, null)).toBeNull();
     });
 
     it('returns the live node from the array when the ID matches', () => {
@@ -23,33 +24,40 @@ describe('liveSelectedNode derivation', () => {
         const live = makeNode('a', { data: { label: 'new-label', calmType: 'service', description: 'updated' } });
         const nodes = [live, makeNode('b')];
 
-        const result = resolveLiveSelectedNode(stale, nodes);
+        const result = resolveLiveSelectedNode(stale, nodes, null);
 
         expect(result).toBe(live);
         expect((result!.data as Record<string, unknown>).label).toBe('new-label');
     });
 
     it('prefers the drawing at the place it was selected, when a load gave its id to another drawing', () => {
-        const parent = (id: string, p?: string) => makeNode(id, { data: { calmId: id }, ...(p ? { parentId: p } : {}) });
-        const inD = { ...parent('N', 'D'), data: { calmId: 'N' } };
-        const inC = { ...parent('N__in__C', 'C'), data: { calmId: 'N' } };
-        const nodes = [parent('C'), parent('D'), inD, inC];
+        const drawing = (id: string, calmId: string, parentId?: string) => makeNode(id, { data: { calmId }, ...(parentId ? { parentId } : {}) });
+        const inD = drawing('N', 'N', 'D');
+        const inC = drawing('N__in__C', 'N', 'C');
+        const nodes = [drawing('C', 'C'), drawing('D', 'D'), inD, inC];
 
-        expect(resolveLiveSelectedNode(inD, nodes, 'C/N')).toBe(inC);
-        expect(resolveLiveSelectedNode(inD, nodes, 'gone/N')).toBe(inD);
+        expect(resolveLiveSelectedNode(inD, nodes, pathOf(inC, new Map(nodes.map((n) => [n.id, n]))))).toBe(inC);
+        expect(resolveLiveSelectedNode(inD, nodes, '["gone","N"]')).toBe(inD);
+    });
+
+    it('tells a nested drawing from a top-level node whose id has the same path in it', () => {
+        const b = makeNode('b', { data: { calmId: 'b' }, parentId: 'a' });
+        const nodes = [makeNode('a', { data: { calmId: 'a' } }), makeNode('a/b', { data: { calmId: 'a/b' } }), b];
+
+        expect(resolveLiveSelectedNode(b, nodes, pathOf(b, new Map(nodes.map((n) => [n.id, n]))))).toBe(b);
     });
 
     it('returns null when the node was deleted', () => {
         const nodes = [makeNode('a'), makeNode('b')];
 
-        expect(resolveLiveSelectedNode(makeNode('deleted-node'), nodes)).toBeNull();
+        expect(resolveLiveSelectedNode(makeNode('deleted-node'), nodes, null)).toBeNull();
     });
 
     it('returns another drawing of the same CALM node when a rebuild removed the selected one', () => {
         const stale = makeNode('ns__in__b', { data: { label: 'ns', calmId: 'ns' } });
         const kept = makeNode('ns', { data: { label: 'ns', calmId: 'ns' } });
 
-        expect(resolveLiveSelectedNode(stale, [makeNode('a'), kept])).toBe(kept);
+        expect(resolveLiveSelectedNode(stale, [makeNode('a'), kept], null)).toBe(kept);
     });
 
     it('returns the live node with updated controls after async resolution', () => {
@@ -66,7 +74,7 @@ describe('liveSelectedNode derivation', () => {
         });
         const nodes = [live];
 
-        const result = resolveLiveSelectedNode(stale, nodes);
+        const result = resolveLiveSelectedNode(stale, nodes, null);
 
         expect(result).toBe(live);
         const controls = (result!.data as Record<string, unknown>).controls as Record<string, unknown>;
@@ -78,7 +86,7 @@ describe('liveSelectedNode derivation', () => {
         const live = makeNode('a', { position: { x: 200, y: 300 } });
         const nodes = [live];
 
-        const result = resolveLiveSelectedNode(stale, nodes);
+        const result = resolveLiveSelectedNode(stale, nodes, null);
 
         expect(result!.position).toEqual({ x: 200, y: 300 });
     });
@@ -88,13 +96,13 @@ describe('liveSelectedNode derivation', () => {
         const live = makeNode('child', { parentId: 'container-1' } as Partial<Node>);
         const nodes = [makeNode('container-1'), live];
 
-        const result = resolveLiveSelectedNode(stale, nodes);
+        const result = resolveLiveSelectedNode(stale, nodes, null);
 
         expect(result).toBe(live);
         expect(result!.parentId).toBe('container-1');
     });
 
     it('returns null with an empty nodes array (all deleted)', () => {
-        expect(resolveLiveSelectedNode(makeNode('a'), [])).toBeNull();
+        expect(resolveLiveSelectedNode(makeNode('a'), [], null)).toBeNull();
     });
 });
