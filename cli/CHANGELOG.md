@@ -5,6 +5,17 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.68.0](https://github.com/finos/architecture-as-code/compare/cli-v1.67.0...cli-v1.68.0) (2026-11-04)
+
+### 🚀 Features
+
+* detect and report cyclic detailed-architecture references ([#3590](https://github.com/finos/architecture-as-code/issues/3590)) ([9ff822c](https://github.com/finos/architecture-as-code/commit/9ff822c647a326a921a967eca752dd7dcf2f365c))
+* draw nodes with several parents in every parent ([#3570](https://github.com/finos/architecture-as-code/issues/3570)) ([efb37c1](https://github.com/finos/architecture-as-code/commit/efb37c1b3eba080f0f0907a1d41bf16da3ecbd08)), closes [#3569](https://github.com/finos/architecture-as-code/issues/3569)
+
+### 🐛 Bug Fixes
+
+* unify node style metadata key on standard-node-style ([#3587](https://github.com/finos/architecture-as-code/issues/3587)) ([03f31f3](https://github.com/finos/architecture-as-code/commit/03f31f376ebcadcf2b2a7a95e0180bde748dc9f1))
+
 ## [1.67.0](https://github.com/finos/architecture-as-code/compare/cli-v1.66.0...cli-v1.67.0) (2026-10-28)
 
 ### 🚀 Features

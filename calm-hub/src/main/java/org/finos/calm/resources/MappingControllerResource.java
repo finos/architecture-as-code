@@ -42,7 +42,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * Name-based resource controller for the CALM Hub.
  *
- * <p>Exposes CALM resources (patterns, architectures, flows, standards, interfaces) at
+ * <p>Exposes CALM resources (patterns, architectures, flows, standards, interfaces, timelines) at
  * human-readable URLs under {@code /calm/namespaces/{namespace}/{type}/{name}}.  A mapping
  * from the friendly name to the underlying MongoDB numeric ID is maintained transparently.</p>
  *
@@ -292,7 +292,7 @@ public class MappingControllerResource {
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)
-                            + ". Supported: patterns, architectures, flows, standards, interfaces").build();
+                            + ". Supported: patterns, architectures, flows, standards, interfaces, timelines").build();
         }
         if ("versions".equals(name)) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -364,7 +364,7 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException
-                 | StandardNotFoundException | InterfaceNotFoundException e) {
+                 | StandardNotFoundException | InterfaceNotFoundException | TimelineNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
         } catch (Exception e) {
@@ -411,12 +411,12 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException
-                 | StandardNotFoundException | InterfaceNotFoundException e) {
+                 | StandardNotFoundException | InterfaceNotFoundException | TimelineNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
         } catch (PatternVersionNotFoundException | ArchitectureVersionNotFoundException
                  | FlowVersionNotFoundException | StandardVersionNotFoundException
-                 | InterfaceVersionNotFoundException e) {
+                 | InterfaceVersionNotFoundException | TimelineVersionNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Invalid version provided: " + version).build();
         } catch (Exception e) {

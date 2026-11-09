@@ -962,16 +962,16 @@ function CanvasApp() {
             <div style={toolbarStyle}>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--calm-fg)', marginRight: '12px', flex: '0 0 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>CALM Canvas</span>
                 <div style={{ display: 'flex', gap: '2px', alignItems: 'center', flexShrink: 0 }}>
-                    <button onClick={() => handleLayout('DOWN')} className="fid-toolbar-btn" title="Top-to-bottom layout">↓ Layout</button>
-                    <button onClick={() => handleLayout('RIGHT')} className="fid-toolbar-btn" title="Left-to-right layout">→ Layout</button>
-                    <span className="fid-toolbar-sep" />
-                    <button onClick={handleValidate} className="fid-toolbar-btn fid-toolbar-btn--validate">Validate</button>
+                    <button onClick={() => handleLayout('DOWN')} className="calm-toolbar-btn" title="Top-to-bottom layout">↓ Layout</button>
+                    <button onClick={() => handleLayout('RIGHT')} className="calm-toolbar-btn" title="Left-to-right layout">→ Layout</button>
+                    <span className="calm-toolbar-sep" />
+                    <button onClick={handleValidate} className="calm-toolbar-btn calm-toolbar-btn--validate">Validate</button>
                     {!store.readonlyMode && (
-                        <button onClick={handleApplyPattern} className="fid-toolbar-btn fid-toolbar-btn--apply" title="Apply a pattern to the canvas">Apply Pattern</button>
+                        <button onClick={handleApplyPattern} className="calm-toolbar-btn calm-toolbar-btn--apply" title="Apply a pattern to the canvas">Apply Pattern</button>
                     )}
-                    <button onClick={handleExportSvg} className="fid-toolbar-btn" title="Export the canvas as an SVG">Export SVG</button>
+                    <button onClick={handleExportSvg} className="calm-toolbar-btn" title="Export the canvas as an SVG">Export SVG</button>
                     {!store.readonlyMode && (
-                        <button onClick={() => notifyRequestImportSvg()} className="fid-toolbar-btn" title="Import an SVG diagram as CALM architecture">Import SVG</button>
+                        <button onClick={() => notifyRequestImportSvg()} className="calm-toolbar-btn" title="Import an SVG diagram as CALM architecture">Import SVG</button>
                     )}
                     {!store.readonlyMode && (
                         <ToolbarMenu items={[
@@ -1053,7 +1053,7 @@ function CanvasApp() {
                     </button>
                 ) : (
                     <div style={{ width: `${panelWidth}px`, minWidth: `${panelWidth}px`, display: 'flex', flexDirection: 'row', maxHeight: '100%', overflow: 'hidden' }}>
-                        <div onMouseDown={handlePanelResizeStart} className="fid-resize-handle" title="Drag to resize" />
+                        <div onMouseDown={handlePanelResizeStart} className="calm-resize-handle" title="Drag to resize" />
                         <div style={{ flex: 1, overflowY: 'auto', borderLeft: '1px solid var(--calm-border)', background: 'var(--calm-bg)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid var(--calm-border)' }}>
                                 <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--calm-fg)' }}>PROPERTIES</span>

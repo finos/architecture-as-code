@@ -56,7 +56,7 @@ architecture-as-code/
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
 ├── calm-ai/                   # AI agent tools & prompts
-├── calm-studio/               # SvelteKit visual CALM editor — nested npm-workspace monorepo
+├── calm-studio/               # Docs diagram embed and other CalmStudio packages (being removed)
 ├── calm-guard/                # Next.js continuous-compliance platform (CALMGuard)
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
@@ -74,8 +74,8 @@ architecture-as-code/
 are wired directly into the **root** npm workspaces. Run all npm commands from the repo root, never
 from inside these folders.
 
-- **`calm-studio/`** — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo.
-  Its packages and app join the root workspaces via `calm-studio/packages/*` and `calm-studio/apps/*`.
+- **`calm-studio/`** — the packages that remain from the retired CALM Studio app, among them the docs
+  diagram embed. They join the root workspaces via `calm-studio/packages/*`.
   See [calm-studio/AGENTS.md](calm-studio/AGENTS.md) for the package list.
 - **`calm-guard/`** — a Next.js (App Router) continuous-compliance platform (`calmguard`), plus its
   Docusaurus docs (`calmguard-docs`). Both are root workspaces.
@@ -109,7 +109,7 @@ override and by a Renovate `allowedVersions` rule, because transitive deps with 
 will otherwise hoist an older major to the root and mask API differences.
 
 Packages that touch `localStorage` or `sessionStorage` document their own stubbing pattern — see
-[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md) and [calm-studio/AGENTS.md](calm-studio/AGENTS.md).
+[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md).
 
 ### Lockfile Regeneration
 
@@ -173,7 +173,7 @@ Read the guide for a package before working on its code, tests, or build.
 - **[calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md)** - VSCode extension, MVVM architecture
 - **[calm-widgets/AGENTS.md](calm-widgets/AGENTS.md)** - Widget system, Handlebars templates, common pitfalls
 - **[shared/AGENTS.md](shared/AGENTS.md)** - Shared TypeScript utilities consumed across packages
-- **[calm-studio/AGENTS.md](calm-studio/AGENTS.md)** - CalmStudio visual editor, CALM 1.2 rules, nested workspaces
+- **[calm-studio/AGENTS.md](calm-studio/AGENTS.md)** - CalmStudio packages, CALM 1.2 rules, nested workspaces
 - **[calm-guard/AGENTS.md](calm-guard/AGENTS.md)** - CALMGuard compliance platform, agents/skills
 
 ## Key Commands

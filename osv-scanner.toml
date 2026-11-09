@@ -59,23 +59,8 @@ id = "GHSA-qrxm-fqhp-jwvm"
 ignoreUntil = 2027-03-31
 reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
 
-# @sveltejs/kit 2.70.2 comes in only through the CALM Studio app (calm-studio/apps/studio).
-# It is a single-page app built with adapter-static: ssr = false, prerender = false, an
-# index.html fallback, only the root route, and no server routes, form actions or setHeaders
-# calls. Both advisories need one of those features. The fix is only in kit 3, which needs
-# TypeScript 6, and CALM Studio is to be retired.
-[[IgnoredVulns]]
-id = "GHSA-27mw-82g8-phjj"
-ignoreUntil = 2027-03-31
-reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app with prerender = false. It prerenders no pages and never calls setHeaders, so an untrusted cache-control header cannot reach a prerendered page. Remove when CALM Studio is retired or moves to kit 3."
-
-[[IgnoredVulns]]
-id = "GHSA-pfhg-q3qv-9q6r"
-ignoreUntil = 2027-03-31
-reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app with only the root route, no form actions and no use:enhance, so the enhanced form redirect cannot occur. Remove when CALM Studio is retired or moves to kit 3."
-
-# deepmerge 4.3.1 comes in through @sveltejs/vite-plugin-svelte (CALM Studio app and
-# @calmstudio/diagram) and @svgr/plugin-svgo (Docusaurus preset-classic in docs). Both are
+# deepmerge 4.3.1 comes in through @sveltejs/vite-plugin-svelte (@calmstudio/diagram) and
+# @svgr/plugin-svgo (Docusaurus preset-classic in docs). Both are
 # build-time only. vite-plugin-svelte merges our own Svelte and Vite config with it, and
 # plugin-svgo declares it but never imports it. No patched release exists, and the latest
 # vite-plugin-svelte still depends on it.
