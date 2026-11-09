@@ -1,20 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Node } from 'reactflow';
-
-/**
- * Tests for the liveSelectedNode derivation logic used in App.tsx.
- *
- * The derivation: given a stale `selectedNode` snapshot and the current
- * `nodes` array, resolve the live version by ID. Falls back to the stale
- * snapshot if the node is no longer in the array (deleted mid-render).
- */
-function resolveLiveSelectedNode(
-    selectedNode: Node | null,
-    nodes: Node[]
-): Node | null {
-    if (!selectedNode) return null;
-    return nodes.find((n) => n.id === selectedNode.id) ?? selectedNode;
-}
+import { resolveLiveSelectedNode } from './live-selected-node';
 
 function makeNode(id: string, overrides?: Partial<Node>): Node {
     return {
@@ -43,14 +29,17 @@ describe('liveSelectedNode derivation', () => {
         expect((result!.data as Record<string, unknown>).label).toBe('new-label');
     });
 
-    it('falls back to stale snapshot when the node was deleted from the array', () => {
-        const stale = makeNode('deleted-node');
+    it('returns null when the node was deleted', () => {
         const nodes = [makeNode('a'), makeNode('b')];
 
-        const result = resolveLiveSelectedNode(stale, nodes);
+        expect(resolveLiveSelectedNode(makeNode('deleted-node'), nodes)).toBeNull();
+    });
 
-        expect(result).toBe(stale);
-        expect(result!.id).toBe('deleted-node');
+    it('returns another drawing of the same CALM node when a rebuild removed the selected one', () => {
+        const stale = makeNode('ns__in__b', { data: { label: 'ns', calmId: 'ns' } });
+        const kept = makeNode('ns', { data: { label: 'ns', calmId: 'ns' } });
+
+        expect(resolveLiveSelectedNode(stale, [makeNode('a'), kept])).toBe(kept);
     });
 
     it('returns the live node with updated controls after async resolution', () => {
@@ -95,11 +84,7 @@ describe('liveSelectedNode derivation', () => {
         expect(result!.parentId).toBe('container-1');
     });
 
-    it('works with an empty nodes array (all deleted)', () => {
-        const stale = makeNode('a');
-
-        const result = resolveLiveSelectedNode(stale, []);
-
-        expect(result).toBe(stale);
+    it('returns null with an empty nodes array (all deleted)', () => {
+        expect(resolveLiveSelectedNode(makeNode('a'), [])).toBeNull();
     });
 });

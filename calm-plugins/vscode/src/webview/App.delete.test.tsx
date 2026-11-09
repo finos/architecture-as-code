@@ -62,8 +62,8 @@ const open = (arch: object) => {
     act(() => vi.runAllTimers());
     posted.length = 0;
 };
-// ReactFlow deletes the picked drawings and those nested in them. It calls onEdgesChange for their edges,
-// then onNodesDelete, then onNodesChange.
+// ReactFlow deletes the picked drawings and those nested in them. It calls onEdgesChange for the picked
+// edges and the edges of those drawings, then onNodesDelete, then onNodesChange.
 const deleteDrawings = (picked: string[], pickedEdges: string[] = []) => {
     const ids = new Set(picked);
     for (let grew = true; grew;) {
@@ -157,16 +157,58 @@ describe('App: edits on a canvas with copies', () => {
     });
 
     it('keeps an edge deleted with a node deleted', () => {
-        // client has no copies; ns has, so its delete rebuilds the canvas
-        for (const picked of ['client', 'ns__in__cluster-a']) {
-            open({ nodes: [...sharedNamespace.nodes, node('x'), node('y')], relationships: [...sharedNamespace.relationships, connects('c2', 'x', 'y')] });
+        const withEdge = (arch: typeof sharedNamespace) => ({ nodes: [...arch.nodes, node('x'), node('y')], relationships: [...arch.relationships, connects('c2', 'x', 'y')] });
+        // Without copies the delete saves at once; with copies it rebuilds the canvas
+        const cases: [typeof sharedNamespace, string][] = [
+            [{ nodes: [node('a'), node('b')], relationships: [connects('c1', 'a', 'b')] }, 'a'],
+            [sharedNamespace, 'ns__in__cluster-a'],
+        ];
+        cases.forEach(([arch, picked], i) => {
+            if (i > 0) act(() => root.unmount());
+            open(withEdge(arch));
             deleteDrawings([picked], ['c2']);
 
             expect(flow.edges.map((e) => e.id), picked).not.toContain('c2');
             expect(lastSave().relationships.map((r: { 'unique-id': string }) => r['unique-id']), picked).not.toContain('c2');
-            act(() => root.unmount());
-        }
+        });
+    });
+
+    it('deletes a picked edge of a deleted drawing instead of moving it to another drawing', () => {
         open(sharedNamespace);
+        act(() => flow.onEdgesChange([{ id: 'c1', type: 'select', selected: true }]));
+        deleteDrawings(['svc'], ['c1']);
+
+        expect(flow.edges.map((e) => e.id)).not.toContain('c1');
+        expect(lastSave().relationships.map((r: { 'unique-id': string }) => r['unique-id'])).not.toContain('c1');
+    });
+
+    it('keeps the edges of a nested node that the delete keeps in another container', () => {
+        open({
+            nodes: [node('X'), node('Y'), node('s'), node('z')],
+            relationships: [deployedIn('r1', 'Y', ['s']), deployedIn('r2', 'X', ['Y', 's']), connects('c1', 's', 'z')],
+        });
+        deleteDrawings(['Y']);
+
+        expect(lastSave().relationships.map((r: { 'unique-id': string }) => r['unique-id'])).toContain('c1');
+        expect(flow.edges.map((e) => [e.source, e.target])).toEqual([['s', 'z']]);
+    });
+
+    it('removes the shown drawing from its container with the shortcut after a rebuild', () => {
+        open({
+            nodes: [node('cluster-a'), node('cluster-b'), node('cluster-c'), node('ns')],
+            relationships: [deployedIn('r1', 'cluster-a', ['ns']), deployedIn('r2', 'cluster-b', ['ns']), deployedIn('r3', 'cluster-c', ['ns'])],
+        });
+        const copy = flow.nodes.find((n) => n.id !== 'ns' && n.data.calmId === 'ns')!;
+        act(() => flow.onNodeClick({}, copy));
+        const unparent = () => {
+            act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'u', ctrlKey: true, shiftKey: true })));
+            act(() => vi.runAllTimers());
+        };
+        unparent();
+        expect(flow.nodes.filter((n) => n.data.calmId === 'ns')).toHaveLength(2);
+
+        unparent();
+        expect(flow.nodes.filter((n) => n.data.calmId === 'ns')).toHaveLength(1);
     });
 
     it('puts a node dropped in a nested container into the innermost one', () => {
