@@ -100,7 +100,7 @@ describe('Document ID Utils', () => {
             expect(() => extractDocumentMetadata(document)).toThrow(/Invalid document ID format/);
         });
 
-        it.each(['patterns', 'architectures', 'flows', 'standards', 'interfaces'])(
+        it.each(['patterns', 'architectures', 'flows', 'standards', 'interfaces', 'timelines'])(
             'accepts the CALM Hub resource type %s',
             (type) => {
                 const document = JSON.stringify({
@@ -134,6 +134,14 @@ describe('Document ID Utils', () => {
 
         it('does not take the name of an architecture that has no title', () => {
             const document = JSON.stringify({ $id: DOCUMENT_ID, name: 'My Name' });
+            expect(() => extractDocumentMetadata(document)).toThrow(/Missing 'title' field/);
+        });
+
+        it('does not take the name of a timeline that has no title', () => {
+            const document = JSON.stringify({
+                $id: 'https://example.com/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0',
+                name: 'My Timeline'
+            });
             expect(() => extractDocumentMetadata(document)).toThrow(/Missing 'title' field/);
         });
 
@@ -177,6 +185,8 @@ describe('Document ID Utils', () => {
         it.each([
             [{ title: 'T' }, 'architectures', 'title'],
             [{ name: 'N' }, 'architectures', 'title'],
+            [{ title: 'T' }, 'timelines', 'title'],
+            [{ name: 'N' }, 'timelines', 'title'],
             [{ title: 'T', name: 'N' }, 'flows', 'title'],
             [{ name: 'N' }, 'flows', 'name'],
             [{ title: '', name: 'N' }, 'flows', 'name'],
@@ -442,6 +452,7 @@ describe('Document ID Utils', () => {
             ['https://example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0'],
             ['https://example.com/calm/namespaces/finos/patterns/p/versions/2.3.4'],
             ['https://example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0'],
+            ['https://example.com/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0'],
             ['https://example.com/calm/domains/security/controls/access-control/requirement/versions/1.0.0'],
             ['https://example.com/calm/domains/security/controls/access-control/configurations/prod/versions/1.0.0'],
         ])('returns true for the conformant id %s', (id) => {
@@ -480,7 +491,7 @@ describe('Document ID Utils', () => {
 
     describe('resourceTypeFromDocumentId', () => {
         it.each([
-            ['architectures'], ['patterns'], ['flows'], ['standards'], ['interfaces'],
+            ['architectures'], ['patterns'], ['flows'], ['standards'], ['interfaces'], ['timelines'],
         ])('returns %s for a namespace-resource id of that type', (type) => {
             expect(resourceTypeFromDocumentId(`https://example.com/calm/namespaces/finos/${type}/a/versions/1.0.0`)).toBe(type);
         });

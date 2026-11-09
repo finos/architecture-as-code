@@ -256,13 +256,14 @@ async function pushMappingEntry(
     context: PushEntryContext
 ): Promise<void> {
     const { bundlePath, client, conflicts, failIfModified, id, manifest, mappingFailures, raw, snapshotBlocked, snapshotDependencies } = context;
-    if (entry.type !== 'unknown' && !resourceTypeForDocumentType(entry.type)) {
+    const expectedResourceType = entry.type === 'unknown' ? undefined : resourceTypeForDocumentType(entry.type);
+    if (entry.type !== 'unknown' && !expectedResourceType) {
         logger.warn(`Skipping '${id}': document type '${entry.type}' has no CalmHub resource type.`);
         return;
     }
     // The mapping API addresses resources by (namespace, type, mappingId, version),
     // all encoded in the document's $id. Documents without a well-formed mapping $id
-    // (or whose type has no ResourceType, e.g. adr/timeline) cannot be pushed and are skipped.
+    // (or whose type has no ResourceType, e.g. adr) cannot be pushed and are skipped.
     let metadata: DocumentMetadata;
     try {
         metadata = extractDocumentMetadata(raw);
@@ -276,6 +277,13 @@ async function pushMappingEntry(
     }
 
     const { namespace, type: resourceType, mapping: mappingId, version } = metadata;
+    if (expectedResourceType && resourceType !== expectedResourceType) {
+        logger.warn(
+            `Skipping '${id}': document type '${entry.type}' expects resource type '${expectedResourceType}', ` +
+            `but $id has '${resourceType}'.`
+        );
+        return;
+    }
     if (!namespace) {
         logger.warn(`Skipping '${id}': document $id has no namespace.`);
         return;

@@ -50,7 +50,7 @@ export interface WorkspaceLayoutWarning {
 /**
  * Extract the type segment from a conformant CALM Hub document $id URL.
  * Returns 'controls' for domain-scoped control documents, the resource type segment for
- * namespace-scoped documents ('architectures', 'patterns', 'standards', 'flows', 'interfaces'),
+ * namespace-scoped documents ('architectures', 'patterns', 'standards', 'flows', 'interfaces', 'timelines'),
  * or undefined if the id does not follow a CALM Hub URL pattern.
  */
 export function extractTypeSegmentFromDocumentId(docId: string): GitHubResourceDirectory | undefined {

@@ -139,6 +139,19 @@ describe('promptForDocumentId', () => {
         expect(result.id).toBe('https://hub.example.com/calm/namespaces/finos/standards/sec/versions/1.0.0');
     });
 
+    it('builds a timelines $id for a timeline document', async () => {
+        queueAnswers([], ['https://hub.example.com', '1.0.0', 'finos', 'my-timeline']);
+
+        const result = await promptForDocumentId({ documentType: 'timeline' });
+
+        expect(mocks.select).not.toHaveBeenCalled();
+        expect(result).toEqual({
+            id: 'https://hub.example.com/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0',
+            namespace: 'finos',
+            slug: 'my-timeline',
+        });
+    });
+
     it('offers only the control scopes for a control document', async () => {
         queueAnswers(['requirement'], ['https://hub.example.com', '1.0.0', 'security', 'access-control']);
 
@@ -149,10 +162,10 @@ describe('promptForDocumentId', () => {
         expect(result.id).toBe('https://hub.example.com/calm/domains/security/controls/access-control/requirement/versions/1.0.0');
     });
 
-    it.each(['timeline', 'adr'] as const)('asks only for a document id for %s documents, which have no CalmHub resource type', async (documentType) => {
+    it('asks only for a document id for adr documents, which have no CalmHub resource type', async () => {
         queueAnswers([], ['my-doc']);
 
-        const result = await promptForDocumentId({ documentType });
+        const result = await promptForDocumentId({ documentType: 'adr' });
 
         expect(mocks.select).not.toHaveBeenCalled();
         expect(mocks.input).toHaveBeenCalledTimes(1);

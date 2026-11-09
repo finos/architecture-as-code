@@ -40,6 +40,12 @@ describe('layout-check', () => {
                     'https://example.com/calm/namespaces/finos/interfaces/api/versions/1.0.0'
                 )
             ).toBe('interfaces');
+
+            expect(
+                extractTypeSegmentFromDocumentId(
+                    'https://example.com/calm/namespaces/finos/timelines/roadmap/versions/1.0.0'
+                )
+            ).toBe('timelines');
         });
 
         it('returns controls for domain control requirement and configuration $id URLs', () => {

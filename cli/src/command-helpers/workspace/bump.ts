@@ -219,7 +219,8 @@ function prepareChangedMappingEntry(
     context: DetectChangedEntryContext
 ): DetectChangedEntryCheck | undefined {
     const { client, filePath, id, raw } = context;
-    if (entry.type !== 'unknown' && !resourceTypeForDocumentType(entry.type)) {
+    const expectedResourceType = entry.type === 'unknown' ? undefined : resourceTypeForDocumentType(entry.type);
+    if (entry.type !== 'unknown' && !expectedResourceType) {
         logger.warn(`Skipping '${id}': document type '${entry.type}' has no CalmHub resource type.`);
         return undefined;
     }
@@ -228,6 +229,13 @@ function prepareChangedMappingEntry(
         metadata = extractDocumentMetadata(raw);
     } catch (e) {
         logger.warn(`Skipping '${id}': not mappable to CalmHub (${e instanceof Error ? e.message : String(e)})`);
+        return undefined;
+    }
+    if (expectedResourceType && metadata.type !== expectedResourceType) {
+        logger.warn(
+            `Skipping '${id}': document type '${entry.type}' expects resource type '${expectedResourceType}', ` +
+            `but $id has '${metadata.type}'.`
+        );
         return undefined;
     }
     const namespace = metadata.namespace;
@@ -362,7 +370,10 @@ export async function bumpWorkspace(
             const entry = manifest[candidate.docId];
             if (!entry) continue;
             const resolvedCandidate = resolveWorkspaceManifestEntry(entry);
-            if (resolvedCandidate.kind !== 'mapping' || (resolvedCandidate.entry.type !== 'unknown' && !resourceTypeForDocumentType(resolvedCandidate.entry.type))) {
+            const expectedResourceType = resolvedCandidate.kind === 'mapping' && resolvedCandidate.entry.type !== 'unknown'
+                ? resourceTypeForDocumentType(resolvedCandidate.entry.type)
+                : undefined;
+            if (resolvedCandidate.kind !== 'mapping' || (resolvedCandidate.entry.type !== 'unknown' && !expectedResourceType)) {
                 logger.warn(`'${candidate.docId}' references ${triggerLabel} (updated) but document type '${entry.type}' has no CalmHub resource type; version not bumped.`);
                 bumpedIds.add(candidate.docId);
                 continue;
@@ -382,8 +393,17 @@ export async function bumpWorkspace(
             try {
                 metadata = extractDocumentMetadata(raw);
             } catch {
-                // Non-CalmHub $id (adr, timeline, etc.) — ref was updated but version cannot be bumped.
+                // Non-CalmHub $id (adr, etc.) — ref was updated but version cannot be bumped.
                 logger.warn(`'${candidate.docId}' references ${triggerLabel} (updated) but its $id is not a CalmHub URL; version not bumped.`);
+                bumpedIds.add(candidate.docId);
+                continue;
+            }
+
+            if (expectedResourceType && metadata.type !== expectedResourceType) {
+                logger.warn(
+                    `'${candidate.docId}' references ${triggerLabel} (updated) but document type '${entry.type}' ` +
+                    `expects resource type '${expectedResourceType}', not '${metadata.type}'; version not bumped.`
+                );
                 bumpedIds.add(candidate.docId);
                 continue;
             }
