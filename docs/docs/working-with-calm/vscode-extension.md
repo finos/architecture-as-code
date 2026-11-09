@@ -130,10 +130,29 @@ To remove a node from its container, select it and press `Ctrl+Shift+U` (or `Cmd
 
 CALM Canvas integrates with CALM Hub to browse and reuse published standard nodes across namespaces:
 
-1. Set `calm.hub.url` in your VS Code settings (e.g. `"https://calmhub.example.com"`), or run **CALM: Connect to Hub** from the Command Palette.
+1. Set `calm.hub.url` in your VS Code settings (e.g. `"http://localhost:8080"`), or run **CALM: Connect to Hub** from the Command Palette.
 2. If `calm.hub.autoConnect` is `true` (default), the extension connects automatically on startup when a URL is configured.
 3. Hub standard nodes appear in the palette under **HUB**, grouped by namespace.
 4. Use `calm.hub.selectedNamespaces` to filter which namespaces appear.
+
+### Running CALM Hub Locally
+
+To try Hub integration locally, run the CALM Hub container:
+
+```bash
+docker run -p 8080:8080 \
+  -e JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager" \
+  -e QUARKUS_OBSERVABILITY_ENABLED=false \
+  -e QUARKUS_LAUNCH_DEVMODE=false \
+  -e QUARKUS_DEVSERVICES_ENABLED=false \
+  -e QUARKUS_PROFILE=standalone \
+  -e CALM_DATABASE_MODE=github \
+  -e CALM_GITHUB_CLONE_DIRECTORY=/tmp/calm-hub-clones \
+  -e CALM_GITHUB_NAMESPACES="OSS-NY-Demo|byrash/oss-ny-demo|main|" \
+  finos/calm-hub
+```
+
+Then set `calm.hub.url` to `http://localhost:8080` in your VS Code settings.
 
 **Hub commands:**
 
