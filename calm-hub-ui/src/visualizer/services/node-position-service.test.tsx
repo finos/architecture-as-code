@@ -229,9 +229,9 @@ describe('node-position-service', () => {
             expect(viaStorage).toEqual(viaDirectPositions);
         });
 
-        it('applies width and height when present in positions', () => {
+        it('applies width and height when present in positions, without fixing the size of a card', () => {
             const parsed: Node[] = [
-                { id: 'node-1', position: { x: 0, y: 0 }, data: {} },
+                { id: 'node-1', type: 'custom', position: { x: 0, y: 0 }, data: {} },
             ];
             const positions: StoredNodePosition[] = [
                 { id: 'node-1', position: { x: 50, y: 60 }, width: 200, height: 80 },
@@ -241,7 +241,22 @@ describe('node-position-service', () => {
             expect(node.position).toEqual({ x: 50, y: 60 });
             expect(node.width).toBe(200);
             expect(node.height).toBe(80);
-            expect(node.style).toEqual({ width: 200, height: 80 });
+            // The card sizes itself, so a change of text size does not leave a stale box.
+            expect(node.style).toBeUndefined();
+        });
+
+        it('fixes the size of a container', () => {
+            const parsed: Node[] = [
+                { id: 'group', type: 'group', position: { x: 0, y: 0 }, data: {} },
+                { id: 'child', type: 'custom', position: { x: 0, y: 0 }, data: {}, parentId: 'group' } as Node,
+            ];
+            const positions: StoredNodePosition[] = [
+                { id: 'group', position: { x: 10, y: 10 }, width: 500, height: 400 },
+                { id: 'child', position: { x: 20, y: 20 }, width: 100, height: 50 },
+            ];
+            const result = applyPositions(parsed, positions);
+            expect(result.find((n) => n.id === 'group')!.style).toEqual({ width: 500, height: 400 });
+            expect(result.find((n) => n.id === 'child')!.style).toBeUndefined();
         });
 
         it('skips reflow when all group nodes have explicit dimensions in positions', () => {
