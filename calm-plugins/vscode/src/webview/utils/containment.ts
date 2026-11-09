@@ -44,7 +44,7 @@ export function removeContainment(childId: string, nodes: Node[]): Node[] {
     });
 }
 
-export function isInsideBounds(
+function isInsideBounds(
     point: { x: number; y: number },
     bounds: { x: number; y: number; width: number; height: number },
 ): boolean {

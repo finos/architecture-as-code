@@ -10,7 +10,7 @@ describe('containerAt', () => {
         const nodes = [
             container('C', 0, 0, { width: 300, height: 300 }),
             container('N', 50, 50, { parentId: 'C', zIndex: 1 }),
-            // Added later from the palette, at the top level, over N
+            // Added later from the palette, at the top level: last, but drawn under N
             container('P', 60, 60),
         ];
 

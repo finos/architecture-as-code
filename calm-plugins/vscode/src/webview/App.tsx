@@ -467,12 +467,14 @@ function CanvasApp() {
     const onNodesDelete = useCallback((deletedNodes: Node[]) => {
         if (store.readonlyMode) return;
         const edit = deleteDrawings(nodes, edges, deletedNodes);
+        const deletedIds = new Set(deletedNodes.map((n) => n.id));
         keptOnDelete.current = new Set(edit.nodes.map((n) => n.id));
+        if (selectedNode && deletedIds.has(selectedNode.id)) setSelectedNode(null);
         setNodes(edit.nodes);
         // React Flow has already removed the picked edges and the edges of the deleted drawings.
         // The edit decides on the edges of the drawings only: some stay, or move to another drawing.
-        const deletedIds = new Set(deletedNodes.map((n) => n.id));
-        const decided = new Set(edges.filter((e) => !e.selected && (deletedIds.has(e.source) || deletedIds.has(e.target))).map((e) => e.id));
+        // A box selection also selects those edges, so a selected edge is not always a picked one.
+        const decided = new Set(edges.filter((e) => deletedIds.has(e.source) || deletedIds.has(e.target)).map((e) => e.id));
         setEdges((eds) => {
             const live = new Set(eds.map((e) => e.id));
             return edit.edges.filter((e) => live.has(e.id) || decided.has(e.id));
@@ -487,7 +489,7 @@ function CanvasApp() {
             // After the saves that React Flow's change callbacks queued for this delete
             setTimeout(() => { reloadPending.current = false; }, 0);
         }, 0);
-    }, [nodes, edges, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
+    }, [nodes, edges, selectedNode, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
 
     // --- Node click (select) ---
     const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {

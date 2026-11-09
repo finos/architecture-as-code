@@ -173,13 +173,16 @@ describe('App: edits on a canvas with copies', () => {
         });
     });
 
-    it('deletes a picked edge of a deleted drawing instead of moving it to another drawing', () => {
-        open(sharedNamespace);
+    it('moves a selected edge of a deleted drawing to another drawing, as a box selection selects it', () => {
+        open({
+            nodes: [node('A'), node('B'), node('X'), node('client')],
+            relationships: [deployedIn('r1', 'A', ['X']), deployedIn('r2', 'B', ['X']), connects('c1', 'client', 'X')],
+        });
         act(() => flow.onEdgesChange([{ id: 'c1', type: 'select', selected: true }]));
-        deleteDrawings(['svc'], ['c1']);
+        deleteDrawings(['X'], ['c1']);
 
-        expect(flow.edges.map((e) => e.id)).not.toContain('c1');
-        expect(lastSave().relationships.map((r: { 'unique-id': string }) => r['unique-id'])).not.toContain('c1');
+        expect(lastSave().relationships.map((r: { 'unique-id': string }) => r['unique-id'])).toContain('c1');
+        expect(flow.edges.map((e) => [e.source, e.target])).toEqual([['client', 'X']]);
     });
 
     it('keeps the edges of a nested node that the delete keeps in another container', () => {
@@ -187,10 +190,25 @@ describe('App: edits on a canvas with copies', () => {
             nodes: [node('X'), node('Y'), node('s'), node('z')],
             relationships: [deployedIn('r1', 'Y', ['s']), deployedIn('r2', 'X', ['Y', 's']), connects('c1', 's', 'z')],
         });
-        deleteDrawings(['Y']);
+        // A box around Y also selects s and its edge
+        act(() => flow.onEdgesChange([{ id: 'c1', type: 'select', selected: true }]));
+        deleteDrawings(['Y'], ['c1']);
 
         expect(lastSave().relationships.map((r: { 'unique-id': string }) => r['unique-id'])).toContain('c1');
         expect(flow.edges.map((e) => [e.source, e.target])).toEqual([['s', 'z']]);
+    });
+
+    it('clears the selection when the selected drawing is deleted', () => {
+        open(sharedNamespace);
+        const copy = flow.nodes.find((n) => n.id !== 'ns' && n.data.calmId === 'ns')!;
+        act(() => flow.onNodeClick({}, copy));
+        deleteDrawings([copy.id]);
+        const saved = saves().length;
+
+        expect([...document.querySelectorAll('button')].some((b) => b.textContent === 'Remove from Container')).toBe(false);
+        act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'u', ctrlKey: true, shiftKey: true })));
+        act(() => vi.runAllTimers());
+        expect(saves()).toHaveLength(saved);
     });
 
     it('removes the shown drawing from its container with the shortcut after a rebuild', () => {
