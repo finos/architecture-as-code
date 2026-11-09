@@ -35,6 +35,12 @@ The extension activates automatically when your workspace contains `*.calm.json`
 
 ## Opening the Canvas
 
+<video controls width="100%">
+  <source src="/video/vscode/your-first-architecture.mp4" type="video/mp4" />
+</video>
+
+*Your first architecture — drag nodes, draw relationships, and watch the JSON update in real time.*
+
 Open any `.calm.json` or `.architecture.json` file and launch the visual editor using any of these methods:
 
 - **CodeLens:** Click **View in CALM Canvas** at the top of the file (also appears above each node's `unique-id`).
@@ -86,6 +92,12 @@ When connected to CALM Hub, published standard nodes appear in the palette under
 
 ## Drawing Relationships
 
+<video controls width="100%">
+  <source src="/video/vscode/nodes-relationships-containers.mp4" type="video/mp4" />
+</video>
+
+*Nodes, relationships and containers — extension packs, bidirectional edges, line styles, and container nesting.*
+
 Connect nodes by dragging from a **handle** (the small dots on node edges) to another node. New connections default to the `connects` relationship type.
 
 You can reconnect an existing edge by dragging its endpoint to a different node.
@@ -125,6 +137,12 @@ To remove a node from its container, select it and press `Ctrl+Shift+U` (or `Cmd
 ---
 
 ## Connecting to CALM Hub
+
+<video controls width="100%">
+  <source src="/video/vscode/calm-hub-integration.mp4" type="video/mp4" />
+</video>
+
+*CALM Hub integration — connect, browse namespaces, and drag Hub standard nodes onto the canvas.*
 
 ![CALM Hub connection and palette](/img/vscode/Hub_Palette_Section.png)
 
@@ -166,6 +184,12 @@ Then set `calm.hub.url` to `http://localhost:8080` in your VS Code settings.
 
 ## Validation
 
+<video controls width="100%">
+  <source src="/video/vscode/standard-nodes-controls.mp4" type="video/mp4" />
+</video>
+
+*Standard nodes and controls — drag standard nodes, configure controls, and validate compliance.*
+
 ![Validation results panel with control errors](/img/vscode/Validation_Results_Panel.png)
 
 Click **Validate** in the toolbar to check your architecture. Validation runs two checks:
@@ -180,6 +204,12 @@ Validation uses bundled CALM schemas — no network access required.
 ---
 
 ## Patterns
+
+<video controls width="100%">
+  <source src="/video/vscode/patterns.mp4" type="video/mp4" />
+</video>
+
+*Patterns — apply a predefined architecture pattern to your canvas.*
 
 Click **Apply Pattern** in the toolbar to merge a predefined architecture pattern into the current canvas. Existing nodes and relationships are preserved; new ones from the pattern are added.
 
