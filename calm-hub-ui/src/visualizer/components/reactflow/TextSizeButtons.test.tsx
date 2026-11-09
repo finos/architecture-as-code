@@ -1,0 +1,45 @@
+import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { TextSizeButtons } from './TextSizeButtons.js';
+import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+
+function storeAt(stored?: string) {
+    const storage = createMemoryStorage();
+    if (stored) storage.setItem(DIAGRAM_TEXT_SCALE_KEY, stored);
+    return createDiagramTextScaleStore(storage);
+}
+
+describe('TextSizeButtons', () => {
+    it('makes the diagram text larger', () => {
+        const store = storeAt();
+        render(<TextSizeButtons store={store} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Larger diagram text' }));
+
+        expect(store.getSnapshot()).toBe(1.15);
+    });
+
+    it('makes the diagram text smaller', () => {
+        const store = storeAt();
+        render(<TextSizeButtons store={store} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Smaller diagram text' }));
+
+        expect(store.getSnapshot()).toBe(0.9);
+    });
+
+    it('disables the larger button at the largest size', () => {
+        render(<TextSizeButtons store={storeAt('1.5')} />);
+
+        expect(screen.getByRole('button', { name: 'Larger diagram text' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Smaller diagram text' })).toBeEnabled();
+    });
+
+    it('disables the smaller button at the smallest size', () => {
+        render(<TextSizeButtons store={storeAt('0.8')} />);
+
+        expect(screen.getByRole('button', { name: 'Smaller diagram text' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Larger diagram text' })).toBeEnabled();
+    });
+});

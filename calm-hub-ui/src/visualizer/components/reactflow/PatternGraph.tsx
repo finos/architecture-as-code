@@ -12,6 +12,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { MotionToggleButton } from './MotionToggleButton.js';
+import { TextSizeButtons } from './TextSizeButtons.js';
 import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
@@ -275,6 +276,7 @@ export function PatternGraph({
                         }}
                     >
                         <MotionToggleButton />
+                        <TextSizeButtons />
                     </Controls>
                 )}
                 {!isMobile && (
