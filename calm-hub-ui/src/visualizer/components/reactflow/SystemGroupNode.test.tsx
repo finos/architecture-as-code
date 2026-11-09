@@ -8,6 +8,7 @@ import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js'
 import type { ElementEvaluation } from '../../contracts/contracts.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
+import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 
 vi.mock('reactflow', () => ({
     Handle: () => null,
@@ -87,11 +88,25 @@ describe('SystemGroupNode decision overlay', () => {
 });
 
 describe('SystemGroupNode diagram text size', () => {
-    it('scales the label', () => {
+    it.each([
+        ['1.5', false, '18px'],
+        ['2', false, '24px'],
+        ['1.5', true, '33px'],
+        // Above 1.5x the presentation label does not fit above the children, which start 80px down.
+        ['2', true, '33px'],
+    ])('at scale %s, presenting %s, sizes the label %s', (stored, presenting, fontSize) => {
         const storage = createMemoryStorage();
-        storage.setItem(DIAGRAM_TEXT_SCALE_KEY, '1.5');
+        storage.setItem(DIAGRAM_TEXT_SCALE_KEY, stored);
+        const presentationStore = createPresentationModeStore(createMemoryStorage());
+        presentationStore.set(presenting);
         const props = { id: 'cluster', data: { label: 'Cluster', 'unique-id': 'cluster' } } as unknown as NodeProps;
-        render(<SystemGroupNode {...props} textScaleStore={createDiagramTextScaleStore(storage)} />);
-        expect(screen.getByText('Cluster').parentElement!.style.fontSize).toBe('18px');
+        render(
+            <SystemGroupNode
+                {...props}
+                textScaleStore={createDiagramTextScaleStore(storage)}
+                presentationStore={presentationStore}
+            />
+        );
+        expect(screen.getByText('Cluster').parentElement!.style.fontSize).toBe(fontSize);
     });
 });

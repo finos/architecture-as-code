@@ -63,15 +63,18 @@ function DecisionGroupNodeComponent({ data, textScaleStore }: DecisionGroupNodeP
                 <div
                     style={{
                         position: 'absolute',
-                        // Below the label: its 12px top, 8px padding and one 1.5-line-height line of text.
-                        top: `${22 + 18 * scale}px`,
+                        // Below the label: its 12px top, 8px padding, 2px border and one 1.5-line-height line of text.
+                        top: `${Math.round((22 + 18 * scale) * 10) / 10}px`,
                         left: '16px',
                         fontSize: scalePx(11, scale),
                         color: borderColor,
                         fontStyle: 'italic',
                         maxWidth: 'calc(100% - 32px)',
                         pointerEvents: 'auto',
+                        // A larger prompt that wraps would reach the options, so it keeps to one line.
+                        ...(scale > 1 && { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
                     }}
+                    title={scale > 1 ? prompt : undefined}
                 >
                     {prompt}
                 </div>
