@@ -11,7 +11,7 @@ describe('isCurie', () => {
     });
 
     it('returns true for simple namespaces', () => {
-        expect(isCurie('ns:type:slug')).toBe(true);
+        expect(isCurie('ns:patterns:slug')).toBe(true);
     });
 
     it('returns false for URLs (contains slashes before first colon)', () => {
@@ -39,16 +39,22 @@ describe('isCurie', () => {
     });
 
     it('returns true when namespace contains dots (Hub allows dotted namespaces)', () => {
-        expect(isCurie('example.com:type:Slug')).toBe(true);
+        expect(isCurie('example.com:patterns:Slug')).toBe(true);
     });
 
     it('returns false when slug starts with a digit', () => {
-        expect(isCurie('ns:type:1bad')).toBe(false);
+        expect(isCurie('ns:patterns:1bad')).toBe(false);
     });
 
     it('returns false when segments contain path traversal', () => {
         expect(isCurie('ns:../../x:Slug')).toBe(false);
-        expect(isCurie('ns:type:Slug@../../../x')).toBe(false);
+        expect(isCurie('ns:patterns:Slug@../../../x')).toBe(false);
+    });
+
+    it('returns false for URN identifiers and unknown resource types', () => {
+        expect(isCurie('urn:acme:pci')).toBe(false);
+        expect(isCurie('URN:controls:pci')).toBe(false);
+        expect(isCurie('ns:unknown:slug')).toBe(false);
     });
 });
 
@@ -119,8 +125,8 @@ describe('expandCurie', () => {
     });
 
     it('strips trailing slash from hubBaseUrl', () => {
-        const result = expandCurie('ns:type:Slug@v1', 'http://hub.example.com/');
-        expect(result).toBe('http://hub.example.com/calm/namespaces/ns/type/Slug/versions/v1');
+        const result = expandCurie('ns:patterns:Slug@v1', 'http://hub.example.com/');
+        expect(result).toBe('http://hub.example.com/calm/namespaces/ns/patterns/Slug/versions/v1');
     });
 
     it('produces domain-scoped Hub URL for control CURIEs', () => {

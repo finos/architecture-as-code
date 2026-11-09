@@ -1,4 +1,5 @@
 import { constructControlDocumentId } from './document-id-utils.js';
+import { isValidResourceType } from './resource-types.js';
 
 export interface CurieComponents {
     namespace: string;
@@ -8,10 +9,17 @@ export interface CurieComponents {
 }
 
 // namespace:type:slug[@version], using the segment rules that CALM Hub enforces
-const CURIE_PATTERN = /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*:[A-Za-z0-9-]+:[A-Za-z][A-Za-z0-9]*(-[A-Za-z0-9]+)*(@[A-Za-z0-9.-]+)?$/;
+const CURIE_PATTERN = /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*:([A-Za-z0-9-]+):[A-Za-z][A-Za-z0-9]*(-[A-Za-z0-9]+)*(@[A-Za-z0-9.-]+)?$/;
+
+function isCurieResourceType(type: string): boolean {
+    return isValidResourceType(type) || type === 'controls';
+}
 
 export function isCurie(ref: string): boolean {
-    return CURIE_PATTERN.test(ref);
+    if (/^urn:/i.test(ref)) return false;
+    const match = CURIE_PATTERN.exec(ref);
+    if (!match) return false;
+    return isCurieResourceType(match[2]);
 }
 
 export function parseCurie(curie: string): CurieComponents | null {

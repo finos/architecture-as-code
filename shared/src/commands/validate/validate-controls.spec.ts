@@ -1,6 +1,8 @@
 import { validateAllControls } from './validate-controls';
 import { SchemaDirectory } from '../../schema-directory';
 import { CalmReferenceResolver } from '../../resolver/calm-reference-resolver';
+import { CurieReferenceResolver } from '../../resolver/curie-resolver';
+import { SchemaDirectoryReferenceResolver } from '../../resolver/schema-directory-reference-resolver';
 
 const mocks = vi.hoisted(() => ({
     jsonSchemaValidate: vi.fn().mockReturnValue([]),
@@ -449,9 +451,8 @@ describe('validateAllControls', () => {
         expect(result.jsonSchemaOutputs[0].message).toContain('[object Object]');
     });
 
-    describe('control CURIE resolution', () => {
+    describe('control CURIE requirement-url resolution', () => {
         const requirementCurie = 'security:controls:micro-segmentation@1.0.0';
-        const configCurie = 'security:controls:micro-segmentation-prod@1.0.0';
 
         function makeReferenceResolver(resolveImpl: (ref: string) => Promise<unknown>): CalmReferenceResolver {
             return {
@@ -477,34 +478,38 @@ describe('validateAllControls', () => {
             );
         });
 
-        it('resolves a CURIE config-url through referenceResolver instead of SchemaDirectory', async () => {
-            const schemaDir = makeSchemaDirectory(requirementSchema);
-            const resolver = makeReferenceResolver(async (ref) =>
-                ref === requirementCurie ? requirementSchema : inlineConfig
+        it('expands a control requirement-url CURIE to the domain-scoped Hub requirement URL via CurieReferenceResolver', async () => {
+            const schemaDir = makeSchemaDirectory();
+            (schemaDir.loadDocument as ReturnType<typeof vi.fn>).mockResolvedValueOnce(requirementSchema);
+            const resolver = new CurieReferenceResolver(
+                'http://hub.example.com',
+                new SchemaDirectoryReferenceResolver(schemaDir)
             );
-            const arch = {
-                nodes: [{
-                    'unique-id': 'node-1',
-                    'node-type': 'service',
-                    name: 'N',
-                    description: 'D',
-                    controls: {
-                        security: {
-                            description: 'Security',
-                            requirements: [{
-                                'requirement-url': requirementCurie,
-                                'config-url': configCurie
-                            }]
-                        }
-                    }
-                }]
-            };
+            const arch = architectureWithNodeControl(inlineConfig, requirementCurie);
 
             const result = await validateAllControls(arch, undefined, schemaDir, false, resolver);
 
             expect(result.hasErrors).toBe(false);
-            expect(resolver.resolve).toHaveBeenCalledWith(requirementCurie);
-            expect(resolver.resolve).toHaveBeenCalledWith(configCurie);
+            expect(schemaDir.loadDocument).toHaveBeenCalledWith(
+                'http://hub.example.com/calm/domains/security/controls/micro-segmentation/requirement/versions/1.0.0',
+                'architecture'
+            );
+            expect(schemaDir.getSchema).not.toHaveBeenCalled();
+        });
+
+        it('resolves a URN requirement-url through SchemaDirectory.getSchema even when CurieReferenceResolver is provided', async () => {
+            const urnId = 'urn:acme:pci';
+            const schemaDir = makeSchemaDirectory(requirementSchema);
+            const resolver = new CurieReferenceResolver(
+                'http://hub.example.com',
+                new SchemaDirectoryReferenceResolver(schemaDir)
+            );
+            const arch = architectureWithNodeControl(inlineConfig, urnId);
+
+            const result = await validateAllControls(arch, undefined, schemaDir, false, resolver);
+
+            expect(result.hasErrors).toBe(false);
+            expect(schemaDir.getSchema).toHaveBeenCalledWith(urnId);
             expect(schemaDir.loadDocument).not.toHaveBeenCalled();
         });
 
@@ -532,35 +537,6 @@ describe('validateAllControls', () => {
             expect(result.hasErrors).toBe(true);
             expect(result.jsonSchemaOutputs[0].message).toContain('Requirement schema not found');
             expect(result.jsonSchemaOutputs[0].message).toContain(requirementCurie);
-        });
-
-        it('emits error when CURIE config-url resolution throws', async () => {
-            const schemaDir = makeSchemaDirectory(requirementSchema);
-            const resolver = makeReferenceResolver(async () => {
-                throw new Error(`No resolver in chain could resolve: ${configCurie}`);
-            });
-            const arch = {
-                nodes: [{
-                    'unique-id': 'node-1',
-                    'node-type': 'service',
-                    name: 'N',
-                    description: 'D',
-                    controls: {
-                        security: {
-                            description: 'Security',
-                            requirements: [{
-                                'requirement-url': 'https://example.com/requirement.json',
-                                'config-url': configCurie
-                            }]
-                        }
-                    }
-                }]
-            };
-
-            const result = await validateAllControls(arch, undefined, schemaDir, false, resolver);
-
-            expect(result.hasErrors).toBe(true);
-            expect(result.jsonSchemaOutputs[0].message).toContain(`Could not load config from '${configCurie}'`);
         });
 
         it('falls through to SchemaDirectory for non-CURIE requirement-url and config-url even when referenceResolver is provided', async () => {
