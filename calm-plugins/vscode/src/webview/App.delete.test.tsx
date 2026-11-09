@@ -254,6 +254,19 @@ describe('App: edits on a canvas with copies', () => {
         expect([r('r3'), r('r4')]).toEqual([[], ['N']]);
     });
 
+    it('keeps the selection on the same drawing when an undo brings the old drawings back', () => {
+        open({ nodes: [node('C'), node('D'), node('N')], relationships: [deployedIn('r1', 'C', ['N']), deployedIn('r2', 'D', ['N'])] });
+        act(() => flow.onNodeClick({}, flow.nodes.find((n) => n.data.calmId === 'N' && n.parentId === 'C')!));
+        deleteDrawings(['D']);
+        act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true })));
+        act(() => vi.runAllTimers());
+
+        act(() => [...document.querySelectorAll('button')].find((b) => b.textContent === 'Remove from Container')!.click());
+        act(() => vi.runAllTimers());
+        const r = (id: string) => lastSave().relationships.find((x: { 'unique-id': string }) => x['unique-id'] === id)['relationship-type']['deployed-in'].nodes;
+        expect([r('r1'), r('r2')]).toEqual([[], ['N']]);
+    });
+
     it('removes the shown drawing from its container with the shortcut after a rebuild', () => {
         open({
             nodes: [node('cluster-a'), node('cluster-b'), node('cluster-c'), node('ns')],

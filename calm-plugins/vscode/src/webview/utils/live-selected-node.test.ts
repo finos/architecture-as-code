@@ -29,6 +29,16 @@ describe('liveSelectedNode derivation', () => {
         expect((result!.data as Record<string, unknown>).label).toBe('new-label');
     });
 
+    it('prefers the drawing at the place it was selected, when a load gave its id to another drawing', () => {
+        const parent = (id: string, p?: string) => makeNode(id, { data: { calmId: id }, ...(p ? { parentId: p } : {}) });
+        const inD = { ...parent('N', 'D'), data: { calmId: 'N' } };
+        const inC = { ...parent('N__in__C', 'C'), data: { calmId: 'N' } };
+        const nodes = [parent('C'), parent('D'), inD, inC];
+
+        expect(resolveLiveSelectedNode(inD, nodes, 'C/N')).toBe(inC);
+        expect(resolveLiveSelectedNode(inD, nodes, 'gone/N')).toBe(inD);
+    });
+
     it('returns null when the node was deleted', () => {
         const nodes = [makeNode('a'), makeNode('b')];
 

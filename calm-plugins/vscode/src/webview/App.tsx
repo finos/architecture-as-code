@@ -46,7 +46,7 @@ import {
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
-import { updateInstances, hasSharedDrawings, samePlace } from './transforms/node-instances';
+import { updateInstances, hasSharedDrawings, pathOf } from './transforms/node-instances';
 import { resolveLiveSelectedNode } from './utils/live-selected-node';
 import { deleteDrawings, unparentDrawing, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
 import { NodePalette } from './panels/NodePalette';
@@ -104,6 +104,12 @@ function CanvasApp() {
     const [initialized, setInitialized] = useState(() => !!getInitialCalmJson());
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+    // Where the selected drawing is. A load can give the drawing at that place another id, or give its id to another drawing.
+    const [selectedPlace, setSelectedPlace] = useState<string | null>(null);
+    const selectDrawing = useCallback((node: Node) => {
+        setSelectedNode(node);
+        setSelectedPlace(pathOf(node, new Map(reactFlowInstance.getNodes().map((n) => [n.id, n]))));
+    }, [reactFlowInstance]);
     const [panelWidth, setPanelWidth] = useState(280);
     const [panelCollapsed, setPanelCollapsed] = useState(false);
     const [showPatternPicker, setShowPatternPicker] = useState(false);
@@ -281,7 +287,6 @@ function CanvasApp() {
             // document-level controls are scanned; local refs always re-resolve.
             const generation = loadGeneration.current;
             setTimeout(() => enrichAllControls(originals, generation), 0);
-            return layoutedNodes;
         } catch (err) {
             console.error('[CALM Canvas] Failed to load architecture:', err);
         }
@@ -291,13 +296,9 @@ function CanvasApp() {
     // so every drawing of a container shows the same members
     const emitAndReload = useCallback(() => {
         const before = lastEmittedJson.current;
-        const drawn = reactFlowInstance.getNodes();
         emitChange(true, true);
-        if (!lastEmittedJson.current || lastEmittedJson.current === before) return;
-        const rebuilt = loadArchitecture(lastEmittedJson.current);
-        // Keep the selection on the drawing at the same place; the rebuild can change its id
-        if (rebuilt) setSelectedNode((sel) => (sel && samePlace(sel.id, drawn, rebuilt)) ?? sel);
-    }, [emitChange, loadArchitecture, reactFlowInstance]);
+        if (lastEmittedJson.current && lastEmittedJson.current !== before) loadArchitecture(lastEmittedJson.current);
+    }, [emitChange, loadArchitecture]);
 
     // --- Bridge setup ---
     useEffect(() => {
@@ -382,12 +383,12 @@ function CanvasApp() {
             }
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'u') {
                 e.preventDefault();
-                const live = resolveLiveSelectedNode(selectedNode, nodes);
+                const live = resolveLiveSelectedNode(selectedNode, nodes, selectedPlace);
                 if (live?.parentId) unparentNode(live.id);
             }
             // Copy
             if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isInputDOMNode(e)) {
-                const live = resolveLiveSelectedNode(selectedNode, nodes);
+                const live = resolveLiveSelectedNode(selectedNode, nodes, selectedPlace);
                 if (live) {
                     clipboardNode.current = live;
                 }
@@ -401,14 +402,14 @@ function CanvasApp() {
                 const newId = `${calmType.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
                 const newNode = pastedNode(src, newId);
                 setNodes((nds) => [...nds, newNode]);
-                setSelectedNode(newNode);
+                selectDrawing(newNode);
                 store.selectNode(newId);
                 setTimeout(() => emitChange(true), 0);
             }
         };
         window.addEventListener('keydown', handleKeydown);
         return () => window.removeEventListener('keydown', handleKeydown);
-    }, [loadArchitecture, selectedNode, nodes, setNodes, emitChange, store, unparentNode]);
+    }, [loadArchitecture, selectedNode, selectedPlace, selectDrawing, nodes, setNodes, emitChange, store, unparentNode]);
 
     // --- Node changes (position, dimension, remove) ---
     const onNodesChange = useCallback((changes: NodeChange[]) => {
@@ -474,7 +475,7 @@ function CanvasApp() {
         const edit = deleteDrawings(nodes, edges, deletedNodes);
         const deletedIds = new Set(deletedNodes.map((n) => n.id));
         keptOnDelete.current = new Set(edit.nodes.map((n) => n.id));
-        const selected = resolveLiveSelectedNode(selectedNode, nodes);
+        const selected = resolveLiveSelectedNode(selectedNode, nodes, selectedPlace);
         if (selected && !edit.nodes.some((n) => n.id === selected.id)) setSelectedNode(null);
         setNodes(edit.nodes);
         // React Flow has already removed the picked edges and the edges of the deleted drawings.
@@ -495,14 +496,14 @@ function CanvasApp() {
             // After the saves that React Flow's change callbacks queued for this delete
             setTimeout(() => { reloadPending.current = false; }, 0);
         }, 0);
-    }, [nodes, edges, selectedNode, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
+    }, [nodes, edges, selectedNode, selectedPlace, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
 
     // --- Node click (select) ---
     const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-        setSelectedNode(node);
+        selectDrawing(node);
         setSelectedEdge(null);
         store.selectNode(node.id);
-    }, [store]);
+    }, [store, selectDrawing]);
 
     // --- Node double-click (drill-in or select+focus) ---
     const handleNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -518,10 +519,10 @@ function CanvasApp() {
             notifyDrillInto(label, `standard-nodes/${safeName}.calm.json`, calmType);
         } else {
             // No drill target — select and focus the name field for editing
-            setSelectedNode(node);
+            selectDrawing(node);
             store.selectNode(node.id);
         }
-    }, [store]);
+    }, [store, selectDrawing]);
 
     const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
         setSelectedEdge(edge);
@@ -748,7 +749,7 @@ function CanvasApp() {
         if (issue.nodeId) {
             const node = nodes.find((n) => n.id === issue.nodeId);
             if (node) {
-                setSelectedNode(node);
+                selectDrawing(node);
                 setSelectedEdge(null);
                 store.selectNode(node.id);
             }
@@ -759,7 +760,7 @@ function CanvasApp() {
             store.selectNode(null);
         }
         if (issue.controlId) setExpandControlKey(issue.controlId);
-    }, [nodes, store]);
+    }, [nodes, store, selectDrawing]);
 
     // --- Panel resize ---
     const handlePanelResizeStart = useCallback((e: React.MouseEvent) => {
@@ -942,7 +943,7 @@ function CanvasApp() {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--calm-fg-muted)' }}>Loading CALM architecture...</div>;
     }
 
-    const liveSelectedNode = resolveLiveSelectedNode(selectedNode, nodes);
+    const liveSelectedNode = resolveLiveSelectedNode(selectedNode, nodes, selectedPlace);
     const data = liveSelectedNode ? (liveSelectedNode.data as Record<string, unknown>) : null;
 
     return (
