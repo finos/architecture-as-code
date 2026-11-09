@@ -33,6 +33,10 @@ export async function validateAllInterfaces(
         return { jsonSchemaOutputs: outputs, hasErrors, hasWarnings };
     }
 
+    // Load and compile each definition once, also when it fails, so many interfaces that share
+    // one unreachable or large definition do not fetch or compile it again for each interface.
+    const definitions = new Map<string, LoadedDefinition>();
+
     for (const [nodeIdx, node] of calmCore.nodes.entries()) {
         for (const [interfaceIdx, calmInterface] of (node.interfaces ?? []).entries()) {
             if (!(calmInterface instanceof CalmInterfaceDefinition)) {
@@ -41,9 +45,13 @@ export async function validateAllInterfaces(
             const interfacePath = `/nodes/${nodeIdx}/interfaces/${interfaceIdx}`;
             const definitionUrl = calmInterface.definitionUrl.reference;
 
-            const loaded = await loadDefinition(definitionUrl, interfacePath, schemaDirectory, debug);
+            let loaded = definitions.get(definitionUrl);
+            if (!loaded) {
+                loaded = await loadDefinition(definitionUrl, schemaDirectory, debug);
+                definitions.set(definitionUrl, loaded);
+            }
             if ('warning' in loaded) {
-                outputs.push(loaded.warning);
+                outputs.push(unresolvedWarning(interfacePath, loaded.warning));
                 hasWarnings = true;
                 continue;
             }
@@ -57,20 +65,22 @@ export async function validateAllInterfaces(
     return { jsonSchemaOutputs: outputs, hasErrors, hasWarnings };
 }
 
+/** A compiled definition, or the warning message to report at each interface that uses it. */
+type LoadedDefinition = { validator: JsonSchemaValidator } | { warning: string };
+
 async function loadDefinition(
     definitionUrl: string,
-    interfacePath: string,
     schemaDirectory: SchemaDirectory,
     debug: boolean
-): Promise<{ validator: JsonSchemaValidator } | { warning: ValidationOutput }> {
+): Promise<LoadedDefinition> {
     let schema: object | undefined;
     try {
         schema = await schemaDirectory.getSchema(definitionUrl);
     } catch (err) {
-        return { warning: unresolvedWarning(interfacePath, `Could not load interface definition from '${definitionUrl}': ${getErrorMessage(err)}. The interface config was not validated.`) };
+        return { warning: `Could not load interface definition from '${definitionUrl}': ${getErrorMessage(err)}. The interface config was not validated.` };
     }
     if (!schema) {
-        return { warning: unresolvedWarning(interfacePath, `Interface definition not found: '${definitionUrl}'. The interface config was not validated.`) };
+        return { warning: `Interface definition not found: '${definitionUrl}'. The interface config was not validated.` };
     }
 
     try {
@@ -78,7 +88,7 @@ async function loadDefinition(
         await validator.initialize();
         return { validator };
     } catch (err) {
-        return { warning: unresolvedWarning(interfacePath, `Could not compile interface definition from '${definitionUrl}': ${getErrorMessage(err)}. The interface config was not validated.`) };
+        return { warning: `Could not compile interface definition from '${definitionUrl}': ${getErrorMessage(err)}. The interface config was not validated.` };
     }
 }
 

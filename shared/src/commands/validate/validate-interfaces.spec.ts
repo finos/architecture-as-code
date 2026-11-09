@@ -1,5 +1,6 @@
 import { validateAllInterfaces } from './validate-interfaces';
 import { SchemaDirectory } from '../../schema-directory';
+import { JsonSchemaValidator } from './json-schema-validator';
 
 vi.mock('../../logger.js', () => ({
     initLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn: vi.fn(), error: vi.fn() })
@@ -20,6 +21,10 @@ function architectureWithInterfaces(interfaces: object[]) {
 const definitionInterface = { 'unique-id': 'i1', 'definition-url': DEFINITION_URL, config: { port: 1 } };
 
 describe('validateAllInterfaces', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('ignores interface types without a definition-url', async () => {
         const schemaDirectory = makeSchemaDirectory(() => Promise.resolve(undefined));
         const arch = architectureWithInterfaces([{ 'unique-id': 'i1', hostname: 'example.com' }]);
@@ -75,5 +80,36 @@ describe('validateAllInterfaces', () => {
         expect(result.jsonSchemaOutputs).toHaveLength(1);
         expect(result.jsonSchemaOutputs[0].code).toBe('interface-definition-validation');
         expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/interfaces/1/config');
+    });
+
+    it('loads an unreachable definition once but warns at each interface that uses it', async () => {
+        const schemaDirectory = makeSchemaDirectory(() => Promise.reject(new Error('network down')));
+        const arch = architectureWithInterfaces([
+            definitionInterface,
+            { ...definitionInterface, 'unique-id': 'i2' }
+        ]);
+
+        const result = await validateAllInterfaces(arch, schemaDirectory, false);
+
+        expect(schemaDirectory.getSchema).toHaveBeenCalledTimes(1);
+        expect(result.hasWarnings).toBe(true);
+        expect(result.jsonSchemaOutputs.map(o => o.path)).toEqual(['/nodes/0/interfaces/0', '/nodes/0/interfaces/1']);
+        expect(result.jsonSchemaOutputs.every(o => o.code === 'interface-definition-unresolved')).toBe(true);
+    });
+
+    it('loads and compiles a shared definition once and validates each interface against it', async () => {
+        const initialize = vi.spyOn(JsonSchemaValidator.prototype, 'initialize');
+        const schemaDirectory = makeSchemaDirectory(() => Promise.resolve({ type: 'object', required: ['host'] }));
+        const arch = architectureWithInterfaces([
+            definitionInterface,
+            { ...definitionInterface, 'unique-id': 'i2' }
+        ]);
+
+        const result = await validateAllInterfaces(arch, schemaDirectory, false);
+
+        expect(schemaDirectory.getSchema).toHaveBeenCalledTimes(1);
+        expect(initialize).toHaveBeenCalledTimes(1);
+        expect(result.hasErrors).toBe(true);
+        expect(result.jsonSchemaOutputs.map(o => o.path)).toEqual(['/nodes/0/interfaces/0/config', '/nodes/0/interfaces/1/config']);
     });
 });
