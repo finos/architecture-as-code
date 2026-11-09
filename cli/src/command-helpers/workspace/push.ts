@@ -256,7 +256,8 @@ async function pushMappingEntry(
     context: PushEntryContext
 ): Promise<void> {
     const { bundlePath, client, conflicts, failIfModified, id, manifest, mappingFailures, raw, snapshotBlocked, snapshotDependencies } = context;
-    if (entry.type !== 'unknown' && !resourceTypeForDocumentType(entry.type)) {
+    const expectedResourceType = entry.type === 'unknown' ? undefined : resourceTypeForDocumentType(entry.type);
+    if (entry.type !== 'unknown' && !expectedResourceType) {
         logger.warn(`Skipping '${id}': document type '${entry.type}' has no CalmHub resource type.`);
         return;
     }
@@ -276,6 +277,13 @@ async function pushMappingEntry(
     }
 
     const { namespace, type: resourceType, mapping: mappingId, version } = metadata;
+    if (expectedResourceType && resourceType !== expectedResourceType) {
+        logger.warn(
+            `Skipping '${id}': document type '${entry.type}' expects resource type '${expectedResourceType}', ` +
+            `but $id has '${resourceType}'.`
+        );
+        return;
+    }
     if (!namespace) {
         logger.warn(`Skipping '${id}': document $id has no namespace.`);
         return;
