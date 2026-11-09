@@ -11,6 +11,19 @@ function storeAt(stored?: string) {
 }
 
 describe('TextSizeButtons', () => {
+    it('labels the buttons A− and A+', () => {
+        render(<TextSizeButtons store={storeAt()} />);
+
+        expect(screen.getByRole('button', { name: 'Smaller diagram text' })).toHaveTextContent('A−');
+        expect(screen.getByRole('button', { name: 'Larger diagram text' })).toHaveTextContent('A+');
+    });
+
+    it('puts A+ above A−', () => {
+        render(<TextSizeButtons store={storeAt()} />);
+
+        expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['A+', 'A−']);
+    });
+
     it('makes the diagram text larger', () => {
         const store = storeAt();
         render(<TextSizeButtons store={store} />);
@@ -34,6 +47,13 @@ describe('TextSizeButtons', () => {
 
         expect(screen.getByRole('button', { name: 'Larger diagram text' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Smaller diagram text' })).toBeEnabled();
+    });
+
+    it('dims the label of a disabled button', () => {
+        render(<TextSizeButtons store={storeAt('1.5')} />);
+
+        expect(screen.getByText('A+')).toHaveStyle({ opacity: '0.4' });
+        expect(screen.getByText('A−')).toHaveStyle({ opacity: '1' });
     });
 
     it('disables the smaller button at the smallest size', () => {
