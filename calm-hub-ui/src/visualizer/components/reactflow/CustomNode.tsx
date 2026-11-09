@@ -145,6 +145,7 @@ function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: Cu
         badgeText: scalePx(base.badgeText, scale),
         badgeIcon: scalePx(base.badgeIcon, scale),
     };
+    const badgesBelow = presenting || scale > 1;
     const evaluation = useElementEvaluation(data['unique-id']);
     const evaluationNotMet = evaluation?.status === 'not-met';
     const { showDecisions, subjectLabels } = useDecisionOverlay();
@@ -231,11 +232,12 @@ function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: Cu
       <Handle type="source" position={Position.Right} id="source" style={{ opacity: 0 }} />
       <Handle type="target" position={Position.Left} id="target" style={{ opacity: 0 }} />
 
-      {/* Presentation mode puts the badges below the label: the larger text leaves no space next to it. */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: presenting ? 'wrap' : undefined }}>
-        <div style={{ fontWeight: 600, marginBottom: '4px', flex: presenting ? '1 0 100%' : 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Larger text puts the badges below the label: it leaves no space next to it. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: badgesBelow ? 'wrap' : undefined }}>
+        <div style={{ fontWeight: 600, marginBottom: '4px', flex: badgesBelow ? '1 0 100%' : 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <NodeIcon style={{ width: size.icon, height: size.icon, flexShrink: 0, color: nodeTypeStyle.color }} />
-          <span>{data.label}</span>
+          {/* The node width is fixed, so a long word at a larger size must break. */}
+          <span style={{ overflowWrap: scale > 1 ? 'anywhere' : undefined }}>{data.label}</span>
           {detailedArchitecture && !isUnknownArch && (
             <div title="Has detailed architecture">
               <ZoomIn style={{ width: size.zoomIcon, height: size.zoomIcon, flexShrink: 0, color: THEME.colors.accentText }} />

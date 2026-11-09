@@ -332,6 +332,20 @@ describe('diagram text size', () => {
         expect(screen.getByTestId('custom-node').style.width).toBe('320px');
     });
 
+    it('puts the badges below the label and breaks long names when the text is larger', () => {
+        renderNode(scaleStore('1.15'));
+        const label = screen.getByText('Test Node');
+        expect(label.parentElement!.parentElement!.style.flexWrap).toBe('wrap');
+        expect(label.style.overflowWrap).toBe('anywhere');
+    });
+
+    it('keeps the default layout at the default size', () => {
+        renderNode(scaleStore());
+        const label = screen.getByText('Test Node');
+        expect(label.parentElement!.parentElement!.style.flexWrap).toBe('');
+        expect(label.style.overflowWrap).toBe('');
+    });
+
     it('follows a change of the setting without a remount', () => {
         const store = scaleStore();
         renderNode(store);

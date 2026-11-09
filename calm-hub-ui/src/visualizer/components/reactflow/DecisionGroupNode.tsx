@@ -9,7 +9,8 @@ interface DecisionGroupNodeProps extends NodeProps {
 }
 
 function DecisionGroupNodeComponent({ data, textScaleStore }: DecisionGroupNodeProps) {
-    const { scale } = useDiagramTextScale(textScaleStore);
+    // The children start 80px down. Above 1.5x the label and the prompt do not fit in that space.
+    const scale = Math.min(useDiagramTextScale(textScaleStore).scale, 1.5);
     const isOneOf = data.decisionType === 'oneOf';
     const borderColor = isOneOf
         ? THEME.colors.decision.oneOf
@@ -62,7 +63,8 @@ function DecisionGroupNodeComponent({ data, textScaleStore }: DecisionGroupNodeP
                 <div
                     style={{
                         position: 'absolute',
-                        top: scalePx(40, scale),
+                        // Below the label: its 12px top, 8px padding and one 1.5-line-height line of text.
+                        top: `${22 + 18 * scale}px`,
                         left: '16px',
                         fontSize: scalePx(11, scale),
                         color: borderColor,
