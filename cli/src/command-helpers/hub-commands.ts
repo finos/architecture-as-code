@@ -690,6 +690,36 @@ export async function runListFlows(options: ListOptions): Promise<void> {
     return runListMappedResources(options, 'flows');
 }
 
+// ── push timeline ─────────────────────────────────────────────────────────────
+
+/**
+ * Pushes a new timeline or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
+export async function runPushTimeline(options: PushOptions): Promise<void> {
+    return orchestratePush(options, 'timelines');
+}
+
+// ── pull timeline ─────────────────────────────────────────────────────────────
+
+/**
+ * Pulls a timeline version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
+export async function runPullTimeline(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'timelines');
+}
+
+// ── list timelines ────────────────────────────────────────────────────────────
+
+/**
+ * Lists timelines in a namespace.
+ * @param options Command options.
+ */
+export async function runListTimelines(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'timelines');
+}
+
 // ── create domain ───────────────────────────────────────────────────────────
 
 export interface CreateDomainOptions {

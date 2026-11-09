@@ -10,7 +10,7 @@ sidebar_label: hub
 The `hub` command group is under active development.  Functionality may change without notice.
 :::
 
-The `hub` command group allows you to interact with a running `CALM Hub` instance directly from the CLI. You can use it to manage Namespaces, Architectures, Standards, Patterns, Domains and Controls stored in CALM Hub.
+The `hub` command group allows you to interact with a running `CALM Hub` instance directly from the CLI. You can use it to manage Namespaces, Architectures, Standards, Patterns, Timelines, Domains and Controls stored in CALM Hub.
 
 ## Connecting to CALM Hub
 
@@ -258,6 +258,69 @@ calm hub pull standard \
 - **`-m, --mapping <mapping>`**: _(required)_ The mapping slug of the standard.
 - **`--ver <version>`**: Version to retrieve (defaults to latest).
 - **`-o, --output <file>`**: Write the standard JSON to a file instead of stdout.
+- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
+
+## Managing Timelines
+
+### List timelines
+
+To list all timeline mapping slugs stored in a namespace:
+
+```shell
+calm hub list timelines --namespace my-namespace -c http://localhost:8080
+```
+
+**Options:**
+
+- **`--namespace <namespace>`**: The namespace to list timelines from (default: `default`).
+- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`. The `pretty` format renders results as an ASCII table with column **MAPPING**.
+
+### Push a timeline
+
+The document's `$id` field determines the target namespace, resource type, and mapping slug. The CLI computes the next version, rewrites `$id` in the local file, and uploads the document.
+
+```shell
+calm hub push timeline my-timeline.json -c http://localhost:8080
+```
+
+**Options:**
+
+- **`--name <name>`**: Optional display name override (falls back to the document's `title` field).
+- **`--description <description>`**: Optional description override (falls back to the document's `description` field).
+- **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
+- **`--fail-if-modified`**: Skip if the document is unchanged from the latest published version; fail if it has changed.
+- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
+
+### Pull a timeline
+
+To download a timeline from CALM Hub, provide the namespace and mapping slug. Omit `--ver` to pull the latest version:
+
+```shell
+calm hub pull timeline \
+  --namespace my-namespace \
+  --mapping my-timeline \
+  -c http://localhost:8080
+```
+
+By default the timeline JSON is written to stdout. Use `-o` to write it to a file instead:
+
+```shell
+calm hub pull timeline \
+  --namespace my-namespace \
+  --mapping my-timeline \
+  --ver 1.0.0 \
+  -o pulled-timeline.json \
+  -c http://localhost:8080
+```
+
+**Options:**
+
+- **`--namespace <namespace>`**: _(required)_ The namespace the timeline belongs to.
+- **`-m, --mapping <mapping>`**: _(required)_ The mapping slug of the timeline.
+- **`--ver <version>`**: Version to retrieve (defaults to latest).
+- **`-o, --output <file>`**: Write the timeline JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
 ## Managing Domains
