@@ -73,7 +73,8 @@ the MongoDB 16 MB limit
 ([ADR 0001](0001-versioned-artefact-storage.md)), and then every decorator write
 in the namespace fails. Before reserved types ship, both stores keep one
 document for each decorator. MongoDB moves with a new `SchemaMigrationStep` and
-the same change to `init-mongo.js`.
+the same change to `init-mongo.js`. Tracked in
+[#3639](https://github.com/finos/architecture-as-code/issues/3639).
 
 ## Consequences
 
