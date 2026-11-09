@@ -30,4 +30,9 @@ describe('EdgeProperties', () => {
     it('does not offer Bidirectional for an edge with a separate reverse edge', () => {
         expect(render(edge('r1', 'a', 'b'), true)).not.toContain('value="bidirectional"');
     });
+
+    it('offers Bidirectional for a merged pair set to one direction when another edge goes in reverse', () => {
+        const merged = edge('r1', 'a', 'b', { calmReverseRelId: 'r2', direction: 'source-to-target' });
+        expect(render(merged, true)).toContain('value="bidirectional"');
+    });
 });

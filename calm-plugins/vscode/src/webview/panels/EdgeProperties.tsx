@@ -58,7 +58,7 @@ export function EdgeProperties({ edge, hasReverseEdge = false, readonlyMode = fa
     const direction = (data.direction as EdgeDirection) ?? 'source-to-target';
     const lineStyle = (data.lineStyle as EdgeLineStyle) ?? 'solid';
     const routing = (data.routing as EdgeRouting) ?? 'bezier';
-    const directionOptions = DIRECTION_OPTIONS.filter((o) => o.value !== 'bidirectional' || !hasReverseEdge || direction === 'bidirectional');
+    const directionOptions = DIRECTION_OPTIONS.filter((o) => o.value !== 'bidirectional' || !hasReverseEdge || direction === 'bidirectional' || !!data.calmReverseRelId);
 
     useEffect(() => {
         if (edge.id !== lastEdgeId.current) {
