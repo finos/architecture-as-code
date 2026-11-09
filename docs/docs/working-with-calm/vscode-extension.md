@@ -53,7 +53,7 @@ The canvas opens in a panel beside your JSON editor.
 
 CALM Canvas is divided into four areas:
 
-1. **Toolbar (top)** — Auto-layout (`↓ Layout` / `→ Layout`), **Validate**, **Apply Pattern**, **Generate Spec**, **Export SVG**, and the overflow menu (`⋮`) for **Templates**, **New from Pattern**, and **Create Node**.
+1. **Toolbar (top)** — Auto-layout (`↓ Layout` / `→ Layout`), **Validate**, **Apply Pattern**, **Generate Spec**, **Export SVG**, and the overflow menu (`⋮`) for **New from Pattern** and **Create Node**.
 2. **Node Palette (left)** — Drag-and-drop palette containing core CALM node types, extension packs, workspace standard nodes, and CALM Hub standard nodes.
 3. **Interactive Canvas (centre)** — ReactFlow canvas with pan, zoom, minimap, background grid, and zoom controls.
 4. **Properties Panel (right)** — Contextual inspector for the selected element. Collapsible and resizable.
@@ -179,23 +179,15 @@ Validation uses bundled CALM schemas — no network access required.
 
 ---
 
-## Patterns & Templates
-
-### Apply Pattern
+## Patterns
 
 Click **Apply Pattern** in the toolbar to merge a predefined architecture pattern into the current canvas. Existing nodes and relationships are preserved; new ones from the pattern are added.
 
 ![Pattern picker dialog](/img/vscode/Pattern_Picker_Dialog.png)
 
-### New from Pattern
+You can also use **⋮ menu → New from Pattern** to start a fresh architecture from a pattern.
 
-Use **⋮ menu → New from Pattern** to start a fresh architecture from a pattern template.
-
-### Templates
-
-Use **⋮ menu → Templates** to apply a template that scaffolds a complete architecture structure.
-
-Patterns and templates are discovered from the `patterns/` and `templates/` folders in your workspace or `calm.externalAssetsPath`.
+Patterns are discovered from the `patterns/` folder in your workspace, `calm.externalAssetsPath`, or connected CALM Hub.
 
 ---
 
