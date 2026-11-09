@@ -2,14 +2,21 @@ import { memo } from 'react';
 import { NodeProps, Handle, Position } from 'reactflow';
 import { THEME } from './theme';
 import { usePresentationMode } from '../../../theme/usePresentationMode.js';
+import { scalePx, useDiagramTextScale, type DiagramTextScaleStore } from '../../../theme/useDiagramTextScale.js';
 import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
 import { EvaluationBadge } from './EvaluationBadge.js';
 import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
 import { decisionSummary } from './utils/decisionSummary.js';
 import { DecisionCallout } from './DecisionCallout.js';
 
-function SystemGroupNodeComponent({ id, data }: NodeProps) {
+interface SystemGroupNodeProps extends NodeProps {
+  /** Injected for tests; defaults to the app-wide store. */
+  textScaleStore?: DiagramTextScaleStore;
+}
+
+function SystemGroupNodeComponent({ id, data, textScaleStore }: SystemGroupNodeProps) {
   const { presenting } = usePresentationMode();
+  const { scale } = useDiagramTextScale(textScaleStore);
   // A container's own controls, and those of the deployed-in and composed-of relationships it draws.
   const evaluation = useElementEvaluation(data['unique-id']);
   const notMet = evaluation?.status === 'not-met';
@@ -44,7 +51,7 @@ function SystemGroupNodeComponent({ id, data }: NodeProps) {
           padding: presenting ? '6px 16px' : '4px 12px',
           borderRadius: '6px',
           fontWeight: 600,
-          fontSize: presenting ? '22px' : '12px',
+          fontSize: scalePx(presenting ? 22 : 12, scale),
           background: THEME.colors.backgroundSecondary,
           color: THEME.colors.group.label,
           border: `1px solid ${THEME.colors.border}`,
@@ -52,10 +59,10 @@ function SystemGroupNodeComponent({ id, data }: NodeProps) {
         }}
       >
         <span>{data.label}</span>
-        {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} />}
+        {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} scale={scale} />}
       </div>
       {/* Below the container, as below a node, so the callout does not cover the nodes inside it. */}
-      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} width={presenting ? 320 : 220} />}
+      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} width={Math.round((presenting ? 320 : 220) * scale)} />}
     </div>
   );
 }

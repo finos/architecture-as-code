@@ -6,6 +6,8 @@ import { THEME } from './theme.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
 import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
 import type { ElementEvaluation } from '../../contracts/contracts.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
 
 vi.mock('reactflow', () => ({
     Handle: () => null,
@@ -81,5 +83,15 @@ describe('SystemGroupNode decision overlay', () => {
         expect(callout.textContent).toContain('residency');
         expect(callout.style.transform).toBe('translate(40px, 456px)');
         expect(callout.style.width).toBe('220px');
+    });
+});
+
+describe('SystemGroupNode diagram text size', () => {
+    it('scales the label', () => {
+        const storage = createMemoryStorage();
+        storage.setItem(DIAGRAM_TEXT_SCALE_KEY, '1.5');
+        const props = { id: 'cluster', data: { label: 'Cluster', 'unique-id': 'cluster' } } as unknown as NodeProps;
+        render(<SystemGroupNode {...props} textScaleStore={createDiagramTextScaleStore(storage)} />);
+        expect(screen.getByText('Cluster').parentElement!.style.fontSize).toBe('18px');
     });
 });

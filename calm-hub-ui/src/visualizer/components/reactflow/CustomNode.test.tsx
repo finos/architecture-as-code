@@ -1,10 +1,11 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CustomNode } from './CustomNode.js';
 import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
 import { mockOffsetSize } from '../../../test-support/layout-mocks.js';
 import { THEME, getRiskLevelColor, getNodeTypeColor } from './theme.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
@@ -294,6 +295,49 @@ describe('presentation mode', () => {
         expect(screen.getByTestId('custom-node').style.width).toBe('320px');
         expect(textSize()).toBe('24px');
         expect(controlBadge().style.fontSize).toBe('18px');
+    });
+});
+
+describe('diagram text size', () => {
+    const controls = { 'encryption-at-rest': { description: 'Data is encrypted at rest', requirements: [] } };
+    const textSize = () => screen.getByText('Test Node').parentElement!.parentElement!.parentElement!.style.fontSize;
+    const controlBadge = () => screen.getByText('1').parentElement!;
+    const scaleStore = (stored?: string) => {
+        const storage = createMemoryStorage();
+        if (stored) storage.setItem(DIAGRAM_TEXT_SCALE_KEY, stored);
+        return createDiagramTextScaleStore(storage);
+    };
+    const renderNode = (textScaleStore: ReturnType<typeof scaleStore>, presenting = false) => {
+        const presentationStore = createPresentationModeStore(createMemoryStorage());
+        presentationStore.set(presenting);
+        render(
+            <CustomNode
+                {...makeNodeProps(undefined, { controls })}
+                presentationStore={presentationStore}
+                textScaleStore={textScaleStore}
+            />
+        );
+    };
+
+    it('scales the text, the badges and the node width', () => {
+        renderNode(scaleStore('1.5'));
+        expect(textSize()).toBe('21px');
+        expect(controlBadge().style.fontSize).toBe('18px');
+        expect(screen.getByTestId('custom-node').style.width).toBe('330px');
+    });
+
+    it('multiplies the presentation sizes', () => {
+        renderNode(scaleStore('1.5'), true);
+        expect(textSize()).toBe('36px');
+        expect(screen.getByTestId('custom-node').style.width).toBe('480px');
+    });
+
+    it('follows a change of the setting without a remount', () => {
+        const store = scaleStore();
+        renderNode(store);
+        expect(textSize()).toBe('14px');
+        act(() => store.step(1));
+        expect(textSize()).toBe('16.1px');
     });
 });
 
