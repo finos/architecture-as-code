@@ -49,7 +49,7 @@ The canvas opens in a panel beside your JSON editor.
 
 ## Interface Layout
 
-<!-- TODO: Add a screenshot of the full workspace layout showing all four areas -->
+![CALM Canvas workspace layout](/img/vscode/Full_Workspace_Layout.png)
 
 CALM Canvas is divided into four areas:
 
@@ -126,7 +126,7 @@ To remove a node from its container, select it and press `Ctrl+Shift+U` (or `Cmd
 
 ## Connecting to CALM Hub
 
-<!-- TODO: Add a screenshot showing the palette with Hub standard nodes -->
+![CALM Hub connection and palette](/img/vscode/Hub_Palette_Section.png)
 
 CALM Canvas integrates with CALM Hub to browse and reuse published standard nodes across namespaces:
 
@@ -147,7 +147,7 @@ CALM Canvas integrates with CALM Hub to browse and reuse published standard node
 
 ## Validation
 
-<!-- TODO: Add a screenshot of the validation results panel -->
+![Validation results panel with control errors](/img/vscode/Validation_Results_Panel.png)
 
 Click **Validate** in the toolbar to check your architecture. Validation runs two checks:
 
@@ -166,7 +166,7 @@ Validation uses bundled CALM schemas — no network access required.
 
 Click **Apply Pattern** in the toolbar to merge a predefined architecture pattern into the current canvas. Existing nodes and relationships are preserved; new ones from the pattern are added.
 
-<!-- TODO: Add a screenshot of the pattern selection pop-up -->
+![Pattern picker dialog](/img/vscode/Pattern_Picker_Dialog.png)
 
 ### New from Pattern
 
