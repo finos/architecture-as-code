@@ -5,6 +5,17 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.69.0](https://github.com/finos/architecture-as-code/compare/cli-v1.68.0...cli-v1.69.0) (2026-11-09)
+
+### 🚀 Features
+
+* warn when tracked document directory mismatches CALM Hub layout ([#3612](https://github.com/finos/architecture-as-code/issues/3612)) ([1b8cc82](https://github.com/finos/architecture-as-code/commit/1b8cc82d978ae93ad463f6a9249c5ca9a299d306))
+
+### 🐛 Bug Fixes
+
+* prevent workspace timeline and adr documents from using CalmHub resource $ids ([#3591](https://github.com/finos/architecture-as-code/issues/3591)) ([ec1cd7f](https://github.com/finos/architecture-as-code/commit/ec1cd7f06311e068d5eed13d7a43f0767649b6df))
+* share the HTTP loaders' path guards and catch encoded traversal ([#3617](https://github.com/finos/architecture-as-code/issues/3617)) ([bb6cdb4](https://github.com/finos/architecture-as-code/commit/bb6cdb49595460a7f719a131270bfd7cc082cae6))
+
 ## [1.68.0](https://github.com/finos/architecture-as-code/compare/cli-v1.67.0...cli-v1.68.0) (2026-11-04)
 
 ### 🚀 Features
