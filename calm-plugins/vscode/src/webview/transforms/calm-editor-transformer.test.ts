@@ -619,10 +619,15 @@ describe('flowToCalm - nodes with several parents', () => {
         expect(containment(out)).toEqual([]);
     });
 
-    it('gives a containment relationship with no unique-id the id main gave it', () => {
+    it('writes an unchanged containment relationship back as it was, also without a unique-id', () => {
         const { 'unique-id': _, ...noId } = deployedIn('r1', 'c1', ['a']);
-        const { out } = roundTrip({ nodes: [node('c1'), node('a')], relationships: [noId] });
-        expect(containment(out)).toEqual([['containment-c1', { container: 'c1', nodes: ['a'] }]]);
+        const relationships = [
+            noId,
+            { description: 'd', 'unique-id': 'r2', 'relationship-type': { 'deployed-in': { container: 'c2', nodes: ['b'] } } },
+            { 'unique-id': 'x', 'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } } },
+        ];
+        const { out } = roundTrip({ nodes: [node('c1'), node('a'), node('c2'), node('b')], relationships });
+        expect(JSON.stringify(out.relationships)).toBe(JSON.stringify(relationships));
     });
 
     it('keeps every membership of a cycle of three, in either relationship order', () => {

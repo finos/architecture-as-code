@@ -119,7 +119,7 @@ export function flowToCalm(
         const done = written.get(containment.container) ?? new Set<string>();
         kept.forEach((c) => done.add(c));
         written.set(containment.container, done);
-        const out = { 'unique-id': `containment-${containment.container}`, ...rel, 'relationship-type': { [variant]: { ...containment, nodes: kept } } };
+        const out = applyCanvasFields(rel, { 'relationship-type': { [variant]: { ...containment, nodes: kept } } });
         if (!firstRelOf.has(containment.container)) firstRelOf.set(containment.container, out);
         calmRelationships.push(out);
     }
