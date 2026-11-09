@@ -31,6 +31,8 @@ describe('request-guards', () => {
             'calm:../admin/secrets.json',
             'calm:%2e%2e/admin/secrets.json',
             'calm:..#/defs',
+            'calm:/schemas/sub/..?\u2028',
+            'calm:/schemas/sub/..#\u2029',
             'https://calm.finos.org/calm/..',
             'https://calm.finos.org/calm/..?x=1',
             ' https://calm.finos.org/calm\\..\\secret.json',

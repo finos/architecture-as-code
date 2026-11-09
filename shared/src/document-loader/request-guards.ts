@@ -26,7 +26,7 @@ function trimC0ControlOrSpace(value: string): string {
 export function assertNoTraversal(documentId: string, loaderName: string): void {
     let parserView = trimC0ControlOrSpace(documentId)
         .replace(/[\t\n\r]/g, '')
-        .replace(/[?#].*$/, '');
+        .replace(/[?#].*$/s, '');
     if (/^https?:/i.test(parserView)) {
         parserView = parserView.replace(/\\/g, '/');
     }

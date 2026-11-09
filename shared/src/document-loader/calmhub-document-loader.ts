@@ -99,7 +99,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         // another loader (which would mask the real reason with an unrelated error).
 
         assertNoTraversal(documentId, 'CalmHubDocumentLoader');
-        const path = url.pathname;
+        const path = url.pathname && !url.pathname.startsWith('/') ? `/${url.pathname}` : url.pathname;
         assertSafeRequestPath(path, 'CalmHubDocumentLoader');
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);

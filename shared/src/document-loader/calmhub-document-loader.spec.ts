@@ -116,7 +116,7 @@ describe('calmhub-document-loader', () => {
     });
 
     it.each([
-        ['calm:schemas/core.json', 'does not start with a single \'/\''],
+        ['calm:', 'does not start with a single \'/\''],
         ['calm:/.//evil.example/x', 'does not start with a single \'/\''],
         ['calm:/schemas/a\\b.json', 'disallowed characters'],
     ])('rejects an unsafe calm: path before a request is sent: %s', async (reference, message) => {
@@ -129,6 +129,27 @@ describe('calmhub-document-loader', () => {
         } finally {
             getSpy.mockRestore();
         }
+    });
+
+    it.each([
+        ['calm:schemas/2025-03/meta/core.json', '/schemas/2025-03/meta/core.json'],
+        ['calm:./schemas/2025-03/meta/core.json', '/./schemas/2025-03/meta/core.json'],
+    ])('requests a calm: path without a leading \'/\' under the base path: %s', async (reference, expectedPath) => {
+        const getSpy = vi.spyOn(ax, 'get');
+        try {
+            await calmHubDocumentLoader.loadMissingDocument(reference, 'schema').catch(() => undefined);
+            expect(getSpy).toHaveBeenCalledWith(expectedPath);
+        } finally {
+            getSpy.mockRestore();
+        }
+    });
+
+    it('loads a calm: path without a leading \'/\'', async () => {
+        const document = await calmHubDocumentLoader.loadMissingDocument('calm:schemas/2025-03/meta/core.json', 'schema');
+        expect(document).toEqual({
+            '$id': 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
+            'value': 'test'
+        });
     });
 
     it('rejects paths with disallowed characters', async () => {
