@@ -95,6 +95,7 @@ async function validateBundledResources(logger: Logger): Promise<void> {
         'ai-assistants/kiro.json',
         'ai-assistants/claude.json',
         'ai-assistants/codex.json',
+        'ai-assistants/bob.json',
         'templates/CALM.chatmode_template.md',
         'tools/architecture-creation.md',
         'tools/node-creation.md',

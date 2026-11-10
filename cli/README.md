@@ -452,7 +452,7 @@ This differs:
 
 ## CALM init-ai
 
-The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present four AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, and Codex.
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present five AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, Codex, and IBM Bob.
 
 ```shell
 calm init-ai --help
@@ -461,7 +461,7 @@ Usage: calm init-ai [options]
 Augment a git repository with AI assistance for CALM
 
 Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex")
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex", "bob")
   -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
   -v, --verbose              Enable verbose logging. (default: false)
   -h, --help                 display help for command

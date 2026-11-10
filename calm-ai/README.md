@@ -17,6 +17,7 @@ These tools enable AI assistants to provide context-aware assistance for CALM ar
 ```
 calm-ai/
 ├── ai-assistants/          # AI provider configuration files
+│   ├── bob.json           # IBM Bob configuration
 │   ├── claude.json        # Claude Code configuration
 │   ├── codex.json         # Codex configuration
 │   ├── copilot.json       # GitHub Copilot configuration
@@ -256,6 +257,9 @@ calm init-ai -p kiro
 
 # Initialize Codex integration
 calm init-ai -p codex
+
+# Initialize IBM Bob integration
+calm init-ai -p bob
 ```
 
 This command:

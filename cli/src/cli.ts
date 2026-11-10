@@ -74,7 +74,7 @@ const CLEAR_OUTPUT_DIRECTORY_OPTION = '--clear-output-directory';
 // init-ai command options
 const AI_DIRECTORY_OPTION = '-d, --directory <path>';
 const AI_PROVIDER_OPTION = '-p, --provider <provider>';
-const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
+const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex', 'bob'];
 
 // Hub command options
 const NAMESPACE_OPTION = '--namespace <namespace>';
