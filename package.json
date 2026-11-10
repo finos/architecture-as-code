@@ -2,7 +2,7 @@
     "name": "@finos/calm-workspace",
     "version": "0.0.0",
     "private": true,
-    "packageManager": "npm@11.16.0",
+    "packageManager": "npm@11.21.1",
     "engines": {
         "node": ">=26.0.0"
     },
@@ -68,7 +68,7 @@
         "@types/json-pointer": "^1.0.34",
         "@types/junit-report-builder": "^3.0.2",
         "@types/lodash": "^4.17.16",
-        "@types/node": "^26",
+        "@types/node": "^26.6.6",
         "@typescript-eslint/eslint-plugin": "^8.29.1",
         "@typescript-eslint/parser": "^8.29.1",
         "@vitest/coverage-v8": "^5.0.5",
@@ -102,7 +102,7 @@
         "@docusaurus/theme-mermaid": "3.10.2",
         "@docusaurus/plugin-content-docs": "3.10.2",
         "@hono/node-server": "^2.0.5",
-        "@types/node": "^26",
+        "@types/node": "^26.6.6",
         "axios": "^1.20.0",
         "brace-expansion@^1.0.0": "^1.1.21",
         "brace-expansion@^2.0.0": "^2.1.7",
@@ -110,7 +110,7 @@
         "devalue": "^5.9.2",
         "dompurify": "^3.4.16",
         "esbuild": "^0.28.2",
-        "esrap": "2.2.11",
+        "esrap": "2.4.0",
         "fast-uri": "^3.1.8",
         "glob": "^14.0.2",
         "joi": "^17.13.8",
@@ -118,7 +118,7 @@
         "on-headers": "^1.1.0",
         "node-forge": "^1.4.0",
         "nanoid@^3.0.0": "^3.3.18",
-        "qs": "~6.16.1",
+        "qs": "~6.17.0",
         "lodash": "^4.18.1",
         "lodash-es": "^4.18.1",
         "markdown-it": "^14.3.1",
@@ -138,7 +138,7 @@
         "undici": "^7.25.0",
         "uuid": "^11.1.1",
         "ws": "^8.20.1",
-        "@stoplight/spectral-ruleset-bundler": "1.7.0",
+        "@stoplight/spectral-ruleset-bundler": "1.8.0",
         "eslint": {
             "minimatch": "^3.1.4"
         },

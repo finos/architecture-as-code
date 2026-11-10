@@ -26,13 +26,13 @@
     "@calmstudio/calm-core": "*",
     "@finos/calm-models": "*",
     "@modelcontextprotocol/sdk": "^1.31.0",
-    "elkjs": "^0.11.1",
+    "elkjs": "^0.12.0",
     "elkjs-svg": "latest",
     "zod": "^4.6.6"
   },
   "devDependencies": {
     "@calmstudio/calm-core": "*",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.20.5",
     "@vitest/coverage-v8": "^5.0.5",
     "esbuild": "^0.28.1",
     "typescript": "^5.7.0",
