@@ -1,6 +1,6 @@
 header:
   schema-version: 2.2.0
-  last-updated: '2026-10-14'
+  last-updated: '2026-11-10'
   last-reviewed: '2026-09-26'
   url: https://raw.githubusercontent.com/finos/architecture-as-code/main/security-insights.yml
   comment: |
@@ -100,13 +100,6 @@ project:
         VS Code extension for authoring and validating CALM architectures.
         Published to the VS Code Marketplace as finos.calm-vscode-plugin.
         Status: Active.
-    - name: calm-studio
-      url: https://github.com/finos/architecture-as-code/tree/main/calm-studio
-      comment: |
-        SvelteKit visual CALM editor; itself a nested npm-workspace monorepo
-        (calm-core, calmscript, extensions, github-action, mcp, diagram web
-        component, vscode-extension, studio app). Status: Experimental. Its npm and
-        desktop releases are outside the release controls in SECURITY.md until promoted.
     - name: calm-guard
       url: https://github.com/finos/architecture-as-code/tree/main/calm-guard
       comment: |
@@ -241,8 +234,8 @@ repository:
         type: SCA
         comment: |
           .github/workflows/osv-scanner.yml on every pull request, on push to main and twice each
-          working day. Scans the root npm lockfile, the calm-hub and calm-models Maven projects and
-          the CALM Studio Cargo lockfile; fails on CVSS >= 5; suppressions with justification in
+          working day. Scans the root npm lockfile and the calm-hub and calm-models Maven
+          projects; fails on CVSS >= 5; suppressions with justification in
           osv-scanner.toml. The CLI and calm-server release workflows publish only if the scan of
           the commit being released passed.
         rulesets:
@@ -264,7 +257,7 @@ repository:
         results: {}
       - name: Dependabot
         type: SCA
-        comment: Security updates and alerts for npm, Maven, Cargo and GitHub Actions.
+        comment: Security updates and alerts for npm, Maven and GitHub Actions.
         rulesets:
           - GitHub Advisory Database
         integration:

@@ -59,22 +59,6 @@ export const TOOLS = {
             'npm run test --workspace=calm-lab',
         ],
     },
-    // calm-core reads the schema. The other packages bundle or call calm-core, so test them all.
-    'calm-studio': {
-        workflow: 'build-calm-studio.yml',
-        commands: [
-            'npm run build --if-present --workspace=@finos/calm-models',
-            'npm run build --if-present --workspace=@calmstudio/calm-core',
-            'npm run build --if-present --workspace=@calmstudio/mcp',
-            'npm run build --if-present --workspace=calmstudio',
-            'npm run build --if-present --workspace=@calmstudio/github-action',
-            'npm run typecheck --if-present --workspace=@calmstudio/calm-core',
-            'npm run typecheck --if-present --workspace=@calmstudio/mcp',
-            'npm run typecheck --if-present --workspace=@calmstudio/github-action',
-            'npm run test --if-present --workspace=@calmstudio/calm-core',
-            'npm run test --if-present --workspace=@calmstudio/mcp',
-        ],
-    },
     // calm-diagram takes its CALM types from calm-models, and the Docusaurus plugin renders with it.
     'calm-diagram': {
         workflow: 'build-calm-diagram.yml',

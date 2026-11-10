@@ -20,7 +20,6 @@
         "calm-plugins/vscode",
         "calm-guard",
         "calm-guard/docs",
-        "calm-studio/packages/*",
         "docs"
     ],
     "scripts": {

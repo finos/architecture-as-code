@@ -71,9 +71,7 @@
         "angular",
         "@angular/*",
         "next",
-        "nuxt",
-        "svelte",
-        "@sveltejs/*"
+        "nuxt"
       ],
       "groupName": "framework updates",
       "separateMultipleMajor": true

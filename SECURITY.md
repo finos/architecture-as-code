@@ -47,7 +47,7 @@ Maintainers are expected to protect their own GitHub accounts with two-factor au
 
 Releases are produced only by the automated release workflows in this repository. No maintainer publishes a package or image from a personal machine.
 
-**npm packages** `@finos/calm-cli` and `@finos/calm-server` are published with `npm publish --provenance`. `@finos/calm-shared`, `@finos/calm-models` and `@finos/calm-widgets` are bundled into the CLI and are not published to npm. The CALM Studio release workflow can also publish `@calmstudio/calm-core` and `@calmstudio/mcp` with provenance; it has not published a release yet. Each version carries a [SLSA provenance attestation](https://slsa.dev/provenance/v1) signed through Sigstore that names this repository, the release workflow and the commit that built it. To verify a package you have installed:
+**npm packages** `@finos/calm-cli` and `@finos/calm-server` are published with `npm publish --provenance`. `@finos/calm-shared`, `@finos/calm-models` and `@finos/calm-widgets` are bundled into the CLI and are not published to npm. Each version carries a [SLSA provenance attestation](https://slsa.dev/provenance/v1) signed through Sigstore that names this repository, the release workflow and the commit that built it. To verify a package you have installed:
 
 ```bash
 npm audit signatures
@@ -70,7 +70,7 @@ The provenance names the GitHub Actions workflow and commit that produced the im
 
 **CALM Lab** is a static site that `s3-lab-sync.yml` builds from `main` and deploys to https://lab.calm.finos.org. Users do not install it, so there is no artifact to verify. Requests over HTTP are redirected to HTTPS.
 
-**Experimental components.** CALM Studio (its npm packages and desktop builds), CALMGuard and `experimental/` are experimental, as stated in [SUPPORT.md](SUPPORT.md). The release controls in this section apply to them once they are promoted out of experimental status.
+**Experimental components.** CALMGuard and `experimental/` are experimental, as stated in [SUPPORT.md](SUPPORT.md). The release controls in this section apply to them once they are promoted out of experimental status.
 
 ## CRA Escalation (For Maintainers)
 
