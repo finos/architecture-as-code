@@ -22,7 +22,7 @@ const NODE_TYPES = ['service', 'database', 'network', 'webclient', 'actor', 'sys
 /**
  * Authoring modal for governed standard nodes ("standard nodes"). Collects a
  * node definition plus controls attached via the shared control picker, and
- * emits a CALM document that the extension writes to `standard-nodes/`.
+ * emits a JSON Schema node Standard that the extension writes to `standards/`.
  */
 export function StandardNodeCreator({ visible, onClose, onSave, onRequestBrowseControls }: Readonly<StandardNodeCreatorProps>) {
     const [nodeName, setNodeName] = useState('');

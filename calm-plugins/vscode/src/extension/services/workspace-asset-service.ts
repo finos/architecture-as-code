@@ -5,8 +5,9 @@ import { parseRequirementSchema } from './requirement-parser';
 export interface StandardNodeDef {
     id: string;
     name: string;
-    behaviour: string;
+    description?: string;
     controls: Record<string, unknown>;
+    defaultNode?: Record<string, unknown>;
     category?: string;
     nodeType?: string;
     /** Hub namespace — present when this node was fetched from a remote CalmHub. */
@@ -92,7 +93,7 @@ export class WorkspaceAssetService {
         onRescan: () => void
     ): void {
         const globs = [
-            'standard-nodes/**/*.{calm.json,architecture.json}',
+            'standards/**/*.json',
             'patterns/**/*.pattern.json',
             'controls/**/*.json',
         ];
@@ -179,56 +180,75 @@ export class WorkspaceAssetService {
         const roots = this.getRoots();
 
         for (const root of roots) {
-            const globs = [
-                new vscode.RelativePattern(
-                    root,
-                    'standard-nodes/**/*.{calm.json,architecture.json}'
-                ),
-            ];
-
-            for (const pattern of globs) {
-                const files = await vscode.workspace.findFiles(pattern);
-                for (const file of files) {
-                    try {
-                        const content =
-                            await vscode.workspace.fs.readFile(file);
-                        const json = JSON.parse(
-                            Buffer.from(content).toString('utf-8')
+            const pattern = new vscode.RelativePattern(
+                root,
+                'standards/**/*.json'
+            );
+            const files = await vscode.workspace.findFiles(pattern);
+            for (const file of files) {
+                try {
+                    const content = await vscode.workspace.fs.readFile(file);
+                    const json = JSON.parse(
+                        Buffer.from(content).toString('utf-8')
+                    );
+                    const defaultNode =
+                        json.default &&
+                        typeof json.default === 'object' &&
+                        !Array.isArray(json.default)
+                            ? (json.default as Record<string, unknown>)
+                            : undefined;
+                    const extendsNodeSchema =
+                        Array.isArray(json.allOf) &&
+                        json.allOf.some(
+                            (entry: unknown) =>
+                                typeof (entry as { $ref?: unknown })?.$ref ===
+                                    'string' &&
+                                ((entry as { $ref: string }).$ref.endsWith(
+                                    '/core.json#/defs/node'
+                                ) ||
+                                    (entry as { $ref: string }).$ref.endsWith(
+                                        'core.json#/$defs/node'
+                                    ))
                         );
-                        if (
-                            json.nodes &&
-                            Array.isArray(json.nodes) &&
-                            json.nodes.length > 0
-                        ) {
-                            const node = json.nodes[0];
-                            const metadata = (node.metadata ?? {}) as Record<
-                                string,
-                                unknown
-                            >;
-                            const id = this.stem(file);
-                            if (seen.has(id)) continue;
-                            seen.add(id);
+                    if (!defaultNode && !extendsNodeSchema) continue;
 
-                            const category =
-                                this.extractCategory(file, 'standard-nodes') ||
-                                'General';
+                    const id = this.stem(file);
+                    if (seen.has(id)) continue;
+                    seen.add(id);
 
-                            nodes.push({
-                                id,
-                                name: node.name ?? id,
-                                behaviour:
-                                    metadata['standard-node-behaviour'] ===
-                                    'apply-controls-on-drop'
-                                        ? 'apply-controls-on-drop'
-                                        : 'create-node',
-                                controls: node.controls ?? {},
-                                category,
-                                nodeType: node['node-type'] ?? 'system',
-                            });
-                        }
-                    } catch {
-                        /* skip invalid files */
-                    }
+                    const category =
+                        this.extractCategory(file, 'standards') || 'General';
+                    const name =
+                        (defaultNode?.name as string) ??
+                        (typeof json.title === 'string'
+                            ? json.title
+                            : undefined) ??
+                        id;
+                    const description =
+                        (defaultNode?.description as string) ??
+                        (typeof json.description === 'string'
+                            ? json.description
+                            : undefined);
+                    const controls =
+                        defaultNode?.controls &&
+                        typeof defaultNode.controls === 'object' &&
+                        !Array.isArray(defaultNode.controls)
+                            ? (defaultNode.controls as Record<string, unknown>)
+                            : {};
+                    const nodeType =
+                        (defaultNode?.['node-type'] as string) ?? 'system';
+
+                    nodes.push({
+                        id,
+                        name,
+                        ...(description !== undefined ? { description } : {}),
+                        controls,
+                        ...(defaultNode ? { defaultNode } : {}),
+                        category,
+                        nodeType,
+                    });
+                } catch {
+                    /* skip invalid files */
                 }
             }
         }
@@ -245,11 +265,11 @@ export class WorkspaceAssetService {
 
     private stem(uri: vscode.Uri): string {
         const base = path.basename(uri.fsPath);
-        return base.replace(/\.(calm|architecture)\.json$/, '');
+        return base.replace(/(\.standard)?\.json$/, '');
     }
 
     private extractCategory(uri: vscode.Uri, baseFolder: string): string {
-        const parts = uri.path.split('/');
+        const parts = (uri.path ?? uri.fsPath).replace(/\\/g, '/').split('/');
         const baseIdx = parts.findIndex((p) => p === baseFolder);
         if (baseIdx >= 0 && baseIdx + 1 < parts.length - 1) {
             return parts[baseIdx + 1]

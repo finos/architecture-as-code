@@ -7,7 +7,6 @@ initAllPacks();
 interface StandardNode {
     id: string;
     name: string;
-    behaviour: string;
     nodeType: string;
     category?: string;
     description?: string;
@@ -45,7 +44,7 @@ export function NodePalette({ standardNodes, hubLoading }: NodePaletteProps) {
     const lowerQuery = searchQuery.toLowerCase().trim();
     const isSearching = lowerQuery.length > 0;
 
-    const infraNodes = useMemo(() => standardNodes.filter((n) => n.behaviour === 'create-node' && !n.namespace), [standardNodes]);
+    const infraNodes = useMemo(() => standardNodes.filter((n) => !n.namespace), [standardNodes]);
     const hubNodes = useMemo(() => standardNodes.filter((n) => !!n.namespace), [standardNodes]);
 
     const hubByNamespace = useMemo(() => {
@@ -96,7 +95,6 @@ export function NodePalette({ standardNodes, hubLoading }: NodePaletteProps) {
 
     const onDragStart = (e: React.DragEvent, node: StandardNode) => {
         e.dataTransfer.setData('application/standard-node-id', node.id);
-        e.dataTransfer.setData('application/standard-node-behaviour', node.behaviour);
         e.dataTransfer.setData('application/calm-node-type', node.nodeType);
         e.dataTransfer.setData('application/calm-node-label', node.name);
         e.dataTransfer.effectAllowed = 'move';
@@ -208,7 +206,7 @@ export function NodePalette({ standardNodes, hubLoading }: NodePaletteProps) {
             {/* Empty state */}
             {standardNodes.length === 0 && filteredPacks.length === 0 && !isSearching && (
                 <div style={{ padding: '12px', fontSize: '11px', color: 'var(--calm-fg-muted)', lineHeight: 1.4 }}>
-                    No components found. Ensure your workspace contains a <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>standard-nodes/</code> folder with <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>.calm.json</code> files.
+                    No components found. Ensure your workspace contains a <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>standards/</code> folder with <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>.json</code> files.
                 </div>
             )}
         </aside>

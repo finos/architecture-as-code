@@ -56,7 +56,6 @@ describe('HubAssetService', () => {
                 expect.objectContaining({
                     id: 'microservice',
                     name: 'Microservice',
-                    behaviour: 'create-node',
                     namespace: 'finos',
                     sha: 'sha-latest',
                     nodeType: 'service',
@@ -66,7 +65,7 @@ describe('HubAssetService', () => {
             expect(namespaces[1].standardNodes).toHaveLength(1);
         });
 
-        it('handles namespace with no standard-nodes gracefully', async () => {
+        it('handles namespace with no standards gracefully', async () => {
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
                 { name: 'empty-ns' },
             ]);
@@ -305,7 +304,7 @@ describe('HubAssetService', () => {
             );
             (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha1']);
             (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
-                nodes: [{
+                default: {
                     'node-type': 'service',
                     name: 'My Service',
                     controls: {
@@ -314,7 +313,7 @@ describe('HubAssetService', () => {
                             requirements: [{ 'requirement-url': 'domain:controls:encrypt' }],
                         },
                     },
-                }],
+                },
             });
             // resolveControlId and getRequirementVersions for version pinning
             (mockClient as any).resolveControlId = vi.fn().mockResolvedValue({ id: 10, domain: 'domain' });
@@ -337,12 +336,12 @@ describe('HubAssetService', () => {
             );
             (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha1']);
             (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
-                nodes: [{
+                default: {
                     'node-type': 'service',
                     controls: {
                         'ctrl': { requirements: [{ 'requirement-url': 'domain:controls:x' }] },
                     },
-                }],
+                },
             });
             (mockClient as any).resolveControlId = vi.fn().mockRejectedValue(new Error('not found'));
 
@@ -361,12 +360,12 @@ describe('HubAssetService', () => {
             );
             (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha1']);
             (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
-                nodes: [{
+                default: {
                     'node-type': 'service',
                     controls: {
                         'ctrl': { requirements: [{ 'requirement-url': 'domain:controls:x@v1' }] },
                     },
-                }],
+                },
             });
             (mockClient as any).resolveControlId = vi.fn();
 
@@ -381,7 +380,7 @@ describe('HubAssetService', () => {
         it('returns changed: false when cached SHAs match live versions', async () => {
             service.loadFromCache([{
                 name: 'ns1',
-                standardNodes: [{ id: 'svc', name: 'Svc', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: 1 }],
+                standardNodes: [{ id: 'svc', name: 'Svc', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: 1 }],
                 patterns: [],
             }]);
 
@@ -401,7 +400,7 @@ describe('HubAssetService', () => {
         it('returns changed: true when a standard has a new version', async () => {
             service.loadFromCache([{
                 name: 'ns1',
-                standardNodes: [{ id: 'svc', name: 'Svc', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: 1 }],
+                standardNodes: [{ id: 'svc', name: 'Svc', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: 1 }],
                 patterns: [],
             }]);
 
@@ -414,7 +413,7 @@ describe('HubAssetService', () => {
             );
             (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha1', 'sha2']);
             (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
-                nodes: [{ 'node-type': 'service', name: 'Svc Updated' }],
+                default: { 'node-type': 'service', name: 'Svc Updated' },
             });
 
             const { changed } = await service.deltaRefresh();
