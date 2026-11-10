@@ -137,7 +137,7 @@ describe('CLI Integration Tests', () => {
         expect(stdout).toContain('Options:');
     });
 
-    describe.each(['copilot', 'kiro', 'claude', 'codex'])('calm init-ai -p %s', (provider) => {
+    describe.each(['copilot', 'kiro', 'claude', 'codex', 'bob'])('calm init-ai -p %s', (provider) => {
         test('creates correct directory structure and files', async () => {
             const testDir = path.join(tempDir, `init-ai-${provider}-test`);
             fs.mkdirSync(testDir, { recursive: true });
@@ -180,6 +180,12 @@ describe('CLI Integration Tests', () => {
                     topLevelDir: '.agents/skills/calm',
                     mainPromptFile: '.agents/skills/calm/SKILL.md',
                     skillPromptsDir: '.agents/skills/calm/calm-prompts',
+                    frontmatterContains: ['name: calm', 'description:'],
+                },
+                bob: {
+                    topLevelDir: '.bob/skills/calm',
+                    mainPromptFile: '.bob/skills/calm/SKILL.md',
+                    skillPromptsDir: '.bob/skills/calm/calm-prompts',
                     frontmatterContains: ['name: calm', 'description:'],
                 },
             };
@@ -247,7 +253,7 @@ describe('CLI Integration Tests', () => {
         await expect(
             cli.run(['init-ai', '-p', 'invalidprovider', '--directory', testDir])
         ).rejects.toMatchObject({
-            stderr: expect.stringContaining('error: option \'-p, --provider <provider>\' argument \'invalidprovider\' is invalid. Allowed choices are copilot, kiro, claude, codex.')
+            stderr: expect.stringContaining('error: option \'-p, --provider <provider>\' argument \'invalidprovider\' is invalid. Allowed choices are copilot, kiro, claude, codex, bob.')
         });
 
         // Clean up test directory
