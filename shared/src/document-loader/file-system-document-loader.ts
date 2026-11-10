@@ -11,11 +11,14 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;
     private readonly directoryPaths: string[];
     private readonly basePath?: string;
+    private readonly readReferencedFiles: boolean;
 
-    constructor(directoryPaths: string[], debug: boolean, basePath?: string) {
+    /** With `readReferencedFiles` false, only the schema directories are read, at start-up. */
+    constructor(directoryPaths: string[], debug: boolean, basePath?: string, readReferencedFiles = true) {
         this.logger = initLogger(debug, 'file-system-document-loader');
         this.directoryPaths = directoryPaths;
         this.basePath = basePath;
+        this.readReferencedFiles = readReferencedFiles;
     }
 
     async initialise(schemaDirectory: SchemaDirectory): Promise<void> {
@@ -54,6 +57,10 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     }
 
     async loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object> {
+        if (!this.readReferencedFiles) {
+            throw this.notLoadedAtInitialisation(documentId, type);
+        }
+
         const resolvedPath = this.resolvePath(documentId);
         if (resolvedPath && existsSync(resolvedPath)) {
             this.logger.debug(`Resolved relative path: ${documentId} -> ${resolvedPath}`);
@@ -84,10 +91,14 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         }
 
         this.logger.debug(`Document ID ${documentId} does not exist in file system, cannot load.`);
+        throw this.notLoadedAtInitialisation(documentId, type);
+    }
+
+    private notLoadedAtInitialisation(documentId: string, type: CalmDocumentType): DocumentLoadError {
         const errorMessage = `Document with id [${documentId}] and type [${type}] was requested but not loaded at initialisation.
             File system document loader can only load at startup. Please ensure the schemas are present on your directory path or use CALMHub.`;
         this.logger.debug(errorMessage);
-        throw new DocumentLoadError({
+        return new DocumentLoadError({
             name: 'OPERATION_NOT_IMPLEMENTED',
             message: errorMessage
         });

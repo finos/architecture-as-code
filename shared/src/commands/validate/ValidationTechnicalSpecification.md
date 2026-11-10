@@ -39,7 +39,7 @@ sub-architectures.
   external output *shape*; it does not mandate always-on recursion, which is policy-controlled (O6).
 - **A2: `SchemaDirectory` is the single resolution boundary.** All remote/relative document and
   schema loading goes through `SchemaDirectory` (backed by a `DocumentLoader`). Validators never
-  fetch directly.
+  fetch directly. Spectral's `$ref` resolver also loads through `SchemaDirectory`, when the context has one.
 - **A3: The model owns references.** `Resolvable`/`ResolvableAndAdaptable` (calm-models) are the
   canonical representation of a `$ref`-like pointer. Raw documents are transient; only adapted model
   objects persist.

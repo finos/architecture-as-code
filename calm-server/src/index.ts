@@ -5,7 +5,8 @@
 import { Command } from 'commander';
 import { version } from '../package.json';
 import { startServer } from './server/server';
-import { SchemaDirectory, initLogger, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
+import { SchemaDirectory, initLogger, buildDocumentLoader, DocumentLoader } from '@finos/calm-shared';
+import { parseDocumentLoaderConfig } from './document-loader-config';
 import path from 'path';
 
 const BUNDLED_SCHEMA_PATH = path.join(__dirname, 'calm');
@@ -18,41 +19,6 @@ const CALMHUB_URL_OPTION = '-c, --calm-hub-url <url>';
 const RATE_LIMIT_WINDOW_OPTION = '--rate-limit-window <ms>';
 const RATE_LIMIT_MAX_OPTION = '--rate-limit-max <requests>';
 const ALLOWED_REMOTE_HOSTS_OPTION = '--allowed-remote-hosts <hosts>';
-
-interface ParseDocumentLoaderOptions {
-    verbose?: boolean;
-    calmHubUrl?: string;
-    schemaDirectory?: string;
-    rateLimitWindow?: number;
-    rateLimitMax?: number;
-    allowedRemoteHosts?: string;
-}
-
-function parseAllowedRemoteHosts(optionValue?: string): string[] | undefined {
-    const raw = optionValue ?? process.env.CALM_ALLOWED_REMOTE_HOSTS;
-    if (!raw) {
-        return undefined;
-    }
-    const hosts = raw.split(',').map(host => host.trim()).filter(Boolean);
-    return hosts.length > 0 ? hosts : undefined;
-}
-
-async function parseDocumentLoaderConfig(
-    options: ParseDocumentLoaderOptions,
-    urlToLocalMap?: Map<string, string>,
-    basePath?: string
-): Promise<DocumentLoaderOptions> {
-    const docLoaderOpts: DocumentLoaderOptions = {
-        calmHubUrl: options.calmHubUrl,
-        schemaDirectoryPath: options.schemaDirectory,
-        urlToLocalMap: urlToLocalMap,
-        basePath: basePath,
-        allowedRemoteHosts: parseAllowedRemoteHosts(options.allowedRemoteHosts),
-        debug: !!options.verbose
-    };
-
-    return docLoaderOpts;
-}
 
 async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {
     return new SchemaDirectory(docLoader, debug);
@@ -84,7 +50,7 @@ program
                 logger.warn('⚠️  Only bind to non-localhost addresses in trusted network environments.');
             }
 
-            const docLoaderOpts = await parseDocumentLoaderConfig(options);
+            const docLoaderOpts = parseDocumentLoaderConfig(options);
             const docLoader = buildDocumentLoader(docLoaderOpts);
             const schemaDirectory = await buildSchemaDirectory(docLoader, debug);
             startServer(

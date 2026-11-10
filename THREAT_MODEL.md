@@ -44,6 +44,7 @@ Last reviewed: 2026-10-13.
 |---|---|---|---|
 | HTTP `/calm/validate` and related endpoints | Exposure on a network interface lets any client validate arbitrary documents and probe the host | Binds to `127.0.0.1` by default; a warning is logged when bound elsewhere. No authentication is implemented, and the documentation says so | Medium if deployed on a shared network. Deploy behind an authenticating proxy |
 | User-supplied pattern `$ref` values | Local file read or SSRF through references | Same loader rules as the CLI: fragment-only or `http(s)` to allow-listed hosts; everything else returns `400` | Low |
+| Other references in a request (`config-url`, `requirement-url`, `detailed-architecture`, `required-pattern`, a pattern's `$schema`, a `$ref` in the architecture) | Local file read or SSRF | The server's file system loader reads only the schema directories, at start-up, and never a file that a request references. Spectral resolves `$ref` through the same loader. Remote references follow the allow-listed hosts | Low |
 
 ### CALM Hub and Hub UI
 

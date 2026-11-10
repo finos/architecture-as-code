@@ -40,7 +40,8 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
     loaders.push(new FileSystemDocumentLoader(
         directoryPaths,
         debug,
-        docLoaderOpts.basePath ?? process.cwd()
+        docLoaderOpts.basePath ?? process.cwd(),
+        docLoaderOpts.readReferencedFiles ?? true
     ));
 
     loaders.push(new DirectUrlDocumentLoader(

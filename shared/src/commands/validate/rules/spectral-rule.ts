@@ -32,7 +32,7 @@ export class SpectralValidationRule implements ValidationRule {
     async run(context: ValidationContext): Promise<RuleResult> {
         const logger = initLogger(context.debug, 'calm-validate');
         const document = this.selectDocument(context)!;
-        const result = await runSpectralValidations(document, this.ruleset, this.source, logger);
+        const result = await runSpectralValidations(document, this.ruleset, this.source, logger, context.schemaDirectory);
         return {
             jsonSchemaOutputs: [],
             spectralOutputs: result.spectralIssues,
