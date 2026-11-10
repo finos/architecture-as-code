@@ -5,6 +5,7 @@ import { THEME } from './theme.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { scalePx, useDiagramTextScale, type DiagramTextScaleStore } from '../../../theme/useDiagramTextScale.js';
 import { calloutRects, calloutShift, coveredNodeTop } from './utils/labelPlacement.js';
 import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
 import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
@@ -13,6 +14,8 @@ import { useElementSize } from './hooks/useElementSize.js';
 interface FloatingEdgeProps extends EdgeProps<EdgeData> {
     /** Injected for tests; defaults to the app-wide store. */
     presentationStore?: PresentationModeStore;
+    /** Injected for tests; defaults to the app-wide store. */
+    textScaleStore?: DiagramTextScaleStore;
 }
 
 function FloatingEdgeComponent({
@@ -24,6 +27,7 @@ function FloatingEdgeComponent({
     markerStart,
     data,
     presentationStore,
+    textScaleStore,
 }: FloatingEdgeProps) {
     const [isHovered, setIsHovered] = useState(false);
     const direction = data?.direction;
@@ -35,6 +39,7 @@ function FloatingEdgeComponent({
     const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]), sameNodeGeometry);
     const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]), sameNodeGeometry);
     const { presenting } = usePresentationMode(presentationStore);
+    const { scale } = useDiagramTextScale(textScaleStore);
     const path = sourceNode && targetNode
         ? getFloatingEdgePath(sourceNode, targetNode, direction, data?.metadata?.routing)
         : undefined;
@@ -189,7 +194,7 @@ function FloatingEdgeComponent({
                             <span
                                 data-testid="edge-evaluation-badge"
                                 style={{
-                                    fontSize: presenting ? '18px' : '11px',
+                                    fontSize: scalePx(presenting ? 18 : 11, scale),
                                     fontWeight: 600,
                                     padding: presenting ? '3px 8px' : '2px 4px',
                                     borderRadius: '4px',
@@ -205,14 +210,14 @@ function FloatingEdgeComponent({
                             <span
                                 data-testid="edge-decision-finding"
                                 style={{
-                                    fontSize: presenting ? '16px' : '11px',
+                                    fontSize: scalePx(presenting ? 16 : 11, scale),
                                     fontWeight: 600,
                                     padding: presenting ? '3px 8px' : '2px 4px',
                                     borderRadius: '4px',
                                     background: THEME.colors.card,
                                     border: `1px solid ${THEME.colors.error}`,
                                     color: THEME.colors.foreground,
-                                    maxWidth: presenting ? '220px' : '180px',
+                                    maxWidth: scalePx(presenting ? 220 : 180, scale),
                                     textAlign: 'center',
                                 }}
                             >
@@ -222,14 +227,14 @@ function FloatingEdgeComponent({
                         {edgeLabel && (
                             <span
                                 style={{
-                                    fontSize: presenting ? '16px' : '10px',
+                                    fontSize: scalePx(presenting ? 16 : 10, scale),
                                     lineHeight: 1.25,
                                     padding: presenting ? '3px 8px' : '2px 4px',
                                     borderRadius: '4px',
                                     background: THEME.colors.card,
                                     border: `1px solid ${THEME.colors.border}`,
                                     color: THEME.colors.muted,
-                                    maxWidth: presenting ? '220px' : '160px',
+                                    maxWidth: scalePx(presenting ? 220 : 160, scale),
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     ...(presenting

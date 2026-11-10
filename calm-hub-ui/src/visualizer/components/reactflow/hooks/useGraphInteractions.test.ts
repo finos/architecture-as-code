@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, renderHook } from '@testing-library/react';
 import { createElement, useCallback, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { useNodesState } from 'reactflow';
 import type { Node, NodeChange } from 'reactflow';
 import { useGraphInteractions } from './useGraphInteractions.js';
-import { saveNodePositions, type StoredNodePosition } from '../../../services/node-position-service.js';
+import { saveNodePositions, toStoredPositions, type StoredNodePosition } from '../../../services/node-position-service.js';
 import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';
 
 vi.mock('../../../services/node-position-service.js', async (importOriginal) => {
@@ -21,6 +21,17 @@ vi.mock('../../../services/node-position-service.js', async (importOriginal) => 
 // dedicated "post-reflow positions" test below, which overrides this per-call.
 vi.mock('../utils/layoutUtils.js', () => ({
     reflowContainersToFitChildren: vi.fn((nodes: Node[]) => nodes),
+}));
+
+// The viewer's own diagram settings change the measured card sizes.
+const viewSettings = { scale: 1, presenting: false };
+vi.mock('../../../../theme/useDiagramTextScale.js', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('../../../../theme/useDiagramTextScale.js')>()),
+    useDiagramTextScale: () => ({ scale: viewSettings.scale }),
+}));
+vi.mock('../../../../theme/usePresentationMode.js', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('../../../../theme/usePresentationMode.js')>()),
+    usePresentationMode: () => ({ presenting: viewSettings.presenting }),
 }));
 
 const currentNodes: Node[] = [{ id: 'a', position: { x: 10, y: 20 }, data: {} }];
@@ -60,6 +71,73 @@ describe('useGraphInteractions persistence', () => {
         const { result, onNodesChangeBase } = setup('ns/id');
         result.current.onNodesChange([dragEnd]);
         expect(onNodesChangeBase).toHaveBeenCalledWith([dragEnd]);
+    });
+
+    describe('with the viewer\'s own diagram settings', () => {
+        const sized = [{ id: 'a', type: 'custom', position: { x: 10, y: 20 }, data: {}, width: 220, height: 130 }] as Node[];
+
+        afterEach(() => {
+            viewSettings.scale = 1;
+            viewSettings.presenting = false;
+        });
+
+        it('keeps the measured sizes at 100% text size outside presentation mode', () => {
+            vi.mocked(reflowContainersToFitChildren).mockImplementation(() => sized);
+            const onPositionsChange = vi.fn();
+            const { result } = setup('ns/id', onPositionsChange);
+            result.current.onNodesChange([dragEnd]);
+            expect(saveNodePositions).toHaveBeenCalledWith('ns/id', sized);
+        });
+
+        it.each([
+            ['another text size', { scale: 2, presenting: false }],
+            ['presentation mode', { scale: 1, presenting: true }],
+            ['a smaller text size', { scale: 0.7, presenting: false }],
+        ])('at %s, drops the measured sizes and fits the containers to the standard node size again', (_case, settings) => {
+            Object.assign(viewSettings, settings);
+            // The drag's own reflow sees the measured sizes; the second one gets nodes without them.
+            vi.mocked(reflowContainersToFitChildren).mockImplementationOnce(() => sized);
+            const { result } = setup('ns/id');
+            result.current.onNodesChange([dragEnd]);
+
+            expect(reflowContainersToFitChildren).toHaveBeenCalledTimes(2);
+            const refitted = vi.mocked(reflowContainersToFitChildren).mock.calls[1][0];
+            expect(refitted).toEqual([expect.objectContaining({ id: 'a', position: { x: 10, y: 20 } })]);
+            expect(refitted[0].width).toBeUndefined();
+            expect(refitted[0].height).toBeUndefined();
+            expect(saveNodePositions).toHaveBeenCalledWith('ns/id', refitted);
+        });
+
+        it('keeps container sizes, fitted to the standard node size, so new children are still placed below their siblings', async () => {
+            const actual = await vi.importActual<typeof import('../utils/layoutUtils.js')>('../utils/layoutUtils.js');
+            vi.mocked(reflowContainersToFitChildren).mockImplementation(actual.reflowContainersToFitChildren);
+            viewSettings.scale = 2;
+            const measured = [
+                { id: 'sys', type: 'group', position: { x: 0, y: 0 }, data: {}, width: 600, height: 500 },
+                { id: 'a', type: 'custom', position: { x: 80, y: 80 }, data: {}, parentId: 'sys', width: 220, height: 300 },
+                { id: 'empty', type: 'group', position: { x: 700, y: 0 }, data: {}, width: 600, height: 400 },
+            ] as Node[];
+            const setNodes = vi.fn((updater: (nodes: Node[]) => Node[]) => updater(measured));
+            const { result } = renderHook(() =>
+                useGraphInteractions({
+                    nodes: measured,
+                    setNodes: setNodes as unknown as React.Dispatch<React.SetStateAction<Node[]>>,
+                    onNodesChangeBase: vi.fn(),
+                    groupNodeTypes: ['group'],
+                    persistKey: 'ns/id',
+                })
+            );
+
+            result.current.onNodesChange([dragEnd]);
+
+            const saved = toStoredPositions(vi.mocked(saveNodePositions).mock.calls[0][1]);
+            expect(saved).toEqual([
+                { id: 'sys', position: { x: 0, y: 0 }, width: 410, height: 260 },
+                { id: 'a', position: { x: 80, y: 80 } },
+                // A container with no children has no reflow to size it, so it keeps its size.
+                { id: 'empty', position: { x: 700, y: 0 }, width: 600, height: 400 },
+            ]);
+        });
     });
 
     it('persists positions on drag-end when a persistKey is provided', () => {
@@ -149,6 +227,29 @@ describe('useGraphInteractions reporting (real state)', () => {
 
         expect(onPositionsChange).toHaveBeenCalledTimes(1);
         expect(onPositionsChange).toHaveBeenCalledWith([{ id: 'a', position: { x: 999, y: 888 } }]);
+    });
+
+    it.each([
+        ['another text size', { scale: 2, presenting: false }],
+        ['presentation mode', { scale: 1, presenting: true }],
+    ])('reports the positions without the measured sizes at %s, so a saved default layout does not carry them', async (_case, settings) => {
+        Object.assign(viewSettings, settings);
+        try {
+            vi.mocked(reflowContainersToFitChildren).mockReturnValueOnce([
+                { id: 'a', type: 'custom', position: { x: 999, y: 888 }, data: {}, width: 220, height: 130 } as Node,
+            ]);
+            const onPositionsChange = vi.fn();
+            const api = renderHarness({ persistKey: 'ns/id', onPositionsChange });
+
+            await act(async () => {
+                api.current?.onNodesChange([dragEnd]);
+            });
+
+            expect(onPositionsChange).toHaveBeenCalledWith([{ id: 'a', position: { x: 999, y: 888 } }]);
+        } finally {
+            viewSettings.scale = 1;
+            viewSettings.presenting = false;
+        }
     });
 
     it('does not report mid-drag', async () => {
