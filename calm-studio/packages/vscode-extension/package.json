@@ -62,7 +62,7 @@
     "package": "vsce package --no-dependencies"
   },
   "dependencies": {
-    "@calmstudio/diagram": "*",
+    "@finos/calm-diagram": "*",
     "@calmstudio/mcp": "*"
   },
   "devDependencies": {
