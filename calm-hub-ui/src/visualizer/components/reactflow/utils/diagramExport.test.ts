@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Node } from 'reactflow';
 import { toSvg } from 'html-to-image';
-import { diagramBounds, exportDiagram, exportFileName, pngScale, withBackground, withSvgStyles } from './diagramExport.js';
+import { diagramBounds, exportDiagram, exportFileName, labelRects, pngScale, withBackground, withSvgStyles } from './diagramExport.js';
 
 vi.mock('html-to-image', () => ({
     toSvg: vi.fn(async () => `data:image/svg+xml;charset=utf-8,${encodeURIComponent('<svg width="10"><g/></svg>')}`),
@@ -22,7 +22,7 @@ describe('diagramBounds', () => {
         expect(diagramBounds([node('a', 0, 0), node('b', 300, 200)], new Map())).toEqual({ x: 0, y: 0, width: 400, height: 250 });
     });
 
-    it('leaves out hidden nodes, such as the children of a collapsed container', () => {
+    it('leaves out hidden nodes', () => {
         const nodes = [node('a', 0, 0), node('b', 900, 900, { hidden: true })];
         expect(diagramBounds(nodes, new Map())).toEqual({ x: 0, y: 0, width: 100, height: 50 });
     });
@@ -30,6 +30,22 @@ describe('diagramBounds', () => {
     it('takes in the decision callouts below the nodes', () => {
         const bounds = diagramBounds([node('a', 0, 0)], new Map([['a', { width: 220, height: 90 }]]));
         expect(bounds).toEqual({ x: 0, y: 0, width: 220, height: 140 });
+    });
+});
+
+describe('labelRects', () => {
+    const at = (element: Element, left: number, top: number, width: number, height: number) =>
+        vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ left, top, width, height } as DOMRect);
+
+    it('gives each drawn edge label and callout in flow units, as they can reach past the nodes', () => {
+        const viewport = document.createElement('div');
+        viewport.innerHTML = '<div class="react-flow__edgelabel-renderer"><div></div><div></div></div>';
+        const [label, hidden] = viewport.querySelectorAll('.react-flow__edgelabel-renderer > *');
+        at(viewport, 100, 50, 0, 0);
+        at(label, 120, 30, 80, 40);
+        at(hidden, 0, 0, 0, 0);
+
+        expect(labelRects(viewport, 2)).toEqual([{ x: 10, y: -10, width: 40, height: 20 }]);
     });
 });
 
@@ -43,6 +59,10 @@ describe('pngScale', () => {
         expect(scale).toBeLessThan(2);
         // A canvas drops the fraction of a pixel.
         expect(Math.floor(8000 * scale) * Math.floor(6000 * scale)).toBeLessThanOrEqual(16_777_216);
+    });
+
+    it('drops so a long, narrow image stays inside the longest canvas side', () => {
+        expect(50_080 * pngScale(50_080, 480)).toBeLessThanOrEqual(16_384);
     });
 });
 

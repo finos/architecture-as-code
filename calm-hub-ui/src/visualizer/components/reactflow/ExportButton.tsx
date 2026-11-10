@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { ControlButton, useReactFlow, useStore } from 'reactflow';
+import { ControlButton, getBoundsOfRects, useReactFlow, useStore } from 'reactflow';
 import { ImageDown } from 'lucide-react';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';
-import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
-import { diagramBounds, exportDiagram, exportFileName, type ExportFormat } from './utils/diagramExport.js';
+import { diagramBounds, exportDiagram, exportFileName, labelRects, type ExportFormat } from './utils/diagramExport.js';
 
 interface ExportButtonProps {
     /** Names the saved file. */
@@ -12,13 +11,15 @@ interface ExportButtonProps {
 }
 
 const FORMATS: ExportFormat[] = ['svg', 'png'];
+// The callouts are measured with the edge labels, as drawn.
+const NO_CALLOUTS = new Map();
 
 /** Saves the whole diagram, as it is drawn, as an SVG or PNG image. */
 export function ExportButton({ diagramKey }: ExportButtonProps) {
     const [open, setOpen] = useState(false);
     const { getNodes } = useReactFlow();
     const flow = useStore((state) => state.domNode);
-    const { calloutSizes } = useDecisionOverlay();
+    const zoom = useStore((state) => state.transform[2]);
 
     const save = (format: ExportFormat) => {
         setOpen(false);
@@ -26,7 +27,7 @@ export function ExportButton({ diagramKey }: ExportButtonProps) {
         if (!flow || !viewport) return;
         exportDiagram(
             viewport,
-            diagramBounds(getNodes(), calloutSizes),
+            labelRects(viewport, zoom).reduce(getBoundsOfRects, diagramBounds(getNodes(), NO_CALLOUTS)),
             format,
             exportFileName(diagramKey, format),
             getComputedStyle(flow).backgroundColor,
@@ -34,7 +35,7 @@ export function ExportButton({ diagramKey }: ExportButtonProps) {
     };
 
     return (
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }} onKeyDown={(event) => event.key === 'Escape' && setOpen(false)}>
             <ControlButton
                 onClick={() => setOpen(!open)}
                 title="Export image"
@@ -47,7 +48,6 @@ export function ExportButton({ diagramKey }: ExportButtonProps) {
             {open && (
                 <div
                     role="menu"
-                    onKeyDown={(event) => event.key === 'Escape' && setOpen(false)}
                     style={{
                         position: 'absolute',
                         left: 'calc(100% + 8px)',

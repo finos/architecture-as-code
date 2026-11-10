@@ -7,8 +7,9 @@ export type ExportFormat = 'svg' | 'png';
 
 const MARGIN = 40;
 const PNG_SCALE = 2;
-// The largest canvas Safari draws (4096 × 4096); larger canvases come out blank.
+// The largest canvas every browser draws, by area (Safari) and by side; a larger one comes out blank.
 const MAX_CANVAS_AREA = 16_777_216;
+const MAX_CANVAS_SIDE = 16_384;
 const SVG_STYLES = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-opacity', 'opacity', 'display', 'visibility'];
 
 /** The area of the shown nodes and their decision callouts. */
@@ -17,15 +18,32 @@ export function diagramBounds(nodes: Node[], callouts: ReadonlyMap<string, Callo
     return calloutRects(shown, callouts).reduce(getBoundsOfRects, getNodesBounds(shown));
 }
 
+/**
+ * The drawn edge labels and decision callouts, in flow units. A label can reach past the nodes, for example above a
+ * top-row node in presentation mode. A hidden label measures 0 and is left out.
+ */
+export function labelRects(viewport: HTMLElement, zoom: number): Rect[] {
+    const origin = viewport.getBoundingClientRect();
+    return [...viewport.querySelectorAll('.react-flow__edgelabel-renderer > *')]
+        .map((label) => label.getBoundingClientRect())
+        .filter((rect) => rect.width && rect.height)
+        .map((rect) => ({
+            x: (rect.left - origin.left) / zoom,
+            y: (rect.top - origin.top) / zoom,
+            width: rect.width / zoom,
+            height: rect.height / zoom,
+        }));
+}
+
 export function pngScale(width: number, height: number): number {
-    return Math.min(PNG_SCALE, Math.sqrt(MAX_CANVAS_AREA / (width * height)));
+    return Math.min(PNG_SCALE, Math.sqrt(MAX_CANVAS_AREA / (width * height)), MAX_CANVAS_SIDE / Math.max(width, height));
 }
 
 export function exportFileName(viewportKey: string | undefined, format: ExportFormat): string {
     return `${viewportKey?.replaceAll('/', '-') ?? 'diagram'}.${format}`;
 }
 
-// html-to-image puts its own background on the moved diagram, so it would be moved too. This one covers the image.
+/** html-to-image puts its own background on the moved diagram, so it would be moved too. This one covers the image. */
 export function withBackground(svg: string, color: string): string {
     const end = svg.indexOf('>', svg.indexOf('<svg')) + 1;
     return `${svg.slice(0, end)}<rect width="100%" height="100%" fill="${color}"/>${svg.slice(end)}`;
