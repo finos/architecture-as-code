@@ -5,6 +5,12 @@ All notable changes to the CALM Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.8.0...calm-server-v0.9.0) (2026-11-10)
+
+### 🚀 Features
+
+* resolve CURIEs in control requirement-url during validate ([#3592](https://github.com/finos/architecture-as-code/issues/3592)) ([9716348](https://github.com/finos/architecture-as-code/commit/9716348d6fb8c4b868ad30ed689aceab7e179c0f))
+
 ## [0.8.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.7.0...calm-server-v0.8.0) (2026-11-10)
 
 ### 🚀 Features
