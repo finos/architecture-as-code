@@ -69,7 +69,7 @@ public class TestSearchResourceShould {
                 .statusCode(400)
                 .body(containsString(expectedMessage));
 
-        verify(mockSearchStore, never()).search(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
+        verify(mockSearchStore, never()).search(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -84,7 +84,7 @@ public class TestSearchResourceShould {
                 List.of()
         );
 
-        when(mockSearchStore.search(eq("test"), any())).thenReturn(results);
+        when(mockSearchStore.search(eq("test"), any(), any())).thenReturn(results);
 
         given()
                 .queryParam("q", "test")
@@ -103,7 +103,7 @@ public class TestSearchResourceShould {
                 .body("controls", hasSize(0))
                 .body("adrs", hasSize(0));
 
-        verify(mockSearchStore).search(eq("test"), eq(Optional.<Set<String>>empty()));
+        verify(mockSearchStore).search(eq("test"), eq(Optional.<Set<String>>empty()), eq(Optional.<Set<String>>empty()));
     }
 
     @Test
@@ -112,7 +112,7 @@ public class TestSearchResourceShould {
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
         );
 
-        when(mockSearchStore.search(eq("nonexistent"), any())).thenReturn(results);
+        when(mockSearchStore.search(eq("nonexistent"), any(), any())).thenReturn(results);
 
         given()
                 .queryParam("q", "nonexistent")
@@ -128,7 +128,7 @@ public class TestSearchResourceShould {
                 .body("controls", hasSize(0))
                 .body("adrs", hasSize(0));
 
-        verify(mockSearchStore).search(eq("nonexistent"), any());
+        verify(mockSearchStore).search(eq("nonexistent"), any(), any());
     }
 
     @Test
@@ -143,7 +143,7 @@ public class TestSearchResourceShould {
                 List.of()
         );
 
-        when(mockSearchStore.search(eq("demo"), any())).thenReturn(results);
+        when(mockSearchStore.search(eq("demo"), any(), any())).thenReturn(results);
 
         given()
                 .queryParam("q", "demo")
@@ -156,7 +156,7 @@ public class TestSearchResourceShould {
                 .body("flows", hasSize(1))
                 .body("controls", hasSize(1));
 
-        verify(mockSearchStore).search(eq("demo"), any());
+        verify(mockSearchStore).search(eq("demo"), any(), any());
     }
 
     @Test
@@ -167,7 +167,7 @@ public class TestSearchResourceShould {
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of()
         );
 
-        when(mockSearchStore.search(eq(maxQuery), any())).thenReturn(results);
+        when(mockSearchStore.search(eq(maxQuery), any(), any())).thenReturn(results);
 
         given()
                 .queryParam("q", maxQuery)
@@ -176,12 +176,12 @@ public class TestSearchResourceShould {
                 .then()
                 .statusCode(200);
 
-        verify(mockSearchStore).search(eq(maxQuery), any());
+        verify(mockSearchStore).search(eq(maxQuery), any(), any());
     }
 
     @Test
     void return_500_when_search_store_throws_exception() {
-        when(mockSearchStore.search(eq("error"), any())).thenThrow(new RuntimeException("Database connection failed"));
+        when(mockSearchStore.search(eq("error"), any(), any())).thenThrow(new RuntimeException("Database connection failed"));
 
         given()
                 .queryParam("q", "error")
@@ -191,6 +191,6 @@ public class TestSearchResourceShould {
                 .statusCode(500)
                 .body(containsString("An unexpected error occurred"));
 
-        verify(mockSearchStore).search(eq("error"), any());
+        verify(mockSearchStore).search(eq("error"), any(), any());
     }
 }

@@ -47,7 +47,7 @@ class TestGitHubSearchStoreShould {
 
     @Test
     void return_empty_grouped_search_results() {
-        GroupedSearchResults result = store.search("test query", Optional.empty());
+        GroupedSearchResults result = store.search("test query", Optional.empty(), Optional.empty());
 
         assertThat(result, is(notNullValue()));
         assertThat(result.getArchitectures(), is(empty()));
@@ -61,7 +61,7 @@ class TestGitHubSearchStoreShould {
 
     @Test
     void return_empty_results_with_readable_namespaces() {
-        GroupedSearchResults result = store.search("test", Optional.of(Set.of("finos")));
+        GroupedSearchResults result = store.search("test", Optional.of(Set.of("finos")), Optional.empty());
 
         assertThat(result, is(notNullValue()));
         assertThat(result.getArchitectures(), is(empty()));
@@ -69,13 +69,13 @@ class TestGitHubSearchStoreShould {
 
     @Test
     void return_empty_for_blank_query() {
-        GroupedSearchResults result = store.search("", Optional.empty());
+        GroupedSearchResults result = store.search("", Optional.empty(), Optional.empty());
         assertThat(result.getArchitectures(), is(empty()));
     }
 
     @Test
     void return_empty_for_null_query() {
-        GroupedSearchResults result = store.search(null, Optional.empty());
+        GroupedSearchResults result = store.search(null, Optional.empty(), Optional.empty());
         assertThat(result.getArchitectures(), is(empty()));
     }
 
@@ -90,7 +90,7 @@ class TestGitHubSearchStoreShould {
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
-        GroupedSearchResults result = store.search("payment", Optional.empty());
+        GroupedSearchResults result = store.search("payment", Optional.empty(), Optional.empty());
 
         assertThat(result.getArchitectures(), is(org.hamcrest.Matchers.not(empty())));
         assertThat(result.getArchitectures().get(0).getName(), is("Payment Service"));
@@ -112,7 +112,7 @@ class TestGitHubSearchStoreShould {
         RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", entries), Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
-        GroupedSearchResults result = store.search("payment", Optional.empty());
+        GroupedSearchResults result = store.search("payment", Optional.empty(), Optional.empty());
 
         assertThat(result.getArchitectures(), is(org.hamcrest.Matchers.not(empty())));
         assertThat(result.getPatterns(), is(org.hamcrest.Matchers.not(empty())));
@@ -127,7 +127,7 @@ class TestGitHubSearchStoreShould {
         when(registryService.getSnapshot()).thenReturn(
                 new RegistrySnapshot(Map.of("finos", List.of(adr)), Map.of()));
 
-        GroupedSearchResults result = store.search("payment", Optional.empty());
+        GroupedSearchResults result = store.search("payment", Optional.empty(), Optional.empty());
 
         assertThat(result.getAdrs(), is(empty()));
     }
@@ -141,7 +141,7 @@ class TestGitHubSearchStoreShould {
         when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(
                 Map.of("finos", List.of(visible), "other", List.of(hidden)), Map.of()));
 
-        GroupedSearchResults result = store.search("payment", Optional.of(Set.of("finos")));
+        GroupedSearchResults result = store.search("payment", Optional.of(Set.of("finos")), Optional.empty());
 
         assertThat(result.getArchitectures().size(), is(1));
         assertThat(result.getArchitectures().get(0).getName(), is("Payment Service"));
