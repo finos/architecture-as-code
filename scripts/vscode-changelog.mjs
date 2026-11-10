@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import createPreset from 'conventional-changelog-conventionalcommits';
 import { CommitParser } from 'conventional-commits-parser';
 import { writeChangelogString } from 'conventional-changelog-writer';
-import { finalizeContext, gitIn, isRepoWide, listedCommits, parserOpts, SECTIONS, withPrLink } from './release-notes.mjs';
+import { finalizeContext, gitIn, isRepoWide, listedCommits, parserOpts, SECTIONS, splitForkMerge, withPrLink } from './release-notes.mjs';
 
 export const EXTENSION_PATH = 'calm-plugins/vscode';
 export const TAG_PREFIX = 'vscode-v';
@@ -62,7 +62,7 @@ export function releaseCommits(git, from, to) {
     // The preset's parser options read a `!` in the header as a breaking change.
     const parser = new CommitParser({ ...createPreset().parser, ...parserOpts });
     return listedCommits(git, from ? `${from}..${to}` : to, [EXTENSION_PATH])
-        .map(hash => ({ ...parser.parse(git('log', '-1', '--format=%B', hash)), hash }));
+        .flatMap(hash => splitForkMerge(git('log', '-1', '--format=%B', hash)).map(message => ({ ...parser.parse(message), hash })));
 }
 
 // Dependency updates stay hidden even with a breaking-change note: those notes are about the dependency.

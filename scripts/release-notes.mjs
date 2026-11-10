@@ -27,6 +27,32 @@ export const parserOpts = {
 
 const conventionalHeader = /^\w+(\([^)]*\))?!?: /;
 
+// GitHub merges a security advisory's private fork as one squash commit with this fixed title. The
+// body has "* <message>" for each branch commit, then "---------" and the co-author trailers.
+const FORK_MERGE_TITLE = 'Merge commit from fork';
+const forkMergeEntry = /^\* (?=\w+(?:\([^)]*\))?!?: )/m;
+const forkMergeTrailers = '\n---------\n';
+
+/** The messages of the commits that a fork merge holds, or the message itself for any other commit. */
+export function splitForkMerge(message) {
+    const [title, ...rest] = message.split('\n');
+    if (title.trim() !== FORK_MERGE_TITLE) {
+        return [message];
+    }
+    const body = rest.join('\n');
+    const trailers = body.lastIndexOf(forkMergeTrailers);
+    const entries = (trailers === -1 ? body : body.slice(0, trailers))
+        .split(forkMergeEntry)
+        .slice(1)
+        .map(entry => entry.trim());
+    return entries.length > 0 ? entries : [message];
+}
+
+/** Give each commit of a fork merge to semantic-release as a commit of its own, with the same hash. */
+export function expandForkMerges(commits) {
+    return commits.flatMap(commit => splitForkMerge(commit.message).map(message => ({ ...commit, message })));
+}
+
 export function gitIn(cwd) {
     return (...args) => execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 1024 * 1024 * 1024 }).trim();
 }
@@ -152,7 +178,7 @@ export function releaseConfig({ product, tagFormat, scopes }) {
         ci: true,
         plugins: [
             [fileURLToPath(new URL('./release-analyzer.mjs', import.meta.url)), { preset: 'conventionalcommits', releaseRules: releaseRules(scopes), parserOpts }],
-            ['@semantic-release/release-notes-generator', {
+            [fileURLToPath(new URL('./release-notes-generator.mjs', import.meta.url)), {
                 preset: 'conventionalcommits',
                 presetConfig,
                 parserOpts,
