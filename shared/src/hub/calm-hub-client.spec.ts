@@ -605,9 +605,16 @@ describe('CalmHubClient', () => {
 
         it('targets the type-scoped endpoint with the resource type in the path', async () => {
             mock.onGet('/calm/namespaces/finos/standards').reply(200, { values: [] });
+            mock.onGet('/calm/namespaces/finos/timelines').reply(200, {
+                values: [{ customId: 'api-gateway-timeline', namespace: 'finos', numericId: 3, resourceType: 'TIMELINE' }]
+            });
 
             await client.getNamespaceMappings('finos', 'standards');
             expect(mock.history.get[0].url).toBe('/calm/namespaces/finos/standards');
+
+            const timelines = await client.getNamespaceMappings('finos', 'timelines');
+            expect(mock.history.get[1].url).toBe('/calm/namespaces/finos/timelines');
+            expect(timelines).toEqual(['api-gateway-timeline']);
         });
 
         it('throws HubClientError on 500', async () => {
@@ -651,6 +658,33 @@ describe('CalmHubClient', () => {
             expect(mock.history.post[0].data).toBe(json);
         });
 
+        it('posts a timeline document to the timelines endpoint', async () => {
+            const timelineId = 'http://localhost:8080/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0';
+            const timelineEndpoint = '/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0';
+            const timelineMetadata: DocumentMetadata = {
+                rawDocumentId: timelineId,
+                baseUrl: 'http://localhost:8080',
+                namespace: 'finos',
+                mapping: 'my-timeline',
+                type: 'timelines',
+                version: '1.0.0',
+                name: 'My Timeline',
+                description: 'Timeline evolution'
+            };
+            const timelineJson = JSON.stringify({
+                $id: timelineId,
+                title: 'My Timeline',
+                description: 'Timeline evolution',
+                moments: []
+            });
+            mock.onPost(timelineEndpoint).reply(201, null, { location: timelineId });
+
+            const result = await client.createMappedResourceVersion(timelineMetadata, timelineJson);
+            expect(result).toBe(timelineId);
+            expect(mock.history.post[0].url).toBe(timelineEndpoint);
+            expect(mock.history.post[0].data).toBe(timelineJson);
+        });
+
         it('throws when the document metadata does not match the requested metadata', async () => {
             const mismatched: DocumentMetadata = { ...metadata, version: '2.0.0' };
 
@@ -684,6 +718,15 @@ describe('CalmHubClient', () => {
 
             const result = await client.getMappedResourceVersions('finos', 'my-arch', 'architectures');
             expect(result).toEqual(['1.0.0', '2.0.0']);
+        });
+
+        it('returns versions for a timeline resource', async () => {
+            mock.onGet('/calm/namespaces/finos/timelines/my-timeline/versions').reply(200, {
+                values: ['1.0.0', '1.1.0']
+            });
+
+            const result = await client.getMappedResourceVersions('finos', 'my-timeline', 'timelines');
+            expect(result).toEqual(['1.0.0', '1.1.0']);
         });
 
         it('returns empty array when the mapping has no versions yet', async () => {
@@ -753,6 +796,13 @@ describe('CalmHubClient', () => {
 
             const result = await client.getMappedResourceByVersion('finos', 'my-arch', '1.0.0', 'architectures');
             expect(result).toEqual({ nodes: [] });
+        });
+
+        it('returns a timeline document for the requested version', async () => {
+            mock.onGet('/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0').reply(200, { moments: [] });
+
+            const result = await client.getMappedResourceByVersion('finos', 'my-timeline', '1.0.0', 'timelines');
+            expect(result).toEqual({ moments: [] });
         });
 
         it('throws HubClientError(404) when the version does not exist', async () => {

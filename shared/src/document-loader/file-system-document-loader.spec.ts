@@ -115,6 +115,23 @@ describe('file-system-document-loader', () => {
             expect(loader.resolvePath(reference)).toBeUndefined();
         });
 
+    describe('with reading of referenced files off', () => {
+        const loader = () => new FileSystemDocumentLoader(['test_fixtures'], false, '/', false);
+
+        it('still loads the schema directories at start-up', async () => {
+            await loader().initialise(mocks.schemaDirectory as unknown as SchemaDirectory);
+            expect(mocks.schemaDirectory.storeDocument).toHaveBeenCalledWith(exampleSchema['$id'], 'schema', exampleSchema);
+        });
+
+        it.each(['/secret.txt', 'secret.txt', '#/../secret.txt', ' http:/../secret.txt', 'test_fixtures/test_schema.json'])(
+            'reads nothing for %j and lets the next loader try it', async (reference) => {
+                vol.fromJSON({ '/secret.txt': 'SECRET-MARKER' });
+                const thrown = await loader().loadMissingDocument(reference, 'architecture').catch((e) => e);
+                expect(thrown).toMatchObject({ recoverable: true, name: 'OPERATION_NOT_IMPLEMENTED' });
+                expect(thrown.message).not.toContain('SECRET');
+            });
+    });
+
     it('keeps the no-$id schema fallback recoverable', async () => {
         vol.fromJSON({ '/no-id.json': JSON.stringify({ type: 'object' }) });
         const thrown = await fileSystemDocumentLoader.loadMissingDocument('no-id.json', 'schema').catch((e) => e);

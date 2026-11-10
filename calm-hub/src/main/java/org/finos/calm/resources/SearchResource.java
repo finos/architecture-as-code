@@ -66,8 +66,7 @@ public class SearchResource {
         }
 
         try {
-            Optional<Set<String>> readableNamespaces = resolveReadableNamespaces();
-            GroupedSearchResults results = searchStore.search(query, readableNamespaces);
+            GroupedSearchResults results = searchStore.search(query, resolveReadableNamespaces(), resolveReadableDomains());
             return Response.ok(results).build();
         } catch (Exception e) {
             log.error("Error performing search for query: {}", sanitizeForLog(query), e);
@@ -80,6 +79,11 @@ public class SearchResource {
     private Optional<Set<String>> resolveReadableNamespaces() {
         return ReadableScope.resolve(authEnabled, userAccessValidatorInstance, identity,
                 UserAccessValidator::getReadableNamespaces);
+    }
+
+    private Optional<Set<String>> resolveReadableDomains() {
+        return ReadableScope.resolve(authEnabled, userAccessValidatorInstance, identity,
+                UserAccessValidator::getReadableDomains);
     }
 
     /**

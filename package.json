@@ -8,6 +8,8 @@
     },
     "workspaces": [
         "calm-models",
+        "calm-diagram",
+        "calm-docusaurus-plugin",
         "calm-widgets",
         "calm-ai",
         "shared",
@@ -37,8 +39,8 @@
         "test:shared": "npm run build:shared && npm run test --workspace shared",
         "test:models": "npm run build:calm-models && npm run test --workspace calm-models",
         "test:calm-widgets": "npm run build:calm-widgets && npm run test --workspace calm-widgets",
-        "test:vscode": "npm run build:shared && npm run test --workspace calm-plugins/vscode",
-        "package:vscode": "npm run build:shared && npm run package --workspace calm-plugins/vscode",
+        "test:vscode": "npm run build:shared && npm run build --workspace calm-diagram && npm run test --workspace calm-plugins/vscode",
+        "package:vscode": "npm run build:shared && npm run build --workspace calm-diagram && npm run package --workspace calm-plugins/vscode",
         "lint": "npm run lint --workspaces --if-present",
         "lint-fix": "npm run lint-fix --workspaces --if-present",
         "watch": "run-p watch:cli watch:shared",
@@ -127,7 +129,7 @@
         "systeminformation": "^5.33.15",
         "tmp": "^0.2.7",
         "@semantic-release/npm": {
-            "npm": "11.21.1"
+            "npm": "11.21.2"
         },
         "cookie": "^1.1.1",
         "follow-redirects": "^1.16.1",

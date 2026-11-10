@@ -40,11 +40,15 @@ import {
 import { postMessage } from './vscode-api';
 import {
     flowToCalm,
+    relayoutByPath,
     setLastParsedArch,
     applyLayoutFromMetadata,
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
+import { updateInstances, hasSharedDrawings, pathOf } from './transforms/node-instances';
+import { resolveLiveSelectedNode } from './utils/live-selected-node';
+import { deleteDrawings, unparentDrawing, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties, hasSeparateReverseEdge } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
@@ -71,7 +75,7 @@ import { ToolbarMenu } from './panels/ToolbarMenu';
 import { nodeTypes } from './canvas/nodeTypes';
 import { edgeTypes } from './canvas/edgeTypes';
 import { minimapNodeClassName } from './canvas/minimap';
-import { makeContainment, removeContainment, isInsideBounds, getAbsolutePosition } from './utils/containment';
+import { makeContainment, getAbsolutePosition, containerAt } from './utils/containment';
 import { validateArchitecture } from './utils/validation';
 
 const SUPPRESS_ECHO_MS = 1200;
@@ -100,6 +104,12 @@ function CanvasApp() {
     const [initialized, setInitialized] = useState(() => !!getInitialCalmJson());
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+    // Where the selected drawing is. A load can give the drawing at that place another id, or give its id to another drawing.
+    const [selectedPlace, setSelectedPlace] = useState<string | null>(null);
+    const selectDrawing = useCallback((node: Node) => {
+        setSelectedNode(node);
+        setSelectedPlace(pathOf(node, new Map(reactFlowInstance.getNodes().map((n) => [n.id, n]))));
+    }, [reactFlowInstance]);
     const [panelWidth, setPanelWidth] = useState(280);
     const [panelCollapsed, setPanelCollapsed] = useState(false);
     const [showPatternPicker, setShowPatternPicker] = useState(false);
@@ -126,13 +136,18 @@ function CanvasApp() {
     const undoingOrRedoing = useRef(false);
     const loadGeneration = useRef(0);
     const pendingNodesRef = useRef<Node[] | null>(null);
+    // React Flow calls onEdgesChange for the edges of deleted drawings, then onNodesDelete, then onNodesChange
+    // with a remove change for each deleted drawing. A delete that reloads the canvas saves the file itself,
+    // and the drawings it keeps must not be removed.
+    const reloadPending = useRef(false);
+    const keptOnDelete = useRef<Set<string> | null>(null);
 
     // Copy/paste
     const clipboardNode = useRef<Node | null>(null);
 
 
     // --- Core: emit change ---
-    const emitChange = useCallback((immediate = false) => {
+    const emitChange = useCallback((immediate = false, forReload = false) => {
         if (syncingRef.current || store.readonlyMode || undoingOrRedoing.current) return;
         if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
@@ -151,6 +166,7 @@ function CanvasApp() {
             pendingNodesRef.current = null;
             const currentEdges = reactFlowInstance.getEdges();
             const arch = flowToCalm(currentNodes, currentEdges, currentState.documentControls);
+            if (forReload) (arch.metadata as Record<string, unknown>)._layout = relayoutByPath(arch, currentNodes);
             const json = JSON.stringify(arch, null, 2);
             lastEmittedJson.current = json;
             notifyCanvasChanged(json);
@@ -167,8 +183,7 @@ function CanvasApp() {
     // changed); Hub refs only when not yet enriched. All updates are guarded by
     // the load generation so stale resolves from a prior document are discarded.
     const updateNodeControl = useCallback((nodeId: string, ckey: string, enrich: (c: ControlEntry) => ControlEntry) => {
-        setNodes((nds) => nds.map((n) => {
-            if (n.id !== nodeId) return n;
+        setNodes((nds) => updateInstances(nds, nodeId, (n) => {
             const data = n.data as Record<string, unknown>;
             const existing = (data.controls as Record<string, ControlEntry>) ?? {};
             const target = existing[ckey];
@@ -238,7 +253,7 @@ function CanvasApp() {
         // stale nodes would linger).
         if (!json || json.trim() === '') {
             setNodes([]); setEdges([]); setLastParsedArch(null);
-            useCanvasStore.setState({ documentControls: {} });
+            useCanvasStore.setState({ documentControls: {}, copiesLimited: false });
             lastEmittedJson.current = json;
             return;
         }
@@ -246,20 +261,22 @@ function CanvasApp() {
             const arch = JSON.parse(json) as CalmArchitecture;
             if (!arch || !arch.nodes || arch.nodes.length === 0) {
                 setNodes([]); setEdges([]); setLastParsedArch(null);
-                useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>)?.controls as Record<string, unknown> ?? {} });
+                useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>)?.controls as Record<string, unknown> ?? {}, copiesLimited: false });
                 lastEmittedJson.current = json;
                 return;
             }
             setLastParsedArch(arch);
-            useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>).controls as Record<string, unknown> ?? {} });
-            const { nodes: parsedNodes, edges: parsedEdges } = parseCALMData(arch);
+            const { nodes: parsedNodes, edges: parsedEdges, copiesLimited } = parseCALMData(arch);
+            useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>).controls as Record<string, unknown> ?? {}, copiesLimited });
             const metadata = (arch as Record<string, unknown>).metadata as Record<string, unknown> | undefined;
             const layoutedNodes = applyLayoutFromMetadata(parsedNodes, metadata);
             setNodes(layoutedNodes);
             setEdges(parsedEdges);
             lastEmittedJson.current = json;
-            // Request resolution for any nodes with definition-id references
-            for (const node of layoutedNodes) {
+            // Request resolution for any nodes with definition-id references, once per CALM node:
+            // the result is applied to every drawing of it
+            const originals = originalsOf(layoutedNodes);
+            for (const node of originals) {
                 const defId = (node.data as Record<string, unknown>)?.['definition-id'] as string | undefined;
                 if (defId) {
                     postMessage({ type: 'resolveDefinitionId', nodeId: node.id, curie: defId });
@@ -269,11 +286,19 @@ function CanvasApp() {
             // load, drill, file-watcher, SVG import, undo/redo). Both node-level and
             // document-level controls are scanned; local refs always re-resolve.
             const generation = loadGeneration.current;
-            setTimeout(() => enrichAllControls(layoutedNodes, generation), 0);
+            setTimeout(() => enrichAllControls(originals, generation), 0);
         } catch (err) {
             console.error('[CALM Canvas] Failed to load architecture:', err);
         }
     }, [setNodes, setEdges, enrichAllControls]);
+
+    // After an edit that changes which drawings a node has, rebuild the canvas from the file,
+    // so every drawing of a container shows the same members
+    const emitAndReload = useCallback(() => {
+        const before = lastEmittedJson.current;
+        emitChange(true, true);
+        if (lastEmittedJson.current && lastEmittedJson.current !== before) loadArchitecture(lastEmittedJson.current);
+    }, [emitChange, loadArchitecture]);
 
     // --- Bridge setup ---
     useEffect(() => {
@@ -291,8 +316,7 @@ function CanvasApp() {
             loadArchitecture(json);
         });
         setDefinitionResolvedCallback((nodeId, controls) => {
-            setNodes((nds) => nds.map((n) => {
-                if (n.id !== nodeId) return n;
+            setNodes((nds) => updateInstances(nds, nodeId, (n) => {
                 const data = n.data as Record<string, unknown>;
                 // Only set controls if node doesn't already have them (from saved file)
                 const existingControls = data.controls as Record<string, unknown> | undefined;
@@ -324,9 +348,11 @@ function CanvasApp() {
 
     // --- Unparent ---
     const unparentNode = useCallback((nodeId: string) => {
-        setNodes((nds) => removeContainment(nodeId, nds));
-        setTimeout(() => emitChange(true), 0);
-    }, [setNodes, emitChange]);
+        const edit = unparentDrawing(nodes, edges, nodeId);
+        setNodes(edit.nodes);
+        setEdges(edit.edges);
+        setTimeout(() => (edit.reload ? emitAndReload() : emitChange(true)), 0);
+    }, [nodes, edges, setNodes, setEdges, emitChange, emitAndReload]);
 
     // --- Undo/Redo ---
     useEffect(() => {
@@ -357,11 +383,12 @@ function CanvasApp() {
             }
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'u') {
                 e.preventDefault();
-                if (selectedNode?.parentId) unparentNode(selectedNode.id);
+                const live = resolveLiveSelectedNode(selectedNode, nodes, selectedPlace);
+                if (live?.parentId) unparentNode(live.id);
             }
             // Copy
             if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isInputDOMNode(e)) {
-                const live = selectedNode ? nodes.find((n) => n.id === selectedNode.id) ?? selectedNode : null;
+                const live = resolveLiveSelectedNode(selectedNode, nodes, selectedPlace);
                 if (live) {
                     clipboardNode.current = live;
                 }
@@ -371,36 +398,18 @@ function CanvasApp() {
                 if (store.readonlyMode || !clipboardNode.current) return;
                 e.preventDefault();
                 const src = clipboardNode.current;
-                const data = JSON.parse(JSON.stringify(src.data)) as Record<string, unknown>;
-                const calmType = (data.calmType as string) ?? 'system';
+                const calmType = ((src.data as Record<string, unknown>)?.calmType as string) ?? 'system';
                 const newId = `${calmType.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
-                data.calmId = newId;
-                data.label = `${data.label ?? ''} (copy)`;
-                // Strip resolved definition data — the copy is independent
-                delete data['definition-id'];
-                delete data._resolvedControls;
-                delete data.validationErrors;
-                delete data.validationWarnings;
-
-                const isContainer = src.type === 'container';
-                const newNode: Node = {
-                    id: newId,
-                    type: src.type ?? 'system',
-                    position: { x: src.position.x + 30, y: src.position.y + 30 },
-                    data,
-                    ...(isContainer && src.width && src.height
-                        ? { width: src.width, height: src.height, style: { width: src.width, height: src.height } }
-                        : {}),
-                };
+                const newNode = pastedNode(src, newId);
                 setNodes((nds) => [...nds, newNode]);
-                setSelectedNode(newNode);
+                selectDrawing(newNode);
                 store.selectNode(newId);
                 setTimeout(() => emitChange(true), 0);
             }
         };
         window.addEventListener('keydown', handleKeydown);
         return () => window.removeEventListener('keydown', handleKeydown);
-    }, [loadArchitecture, selectedNode, nodes, setNodes, emitChange, store, unparentNode]);
+    }, [loadArchitecture, selectedNode, selectedPlace, selectDrawing, nodes, setNodes, emitChange, store, unparentNode]);
 
     // --- Node changes (position, dimension, remove) ---
     const onNodesChange = useCallback((changes: NodeChange[]) => {
@@ -409,7 +418,9 @@ function CanvasApp() {
             if (safe.length > 0) onNodesChangeBase(safe);
             return;
         }
-        onNodesChangeBase(changes);
+        const kept = keptOnDelete.current;
+        keptOnDelete.current = null;
+        onNodesChangeBase(kept ? changes.filter((c) => c.type !== 'remove' || !kept.has(c.id)) : changes);
 
         let structural = false;
         let positionOnly = true;
@@ -425,7 +436,7 @@ function CanvasApp() {
             positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
             return;
         }
-        if (structural) setTimeout(() => emitChange(true), 0);
+        if (structural) setTimeout(() => { if (!reloadPending.current) emitChange(true); }, 0);
         else if (hasDimensions) {
             if (positionDebounceTimer.current) clearTimeout(positionDebounceTimer.current);
             positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
@@ -436,8 +447,9 @@ function CanvasApp() {
         if (store.readonlyMode) return;
         onEdgesChangeBase(changes);
         if (changes.some((c) => c.type === 'remove')) {
-            // Delay emit to allow ReactFlow's internal store to sync the removal
-            setTimeout(() => emitChange(true), 0);
+            // Delay emit to allow ReactFlow's internal store to sync the removal. A delete that
+            // reloads the canvas saves the file itself.
+            setTimeout(() => { if (!reloadPending.current) emitChange(true); }, 0);
         }
     }, [onEdgesChangeBase, emitChange, store.readonlyMode]);
 
@@ -457,35 +469,41 @@ function CanvasApp() {
         setTimeout(() => emitChange(true), 0);
     }, [setEdges, emitChange, store.readonlyMode]);
 
-    // --- Delete (reactflow v11 fires onNodesDelete after removal) ---
+    // --- Delete ---
     const onNodesDelete = useCallback((deletedNodes: Node[]) => {
         if (store.readonlyMode) return;
+        const edit = deleteDrawings(nodes, edges, deletedNodes);
         const deletedIds = new Set(deletedNodes.map((n) => n.id));
-        // Unparent children of deleted containers
-        setNodes((nds) => {
-            let updated = nds;
-            for (const deleted of deletedNodes) {
-                if (deleted.type === 'container') {
-                    updated = updated.map((n) => {
-                        if (n.parentId !== deleted.id) return n;
-                        const absPos = getAbsolutePosition(n, updated);
-                        const { parentId: _, extent: _e, zIndex: _z, ...rest } = n as any;
-                        return { ...rest, position: absPos } as Node;
-                    });
-                }
-            }
-            return updated.filter((n) => !deletedIds.has(n.id));
+        keptOnDelete.current = new Set(edit.nodes.map((n) => n.id));
+        const selected = resolveLiveSelectedNode(selectedNode, nodes, selectedPlace);
+        if (selected && !edit.nodes.some((n) => n.id === selected.id)) setSelectedNode(null);
+        setNodes(edit.nodes);
+        // React Flow has already removed the picked edges and the edges of the deleted drawings.
+        // The edit decides on the edges of the drawings only: some stay, or move to another drawing.
+        // A box selection also selects those edges, so a selected edge is not always a picked one.
+        const decided = new Set(edges.filter((e) => deletedIds.has(e.source) || deletedIds.has(e.target)).map((e) => e.id));
+        setEdges((eds) => {
+            const live = new Set(eds.map((e) => e.id));
+            return edit.edges.filter((e) => live.has(e.id) || decided.has(e.id));
         });
-        setEdges((eds) => eds.filter((e) => !deletedIds.has(e.source) && !deletedIds.has(e.target)));
-        setTimeout(() => emitChange(true), 0);
-    }, [setNodes, setEdges, emitChange, store.readonlyMode]);
+        if (!edit.reload) {
+            setTimeout(() => emitChange(true), 0);
+            return;
+        }
+        reloadPending.current = true;
+        setTimeout(() => {
+            emitAndReload();
+            // After the saves that React Flow's change callbacks queued for this delete
+            setTimeout(() => { reloadPending.current = false; }, 0);
+        }, 0);
+    }, [nodes, edges, selectedNode, selectedPlace, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
 
     // --- Node click (select) ---
     const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-        setSelectedNode(node);
+        selectDrawing(node);
         setSelectedEdge(null);
         store.selectNode(node.id);
-    }, [store]);
+    }, [store, selectDrawing]);
 
     // --- Node double-click (drill-in or select+focus) ---
     const handleNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -501,10 +519,10 @@ function CanvasApp() {
             notifyDrillInto(label, `standard-nodes/${safeName}.calm.json`, calmType);
         } else {
             // No drill target — select and focus the name field for editing
-            setSelectedNode(node);
+            selectDrawing(node);
             store.selectNode(node.id);
         }
-    }, [store]);
+    }, [store, selectDrawing]);
 
     const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
         setSelectedEdge(edge);
@@ -525,33 +543,16 @@ function CanvasApp() {
             return;
         }
 
-        // Check if dropped inside a container
-        setNodes((nds) => {
-            const draggedAbsPos = getAbsolutePosition(draggedNode, nds);
-            for (const candidate of nds) {
-                if (candidate.id === draggedNode.id) continue;
-                if (candidate.type !== 'container') continue;
-                const containerAbsPos = getAbsolutePosition(candidate, nds);
-                const bounds = {
-                    x: containerAbsPos.x,
-                    y: containerAbsPos.y,
-                    width: ((candidate as any).width ?? 400) as number,
-                    height: ((candidate as any).height ?? 300) as number,
-                };
-                if (isInsideBounds(draggedAbsPos, bounds)) {
-                    return makeContainment(candidate.id, draggedNode.id, nds);
-                }
-            }
-            return nds;
-        });
-        setTimeout(() => emitChange(true), 0);
-    }, [setNodes, emitChange, store.readonlyMode]);
+        const container = containerAt(getAbsolutePosition(draggedNode, nodes), nodes);
+        if (container) setNodes((nds) => makeContainment(container.id, draggedNode.id, nds));
+        // A new member of a container with several drawings is drawn in each after a rebuild
+        setTimeout(() => (container && hasSharedDrawings(nodes) ? emitAndReload() : emitChange(true)), 0);
+    }, [nodes, setNodes, emitChange, emitAndReload, store.readonlyMode]);
 
     // --- Node update (from properties panel) ---
     const onNodeUpdate = useCallback((nodeId: string, field: string, value: unknown) => {
         setNodes((nds) => {
-            const result = nds.map((n) => {
-                if (n.id !== nodeId) return n;
+            const result = updateInstances(nds, nodeId, (n) => {
                 const data = { ...(n.data as Record<string, unknown>) };
                 switch (field) {
                     case 'name': data.label = value; break;
@@ -564,7 +565,7 @@ function CanvasApp() {
                 }
                 const updated = { ...n, data };
                 if (field === 'node-type') updated.type = resolveFlowNodeType(value as string);
-                setSelectedNode(updated);
+                if (n.id === nodeId) setSelectedNode(updated);
                 return updated;
             });
             pendingNodesRef.current = result;
@@ -624,7 +625,7 @@ function CanvasApp() {
                 if (targetId) {
                     setNodes((nds) => applyStandardToNode(nds, targetId!, controlsCopy));
                     setTimeout(() => emitChange(true), 0);
-                    setTimeout(() => enrichAllControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
+                    setTimeout(() => enrichAllControls(originalsOf(reactFlowInstance.getNodes()), loadGeneration.current), 0);
                 }
                 return;
             }
@@ -694,18 +695,7 @@ function CanvasApp() {
         store.setValidationIssues(issues);
         store.setShowValidation(true);
         // Annotate nodes with error/warning counts so validation badges appear on them.
-        const counts: Record<string, { errors: number; warnings: number }> = {};
-        for (const issue of issues) {
-            if (!issue.nodeId) continue;
-            const c = counts[issue.nodeId] ?? { errors: 0, warnings: 0 };
-            if (issue.severity === 'error') c.errors++;
-            else if (issue.severity === 'warning') c.warnings++;
-            counts[issue.nodeId] = c;
-        }
-        setNodes(nodes.map((n) => ({
-            ...n,
-            data: { ...(n.data as Record<string, unknown>), validationErrors: counts[n.id]?.errors ?? 0, validationWarnings: counts[n.id]?.warnings ?? 0 },
-        })));
+        setNodes(withIssueCounts(nodes, issues));
     }, [nodes, edges, store, setNodes]);
 
     // --- Layout ---
@@ -714,8 +704,9 @@ function CanvasApp() {
         try {
             const arch = JSON.parse(lastEmittedJson.current) as CalmArchitecture;
             if (!arch?.nodes?.length) return;
-            const { nodes: laid, edges: parsedEdges } = parseCALMData(arch, direction);
+            const { nodes: laid, edges: parsedEdges, copiesLimited } = parseCALMData(arch, direction);
             setNodes(laid); setEdges(parsedEdges);
+            useCanvasStore.setState({ copiesLimited });
             setTimeout(() => emitChange(true), 0);
         } catch { /* */ }
     }, [setNodes, setEdges, emitChange]);
@@ -758,7 +749,7 @@ function CanvasApp() {
         if (issue.nodeId) {
             const node = nodes.find((n) => n.id === issue.nodeId);
             if (node) {
-                setSelectedNode(node);
+                selectDrawing(node);
                 setSelectedEdge(null);
                 store.selectNode(node.id);
             }
@@ -769,7 +760,7 @@ function CanvasApp() {
             store.selectNode(null);
         }
         if (issue.controlId) setExpandControlKey(issue.controlId);
-    }, [nodes, store]);
+    }, [nodes, store, selectDrawing]);
 
     // --- Panel resize ---
     const handlePanelResizeStart = useCallback((e: React.MouseEvent) => {
@@ -889,8 +880,7 @@ function CanvasApp() {
         if (!target) return;
         const generation = loadGeneration.current;
         if (target.type === 'node') {
-            setNodes((nds) => nds.map((n) => {
-                if (n.id !== target.nodeId) return n;
+            setNodes((nds) => updateInstances(nds, target.nodeId, (n) => {
                 const data = n.data as Record<string, unknown>;
                 const existing = (data.controls as Record<string, ControlEntry>) ?? {};
                 const prev = existing[key];
@@ -953,7 +943,7 @@ function CanvasApp() {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--calm-fg-muted)' }}>Loading CALM architecture...</div>;
     }
 
-    const liveSelectedNode = selectedNode ? nodes.find((n) => n.id === selectedNode.id) ?? selectedNode : null;
+    const liveSelectedNode = resolveLiveSelectedNode(selectedNode, nodes, selectedPlace);
     const data = liveSelectedNode ? (liveSelectedNode.data as Record<string, unknown>) : null;
 
     return (
@@ -997,8 +987,9 @@ function CanvasApp() {
                 </div>
             )}
 
-            {/* Readonly banner */}
+            {/* Banners */}
             {store.readonlyMode && <div style={{ background: 'var(--vscode-editorWarning-foreground, #fbbf24)', color: 'var(--calm-bg)', textAlign: 'center', padding: '4px', fontSize: '11px', fontWeight: 600 }}>Standard Node — Read Only</div>}
+            {store.copiesLimited && <div role="status" style={{ background: 'var(--vscode-editorWarning-foreground, #fbbf24)', color: 'var(--calm-bg)', textAlign: 'center', padding: '4px', fontSize: '11px' }}>This diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.</div>}
 
             {/* Main area */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>

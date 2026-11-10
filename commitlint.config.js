@@ -11,6 +11,7 @@ module.exports = {
         'shared',
         'calm-server',
         'calm-widgets',
+        'calm-diagram',
         'calm-hub',
         'calm-hub-ui',
         'calm-lab',

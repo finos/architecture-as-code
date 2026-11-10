@@ -73,7 +73,7 @@ class TestSearchToolsShould {
         GroupedSearchResults grouped = new GroupedSearchResults(
                 archResults, EMPTY, EMPTY, EMPTY, EMPTY, controlResults, EMPTY);
 
-        when(searchStore.search(eq("trade"), any())).thenReturn(grouped);
+        when(searchStore.search(eq("trade"), any(), any())).thenReturn(grouped);
 
         String result = text(searchTools.searchHub("trade"));
 
@@ -90,7 +90,7 @@ class TestSearchToolsShould {
         GroupedSearchResults grouped = new GroupedSearchResults(
                 EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
 
-        when(searchStore.search(eq("nonexistent"), any())).thenReturn(grouped);
+        when(searchStore.search(eq("nonexistent"), any(), any())).thenReturn(grouped);
 
         String result = text(searchTools.searchHub("nonexistent"));
 
@@ -132,7 +132,7 @@ class TestSearchToolsShould {
 
         GroupedSearchResults grouped = new GroupedSearchResults(
                 EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
-        when(searchStore.search(eq(maxQuery), any())).thenReturn(grouped);
+        when(searchStore.search(eq(maxQuery), any(), any())).thenReturn(grouped);
 
         String result = text(searchTools.searchHub(maxQuery));
 
@@ -148,7 +148,7 @@ class TestSearchToolsShould {
         GroupedSearchResults grouped = new GroupedSearchResults(
                 archResults, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
 
-        when(searchStore.search(eq("arch"), any())).thenReturn(grouped);
+        when(searchStore.search(eq("arch"), any(), any())).thenReturn(grouped);
 
         String result = text(searchTools.searchHub("arch"));
 
@@ -162,11 +162,11 @@ class TestSearchToolsShould {
     @Test
     void pass_empty_optional_to_store_when_auth_disabled() {
         GroupedSearchResults grouped = new GroupedSearchResults(EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
-        when(searchStore.search(eq("trade"), any())).thenReturn(grouped);
+        when(searchStore.search(eq("trade"), any(), any())).thenReturn(grouped);
 
         searchTools.searchHub("trade");
 
-        verify(searchStore).search(eq("trade"), eq(Optional.empty()));
+        verify(searchStore).search(eq("trade"), eq(Optional.empty()), eq(Optional.empty()));
     }
 
     @Test
@@ -180,11 +180,29 @@ class TestSearchToolsShould {
         when(mockValidator.getReadableNamespaces("alice")).thenReturn(Optional.of(Set.of("finos")));
 
         GroupedSearchResults grouped = new GroupedSearchResults(EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
-        when(searchStore.search(eq("trade"), any())).thenReturn(grouped);
+        when(searchStore.search(eq("trade"), any(), any())).thenReturn(grouped);
 
         searchTools.searchHub("trade");
 
-        verify(searchStore).search(eq("trade"), eq(Optional.of(Set.of("finos"))));
+        verify(searchStore).search(eq("trade"), eq(Optional.of(Set.of("finos"))), any());
+    }
+
+    @Test
+    void pass_readable_domains_to_store_when_auth_enabled() {
+        UserAccessValidator mockValidator = org.mockito.Mockito.mock(UserAccessValidator.class);
+        searchTools.authEnabled = true;
+        when(userAccessValidatorInstance.isResolvable()).thenReturn(true);
+        when(identity.getPrincipal()).thenReturn(mockPrincipal);
+        when(mockPrincipal.getName()).thenReturn("alice");
+        when(userAccessValidatorInstance.get()).thenReturn(mockValidator);
+        when(mockValidator.getReadableDomains("alice")).thenReturn(Optional.of(Set.of("api-threats")));
+
+        GroupedSearchResults grouped = new GroupedSearchResults(EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
+        when(searchStore.search(eq("trade"), any(), any())).thenReturn(grouped);
+
+        searchTools.searchHub("trade");
+
+        verify(searchStore).search(eq("trade"), any(), eq(Optional.of(Set.of("api-threats"))));
     }
 
     // --- MCP disabled ---

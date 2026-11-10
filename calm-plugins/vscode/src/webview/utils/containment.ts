@@ -44,12 +44,24 @@ export function removeContainment(childId: string, nodes: Node[]): Node[] {
     });
 }
 
-export function isInsideBounds(
+function isInsideBounds(
     point: { x: number; y: number },
     bounds: { x: number; y: number; width: number; height: number },
 ): boolean {
     return point.x >= bounds.x && point.x <= bounds.x + bounds.width
         && point.y >= bounds.y && point.y <= bounds.y + bounds.height;
+}
+
+/** The container drawn on top at `point`: the deepest, then the last. */
+export function containerAt(point: { x: number; y: number }, nodes: Node[]): Node | undefined {
+    let found: Node | undefined;
+    for (const n of nodes) {
+        if (n.type !== 'container') continue;
+        const { x, y } = getAbsolutePosition(n, nodes);
+        const bounds = { x, y, width: ((n as any).width ?? 400) as number, height: ((n as any).height ?? 300) as number };
+        if (isInsideBounds(point, bounds) && (n.zIndex ?? 0) >= (found?.zIndex ?? 0)) found = n;
+    }
+    return found;
 }
 
 export function getAbsolutePosition(node: Node, allNodes: Node[]): { x: number; y: number } {

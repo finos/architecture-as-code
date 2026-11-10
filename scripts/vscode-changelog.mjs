@@ -5,8 +5,8 @@
 // edit it.
 //
 // This does not use semantic-release, which selects changes by scope. A change belongs to a release
-// when it touched calm-plugins/vscode: the extension's history uses many scope spellings, and PRs for
-// other packages also change it.
+// when it touched calm-plugins/vscode or the node packs it bundles from calm-diagram: the extension's
+// history uses many scope spellings, and PRs for other packages also change it.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
@@ -18,6 +18,7 @@ import { writeChangelogString } from 'conventional-changelog-writer';
 import { finalizeContext, gitIn, isRepoWide, listedCommits, parserOpts, SECTIONS, withPrLink } from './release-notes.mjs';
 
 export const EXTENSION_PATH = 'calm-plugins/vscode';
+export const PACKS_PATH = 'calm-diagram/src/packs';
 export const TAG_PREFIX = 'vscode-v';
 const REPOSITORY = { host: 'https://github.com', owner: 'finos', repository: 'architecture-as-code' };
 const HIDDEN_SCOPES = new Set(['deps', 'deps-dev']);
@@ -61,7 +62,7 @@ export function listReleases(git, packageVersion, today) {
 export function releaseCommits(git, from, to) {
     // The preset's parser options read a `!` in the header as a breaking change.
     const parser = new CommitParser({ ...createPreset().parser, ...parserOpts });
-    return listedCommits(git, from ? `${from}..${to}` : to, [EXTENSION_PATH])
+    return listedCommits(git, from ? `${from}..${to}` : to, [EXTENSION_PATH, PACKS_PATH])
         .map(hash => ({ ...parser.parse(git('log', '-1', '--format=%B', hash)), hash }));
 }
 

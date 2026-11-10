@@ -28,7 +28,6 @@ src/
 │   ├── panels/                   # Palette, properties, assets, controls
 │   └── utils/                    # Webview validation and helpers
 ├── core/                         # CALM types, helpers, bundled schemas
-├── packs/                        # Palette pack definitions and registry
 └── test/__mocks__/vscode.ts       # VS Code API mock for unit tests
 ```
 
@@ -58,6 +57,9 @@ Do not add guidance for removed preview tabs or settings such as `calm.urlMappin
   semantic checks in `src/core/validation.ts`. Results appear in the canvas.
 - SVG export starts in `App.tsx` and is saved by `DiagramExportService`.
 
+The palette node packs come from `@finos/calm-diagram/packs`, which the docs diagram embed also
+uses. Change a pack in `calm-diagram/src/packs`.
+
 When adding a feature, update the appropriate host or webview module and the
 message contract when necessary. Keep VS Code API access in the extension host
 and preserve the file/canvas synchronization guards.
@@ -70,6 +72,7 @@ repository root, with workspace selectors:
 ```bash
 npm ci
 npm run build --workspace calm-models
+npm run build --workspace calm-diagram
 npm run build --workspace calm-plugins/vscode
 npm run watch --workspace calm-plugins/vscode
 npm test --workspace calm-plugins/vscode
@@ -78,7 +81,7 @@ npm run package --workspace calm-plugins/vscode
 ```
 
 The root also provides `npm run test:vscode` and `npm run package:vscode`, which
-run `build:shared` before the extension command. Watch mode builds the extension
+run `build:shared` and build `calm-diagram` before the extension command. Watch mode builds the extension
 host; rebuild the webview after changes to React components.
 
 `esbuild.mjs` bundles `src/extension/extension.ts` into `dist/extension.js`.
@@ -107,10 +110,10 @@ the parity of the minor. A preview gets a patch for each release. A stable `feat
 (1.2.x → 1.4.0). To start a new line, run the workflow with `force-release` and a `release-type`:
 `preview` (next odd minor), `stable` (next even minor), `major` or `patch`.
 
-A change releases the extension when it touched `calm-plugins/vscode` and is a `feat`, `fix`,
-`perf` or `revert`, or has a breaking-change note. A PR for another package that changes the
-extension counts too. Dependency updates do not. The changelog lists the same changes, plus scoped
-`docs` and `refactor` changes. `npm run changelog --workspace calm-plugins/vscode` writes the whole
+A change releases the extension when it touched `calm-plugins/vscode` or `calm-diagram/src/packs`
+and is a `feat`, `fix`, `perf` or `revert`, or has a breaking-change note. A PR for another package
+that changes the extension counts too. Dependency updates do not. The changelog lists the same
+changes, plus scoped `docs` and `refactor` changes. `npm run changelog --workspace calm-plugins/vscode` writes the whole
 file again from the tags.
 
 ## Bundled Schemas

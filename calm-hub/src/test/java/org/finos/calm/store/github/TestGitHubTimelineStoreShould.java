@@ -287,4 +287,16 @@ class TestGitHubTimelineStoreShould {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.updateTimelineForVersion(new Timeline.TimelineBuilder().build()));
     }
+
+    @Test
+    void throw_unsupported_on_create_timeline_with_version() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.createTimelineForNamespace(new CreateTimelineRequest(), "finos", "1.0.0"));
+    }
+
+    @Test
+    void throw_unsupported_on_delete_timeline_version() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteTimelineVersion("finos", 1, "1.0.0-SNAPSHOT"));
+    }
 }

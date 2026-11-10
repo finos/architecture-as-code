@@ -17,6 +17,7 @@ The calm-server provides:
 calm-server/
 ├── src/
 │   ├── index.ts                    # Entry point, CLI argument parsing
+│   ├── document-loader-config.ts   # Document loader options (no reads of referenced local files)
 │   ├── server/
 │   │   ├── server.ts               # Express server startup
 │   │   └── routes/
@@ -99,6 +100,7 @@ Options:
 - **No Authentication**: The server has **NO authentication or authorization controls**
 - **Network Exposure Warning**: If you bind to a non-localhost host (e.g., `0.0.0.0`, `::`, public IP), a warning will be logged. Only do this in trusted network environments
 - **User-Supplied Pattern `$ref`s** (pattern supplied to `/calm/validate`): `$ref`s in the supplied pattern are restricted to local fragment references (e.g. `#/defs/node`) and absolute `https(s)` URLs. Absolute filesystem paths (`/etc/...`, `C:\...`), relative paths, and `file://` URLs are rejected with a `400` to prevent arbitrary local-file reads. Remote hosts are governed by the `--allowed-remote-hosts` allowlist (`--allowed-remote-hosts` / `CALM_ALLOWED_REMOTE_HOSTS`, default `calm.finos.org`), mirroring the CLI's construct in `shared`'s `DirectUrlDocumentLoader`
+- **Other references in a request** (`config-url`, `requirement-url`, `detailed-architecture`, `required-pattern`, a pattern's `$schema`, a `$ref` in the architecture, which Spectral resolves through the same loader): the server builds its document loader with `readReferencedFiles: false` (`src/document-loader-config.ts`), so the file system loader reads only the schema directories at start-up and never a local file that a request references
 - **Architecture `$schema` (no pattern supplied)**: when no pattern is provided, the `$schema` field is resolved through the document loader to locate the schema, so it must be an absolute `http(s)` URL. Local filesystem paths (absolute or relative) and `file://` URLs are rejected with a `400` to prevent arbitrary local-file reads. When a pattern **is** supplied, `$schema` is only matched against the pattern's `$id` and is not resolved
 
 ## Testing

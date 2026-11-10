@@ -60,8 +60,8 @@ function assertConformant(id: string): void {
  * For CalmHub resource types, prompts for the resource scope (namespace resource, control
  * requirement, or control configuration) and then each `$id` segment, defaulting the version to
  * 1.0.0 and the base URL to the configured CalmHub URL. A document type that fixes the resource
- * type skips the questions it answers. A document type with no CalmHub `$id` form (`timeline`,
- * `adr`) prompts only for a plain document id so it cannot receive another resource type's `$id`.
+ * type skips the questions it answers. A document type with no CalmHub `$id` form (`adr`) prompts
+ * only for a plain document id so it cannot receive another resource type's `$id`.
  */
 export async function promptForDocumentId(opts: PromptForDocumentIdOptions = {}): Promise<BuiltDocumentId> {
     if (opts.documentType && !documentTypeHasIdType(opts.documentType)) {
@@ -77,7 +77,7 @@ export async function promptForDocumentId(opts: PromptForDocumentIdOptions = {})
     const scope = knownResourceType ? 'namespace' : await select<Scope>({
         message: 'What kind of CalmHub resource is this?',
         choices: opts.documentType === 'control' ? controlChoices : [
-            { name: 'Namespace resource (pattern, architecture, flow, standard, interface)', value: 'namespace' },
+            { name: 'Namespace resource (pattern, architecture, flow, standard, interface, timeline)', value: 'namespace' },
             ...controlChoices,
         ],
     });

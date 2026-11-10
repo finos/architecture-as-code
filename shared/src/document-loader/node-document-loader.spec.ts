@@ -74,7 +74,13 @@ describe('DocumentLoader', () => {
 
         buildDocumentLoader(docLoaderOpts);
 
-        expect(mocks.fsDocLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], false, process.cwd());
+        expect(mocks.fsDocLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY, 'schemas'], false, process.cwd(), true);
+    });
+
+    it('should tell the FileSystemDocumentLoader not to read referenced files when readReferencedFiles is false', () => {
+        buildDocumentLoader({ readReferencedFiles: false });
+
+        expect(mocks.fsDocLoader).toHaveBeenCalledWith([CALM_META_SCHEMA_DIRECTORY], false, process.cwd(), false);
     });
 
     it('should not create a WorkspaceDocumentLoader when workspaceBundlePath is absent', () => {

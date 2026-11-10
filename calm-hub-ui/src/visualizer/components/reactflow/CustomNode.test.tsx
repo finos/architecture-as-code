@@ -1,10 +1,11 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CustomNode } from './CustomNode.js';
 import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
 import { mockOffsetSize } from '../../../test-support/layout-mocks.js';
 import { THEME, getRiskLevelColor, getNodeTypeColor } from './theme.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
@@ -297,6 +298,63 @@ describe('presentation mode', () => {
     });
 });
 
+describe('diagram text size', () => {
+    const controls = { 'encryption-at-rest': { description: 'Data is encrypted at rest', requirements: [] } };
+    const textSize = () => screen.getByText('Test Node').parentElement!.parentElement!.parentElement!.style.fontSize;
+    const controlBadge = () => screen.getByText('1').parentElement!;
+    const scaleStore = (stored?: string) => {
+        const storage = createMemoryStorage();
+        if (stored) storage.setItem(DIAGRAM_TEXT_SCALE_KEY, stored);
+        return createDiagramTextScaleStore(storage);
+    };
+    const renderNode = (textScaleStore: ReturnType<typeof scaleStore>, presenting = false) => {
+        const presentationStore = createPresentationModeStore(createMemoryStorage());
+        presentationStore.set(presenting);
+        render(
+            <CustomNode
+                {...makeNodeProps(undefined, { controls })}
+                presentationStore={presentationStore}
+                textScaleStore={textScaleStore}
+            />
+        );
+    };
+
+    it('scales the text and the badges, and keeps the node width the layout expects', () => {
+        renderNode(scaleStore('1.5'));
+        expect(textSize()).toBe('21px');
+        expect(controlBadge().style.fontSize).toBe('18px');
+        expect(screen.getByTestId('custom-node').style.width).toBe('220px');
+    });
+
+    it('multiplies the presentation sizes', () => {
+        renderNode(scaleStore('1.5'), true);
+        expect(textSize()).toBe('36px');
+        expect(screen.getByTestId('custom-node').style.width).toBe('320px');
+    });
+
+    it('puts the badges below the label and breaks long names when the text is larger', () => {
+        renderNode(scaleStore('1.15'));
+        const label = screen.getByText('Test Node');
+        expect(label.parentElement!.parentElement!.style.flexWrap).toBe('wrap');
+        expect(label.style.overflowWrap).toBe('anywhere');
+    });
+
+    it('keeps the default layout at the default size', () => {
+        renderNode(scaleStore());
+        const label = screen.getByText('Test Node');
+        expect(label.parentElement!.parentElement!.style.flexWrap).toBe('');
+        expect(label.style.overflowWrap).toBe('');
+    });
+
+    it('follows a change of the setting without a remount', () => {
+        const store = scaleStore();
+        renderNode(store);
+        expect(textSize()).toBe('14px');
+        act(() => store.step(1));
+        expect(textSize()).toBe('16.1px');
+    });
+});
+
 const toRgb = (hex: string) => {
     const n = parseInt(hex.replace('#', ''), 16);
     return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
@@ -414,7 +472,14 @@ describe('decision overlay', () => {
         vi.restoreAllMocks();
     });
 
-    function renderOverlay(showDecisions: boolean, map: Map<string, ElementEvaluation> = new Map(), presenting = false) {
+    function renderOverlay(
+        showDecisions: boolean,
+        map: Map<string, ElementEvaluation> = new Map(),
+        presenting = false,
+        textScale?: string,
+    ) {
+        const textStorage = createMemoryStorage();
+        if (textScale) textStorage.setItem(DIAGRAM_TEXT_SCALE_KEY, textScale);
         const store = createPresentationModeStore(createMemoryStorage());
         store.set(presenting);
         return render(
@@ -427,7 +492,11 @@ describe('decision overlay', () => {
                 }}
             >
                 <ControlEvaluationContext.Provider value={map}>
-                    <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} presentationStore={store} />
+                    <CustomNode
+                        {...makeNodeProps(undefined, { 'unique-id': 'node-1' })}
+                        presentationStore={store}
+                        textScaleStore={createDiagramTextScaleStore(textStorage)}
+                    />
                 </ControlEvaluationContext.Provider>
             </DecisionOverlayContext.Provider>
         );
@@ -511,5 +580,10 @@ describe('decision overlay', () => {
         unmount();
         renderOverlay(true, notMet(), true);
         expect(screen.getByTestId('decision-callout').style.fontSize).toBe('16px');
+    });
+
+    it('sizes the callout text with the diagram text size', () => {
+        renderOverlay(true, notMet(), false, '1.5');
+        expect(screen.getByTestId('decision-callout').style.fontSize).toBe('18px');
     });
 });

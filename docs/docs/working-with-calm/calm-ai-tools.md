@@ -18,6 +18,7 @@ The `init-ai` command configures your development environment with comprehensive
 |Claude family of LLM|KIRO|
 |Claude family of LLM|Claude Code - CLI|
 |OpenAI Codex|Codex CLI, IDE extension, or app|
+|IBM Bob supported models|IBM Bob CLI, IDE extension, or app|
 
 ## Prerequisites
 
@@ -38,6 +39,9 @@ Before setting up CALM AI Support, ensure you have:
 
 ### Codex
 - **Codex**: Codex CLI, IDE extension, or app with access to the target repository
+
+### IBM Bob
+- **IBM Bob**: IBM Bob CLI, IDE extension, or app with access to the target repository
 
 ### Install CALM CLI
 - **CALM CLI**: Installed globally (`npm install -g @finos/calm-cli`)
@@ -61,7 +65,7 @@ This command creates assistant-specific configuration files in your repository. 
 
 ## Command Options
 
-- **`-p, --provider <provider>`**: The AI coding assistant to setup.  Currently, these are supported `copilot`, `kiro`, `claude`, and `codex`.
+- **`-p, --provider <provider>`**: The AI coding assistant to setup.  Currently, these are supported `copilot`, `kiro`, `claude`, `codex`, and `bob`.
 - **`-d, --directory <path>`**: Target directory (defaults to current directory)
 - **`-v, --verbose`**: Enable verbose logging (default: false)
 - **`-h, --help`**: Display help for command
@@ -76,7 +80,7 @@ Usage: calm init-ai [options]
 Augment a git repository with AI assistance for CALM
 
 Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex")
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex", "bob")
   -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
   -v, --verbose              Enable verbose logging. (default: false)
   -h, --help                 display help for command
@@ -87,10 +91,11 @@ Options:
 ```shell
 $ calm init-ai
 ? Select an AI provider: (Use arrow keys)
-❯ copilot 
-  kiro 
+❯ copilot
+  kiro
   claude
   codex
+  bob
 ```
 
 ### Specify the AI Assistant
@@ -163,6 +168,13 @@ With Codex:
 
 1. Open the repository in Codex CLI, the Codex IDE extension, or the Codex app
 2. Use the generated CALM skill for CALM architecture work, for example by asking Codex to use the `calm` skill
+3. Ask questions or request assistance with your CALM architecture
+
+### IBM Bob
+With IBM Bob:
+
+1. Open the repository in IBM Bob CLI, IDE extension, or app
+2. Use the generated CALM skill under `.bob/skills/calm` for CALM architecture work, for example by asking Bob to use the `calm` skill
 3. Ask questions or request assistance with your CALM architecture
 
 ### Example Queries

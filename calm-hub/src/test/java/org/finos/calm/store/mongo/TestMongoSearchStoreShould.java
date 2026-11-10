@@ -188,6 +188,42 @@ class TestMongoSearchStoreShould {
     }
 
     @Test
+    void filter_controls_by_readable_domains() {
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, adrCollection);
+        mockCollectionFind(controlCollection, List.of(
+                new Document("namespace", "api-threats").append("controlId", 1).append("name", "API Rate Limiting"),
+                new Document("namespace", "restricted").append("controlId", 2).append("name", "Secret Rate Rule")));
+
+        GroupedSearchResults results = searchStore.search("rate", Optional.empty(), Optional.of(Set.of("api-threats")));
+
+        assertEquals(1, results.getControls().size());
+        assertEquals("api-threats", results.getControls().get(0).getNamespace());
+    }
+
+    @Test
+    void return_no_controls_to_a_user_with_no_readable_domains() {
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, adrCollection);
+        mockCollectionFind(controlCollection, List.of(new Document("namespace", "api-threats").append("controlId", 1).append("name", "API Rate Limiting")));
+
+        GroupedSearchResults results = searchStore.search("rate", Optional.empty(), Optional.of(Set.of()));
+
+        assertEquals(0, results.getControls().size());
+    }
+
+    @Test
+    void skip_a_control_with_no_domain_when_domains_are_filtered() {
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, adrCollection);
+        mockCollectionFind(controlCollection, List.of(new Document("name", "No Domain Rate").append("controlId", 3)));
+
+        GroupedSearchResults results = searchStore.search("rate", Optional.empty(), Optional.of(Set.of()));
+
+        assertEquals(0, results.getControls().size());
+    }
+
+    @Test
     void skip_a_header_with_no_id_rather_than_failing_the_search() {
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
@@ -343,7 +379,7 @@ class TestMongoSearchStoreShould {
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("match",
-                Optional.of(Set.of("finos")));
+                Optional.of(Set.of("finos")), Optional.empty());
 
         assertEquals(1, results.getArchitectures().size(),
                 "filter must apply before MAX cap so authorised results are not silently dropped");
@@ -367,7 +403,7 @@ class TestMongoSearchStoreShould {
                 standardCollection, interfaceCollection, adrCollection);
         mockCollectionFind(controlCollection, List.of(controlHeader));
 
-        GroupedSearchResults results = searchStore.search("rate", Optional.of(Set.of()));
+        GroupedSearchResults results = searchStore.search("rate", Optional.of(Set.of()), Optional.empty());
 
         assertEquals(1, results.getControls().size());
         assertEquals("api-threats", results.getControls().get(0).getNamespace());
