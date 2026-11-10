@@ -311,6 +311,14 @@ function CanvasApp() {
         setHubLoadingCallback((loading) => useCanvasStore.setState({ hubLoading: loading }));
         setStandardNodesLoadedCallback((n) => useCanvasStore.setState({ standardNodes: n as any }));
         setDrillResultCallback((json, label, _filePath, readonly) => {
+            undoStack.current = [];
+            redoStack.current = [];
+            setSelectedNode(null);
+            setSelectedEdge(null);
+            store.selectNode(null);
+            store.selectEdge(null);
+            store.setValidationIssues([]);
+            store.setShowValidation(false);
             store.pushDrill({ label, filePath: _filePath, readonly });
             store.setReadonlyMode(readonly ?? false);
             loadArchitecture(json);
@@ -512,11 +520,17 @@ function CanvasApp() {
         const calmType = (data?.calmType as string) ?? '';
         const label = (data?.label as string) || node.id;
 
-        if (details?.['detailed-architecture']) {
-            notifyDrillInto(label, details['detailed-architecture'], calmType);
-        } else if (calmType.includes(':')) {
-            const safeName = calmType.replace(/^standard-node:/, '');
-            notifyDrillInto(label, `standard-nodes/${safeName}.calm.json`, calmType);
+        if (details?.['detailed-architecture'] || calmType.includes(':')) {
+            loadGeneration.current++;
+            if (debounceTimer.current) { clearTimeout(debounceTimer.current); debounceTimer.current = null; }
+            if (positionDebounceTimer.current) { clearTimeout(positionDebounceTimer.current); positionDebounceTimer.current = null; }
+            pendingNodesRef.current = null;
+            if (details?.['detailed-architecture']) {
+                notifyDrillInto(label, details['detailed-architecture'], calmType);
+            } else {
+                const safeName = calmType.replace(/^standard-node:/, '');
+                notifyDrillInto(label, `standard-nodes/${safeName}.calm.json`, calmType);
+            }
         } else {
             // No drill target — select and focus the name field for editing
             selectDrawing(node);
@@ -539,14 +553,16 @@ function CanvasApp() {
     const handleNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
         if (store.readonlyMode) return;
         if (draggedNode.type === 'container' || draggedNode.parentId) {
-            setTimeout(() => emitChange(true), 0);
+            if (positionDebounceTimer.current) clearTimeout(positionDebounceTimer.current);
+            positionDebounceTimer.current = setTimeout(() => emitChange(true), 0);
             return;
         }
 
         const container = containerAt(getAbsolutePosition(draggedNode, nodes), nodes);
         if (container) setNodes((nds) => makeContainment(container.id, draggedNode.id, nds));
         // A new member of a container with several drawings is drawn in each after a rebuild
-        setTimeout(() => (container && hasSharedDrawings(nodes) ? emitAndReload() : emitChange(true)), 0);
+        if (positionDebounceTimer.current) clearTimeout(positionDebounceTimer.current);
+        positionDebounceTimer.current = setTimeout(() => (container && hasSharedDrawings(nodes) ? emitAndReload() : emitChange(true)), 0);
     }, [nodes, setNodes, emitChange, emitAndReload, store.readonlyMode]);
 
     // --- Node update (from properties panel) ---
@@ -779,6 +795,18 @@ function CanvasApp() {
         // Read the target before popping so we can restore its file + readonly.
         const target = index > 0 ? store.drillStack[index - 1] : undefined;
         const readonly = target?.readonly ?? false;
+        loadGeneration.current++;
+        if (debounceTimer.current) { clearTimeout(debounceTimer.current); debounceTimer.current = null; }
+        if (positionDebounceTimer.current) { clearTimeout(positionDebounceTimer.current); positionDebounceTimer.current = null; }
+        pendingNodesRef.current = null;
+        undoStack.current = [];
+        redoStack.current = [];
+        setSelectedNode(null);
+        setSelectedEdge(null);
+        store.selectNode(null);
+        store.selectEdge(null);
+        store.setValidationIssues([]);
+        store.setShowValidation(false);
         store.popDrill(index);
         store.setReadonlyMode(readonly);
         // Clear echo suppression so the returning model update gets through

@@ -39,7 +39,10 @@ export class CanvasPanel {
     private panel: vscode.WebviewPanel | undefined;
     private disposables: vscode.Disposable[] = [];
     private disposeCallbacks: Array<() => void> = [];
+    private rootDocument: vscode.TextDocument | undefined;
     private currentDocument: vscode.TextDocument | undefined;
+    private currentReadonly = false;
+    private editorViewColumn: vscode.ViewColumn = vscode.ViewColumn.One;
     private syncCoordinator = new SyncCoordinator();
     private assetService: WorkspaceAssetService | undefined;
     private exportService = new DiagramExportService();
@@ -160,7 +163,15 @@ export class CanvasPanel {
     }
 
     reveal(document: vscode.TextDocument): void {
+        this.rootDocument = document;
         this.currentDocument = document;
+        this.currentReadonly = false;
+        this.editorViewColumn =
+            vscode.window.visibleTextEditors?.find(
+                (e) => e.document.uri.fsPath === document.uri.fsPath
+            )?.viewColumn ??
+            vscode.window.activeTextEditor?.viewColumn ??
+            vscode.ViewColumn.One;
 
         if (!this.panel) {
             this.panel = vscode.window.createWebviewPanel(
@@ -266,7 +277,11 @@ export class CanvasPanel {
                 );
                 break;
             case 'drillUp':
-                void this.handleDrillUp(message.index, message.filePath);
+                void this.handleDrillUp(
+                    message.index,
+                    message.filePath,
+                    message.readonly
+                );
                 break;
             case 'saveStandardNode':
                 void this.handleSaveStandardNode(
@@ -358,18 +373,41 @@ export class CanvasPanel {
         this.postMessage({ type: 'patternsLoaded', patterns: allPatterns });
     }
 
+    private resolveEditorViewColumn(): vscode.ViewColumn {
+        const currentEditor =
+            this.currentDocument &&
+            vscode.window.visibleTextEditors?.find(
+                (e) => e.document.uri.fsPath === this.currentDocument?.uri.fsPath
+            );
+        const rootEditor =
+            this.rootDocument &&
+            vscode.window.visibleTextEditors?.find(
+                (e) => e.document.uri.fsPath === this.rootDocument?.uri.fsPath
+            );
+        const col = currentEditor?.viewColumn ?? rootEditor?.viewColumn;
+        if (col !== undefined) {
+            this.editorViewColumn = col;
+        }
+        return this.editorViewColumn;
+    }
+
     private async handleDrillUp(
         index: number,
-        filePath?: string
+        filePath?: string,
+        readonly = false
     ): Promise<void> {
         if (index <= 0 || !filePath) {
-            if (!this.currentDocument) return;
+            const root = this.rootDocument ?? this.currentDocument;
+            if (!root) return;
+            await vscode.window.showTextDocument(root, this.resolveEditorViewColumn());
+            this.currentDocument = root;
+            this.currentReadonly = false;
             this.log.appendLine(
                 '[CanvasPanel] drillUp — reloading root document'
             );
             this.postMessage({
                 type: 'modelUpdated',
-                json: this.currentDocument.getText(),
+                json: root.getText(),
                 source: 'file',
             });
             return;
@@ -377,8 +415,18 @@ export class CanvasPanel {
 
         try {
             const uri = vscode.Uri.file(filePath);
-            const content = await vscode.workspace.fs.readFile(uri);
-            const json = Buffer.from(content).toString('utf-8');
+            let json: string;
+            if (readonly) {
+                const content = await vscode.workspace.fs.readFile(uri);
+                json = Buffer.from(content).toString('utf-8');
+                this.currentReadonly = true;
+            } else {
+                const doc = await vscode.workspace.openTextDocument(uri);
+                await vscode.window.showTextDocument(doc, this.resolveEditorViewColumn());
+                this.currentDocument = doc;
+                this.currentReadonly = false;
+                json = doc.getText();
+            }
             this.log.appendLine(
                 `[CanvasPanel] drillUp — reloading level ${index}: ${filePath}`
             );
@@ -387,10 +435,14 @@ export class CanvasPanel {
             this.log.appendLine(
                 `[CanvasPanel] drillUp FAILED to reload ${filePath}; falling back to root`
             );
-            if (this.currentDocument) {
+            const root = this.rootDocument ?? this.currentDocument;
+            if (root) {
+                await vscode.window.showTextDocument(root, this.resolveEditorViewColumn());
+                this.currentDocument = root;
+                this.currentReadonly = false;
                 this.postMessage({
                     type: 'modelUpdated',
-                    json: this.currentDocument.getText(),
+                    json: root.getText(),
                     source: 'file',
                 });
             }
@@ -415,16 +467,14 @@ export class CanvasPanel {
             .getConfiguration('calm')
             .get<string>('externalAssetsPath');
 
-        // Try resolveLocalPath first (handles containment + symlink checks)
-        const resolved = resolveLocalPath(filePath, workspaceRoots, externalPath);
+        const docDir = this.currentDocument ? nodePath.dirname(this.currentDocument.uri.fsPath) : undefined;
+        const resolved =
+            (docDir ? resolveLocalPath(filePath, [docDir]) : null) ??
+            resolveLocalPath(filePath, workspaceRoots, externalPath);
         if (!resolved) {
-            // Also try relative to current document
-            const docDir = this.currentDocument ? nodePath.dirname(this.currentDocument.uri.fsPath) : undefined;
-            const fromDoc = docDir ? resolveLocalPath(filePath, [docDir]) : null;
-
             // Glob search for standard-nodes
             let fromGlob: string | null = null;
-            if (!fromDoc && filePath.includes('standard-nodes/')) {
+            if (filePath.includes('standard-nodes/')) {
                 const stem = nodePath.basename(filePath, '.calm.json');
                 for (const folder of vscode.workspace.workspaceFolders ?? []) {
                     const pattern = new vscode.RelativePattern(folder, `standard-nodes/**/${stem}.calm.json`);
@@ -439,13 +489,12 @@ export class CanvasPanel {
                 }
             }
 
-            const target = fromDoc ?? fromGlob;
-            if (!target) {
+            if (!fromGlob) {
                 this.log.appendLine(`[CanvasPanel] drillInto FAILED: no safe resolution for "${filePath}"`);
                 vscode.window.showWarningMessage(`Cannot find: ${filePath}`);
                 return;
             }
-            return this.drillIntoFile(target, label, isReadonly);
+            return this.drillIntoFile(fromGlob, label, isReadonly);
         }
         return this.drillIntoFile(resolved, label, isReadonly);
     }
@@ -453,8 +502,18 @@ export class CanvasPanel {
     private async drillIntoFile(resolvedPath: string, label: string, readonly: boolean): Promise<void> {
         try {
             const uri = vscode.Uri.file(resolvedPath);
-            const content = await vscode.workspace.fs.readFile(uri);
-            const json = Buffer.from(content).toString('utf-8');
+            let json: string;
+            if (readonly) {
+                const content = await vscode.workspace.fs.readFile(uri);
+                json = Buffer.from(content).toString('utf-8');
+                this.currentReadonly = true;
+            } else {
+                const doc = await vscode.workspace.openTextDocument(uri);
+                await vscode.window.showTextDocument(doc, this.resolveEditorViewColumn());
+                this.currentDocument = doc;
+                this.currentReadonly = false;
+                json = doc.getText();
+            }
             this.postMessage({ type: 'drillResult', json, label, filePath: resolvedPath, readonly });
             this.log.appendLine(`[CanvasPanel] drillInto resolved: ${resolvedPath} (readonly=${readonly})`);
         } catch {
@@ -994,7 +1053,7 @@ export class CanvasPanel {
     }
 
     private handleCanvasChanged(json: string): void {
-        if (!this.currentDocument) return;
+        if (!this.currentDocument || this.currentReadonly) return;
         if (!this.syncCoordinator.canvasChanged()) return;
 
         const edit = new vscode.WorkspaceEdit();
@@ -1032,7 +1091,7 @@ export class CanvasPanel {
     }
 
     private async pushFileToWebview(uri: vscode.Uri): Promise<void> {
-        if (!this.currentDocument) return;
+        if (!this.currentDocument || this.currentReadonly) return;
         if (uri.fsPath !== this.currentDocument.uri.fsPath) return;
         if (!this.syncCoordinator.fileChanged()) return;
         try {
