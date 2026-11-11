@@ -153,6 +153,10 @@ CALM Canvas integrates with CALM Hub to browse and reuse published standard node
 3. Hub standard nodes appear in the palette under **HUB**, grouped by namespace.
 4. Use `calm.hub.selectedNamespaces` to filter which namespaces appear.
 
+:::tip Status Bar Indicator
+The `CALM Hub` indicator in the bottom status bar confirms you are connected. Click it to open the Hub management menu — from there you can select namespaces, refresh, change the Hub URL, or disconnect.
+:::
+
 ### Running CALM Hub Locally
 
 To try Hub integration locally, run the CALM Hub container:
