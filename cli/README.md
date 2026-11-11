@@ -452,7 +452,7 @@ This differs:
 
 ## CALM init-ai
 
-The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present five AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, Codex, and IBM Bob.
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present six AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, Codex, IBM Bob, and OpenCode.
 
 ```shell
 calm init-ai --help
@@ -461,7 +461,7 @@ Usage: calm init-ai [options]
 Augment a git repository with AI assistance for CALM
 
 Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex", "bob")
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex", "bob", "opencode")
   -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
   -v, --verbose              Enable verbose logging. (default: false)
   -h, --help                 display help for command
@@ -487,7 +487,7 @@ calm init-ai -p <provider>
 calm init-ai -p <provider> --directory /path/to/your/calm-project
 ```
 
-This will create the necessary assistant-specific configuration files to enable CALM-specific AI assistance. Once set up, your selected assistant can use specialized CALM tools that understand schema requirements, validation rules, and best practices. For Codex, this creates a CALM skill under `.agents/skills/calm` and does not create or modify root `AGENTS.md`.
+This will create the necessary assistant-specific configuration files to enable CALM-specific AI assistance. Once set up, your selected assistant can use specialized CALM tools that understand schema requirements, validation rules, and best practices. For Codex, this creates a CALM skill under `.agents/skills/calm` and does not create or modify root `AGENTS.md`. For OpenCode, this creates a CALM skill under `.opencode/skills/finos-calm`.
 
 ### Tool Prompts
 
