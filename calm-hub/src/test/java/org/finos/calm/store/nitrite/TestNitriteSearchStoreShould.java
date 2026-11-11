@@ -147,6 +147,42 @@ class TestNitriteSearchStoreShould {
     }
 
     @Test
+    void filter_controls_by_readable_domains() {
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, adrCollection);
+        mockCollectionFind(controlCollection, List.of(
+                Document.createDocument("namespace", "api-threats").put("controlId", 1).put("name", "API Rate Limiting"),
+                Document.createDocument("namespace", "restricted").put("controlId", 2).put("name", "Secret Rate Rule")));
+
+        GroupedSearchResults results = searchStore.search("rate", Optional.empty(), Optional.of(Set.of("api-threats")));
+
+        assertEquals(1, results.getControls().size());
+        assertEquals("api-threats", results.getControls().get(0).getNamespace());
+    }
+
+    @Test
+    void return_no_controls_to_a_user_with_no_readable_domains() {
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, adrCollection);
+        mockCollectionFind(controlCollection, List.of(Document.createDocument("namespace", "api-threats").put("controlId", 1).put("name", "API Rate Limiting")));
+
+        GroupedSearchResults results = searchStore.search("rate", Optional.empty(), Optional.of(Set.of()));
+
+        assertEquals(0, results.getControls().size());
+    }
+
+    @Test
+    void skip_a_control_with_no_domain_when_domains_are_filtered() {
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, adrCollection);
+        mockCollectionFind(controlCollection, List.of(Document.createDocument("name", "No Domain Rate").put("controlId", 3)));
+
+        GroupedSearchResults results = searchStore.search("rate", Optional.empty(), Optional.of(Set.of()));
+
+        assertEquals(0, results.getControls().size());
+    }
+
+    @Test
     void skip_a_header_with_no_id_rather_than_failing_the_search() {
         mockEmptyCollections(patternCollection, flowCollection, standardCollection,
                 interfaceCollection, controlCollection, adrCollection);
@@ -344,7 +380,7 @@ class TestNitriteSearchStoreShould {
                 interfaceCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("match",
-                Optional.of(Set.of("finos")));
+                Optional.of(Set.of("finos")), Optional.empty());
 
         assertEquals(1, results.getArchitectures().size(),
                 "filter must apply before MAX cap so authorised results are not silently dropped");
@@ -370,7 +406,7 @@ class TestNitriteSearchStoreShould {
 
         // The user has no namespace grants but controls must still be returned
         // because they are domain-scoped.
-        GroupedSearchResults results = searchStore.search("rate", Optional.of(Set.of()));
+        GroupedSearchResults results = searchStore.search("rate", Optional.of(Set.of()), Optional.empty());
 
         assertEquals(1, results.getControls().size());
         assertEquals("api-threats", results.getControls().get(0).getNamespace());
@@ -385,7 +421,7 @@ class TestNitriteSearchStoreShould {
                 Document.createDocument("namespace", "secret-ns").put("adrId", 2).put("name", "Allowed ADR")));
 
         GroupedSearchResults results = searchStore.search("ADR",
-                Optional.of(Set.of("finos")));
+                Optional.of(Set.of("finos")), Optional.empty());
 
         assertEquals(1, results.getAdrs().size());
         assertEquals("Allowed ADR", results.getAdrs().get(0).getName());

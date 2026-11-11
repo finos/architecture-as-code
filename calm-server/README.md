@@ -55,6 +55,7 @@ Options:
 - **No Built-in Authentication**: This server has no authentication or authorization controls
 - **Network Exposure**: When binding to non-localhost addresses, a security warning is logged. Only expose to the network in trusted environments
 - **User-Supplied Pattern `$ref`s**: When a `pattern` is supplied in the `/calm/validate` request, the server compiles it. To prevent arbitrary local-file reads and SSRF, `$ref`s in the supplied pattern are restricted to **local fragment references** (e.g. `#/defs/node`) and **absolute `https(s)` URLs**. Absolute filesystem paths (`/etc/...`, `C:\...`), relative paths, and `file://` URLs are rejected with a `400`. Remote hosts are further restricted to the `--allowed-remote-hosts` allowlist (default `calm.finos.org`)
+- **Other references in a request**: the server never reads a local file that a request references, for example in `config-url`, `requirement-url`, `detailed-architecture` or a `$ref` in the architecture. It reads only its schema directories, at start-up. Remote references follow the `--allowed-remote-hosts` allowlist
 - **Architecture `$schema` (no pattern supplied)**: when no pattern is provided, the `$schema` field is resolved through the document loader to locate the schema, so it must be an **absolute `http(s)` URL**. Local filesystem paths (absolute or relative) and `file://` URLs are rejected with a `400` to prevent arbitrary local-file reads. (When a pattern **is** supplied, `$schema` is only matched against the pattern's `$id` and is not resolved).
 
 ## API Endpoints

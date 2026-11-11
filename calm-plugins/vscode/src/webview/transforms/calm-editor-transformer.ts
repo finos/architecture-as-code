@@ -1,4 +1,6 @@
 import type { Node, Edge } from 'reactflow';
+import { calmIdOf, pathOf } from './node-instances';
+import { parseCALMData } from './calm-parser';
 
 export interface LayoutEntry { x: number; y: number; w?: number; h?: number }
 export type LayoutMap = Record<string, LayoutEntry>;
@@ -53,20 +55,34 @@ export function flowToCalm(
     const originalNodes = new Map((lastParsedArch?.nodes ?? []).map((n) => [n['unique-id'] as string, n]));
     const originalRels = new Map((lastParsedArch?.relationships ?? []).map((r) => [r['unique-id'] as string, r]));
 
-    // Reconstruct containment from parentId, including empty containers
-    const containerChildren = new Map<string, string[]>();
+    // A node drawn in several containers has one flow node per container, all with the same calmId
+    const calmIdByDrawing = new Map(nodes.map((n) => [n.id, calmIdOf(n)]));
+    const toCalmId = (flowId: string) => calmIdByDrawing.get(flowId) ?? flowId;
+    const drawnCalmIds = new Set(calmIdByDrawing.values());
+
+    // Memberships: each drawing's container, plus those the canvas does not draw (data.otherParents).
+    // A hidden container that was a node and is no longer drawn has been deleted.
+    const deletedIds = new Set((lastParsedArch?.nodes ?? []).map((n) => n['unique-id'] as string).filter((id) => !drawnCalmIds.has(id)));
+    const membersOf = new Map<string, string[]>();
     for (const n of nodes) {
-        if (n.type === 'container') {
-            if (!containerChildren.has(n.id)) containerChildren.set(n.id, []);
-        }
-        if (n.parentId) {
-            if (!containerChildren.has(n.parentId)) containerChildren.set(n.parentId, []);
-            containerChildren.get(n.parentId)!.push(n.id);
+        const child = toCalmId(n.id);
+        if (n.type === 'container' && !membersOf.has(child)) membersOf.set(child, []);
+        const otherParents = (((n.data as Record<string, unknown> | undefined)?.otherParents as string[] | undefined) ?? [])
+            .filter((p) => !deletedIds.has(p));
+        for (const parent of [...(n.parentId ? [toCalmId(n.parentId)] : []), ...otherParents]) {
+            const members = membersOf.get(parent) ?? [];
+            if (!members.includes(child)) members.push(child);
+            membersOf.set(parent, members);
         }
     }
 
-    // Build nodes
-    for (const n of nodes) {
+    // Build nodes in the order of the file. The canvas puts containers first, which can differ.
+    const fileOrder = new Map((lastParsedArch?.nodes ?? []).map((n, i) => [(n['unique-id'] as string) ?? `node-${i}`, i] as const));
+    const orderOf = (n: Node) => fileOrder.get(toCalmId(n.id)) ?? Number.MAX_SAFE_INTEGER;
+    const writtenIds = new Set<string>();
+    for (const n of [...nodes].sort((a, b) => orderOf(a) - orderOf(b))) {
+        if (writtenIds.has(toCalmId(n.id))) continue;
+        writtenIds.add(toCalmId(n.id));
         const data = (n.data ?? {}) as Record<string, unknown>;
         const id = (data.calmId ?? n.id) as string;
         let controls: unknown;
@@ -89,7 +105,50 @@ export function flowToCalm(
         }));
     }
 
-    calmRelationships.push(...buildContainment(nodes, containerChildren));
+    // Write each containment relationship back with its id, place and fields, so the drawing that keeps
+    // the CALM id is the same after a reload. New memberships go to the container's first relationship.
+    const written = new Map<string, Set<string>>();
+    const firstRelOf = new Map<string, Record<string, unknown>>();
+    for (const rel of lastParsedArch?.relationships ?? []) {
+        const rt = rel['relationship-type'] as Record<string, unknown> | undefined;
+        const variant = rt?.['deployed-in'] ? 'deployed-in' : rt?.['composed-of'] ? 'composed-of' : undefined;
+        if (!variant) continue;
+        const containment = rt![variant] as { container: string; nodes?: string[] };
+        const members = membersOf.get(containment.container) ?? [];
+        const kept = (containment.nodes ?? []).filter((c) => members.includes(c));
+        const done = written.get(containment.container) ?? new Set<string>();
+        kept.forEach((c) => done.add(c));
+        written.set(containment.container, done);
+        const out = applyCanvasFields(rel, { 'relationship-type': { [variant]: { ...containment, nodes: kept } } });
+        if (!firstRelOf.has(containment.container)) firstRelOf.set(containment.container, out);
+        calmRelationships.push(out);
+    }
+    for (const [containerId, members] of membersOf) {
+        const added = members.filter((c) => !written.get(containerId)?.has(c));
+        const existing = firstRelOf.get(containerId);
+        if (existing) {
+            const rt = existing['relationship-type'] as Record<string, { nodes: string[] }>;
+            Object.values(rt)[0].nodes.push(...added);
+            continue;
+        }
+        const containerNode = nodes.find((n) => toCalmId(n.id) === containerId);
+        const variant = ((containerNode?.data as Record<string, unknown>)?.containmentType as string) ?? 'deployed-in';
+        calmRelationships.push({
+            'unique-id': `containment-${containerId}`,
+            'relationship-type': { [variant]: { container: containerId, nodes: added } },
+        });
+    }
+
+    // A containment relationship needs a member. An empty one stays only as the one relationship of a drawn container.
+    const emptyKept = new Set<string>();
+    for (const rel of calmRelationships.splice(0)) {
+        const { container, nodes: members } = Object.values(rel['relationship-type'] as Record<string, { container: string; nodes: string[] }>)[0];
+        if (members.length === 0) {
+            if (!drawnCalmIds.has(container) || (membersOf.get(container)?.length ?? 0) > 0 || emptyKept.has(container)) continue;
+            emptyKept.add(container);
+        }
+        calmRelationships.push(rel);
+    }
 
     // Build edge relationships — group interacts edges by calmRelId
     const interactsGroups = new Map<string, { actor: string; targets: string[]; data: Record<string, unknown>; edge: Edge }>();
@@ -103,9 +162,9 @@ export function flowToCalm(
         if (variant === 'interacts') {
             const existing = interactsGroups.get(relId);
             if (existing) {
-                existing.targets.push(edge.target);
+                existing.targets.push(toCalmId(edge.target));
             } else {
-                interactsGroups.set(relId, { actor: edge.source, targets: [edge.target], data, edge });
+                interactsGroups.set(relId, { actor: toCalmId(edge.source), targets: [toCalmId(edge.target)], data, edge });
             }
             continue;
         }
@@ -116,7 +175,7 @@ export function flowToCalm(
 
         calmRelationships.push(applyCanvasFields(original, {
             'unique-id': relId,
-            'relationship-type': buildRelationshipType(variant, edge.source, edge.target, original),
+            'relationship-type': buildRelationshipType(variant, toCalmId(edge.source), toCalmId(edge.target), original),
             protocol: data.protocol || undefined,
             description: data.description || undefined,
             controls: data.controls || undefined,
@@ -129,7 +188,7 @@ export function flowToCalm(
             const reverseOriginal = originalRels.get(reverseId);
             calmRelationships.push(applyCanvasFields(reverseOriginal, {
                 'unique-id': reverseId,
-                'relationship-type': buildRelationshipType(variant, edge.target, edge.source, reverseOriginal),
+                'relationship-type': buildRelationshipType(variant, toCalmId(edge.target), toCalmId(edge.source), reverseOriginal),
                 protocol: data.protocol || undefined,
                 description: data.description || undefined,
                 metadata,
@@ -175,13 +234,31 @@ export function flowToCalm(
         delete arch.controls;
     }
 
-    // Persist layout
-    const layout = buildLayoutMap(nodes);
+    // Persist layout, in file order
+    const layout = buildLayoutMap([...nodes].sort((a, b) => orderOf(a) - orderOf(b)));
     const rawMetadata = lastParsedArch?.metadata as Record<string, unknown> | undefined;
     const existingMetadata = (rawMetadata && typeof rawMetadata === 'object' && !Array.isArray(rawMetadata)) ? rawMetadata : {};
     arch.metadata = { ...existingMetadata, _layout: layout };
 
     return arch;
+}
+
+/**
+ * The layout of `arch` as it is drawn after a reload. A drawing can get another id when another
+ * drawing of the same node goes, so each position is found by the drawing's path of CALM ids.
+ */
+export function relayoutByPath(arch: CalmArchitecture, nodes: Node[]): LayoutMap {
+    const current = new Map(nodes.map((n) => [n.id, n]));
+    const byPath = new Map(nodes.map((n) => [pathOf(n, current), n]));
+    const reloaded = parseCALMData(arch).nodes;
+    const reloadedById = new Map(reloaded.map((n) => [n.id, n]));
+    const fileOrder = new Map(arch.nodes.map((n, i) => [(n['unique-id'] as string) ?? `node-${i}`, i] as const));
+    return buildLayoutMap(reloaded
+        .sort((a, b) => (fileOrder.get(calmIdOf(a)) ?? 0) - (fileOrder.get(calmIdOf(b)) ?? 0))
+        .flatMap((n) => {
+            const before = byPath.get(pathOf(n, reloadedById));
+            return before ? [{ ...before, id: n.id }] : [];
+        }));
 }
 
 /** Fields the canvas edits replace those of the original (undefined removes one); all other fields stay. */
@@ -203,68 +280,6 @@ function originalVariant(
 ): Record<string, unknown> | undefined {
     const rt = rel?.['relationship-type'] as Record<string, unknown> | undefined;
     return rt?.[variant] as Record<string, unknown> | undefined;
-}
-
-/**
- * Writes each original containment relationship back with its own nodes. A node in two containers is
- * drawn in one only, so a relationship loses a node only if it was drawn in that container and is not now.
- */
-function buildContainment(nodes: Node[], containerChildren: Map<string, string[]>): Array<Record<string, unknown>> {
-    const canvasIds = new Set(nodes.map((n) => n.id));
-    const canvasParent = new Map(nodes.filter((n) => n.parentId).map((n) => [n.id, n.parentId!]));
-    const originals = (lastParsedArch?.relationships ?? []).flatMap((rel) => {
-        const variant = containmentVariant(rel);
-        return variant ? [{ rel, variant, inner: originalVariant(rel, variant)! }] : [];
-    });
-
-    // Mirrors parseCALMData: the last relationship that lists a node is the container it is drawn in
-    const drawnParent = new Map<string, string>();
-    for (const { inner } of originals) {
-        for (const id of (inner.nodes as string[] | undefined) ?? []) drawnParent.set(id, inner.container as string);
-    }
-
-    const placed = new Set<string>();
-    const written = originals
-        .filter(({ inner }) => canvasIds.has(inner.container as string))
-        .map(({ rel, variant, inner }) => {
-            const container = inner.container as string;
-            const kept = ((inner.nodes as string[] | undefined) ?? []).filter((id) =>
-                canvasIds.has(id) && (canvasParent.get(id) === container || drawnParent.get(id) !== container));
-            kept.filter((id) => canvasParent.get(id) === container).forEach((id) => placed.add(`${container}/${id}`));
-            return { rel, variant, inner, container, nodes: kept };
-        });
-
-    const created: Array<Record<string, unknown>> = [];
-    for (const [parentId, children] of containerChildren) {
-        const added = children.filter((id) => !placed.has(`${parentId}/${id}`));
-        const first = written.find((w) => w.container === parentId);
-        if (first) {
-            first.nodes.push(...added);
-            continue;
-        }
-        const parentNode = nodes.find((n) => n.id === parentId);
-        const variant = ((parentNode?.data as Record<string, unknown>)?.containmentType as string) ?? 'deployed-in';
-        created.push({
-            'unique-id': `containment-${parentId}`,
-            'relationship-type': { [variant]: { container: parentId, nodes: added } },
-        });
-    }
-
-    // The schema needs at least one node, so drop an emptied relationship if its container has another
-    const occupied = new Set(written.filter((w) => w.nodes.length > 0).map((w) => w.container));
-    return [
-        ...written.filter((w) => w.nodes.length > 0 || !occupied.has(w.container)).map(({ rel, variant, inner, nodes: kept }) => applyCanvasFields(rel, {
-            'relationship-type': { [variant]: { ...inner, nodes: kept } },
-        })),
-        ...created,
-    ];
-}
-
-function containmentVariant(rel: Record<string, unknown>): string | undefined {
-    const rt = rel['relationship-type'] as Record<string, unknown> | undefined;
-    if (rt?.['deployed-in']) return 'deployed-in';
-    if (rt?.['composed-of']) return 'composed-of';
-    return undefined;
 }
 
 function buildEdgeMetadata(

@@ -1,5 +1,8 @@
 import { validateAllControls } from './validate-controls';
 import { SchemaDirectory } from '../../schema-directory';
+import { CalmReferenceResolver } from '../../resolver/calm-reference-resolver';
+import { CurieReferenceResolver } from '../../resolver/curie-resolver';
+import { SchemaDirectoryReferenceResolver } from '../../resolver/schema-directory-reference-resolver';
 
 const mocks = vi.hoisted(() => ({
     jsonSchemaValidate: vi.fn().mockReturnValue([]),
@@ -448,45 +451,152 @@ describe('validateAllControls', () => {
         expect(result.jsonSchemaOutputs[0].message).toContain('[object Object]');
     });
 
-    // Characterization test for a KNOWN RELEASE LIMITATION. Control references
-    // authored by the VS Code plugin as Hub CURIEs (e.g.
-    // `security:controls:micro-segmentation@1.0.0`) are NOT resolvable by
-    // `calm validate` today: the requirement-url does not start with '#', so it
-    // is passed straight to SchemaDirectory.getSchema, which treats it as a URL
-    // and fails to fetch it. Validation therefore ERRORS rather than skipping.
-    // The follow-up is to route control CURIEs through a Hub-aware resolver that
-    // expands them to canonical domain-scoped URLs. This test pins the current
-    // failure mode so the follow-up change is deliberate and visible.
-    describe('control CURIE requirement-url (known release limitation)', () => {
-        const curie = 'security:controls:micro-segmentation@1.0.0';
+    describe('control CURIE requirement-url resolution', () => {
+        const requirementCurie = 'security:controls:micro-segmentation@1.0.0';
 
-        it('errors because the SchemaDirectory cannot resolve a control CURIE as a URL', async () => {
+        function makeReferenceResolver(resolveImpl: (ref: string) => Promise<unknown>): CalmReferenceResolver {
+            return {
+                canResolve: vi.fn().mockReturnValue(true),
+                resolve: vi.fn().mockImplementation(resolveImpl),
+            };
+        }
+
+        it('resolves a CURIE requirement-url through referenceResolver instead of SchemaDirectory', async () => {
             const schemaDir = makeSchemaDirectory();
-            (schemaDir.getSchema as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-                new Error(`Could not resolve ${curie}`)
-            );
-            const arch = architectureWithNodeControl(inlineConfig, curie);
-            const result = await validateAllControls(arch, undefined, schemaDir, false);
+            const resolver = makeReferenceResolver(async () => requirementSchema);
+            const arch = architectureWithNodeControl(inlineConfig, requirementCurie);
 
-            expect(result.hasErrors).toBe(true);
-            expect(result.jsonSchemaOutputs[0].message).toContain(
-                'Could not load requirement schema'
+            const result = await validateAllControls(arch, undefined, schemaDir, false, resolver);
+
+            expect(result.hasErrors).toBe(false);
+            expect(resolver.resolve).toHaveBeenCalledWith(requirementCurie);
+            expect(schemaDir.getSchema).not.toHaveBeenCalled();
+            expect(mocks.jsonSchemaValidatorConstructor).toHaveBeenCalledWith(
+                schemaDir,
+                requirementSchema,
+                false
             );
-            expect(result.jsonSchemaOutputs[0].message).toContain(curie);
         });
 
-        it('errors (not silently skips) when the CURIE resolves to no schema', async () => {
-            // Even if the resolver returns nothing rather than throwing, the
-            // control is reported as an error, not skipped.
+        it('expands a control requirement-url CURIE to the domain-scoped Hub requirement URL via CurieReferenceResolver', async () => {
             const schemaDir = makeSchemaDirectory();
-            (schemaDir.getSchema as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
-            const arch = architectureWithNodeControl(inlineConfig, curie);
+            (schemaDir.loadDocument as ReturnType<typeof vi.fn>).mockResolvedValueOnce(requirementSchema);
+            const resolver = new CurieReferenceResolver(
+                'http://hub.example.com',
+                new SchemaDirectoryReferenceResolver(schemaDir)
+            );
+            const arch = architectureWithNodeControl(inlineConfig, requirementCurie);
+
+            const result = await validateAllControls(arch, undefined, schemaDir, false, resolver);
+
+            expect(result.hasErrors).toBe(false);
+            expect(schemaDir.loadDocument).toHaveBeenCalledWith(
+                'http://hub.example.com/calm/domains/security/controls/micro-segmentation/requirement/versions/1.0.0',
+                'architecture'
+            );
+            expect(schemaDir.getSchema).not.toHaveBeenCalled();
+        });
+
+        it('resolves a URN requirement-url through SchemaDirectory.getSchema even when CurieReferenceResolver is provided', async () => {
+            const urnId = 'urn:acme:pci';
+            const schemaDir = makeSchemaDirectory(requirementSchema);
+            const resolver = new CurieReferenceResolver(
+                'http://hub.example.com',
+                new SchemaDirectoryReferenceResolver(schemaDir)
+            );
+            const arch = architectureWithNodeControl(inlineConfig, urnId);
+
+            const result = await validateAllControls(arch, undefined, schemaDir, false, resolver);
+
+            expect(result.hasErrors).toBe(false);
+            expect(schemaDir.getSchema).toHaveBeenCalledWith(urnId);
+            expect(schemaDir.loadDocument).not.toHaveBeenCalled();
+        });
+
+        it('emits error when CURIE requirement-url resolution throws', async () => {
+            const schemaDir = makeSchemaDirectory();
+            const resolver = makeReferenceResolver(async () => {
+                throw new Error(`No resolver in chain could resolve: ${requirementCurie}`);
+            });
+            const arch = architectureWithNodeControl(inlineConfig, requirementCurie);
+
+            const result = await validateAllControls(arch, undefined, schemaDir, false, resolver);
+
+            expect(result.hasErrors).toBe(true);
+            expect(result.jsonSchemaOutputs[0].message).toContain('Could not load requirement schema');
+            expect(result.jsonSchemaOutputs[0].message).toContain(requirementCurie);
+        });
+
+        it('emits error when CURIE requirement-url resolves to undefined', async () => {
+            const schemaDir = makeSchemaDirectory();
+            const resolver = makeReferenceResolver(async () => undefined);
+            const arch = architectureWithNodeControl(inlineConfig, requirementCurie);
+
+            const result = await validateAllControls(arch, undefined, schemaDir, false, resolver);
+
+            expect(result.hasErrors).toBe(true);
+            expect(result.jsonSchemaOutputs[0].message).toContain('Requirement schema not found');
+            expect(result.jsonSchemaOutputs[0].message).toContain(requirementCurie);
+        });
+
+        it('falls through to SchemaDirectory for non-CURIE requirement-url and config-url even when referenceResolver is provided', async () => {
+            const schemaDir = makeSchemaDirectory(requirementSchema);
+            (schemaDir.loadDocument as ReturnType<typeof vi.fn>).mockResolvedValueOnce(inlineConfig);
+            const resolver = makeReferenceResolver(async () => {
+                throw new Error('should not be called for non-CURIE URLs');
+            });
+            const arch = {
+                nodes: [{
+                    'unique-id': 'node-1',
+                    'node-type': 'service',
+                    name: 'N',
+                    description: 'D',
+                    controls: {
+                        security: {
+                            description: 'Security',
+                            requirements: [{
+                                'requirement-url': 'https://example.com/requirement.json',
+                                'config-url': 'https://example.com/config.json'
+                            }]
+                        }
+                    }
+                }]
+            };
+
+            const result = await validateAllControls(arch, undefined, schemaDir, false, resolver);
+
+            expect(result.hasErrors).toBe(false);
+            expect(resolver.resolve).not.toHaveBeenCalled();
+            expect(schemaDir.getSchema).toHaveBeenCalledWith('https://example.com/requirement.json');
+            expect(schemaDir.loadDocument).toHaveBeenCalledWith('https://example.com/config.json', 'control');
+        });
+
+        it('resolves #-prefixed JSON pointer into pattern without calling referenceResolver', async () => {
+            const pattern = { defs: { myRequirement: requirementSchema } };
+            const schemaDir = makeSchemaDirectory();
+            const resolver = makeReferenceResolver(async () => {
+                throw new Error('should not be called for JSON pointers');
+            });
+            const arch = architectureWithNodeControl(inlineConfig, '#/defs/myRequirement');
+
+            const result = await validateAllControls(arch, pattern, schemaDir, false, resolver);
+
+            expect(result.hasErrors).toBe(false);
+            expect(resolver.resolve).not.toHaveBeenCalled();
+            expect(schemaDir.getSchema).not.toHaveBeenCalled();
+        });
+
+        it('errors when no referenceResolver is provided and SchemaDirectory cannot resolve a control CURIE', async () => {
+            const schemaDir = makeSchemaDirectory();
+            (schemaDir.getSchema as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+                new Error(`Could not resolve ${requirementCurie}`)
+            );
+            const arch = architectureWithNodeControl(inlineConfig, requirementCurie);
             const result = await validateAllControls(arch, undefined, schemaDir, false);
 
             expect(result.hasErrors).toBe(true);
-            expect(result.jsonSchemaOutputs[0].message).toContain(
-                'Requirement schema not found'
-            );
+            expect(result.jsonSchemaOutputs[0].message).toContain('Could not load requirement schema');
+            expect(result.jsonSchemaOutputs[0].message).toContain(requirementCurie);
         });
     });
 });

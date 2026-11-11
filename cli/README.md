@@ -136,7 +136,7 @@ Options:
   --timeline <file>             Path to the timeline file to validate. May be a file path or a URL.
   -s, --schema-directory <path> Path to the directory containing the meta schemas to use. (default: the bundled schemas)
   -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
-  --assets-path <path>          Local path to CALM assets directory for resolving detailed-architecture CURIEs without a Hub
+  --assets-path <path>          Local path to CALM assets directory for resolving CURIEs without a Hub
   -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths
   --strict                  When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
   -f, --format <format>         The format of the output (choices: "json", "junit", "pretty", default: "json")
@@ -452,7 +452,7 @@ This differs:
 
 ## CALM init-ai
 
-The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present four AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, and Codex.
+The `init-ai` command sets up AI-powered development assistance for CALM architecture modeling by configuring specialized prompt files with comprehensive tool prompts. At present five AI Assistant providers are supported: GitHub Copilot, Claude Code, AWS Kiro, Codex, and IBM Bob.
 
 ```shell
 calm init-ai --help
@@ -461,7 +461,7 @@ Usage: calm init-ai [options]
 Augment a git repository with AI assistance for CALM
 
 Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex")
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex", "bob")
   -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
   -v, --verbose              Enable verbose logging. (default: false)
   -h, --help                 display help for command
@@ -711,13 +711,13 @@ Every subcommand accepts `-c, --calm-hub-url <url>` (falls back to `calmHubUrl` 
 Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). The type in the `$id` must match the subcommand, or the push fails before it contacts CalmHub. By default, `push` **auto-bumps**: it computes a new version off the latest published release (or creates the mapping at `1.0.0` if it doesn't exist yet). If CalmHub holds only snapshots, it publishes the release of the highest snapshot, for example `1.0.0` for `1.0.0-SNAPSHOT`. CalmHub deletes `V-SNAPSHOT` when `V` is published, so push refuses to publish a version that has a snapshot unless the document's `$id` is already at that version. A document whose `$id` is at a `-SNAPSHOT` version is never bumped: it is pushed at that version and overwrites the snapshot in CalmHub, or is skipped if unchanged. `--change-type` and `--fail-if-modified` do not apply to it.
 
 ```
-calm hub push <architecture|pattern|standard|interface|flow|control-requirement|control-configuration> <file> [options]
+calm hub push <architecture|pattern|standard|interface|flow|timeline|control-requirement|control-configuration> <file> [options]
 ```
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
-| `--name <name>` | `architecture`, `pattern`, `standard`, `interface`, `flow` | Overrides the document's `title` field in CalmHub (a flow's `name` field). |
-| `--description <description>` | `architecture`, `pattern`, `standard`, `interface`, `flow` | Overrides the document's `description` field. |
+| `--name <name>` | `architecture`, `pattern`, `standard`, `interface`, `flow`, `timeline` | Overrides the document's `title` field in CalmHub (a flow's `name` field). |
+| `--description <description>` | `architecture`, `pattern`, `standard`, `interface`, `flow`, `timeline` | Overrides the document's `description` field. |
 | `-c, --calm-hub-url <url>` | all | CalmHub instance to push to. |
 | `-f, --format <format>` | all | Output format: `json` (default) or `pretty`. |
 | `-t, --change-type <type>` | all | Version bump type when auto-bumping: `patch` (default), `minor`, or `major`. |
@@ -732,6 +732,7 @@ calm hub push pattern ./patterns/microservice-pattern.json --fail-if-modified
 
 calm hub push interface ./interfaces/payment-api.interface.json
 calm hub push flow ./flows/payment-processing.flow.json
+calm hub push timeline ./timelines/roadmap.timeline.json
 
 # Control documents don't take --name/--description
 calm hub push control-requirement ./controls/encryption-at-rest.requirement.json
@@ -745,13 +746,13 @@ The local document is normalised the same way CalmHub stores it before comparing
 Pulls a specific (or latest) version of a resource from CalmHub.
 
 ```
-calm hub pull <architecture|pattern|standard|interface|flow|control-requirement|control-configuration> [options]
+calm hub pull <architecture|pattern|standard|interface|flow|timeline|control-requirement|control-configuration> [options]
 ```
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
-| `--namespace <namespace>` | `architecture`, `pattern`, `standard`, `interface`, `flow` (required) | Source namespace. |
-| `-m, --mapping <mapping>` | `architecture`, `pattern`, `standard`, `interface`, `flow` (required) | Mapping slug of the document to pull. |
+| `--namespace <namespace>` | `architecture`, `pattern`, `standard`, `interface`, `flow`, `timeline` (required) | Source namespace. |
+| `-m, --mapping <mapping>` | `architecture`, `pattern`, `standard`, `interface`, `flow`, `timeline` (required) | Mapping slug of the document to pull. |
 | `--domain <domain>` | `control-requirement`, `control-configuration` (required) | Source domain. |
 | `--control-name <controlName>` | `control-requirement`, `control-configuration` (required) | Control name. |
 | `--config-name <configName>` | `control-configuration` (required) | Configuration name. |
@@ -763,6 +764,7 @@ calm hub pull <architecture|pattern|standard|interface|flow|control-requirement|
 calm hub pull architecture --namespace com.example --mapping payment-service --ver 2.1.0 -o ./payment-service.json
 calm hub pull interface --namespace com.example --mapping payment-api
 calm hub pull flow --namespace com.example --mapping payment-processing --ver 1.0.0
+calm hub pull timeline --namespace com.example --mapping roadmap --ver 1.0.0
 calm hub pull control-configuration --domain security --control-name encryption-at-rest --config-name default
 ```
 
@@ -771,12 +773,12 @@ calm hub pull control-configuration --domain security --control-name encryption-
 Lists resources of a given kind.
 
 ```
-calm hub list <architectures|patterns|standards|interfaces|flows|namespaces|domains|controls|control-configurations> [options]
+calm hub list <architectures|patterns|standards|interfaces|flows|timelines|namespaces|domains|controls|control-configurations> [options]
 ```
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
-| `--namespace <namespace>` | `architectures`, `patterns`, `standards`, `interfaces`, `flows` | Target namespace (default: `"default"`). |
+| `--namespace <namespace>` | `architectures`, `patterns`, `standards`, `interfaces`, `flows`, `timelines` | Target namespace (default: `"default"`). |
 | `--domain <domain>` | `controls` (required), `control-configurations` (required) | Target domain. |
 | `--control-name <controlName>` | `control-configurations` (required) | Control name. |
 | `-c, --calm-hub-url <url>` | all | CalmHub instance. |
@@ -786,6 +788,7 @@ calm hub list <architectures|patterns|standards|interfaces|flows|namespaces|doma
 calm hub list architectures --namespace com.example
 calm hub list interfaces --namespace com.example
 calm hub list flows --namespace com.example
+calm hub list timelines --namespace com.example
 calm hub list namespaces
 calm hub list control-configurations --domain security --control-name encryption-at-rest
 ```

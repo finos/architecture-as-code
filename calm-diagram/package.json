@@ -1,0 +1,61 @@
+{
+  "name": "@finos/calm-diagram",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Render CALM architectures to SVG, and the node packs that give node types their icons and colours",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/finos/architecture-as-code.git",
+    "directory": "calm-diagram"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./packs": {
+      "import": {
+        "types": "./dist/packs.d.ts",
+        "default": "./dist/packs.js"
+      },
+      "require": {
+        "types": "./dist/packs.d.cts",
+        "default": "./dist/packs.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint src",
+    "lint-fix": "eslint src --fix",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@finos/calm-models": "*",
+    "elkjs": "^0.11.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^5.0.5"
+  }
+}

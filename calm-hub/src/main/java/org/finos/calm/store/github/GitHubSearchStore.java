@@ -23,7 +23,9 @@ import java.util.stream.Collectors;
  * search backend to query in this storage mode, and the registry is already fully resident in
  * memory, so scanning it directly is the whole implementation. Namespace filtering
  * ({@code readableNamespaces}) is applied before matching so a caller never sees a result from
- * a namespace they cannot read, regardless of how good the match is.
+ * a namespace they cannot read, regardless of how good the match is. A control here belongs to
+ * a namespace in the registry, so that filter covers controls too and {@code readableDomains}
+ * is not used.
  */
 @ApplicationScoped
 @Typed(GitHubSearchStore.class)
@@ -37,7 +39,8 @@ public class GitHubSearchStore implements SearchStore {
     }
 
     @Override
-    public GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces) {
+    public GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces,
+                                       Optional<Set<String>> readableDomains) {
         if (query == null || query.isBlank()) {
             return new GroupedSearchResults(
                     List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());

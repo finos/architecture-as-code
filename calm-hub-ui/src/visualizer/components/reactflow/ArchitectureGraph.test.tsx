@@ -619,6 +619,18 @@ describe('ArchitectureGraph', () => {
             expect(screen.queryByTestId('diagram-minimap')).not.toBeInTheDocument();
         });
 
+        it('offers text size controls on desktop', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(screen.getByRole('button', { name: 'Smaller diagram text' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Larger diagram text' })).toBeInTheDocument();
+        });
+
+        it('has no text size controls on mobile', () => {
+            mockMobileViewport();
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(screen.queryByRole('button', { name: 'Larger diagram text' })).not.toBeInTheDocument();
+        });
+
         it('has no pause-animation control on mobile, where the OS setting applies', () => {
             mockMobileViewport();
             render(<ArchitectureGraph jsonData={mockCalmData} />);

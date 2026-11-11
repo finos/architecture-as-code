@@ -7,6 +7,7 @@ import { stripRefs } from './validation-helpers.js';
 import { SpectralValidationRule } from './rules/spectral-rule.js';
 import { JsonSchemaValidationRule } from './rules/json-schema-rule.js';
 import { ControlsValidationRule } from './rules/controls-rule.js';
+import { InterfacesValidationRule } from './rules/interfaces-rule.js';
 import { NodeDetailsValidationRule } from './rules/node-details-rule.js';
 
 /**
@@ -52,7 +53,7 @@ export class ValidationEngine {
 
 /**
  * Build the engine wired with the standard CALM validation rules, in phase order:
- * Spectral (pattern, architecture, timeline) -> JSON-Schema -> Controls -> Node-details.
+ * Spectral (pattern, architecture, timeline) -> JSON-Schema -> Controls -> Interfaces -> Node-details.
  */
 export function createDefaultValidationEngine(): ValidationEngine {
     return new ValidationEngine([
@@ -82,6 +83,7 @@ export function createDefaultValidationEngine(): ValidationEngine {
         ),
         new JsonSchemaValidationRule(),
         new ControlsValidationRule(),
+        new InterfacesValidationRule(),
         new NodeDetailsValidationRule()
     ]);
 }

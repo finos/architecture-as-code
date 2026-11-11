@@ -72,7 +72,7 @@ canWrite(username, namespace):
 | `UserAccessStore` (interface) | `getGrantsForUser(username)` returns user + `*` grants in one query |
 | `MongoUserAccessStore` | Mongo implementation of `getGrantsForUser` |
 | `NitriteUserAccessStore` | Nitrite implementation of `getGrantsForUser` |
-| `UserAccessValidator` | `getReadableNamespaces(username)` — exact ancestor-chain filter used by search |
+| `UserAccessValidator` | `getReadableNamespaces(username)` — exact ancestor-chain filter used by search; `getReadableDomains(username)` — the same for controls, used by search and domain counts |
 | `NamespaceService` | Orchestrates namespace creation + automatic `* read` grant insertion |
 | `NamespaceAccessBackfillStep` | Schema migration step; backfills `* read` grants on pre-existing namespaces |
 

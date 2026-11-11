@@ -1,19 +1,16 @@
 # CalmStudio
 
-The packages that remain from the retired CALM Studio app. The docs diagram embed uses
-`calm-core`, `extensions`, `web-component` and `docusaurus-plugin`. TypeScript strict.
+The packages that remain from the retired CALM Studio app. TypeScript strict. The docs diagram
+embed and the node packs are in `calm-diagram/` and `calm-docusaurus-plugin/` at the repo root.
 
 ## Structure
 Each entry below is a root npm workspace, matched by `calm-studio/packages/*` in the root
 `package.json`. Run npm commands from the repo root.
 
 - `packages/calm-core/` (`@calmstudio/calm-core`) — CALM types, validation
-- `packages/extensions/` (`@calmstudio/extensions`) — Node type packs (core, fluxnova, ai, aws, gcp, azure, k8s, messaging, identity, opengris)
 - `packages/mcp-server/` (`@calmstudio/mcp`) — MCP server (20 tools)
 - `packages/github-action/` (`@calmstudio/github-action`) — GitHub Action build target
 - `packages/vscode-extension/` (`calmstudio`) — VSCode extension build target
-- `packages/web-component/` (`@calmstudio/diagram`) — embeddable web component build target
-- `packages/docusaurus-plugin/` (`@finos/calm-docusaurus-plugin`) — Docusaurus plugin
 
 ## CALM 1.2 Rules
 
@@ -46,13 +43,13 @@ The flat shape (`'relationship-type': 'connects'` + sibling `source`/`destinatio
 **Required:** Nodes need `unique-id`, `node-type`, `name`, `description`. Relationships need `unique-id`, `relationship-type`. Controls need `description`, `requirements[]`.
 
 ## Packs
-`PackDefinition` in `packages/extensions/src/packs/`. Register via `initAllPacks()` in `index.ts`.
+`PackDefinition` in `calm-diagram/src/packs/definitions/`. Register via `initAllPacks()` from `@finos/calm-diagram/packs`.
 
 ## AIGF
 Docs: `docs/AIGF_CATALOGUE.json`, `docs/CALM_1.2_CONTROLS_SCHEMA.md`, `docs/REQ_fluxnova_aigf_integration.md`. Follow control rules above.
 
 ## Conventions
-- TS strict, no `any`. Svelte 5 runes only (`web-component`). kebab-case files, PascalCase components/types.
+- TS strict, no `any`. kebab-case files, PascalCase components/types.
 - Conventional commits.
 
 ## Refs

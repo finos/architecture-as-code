@@ -1,0 +1,412 @@
+// SPDX-FileCopyrightText: 2024 CalmStudio contributors - see NOTICE file
+//
+// SPDX-License-Identifier: Apache-2.0
+
+// elkjs/lib/elk.bundled.js is CJS, so the default export can be nested.
+import ELKImport from 'elkjs/lib/elk.bundled.js';
+const ELK = (ELKImport as unknown as { default?: new () => { layout: (graph: unknown) => Promise<unknown> } }).default ?? ELKImport as unknown as new () => { layout: (graph: unknown) => Promise<unknown> };
+
+import type { CalmArchitecture } from '../types.js';
+import { renderNodeSvg, renderContainerSvg } from './nodeRenderer.js';
+import { renderEdgeSvg, renderEdgeMarkers } from './edgeRenderer.js';
+import { renderFlowOverlay, applyFlowDimming, getFlowNodeIds, type EdgeLayout } from './flowOverlay.js';
+import { relationshipToEdges, expandEdgesToInstances, freeId, type DiagramEdge } from './relationshipEdges.js';
+import { planContainment, emptyContainmentPlan, isNestedContainment, type ContainmentPlan } from './containment.js';
+
+// ---------------------------------------------------------------------------
+// ELK type helpers
+// ---------------------------------------------------------------------------
+
+type ElkChild = {
+  id: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  labels?: Array<{ text: string }>;
+  children?: ElkChild[];
+};
+
+type ElkEdgeSection = {
+  startPoint?: { x: number; y: number };
+  endPoint?: { x: number; y: number };
+  bendPoints?: Array<{ x: number; y: number }>;
+};
+
+type ElkLayouted = {
+  children?: ElkChild[];
+  edges?: Array<{ id: string; sections?: ElkEdgeSection[] }>;
+};
+
+// ---------------------------------------------------------------------------
+// Render options
+// ---------------------------------------------------------------------------
+
+export interface RenderOptions {
+  theme?: 'light' | 'dark';
+  direction?: 'DOWN' | 'RIGHT';
+  flow?: string;
+  containers?: 'nested' | 'edges';
+  /** Prefix for element ids, so that several diagrams can share one page. */
+  idPrefix?: string;
+}
+
+/** Extra drawings, or extra edges to them, above which each node is nested under its first claim only. */
+const MAX_COPIES = 1000;
+
+/** Number of extra drawings when every node is drawn once in each container that claims it. */
+function countCopies(plan: ContainmentPlan): number {
+  const counts = new Map<string, number>();
+  const count = (id: string): number => {
+    const known = counts.get(id);
+    if (known !== undefined) return known;
+    const parents = plan.parentsOf.get(id) ?? [];
+    const result = parents.length === 0 ? 1 : parents.reduce((sum, p) => sum + count(p), 0);
+    counts.set(id, result);
+    return result;
+  };
+  return [...plan.parentsOf.keys()].reduce((sum, id) => sum + count(id) - 1, 0);
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Render a CalmArchitecture to an interactive SVG string using ELK layout.
+ * Supports pack-aware node coloring and icons for all registered packs.
+ *
+ * @param arch - The CALM architecture to render
+ * @param options - Optional render options (theme, direction)
+ * @returns Promise resolving to an SVG string
+ */
+export async function renderELKDiagram(
+  arch: CalmArchitecture,
+  options: RenderOptions = {}
+): Promise<string> {
+  const { theme = 'light', direction = 'DOWN', flow: flowId, containers = 'nested', idPrefix = 'calm' } = options;
+
+  // CALM's meta-schema requires no top-level properties, so `nodes` and
+  // `relationships` may both be absent on a valid architecture document.
+  // Normalize once and use these locals throughout.
+  const nodes = arch.nodes ?? [];
+  const relationships = arch.relationships ?? [];
+
+  // Handle empty architecture
+  if (nodes.length === 0) {
+    const bgColor = theme === 'dark' ? '#1e1e1e' : '#f5f5f5';
+    const textColor = theme === 'dark' ? '#ccc' : '#999';
+    return (
+      `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="150" style="background:${bgColor}">` +
+      `<text x="150" y="75" text-anchor="middle" font-family="sans-serif" font-size="14" fill="${textColor}">No nodes</text>` +
+      `</svg>`
+    );
+  }
+
+  const knownNodeIds = new Set(nodes.map((n) => n['unique-id']));
+  // The 'nested' | 'edges' union is not enforced at the DOM-attribute boundary
+  // (the custom element passes attributes through as strings), so normalize
+  // once: anything that is not exactly 'edges' renders nested. Both the plan
+  // and the edge filter below must agree, or containment silently vanishes.
+  const containersMode: 'nested' | 'edges' = containers === 'edges' ? 'edges' : 'nested';
+  let plan = containersMode === 'nested'
+    ? planContainment(relationships, knownNodeIds)
+    : emptyContainmentPlan();
+  // Copies multiply with each level of shared containers. Past the limit, nest
+  // each node under its first claim only and draw the other claims as edges.
+  let copiesLimited = countCopies(plan) > MAX_COPIES;
+  if (copiesLimited) {
+    plan = planContainment(relationships, knownNodeIds, { sharedMembers: false });
+  }
+
+  // Expand relationships into renderable edges. In nested mode, containment
+  // relationships are represented by the plan (nesting + fallback edges) and
+  // must not also expand into fan-out edges.
+  const relationshipEdges = relationships
+    .filter((r) => containersMode === 'edges' || !isNestedContainment(r))
+    .flatMap((r) => relationshipToEdges(r));
+
+  // Build ELK graph
+  const NODE_WIDTH = 180;
+  const NODE_HEIGHT = 70;
+
+  interface ElkNodeInput {
+    id: string;
+    width?: number;
+    height?: number;
+    labels: Array<{ text: string }>;
+    layoutOptions?: Record<string, string>;
+    children?: ElkNodeInput[];
+  }
+
+  const nodeNameMap = new Map(nodes.map((n) => [n['unique-id'], n.name] as const));
+
+  // A node nested in several containers is drawn once in each, with everything
+  // nested in it. The drawing in its first claim keeps the CALM id, as when only
+  // that claim nested; each other drawing gets its own render id, mapped back
+  // through calmIdOf.
+  function draw(plan: ContainmentPlan) {
+    const calmIdOf = new Map<string, string>();
+    const instancesOf = new Map<string, string[]>();
+    const ancestorsOf = new Map<string, string[]>();
+    const takenIds = new Set<string>(knownNodeIds);
+    function renderIdFor(id: string, parentRenderId: string | undefined): string {
+      if (parentRenderId === plan.parentsOf.get(id)?.[0]) return id;
+      return freeId(`${id}__in__${parentRenderId}`, takenIds);
+    }
+
+    function buildElkNode(id: string, parentRenderId?: string, ancestors: string[] = []): ElkNodeInput {
+      const renderId = renderIdFor(id, parentRenderId);
+      calmIdOf.set(renderId, id);
+      instancesOf.set(id, [...(instancesOf.get(id) ?? []), renderId]);
+      ancestorsOf.set(renderId, ancestors);
+      const members = plan.childrenOf.get(id);
+      const label = { text: nodeNameMap.get(id) ?? id };
+      if (members && members.length > 0) {
+        return {
+          id: renderId,
+          labels: [label],
+          layoutOptions: { 'elk.padding': '[top=44.0,left=16.0,bottom=16.0,right=16.0]' },
+          children: members.map((m) => buildElkNode(m, renderId, [...ancestors, renderId])),
+        };
+      }
+      return { id: renderId, width: NODE_WIDTH, height: NODE_HEIGHT, labels: [label] };
+    }
+
+    const topLevelIds = [...new Set(nodes.map((n) => n['unique-id']))]
+      .filter((id) => !plan.parentsOf.has(id));
+    const topLevelChildren = topLevelIds.map((id) => buildElkNode(id));
+    const diagramEdges: DiagramEdge[] = [...relationshipEdges, ...plan.fallbackEdges];
+    const renderEdges = expandEdgesToInstances(diagramEdges, instancesOf, ancestorsOf);
+    return { calmIdOf, topLevelChildren, diagramEdges, renderEdges };
+  }
+
+  let drawn = draw(plan);
+  // Each copy of a node also gets the node's edges
+  if (drawn.renderEdges.length - drawn.diagramEdges.length > MAX_COPIES) {
+    plan = planContainment(relationships, knownNodeIds, { sharedMembers: false });
+    copiesLimited = true;
+    drawn = draw(plan);
+  }
+  if (copiesLimited) {
+    console.warn('The diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.');
+  }
+  const { calmIdOf, topLevelChildren, renderEdges } = drawn;
+
+  const graph = {
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'layered',
+      'elk.direction': direction,
+      'elk.layered.spacing.nodeNodeBetweenLayers': '80',
+      'elk.spacing.nodeNode': '60',
+      // edgeCoords ROOT: edge sections arrive root-relative, so the edge-drawing
+      // loop needs no offset math (node coords stay parent-relative — see placeNodes).
+      'org.eclipse.elk.json.edgeCoords': 'ROOT',
+      // INCLUDE_CHILDREN: lets the layered algorithm route edges across hierarchy levels.
+      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+    },
+    children: topLevelChildren,
+    edges: renderEdges.map((e) => ({
+      id: e.id,
+      sources: [e.source],
+      targets: [e.target],
+    })),
+  };
+
+  const elk = new ELK();
+  const layouted = await elk.layout(graph) as ElkLayouted;
+
+  // Build lookup maps
+  const nodeTypeMap = new Map<string, string>();
+  const nodeDescMap = new Map<string, string>();
+  for (const n of nodes) {
+    nodeTypeMap.set(n['unique-id'], n['node-type']);
+    nodeDescMap.set(n['unique-id'], n.description ?? '');
+  }
+
+  const relTypeMap = new Map<string, string>();
+  const relIdByRenderId = new Map<string, string>();
+  for (const e of renderEdges) {
+    relTypeMap.set(e.id, e.variant);
+    relIdByRenderId.set(e.id, e.relationshipId);
+  }
+
+  // Flatten the (possibly hierarchical) ELK layout into absolute-position
+  // placed nodes, recursively accumulating parent offsets.
+  interface PlacedNode {
+    id: string;
+    x: number; // absolute
+    y: number; // absolute
+    width: number;
+    height: number;
+    label: string;
+    depth: number;
+    isContainer: boolean;
+  }
+
+  const placed: PlacedNode[] = [];
+  function placeNodes(children: ElkChild[] | undefined, offsetX: number, offsetY: number, depth: number): void {
+    for (const child of children ?? []) {
+      const x = (child.x ?? 0) + offsetX;
+      const y = (child.y ?? 0) + offsetY;
+      placed.push({
+        id: child.id,
+        x,
+        y,
+        width: child.width ?? NODE_WIDTH,
+        height: child.height ?? NODE_HEIGHT,
+        label: child.labels?.[0]?.text ?? child.id,
+        depth,
+        isContainer: (plan.childrenOf.get(calmIdOf.get(child.id) ?? child.id)?.length ?? 0) > 0,
+      });
+      placeNodes(child.children, x, y, depth + 1);
+    }
+  }
+  placeNodes(layouted.children, 0, 0, 0);
+
+  // Compute canvas dimensions from top-level placed nodes
+  const PADDING = 40;
+  const topLevelPlaced = placed.filter((p) => p.depth === 0);
+  const svgWidth = Math.max(400, ...topLevelPlaced.map((p) => p.x + p.width + PADDING));
+  const svgHeight = Math.max(200, ...topLevelPlaced.map((p) => p.y + p.height + PADDING));
+
+  const bgColor = theme === 'dark' ? '#1e1e1e' : 'transparent';
+
+  // Build SVG
+  const parts: string[] = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" style="background:${bgColor}">`,
+  ];
+
+  // CSS custom properties for theming
+  const edgeColor = theme === 'dark' ? '#aaa' : '#555';
+  parts.push(
+    `<style>`,
+    `.calm-node { transition: opacity 0.15s; }`,
+    `.calm-node:hover { opacity: 0.85; }`,
+    `</style>`,
+  );
+
+  // Arrow markers
+  parts.push(renderEdgeMarkers(idPrefix));
+
+  // Resolve active flow (if any) and build edge layout map for overlay
+  const activeFlow = flowId
+    ? (arch.flows ?? []).find((f) => f['unique-id'] === flowId) ?? null
+    : null;
+
+  const activeFlowEdgeIds = new Set<string>(
+    activeFlow ? activeFlow.transitions.map((t) => t['relationship-unique-id']) : []
+  );
+
+  const activeFlowNodeIds = activeFlow
+    ? getFlowNodeIds(arch, activeFlow)
+    : new Set<string>();
+
+  // Edge layouts grouped by source relationship id, so the flow overlay can
+  // animate every render edge a fanned-out relationship expands into.
+  const edgeLayoutsByRelationship = new Map<string, EdgeLayout[]>();
+
+  // Draw container boxes first, outermost (lowest depth) first, so children paint on top
+  for (const p of placed.filter((n) => n.isContainer).sort((a, b) => a.depth - b.depth)) {
+    const calmId = calmIdOf.get(p.id) ?? p.id;
+    const nodeType = nodeTypeMap.get(calmId) ?? 'system';
+    const description = nodeDescMap.get(calmId) ?? '';
+    const nodeOpacity =
+      activeFlow && activeFlowNodeIds.size > 0 && !activeFlowNodeIds.has(calmId) ? '0.3' : '1';
+    const containerSvg = renderContainerSvg({
+      id: p.id,
+      calmId,
+      x: p.x,
+      y: p.y,
+      width: p.width,
+      height: p.height,
+      name: p.label,
+      nodeType,
+      description,
+      theme,
+    });
+    parts.push(nodeOpacity !== '1' ? `<g opacity="${nodeOpacity}">${containerSvg}</g>` : containerSvg);
+  }
+
+  // Draw edges above container boxes, below leaf nodes
+  for (const edge of layouted.edges ?? []) {
+    for (const section of edge.sections ?? []) {
+      const points: Array<{ x: number; y: number }> = [];
+      if (section.startPoint) {
+        points.push({ x: section.startPoint.x, y: section.startPoint.y });
+      }
+      for (const bp of section.bendPoints ?? []) {
+        points.push({ x: bp.x, y: bp.y });
+      }
+      if (section.endPoint) {
+        points.push({ x: section.endPoint.x, y: section.endPoint.y });
+      }
+      if (points.length >= 2) {
+        // Store layout for flow overlay before rendering edge
+        const relationshipId = relIdByRenderId.get(edge.id) ?? edge.id;
+        const layouts = edgeLayoutsByRelationship.get(relationshipId) ?? [];
+        layouts.push({ id: edge.id, points });
+        edgeLayoutsByRelationship.set(relationshipId, layouts);
+
+        const relType = relTypeMap.get(edge.id);
+        // Flows reference the relationship's unique-id — match on that, not the
+        // render id, so fan-out edges (`uid__N`) dim and animate correctly.
+        const edgeOpacity = applyFlowDimming(relationshipId, activeFlowEdgeIds, true);
+        const edgeSvg = renderEdgeSvg({
+          id: edge.id,
+          points,
+          relationshipType: relType,
+        }, idPrefix)
+          .replace('stroke="#555"', `stroke="${edgeColor}"`)
+          .replace('stroke="#888"', `stroke="${edgeColor}"`);
+
+        // Wrap in opacity group when flow is active
+        if (activeFlow) {
+          parts.push(`<g opacity="${edgeOpacity}">${edgeSvg}</g>`);
+        } else {
+          parts.push(edgeSvg);
+        }
+      }
+    }
+  }
+
+  // Draw leaf nodes on top of containers and edges
+  for (const p of placed.filter((n) => !n.isContainer)) {
+    const calmId = calmIdOf.get(p.id) ?? p.id;
+    const nodeType = nodeTypeMap.get(calmId) ?? 'system';
+    const description = nodeDescMap.get(calmId) ?? '';
+
+    // Dim nodes not connected to the active flow
+    const nodeOpacity =
+      activeFlow && activeFlowNodeIds.size > 0 && !activeFlowNodeIds.has(calmId)
+        ? '0.3'
+        : '1';
+
+    const nodeSvg = renderNodeSvg({
+      id: p.id,
+      calmId,
+      x: p.x,
+      y: p.y,
+      width: p.width,
+      height: p.height,
+      name: p.label,
+      nodeType,
+      description,
+    });
+
+    if (activeFlow && nodeOpacity !== '1') {
+      parts.push(`<g opacity="${nodeOpacity}">${nodeSvg}</g>`);
+    } else {
+      parts.push(nodeSvg);
+    }
+  }
+
+  // Append flow overlay ABOVE edges and nodes so animated dots are not dimmed
+  if (activeFlow) {
+    parts.push(renderFlowOverlay(activeFlow, edgeLayoutsByRelationship, idPrefix));
+  }
+
+  parts.push('</svg>');
+  return parts.join('\n');
+}

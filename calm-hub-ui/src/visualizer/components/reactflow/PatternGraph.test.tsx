@@ -88,6 +88,12 @@ describe('PatternGraph', () => {
         expect(screen.getByRole('button', { name: 'Export image' })).toBeInTheDocument();
     });
 
+    it('offers text size controls on desktop', () => {
+        render(<PatternGraph patternData={mockPatternData} />);
+        expect(screen.getByRole('button', { name: 'Smaller diagram text' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Larger diagram text' })).toBeInTheDocument();
+    });
+
     describe('default layout precedence', () => {
         const key = 'ns/id';
 
