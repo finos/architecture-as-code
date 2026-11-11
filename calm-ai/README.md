@@ -261,6 +261,9 @@ calm init-ai -p copilot
 # Initialize AWS Kiro/Q integration
 calm init-ai -p kiro
 
+# Initialize Claude Code integration
+calm init-ai -p claude
+
 # Initialize Codex integration
 calm init-ai -p codex
 

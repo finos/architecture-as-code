@@ -114,7 +114,7 @@ info [calm-ai-tools]:     AI assistant top level directory: .github/agents
 info [calm-ai-tools]:     Creating enhanced agent config at: /Desktop/finos/architecture-as-code/cli/.github/agents/CALM.agents.md
 info [calm-ai-tools]:     ✅ Created configuration from bundled resource
 info [calm-ai-tools]:     📁 Created calm-prompts directory
-info [calm-ai-tools]:     ✅ Successfully created all 11 tool prompt files
+info [calm-ai-tools]:     ✅ Successfully created all 14 tool prompt files
 info [calm-ai-tools]:     ✅ CALM AI tools setup completed successfully!
 info [calm-ai-tools]:     🚀 To use: Open this repository in your IDE and start a chat with the CALM agent
 info [calm-ai-tools]:     📁 Files created in .github/agents directory following copilot AI Assistant conventions
@@ -142,6 +142,9 @@ The AI Support includes separate tools for each CALM component:
 - **Metadata Creation**: Metadata structure and requirements
 - **Standards Creation**: JSON Schema 2020-12 Standards for extending CALM components with organizational requirements
 - **Documentation Creation**: Generating documentation from CALM models
+- **Moment Creation**: Guide for adding moments to timelines with proper validation
+- **Timeline Creation**: Guide for creating architecture timelines
+- **Decorator Creation**: Guide for creating decorators
 
 ## Using CALM AI Tools
 

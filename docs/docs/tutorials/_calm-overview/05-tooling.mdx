@@ -165,7 +165,7 @@ calm init-ai -p opencode  # OpenCode`}</code></pre>
       <ul style={{fontSize:'1.65rem', margin:0, lineHeight:'1.8'}}>
         <li>14 task-specific prompt files (node-creation, decorator-creation, timeline-creation …)</li>
         <li>Schema v1.3 rules, examples, pitfall warnings</li>
-        <li>AI assistant config (<code>.github/copilot-instructions</code> etc.)</li>
+        <li>AI assistant config (<code>.github/agents/CALM.agent.md</code> etc.)</li>
       </ul>
     </div>
     <div style={{background:'#e3f2fd', borderRadius:'8px', padding:'0.9rem 1.1rem'}}>
@@ -183,7 +183,9 @@ calm init-ai -p opencode  # OpenCode`}</code></pre>
     control creation, flow creation, etc.) with schema-v1.3 rules, good examples, and
     known pitfalls called out explicitly.
     calm init-ai writes these into the right place for each AI provider's convention —
-    .github/copilot-instructions for Copilot, .kiro/steering for Kiro, CLAUDE.md for Claude Code,
-    AGENTS.md for Codex, .opencode/skills/finos-calm for OpenCode — so the assistant has them in context on every file it touches.
+    .github/agents/CALM.agent.md for Copilot, .kiro/steering/CALM.chatmode.md for Kiro,
+    .claude/skills/calm/SKILL.md for Claude Code, .agents/skills/calm/SKILL.md for Codex,
+    .bob/skills/calm/SKILL.md for IBM Bob, .opencode/skills/finos-calm/SKILL.md for OpenCode — so the
+    assistant has them in context on every file it touches.
   </aside>
 </section>
