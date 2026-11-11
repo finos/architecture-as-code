@@ -230,7 +230,7 @@ Then reference it in your node with instance-specific config:
 }
 ```
 
-The `definition-url` points to a JSON Schema that defines what properties the `config` object should have. The difference with these approaches is about just capturing the details vs. applying standardisation. It should be noted, architecture validation does not yet ensure that external interface definitions have been correctly followed.
+The `definition-url` points to a JSON Schema that defines what properties the `config` object should have. The difference with these approaches is about just capturing the details vs. applying standardisation. `calm validate` checks the `config` against that schema. If it cannot load the schema, it gives a warning and does not check the `config`.
 
 ### Referencing Interfaces in Relationships
 
