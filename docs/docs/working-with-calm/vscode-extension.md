@@ -233,9 +233,11 @@ Use **⋮ menu → Create Node** to create a reusable standard node from scratch
 
 ## Drill-Down Navigation
 
-Double-click a node that references a sub-architecture (`details.detailed-architecture`) or a standard node to **drill into** its detail. A breadcrumb trail appears at the top of the canvas showing your navigation path. Click any breadcrumb segment to navigate back.
+Double-click a node that references a sub-architecture (`details.detailed-architecture`) or a standard node to **drill into** its detail. A breadcrumb trail appears at the top of the canvas showing your navigation path (e.g. `Root / Payment Service / Database Layer`). Click any breadcrumb segment to navigate back up.
 
-Standard nodes open in **read-only mode** (indicated by a yellow banner).
+<!-- TODO: Add a screenshot showing the breadcrumb trail during drill-down -->
+
+When drilling into a standard node, the canvas opens in **read-only mode** (indicated by a yellow banner) to protect the shared definition.
 
 ---
 
