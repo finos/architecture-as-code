@@ -7,6 +7,7 @@ import { SchemaDirectory } from '../../schema-directory.js';
 import { TEST_1_1_SCHEMA_AND_ABOVE, TEST_1_2_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA, calmSchemaDir, setCalmSchema } from '../../test/test-utils';
 import { generate } from '../generate/generate-core.js';
 import { CalmChoice } from '../generate/components/options.js';
+import { enrichWithDocumentPositions, parseDocumentWithPositions } from './validation-enrichment.js';
 
 const inputArchPath = path.join(
     __dirname,
@@ -519,6 +520,36 @@ describe('validate E2E', () => {
             expect(response.jsonSchemaValidationOutputs[0].code).toBe('control-requirement-validation');
             expect(response.jsonSchemaValidationOutputs[0].path).toBe('/controls/security/requirements/0');
             expect(response.jsonSchemaValidationOutputs[0].message).toContain('description');
+        });
+    });
+
+    describe('inline control config', () => {
+        it('reports a config error at a path that exists in the architecture', async () => {
+            const arch = {
+                '$schema': 'https://calm.finos.org/release/1.2/meta/calm.json',
+                controls: {
+                    security: {
+                        description: 'Secure communication',
+                        requirements: [{
+                            'requirement-url': 'https://calm.finos.org/release/1.2/meta/control-requirement.json',
+                            config: { 'control-id': 'SEC-002', name: 'TLS minimum version', description: 42 }
+                        }]
+                    }
+                },
+                nodes: [{ 'unique-id': 'svc', 'node-type': 'service', name: 'Service', description: 'A service' }],
+                relationships: []
+            };
+
+            const response = await validate(arch, undefined, undefined, schemaDirectory, false);
+            const parsed = parseDocumentWithPositions(JSON.stringify(arch, null, 2), 'architecture');
+            enrichWithDocumentPositions(response, { architecture: parsed! });
+
+            expect(response.hasErrors).toBeTruthy();
+            expect(response.jsonSchemaValidationOutputs).toHaveLength(1);
+            const output = response.jsonSchemaValidationOutputs[0];
+            expect(output.code).toBe('control-requirement-validation');
+            expect(output.line_start).toBeDefined();
+            expect(output.path).toBe('/controls/security/requirements/0/config/description');
         });
     });
 
