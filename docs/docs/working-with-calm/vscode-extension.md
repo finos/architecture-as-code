@@ -59,7 +59,7 @@ The canvas opens in a panel beside your JSON editor.
 
 CALM Canvas is divided into four areas:
 
-1. **Toolbar (top)** — Auto-layout (`↓ Layout` / `→ Layout`), **Validate**, **Apply Pattern**, **Generate Spec**, **Export SVG**, and the overflow menu (`⋮`) for **New from Pattern** and **Create Node**.
+1. **Toolbar (top)** — Auto-layout (`↓ Layout` / `→ Layout`), **Validate**, **Apply Pattern**, **Export SVG**, **Import SVG**, and the overflow menu (`⋮`) for **New from Pattern** and **Create Node**.
 2. **Node Palette (left)** — Drag-and-drop palette containing core CALM node types, extension packs, workspace standard nodes, and CALM Hub standard nodes.
 3. **Interactive Canvas (centre)** — ReactFlow canvas with pan, zoom, minimap, background grid, and zoom controls.
 4. **Properties Panel (right)** — Contextual inspector for the selected element. Collapsible and resizable.
@@ -261,12 +261,6 @@ You can also manually reposition nodes by dragging them. Positions are persisted
 ## Export
 
 Click **Export SVG** in the toolbar to export the current canvas as a vector image. The export uses the current theme background and preserves all node/edge styling.
-
----
-
-## Generate Spec
-
-Click **Generate Spec** in the toolbar to invoke the CALM Agent via GitHub Copilot Chat. The agent reads your architecture file and any referenced standards to generate a Solution Design Specification. Requires GitHub Copilot Chat to be installed.
 
 ---
 
