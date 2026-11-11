@@ -138,6 +138,53 @@ describe('CLI Integration Tests', () => {
     });
 
     describe.each(['copilot', 'kiro', 'claude', 'codex', 'bob', 'opencode'])('calm init-ai -p %s', (provider) => {
+        const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string; frontmatterContains: string[]; frontmatterNotContains?: string[] }> = {
+            copilot: {
+                topLevelDir: '.github/agents',
+                mainPromptFile: '.github/agents/CALM.agent.md',
+                skillPromptsDir: '.github/agents/calm-prompts',
+                frontmatterContains: [
+                    'description:',
+                    'tools:',
+                    'search/codebase',
+                    'edit/editFiles',
+                    'web/fetch',
+                    'execute/runInTerminal',
+                ],
+                frontmatterNotContains: ['tools: [\'codebase\'', 'model:'],
+            },
+            kiro: {
+                topLevelDir: '.kiro',
+                mainPromptFile: '.kiro/steering/CALM.chatmode.md',
+                skillPromptsDir: '.kiro/calm-prompts',
+                frontmatterContains: ['inclusion: manual'],
+            },
+            claude: {
+                topLevelDir: '.claude/skills/calm',
+                mainPromptFile: '.claude/skills/calm/SKILL.md',
+                skillPromptsDir: '.claude/skills/calm/calm-prompts',
+                frontmatterContains: ['name: calm', 'description:', 'user-invocable: true'],
+            },
+            codex: {
+                topLevelDir: '.agents/skills/calm',
+                mainPromptFile: '.agents/skills/calm/SKILL.md',
+                skillPromptsDir: '.agents/skills/calm/calm-prompts',
+                frontmatterContains: ['name: calm', 'description:'],
+            },
+            bob: {
+                topLevelDir: '.bob/skills/calm',
+                mainPromptFile: '.bob/skills/calm/SKILL.md',
+                skillPromptsDir: '.bob/skills/calm/calm-prompts',
+                frontmatterContains: ['name: calm', 'description:'],
+            },
+            opencode: {
+                topLevelDir: '.opencode/skills/finos-calm',
+                mainPromptFile: '.opencode/skills/finos-calm/SKILL.md',
+                skillPromptsDir: '.opencode/skills/finos-calm/references',
+                frontmatterContains: ['name: finos-calm', 'description:'],
+            },
+        };
+
         test('creates correct directory structure and files', async () => {
             const testDir = path.join(tempDir, `init-ai-${provider}-test`);
             fs.mkdirSync(testDir, { recursive: true });
@@ -147,54 +194,6 @@ describe('CLI Integration Tests', () => {
 
             // Run calm init-ai with the specified provider
             await cli.run(['init-ai', '-p', provider, '--directory', testDir]);
-
-            // Define expected paths based on provider
-            const expectedPaths: Record<string, { topLevelDir: string; mainPromptFile: string; skillPromptsDir: string; frontmatterContains: string[]; frontmatterNotContains?: string[] }> = {
-                copilot: {
-                    topLevelDir: '.github/agents',
-                    mainPromptFile: '.github/agents/CALM.agent.md',
-                    skillPromptsDir: '.github/agents/calm-prompts',
-                    frontmatterContains: [
-                        'description:',
-                        'tools:',
-                        'search/codebase',
-                        'edit/editFiles',
-                        'web/fetch',
-                        'execute/runInTerminal',
-                    ],
-                    frontmatterNotContains: ['tools: [\'codebase\'', 'model:'],
-                },
-                kiro: {
-                    topLevelDir: '.kiro',
-                    mainPromptFile: '.kiro/steering/CALM.chatmode.md',
-                    skillPromptsDir: '.kiro/calm-prompts',
-                    frontmatterContains: ['inclusion: manual'],
-                },
-                claude: {
-                    topLevelDir: '.claude/skills/calm',
-                    mainPromptFile: '.claude/skills/calm/SKILL.md',
-                    skillPromptsDir: '.claude/skills/calm/calm-prompts',
-                    frontmatterContains: ['name: calm', 'description:', 'user-invocable: true'],
-                },
-                codex: {
-                    topLevelDir: '.agents/skills/calm',
-                    mainPromptFile: '.agents/skills/calm/SKILL.md',
-                    skillPromptsDir: '.agents/skills/calm/calm-prompts',
-                    frontmatterContains: ['name: calm', 'description:'],
-                },
-                bob: {
-                    topLevelDir: '.bob/skills/calm',
-                    mainPromptFile: '.bob/skills/calm/SKILL.md',
-                    skillPromptsDir: '.bob/skills/calm/calm-prompts',
-                    frontmatterContains: ['name: calm', 'description:'],
-                },
-                opencode: {
-                    topLevelDir: '.opencode/skills/finos-calm',
-                    mainPromptFile: '.opencode/skills/finos-calm/SKILL.md',
-                    skillPromptsDir: '.opencode/skills/finos-calm/references',
-                    frontmatterContains: ['name: finos-calm', 'description:'],
-                },
-            };
 
             const paths = expectedPaths[provider];
 
@@ -219,7 +218,7 @@ describe('CLI Integration Tests', () => {
             const skillPromptsPath = path.join(testDir, paths.skillPromptsDir);
             expect(fs.existsSync(skillPromptsPath)).toBe(true);
 
-            // Verify all 11 skill prompt files exist
+            // Verify all 14 skill prompt files exist
             const expectedSkillFiles = [
                 'architecture-creation.md',
                 'calm-cli-instructions.md',
@@ -232,6 +231,8 @@ describe('CLI Integration Tests', () => {
                 'pattern-creation.md',
                 'documentation-creation.md',
                 'standards-creation.md',
+                'moment-creation.md',
+                'timeline-creation.md',
                 'decorator-creation.md',
             ];
 
@@ -239,6 +240,36 @@ describe('CLI Integration Tests', () => {
                 const skillFilePath = path.join(skillPromptsPath, skillFile);
                 expect(fs.existsSync(skillFilePath)).toBe(true);
                 // Verify file has content
+                const content = fs.readFileSync(skillFilePath, 'utf8');
+                expect(content.length).toBeGreaterThan(0);
+            });
+
+            // Clean up test directory
+            fs.rmSync(testDir, { recursive: true, force: true });
+        });
+
+        test('generated main prompt references every configured skill prompt', async () => {
+            const testDir = path.join(tempDir, `init-ai-${provider}-references-test`);
+            fs.mkdirSync(testDir, { recursive: true });
+
+            // Initialize a git repository to avoid warning
+            execSync('git init', { cwd: testDir, stdio: 'inherit' });
+
+            // Run calm init-ai with the specified provider
+            await cli.run(['init-ai', '-p', provider, '--directory', testDir]);
+
+            const paths = expectedPaths[provider];
+
+            // Load the provider configuration from the built calm-ai bundle
+            const calmAiDir = path.resolve(__dirname, '..', 'dist', 'calm-ai');
+            const configPath = path.join(calmAiDir, 'ai-assistants', `${provider}.json`);
+            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+            // Verify every skill prompt declared in the config was copied to the generated directory
+            config.skillPrompts.forEach((skillPrompt: string) => {
+                const skillFilePath = path.join(testDir, paths.skillPromptsDir, path.basename(skillPrompt));
+                expect(fs.existsSync(skillFilePath)).toBe(true);
+
                 const content = fs.readFileSync(skillFilePath, 'utf8');
                 expect(content.length).toBeGreaterThan(0);
             });
