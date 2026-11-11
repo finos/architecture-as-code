@@ -40,8 +40,8 @@ public class OidcRoleResolver {
         Set<String> requiredGroups = accessGroups.isEmpty() ? parseConfig(globalAccessGroups) : accessGroups;
 
         if (requiredGroups.isEmpty()) {
-            LOG.warn("No access groups configured. No access will be granted.");
-            return AccessLevel.NONE;
+            LOG.debug("No access groups configured — granting read access to all authenticated users.");
+            return AccessLevel.READ;
         }
 
         Set<String> userGroups = identity.getRoles();

@@ -44,11 +44,11 @@ class TestOidcRoleResolverShould {
     }
 
     @Test
-    void return_none_when_no_access_groups_configured() {
+    void return_read_when_no_access_groups_configured() {
         when(mockIdentity.isAnonymous()).thenReturn(false);
         resolver.globalAccessGroups = Optional.empty();
 
-        assertThat(resolver.resolve(mockIdentity, Set.of()), equalTo(OidcRoleResolver.AccessLevel.NONE));
+        assertThat(resolver.resolve(mockIdentity, Set.of()), equalTo(OidcRoleResolver.AccessLevel.READ));
     }
 
     @Test
@@ -103,10 +103,10 @@ class TestOidcRoleResolverShould {
     }
 
     @Test
-    void parse_blank_global_config_as_empty() {
+    void grant_read_when_global_config_is_blank() {
         when(mockIdentity.isAnonymous()).thenReturn(false);
         resolver.globalAccessGroups = Optional.of("   ");
 
-        assertThat(resolver.resolve(mockIdentity, Set.of()), equalTo(OidcRoleResolver.AccessLevel.NONE));
+        assertThat(resolver.resolve(mockIdentity, Set.of()), equalTo(OidcRoleResolver.AccessLevel.READ));
     }
 }
