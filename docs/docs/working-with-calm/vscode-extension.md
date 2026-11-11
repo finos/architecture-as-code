@@ -235,7 +235,7 @@ Use **⋮ menu → Create Node** to create a reusable standard node from scratch
 
 Double-click a node that references a sub-architecture (`details.detailed-architecture`) or a standard node to **drill into** its detail. A breadcrumb trail appears at the top of the canvas showing your navigation path (e.g. `Root / Payment Service / Database Layer`). Click any breadcrumb segment to navigate back up.
 
-<!-- TODO: Add a screenshot showing the breadcrumb trail during drill-down -->
+![Drill-down breadcrumb and read-only banner](/img/vscode/Drill_Down_Breadcrumb.png)
 
 When drilling into a standard node, the canvas opens in **read-only mode** (indicated by a yellow banner) to protect the shared definition.
 
