@@ -86,16 +86,13 @@ export async function exportDiagram(
     };
     const dataUrl = await toSvg(viewport, options);
     const svg = withBackground(withSvgStyles(decodeURIComponent(dataUrl.slice(dataUrl.indexOf(',') + 1)), viewport), background);
-    if (format === 'png') {
-        save(await toPng(svg, width, height), fileName);
-        return;
-    }
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    const blob = format === 'png' ? await toPng(svg, width, height) : new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
     save(url, fileName);
     URL.revokeObjectURL(url);
 }
 
-async function toPng(svg: string, width: number, height: number): Promise<string> {
+async function toPng(svg: string, width: number, height: number): Promise<Blob> {
     const image = new Image();
     image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     await image.decode();
@@ -104,7 +101,9 @@ async function toPng(svg: string, width: number, height: number): Promise<string
     canvas.width = Math.floor(width * scale);
     canvas.height = Math.floor(height * scale);
     canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL('image/png');
+    return new Promise((resolve, reject) =>
+        canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('The canvas made no PNG'))), 'image/png'),
+    );
 }
 
 function save(href: string, fileName: string) {

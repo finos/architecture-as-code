@@ -17,9 +17,8 @@ const NO_CALLOUTS = new Map();
 /** Saves the whole diagram, as it is drawn, as an SVG or PNG image. */
 export function ExportButton({ diagramKey }: ExportButtonProps) {
     const [open, setOpen] = useState(false);
-    const { getNodes } = useReactFlow();
+    const { getNodes, getZoom } = useReactFlow();
     const flow = useStore((state) => state.domNode);
-    const zoom = useStore((state) => state.transform[2]);
 
     const save = (format: ExportFormat) => {
         setOpen(false);
@@ -27,7 +26,7 @@ export function ExportButton({ diagramKey }: ExportButtonProps) {
         if (!flow || !viewport) return;
         exportDiagram(
             viewport,
-            labelRects(viewport, zoom).reduce(getBoundsOfRects, diagramBounds(getNodes(), NO_CALLOUTS)),
+            labelRects(viewport, getZoom()).reduce(getBoundsOfRects, diagramBounds(getNodes(), NO_CALLOUTS)),
             format,
             exportFileName(diagramKey, format),
             getComputedStyle(flow).backgroundColor,

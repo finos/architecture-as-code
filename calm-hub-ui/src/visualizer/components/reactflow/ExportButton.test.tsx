@@ -14,13 +14,14 @@ vi.spyOn(viewport, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, w
 vi.spyOn(viewport.querySelector('.react-flow__edgelabel-renderer > *')!, 'getBoundingClientRect')
     .mockReturnValue({ left: 0, top: -60, width: 220, height: 40 } as DOMRect);
 
+let zoom = 1;
+
 const nodes: Node[] = [{ id: 'a', position: { x: 0, y: 0 }, positionAbsolute: { x: 0, y: 0 }, width: 100, height: 50, data: {} }];
 
 vi.mock('reactflow', async (importOriginal) => ({
     ...(await importOriginal<typeof import('reactflow')>()),
-    useReactFlow: () => ({ getNodes: () => nodes }),
-    useStore: (selector: (state: { domNode: HTMLElement; transform: [number, number, number] }) => unknown) =>
-        selector({ domNode: flow, transform: [0, 0, 1] }),
+    useReactFlow: () => ({ getNodes: () => nodes, getZoom: () => zoom }),
+    useStore: (selector: (state: { domNode: HTMLElement }) => unknown) => selector({ domNode: flow }),
 }));
 
 vi.mock('./utils/diagramExport.js', async (importOriginal) => ({
@@ -33,7 +34,10 @@ function renderButton() {
 }
 
 describe('ExportButton', () => {
-    afterEach(() => vi.mocked(exportDiagram).mockClear());
+    afterEach(() => {
+        vi.mocked(exportDiagram).mockClear();
+        zoom = 1;
+    });
 
     it('offers SVG and PNG once opened', () => {
         renderButton();
@@ -48,14 +52,16 @@ describe('ExportButton', () => {
         expect(screen.getByRole('menuitem', { name: 'PNG' })).toBeInTheDocument();
     });
 
-    it('exports the whole diagram, edge labels and callouts included, on the diagram background, and closes the menu', async () => {
+    it('exports the whole diagram, edge labels and callouts measured at the zoom on click, on the diagram background, and closes the menu', async () => {
         renderButton();
         fireEvent.click(screen.getByRole('button', { name: 'Export image' }));
+        // A zoom does not render the button again.
+        zoom = 2;
         fireEvent.click(screen.getByRole('menuitem', { name: 'PNG' }));
 
         await waitFor(() => expect(exportDiagram).toHaveBeenCalledWith(
             viewport,
-            { x: 0, y: -60, width: 220, height: 110 },
+            { x: 0, y: -30, width: 110, height: 80 },
             'png',
             'finos-Architectures-7.png',
             'rgb(1, 2, 3)',

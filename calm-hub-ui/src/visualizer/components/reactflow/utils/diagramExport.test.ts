@@ -143,6 +143,7 @@ describe('exportDiagram', () => {
         });
         await exportDiagram(viewport, bounds, 'svg', 'd.svg', '#fff');
         expect(saved).toEqual({ href: 'blob:svg', download: 'd.svg' });
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:svg');
         expect(blob?.type).toBe('image/svg+xml');
         expect(await blob?.text()).toBe('<svg width="10"><rect width="100%" height="100%" fill="#fff"/><g/></svg>');
     });
@@ -157,7 +158,12 @@ describe('exportDiagram', () => {
                 },
             } as unknown as CanvasRenderingContext2D;
         });
-        vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,AAAA');
+        const png = new Blob(['png'], { type: 'image/png' });
+        vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback, type) => {
+            expect(type).toBe('image/png');
+            callback(png);
+        });
+        vi.mocked(URL.createObjectURL).mockImplementation((b) => (b === png ? 'blob:png' : 'blob:other'));
 
         await exportDiagram(viewport, bounds, 'png', 'd.png', '#fff');
 
@@ -166,6 +172,17 @@ describe('exportDiagram', () => {
             width: 960,
             height: 560,
         });
-        expect(saved).toEqual({ href: 'data:image/png;base64,AAAA', download: 'd.png' });
+        expect(saved).toEqual({ href: 'blob:png', download: 'd.png' });
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:png');
+    });
+
+    it('fails when the canvas makes no PNG', async () => {
+        HTMLImageElement.prototype.decode = vi.fn(async () => {});
+        // jsdom has no canvas.
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+        vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => callback(null));
+
+        await expect(exportDiagram(viewport, bounds, 'png', 'd.png', '#fff')).rejects.toThrow('PNG');
+        expect(saved).toBeUndefined();
     });
 });
