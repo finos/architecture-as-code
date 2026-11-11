@@ -8,8 +8,6 @@ import ReactFlow, {
     Panel,
     useNodesState,
     useEdgesState,
-    getBoundsOfRects,
-    getNodesBounds,
     getViewportForBounds,
     type FitViewOptions,
     type ReactFlowInstance,
@@ -27,7 +25,8 @@ import { SearchBar } from './SearchBar.js';
 import { presentParam, usePresentationMode } from '../../../theme/usePresentationMode.js';
 import { DecisionOverlayContext, useCalloutSizes, type CalloutSize } from '../../context/DecisionOverlayContext.js';
 import { subjectLabelsFor } from './utils/decisionSummary.js';
-import { calloutRects } from './utils/labelPlacement.js';
+import { diagramBounds } from './utils/diagramExport.js';
+import { ExportButton } from './ExportButton.js';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
@@ -327,10 +326,8 @@ export function ArchitectureGraph({
         const instance = flowInstanceRef.current;
         const container = containerRef.current;
         if (!instance || !container) return undefined;
-        const shown = instance.getNodes().filter((node) => !node.hidden);
-        const bounds = calloutRects(shown, callouts).reduce(getBoundsOfRects, getNodesBounds(shown));
         return getViewportForBounds(
-            bounds,
+            diagramBounds(instance.getNodes(), callouts),
             container.clientWidth,
             container.clientHeight,
             options.minZoom ?? MIN_ZOOM,
@@ -527,6 +524,7 @@ export function ArchitectureGraph({
                                     color={showDecisions ? colors.redesign.primaryText : THEME.colors.muted}
                                 />
                             </ControlButton>
+                            <ExportButton diagramKey={viewportKey} />
                         </Controls>
                     )}
                     {isMobile && (

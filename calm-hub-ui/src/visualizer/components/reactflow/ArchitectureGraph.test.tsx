@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import { useState, type ReactNode } from 'react';
-import { getViewportForBounds, type Node, type Viewport } from 'reactflow';
+import { getViewportForBounds, ReactFlowProvider, type Node, type Viewport } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
@@ -45,7 +45,7 @@ function MockReactFlow(props: Record<string, unknown>) {
             data-show-decisions={showDecisions}
             data-relationship-label={subjectLabels.get('rel-1')}
         >
-            {props.children as ReactNode}
+            <ReactFlowProvider>{props.children as ReactNode}</ReactFlowProvider>
         </div>
     );
 }
@@ -587,6 +587,11 @@ describe('ArchitectureGraph', () => {
         });
     });
 
+    it('offers an image export on desktop', () => {
+        render(<ArchitectureGraph jsonData={mockCalmData} />);
+        expect(screen.getByRole('button', { name: 'Export image' })).toBeInTheDocument();
+    });
+
     describe('mobile', () => {
         const originalMatchMedia = window.matchMedia;
         function mockMobileViewport() {
@@ -630,6 +635,12 @@ describe('ArchitectureGraph', () => {
             mockMobileViewport();
             render(<ArchitectureGraph jsonData={mockCalmData} />);
             expect(screen.queryByRole('button', { name: /pause animation/i })).not.toBeInTheDocument();
+        });
+
+        it('has no image export on mobile', () => {
+            mockMobileViewport();
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(screen.queryByRole('button', { name: 'Export image' })).not.toBeInTheDocument();
         });
 
         it('renders visible zoom controls on mobile (#11)', () => {
