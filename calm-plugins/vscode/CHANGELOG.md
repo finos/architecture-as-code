@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Odd minor versions (e.g. 0.9.x) are published as pre-releases.
 
+## [0.9.6](https://github.com/finos/architecture-as-code/compare/vscode-v0.9.5...vscode-v0.9.6) (2026-11-11)
+
+### 🚀 Features
+
+* **calm-diagram:** move the docs diagram embed out of calm-studio ([#3636](https://github.com/finos/architecture-as-code/issues/3636)) ([41f97fe](https://github.com/finos/architecture-as-code/commit/41f97fee1ae73d66d8b8632f9e2aa82893978378)), closes [#3526](https://github.com/finos/architecture-as-code/issues/3526)
+
+### 🐛 Bug Fixes
+
+* **vscode:** keep every container of a node with several parents ([#3574](https://github.com/finos/architecture-as-code/issues/3574)) ([fa23bf8](https://github.com/finos/architecture-as-code/commit/fa23bf8a35c16bdb86256bee9d7b745197034976)), closes [#3571](https://github.com/finos/architecture-as-code/issues/3571)
+* **vscode:** keep fields the canvas does not edit ([#3566](https://github.com/finos/architecture-as-code/issues/3566)) ([f74995b](https://github.com/finos/architecture-as-code/commit/f74995ba602142bef8dec361f4c4cc1afd618389)), closes [#3518](https://github.com/finos/architecture-as-code/issues/3518)
+* **vscode:** open detailed-architecture child document on drill-in ([#3657](https://github.com/finos/architecture-as-code/issues/3657)) ([0501da2](https://github.com/finos/architecture-as-code/commit/0501da284ee3ee20f675196c4cb961b4c5fde6f9)), closes [#3654](https://github.com/finos/architecture-as-code/issues/3654)
+
 ## [0.9.5](https://github.com/finos/architecture-as-code/compare/vscode-v0.9.4...vscode-v0.9.5) (2026-11-08)
 
 ### 🐛 Bug Fixes
