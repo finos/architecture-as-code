@@ -9,6 +9,8 @@ export interface DiagramTabScope {
     isArchitecture: boolean;
     /** The pattern's name on the name-based API. Undefined for architectures, and until the summary loads. */
     patternName?: string;
+    /** Some extension contributes an action or a designer tab for this resource. */
+    hasExtensions?: boolean;
 }
 
 export interface DiagramTabContext extends DiagramTabScope {
@@ -52,6 +54,14 @@ export function resolveDiagramTab(tabs: readonly DiagramTab[], id: string | null
     const fallback = visible.find((tab) => tab.id === DEFAULT_DIAGRAM_TAB_ID) ?? visible[0];
     if (!fallback) throw new Error('The diagram tab registry has no visible tab');
     return visible.find((tab) => tab.id === id) ?? fallback;
+}
+
+/**
+ * The tab to keep on navigation to another version: the requested tab when it is registered, even if it is hidden
+ * for now (the Extensions tab before the registry loads), else the active tab.
+ */
+export function carriedDiagramTab(tabs: readonly DiagramTab[], id: string | null, active: DiagramTab): DiagramTab {
+    return tabs.find((tab) => tab.id === id) ?? active;
 }
 
 export function diagramTabLabel(tab: DiagramTab, context: DiagramTabContext): string {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { IoEyeOutline } from 'react-icons/io5';
 import {
+    carriedDiagramTab,
     diagramTabLabel,
     diagramTabQuery,
     redirectedTabQuery,
@@ -50,6 +51,14 @@ describe('resolveDiagramTab', () => {
 
     it('throws when no tab is visible', () => {
         expect(() => resolveDiagramTab([archOnly], null, pattern)).toThrow('no visible tab');
+    });
+});
+
+describe('carriedDiagramTab', () => {
+    it('keeps a registered tab that is hidden for now, and falls back to the active tab otherwise', () => {
+        expect(carriedDiagramTab(tabs, 'arch-only', diagram)).toBe(archOnly);
+        expect(carriedDiagramTab(tabs, 'no-such-tab', json)).toBe(json);
+        expect(carriedDiagramTab(tabs, null, diagram)).toBe(diagram);
     });
 });
 

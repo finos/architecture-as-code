@@ -3,9 +3,8 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
-import { useExtensions, useExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
-import { ExtensionPoints } from '../../../extensions/ExtensionPoints.js';
-import { EXTENSION_TAB_PREFIX, extensionTabs } from '../../../extensions/extension-tabs.js';
+import { useExtensions } from '../../../extensions/ExtensionsContext.js';
+import { resourceExtensions } from '../../../extensions/contributions.js';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
@@ -38,6 +37,7 @@ import { usePatternImplementations } from './used-by/usePatternImplementations.j
 import { useArchitectureDecorators } from './decorators/useArchitectureDecorators.js';
 import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS, extensionContext } from './tabs/diagramTabs.js';
 import {
+    carriedDiagramTab,
     DEFAULT_DIAGRAM_TAB_ID,
     diagramTabLabel,
     diagramTabQuery,
@@ -215,11 +215,11 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
 
     const implementationService = useMemo(() => new PatternImplementationService(), []);
     const extensions = useExtensions();
-    const registeredTabs = [...DIAGRAM_TABS, ...extensionTabs(extensions)];
-    const tabScope = { isArchitecture, patternName };
-    const visibleTabs = visibleDiagramTabs(registeredTabs, tabScope);
-    const activeTab = resolveDiagramTab(registeredTabs, searchParams.get('tab'), tabScope);
-    const tabQuery = diagramTabQuery(activeTab, searchParams);
+    const hasExtensions = !showsDroppedFile && resourceExtensions(extensions, extensionContext(data)).length > 0;
+    const tabScope = { isArchitecture, patternName, hasExtensions };
+    const visibleTabs = visibleDiagramTabs(DIAGRAM_TABS, tabScope);
+    const activeTab = resolveDiagramTab(DIAGRAM_TABS, searchParams.get('tab'), tabScope);
+    const tabQuery = diagramTabQuery(carriedDiagramTab(DIAGRAM_TABS, searchParams.get('tab'), activeTab), searchParams);
     const usedByOpen = activeTab.id === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
     // Polled only while the diagram, the Decorators tab or the details drawer shows them.
@@ -251,13 +251,9 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     }, [setSearchParams, location.state]);
 
     // A tab id no entry registers is dropped from the URL, so a copied link does not keep it. A hidden tab such as
-    // used-by is kept, because it can become visible when the pattern summary loads. An extension tab is kept until
-    // the registry loads, because only then is it registered.
+    // used-by is kept, because it can become visible when the pattern summary loads.
     const requestedTab = searchParams.get('tab');
-    const registryLoaded = useExtensionsStatus() === 'loaded';
-    const unknownTab = requestedTab !== null
-        && !registeredTabs.some((tab) => tab.id === requestedTab)
-        && (registryLoaded || !requestedTab.startsWith(EXTENSION_TAB_PREFIX));
+    const unknownTab = requestedTab !== null && !DIAGRAM_TABS.some((tab) => tab.id === requestedTab);
     useEffect(() => {
         if (!unknownTab) return;
         setSearchParams(
@@ -488,9 +484,6 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     ]);
 
     const Icon = iconMap[data.calmType];
-    const extensionActions = !showsDroppedFile && (
-        <ExtensionPoints point="action" context={extensionContext(data, selectedElement)} placement="diagram-toolbar" />
-    );
 
     const tabContext: DiagramTabContext = {
         ...tabScope,
@@ -817,7 +810,6 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                         rightContent={
                             <div className="flex items-center gap-2">
                                 {tabs}
-                                {extensionActions}
                                 {layoutActions}
                             </div>
                         }
@@ -839,7 +831,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     return (
         <NodeSearchProvider value={nodeSearch}>
         <div className="w-full h-full">
-            {navbarSlot ? createPortal(<>{viewMenu}{extensionActions}</>, navbarSlot) : <>{viewMenu}{extensionActions}</>}
+            {navbarSlot ? createPortal(viewMenu, navbarSlot) : viewMenu}
             <div className="h-full bg-base-100 overflow-hidden flex flex-col">
                 {/* Mobile has no SectionHeader (full-bleed canvas), so after a
                     detailed-architecture hop the trail would be unreachable.
