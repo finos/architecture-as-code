@@ -4,6 +4,8 @@ import { DecoratorsPanel } from '../decorators/DecoratorsPanel.js';
 import { UsedByPanel } from '../used-by/UsedByPanel.js';
 import { USED_BY_TOOLTIP, usedByLabel } from '../used-by/usedBy.js';
 import { DEFAULT_DIAGRAM_TAB_ID, type DiagramTab } from './diagramTabRegistry.js';
+import type { Data } from '../../../../model/calm.js';
+import type { ExtensionContext } from '../../../../model/extensions.js';
 
 export const DECORATORS_TAB_ID = 'decorators';
 
@@ -20,6 +22,18 @@ export const decoratorFilterParams = (type: string | null | undefined, schema: s
 /** Old `?tab=` values, and the query that replaces each. Deployments became a decorator view. */
 export const DIAGRAM_TAB_REDIRECTS: Readonly<Record<string, Record<string, string>>> = {
     deployments: { tab: DECORATORS_TAB_ID, [DECORATOR_TYPE_PARAM]: 'deployment' },
+};
+
+export const extensionContext = (data: Data, selectedElement?: string): ExtensionContext => {
+    const resourceType = data.calmType.toLowerCase();
+    return {
+        namespace: data.name,
+        resource: `${resourceType}/${data.id}`,
+        resourceType,
+        resourceId: data.id,
+        version: data.version,
+        selectedElement,
+    };
 };
 
 /** The tabs of the diagram section, in display order. */

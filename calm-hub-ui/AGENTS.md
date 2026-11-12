@@ -193,6 +193,17 @@ details drawer and `Drawer`. Do not add a second request. `Drawer` gives the ove
 edges read `useElementOverlays(id)`; do not add a type-specific badge. The decision callouts, the hover list and the
 Evaluations panel read control-evaluation fields, so they use only the view with the id `CONTROL_EVALUATION_VIEW_ID`.
 
+`ExtensionService` uses its own axios instance, not `apiClient`, so a registry or extension call failure does not
+open the global auth or outage page. The exception is a registry `401`: the registry is a Hub call, so it opens
+the sign-in prompt. `ExtensionsProvider` (`extensions/ExtensionsContext.tsx`) owns the one `ExtensionService`.
+Get it with `useExtensionService()`, not `new ExtensionService()` or a module singleton: the registry and the
+slots then share one registry request, and a test can inject a service. The service
+drops registry entries whose `hubApi` the UI does not support, and malformed entries (no string `id`, no list of routes, no
+`contributes` object, or a UI extension point that is not a list of entries). After a failed load the provider
+tries again with a backoff (5 s, doubled, up to 60 s; a new service starts it again), but not after a `401`.
+`useExtensionsStatus()` gives `loading`, `loaded`, `failed` or `signed-out`. Use it where an empty list must not
+mean "no extension", for example `ExtensionScreenPage` on a deep link, or an extension tab in a link.
+
 ### Operator UI config
 
 `UiConfigProvider` (`components/ui-config/`) loads `GET /api/calm/ui/config` one time.

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useMatch, useNavigate } from 'react-router-dom';
 import { IoCompassOutline } from 'react-icons/io5';
+import { ExtensionResourceContext } from '../extensions/ExtensionResourceContext.js';
+import { RESOURCE_ROUTE } from './routes.js';
 import { ExploreRail } from './components/explore-rail/ExploreRail.js';
 import { CollapsedRail } from './components/explore-rail/CollapsedRail.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
@@ -30,6 +32,7 @@ import { DiagramActionsContext } from '../visualizer/context/DiagramActionsConte
 import { DecoratorsContext, type DecoratorsState } from '../visualizer/context/DecoratorsContext.js';
 import { containersOfContainment } from '../visualizer/overlay/overlayEngine.js';
 import { ResourceNotFound } from './components/resource-not-found/ResourceNotFound.js';
+import { extensionContext } from './components/diagram-section/tabs/diagramTabs.js';
 import { parseCALMHubPath } from '../visualizer/components/reactflow/utils/calmHelpers.js';
 import type { Decorator, SelectedItem } from '../visualizer/contracts/contracts.js';
 import type { CalmNodeSchema } from '@finos/calm-models/types';
@@ -65,6 +68,7 @@ export default function Hub() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
+    const [showsDroppedFile, setShowsDroppedFile] = useState(false);
     // Reported by DiagramSection, which fetches them, for the details drawer.
     const [decorators, setDecorators] = useState<Decorator[]>([]);
     // A detail-route load rejected (missing resource, dangling reference). Cleared
@@ -86,7 +90,7 @@ export default function Hub() {
     // route, so the URL — not residual state — decides what renders.
     const namespaceMatch = useMatch('/namespace/:ns');
     const domainMatch = useMatch('/domain/:domain');
-    const detailMatch = useMatch('/:namespace/:type/:id/:version');
+    const detailMatch = useMatch(RESOURCE_ROUTE);
     const searchMatch = useMatch('/search');
     const brokenRefMatch = useMatch('/broken-reference');
     const activeNamespace = namespaceMatch?.params.ns;
@@ -337,6 +341,12 @@ export default function Hub() {
     );
 
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
+    // Memoised: a new object on each render would re-render each consumer and restart its effects.
+    const resourceContext = useMemo(
+        () => (data && isDiagramView && !showsDroppedFile ? extensionContext(data) : null),
+        [data, isDiagramView, showsDroppedFile]
+    );
+
     const decoratorsState = useMemo(
         (): DecoratorsState => ({
             decorators,
@@ -449,9 +459,11 @@ export default function Hub() {
             data={data}
             onItemSelect={handleItemSelect}
             hasDetailsPanel={!!selectedItem}
+            selectedElement={selectedItem?.data['unique-id']}
             breadcrumbs={breadcrumbs}
             onDisplayNameChange={handleDisplayNameChange}
             onDecoratorsChange={setDecorators}
+            onDroppedFileChange={setShowsDroppedFile}
         />
     ) : (
         <DocumentDetailSection data={data} />
@@ -496,6 +508,7 @@ export default function Hub() {
 
     return (
         <DiagramActionsContext.Provider value={diagramActions}>
+        <ExtensionResourceContext.Provider value={resourceContext}>
         <DecoratorsContext.Provider value={decoratorsState}>
         <div className="flex flex-col h-screen overflow-hidden">
             <Navbar />
@@ -571,6 +584,7 @@ export default function Hub() {
             </div>
         </div>
         </DecoratorsContext.Provider>
+        </ExtensionResourceContext.Provider>
         </DiagramActionsContext.Provider>
     );
 }

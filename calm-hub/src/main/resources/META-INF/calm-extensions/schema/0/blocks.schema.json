@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/calm-hub/extensions/hub-api-0/blocks.schema.json",
+  "type": "object",
+  "properties": {
+    "hubApi": {
+      "const": 0
+    },
+    "title": {
+      "type": "string"
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "markdown"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "keyValue"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": [
+                        "string",
+                        "number"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "type",
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "stats"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": [
+                        "string",
+                        "number"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "type",
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "table"
+              },
+              "columns": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/cell"
+                  }
+                }
+              }
+            },
+            "required": [
+              "type",
+              "columns",
+              "rows"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "cards"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "subtitle": {
+                      "type": "string"
+                    },
+                    "link": {
+                      "$ref": "#/$defs/link"
+                    }
+                  },
+                  "required": [
+                    "title"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "type",
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "alert"
+              },
+              "tone": {
+                "enum": [
+                  "positive",
+                  "negative",
+                  "warning",
+                  "info",
+                  "neutral"
+                ]
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "const": "links"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/link"
+                }
+              }
+            },
+            "required": [
+              "type",
+              "items"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "hubApi",
+    "blocks"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "hub": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "namespace",
+        "type",
+        "id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "link": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "href": {
+          "type": "string",
+          "pattern": "^https?://"
+        },
+        "hub": {
+          "$ref": "#/$defs/hub"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "href"
+          ],
+          "not": {
+            "required": [
+              "hub"
+            ]
+          }
+        },
+        {
+          "required": [
+            "hub"
+          ],
+          "not": {
+            "required": [
+              "href"
+            ]
+          }
+        }
+      ]
+    },
+    "cell": {
+      "oneOf": [
+        {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "badge": {
+              "type": "string"
+            },
+            "tone": {
+              "enum": [
+                "positive",
+                "negative",
+                "warning",
+                "info",
+                "neutral"
+              ]
+            }
+          },
+          "required": [
+            "badge"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "$ref": "#/$defs/link"
+        }
+      ]
+    }
+  }
+}

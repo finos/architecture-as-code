@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 abstract class ExtensionAssertionRejection {
 
-    static final String PROTECTED_PATH = "/api/calm/extensions";
+    static final String PROTECTED_PATH = "/api/calm/extensions/schema/0/blocks.schema.json";
     static final String TEST_SECURITY_PACKAGE = "io.quarkus.test.security";
 
     @Inject
