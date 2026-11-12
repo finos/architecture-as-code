@@ -1,4 +1,5 @@
-import { IoCodeOutline, IoEyeOutline, IoGitNetworkOutline, IoPricetagsOutline } from 'react-icons/io5';
+import { IoAppsOutline, IoCodeOutline, IoEyeOutline, IoGitNetworkOutline, IoPricetagsOutline } from 'react-icons/io5';
+import { ExtensionsTabPanel } from '../../../../extensions/sections/ExtensionsTabPanel.js';
 import { JsonRenderer } from '../../json-renderer/JsonRenderer.js';
 import { DecoratorsPanel } from '../decorators/DecoratorsPanel.js';
 import { UsedByPanel } from '../used-by/UsedByPanel.js';
@@ -23,6 +24,8 @@ export const decoratorFilterParams = (type: string | null | undefined, schema: s
 export const DIAGRAM_TAB_REDIRECTS: Readonly<Record<string, Record<string, string>>> = {
     deployments: { tab: DECORATORS_TAB_ID, [DECORATOR_TYPE_PARAM]: 'deployment' },
 };
+
+export const EXTENSIONS_TAB_ID = 'extensions';
 
 export const extensionContext = (data: Data, selectedElement?: string): ExtensionContext => {
     const resourceType = data.calmType.toLowerCase();
@@ -83,5 +86,13 @@ export const DIAGRAM_TABS: readonly DiagramTab[] = [
         icon: IoGitNetworkOutline,
         isVisible: ({ isArchitecture, patternName }) => !isArchitecture && patternName !== undefined,
         render: ({ usedBy }) => <UsedByPanel state={usedBy} />,
+    },
+    {
+        id: EXTENSIONS_TAB_ID,
+        label: 'Extensions',
+        icon: IoAppsOutline,
+        // Hidden, not unknown, until the registry loads, so a link to the tab keeps it.
+        isVisible: ({ hasExtensions }) => !!hasExtensions,
+        render: ({ data, selectedElement }) => <ExtensionsTabPanel context={extensionContext(data, selectedElement)} />,
     },
 ];

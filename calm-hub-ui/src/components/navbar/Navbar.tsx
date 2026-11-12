@@ -1,4 +1,3 @@
-import { ExtensionScreenLinks } from '../../extensions/ExtensionPoints.js';
 import './Navbar.css';
 import { useContext, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -12,6 +11,7 @@ import { isAuthServiceEnabled } from '../../authService.js';
 import { useUiConfig } from '../ui-config/UiConfigContext.js';
 import { EnvironmentPill } from './EnvironmentPill.js';
 import { MenuInfo } from './MenuInfo.js';
+import { ExtensionMenuGroup } from './ExtensionMenuGroup.js';
 
 /**
  * The navy-and-blue lockup is unreadable on a dark base, so dark gets a white one.
@@ -101,8 +101,8 @@ export function Navbar({ storage }: NavbarProps = {}) {
                             </NavLink>
                         </li>
                     )}
+                    <ExtensionMenuGroup linkClassName={menuNavClass} onNavigate={closeMenu} />
                 </ul>
-                <ExtensionScreenLinks onNavigate={closeMenu} />
                 <MenuInfo identity={identity} items={items} />
             </div>
         </div>
