@@ -12,6 +12,7 @@ import org.finos.calm.domain.exception.DecoratorSchemaValidationException;
 import org.finos.calm.domain.exception.DecoratorSupersededException;
 import org.finos.calm.domain.exception.DecoratorTooLargeException;
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
+import org.finos.calm.domain.exception.HubOwnedDecoratorFieldException;
 import org.finos.calm.domain.exception.ReservedDecoratorTypeException;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.github.GitHubDecoratorStore;
@@ -336,6 +337,40 @@ class TestDecoratorWriteServiceShould {
 
     private static Decorator decorator(String type) {
         return new Decorator.DecoratorBuilder().setType(type).build();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"creationDateTime", "updateDateTime", "supersededDateTime", "supersedes", "supersededBy"})
+    void refuse_a_hub_owned_time_on_create_before_any_other_check(String field) {
+        String json = "{\"type\": \"control-evaluation\", \"" + field + "\": \"2026-01-01T00:00:00.000Z\"}";
+
+        HubOwnedDecoratorFieldException e = assertThrows(HubOwnedDecoratorFieldException.class,
+                () -> service.createDecorator(WRITER, NAMESPACE, json));
+
+        assertThat(e.getField(), is(field));
+        verifyNothingStored();
+        verifyNoInteractions(mockSchemaValidator);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"creationDateTime", "updateDateTime", "supersededDateTime", "supersedes", "supersededBy"})
+    void refuse_a_hub_owned_time_on_update(String field) {
+        String json = "{\"type\": \"threat-model\", \"" + field + "\": null}";
+
+        HubOwnedDecoratorFieldException e = assertThrows(HubOwnedDecoratorFieldException.class,
+                () -> service.updateDecorator(WRITER, NAMESPACE, 1, json));
+
+        assertThat(e.getField(), is(field));
+        verifyNothingStored();
+        verifyNoInteractions(mockSchemaValidator);
+    }
+
+    @Test
+    void accept_a_hub_owned_field_name_inside_the_decorator_data() throws Exception {
+        String json = "{\"type\": \"threat-model\", \"data\": {\"creationDateTime\": \"x\"}}";
+        when(mockDecoratorStore.createDecorator(NAMESPACE, json)).thenReturn(3);
+
+        assertThat(service.createDecorator(null, NAMESPACE, json), is(3));
     }
 
     @Test

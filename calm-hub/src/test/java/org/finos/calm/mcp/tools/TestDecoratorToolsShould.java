@@ -751,6 +751,67 @@ class TestDecoratorToolsShould {
         verifyNoInteractions(decoratorStore);
     }
 
+    // --- Hub-owned times ---
+
+    private static final String CREATED = "2026-11-01T09:00:00.000Z";
+    private static final String UPDATED = "2026-11-02T10:30:00.000Z";
+
+    private static Decorator timedDecorator() {
+        return new Decorator.DecoratorBuilder().setUniqueId("timed").setType("threat-model")
+                .setCreationDateTime(CREATED).setUpdateDateTime(UPDATED).build();
+    }
+
+    @Test
+    void return_the_hub_owned_times_from_every_read_tool() throws Exception {
+        when(decoratorStore.getDecoratorValuesForNamespace("workshop", null, null)).thenReturn(List.of(timedDecorator()));
+        when(decoratorStore.getDecoratorById("workshop", 1)).thenReturn(Optional.of(timedDecorator()));
+        when(decoratorStore.getDecoratorHistory("workshop", 2)).thenReturn(List.of(
+                new DecoratorHistoryEntry(2, 1, null, null, timedDecorator()),
+                new DecoratorHistoryEntry(1, null, 2, "2026-11-03T11:45:00.000Z", timedDecorator())));
+
+        assertThat(text(decoratorTools.listDecorators("workshop", null, null)),
+                containsString("creationDateTime: " + CREATED + ", updateDateTime: " + UPDATED));
+        assertThat(text(decoratorTools.getDecorator("workshop", 1)),
+                containsString("  creationDateTime: " + CREATED + "\n  updateDateTime: " + UPDATED + "\n"));
+        String history = text(decoratorTools.getDecoratorHistory("workshop", 2));
+        assertThat(history, containsString("superseded by: 2, supersededDateTime: 2026-11-03T11:45:00.000Z"));
+        assertThat(history, containsString("updateDateTime: " + UPDATED));
+    }
+
+    @Test
+    void return_the_hub_owned_times_after_an_update() throws Exception {
+        when(decoratorStore.getDecoratorById("workshop", 1)).thenReturn(Optional.of(timedDecorator()));
+
+        assertThat(text(decoratorTools.updateDecorator("workshop", 1, "{\"type\": \"threat-model\"}")),
+                containsString("updateDateTime: " + UPDATED));
+    }
+
+    @Test
+    void leave_out_the_times_of_a_decorator_stored_before_hub_recorded_them() throws Exception {
+        when(decoratorStore.getDecoratorById("workshop", 1)).thenReturn(Optional.of(
+                new Decorator.DecoratorBuilder().setUniqueId("legacy").build()));
+
+        assertThat(text(decoratorTools.getDecorator("workshop", 1)), not(containsString("DateTime")));
+    }
+
+    @Test
+    void return_error_when_a_create_sends_a_hub_owned_time() {
+        ToolResponse response = decoratorTools.createDecorator("workshop", "{\"creationDateTime\": \"2026-01-01T00:00:00.000Z\"}");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), is("Error: Decorator field 'creationDateTime' is set by Hub and may not be sent."));
+        verifyNothingStored();
+    }
+
+    @Test
+    void return_error_when_an_update_sends_a_hub_owned_time() {
+        ToolResponse response = decoratorTools.updateDecorator("workshop", 1, "{\"updateDateTime\": \"2026-01-01T00:00:00.000Z\"}");
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), is("Error: Decorator field 'updateDateTime' is set by Hub and may not be sent."));
+        verifyNothingStored();
+    }
+
     // A write the service refuses may ask whether the store is writable, and nothing else.
     private void verifyNothingStored() {
         verify(decoratorStore, atLeastOnce()).requireWritable();

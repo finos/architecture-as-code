@@ -21,6 +21,7 @@ import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.DecoratorSchemaValidationException;
 import org.finos.calm.domain.exception.DecoratorSupersededException;
 import org.finos.calm.domain.exception.DecoratorTooLargeException;
+import org.finos.calm.domain.exception.HubOwnedDecoratorFieldException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.ReservedDecoratorTypeException;
 import org.finos.calm.security.CalmHubScopes;
@@ -42,8 +43,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 @Path("/api/calm/namespaces")
 public class DecoratorResource {
 
-    private static final String BAD_DECORATOR = "The JSON does not parse, a field that Hub reads has the wrong type, "
-            + "the decorator does not match a $schema that Hub knows, or the store cannot keep a key of the "
+    private static final String BAD_DECORATOR = "The JSON does not parse, a field that Hub reads has the wrong type, the body sends a "
+            + "Hub-owned field, the decorator does not match a $schema that Hub knows, or the store cannot keep a key of the "
             + "decorator. A $schema mismatch lists at most 20 errors, and moreErrors counts the rest";
     private static final String TOO_LARGE = "The decorator JSON is larger than " + SchemaValidationLimits.MAX_DECORATOR_JSON_BYTES
             + " bytes (1 MiB), or the namespace has reached the maximum storage size";
@@ -220,6 +221,9 @@ public class DecoratorResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating decorator", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (HubOwnedDecoratorFieldException e) {
+            logger.warn("Refused a Hub-owned decorator field [{}] in namespace [{}]", e.getField(), namespace);
+            return CalmResourceErrorResponses.hubOwnedDecoratorFieldResponse(e.getField());
         } catch (ReservedDecoratorTypeException e) {
             logger.warn("Refused a reserved decorator type when creating a decorator in namespace [{}]", namespace);
             return CalmResourceErrorResponses.reservedDecoratorTypeResponse(e.getType());
@@ -288,6 +292,9 @@ public class DecoratorResource {
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when updating decorator [{}]", namespace, id, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (HubOwnedDecoratorFieldException e) {
+            logger.warn("Refused a Hub-owned decorator field [{}] in namespace [{}]", e.getField(), namespace);
+            return CalmResourceErrorResponses.hubOwnedDecoratorFieldResponse(e.getField());
         } catch (ReservedDecoratorTypeException e) {
             logger.warn("Refused a reserved decorator type when updating decorator [{}] in namespace [{}]", id, namespace);
             return CalmResourceErrorResponses.reservedDecoratorTypeResponse(e.getType());

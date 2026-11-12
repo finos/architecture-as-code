@@ -20,6 +20,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.util.DecoratorHistoryChain;
 import org.finos.calm.store.util.DecoratorJson;
+import org.finos.calm.store.util.DecoratorTimestamps;
 import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -36,6 +36,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.dizitart.no2.filters.FluentFilter.where;
+import static org.finos.calm.store.util.DecoratorTimestamps.CREATION_DATE_TIME_FIELD;
+import static org.finos.calm.store.util.DecoratorTimestamps.SUPERSEDED_DATE_TIME_FIELD;
+import static org.finos.calm.store.util.DecoratorTimestamps.UPDATE_DATE_TIME_FIELD;
 import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
@@ -52,7 +55,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
     private static final String NAMESPACE_FIELD = "namespace";
     private static final String DECORATORS_FIELD = "decorators";
     private static final String DECORATOR_ID_FIELD = "decoratorId";
-    // Hub-owned history links, stored beside the decorator rather than in it.
+    // Hub-owned history links and times, stored beside the decorator rather than in it.
     private static final String SUPERSEDES_FIELD = "supersedes";
     private static final String SUPERSEDED_BY_FIELD = "supersededBy";
 
@@ -129,9 +132,8 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
         return decorators.stream()
                 .filter(decoratorDoc -> Integer.valueOf(id).equals(decoratorDoc.get(DECORATOR_ID_FIELD, Integer.class)))
-                .map(decoratorDoc -> decoratorDoc.get("decorator", Document.class))
-                .filter(Objects::nonNull)
-                .map(this::documentToDecorator)
+                .filter(decoratorDoc -> decoratorDoc.get("decorator", Document.class) != null)
+                .map(this::entryToDecorator)
                 .findFirst();
     }
 
@@ -143,8 +145,11 @@ public class NitriteDecoratorStore implements DecoratorStore {
         lock.lock();
         try {
             int id = counterStore.getNextDecoratorSequenceValue();
+            String now = DecoratorTimestamps.now();
             Document decoratorEntry = Document.createDocument(DECORATOR_ID_FIELD, id)
-                    .put("decorator", decoratorDoc);
+                    .put("decorator", decoratorDoc)
+                    .put(CREATION_DATE_TIME_FIELD, now)
+                    .put(UPDATE_DATE_TIME_FIELD, now);
 
             Document namespaceDoc = fetchNamespaceDocument(namespace);
             if (namespaceDoc == null) {
@@ -195,6 +200,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
                 throw new DecoratorSupersededException();
             }
             entry.put("decorator", updatedDoc);
+            entry.put(UPDATE_DATE_TIME_FIELD, DecoratorTimestamps.now());
 
             namespaceDoc.put(DECORATORS_FIELD, decorators);
             decoratorCollection.update(namespaceDoc);
@@ -227,10 +233,14 @@ public class NitriteDecoratorStore implements DecoratorStore {
             }
 
             int newId = counterStore.getNextDecoratorSequenceValue();
+            String now = DecoratorTimestamps.now();
             superseded.put(SUPERSEDED_BY_FIELD, newId);
+            superseded.put(SUPERSEDED_DATE_TIME_FIELD, now);
             decorators.add(Document.createDocument(DECORATOR_ID_FIELD, newId)
                     .put("decorator", decoratorDoc)
-                    .put(SUPERSEDES_FIELD, id));
+                    .put(SUPERSEDES_FIELD, id)
+                    .put(CREATION_DATE_TIME_FIELD, now)
+                    .put(UPDATE_DATE_TIME_FIELD, now));
 
             namespaceDoc.put(DECORATORS_FIELD, decorators);
             decoratorCollection.update(namespaceDoc);
@@ -327,15 +337,19 @@ public class NitriteDecoratorStore implements DecoratorStore {
     private List<DecoratorHistoryEntry> historyEntries(Document namespaceDoc, String namespace) {
         return extractDecorators(namespaceDoc, namespace).stream()
                 .filter(doc -> doc.get(DECORATOR_ID_FIELD, Integer.class) != null)
-                .map(doc -> {
-                    Document decorator = doc.get("decorator", Document.class);
-                    return new DecoratorHistoryEntry(
-                            doc.get(DECORATOR_ID_FIELD, Integer.class),
-                            doc.get(SUPERSEDES_FIELD, Integer.class),
-                            doc.get(SUPERSEDED_BY_FIELD, Integer.class),
-                            decorator == null ? null : documentToDecorator(decorator));
-                })
+                .map(doc -> new DecoratorHistoryEntry(
+                        doc.get(DECORATOR_ID_FIELD, Integer.class),
+                        doc.get(SUPERSEDES_FIELD, Integer.class),
+                        doc.get(SUPERSEDED_BY_FIELD, Integer.class),
+                        doc.get(SUPERSEDED_DATE_TIME_FIELD, String.class),
+                        entryToDecorator(doc)))
                 .toList();
+    }
+
+    private Decorator entryToDecorator(Document entry) {
+        Document decorator = entry.get("decorator", Document.class);
+        return decorator == null ? null : documentToDecorator(decorator).withTimestamps(
+                entry.get(CREATION_DATE_TIME_FIELD, String.class), entry.get(UPDATE_DATE_TIME_FIELD, String.class));
     }
 
     private Stream<Document> streamCurrent(List<Document> decorators) {
@@ -356,10 +370,11 @@ public class NitriteDecoratorStore implements DecoratorStore {
 
     private List<Decorator> filterDecoratorsToValues(List<Document> decorators, String target, String type) {
         return streamCurrent(decorators)
-                .map(doc -> doc.get("decorator", Document.class))
-                .filter(Objects::nonNull)
-                .filter(decorator -> matchesFilters(decorator, target, type))
-                .map(this::documentToDecorator)
+                .filter(doc -> {
+                    Document decorator = doc.get("decorator", Document.class);
+                    return decorator != null && matchesFilters(decorator, target, type);
+                })
+                .map(this::entryToDecorator)
                 .collect(Collectors.toList());
     }
 
