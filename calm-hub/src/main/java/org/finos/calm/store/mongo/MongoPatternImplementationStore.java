@@ -26,8 +26,7 @@ import java.util.regex.Pattern;
  * pull every body across and filter it in Java (ADR 0008).</p>
  *
  * <p>MongoDB refuses a {@code $}-prefixed field in an index and in a plain projection, so the
- * {@code $schema} value is read through {@code $objectToArray}. MongoDB 4.4, which the integration
- * suite runs, has no {@code $getField}.</p>
+ * {@code $schema} value is read through {@code $objectToArray}.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped

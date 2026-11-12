@@ -76,7 +76,7 @@ cd calm-hub
 
 Located in `src/integration-test/java/`. These run the full Quarkus application against a real database using `@QuarkusTest`.
 
-- **MongoDB tests** spin up a `mongo:4.4.3` container via TestContainers (`EndToEndResource`). The container connection string is injected into the Quarkus configuration at runtime.
+- **MongoDB tests** spin up a `mongo:5.0` container via TestContainers (`EndToEndResource`), the oldest MongoDB that CALM Hub supports: MongoDB 4.4 refuses a `$`-prefixed key in an update, so it cannot store a decorator that has a `$schema`. Deploy uses `mongo:latest`, so also run them with `-Dcalm.it.mongo-image=mongo:8`. The container connection string is injected into the Quarkus configuration at runtime.
 - **Nitrite tests** start the application in `standalone` profile. No Docker container is needed for the database, but Docker must be available for TestContainers infrastructure.
 - Tests exercise the full HTTP round-trip (create namespace → post artefact → retrieve → compare) using REST Assured.
 
