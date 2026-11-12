@@ -118,14 +118,14 @@
             "development-language": "TypeScript",
             "controls": {
                 "ext-ui-no-extension-code": {
-                    "description": "Third-party extension UI is Hub-rendered blocks or host-owned contracts. Extension code in the browser runs only in a cross-origin sandboxed iframe without allow-same-origin. Same-origin mount is only for bundled or operator-trusted extensions",
+                    "description": "Third-party extension UI is Hub-rendered blocks or host-owned contracts. Extension code in the browser runs only in a cross-origin sandboxed iframe without allow-same-origin. Same-origin mount is only for Hub's own code",
                     "requirements": [
                         {
                             "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
                             "config": {
                                 "control-id": "calm-hub-ext-ui-01",
                                 "name": "No third-party code in Hub's origin",
-                                "description": "Third-party extension UI is Hub-rendered blocks or host-owned contracts. Extension code in the browser runs only in a cross-origin sandboxed iframe without allow-same-origin. Same-origin mount is only for bundled or operator-trusted extensions",
+                                "description": "Third-party extension UI is Hub-rendered blocks or host-owned contracts. Extension code in the browser runs only in a cross-origin sandboxed iframe without allow-same-origin. Same-origin mount is only for Hub's own code",
                                 "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md"
                             }
                         }
@@ -191,14 +191,14 @@
             "description": "A third-party HTTP service that implements an extension's routes and returns JSON blocks or command results",
             "controls": {
                 "ext-verify-assertion": {
-                    "description": "The extension checks the signature against Hub's JWKS, and checks typ, iss, aud, exp, htm and htp before it acts",
+                    "description": "The extension checks the signature against Hub's JWKS, and checks typ, iss, aud, exp, htm and htp, and bdh when present, before it acts",
                     "requirements": [
                         {
                             "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
                             "config": {
                                 "control-id": "calm-hub-ext-12",
                                 "name": "Extension verifies the assertion",
-                                "description": "The extension checks the signature against Hub's JWKS, and checks typ, iss, aud, exp, htm and htp before it acts",
+                                "description": "The extension checks the signature against Hub's JWKS, and checks typ, iss, aud, exp, htm and htp, and bdh when present, before it acts",
                                 "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md"
                             }
                         }
@@ -293,7 +293,8 @@
                     "destination": {
                         "node": "calm-hub",
                         "interfaces": [
-                            "calm-hub-rest-api"
+                            "calm-hub-rest-api",
+                            "calm-hub-extensions-api"
                         ]
                     }
                 }
@@ -329,7 +330,8 @@
                     "destination": {
                         "node": "calm-hub",
                         "interfaces": [
-                            "calm-hub-rest-api"
+                            "calm-hub-rest-api",
+                            "calm-hub-extensions-api"
                         ]
                     }
                 }
@@ -429,6 +431,51 @@
                                 "name": "proxy-auth network isolation",
                                 "description": "In proxy-auth mode Hub listens only on loopback or behind the authenticating proxy, so no client can set Remote-User directly",
                                 "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0011-extension-proxy-request-handling.md"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "hub-ui-to-extension",
+            "description": "The browser loads an iframe-tier page from the extension's own origin, not through Hub",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-ui"
+                    },
+                    "destination": {
+                        "node": "extension-service"
+                    }
+                }
+            },
+            "protocol": "HTTPS",
+            "controls": {
+                "ext-ui-frame-src": {
+                    "description": "Hub UI's Content-Security-Policy has a frame-src list built from the manifests. Hub keeps X-Frame-Options: DENY for its own pages",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-ui-03",
+                                "name": "Frames only from declared origins",
+                                "description": "Hub UI's Content-Security-Policy has a frame-src list built from the manifests. Hub keeps X-Frame-Options: DENY for its own pages",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md"
+                            }
+                        }
+                    ]
+                },
+                "ext-ui-bridge-no-token": {
+                    "description": "The postMessage bridge carries theme variables, theme changes, the context, navigation requests and resize events. It never carries a token. Data goes through the proxy",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-ext-ui-04",
+                                "name": "No token in the postMessage bridge",
+                                "description": "The postMessage bridge carries theme variables, theme changes, the context, navigation requests and resize events. It never carries a token. Data goes through the proxy",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md"
                             }
                         }
                     ]
@@ -769,9 +816,9 @@
             ]
         },
         {
-            "unique-id": "flow-extension-command",
-            "name": "Call an extension command",
-            "description": "A script or agent calls a manifest command through the CLI or MCP",
+            "unique-id": "flow-extension-command-cli",
+            "name": "Call an extension command from the CLI",
+            "description": "A script calls a manifest command with 'calm hub ext'",
             "transitions": [
                 {
                     "relationship-unique-id": "agent-interacts-with-cli",
@@ -784,19 +831,49 @@
                     "description": "The CLI sends the input. Hub validates it against the command schema"
                 },
                 {
-                    "relationship-unique-id": "agent-to-hub-mcp",
-                    "sequence-number": 3,
-                    "description": "Or: an AI agent calls the command's MCP tool"
-                },
-                {
                     "relationship-unique-id": "hub-to-extension",
-                    "sequence-number": 4,
+                    "sequence-number": 3,
                     "description": "Hub forwards the route with a signed assertion"
                 },
                 {
                     "relationship-unique-id": "hub-to-extension",
-                    "sequence-number": 5,
+                    "sequence-number": 4,
                     "description": "The command result returns as JSON",
+                    "direction": "destination-to-source"
+                },
+                {
+                    "relationship-unique-id": "cli-to-hub",
+                    "sequence-number": 5,
+                    "description": "The CLI prints the result",
+                    "direction": "destination-to-source"
+                }
+            ]
+        },
+        {
+            "unique-id": "flow-extension-command-mcp",
+            "name": "Call an extension command from MCP",
+            "description": "An AI agent calls a manifest command as an MCP tool",
+            "transitions": [
+                {
+                    "relationship-unique-id": "agent-to-hub-mcp",
+                    "sequence-number": 1,
+                    "description": "An AI agent calls the command's MCP tool. Hub validates the input against the command schema"
+                },
+                {
+                    "relationship-unique-id": "hub-to-extension",
+                    "sequence-number": 2,
+                    "description": "Hub forwards the route with a signed assertion"
+                },
+                {
+                    "relationship-unique-id": "hub-to-extension",
+                    "sequence-number": 3,
+                    "description": "The command result returns as JSON",
+                    "direction": "destination-to-source"
+                },
+                {
+                    "relationship-unique-id": "agent-to-hub-mcp",
+                    "sequence-number": 4,
+                    "description": "The MCP tool returns the result to the agent",
                     "direction": "destination-to-source"
                 }
             ]
@@ -842,7 +919,8 @@
         "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md",
         "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0014-extension-commands-in-the-cli-and-mcp.md",
         "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md",
-        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
     ],
     "metadata": {
         "_layout": {
