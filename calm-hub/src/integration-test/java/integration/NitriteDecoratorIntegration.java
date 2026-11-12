@@ -164,6 +164,12 @@ public class NitriteDecoratorIntegration {
                 .then()
                 .statusCode(201)
                 .extract().path("id");
+        String created = given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + reservedId)
+                .then()
+                .statusCode(200)
+                .body("updateDateTime", notNullValue())
+                .extract().path("creationDateTime");
 
         successorId = given()
                 .contentType(ContentType.JSON)
@@ -178,12 +184,20 @@ public class NitriteDecoratorIntegration {
                 .when().get("/api/calm/namespaces/finos/decorators/" + reservedId)
                 .then()
                 .statusCode(200)
-                .body("data.status", equalTo("open"));
-        given()
+                .body("data.status", equalTo("open"))
+                .body("creationDateTime", equalTo(created))
+                .body("updateDateTime", equalTo(created));
+        String successorCreated = given()
                 .when().get("/api/calm/namespaces/finos/decorators/" + successorId)
                 .then()
                 .statusCode(200)
-                .body("data.status", equalTo("closed"));
+                .body("data.status", equalTo("closed"))
+                .body("creationDateTime", greaterThanOrEqualTo(created))
+                .extract().path("creationDateTime");
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + successorId)
+                .then()
+                .body("updateDateTime", equalTo(successorCreated));
 
         given()
                 .when().get("/api/calm/namespaces/finos/decorators?type=integration-evaluation")
@@ -201,6 +215,7 @@ public class NitriteDecoratorIntegration {
                 .body("values[0].supersededBy", nullValue())
                 .body("values[1].id", equalTo(reservedId))
                 .body("values[1].supersededBy", equalTo(successorId))
+                .body("values[1].supersededDateTime", equalTo(successorCreated))
                 .body("values[1].decorator.data.status", equalTo("open"))
                 .body("values[0].decorator.schema", equalTo(BASE_DECORATOR));
     }

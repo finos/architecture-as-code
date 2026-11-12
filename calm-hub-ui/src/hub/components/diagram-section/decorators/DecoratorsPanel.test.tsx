@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import axios from 'axios';
+import AxiosMockAdapter from 'axios-mock-adapter';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { DecoratorsPanel } from './DecoratorsPanel.js';
+import { CalmService } from '../../../../service/calm-service.js';
 import type { Decorator } from '../../../../visualizer/contracts/contracts.js';
 
 const decorator = (uniqueId: string, type: string): Decorator => ({
@@ -196,5 +199,34 @@ describe('DecoratorsPanel', () => {
                 '(no type) decorator raw-2',
             ]);
         });
+    });
+
+    it('shows the Hub-owned times from a Hub reply', async () => {
+        const ax = axios.create();
+        const mock = new AxiosMockAdapter(ax as never);
+        const target = '/api/calm/namespaces/finos/architectures/1/versions/1-0-0';
+        mock.onGet(`/api/calm/namespaces/finos/decorators/values?target=${encodeURIComponent(target)}`).reply(200, {
+            values: [
+                {
+                    ...decorator('dep-1', 'deployment'),
+                    creationDateTime: '2026-11-01T09:00:00.000Z',
+                    updateDateTime: '2026-11-02T10:30:00.000Z',
+                },
+                decorator('legacy-1', 'deployment'),
+            ],
+        });
+        const reply = await new CalmService(ax).fetchDecoratorsForTarget('finos', target);
+
+        render(<DecoratorsPanel state={{ status: 'loaded', decorators: reply }} typeFilter={null} onTypeFilterChange={vi.fn()} />);
+
+        const timed = screen.getByRole('article', { name: 'deployment decorator dep-1' });
+        expect(within(timed).getByText('Created')).toBeInTheDocument();
+        expect(within(timed).getByText('Updated')).toBeInTheDocument();
+        expect(within(timed).getAllByRole('time').map((time) => time.getAttribute('datetime'))).toEqual([
+            '2026-11-01T09:00:00.000Z',
+            '2026-11-02T10:30:00.000Z',
+        ]);
+        const legacy = screen.getByRole('article', { name: 'deployment decorator legacy-1' });
+        expect(within(legacy).queryByText('Created')).not.toBeInTheDocument();
     });
 });

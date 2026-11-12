@@ -72,6 +72,12 @@ public class CalmResourceErrorResponses {
                 .build();
     }
 
+    public static Response hubOwnedDecoratorFieldResponse(String field) {
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Decorator field is set by Hub and may not be sent: " + field)
+                .build();
+    }
+
     public static Response reservedDecoratorTypeResponse(String type) {
         return Response.status(Response.Status.FORBIDDEN)
                 .entity("Decorator type is reserved and the caller may not write it: "
