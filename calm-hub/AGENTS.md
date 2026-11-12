@@ -339,7 +339,16 @@ CALM Hub includes an experimental [Model Context Protocol](https://modelcontextp
 
 Tool providers are in `src/main/java/org/finos/calm/mcp/tools/`:  
 `ArchitectureTools`, `PatternTools`, `ControlTools`, `DomainTools`, `InterfaceTools`,  
-`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`.
+`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`.  
+`ExtensionTools` registers one `ext_<id>_<command>` tool for each extension command at start up, with `ToolManager`, only when MCP is on.
+It wraps an output schema that is not an object in `result`, with a Hub `$id`, and moves its root `$ref` into `allOf`: Ajv (in the MCP TypeScript SDK) overflows its stack on a subschema with `$id` and `$ref`.
+It publishes boolean subschemas as objects (not `additionalProperties`/`unevaluatedProperties`): the Quarkus MCP header observer and the SDK `ToolSchema` require an object for each property.
+Command schemas must use a subset of 2020-12, because one schema that the SDK cannot compile makes `listTools()` throw. Do not add support for schema identifiers: each round of review found another `$id` or anchor case that the SDK refuses.
+It skips a command whose schema is not valid JSON Schema 2020-12 (meta-schemas bundled in vertx-json-schema), declares another `$schema`, has a subschema that is not an object or a boolean, is nested more than 64 objects and arrays deep (`MAX_SCHEMA_DEPTH`; each `$ref` hop counts as a level, as Ajv compiles it), has `$id`, `$anchor`, `$dynamic*` or `$recursive*` as a key of any object at any depth (Ajv collects ids also under unknown keywords), has a `$ref` with `%` (Java and Ajv decode it differently) or one that is not a local JSON Pointer to a subschema or only reaches a loop of `$ref`s (Ajv overflows its stack on one), or has a `pattern` that is not ECMA-262 (`EcmaRegex`, with length and nesting limits; vertx checks `format: regex` with java.util.regex). If the meta-schemas do not load, it registers no extension tools.
+A command that it cannot check or register is skipped with a warning, also on a `StackOverflowError`, so a manifest never stops Hub. Other `VirtualMachineError`s, such as `OutOfMemoryError`, are rethrown: they are about the JVM, not the command.
+At call time it refuses arguments over `ExtensionTools.MAX_ARGUMENTS_BYTES` (1 MiB of JSON) first. Then `ExtensionTools.request` maps them, and refuses a path value, a route match, a query value or a request line that Hub refuses. Then it checks the scope (`ExtensionProxyService.checkAccess`), and then the input schema. The copy, the size check and the request mapping recurse for each level of the arguments, so a `StackOverflowError` there is a tool error. vertx must never run java.util.regex on caller input: some valid patterns such as `^(.*a){12}$` take hours in it, and a deadline in `charAt` cannot stop a match that reads no characters. Thus `InputSchema` gives vertx a copy with each `pattern` and `patternProperties` moved into a Hub `format`, which `LinearPatterns` checks with RE2J (`EcmaRegex.linear` translates the pattern). An input schema is refused if its patterns have no RE2 form with the same meaning (lookarounds, back references, `\p{…}`), if a pattern expands to more than `EcmaRegex.MAX_EXPANDED_SIZE` terms (RE2J time is input length times program size; checked before RE2J compiles; empty groups and alternatives count as 1), if it has a `format` outside `LINEAR_FORMATS` (vertx checks formats with java.util.regex; `url` backtracks), or if it has `patternProperties` with `unevaluatedProperties` or a `$ref` into them.
+Trust model: manifests and their schemas are trusted operator configuration, read one time at start-up. The start-up checks catch usual mistakes. Do not add checks against schemas made to be pathological (stacked `allOf` patterns, `$ref` DAGs, schemas that pass Hub but not Ajv): such a schema can only slow its own tool or, as an output schema, make some clients refuse `tools/list`, and the fix is to correct the manifest. Do bound what a caller controls: argument size and depth, linear-time input patterns, scope before the input check.
+`ToolManager` adds a tool before its `ToolAdded` observers run, so a failed tool is removed again. It never registers over, or removes, a tool that has the same name.
 
 Enable for development:
 ```bash
@@ -453,6 +462,9 @@ from; it fails if there is none.
 - `ExtensionProxyService` holds every rule of a proxied call: route match, path checks, scope, read-only,
   identity assertion, header allow-lists, limits and audit. `ExtensionProxyResource` and the MCP tools
   must both call it, because MCP does not pass through the JAX-RS filters (ADR 0011)
+- `mcp/tools/ExtensionTools` registers the command tools after `ExtensionRegistry` loads (observer priority).
+  `ToolManager` lists them after the `@Tool` methods, in registration order, so it registers them sorted.
+  The MCP server does not check arguments against `inputSchema`, so the handler does
 - `ReadOnlyRequestFilter` exempts only `^/api/calm/extensions/[^/]+/api(/|$)`, in normal form. The proxy
   then allows a non-GET method only on a `readOnly` route
 - `ExtensionIdentitySigner` signs with the JDK, not a JWT library. `ExtensionAssertionRejectingMechanism`

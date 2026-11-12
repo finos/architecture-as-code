@@ -433,6 +433,23 @@ class TestExtensionProxyServiceShould {
     }
 
     @Test
+    void check_access_without_calling_the_backend() {
+        service.checkAccess(alice, request("POST", "/namespaces/finos/services", null, "{}"));
+        when(permissions.canWrite(any(), any())).thenReturn(false);
+
+        ExtensionProxyException denied = assertThrows(ExtensionProxyException.class,
+                () -> service.checkAccess(alice, request("POST", "/namespaces/finos/services", null, "{}")));
+
+        assertThat(denied.status(), is(403));
+        assertThat(assertThrows(ExtensionProxyException.class,
+                () -> service.checkAccess(alice, request("GET", "/missing", null, null))).status(), is(404));
+        assertThat(backend.received(), nullValue());
+        ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+        verify(auditService).record(captor.capture());
+        assertThat(captor.getValue().getOutcome(), is(AuditOutcome.DENIED));
+    }
+
+    @Test
     void refuse_a_namespace_that_is_not_valid_before_any_check() {
         assertThat(status(request("GET", "/namespaces/a%20b/services", null, null)), is(400));
         verify(permissions, never()).canRead(any(), any());
