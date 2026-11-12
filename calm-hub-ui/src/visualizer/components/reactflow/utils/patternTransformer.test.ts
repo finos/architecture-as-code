@@ -152,6 +152,46 @@ describe('parsePatternData', () => {
         expect(result.edges[0].data.description).toBe('node-1 to node-2');
     });
 
+    it('creates edges from property-shaped connects relationship schemas', () => {
+        const pattern = makePattern(
+            [
+                schemaNode('node-1', 'Node 1', 'service'),
+                schemaNode('node-2', 'Node 2', 'service'),
+            ],
+            [
+                {
+                    properties: {
+                        'unique-id': { const: 'rel-1' },
+                        description: { const: 'Node 1 to Node 2' },
+                        'relationship-type': {
+                            type: 'object',
+                            properties: {
+                                connects: {
+                                    type: 'object',
+                                    properties: {
+                                        source: {
+                                            type: 'object',
+                                            properties: { node: { const: 'node-1' } },
+                                        },
+                                        destination: {
+                                            type: 'object',
+                                            properties: { node: { const: 'node-2' } },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            ]
+        );
+
+        const result = parsePatternData(pattern);
+        expect(result.edges).toHaveLength(1);
+        expect(result.edges[0].source).toBe('node-1');
+        expect(result.edges[0].target).toBe('node-2');
+    });
+
     it('creates edges from interacts relationships', () => {
         const pattern = makePattern(
             [
