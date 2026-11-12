@@ -27,6 +27,7 @@ import java.util.Optional;
  * architectures within CalmHub namespaces via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class ArchitectureTools {
 
     private static final Logger logger = LoggerFactory.getLogger(ArchitectureTools.class);

@@ -23,6 +23,7 @@ import java.util.Optional;
  * creation of namespaces via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class NamespaceTools {
 
     private static final Logger logger = LoggerFactory.getLogger(NamespaceTools.class);

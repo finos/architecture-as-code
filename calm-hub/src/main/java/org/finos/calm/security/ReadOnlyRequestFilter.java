@@ -25,6 +25,9 @@ import java.util.Set;
  * surface no longer requires a matching filter update (as was the case when
  * {@code /api/calm} was introduced alongside the original {@code /calm} prefix).
  *
+ * <p>MCP ({@code /mcp}) is served by Vert.x routes, not JAX-RS, so this filter never sees it. The MCP tools refuse
+ * writes themselves ({@code ReadOnlyHubGuard}).
+ *
  * <p>This filter runs at priority 0 (before {@link AccessControlFilter} at
  * priority 1) so read-only violations are rejected before auth checks.
  *
