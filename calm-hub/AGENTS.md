@@ -471,7 +471,10 @@ from; it fails if there is none.
   that an OIDC provider that is down cannot make it a 500
 - Tests generate key pairs at run time (`ExtensionTestKeys`); `*.pem` is git-ignored. `FixtureBackend` is a
   loopback backend for proxy tests
-- Try it: see `local-dev/extensions/example-services/README.md`
+- Try it: see `local-dev/extensions/example-services/README.md`. `local-dev/demo-extensions/` holds a demo
+  (release-tracker) that uses every UI extension point, to test the UI layout.
+  Keep it out of `local-dev/extensions`: it has routes, so a Hub that loads it without its `backend-url` does
+  not start
 
 ### Conventions
 - Versioned tool settings at `/api/calm/namespaces/{ns}/conventions/{type}`, with a namespace default that child
