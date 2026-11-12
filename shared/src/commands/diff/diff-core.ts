@@ -122,8 +122,14 @@ export function formatDiff(
         `Nodes:         +${diff.nodesAdded.length}  -${diff.nodesRemoved.length}  ~${diff.nodesModified.length}  ↔${diff.nodesRenamed.length}  =${diff.nodesSame.length}`,
         `Relationships: +${diff.edgesAdded.length}  -${diff.edgesRemoved.length}  ~${diff.edgesModified.length}  ↔${diff.edgesRenamed.length}  =${diff.edgesSame.length}`,
     ];
-    if (diff.flowsAdded) {
-        lines.push(`Flows:         +${diff.flowsAdded.length}  -${diff.flowsRemoved!.length}  ~${diff.flowsModified!.length}  =${diff.flowsSame!.length}`);
+    const flows = {
+        added: diff.flowsAdded?.length ?? 0,
+        removed: diff.flowsRemoved?.length ?? 0,
+        modified: diff.flowsModified?.length ?? 0,
+        same: diff.flowsSame?.length ?? 0,
+    };
+    if (flows.added + flows.removed + flows.modified + flows.same > 0) {
+        lines.push(`Flows:         +${flows.added}  -${flows.removed}  ~${flows.modified}  =${flows.same}`);
     }
     if (counts.adrs.added + counts.adrs.removed > 0) {
         lines.push(`ADRs:          +${counts.adrs.added}  -${counts.adrs.removed}  =${counts.adrs.unchanged}`);

@@ -421,6 +421,22 @@ describe('diff core', () => {
         expect(result.formatted).toContain('Flows added:\n  - write-flow');
     });
 
+    it('omits the flows summary line when neither document has flows', async () => {
+        const { diffDocuments } = await import('./diff-core');
+        const result = diffDocuments(archA, archB, { format: 'summary' });
+        expect(result.formatted).not.toContain('Flows:');
+    });
+
+    it('shows the flows summary line when flows are unchanged', async () => {
+        const { diffDocuments } = await import('./diff-core');
+        const withFlow = testArchitectures.flowBaseArchitecture;
+        const result = diffDocuments(withFlow, withFlow, { format: 'summary' });
+        expect(result.hasChanges).toBe(false);
+        const unchanged = result.diff.flowsSame?.length ?? 0;
+        expect(unchanged).toBeGreaterThan(0);
+        expect(result.formatted).toContain(`Flows:         +0  -0  ~0  =${unchanged}`);
+    });
+
     it('uses labels in the mismatch error instead of file paths', async () => {
         const { diffDocuments } = await import('./diff-core');
         expect(() => diffDocuments(archA, archB, { documentType: 'pattern', labels: ['left.json', 'right.json'] }))

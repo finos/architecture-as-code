@@ -27,7 +27,6 @@ describe('calm diff', () => {
             '----------------------',
             'Nodes:         +1  -0  ~0  ↔0  =1',
             'Relationships: +0  -0  ~0  ↔0  =0',
-            'Flows:         +0  -0  ~0  =0',
             '',
             'Nodes added:',
             '  - b',
