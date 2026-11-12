@@ -253,7 +253,7 @@ The easiest way to manage entitlements is the built-in admin UI, available at `/
 - **Domain Access** — available to global admins only; manage grants for any domain
 - **Global Admin Access** — available to global admins only; grant or revoke GLOBAL admin access for other users
 
-The admin UI does not yet create group grants. Use the REST API for them.
+To grant access to a group, set **Type** to `group` and enter the group name. The grant tables show each grant's type.
 
 ### REST API
 
