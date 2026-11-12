@@ -163,7 +163,7 @@ Before you begin, make sure you have:
 - **Git** installed
 - **Node.js** (20+) and npm installed
 - **VSCode** editor (version 1.96+)
-- **CALM AI Assistant** Copilot, Claude or KIRO AI Assistant is enabled
+- **CALM AI Assistant** Copilot, Claude, KIRO, or OpenCode AI Assistant is enabled
 - **calm cli** installed
 
 ### Getting Started

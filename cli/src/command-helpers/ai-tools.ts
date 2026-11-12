@@ -75,7 +75,7 @@ export async function setupAiTools(provider: string, targetDirectory: string, ve
         await createAgentConfig(aiAgentFile, aiTemplatePath, valuesPath, logger);
 
         // Create tool prompt files
-        await createToolPrompts(assistantDir, logger);
+        await createToolPrompts(assistantDir, aiConfig.skillPrompts, logger);
 
         logger.info('✅ CALM AI tools setup completed successfully!');
         logger.info('🚀 To use: Open this repository in your AI assistant and start a CALM-aware chat');
@@ -96,6 +96,7 @@ async function validateBundledResources(logger: Logger): Promise<void> {
         'ai-assistants/claude.json',
         'ai-assistants/codex.json',
         'ai-assistants/bob.json',
+        'ai-assistants/opencode.json',
         'templates/CALM.chatmode_template.md',
         'tools/architecture-creation.md',
         'tools/node-creation.md',
@@ -207,10 +208,11 @@ async function createAgentConfig(agentFile: string, aiTemplatePath: string, valu
 }
 
 
-async function createToolPrompts(assistantDir: string, logger: Logger): Promise<void> {
-    const promptsDir = join(assistantDir, 'calm-prompts');
+async function createToolPrompts(assistantDir: string, skillPrompts: string[], logger: Logger): Promise<void> {
+    const toolDir = skillPrompts[0]?.includes('/') ? dirname(skillPrompts[0]) : 'calm-prompts';
+    const promptsDir = join(assistantDir, toolDir);
     await mkdir(promptsDir, { recursive: true });
-    logger.info('📁 Created calm-prompts directory');
+    logger.info(`📁 Created ${toolDir} directory`);
 
     // List of tool prompt files to copy
     const toolFiles = [

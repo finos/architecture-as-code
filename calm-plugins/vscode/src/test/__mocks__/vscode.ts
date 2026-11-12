@@ -48,6 +48,13 @@ export class ThemeColor {
     constructor(public readonly id: string) {}
 }
 
+export enum ViewColumn {
+    Active = -1,
+    Beside = -2,
+    One = 1,
+    Two = 2,
+}
+
 export enum StatusBarAlignment {
     Left = 1,
     Right = 2,
@@ -68,6 +75,9 @@ export class WorkspaceEdit {
     replace(uri: unknown, range: unknown, newText: string): void {
         this._edits.push({ uri, range, newText });
     }
+    get edits(): ReadonlyArray<{ uri: unknown; range: unknown; newText: string }> {
+        return this._edits;
+    }
 }
 
 export const workspace: {
@@ -82,6 +92,14 @@ export const workspace: {
     };
     findFiles: (...args: unknown[]) => Promise<Uri[]>;
     applyEdit: (edit: WorkspaceEdit) => Promise<boolean>;
+    openTextDocument: (uri: Uri) => Promise<unknown>;
+    createFileSystemWatcher: () => {
+        onDidChange: () => { dispose: () => void };
+        onDidCreate: () => { dispose: () => void };
+        onDidDelete: () => { dispose: () => void };
+        dispose: () => void;
+    };
+    onDidSaveTextDocument: () => { dispose: () => void };
 } = {
     workspaceFolders: [],
     fs: {
@@ -96,6 +114,18 @@ export const workspace: {
     }),
     findFiles: async () => [],
     applyEdit: async () => true,
+    openTextDocument: async (uri: Uri) => ({
+        uri,
+        getText: () => '{}',
+        positionAt: (offset: number) => offset,
+    }),
+    createFileSystemWatcher: () => ({
+        onDidChange: () => ({ dispose: () => {} }),
+        onDidCreate: () => ({ dispose: () => {} }),
+        onDidDelete: () => ({ dispose: () => {} }),
+        dispose: () => {},
+    }),
+    onDidSaveTextDocument: () => ({ dispose: () => {} }),
 };
 
 export interface StatusBarItem {
@@ -121,12 +151,27 @@ function createMockStatusBarItem(): StatusBarItem {
 }
 
 export const window = {
+    visibleTextEditors: [] as Array<{ document: { uri: Uri }; viewColumn?: ViewColumn }>,
+    activeTextEditor: undefined as { document: { uri: Uri }; viewColumn?: ViewColumn } | undefined,
     showWarningMessage: () => Promise.resolve(undefined),
     showErrorMessage: () => Promise.resolve(undefined),
     showInformationMessage: () => Promise.resolve(undefined),
     showInputBox: () => Promise.resolve(undefined),
     showOpenDialog: async () => undefined,
     showSaveDialog: async () => undefined,
+    showTextDocument: async (_doc: unknown, _column?: ViewColumn) => undefined,
+    createWebviewPanel: () => ({
+        webview: {
+            html: '',
+            cspSource: 'vscode-webview:',
+            asWebviewUri: (uri: Uri) => uri,
+            postMessage: async () => true,
+            onDidReceiveMessage: () => ({ dispose: () => {} }),
+        },
+        reveal: () => {},
+        onDidDispose: () => ({ dispose: () => {} }),
+        dispose: () => {},
+    }),
     createStatusBarItem: (_alignment?: StatusBarAlignment, _priority?: number): StatusBarItem =>
         createMockStatusBarItem(),
     createOutputChannel: (_name: string) => ({

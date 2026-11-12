@@ -6,7 +6,7 @@ This directory contains AI tools, prompts, and configuration for integrating AI 
 
 The CALM AI tools provide:
 - **Specialized prompts** to guide AI assistants in creating, validating, and documenting CALM architectures
-- **Configuration files** for multiple AI assistant providers (GitHub Copilot, AWS Kiro/Q, Claude Code, Codex)
+- **Configuration files** for multiple AI assistant providers (GitHub Copilot, AWS Kiro/Q, Claude Code, Codex, IBM Bob, OpenCode)
 - **Template system** using Handlebars to generate provider-specific prompt files
 - **CLI integration** via the `calm init-ai` command for automated setup
 
@@ -21,7 +21,8 @@ calm-ai/
 │   ├── claude.json        # Claude Code configuration
 │   ├── codex.json         # Codex configuration
 │   ├── copilot.json       # GitHub Copilot configuration
-│   └── kiro.json          # AWS Kiro/Q configuration
+│   ├── kiro.json          # AWS Kiro/Q configuration
+│   └── opencode.json      # OpenCode configuration
 ├── templates/             # Handlebars templates
 │   └── CALM.chatmode_template.md  # Base prompt template
 ├── tools/                 # Individual tool prompt files
@@ -196,6 +197,11 @@ Configuration files in `ai-assistants/` define how to integrate CALM prompts wit
 - The main skill file is `.agents/skills/calm/SKILL.md`
 - Root `AGENTS.md` is not created or modified by this integration
 
+**OpenCode specifics:**
+- Prompts are installed as a CALM skill under `.opencode/skills/finos-calm/`
+- The main skill file is `.opencode/skills/finos-calm/SKILL.md`
+- Tool prompt files are copied to `.opencode/skills/finos-calm/references/`
+
 ## Template System (`templates/`)
 
 The `CALM.chatmode_template.md` file is a Handlebars template that generates provider-specific prompt files. It defines the structure and instructions for AI assistants working with CALM architectures.
@@ -255,11 +261,17 @@ calm init-ai -p copilot
 # Initialize AWS Kiro/Q integration
 calm init-ai -p kiro
 
+# Initialize Claude Code integration
+calm init-ai -p claude
+
 # Initialize Codex integration
 calm init-ai -p codex
 
 # Initialize IBM Bob integration
 calm init-ai -p bob
+
+# Initialize OpenCode integration
+calm init-ai -p opencode
 ```
 
 This command:

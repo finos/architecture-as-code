@@ -1,8 +1,16 @@
 import { memo } from 'react';
 import { NodeProps, Handle, Position } from 'reactflow';
 import { THEME } from './theme';
+import { scalePx, useDiagramTextScale, type DiagramTextScaleStore } from '../../../theme/useDiagramTextScale.js';
 
-function DecisionGroupNodeComponent({ data }: NodeProps) {
+interface DecisionGroupNodeProps extends NodeProps {
+    /** Injected for tests; defaults to the app-wide store. */
+    textScaleStore?: DiagramTextScaleStore;
+}
+
+function DecisionGroupNodeComponent({ data, textScaleStore }: DecisionGroupNodeProps) {
+    // The children start 80px down. Above 1.5x the label and the prompt do not fit in that space.
+    const scale = Math.min(useDiagramTextScale(textScaleStore).scale, 1.5);
     const isOneOf = data.decisionType === 'oneOf';
     const borderColor = isOneOf
         ? THEME.colors.decision.oneOf
@@ -39,7 +47,7 @@ function DecisionGroupNodeComponent({ data }: NodeProps) {
                     padding: '4px 12px',
                     borderRadius: '6px',
                     fontWeight: 600,
-                    fontSize: '12px',
+                    fontSize: scalePx(12, scale),
                     background: `${borderColor}20`,
                     color: borderColor,
                     border: `1px solid ${borderColor}`,
@@ -47,7 +55,7 @@ function DecisionGroupNodeComponent({ data }: NodeProps) {
                 }}
             >
                 <span>{label}</span>
-                <span style={{ fontSize: '10px', opacity: 0.8 }}>
+                <span style={{ fontSize: scalePx(10, scale), opacity: 0.8 }}>
                     {subtitle}
                 </span>
             </div>
@@ -55,14 +63,18 @@ function DecisionGroupNodeComponent({ data }: NodeProps) {
                 <div
                     style={{
                         position: 'absolute',
-                        top: '40px',
+                        // Below the label: its 12px top, 8px padding, 2px border and one 1.5-line-height line of text.
+                        top: `${Math.round((22 + 18 * scale) * 10) / 10}px`,
                         left: '16px',
-                        fontSize: '11px',
+                        fontSize: scalePx(11, scale),
                         color: borderColor,
                         fontStyle: 'italic',
                         maxWidth: 'calc(100% - 32px)',
                         pointerEvents: 'auto',
+                        // A larger prompt that wraps would reach the options, so it keeps to one line.
+                        ...(scale > 1 && { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
                     }}
+                    title={scale > 1 ? prompt : undefined}
                 >
                     {prompt}
                 </div>

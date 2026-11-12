@@ -54,9 +54,11 @@ architecture-as-code/
 ├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
 ├── calm-models/               # TypeScript data models
+├── calm-diagram/              # CALM to SVG renderer and node packs (@finos/calm-diagram)
+├── calm-docusaurus-plugin/    # Docs diagram embed, <CalmDiagram> (@finos/calm-docusaurus-plugin)
 ├── calm-widgets/              # React visualization components
 ├── calm-ai/                   # AI agent tools & prompts
-├── calm-studio/               # Docs diagram embed and other CalmStudio packages (being removed)
+├── calm-studio/               # Remaining CalmStudio packages (being removed)
 ├── calm-guard/                # Next.js continuous-compliance platform (CALMGuard)
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
@@ -74,8 +76,8 @@ architecture-as-code/
 are wired directly into the **root** npm workspaces. Run all npm commands from the repo root, never
 from inside these folders.
 
-- **`calm-studio/`** — the packages that remain from the retired CALM Studio app, among them the docs
-  diagram embed. They join the root workspaces via `calm-studio/packages/*`.
+- **`calm-studio/`** — the packages that remain from the retired CALM Studio app. They join the root
+  workspaces via `calm-studio/packages/*`.
   See [calm-studio/AGENTS.md](calm-studio/AGENTS.md) for the package list.
 - **`calm-guard/`** — a Next.js (App Router) continuous-compliance platform (`calmguard`), plus its
   Docusaurus docs (`calmguard-docs`). Both are root workspaces.
@@ -207,6 +209,8 @@ AGENTS.md.
 TypeScript packages (npm workspaces) build in order:
   calm-models → calm-widgets → shared → cli → calm-plugins/vscode
                                      ↳ calm-lab
+  calm-models → calm-diagram → calm-docusaurus-plugin → docs
+                             ↳ calm-plugins/vscode
 ```
 
 Always build dependencies before dependent packages. The Maven reactor works this out for itself:
@@ -216,8 +220,8 @@ Always build dependencies before dependent packages. The Maven reactor works thi
 first — `npm run build:calm-lab` chains the whole order for you.
 
 The root `npm run build` builds the workspaces in the order of the `workspaces` list in
-`package.json`, not in dependency order. `docs` must stay after `calm-studio/packages/*`, because
-it loads the built `@finos/calm-docusaurus-plugin`, which loads the built `@calmstudio/diagram`.
+`package.json`, not in dependency order. Keep `calm-diagram`, then `calm-docusaurus-plugin`, before
+`calm-plugins/vscode` and `docs`, because these load the build output of the packages before them.
 
 ## Testing
 
@@ -249,7 +253,7 @@ time. Format is `<type>(<scope>): <subject>`, subject with no trailing period.
 - **type** (required, lowercase): `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`,
   `perf`, `ci`, `build`, `revert`
 - **scope** (optional but preferred): `cli`, `shared`, `calm-models`, `calm-ai`, `calm-widgets`,
-  `calm-server`, `calm-hub`, `calm-hub-ui`, `docs`, `vscode`, `deps`, `ci`, `release`
+  `calm-server`, `calm-diagram`, `calm-hub`, `calm-hub-ui`, `docs`, `vscode`, `deps`, `ci`, `release`
 
 Run `npm run commit` for an interactive prompt. Stage your changes first.
 
@@ -257,7 +261,7 @@ Type and scope drive the automated release, so neither is cosmetic: `cli/release
 on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule
 also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. `calm-server/release.config.mjs`
 does the same for its own scopes. The VS Code extension releases on the changes that touched
-`calm-plugins/vscode`, whatever their scope (see
+`calm-plugins/vscode` or `calm-diagram/src/packs`, whatever their scope (see
 [calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md#releasing)). Check these files before
 assuming a commit is release-neutral. A
 merged PR with a conventional title is released on its title alone, so give the PR the type and scope

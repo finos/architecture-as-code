@@ -8,12 +8,9 @@
   },
   "workspaces": [
     "packages/calm-core",
-    "packages/extensions",
     "packages/mcp-server",
     "packages/github-action",
-    "packages/vscode-extension",
-    "packages/web-component",
-    "packages/docusaurus-plugin"
+    "packages/vscode-extension"
   ],
   "scripts": {
     "prepare": "husky || true",

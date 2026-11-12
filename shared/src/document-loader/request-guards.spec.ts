@@ -7,6 +7,12 @@ describe('request-guards', () => {
             'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
             'calm:/schemas/2025-03/meta/core.json',
             'https://calm.finos.org/calm/schemas/v1.2/core.json',
+            'https://calm.finos.org/calm/core.json#/%2E%2E',
+            'https://calm.finos.org/calm/core.json?x=/..',
+            'calm:/schemas/a\\..\\b.json',
+            'calm:/schemas/..defaults.json',
+            'https://calm.finos.org/calm/..meta.json',
+            'https://calm.finos.org/calm/meta../core.json',
         ])('accepts a path without traversal: %s', (documentId) => {
             expect(() => assertNoTraversal(documentId, 'Test loader')).not.toThrow();
         });
@@ -20,6 +26,18 @@ describe('request-guards', () => {
             'https://calm.finos.org/calm\\..\\secret.json',
             'https://calm.finos.org/calm/.\t./secret.json',
             'https://calm.finos.org/calm/.\r\n./secret.json',
+            'HTTPS://calm.finos.org/calm\\..\\secret.json',
+            'calm:..',
+            'calm:../admin/secrets.json',
+            'calm:%2e%2e/admin/secrets.json',
+            'calm:..#/defs',
+            'calm:/schemas/sub/..?\u2028',
+            'calm:/schemas/sub/..#\u2029',
+            'https://calm.finos.org/calm/..',
+            'https://calm.finos.org/calm/..?x=1',
+            ' https://calm.finos.org/calm\\..\\secret.json',
+            '\u0001https://calm.finos.org/calm\\..\\secret.json',
+            'https://calm.finos.org/calm/..\u0001',
         ])('rejects traversal, including forms the URL parser resolves to "..": %s', (documentId) => {
             let thrown: unknown;
             try {
@@ -48,7 +66,6 @@ describe('request-guards', () => {
             '/schemas/%00malicious',
             '/schemas/a b.json',
             '/schemas/a%2fb.json',
-            '',
         ])('rejects a path with disallowed characters: %s', (path) => {
             let thrown: unknown;
             try {
@@ -60,6 +77,25 @@ describe('request-guards', () => {
             expect(thrown).toMatchObject({ recoverable: false });
             expect((thrown as Error).message)
                 .toBe(`Test loader rejected a path with disallowed characters: ${path}`);
+        });
+
+        it.each([
+            '',
+            '..',
+            '../admin/secrets.json',
+            'schemas/core.json',
+            '//evil.example/x',
+        ])('rejects a path that does not start with a single "/": %s', (path) => {
+            let thrown: unknown;
+            try {
+                assertSafeRequestPath(path, 'Test loader');
+            } catch (error) {
+                thrown = error;
+            }
+            expect(thrown).toBeInstanceOf(DocumentLoadError);
+            expect(thrown).toMatchObject({ recoverable: false });
+            expect((thrown as Error).message)
+                .toBe(`Test loader rejected a path that does not start with a single '/': ${path}`);
         });
     });
 });

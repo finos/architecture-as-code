@@ -23,6 +23,7 @@ import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/cont
 import { useDiagramActions } from '../../context/DiagramActionsContext.js';
 import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
 import { usableColor } from './utils/usableColor.js';
+import { scalePx, useDiagramTextScale, type DiagramTextScaleStore } from '../../../theme/useDiagramTextScale.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { FindingText } from './FindingText.js';
 import { EvaluationBadge } from './EvaluationBadge.js';
@@ -83,9 +84,11 @@ function PanelButton({
 interface CustomNodeProps extends NodeProps {
   /** Injected for tests; defaults to the app-wide store. */
   presentationStore?: PresentationModeStore;
+  /** Injected for tests; defaults to the app-wide store. */
+  textScaleStore?: DiagramTextScaleStore;
 }
 
-function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
+function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: CustomNodeProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { onNavigateToDetailedArch } = useDiagramActions();
 
@@ -130,9 +133,19 @@ function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
 
     // Presentation mode: a wider node and larger text, legible on a projector.
     const { presenting } = usePresentationMode(presentationStore);
-    const size = presenting
-        ? { width: '320px', padding: '20px', text: '24px', icon: '24px', zoomIcon: '26px', badgeText: '18px', badgeIcon: '18px', badgePadding: '3px 8px' }
-        : { width: '220px', padding: '16px', text: '14px', icon: '16px', zoomIcon: '20px', badgeText: '12px', badgeIcon: '12px', badgePadding: '2px 6px' };
+    const { scale } = useDiagramTextScale(textScaleStore);
+    const base = presenting
+        ? { width: '320px', padding: '20px', text: 24, icon: 24, zoomIcon: 26, badgeText: 18, badgeIcon: 18, badgePadding: '3px 8px' }
+        : { width: '220px', padding: '16px', text: 14, icon: 16, zoomIcon: 20, badgeText: 12, badgeIcon: 12, badgePadding: '2px 6px' };
+    const size = {
+        ...base,
+        text: scalePx(base.text, scale),
+        icon: scalePx(base.icon, scale),
+        zoomIcon: scalePx(base.zoomIcon, scale),
+        badgeText: scalePx(base.badgeText, scale),
+        badgeIcon: scalePx(base.badgeIcon, scale),
+    };
+    const badgesBelow = presenting || scale > 1;
     const evaluation = useElementEvaluation(data['unique-id']);
     const evaluationNotMet = evaluation?.status === 'not-met';
     const { showDecisions, subjectLabels } = useDecisionOverlay();
@@ -219,11 +232,12 @@ function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
       <Handle type="source" position={Position.Right} id="source" style={{ opacity: 0 }} />
       <Handle type="target" position={Position.Left} id="target" style={{ opacity: 0 }} />
 
-      {/* Presentation mode puts the badges below the label: the larger text leaves no space next to it. */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: presenting ? 'wrap' : undefined }}>
-        <div style={{ fontWeight: 600, marginBottom: '4px', flex: presenting ? '1 0 100%' : 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Larger text puts the badges below the label: it leaves no space next to it. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: badgesBelow ? 'wrap' : undefined }}>
+        <div style={{ fontWeight: 600, marginBottom: '4px', flex: badgesBelow ? '1 0 100%' : 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <NodeIcon style={{ width: size.icon, height: size.icon, flexShrink: 0, color: nodeTypeStyle.color }} />
-          <span>{data.label}</span>
+          {/* The node width is fixed, so a long word at a larger size must break. */}
+          <span style={{ overflowWrap: scale > 1 ? 'anywhere' : undefined }}>{data.label}</span>
           {detailedArchitecture && !isUnknownArch && (
             <div title="Has detailed architecture">
               <ZoomIn style={{ width: size.zoomIcon, height: size.zoomIcon, flexShrink: 0, color: THEME.colors.accentText }} />
@@ -232,7 +246,7 @@ function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
         </div>
         {(riskCount > 0 || mitigationCount > 0 || controlCount > 0 || evaluation) && (
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} />}
+            {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} scale={scale} />}
             {riskCount > 0 && (
               <div
                 style={{
@@ -292,7 +306,7 @@ function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
       </div>
       </div>
 
-      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} />}
+      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} scale={scale} />}
 
       {/* Hover details panel - absolutely positioned to float over other elements */}
       {isHovered && (
