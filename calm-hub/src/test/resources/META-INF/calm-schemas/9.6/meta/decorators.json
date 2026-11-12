@@ -1,0 +1,13 @@
+{
+    "$id": "https://calm.finos.org/release/9.6/meta/decorators.json",
+    "defs": {
+        "decorator": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "core.json#/defs/data"
+                }
+            }
+        }
+    }
+}

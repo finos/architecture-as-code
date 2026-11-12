@@ -1,0 +1,9 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/standards/test/unresolvable.decorator.standard.json",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/release/9.9/meta/decorators.json#/defs/decorator"
+        }
+    ]
+}

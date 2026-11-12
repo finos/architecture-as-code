@@ -218,3 +218,11 @@ Gotchas:
 - A user search whose base does not exist counts as no match and logs a `WARN`, so the other user searches still run. A missing `group-search-base` is a failure.
 - With `pool=true`, a search on a pooled connection that is no longer usable is retried once on a new connection.
 - Native images refuse `provider=ldap` at startup. Use the JVM image.
+
+---
+
+## Reserved decorator types
+
+`calm.decorators.reserved."<type>".writers` lists the principals that may create or update a decorator of a reserved type. `DecoratorWriteService` checks it after the `WRITE` permission check, for REST and MCP. Any other caller gets 403 from REST and a tool error from MCP. A namespace grant does not override it. No type is reserved by default.
+
+Delete needs `GLOBAL_ADMIN`, and MCP has no delete tool. A global admin does not have to be a writer of the reserved types in the history, so `DecoratorWriteService.deleteDecorator` has no writer check. It deletes the history only if its current decorator is still current. The audit log records the delete as for other deletes.

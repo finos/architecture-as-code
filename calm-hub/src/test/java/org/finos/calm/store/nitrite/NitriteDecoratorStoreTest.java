@@ -230,7 +230,7 @@ class NitriteDecoratorStoreTest {
     }
 
     @Test
-    void testUpdateDecorator_Success() throws NamespaceNotFoundException, DecoratorNotFoundException {
+    void testUpdateDecorator_Success() throws Exception {
         String namespace = "test-namespace";
         int decoratorId = 1;
         String updatedJson = "{\"type\":\"deployment\",\"unique-id\":\"updated-id\"}";
@@ -284,6 +284,15 @@ class NitriteDecoratorStoreTest {
 
         Document amount = result.get("data", Document.class).get("amount", Document.class);
         assertEquals("1.5", amount.get("$numberDecimal", String.class));
+    }
+
+    @Test
+    void testParseJsonToNitriteDocument_KeepsNumberIntAndMaxKeyAsPlainData() {
+        Document data = decoratorStore.parseJsonToNitriteDocument(
+                "{\"data\":{\"n\":{\"$numberInt\":\"1\"},\"k\":{\"$maxKey\":1}}}").get("data", Document.class);
+
+        assertEquals("1", data.get("n", Document.class).get("$numberInt", String.class));
+        assertEquals(1, data.get("k", Document.class).get("$maxKey", Integer.class));
     }
 
     @Test

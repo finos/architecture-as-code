@@ -2,8 +2,18 @@ package org.finos.calm.resources;
 
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.ResourceType;
+import org.finos.calm.domain.SchemaValidationLimits;
+import org.finos.calm.domain.exception.DecoratorKeyRefusedException;
+import org.finos.calm.domain.exception.DecoratorSchemaValidationException;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CalmResourceErrorResponses {
+    static final String INVALID_DECORATOR_JSON = "Invalid decorator JSON. The body must be a JSON object. $schema, unique-id and type "
+            + "must be strings, and target, target-type and applies-to must be arrays of strings";
+
     public static Response invalidNamespaceResponse(String namespace) {
         return Response.status(Response.Status.NOT_FOUND)
                 .entity("Invalid namespace provided: " + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
@@ -30,8 +40,59 @@ public class CalmResourceErrorResponses {
         return Response.status(Response.Status.NOT_FOUND).entity("Decorator with ID " + id + " does not exist in namespace: " + namespace).build();
     }
 
-    public static Response invalidDecoratorJsonResponse(String message) {
-        return Response.status(Response.Status.BAD_REQUEST).entity("Invalid decorator JSON: " + message).build();
+    /**
+     * Returns a 400 response for a decorator body that does not parse, or a field that Hub reads with the wrong type.
+     * Like {@link #invalidJsonResponse}, it never echoes the request.
+     */
+    public static Response invalidDecoratorJsonResponse() {
+        return Response.status(Response.Status.BAD_REQUEST).entity(INVALID_DECORATOR_JSON).build();
+    }
+
+    public static Response decoratorKeyRefusedResponse(DecoratorKeyRefusedException exception) {
+        return Response.status(Response.Status.BAD_REQUEST).entity(exception.getMessage()).build();
+    }
+
+    public static Response decoratorTooLargeResponse() {
+        return Response.status(Response.Status.REQUEST_ENTITY_TOO_LARGE)
+                .entity("The decorator JSON is larger than " + SchemaValidationLimits.MAX_DECORATOR_JSON_BYTES + " bytes")
+                .build();
+    }
+
+    public static Response decoratorSupersededResponse(String namespace, int id) {
+        return Response.status(Response.Status.CONFLICT)
+                .entity("Decorator with ID " + id + " in namespace " + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace)
+                        + " has been superseded. Update the current decorator in its history")
+                .build();
+    }
+
+    public static Response decoratorDeleteConflictResponse(String namespace, int id) {
+        return Response.status(Response.Status.CONFLICT)
+                .entity("Decorator with ID " + id + " in namespace " + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace)
+                        + " was superseded during the delete. Nothing was deleted. Retry the delete")
+                .build();
+    }
+
+    public static Response reservedDecoratorTypeResponse(String type) {
+        return Response.status(Response.Status.FORBIDDEN)
+                .entity("Decorator type is reserved and the caller may not write it: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(type))
+                .build();
+    }
+
+    // The errors can quote decorator values, so each one is sanitized.
+    public static Response decoratorSchemaValidationResponse(DecoratorSchemaValidationException exception) {
+        List<Map<String, String>> errors = exception.getErrors().stream()
+                .map(error -> Map.of(
+                        "location", ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(error.location()),
+                        "error", ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(error.error())))
+                .toList();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "Decorator does not match its $schema");
+        body.put("errors", errors);
+        if (exception.getMoreErrors() > 0) {
+            body.put("moreErrors", exception.getMoreErrors());
+        }
+        return Response.status(Response.Status.BAD_REQUEST).entity(body).build();
     }
 
     /**

@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.PermissionsAllowed;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
@@ -10,11 +11,20 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.finos.calm.domain.SchemaValidationLimits;
 import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.domain.exception.DecoratorKeyRefusedException;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
+import org.finos.calm.domain.exception.DecoratorSchemaValidationException;
+import org.finos.calm.domain.exception.DecoratorSupersededException;
+import org.finos.calm.domain.exception.DecoratorTooLargeException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.ReservedDecoratorTypeException;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.DecoratorWriteService;
 import org.finos.calm.store.DecoratorStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,12 +42,22 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 @Path("/api/calm/namespaces")
 public class DecoratorResource {
 
+    private static final String BAD_DECORATOR = "The JSON does not parse, a field that Hub reads has the wrong type, "
+            + "the decorator does not match a $schema that Hub knows, or the store cannot keep a key of the "
+            + "decorator. A $schema mismatch lists at most 20 errors, and moreErrors counts the rest";
+    private static final String TOO_LARGE = "The decorator JSON is larger than " + SchemaValidationLimits.MAX_DECORATOR_JSON_BYTES
+            + " bytes (1 MiB), or the namespace has reached the maximum storage size";
+
     private final DecoratorStore decoratorStore;
+    private final DecoratorWriteService decoratorWriteService;
+    private final SecurityIdentity identity;
     private final Logger logger = LoggerFactory.getLogger(DecoratorResource.class);
 
     @Inject
-    public DecoratorResource(DecoratorStore decoratorStore) {
+    public DecoratorResource(DecoratorStore decoratorStore, DecoratorWriteService decoratorWriteService, SecurityIdentity identity) {
         this.decoratorStore = decoratorStore;
+        this.decoratorWriteService = decoratorWriteService;
+        this.identity = identity;
     }
 
     /**
@@ -128,6 +148,36 @@ public class DecoratorResource {
     }
 
     /**
+     * Retrieve the history that contains a decorator in a given namespace
+     *
+     * @param namespace the namespace containing the decorator
+     * @param id the id of any decorator in the history
+     * @return the current decorator first, then each one it supersedes
+     */
+    @GET
+    @Path("{namespace}/decorators/{id}/history")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Retrieve the history of a decorator in a given namespace",
+            description = "The current decorator first, then each one it supersedes. Updates involving reserved types create history entries"
+    )
+    @PermissionsAllowed(CalmHubScopes.READ)
+    public Response getDecoratorHistory(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id
+    ) {
+        try {
+            return Response.ok(new ValueWrapper<>(decoratorStore.getDecoratorHistory(namespace, id))).build();
+        } catch (DecoratorNotFoundException e) {
+            logger.error("Decorator [{}] not found in namespace [{}] when retrieving its history", id, namespace, e);
+            return CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when retrieving the history of decorator [{}]", namespace, id, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        }
+    }
+
+    /**
      * Create a new decorator in a given namespace.
      *
      * @param namespace     the namespace to create the decorator in
@@ -142,21 +192,40 @@ public class DecoratorResource {
             summary = "Create a decorator in a given namespace",
             description = "Creates a decorator, validating the namespace exists and the JSON is well-formed"
     )
+    @APIResponses({
+            @APIResponse(responseCode = "201", description = "Created. The body has the new id, and Location names the decorator"),
+            @APIResponse(responseCode = "400", description = BAD_DECORATOR),
+            @APIResponse(responseCode = "403", description = "The type is reserved, and the caller is not one of its writers"),
+            @APIResponse(responseCode = "404", description = "The namespace does not exist"),
+            @APIResponse(responseCode = "413", description = TOO_LARGE)
+    })
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createDecoratorForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             String decoratorJson
     ) throws URISyntaxException {
         try {
-            int id = decoratorStore.createDecorator(namespace, decoratorJson);
+            int id = decoratorWriteService.createDecorator(DecoratorWriteService.principalName(identity), namespace, decoratorJson);
             URI location = new URI("/api/calm/namespaces/" + namespace + "/decorators/" + id);
             return Response.created(location).entity(Map.of("id", id)).build();
         } catch (JsonParseException e) {
             logger.error("Invalid JSON when creating decorator in namespace [{}]", namespace, e);
-            return CalmResourceErrorResponses.invalidDecoratorJsonResponse(e.getMessage());
+            return CalmResourceErrorResponses.invalidDecoratorJsonResponse();
+        } catch (DecoratorKeyRefusedException e) {
+            logger.warn("Refused a decorator key that the store cannot keep in namespace [{}]", namespace);
+            return CalmResourceErrorResponses.decoratorKeyRefusedResponse(e);
+        } catch (DecoratorTooLargeException e) {
+            logger.warn("Refused a decorator larger than the limit in namespace [{}]", namespace);
+            return CalmResourceErrorResponses.decoratorTooLargeResponse();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating decorator", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (ReservedDecoratorTypeException e) {
+            logger.warn("Refused a reserved decorator type when creating a decorator in namespace [{}]", namespace);
+            return CalmResourceErrorResponses.reservedDecoratorTypeResponse(e.getType());
+        } catch (DecoratorSchemaValidationException e) {
+            logger.warn("Decorator does not match its $schema when creating a decorator in namespace [{}]", namespace);
+            return CalmResourceErrorResponses.decoratorSchemaValidationResponse(e);
         }
     }
 
@@ -166,7 +235,8 @@ public class DecoratorResource {
      * @param namespace     the namespace containing the decorator
      * @param id            the id of the decorator to update
      * @param decoratorJson the updated decorator JSON body
-     * @return 200 OK, or an appropriate error response
+     * @return 200 OK, 201 Created with a Location header when a reserved-type decorator is superseded, or an
+     * appropriate error response
      */
     @PUT
     @Path("{namespace}/decorators/{id}")
@@ -174,26 +244,56 @@ public class DecoratorResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Update a decorator by ID in a given namespace",
-            description = "Updates an existing decorator, validating the namespace and ID exist and the JSON is well-formed"
+            description = "Updates an existing decorator, validating the namespace and ID exist and the JSON is well-formed. "
+                    + "A reserved-type decorator is append-only: the update stores a new decorator that supersedes it, "
+                    + "and returns 201 with its ID"
     )
+    @APIResponses({
+            @APIResponse(responseCode = "200", description = "Updated in place"),
+            @APIResponse(responseCode = "201", description = "Superseded. The body has the new id, and Location names the new decorator"),
+            @APIResponse(responseCode = "400", description = BAD_DECORATOR),
+            @APIResponse(responseCode = "403", description = "The old or new type is reserved, and the caller is not one of its writers"),
+            @APIResponse(responseCode = "404", description = "The namespace or the decorator does not exist"),
+            @APIResponse(responseCode = "409", description = "The decorator has been superseded. Update the current decorator in its history"),
+            @APIResponse(responseCode = "413", description = TOO_LARGE)
+    })
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateDecoratorForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id,
             String decoratorJson
-    ) {
+    ) throws URISyntaxException {
         try {
-            decoratorStore.updateDecorator(namespace, id, decoratorJson);
-            return Response.ok().build();
+            int currentId = decoratorWriteService.updateDecorator(DecoratorWriteService.principalName(identity), namespace, id, decoratorJson);
+            if (currentId == id) {
+                return Response.ok().build();
+            }
+            URI location = new URI("/api/calm/namespaces/" + namespace + "/decorators/" + currentId);
+            return Response.created(location).entity(Map.of("id", currentId)).build();
         } catch (JsonParseException e) {
             logger.error("Invalid JSON when updating decorator [{}] in namespace [{}]", id, namespace, e);
-            return CalmResourceErrorResponses.invalidDecoratorJsonResponse(e.getMessage());
+            return CalmResourceErrorResponses.invalidDecoratorJsonResponse();
+        } catch (DecoratorKeyRefusedException e) {
+            logger.warn("Refused a decorator key that the store cannot keep for decorator [{}] in namespace [{}]", id, namespace);
+            return CalmResourceErrorResponses.decoratorKeyRefusedResponse(e);
+        } catch (DecoratorTooLargeException e) {
+            logger.warn("Refused a decorator larger than the limit in namespace [{}]", namespace);
+            return CalmResourceErrorResponses.decoratorTooLargeResponse();
         } catch (DecoratorNotFoundException e) {
             logger.error("Decorator [{}] not found in namespace [{}] when updating", id, namespace, e);
             return CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id);
+        } catch (DecoratorSupersededException e) {
+            logger.warn("Decorator [{}] in namespace [{}] has been superseded", id, namespace);
+            return CalmResourceErrorResponses.decoratorSupersededResponse(namespace, id);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when updating decorator [{}]", namespace, id, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (ReservedDecoratorTypeException e) {
+            logger.warn("Refused a reserved decorator type when updating decorator [{}] in namespace [{}]", id, namespace);
+            return CalmResourceErrorResponses.reservedDecoratorTypeResponse(e.getType());
+        } catch (DecoratorSchemaValidationException e) {
+            logger.warn("Decorator [{}] in namespace [{}] does not match its $schema when updating", id, namespace);
+            return CalmResourceErrorResponses.decoratorSchemaValidationResponse(e);
         }
     }
 
@@ -209,18 +309,26 @@ public class DecoratorResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Delete a decorator by ID in a given namespace",
-            description = "Deletes a decorator from the given namespace. Requires global admin privilege."
+            description = "Deletes a decorator, with its whole history, from the given namespace. Requires global admin privilege."
     )
+    @APIResponses({
+            @APIResponse(responseCode = "204", description = "Deleted, with its whole history"),
+            @APIResponse(responseCode = "404", description = "The namespace or the decorator does not exist"),
+            @APIResponse(responseCode = "409", description = "Another write superseded the decorator during the delete. Nothing was deleted. Retry the delete")
+    })
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deleteDecoratorForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id
     ) {
         try {
-            decoratorStore.deleteDecorator(namespace, id);
+            decoratorWriteService.deleteDecorator(namespace, id);
         } catch (DecoratorNotFoundException e) {
             logger.error("Decorator [{}] not found in namespace [{}] when deleting", id, namespace, e);
             return CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id);
+        } catch (DecoratorSupersededException e) {
+            logger.warn("Decorator [{}] in namespace [{}] was superseded while deleting", id, namespace);
+            return CalmResourceErrorResponses.decoratorDeleteConflictResponse(namespace, id);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when deleting decorator [{}]", namespace, id, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

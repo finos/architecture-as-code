@@ -336,3 +336,7 @@ sketch
 **/*.pem
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,react,node,java,maven
+
+# Hand-authored decorator Standards index.
+!src/main/resources/META-INF/decorator-standards/
+!src/main/resources/META-INF/decorator-standards/files.txt

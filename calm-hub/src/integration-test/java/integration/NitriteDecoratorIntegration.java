@@ -3,18 +3,33 @@ package integration;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
+import org.finos.calm.domain.exception.DecoratorKeyRefusedException;
+import org.finos.calm.domain.exception.DecoratorSupersededException;
+import org.finos.calm.store.nitrite.NitriteDecoratorStore;
 import org.junit.jupiter.api.*;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
 @TestProfile(NitriteIntegrationTestProfile.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class NitriteDecoratorIntegration {
 
+    private static int reservedId;
+    private static int successorId;
+    private static int unreservedId;
+
+    private static final String DEPLOYMENT_STANDARD =
+            "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json";
+    private static final String BASE_DECORATOR = "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator";
+
+    // As in MongoDecoratorIntegration: $-prefixed keys must stay plain data in the stored decorator.
     private static final String VALID_DECORATOR = """
             {
+                "$schema": "%s",
                 "unique-id": "finos-architecture-1-deployment",
                 "type": "deployment",
                 "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
@@ -23,13 +38,16 @@ public class NitriteDecoratorIntegration {
                 "data": {
                     "start-time": "2026-02-23T10:00:00Z",
                     "status": "in-progress",
-                    "notes": "Integration test decorator"
+                    "notes": "Integration test decorator",
+                    "extended-json": {"$numberInt": "1", "nested": {"$maxKey": 1}},
+                    "big": 123456789012345678901234567890
                 }
             }
-            """;
+            """.formatted(DEPLOYMENT_STANDARD);
 
     private static final String UPDATED_DECORATOR = """
             {
+                "$schema": "%s",
                 "unique-id": "finos-architecture-1-deployment",
                 "type": "deployment",
                 "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
@@ -41,7 +59,10 @@ public class NitriteDecoratorIntegration {
                     "notes": "Integration test decorator"
                 }
             }
-            """;
+            """.formatted(DEPLOYMENT_STANDARD);
+
+    @Inject
+    NitriteDecoratorStore decoratorStore;
 
     @BeforeEach
     public void setup() {
@@ -93,7 +114,11 @@ public class NitriteDecoratorIntegration {
                 .body("uniqueId", equalTo("finos-architecture-1-deployment"))
                 .body("target[0]", equalTo("/api/calm/namespaces/finos/architectures/1/versions/1-0-0"))
                 .body("targetType[0]", equalTo("architecture"))
-                .body("appliesTo[0]", equalTo("example-node"));
+                .body("appliesTo[0]", equalTo("example-node"))
+                .body("schema", equalTo(DEPLOYMENT_STANDARD))
+                .body("data.'extended-json'.'$numberInt'", equalTo("1"))
+                .body("data.'extended-json'.nested.'$maxKey'", equalTo(1))
+                .body(containsString("\"big\":123456789012345678901234567890"));
     }
 
     @Test
@@ -127,5 +152,200 @@ public class NitriteDecoratorIntegration {
                 .then()
                 .statusCode(404)
                 .body(containsString("Decorator with ID 999 does not exist in namespace: finos"));
+    }
+
+    @Test
+    @Order(7)
+    void end_to_end_supersede_a_reserved_decorator_and_keep_the_old_one_in_the_history() {
+        reservedId = given()
+                .contentType(ContentType.JSON)
+                .body(reservedDecorator("open"))
+                .when().post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(201)
+                .extract().path("id");
+
+        successorId = given()
+                .contentType(ContentType.JSON)
+                .body(reservedDecorator("closed"))
+                .when().put("/api/calm/namespaces/finos/decorators/" + reservedId)
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/api/calm/namespaces/finos/decorators/"))
+                .extract().path("id");
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + reservedId)
+                .then()
+                .statusCode(200)
+                .body("data.status", equalTo("open"));
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + successorId)
+                .then()
+                .statusCode(200)
+                .body("data.status", equalTo("closed"));
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators?type=integration-evaluation")
+                .then()
+                .statusCode(200)
+                .body("values", contains(successorId));
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + reservedId + "/history")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2))
+                .body("values[0].id", equalTo(successorId))
+                .body("values[0].supersedes", equalTo(reservedId))
+                .body("values[0].supersededBy", nullValue())
+                .body("values[1].id", equalTo(reservedId))
+                .body("values[1].supersededBy", equalTo(successorId))
+                .body("values[1].decorator.data.status", equalTo("open"))
+                .body("values[0].decorator.schema", equalTo(BASE_DECORATOR));
+    }
+
+    @Test
+    @Order(8)
+    void end_to_end_refuse_to_supersede_a_superseded_decorator() {
+        given()
+                .contentType(ContentType.JSON)
+                .body(reservedDecorator("reopened"))
+                .when().put("/api/calm/namespaces/finos/decorators/" + reservedId)
+                .then()
+                .statusCode(409)
+                .body(containsString("superseded"));
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + reservedId + "/history")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2));
+    }
+
+    @Test
+    @Order(9)
+    void end_to_end_return_the_whole_history_from_any_decorator_in_it() {
+        int thirdId = given()
+                .contentType(ContentType.JSON)
+                .body(reservedDecorator("reopened"))
+                .when().put("/api/calm/namespaces/finos/decorators/" + successorId)
+                .then()
+                .statusCode(201)
+                .extract().path("id");
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + successorId + "/history")
+                .then()
+                .statusCode(200)
+                .body("values.id", contains(thirdId, successorId, reservedId));
+    }
+
+    @Test
+    @Order(10)
+    void end_to_end_delete_the_whole_history_through_an_old_decorator() {
+        given()
+                .when().delete("/api/calm/namespaces/finos/decorators/" + reservedId)
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + reservedId + "/history")
+                .then()
+                .statusCode(404);
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + successorId)
+                .then()
+                .statusCode(404);
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators?type=integration-evaluation")
+                .then()
+                .statusCode(200)
+                .body("values", empty());
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
+    @Order(11)
+    void end_to_end_refuse_an_in_place_update_of_a_superseded_decorator() {
+        unreservedId = given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR)
+                .when().post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(201)
+                .extract().path("id");
+        int reservedSuccessorId = given()
+                .contentType(ContentType.JSON)
+                .body(reservedDecorator("open"))
+                .when().put("/api/calm/namespaces/finos/decorators/" + unreservedId)
+                .then()
+                .statusCode(201)
+                .extract().path("id");
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(UPDATED_DECORATOR)
+                .when().put("/api/calm/namespaces/finos/decorators/" + unreservedId)
+                .then()
+                .statusCode(409)
+                .body(containsString("superseded"));
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + unreservedId + "/history")
+                .then()
+                .statusCode(200)
+                .body("values.id", contains(reservedSuccessorId, unreservedId))
+                .body("values[1].decorator.data.status", equalTo("in-progress"));
+    }
+
+    @Test
+    @Order(12)
+    void end_to_end_refuse_to_delete_a_history_whose_head_is_no_longer_current() {
+        assertThrows(DecoratorSupersededException.class,
+                () -> decoratorStore.deleteCurrentDecoratorHistory("finos", unreservedId));
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + unreservedId + "/history")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(2));
+    }
+
+    @Test
+    @Order(13)
+    void end_to_end_refuse_an_id_key_that_nitrite_cannot_store() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"type\": \"deployment\", \"data\": {\"_id\": \"x\"}}")
+                .when().post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400)
+                .body(equalTo(DecoratorKeyRefusedException.idWithAnotherValue().getMessage()));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"type\": \"deployment\", \"data\": {\"\": 1}}")
+                .when().put("/api/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(400)
+                .body(equalTo(DecoratorKeyRefusedException.emptyKeyPart().getMessage()));
+    }
+
+    private static String reservedDecorator(String status) {
+        return """
+                {
+                    "$schema": "%s",
+                    "unique-id": "finos-architecture-1-evaluation",
+                    "type": "integration-evaluation",
+                    "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                    "target-type": ["architecture"],
+                    "applies-to": ["example-node"],
+                    "data": {"status": "%s"}
+                }
+                """.formatted(BASE_DECORATOR, status);
     }
 }

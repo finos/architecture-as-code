@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkiverse.mcp.server.ToolResponse;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -244,6 +245,24 @@ final class McpValidationHelper {
     static String validateMaxLength(String value, int maxLen, String fieldName) {
         if (value != null && value.length() > maxLen) {
             return "Error: " + fieldName + " must not exceed " + maxLen + " characters.";
+        }
+        return null;
+    }
+
+    /**
+     * Validates that an optional string value does not exceed the maximum number of UTF-8 bytes.
+     * Null values are accepted.
+     *
+     * @param value     the value to check (may be null)
+     * @param maxBytes  maximum permitted number of UTF-8 bytes
+     * @param fieldName human-readable field name for the error message
+     * @return error string, or {@code null} if valid
+     */
+    static String validateMaxBytes(String value, int maxBytes, String fieldName) {
+        // A char is at least one UTF-8 byte, so a long string is refused without a copy.
+        if (value != null && (value.length() > maxBytes
+                || value.getBytes(StandardCharsets.UTF_8).length > maxBytes)) {
+            return "Error: " + fieldName + " must not exceed " + maxBytes + " bytes.";
         }
         return null;
     }

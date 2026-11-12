@@ -1,0 +1,18 @@
+{
+    "$id": "https://calm.finos.org/standards/test/nullable.decorator.standard.json",
+    "type": "object",
+    "properties": {
+        "data": {
+            "enum": [
+                null,
+                "ok"
+            ],
+            "default": null
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/release/9.8/meta/decorators.json#/defs/decorator"
+        }
+    ]
+}

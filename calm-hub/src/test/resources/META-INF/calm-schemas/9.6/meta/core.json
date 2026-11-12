@@ -1,0 +1,8 @@
+{
+    "$id": "https://calm.finos.org/release/9.6/meta/core.json",
+    "defs": {
+        "data": {
+            "type": "object"
+        }
+    }
+}

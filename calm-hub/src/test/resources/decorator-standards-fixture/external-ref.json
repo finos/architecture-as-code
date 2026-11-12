@@ -1,0 +1,9 @@
+{
+    "$id": "https://calm.finos.org/standards/test/external-ref.decorator.standard.json",
+    "type": "object",
+    "properties": {
+        "data": {
+            "$ref": "https://example.com/schemas/other.json"
+        }
+    }
+}

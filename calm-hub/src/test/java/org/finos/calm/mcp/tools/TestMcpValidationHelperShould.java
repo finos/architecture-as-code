@@ -261,6 +261,20 @@ class TestMcpValidationHelperShould {
         assertThat(result, containsString("200"));
     }
 
+    // --- validateMaxBytes ---
+
+    @Test
+    void accept_null_or_a_value_within_max_bytes() {
+        assertThat(McpValidationHelper.validateMaxBytes(null, 4, "MyField"), is(nullValue()));
+        assertThat(McpValidationHelper.validateMaxBytes("éé", 4, "MyField"), is(nullValue()));
+    }
+
+    @Test
+    void reject_a_value_over_max_bytes_in_bytes_and_not_in_characters() {
+        assertThat(McpValidationHelper.validateMaxBytes("ééx", 4, "MyField"), is("Error: MyField must not exceed 4 bytes."));
+        assertThat(McpValidationHelper.validateMaxBytes("xxxxx", 4, "MyField"), is("Error: MyField must not exceed 4 bytes."));
+    }
+
     // --- firstError ---
 
     @Test

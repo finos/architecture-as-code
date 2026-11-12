@@ -625,6 +625,9 @@ pattern. Toggle independently with `calm.audit.store.enabled` / `calm.audit.log.
 `calm.audit.capture-source-ip` (all in `application.properties`). No REST API exposes the
 trail in this iteration — read it via direct DB access or ops tooling.
 
+A request gives one entry, except a decorator `PUT` that supersedes a reserved-type decorator
+(`201`). It gives an `UPDATE` of the old id and a `CREATE` of the new id from `Location`.
+
 GitHub storage mode (`calm.database.mode=github`) has no database, so it does not persist the
 trail: `GitHubAuditLogStore.query()` always returns an empty list, and the structured log line
 is the only record. `GitHubStartupInitializer` logs a warning about this at startup. Route the

@@ -9,6 +9,7 @@ import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.container.ResourceInfo;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.Provider;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -255,20 +256,32 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             return;
         }
 
-        AuditLogEntry entry = new AuditLogEntry.AuditLogEntryBuilder()
+        auditService.record(entry(resolved, resolved.action(), resolved.entityId(), outcome, requestContext));
+
+        // A reserved-type decorator PUT keeps the old decorator and creates a successor, which Location names.
+        if (resolved.entityType() == AuditEntityType.DECORATOR && "PUT".equals(method)
+                && responseContext.getStatus() == Response.Status.CREATED.getStatusCode()) {
+            String successorId = LocationSegmentParser.parse(AuditEntityType.DECORATOR, locationPath(responseContext)).entityId();
+            if (successorId != null) {
+                auditService.record(entry(resolved, AuditAction.CREATE, successorId, outcome, requestContext));
+            }
+        }
+    }
+
+    private AuditLogEntry entry(AuditContext context, AuditAction action, String entityId, AuditOutcome outcome,
+                                ContainerRequestContext requestContext) {
+        return new AuditLogEntry.AuditLogEntryBuilder()
                 .setTimestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .setActor(resolveActor())
-                .setAction(resolved.action())
-                .setEntityType(resolved.entityType())
-                .setNamespace(resolved.namespace())
-                .setDomain(resolved.domain())
-                .setEntityId(resolved.entityId())
-                .setVersion(resolved.version())
+                .setAction(action)
+                .setEntityType(context.entityType())
+                .setNamespace(context.namespace())
+                .setDomain(context.domain())
+                .setEntityId(entityId)
+                .setVersion(context.version())
                 .setOutcome(outcome)
                 .setSourceIp(captureSourceIp ? requestContext.getHeaderString("X-Forwarded-For") : null)
                 .build();
-
-        auditService.record(entry);
     }
 
     private static AuditOutcome resolveOutcome(int status) {
