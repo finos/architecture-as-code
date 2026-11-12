@@ -8,6 +8,7 @@ import {
     ConnectionDiagram, NodeList,
     extractAigf, getExtraProperties,
 } from './detail-components.js';
+import { DecoratorsSection } from './DecoratorsSection.js';
 
 const KNOWN_FIELDS = new Set([
     'unique-id', 'description', 'relationship-type', 'protocol', 'controls', 'metadata',
@@ -132,6 +133,7 @@ export function RelationshipDetails({ data }: { data: CalmRelationshipSchema }) 
             <ControlsSection controls={controls} />
             <RisksSection risks={risks} riskLevel={riskLevel} />
             <MitigationsSection mitigations={mitigations} />
+            <DecoratorsSection elementId={data['unique-id']} />
         </div>
     );
 }

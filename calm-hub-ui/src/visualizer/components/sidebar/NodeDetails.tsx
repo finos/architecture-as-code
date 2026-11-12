@@ -9,6 +9,7 @@ import {
     PropertiesSection, ControlsSection, RisksSection, MitigationsSection, InterfacesSection,
     getNodeIcon, extractAigf, getExtraProperties,
 } from './detail-components.js';
+import { DecoratorsSection } from './DecoratorsSection.js';
 
 const KNOWN_FIELDS = new Set([
     'unique-id', 'name', 'node-type', 'description', 'details',
@@ -80,6 +81,7 @@ export function NodeDetails({ data }: { data: CalmNodeSchema }) {
             <ControlsSection controls={controls} />
             <RisksSection risks={risks} riskLevel={riskLevel} />
             <MitigationsSection mitigations={mitigations} />
+            <DecoratorsSection elementId={data['unique-id']} />
         </div>
     );
 }

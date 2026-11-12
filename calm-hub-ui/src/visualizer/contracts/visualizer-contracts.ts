@@ -56,6 +56,8 @@ export interface DrawerProps {
     /** Bumped to force a clean re-apply of positions (used by "reset to default"). */
     layoutEpoch?: number;
     onPositionsChange?: PositionsChangeHandler;
+    /** Reports whether a dropped file replaces the loaded resource. Reports false on unmount. Must be identity-stable. */
+    onDroppedFileChange?: (dropped: boolean) => void;
 }
 
 /**
