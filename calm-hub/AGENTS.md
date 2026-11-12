@@ -671,6 +671,7 @@ the index list and duplicate-prevention silently disappears. See
 [ADR 0001](decisions/0001-versioned-artefact-storage.md).
 
 - `PERMISSIONS.md` - Per-namespace permission model reference
+- `PERSONAL_NAMESPACES.md` - Proposed personal namespace design (not built, see ADR 0018)
 - `decisions/` - Architecture Decision Records for calm-hub's own backend
   design (not the CALM ADR resource type). See `decisions/README.md` for
   the format; check each ADR's `Status` field before assuming it describes
