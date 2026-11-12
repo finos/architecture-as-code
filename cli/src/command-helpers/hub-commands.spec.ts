@@ -11,7 +11,9 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces, runWhoami,
     runListControlConfigurations,
     runPushInterface, runPullInterface, runListInterfaces,
     runPushFlow, runPullFlow, runListFlows,
-    runPushTimeline, runPullTimeline, runListTimelines } from './hub-commands';
+    runPushTimeline, runPullTimeline, runListTimelines,
+    runListExtensions, runDescribeExtension, runExtensionCommand } from './hub-commands';
+import { Readable } from 'stream';
 
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
 // real (pure) document-id-utils helpers that orchestratePush relies on.
@@ -38,7 +40,9 @@ vi.mock('@finos/calm-shared', async () => {
         createControlRequirementVersion: vi.fn(),
         getControlConfigurationVersions: vi.fn(),
         getControlConfigurationVersion: vi.fn(),
-        createControlConfigurationVersion: vi.fn()
+        createControlConfigurationVersion: vi.fn(),
+        listExtensions: vi.fn(),
+        callExtension: vi.fn()
     };
     return {
         // Keep all the real (pure) helpers — document-id-utils, semver and canonical — that
@@ -48,7 +52,7 @@ vi.mock('@finos/calm-shared', async () => {
         extractDocumentMetadata: vi.fn(actual.extractDocumentMetadata),
         CalmHubClient: vi.fn(function () { return mockClient; }),
         HubClientError: class HubClientError extends Error {
-            constructor(public status: number, public error: string, public request: string) {
+            constructor(public status: number, public error: string, public request: string, public body?: unknown) {
                 super(`${status} ${error}`);
                 this.name = 'HubClientError';
             }
@@ -2453,4 +2457,418 @@ describe('hub-commands', () => {
         });
     });
 
+
+    // ── extensions ───────────────────────────────────────────────────────────
+
+    describe('extensions', () => {
+        const hub = { calmHubUrl: 'http://hub' };
+        const extension = {
+            id: 'example',
+            version: '0.1.0',
+            hubApi: 0,
+            name: 'Example services',
+            description: 'Lists services',
+            routes: [
+                { id: 'namespace-services', method: 'GET', path: '/namespaces/{namespace}/services', scope: 'read' },
+                { id: 'add-service', method: 'POST', path: '/namespaces/{namespace}/services', scope: 'write' },
+            ],
+            commands: {
+                'add-service': {
+                    route: 'add-service',
+                    description: 'Record a service',
+                    input: {
+                        type: 'object',
+                        properties: {
+                            namespace: { type: 'string' },
+                            name: { type: 'string' },
+                            replicas: { type: 'integer' },
+                            ratio: { type: 'number' },
+                            enabled: { type: 'boolean' },
+                            tags: { type: 'array' },
+                            note: { type: ['string', 'null'] },
+                            owner: { type: ['object', 'null'] },
+                        },
+                    },
+                    destructive: false,
+                },
+                'list-services': { route: 'namespace-services', input: { type: 'object' }, output: { type: 'object' } },
+            },
+        };
+        let stdoutSpy: ReturnType<typeof vi.spyOn>;
+
+        beforeEach(async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.listExtensions).mockResolvedValue([extension]);
+            vi.mocked(mockClient.callExtension).mockResolvedValue({ status: 200, contentType: 'application/json', data: { ok: true } });
+            stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        });
+
+        afterEach(() => {
+            stdoutSpy.mockRestore();
+        });
+
+        describe('runListExtensions', () => {
+            it('prints the extensions as JSON', async () => {
+                await runListExtensions({ calmHubOptions: hub });
+
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith([extension]);
+            });
+
+            it('renders an ID/VERSION/NAME/COMMANDS table when format is pretty', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listExtensions).mockResolvedValue([extension, { id: 'bare', hubApi: 0 }]);
+
+                await runListExtensions({ calmHubOptions: hub, format: 'pretty' });
+
+                expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                    [
+                        { ID: 'example', VERSION: '0.1.0', NAME: 'Example services', COMMANDS: 'add-service, list-services' },
+                        { ID: 'bare', VERSION: '', NAME: '', COMMANDS: '' },
+                    ],
+                    [
+                        { key: 'ID', header: 'ID' },
+                        { key: 'VERSION', header: 'VERSION' },
+                        { key: 'NAME', header: 'NAME' },
+                        { key: 'COMMANDS', header: 'COMMANDS' }
+                    ]
+                );
+            });
+
+            it('exits when no hub URL is available', async () => {
+                await expect(runListExtensions({ calmHubOptions: {} })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalled();
+            });
+
+            it('exits on HubClientError', async () => {
+                const { mockClient, shared } = await getSharedMocks();
+                vi.mocked(mockClient.listExtensions).mockRejectedValue(new shared.HubClientError(401, 'Not signed in', 'GET /api/calm/extensions'));
+
+                await expect(runListExtensions({ calmHubOptions: hub, format: 'pretty' })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(401, 'Not signed in', 'GET /api/calm/extensions', 'pretty');
+            });
+        });
+
+        describe('runDescribeExtension', () => {
+            it('prints the extension as JSON', async () => {
+                await runDescribeExtension({ calmHubOptions: hub, id: 'example' });
+
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(extension);
+            });
+
+            it('prints a command with the method, path and scope of its route', async () => {
+                await runDescribeExtension({ calmHubOptions: hub, id: 'example', command: 'list-services' });
+
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith({
+                    extension: 'example',
+                    command: 'list-services',
+                    route: 'namespace-services',
+                    input: { type: 'object' },
+                    output: { type: 'object' },
+                    method: 'GET',
+                    path: '/namespaces/{namespace}/services',
+                    scope: 'read',
+                    readOnly: true,
+                });
+            });
+
+            it('marks a GET route as read-only, as MCP does, and a write route only when it is readOnly', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listExtensions).mockResolvedValue([{
+                    ...extension,
+                    routes: [{ ...extension.routes[0], method: 'get' }, { ...extension.routes[1], readOnly: true }],
+                }]);
+
+                await runDescribeExtension({ calmHubOptions: hub, id: 'example', command: 'list-services' });
+                await runDescribeExtension({ calmHubOptions: hub, id: 'example', command: 'add-service' });
+
+                expect(hubOutput.printJsonSuccess).toHaveBeenNthCalledWith(1, expect.objectContaining({ readOnly: true }));
+                expect(hubOutput.printJsonSuccess).toHaveBeenNthCalledWith(2, expect.objectContaining({ readOnly: true }));
+            });
+
+            it('renders the commands of the extension when format is pretty', async () => {
+                const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+                await runDescribeExtension({ calmHubOptions: hub, id: 'example', format: 'pretty' });
+
+                expect(log).toHaveBeenCalledWith('Example services (example 0.1.0)');
+                expect(log).toHaveBeenCalledWith('Lists services');
+                expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                    [
+                        { COMMAND: 'add-service', METHOD: 'POST', PATH: '/namespaces/{namespace}/services', DESCRIPTION: 'Record a service' },
+                        { COMMAND: 'list-services', METHOD: 'GET', PATH: '/namespaces/{namespace}/services', DESCRIPTION: '' },
+                    ],
+                    expect.any(Array)
+                );
+                log.mockRestore();
+            });
+
+            it('renders a command and its schemas when format is pretty', async () => {
+                const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+                await runDescribeExtension({ calmHubOptions: hub, id: 'example', command: 'add-service', format: 'pretty' });
+
+                expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                    [
+                        { FIELD: 'command', VALUE: 'add-service' },
+                        { FIELD: 'description', VALUE: 'Record a service' },
+                        { FIELD: 'method', VALUE: 'POST' },
+                        { FIELD: 'path', VALUE: '/namespaces/{namespace}/services' },
+                        { FIELD: 'scope', VALUE: 'write' },
+                        { FIELD: 'readOnly', VALUE: 'false' },
+                        { FIELD: 'destructive', VALUE: 'false' },
+                    ],
+                    [{ key: 'FIELD', header: 'FIELD' }, { key: 'VALUE', header: 'VALUE' }]
+                );
+                expect(log).toHaveBeenCalledWith('\nInput schema:');
+                expect(log).not.toHaveBeenCalledWith('\nOutput schema:');
+                log.mockRestore();
+            });
+
+            it('exits with 404 when the extension is not enabled', async () => {
+                await expect(runDescribeExtension({ calmHubOptions: hub, id: 'missing' })).rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    404, 'Extension \'missing\' is not enabled on this CALM Hub', 'GET /api/calm/extensions', 'json');
+            });
+
+            it('exits with 404 and lists the commands when the command is unknown', async () => {
+                await expect(runDescribeExtension({ calmHubOptions: hub, id: 'example', command: 'nope' })).rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    404,
+                    'Extension \'example\' has no command \'nope\' that this CALM Hub can run. Commands: add-service, list-services',
+                    'GET /api/calm/extensions',
+                    'json'
+                );
+            });
+
+            it('does not treat an Object prototype key as a command', async () => {
+                await expect(runDescribeExtension({ calmHubOptions: hub, id: 'example', command: 'toString' })).rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(404, expect.stringContaining('no command \'toString\''), expect.any(String), 'json');
+            });
+
+            it('says so when the extension has no commands', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listExtensions).mockResolvedValue([{ id: 'bare', hubApi: 0 }]);
+
+                await expect(runDescribeExtension({ calmHubOptions: hub, id: 'bare', command: 'x' })).rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(404, expect.stringContaining('It has no commands.'), expect.any(String), 'json');
+            });
+
+            it('exits when a command names a route that the extension does not list', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listExtensions).mockResolvedValue([{ id: 'odd', hubApi: 0, commands: { run: { route: 'gone' } } }]);
+
+                await expect(runDescribeExtension({ calmHubOptions: hub, id: 'odd', command: 'run' })).rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    0, 'Command \'run\' names route \'gone\', which extension \'odd\' does not list', 'GET /api/calm/extensions', 'json');
+            });
+        });
+
+        describe('runExtensionCommand', () => {
+            const addService = extension.routes[1];
+
+            it('calls the route of the command with the input file and prints a JSON reply', async () => {
+                vi.mocked(fs.readFile).mockResolvedValue('{"namespace":"finos","name":"payments"}' as unknown as Uint8Array);
+                const { mockClient } = await getSharedMocks();
+
+                await runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', input: 'in.json' });
+
+                expect(fs.readFile).toHaveBeenCalledWith('in.json', 'utf-8');
+                expect(mockClient.callExtension).toHaveBeenCalledWith(extension, addService, { namespace: 'finos', name: 'payments' }, { timeoutMs: undefined });
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith({ ok: true });
+            });
+
+            it('reads the input from stdin for -', async () => {
+                const stdin = vi.spyOn(process, 'stdin', 'get').mockReturnValue(
+                    Readable.from([Buffer.from('{"namespace":'), '"finos"}']) as unknown as typeof process.stdin);
+                const { mockClient } = await getSharedMocks();
+
+                await runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'list-services', input: '-' });
+
+                expect(mockClient.callExtension).toHaveBeenCalledWith(extension, extension.routes[0], { namespace: 'finos' }, { timeoutMs: undefined });
+                stdin.mockRestore();
+            });
+
+            it('sends an empty input when there is no --input or --arg', async () => {
+                const { mockClient } = await getSharedMocks();
+
+                await runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'list-services' });
+
+                expect(mockClient.callExtension).toHaveBeenCalledWith(extension, extension.routes[0], {}, { timeoutMs: undefined });
+            });
+
+            it('sets --arg values over the input, with the types that the input schema declares', async () => {
+                vi.mocked(fs.readFile).mockResolvedValue('{"namespace":"other","name":"payments"}' as unknown as Uint8Array);
+                const { mockClient } = await getSharedMocks();
+
+                await runExtensionCommand({
+                    calmHubOptions: hub, id: 'example', command: 'add-service', input: 'in.json',
+                    args: ['namespace=finos', 'replicas=3', 'enabled=true', 'tags=["a"]', 'note=null', 'owner={"team":"x"}', 'extra=1'],
+                });
+
+                expect(mockClient.callExtension).toHaveBeenCalledWith(extension, addService, {
+                    namespace: 'finos', name: 'payments', replicas: 3, enabled: true, tags: ['a'], note: 'null', owner: { team: 'x' }, extra: '1',
+                }, { timeoutMs: undefined });
+            });
+
+            it.each([
+                ['replicas', '9007199254740993'], ['replicas', '0x10'], ['replicas', '1e3'], ['replicas', '1.0'], ['replicas', '1.5'],
+                ['replicas', '-0'], ['replicas', '+5'], ['ratio', '0x10'], ['ratio', '1e3'], ['ratio', '9007199254740993'], ['ratio', '.5'],
+                ['ratio', 'NaN'], ['ratio', 'Infinity'], ['ratio', '-Infinity'],
+            ])('keeps --arg %s=%s as a string, so that its value does not change', async (key, value) => {
+                const { mockClient } = await getSharedMocks();
+
+                await runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', args: [`${key}=${value}`] });
+
+                expect(vi.mocked(mockClient.callExtension).mock.calls[0][2]).toEqual({ [key]: value });
+            });
+
+            it.each([
+                ['replicas', '9007199254740991', 9007199254740991], ['replicas', '-3', -3], ['replicas', ' 7 ', 7],
+                ['ratio', '1.5', 1.5], ['ratio', '0.000001', 0.000001], ['ratio', '9007199254740992', 9007199254740992],
+            ])('converts --arg %s=%s to a number', async (key, value, number) => {
+                const { mockClient } = await getSharedMocks();
+
+                await runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', args: [`${key}=${value}`] });
+
+                expect(vi.mocked(mockClient.callExtension).mock.calls[0][2]).toEqual({ [key]: number });
+            });
+
+            it('exits without a call when --arg sets __proto__', async () => {
+                const { mockClient } = await getSharedMocks();
+
+                await expect(runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', args: ['__proto__=x'] }))
+                    .rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(0, '--arg cannot set __proto__. Use --input to send it', 'ext example add-service', 'json');
+                expect(mockClient.listExtensions).not.toHaveBeenCalled();
+            });
+
+            it('sends __proto__ from the input file as an input property', async () => {
+                vi.mocked(fs.readFile).mockResolvedValue('{"__proto__":"x"}' as unknown as Uint8Array);
+                const { mockClient } = await getSharedMocks();
+
+                await runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', input: 'in.json', args: ['name=a'] });
+
+                const input = vi.mocked(mockClient.callExtension).mock.calls[0][2];
+                expect(Object.prototype.hasOwnProperty.call(input, '__proto__')).toBe(true);
+                expect(input.name).toBe('a');
+            });
+
+            it.each([['90', 90000], ['0.5', 500], ['1.0001', 1001], [' 2147483 ', 2147483000]])('passes --timeout %s as %d ms', async (timeout, timeoutMs) => {
+                const { mockClient } = await getSharedMocks();
+
+                await runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'list-services', timeout });
+
+                expect(mockClient.callExtension).toHaveBeenCalledWith(extension, extension.routes[0], {}, { timeoutMs });
+            });
+
+            it.each(['0', '-1', 'soon', '', 'Infinity', '2147483.001', '2147484', '0x10', '1e3'])('exits without a call when --timeout is %j', async (timeout) => {
+                const { mockClient } = await getSharedMocks();
+
+                await expect(runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'list-services', timeout }))
+                    .rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    0, `--timeout must be a positive number of seconds: ${timeout}`, 'ext example list-services', 'json');
+                expect(mockClient.listExtensions).not.toHaveBeenCalled();
+            });
+
+            it('keeps an --arg value as a string when it does not convert, for the extension to reject', async () => {
+                const { mockClient } = await getSharedMocks();
+
+                await runExtensionCommand({
+                    calmHubOptions: hub, id: 'example', command: 'add-service',
+                    args: ['namespace=finos', 'replicas=many', 'enabled=yes', 'tags=[oops', 'name=a=b', 'replicas2= '],
+                });
+
+                expect(mockClient.callExtension).toHaveBeenCalledWith(extension, addService, {
+                    namespace: 'finos', replicas: 'many', enabled: 'yes', tags: '[oops', name: 'a=b', replicas2: ' ',
+                }, { timeoutMs: undefined });
+            });
+
+            it('writes a text reply as is, with one final newline', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.callExtension).mockResolvedValue({ status: 200, contentType: 'text/plain', data: 'done' });
+
+                await runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'list-services' });
+
+                expect(stdoutSpy).toHaveBeenCalledWith('done\n');
+                expect(hubOutput.printJsonSuccess).not.toHaveBeenCalled();
+            });
+
+            it('writes nothing for an empty reply', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.callExtension).mockResolvedValue({ status: 204, data: '' });
+
+                await runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'list-services' });
+
+                expect(stdoutSpy).not.toHaveBeenCalled();
+                expect(hubOutput.printJsonSuccess).not.toHaveBeenCalled();
+            });
+
+            it('prints the error body as Hub sent it', async () => {
+                const { mockClient, shared } = await getSharedMocks();
+                const body = { error: 'Input is not valid', details: [{ path: '/name' }] };
+                vi.mocked(mockClient.callExtension).mockRejectedValue(new shared.HubClientError(400, 'Input is not valid', 'POST /x', body));
+
+                await expect(runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', format: 'pretty' }))
+                    .rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(400, 'Input is not valid', 'POST /x', 'pretty', body);
+            });
+
+            it('exits when the input file cannot be read', async () => {
+                vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
+
+                await expect(runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', input: 'missing.json' }))
+                    .rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(0, 'Could not read file: missing.json', 'ext example add-service', 'json');
+            });
+
+            it('exits when the input is not JSON', async () => {
+                vi.mocked(fs.readFile).mockResolvedValue('{' as unknown as Uint8Array);
+
+                await expect(runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', input: 'in.json' }))
+                    .rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(0, 'Input is not valid JSON: in.json', 'ext example add-service', 'json');
+            });
+
+            it.each(['[]', '"text"', 'null'])('exits when the input is %s, not an object', async (content) => {
+                vi.mocked(fs.readFile).mockResolvedValue(content as unknown as Uint8Array);
+                const { mockClient } = await getSharedMocks();
+
+                await expect(runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', input: 'in.json' }))
+                    .rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(0, 'Input must be a JSON object', 'ext example add-service', 'json');
+                expect(mockClient.listExtensions).not.toHaveBeenCalled();
+            });
+
+            it.each(['novalue', '=value'])('exits when --arg %s has no key=value form', async (arg) => {
+                const { mockClient } = await getSharedMocks();
+
+                await expect(runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'add-service', args: [arg] }))
+                    .rejects.toThrow('process.exit');
+
+                expect(hubOutput.printError).toHaveBeenCalledWith(0, `--arg must have the form key=value: ${arg}`, 'ext example add-service', 'json');
+                expect(mockClient.listExtensions).not.toHaveBeenCalled();
+            });
+
+            it('exits without a call when the command is unknown', async () => {
+                const { mockClient } = await getSharedMocks();
+
+                await expect(runExtensionCommand({ calmHubOptions: hub, id: 'example', command: 'nope' })).rejects.toThrow('process.exit');
+
+                expect(mockClient.callExtension).not.toHaveBeenCalled();
+                expect(hubOutput.printError).toHaveBeenCalledWith(404, expect.stringContaining('no command \'nope\''), expect.any(String), 'json');
+            });
+        });
+    });
 });
