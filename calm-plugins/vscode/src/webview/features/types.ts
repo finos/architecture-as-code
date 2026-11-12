@@ -35,10 +35,6 @@ export interface CanvasFeatureRuntime {
     postMessage: (message: unknown) => void;
     loadArchitecture: (json: string) => void;
     paletteSearchQuery?: string;
-    contextMenu: { x: number; y: number; edge: Edge } | null;
-    setContextMenu: (menu: { x: number; y: number; edge: Edge } | null) => void;
-    nodeContextMenu: { x: number; y: number; nodeId: string } | null;
-    setNodeContextMenu: (menu: { x: number; y: number; nodeId: string } | null) => void;
 }
 
 /** The smaller capability set needed to handle a drag payload before core node creation. */
@@ -60,7 +56,7 @@ export interface CanvasFeatureDropContext {
 }
 
 /** Named composition points supplied by the core canvas. */
-export type CanvasFeatureSlot = 'canvas' | 'properties' | 'palette' | 'overlay' | 'modal' | 'context-menu';
+export type CanvasFeatureSlot = 'canvas' | 'properties' | 'palette' | 'overlay' | 'modal';
 
 export type CanvasFeatureSurface = ComponentType<{ runtime: CanvasFeatureRuntime; children?: ReactNode }>;
 

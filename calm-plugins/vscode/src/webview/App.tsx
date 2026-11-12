@@ -102,8 +102,6 @@ function CanvasApp() {
     }, [reactFlowInstance]);
     const [panelWidth, setPanelWidth] = useState(280);
     const [panelCollapsed, setPanelCollapsed] = useState(false);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; edge: Edge } | null>(null);
-    const [nodeContextMenu, setNodeContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
     const [expandControlKey, setExpandControlKey] = useState<string | null>(null);
 
     // Undo/redo
@@ -124,7 +122,7 @@ function CanvasApp() {
     const keptOnDelete = useRef<Set<string> | null>(null);
     const pendingNodeDelete = useRef(false);
 
-    // Fresh refs for nodes/edges — used by emitChange when ReactFlow is unmounted (sequence mode)
+    // Fresh refs for nodes/edges, used while ReactFlow state updates are pending.
     const nodesRef = useRef(nodes);
     const edgesRef = useRef(edges);
     useEffect(() => {
@@ -589,25 +587,7 @@ function CanvasApp() {
     const handlePaneClick = useCallback(() => {
         setSelectedNode(null); setSelectedEdge(null);
         store.selectNode(null); store.selectEdge(null);
-        setContextMenu(null);
-        setNodeContextMenu(null);
     }, [store]);
-
-    // --- Node role context menu ---
-
-    const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
-        event.preventDefault();
-        if (store.readonlyMode) return;
-        setNodeContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id });
-    }, [store.readonlyMode]);
-
-    // --- Flow context menu ---
-
-    const handleEdgeContextMenu = useCallback((event: React.MouseEvent, edge: Edge) => {
-        event.preventDefault();
-        if (store.readonlyMode) return;
-        setContextMenu({ x: event.clientX, y: event.clientY, edge });
-    }, [store.readonlyMode]);
 
     // --- Node drag stop (containment detection) ---
     const handleNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
@@ -658,10 +638,6 @@ function CanvasApp() {
         selectedNode,
         selectedEdge,
         expandControlKey,
-        contextMenu,
-        setContextMenu,
-        nodeContextMenu,
-        setNodeContextMenu,
         containerRef,
         setSelectedNode,
         setSelectedEdge,
@@ -874,9 +850,7 @@ function CanvasApp() {
                             onEdgeUpdate={store.readonlyMode ? undefined : handleEdgeReconnect}
                             edgeUpdaterRadius={20}
                             onNodeClick={handleNodeClick} onNodeDoubleClick={handleNodeDoubleClick}
-                            onNodeContextMenu={handleNodeContextMenu}
                             onEdgeClick={handleEdgeClick}
-                            onEdgeContextMenu={handleEdgeContextMenu}
                             onPaneClick={handlePaneClick} onNodeDragStop={handleNodeDragStop}
                             onDragOver={handleDragOver} onDrop={handleDrop}
                             fitView minZoom={0.1} maxZoom={4} panOnDrag
@@ -976,13 +950,6 @@ function CanvasApp() {
             {/* Pattern Picker */}
             <CanvasFeatureSlot
                 slot="modal"
-                definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
-                enabledFeatures={enabledCanvasFeatures}
-                runtime={featureRuntime}
-            />
-
-            <CanvasFeatureSlot
-                slot="context-menu"
                 definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
                 enabledFeatures={enabledCanvasFeatures}
                 runtime={featureRuntime}
