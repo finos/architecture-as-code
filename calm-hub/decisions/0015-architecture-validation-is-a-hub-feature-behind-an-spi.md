@@ -1,0 +1,128 @@
+# ADR 0015: Architecture validation is a Hub feature behind an SPI, recorded async first
+
+**Status**: Proposed. Not built. It needs the write seam in
+[ADR 0016](0016-store-write-seam-and-outbox-for-post-write-events.md), the
+decorator rules in [ADR 0017](0017-reserved-decorator-types-and-decorator-history.md),
+a `validation` decorator Standard and changes to calm-server.
+
+## Context
+
+[#3396](https://github.com/finos/architecture-as-code/issues/3396) proposes a
+`validator` extension point: Hub calls it before a write, and it can reject the
+write. [#3399](https://github.com/finos/architecture-as-code/issues/3399) needs
+validation: a namespace binds standards-only Patterns (SOPs), Hub validates each
+architecture version against them through calm-server
+([#2716](https://github.com/finos/architecture-as-code/issues/2716)), and Hub
+records the results as `validation` decorators.
+
+If the first delivery is an extension, Hub's own governance goes through a
+manifest, the proxy and an assertion. An operator-installed extension then joins
+the governance trust base. Binding resolution, pinned versions, severity mapping
+and the trust rule must stay in Hub in any case. Kubernetes reached the same
+point: ValidatingAdmissionPolicy is an in-process alternative to admission
+webhooks, with policy and binding as separate objects.
+
+Facts in the code:
+
+- calm-server returns 400 when an architecture's `$schema` is not the Pattern's
+  `$id`. An SOP is never the `$schema`.
+- calm-server fetches each `$ref` itself, only from allowed hosts. A request
+  cannot carry documents that Hub has already resolved.
+- calm-server allows 100 requests per IP per 15 minutes by default. Hub is one
+  client. `--rate-limit-window` and `--rate-limit-max` change the limit.
+- With `allow.put.operations=true`, a PUT overwrites a version, and promotion
+  deletes snapshot versions. Versions are not always immutable.
+- `DecoratorResource` and the MCP `DecoratorTools` accept a decorator of any type
+  from a caller with WRITE scope.
+- The control-evaluation Standard records `status`, `findings`, `engine` and
+  `evaluated-at` for one control.
+- `decorators.json` in calm-schema 1.3.0 requires at least one `applies-to` item.
+  A pass, or an issue on the whole document, has no element id.
+
+## Decision
+
+**One internal interface.** `ArchitectureValidator` takes a request and returns a
+result. `CalmServerValidator` is the default implementation. A manifest-declared
+`validator` extension becomes a second implementation later, through the proxy.
+The interface holds no validation rules, so #2716's rejection of validation in
+Java still holds.
+
+**Contract.**
+
+| Part | Content |
+|---|---|
+| Request | `hubApi`, a request id, `dryRun`, the subject (kind, URL, content SHA-256, document), and a list of rule sources (id, version, role `schema` or `sop`, binding, document), with all referenced documents resolved by Hub |
+| Result | One result for each source, with `status` of `pass`, `fail` or `error`, and issues with `severity`, `code`, `message`, JSON `path` and an optional element `unique-id` |
+
+A validator must have no side effects, so Hub can call it for dry runs and for
+revalidation.
+
+**Record asynchronously first.** Hub validates after the write, through the
+outbox in ADR 0016. A binding change starts a background revalidation of the
+versions it affects. When a binding is removed, Hub writes a `not-applicable`
+result for that source on each affected version, which supersedes the old
+result.
+
+**GitHub mode is out of scope.** It has no store for decorators, so Hub does not
+validate in GitHub mode. A repository can validate in its own CI.
+
+**Severity and enforcement are separate.** The binding's `level` (`mandatory` or
+`recommended`) sets severity. A new binding field, `action`, sets enforcement:
+`record`, `warn` or `deny`. Only `record` ships first. A later `deny` runs the
+validator before the version is created, with a short timeout, and fails closed.
+Only the operator can set a binding to fail open. No request header can skip a
+`deny` binding.
+
+**A failed call is never a pass.** If the validator fails or times out, Hub
+records an `error` result.
+
+**Results key on content, not only on the version.** Each result holds the
+version URL and the content SHA-256. The hash is of the RFC 8785 (JCS) form of
+the document, so it is the same for each store, and a subscriber can calculate
+it again from the document that it reads. When the content changes, the old
+result is `stale`, and Hub validates again.
+
+**`validation` is a reserved decorator type.** Only Hub's own code (the `system`
+flag) writes it ([ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)).
+Hub writes one decorator for each source. A new result supersedes the old one.
+Hub's own writes do not start validation again.
+
+**The result has the shape of a control evaluation.** A new `validation`
+decorator Standard in calm-schema uses the field names and meanings of the
+control-evaluation Standard, so one diagram overlay and one generic view
+([#3620](https://github.com/finos/architecture-as-code/issues/3620)) show both.
+
+| Field in `data` | Content |
+|---|---|
+| `source` | The rule source: id, version, role and binding. It takes the place of `control` |
+| `status` | `met`, `not-met` or `not-applicable`. A validator `fail` is `not-met`. A validator `error` is `not-met` with one finding whose `cause` is `validator-error` |
+| `findings` | One for each issue: `subject` (element `unique-id`, or the version URL), `check` (issue code), `description` (message), and `severity` and JSON `path`. Unlike control-evaluation, findings are allowed on any status, so a `met` result keeps the warnings from a `recommended` binding. On `met`, each finding is `warning` or `info`. A generic view uses `status`, not the presence of findings |
+| `engine` | Validator name and version |
+| `evaluated-at` | When Hub validated |
+| `subject-sha256` | The content SHA-256 (of the JCS form) that the result is for |
+
+**`applies-to` sentinel.** Until calm-schema allows an empty or missing
+`applies-to`, a result with no element id uses the version URL from `target`. An
+architecture does not always have a top-level `unique-id`, but it always has a
+version URL. All
+reserved types use this convention, control-evaluation too. The proposal to make
+`applies-to` optional, and to state this convention in the Standards until then,
+is [finos/calm-schema#52](https://github.com/finos/calm-schema/issues/52).
+
+## Consequences
+
+- #3399 does not wait for the extension proxy. It needs ADR 0016 and these
+  calm-server changes: a standards mode that skips the `$schema` check, a
+  schema-only mode that checks a document that is not an architecture (for
+  example a decorator) against a JSON Schema with no architecture rules, a map of
+  resolved documents in the request, and a source id on each output. The
+  deployment sets a calm-server rate limit that is sufficient for Hub.
+- A publish is never slower and never fails because of validation until a `deny`
+  binding exists.
+- A version can be published and then shown as failing. The UI must show
+  `not-met`, `validator-error` and `stale` clearly.
+- Revalidation after a binding change can make many calls to calm-server. The
+  relay limits the rate.
+- Organisation rules that JSON Schema cannot express (for example Spectral rules,
+  [#1562](https://github.com/finos/architecture-as-code/issues/1562)) can come as
+  a second validator, which adds sources to the same contract.
