@@ -45,7 +45,7 @@ npx vitest run ${TEST FILE}
 | Entry | File | Audience |
 |---|---|---|
 | `@finos/calm-shared` | `src/index.ts` | CLI, calm-server, anything on Node. Registers winston logging and the JUnit formatter at load. |
-| `@finos/calm-shared/browser` | `src/browser.ts` | Browser bundles (the docs learning lab, Studio/Guard). Validate (JSON Schema + Spectral), generate, diff (including `diff --timeline` via `diffTimeline`), `SchemaDirectory`, loaders, the CLI capability manifest. |
+| `@finos/calm-shared/browser` | `src/browser.ts` | Browser bundles (the docs learning lab, CALMGuard). Validate (JSON Schema + Spectral), generate, diff (including `diff --timeline` via `diffTimeline`), `SchemaDirectory`, loaders, the CLI capability manifest. |
 
 Rules:
 - New modules are browser-safe by default. Node-only code (`fs`, `path`, `net`, `__dirname`, winston, mkdirp, playwright) lives in a `*.node.ts` / `node-*.ts` module or in a wrapper that the root barrel imports — never imported from `browser.ts` or anything it reaches.

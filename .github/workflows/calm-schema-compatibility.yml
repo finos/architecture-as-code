@@ -103,7 +103,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                tool: [cli, shared, calm-server, calm-lab, calm-studio, calm-diagram, vscode, calm-hub]
+                tool: [cli, shared, calm-server, calm-lab, calm-diagram, vscode, calm-hub]
 
         steps:
             - name: Checkout

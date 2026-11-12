@@ -1,6 +1,6 @@
 {
     "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
-    "current-moment": "calm-3",
+    "current-moment": "calm-4",
     "moments": [
         {
             "unique-id": "calm-1",
@@ -29,6 +29,16 @@
             "valid-from": "2026-04-11",
             "details": {
                 "detailed-architecture": "calm-3.json"
+            }
+        },
+        {
+            "unique-id": "calm-4",
+            "node-type": "moment",
+            "name": "CALM without CalmStudio",
+            "description": "The FINOS CALM architecture including CLI, VSCode extension, CALM Server, Hub API, and Hub UI. CalmStudio is retired, and the VSCode extension is the visual editor",
+            "valid-from": "2026-11-10",
+            "details": {
+                "detailed-architecture": "calm-4.json"
             }
         }
     ],

@@ -51,7 +51,7 @@ export default function Reference() {
                     <div className={shared.grid2} style={{marginTop: 18}}>
                         <Link className={clsx(shared.card, shared.cardTint)} to="/working-with-calm/">
                             <h3>Working with CALM →</h3>
-                            <p>The practical toolchain — CLI, Hub, Studio, VS Code and more.</p>
+                            <p>The practical toolchain — CLI, Hub, VS Code and more.</p>
                         </Link>
                         <Link className={clsx(shared.card, shared.cardTint)} to="/introduction/what-is-calm">
                             <h3>JSON Meta Schema →</h3>

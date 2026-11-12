@@ -4,10 +4,10 @@
 
 /**
  * types.ts — Canonical CALM type re-exports from @finos/calm-models with
- * backwards-compatible aliases for CalmStudio consumers.
+ * backwards-compatible aliases for existing consumers.
  *
  * Per https://github.com/finos/architecture-as-code/pull/2553 review:
- * calm-studio reuses the canonical types maintained in calm-models rather
+ * this module reuses the canonical types maintained in calm-models rather
  * than maintaining a parallel vendored copy. Schema drift and feature drift
  * (e.g. interface-level endpoint refs on connects relationships) are
  * eliminated by depending on calm-models directly.
@@ -70,15 +70,15 @@ export type CalmRelationshipVariant =
   | 'composed-of'
   | 'options';
 
-// ─── CalmStudio-only extensions (not in calm-models) ────────────────────────
+// ─── Extensions not in calm-models ──────────────────────────────────────────
 
 /**
- * CalmStudio architecture model: the canonical CALM 1.2 core schema with
- * two studio-specific tightenings:
+ * Editor architecture model: the canonical CALM 1.2 core schema with
+ * two editor-specific tightenings:
  *
  *   - `nodes` and `relationships` are required (never undefined). The
  *     canonical `CalmCoreSchema` makes both optional because architectures
- *     mid-construction may have neither; CalmStudio's producers always
+ *     mid-construction may have neither; the editor's producers always
  *     populate both arrays (empty if the diagram is blank), so promoting
  *     them to required keeps `exactOptionalPropertyTypes: true` happy and
  *     removes a flood of `arch.nodes is possibly undefined` errors.
@@ -97,7 +97,7 @@ export type CalmArchitecture = Omit<
 };
 
 /**
- * CALM 1.2 evidence — links a control to evidence of compliance. Studio
+ * CALM 1.2 evidence — links a control to evidence of compliance. The editor
  * supports the type for round-trip completeness only.
  */
 export interface CalmEvidence {

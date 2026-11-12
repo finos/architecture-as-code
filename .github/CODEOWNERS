@@ -13,7 +13,6 @@
 /calm-plugins/vscode @byrash @rocketstack-matt @markscott-ms
 
 /calm-guard/ @gjs-opsflo @eddie-knight @rocketstack-matt @markscott-ms @jpgough-ms
-/calm-studio/ @gjs-opsflo @eddie-knight @rocketstack-matt @markscott-ms @jpgough-ms
 
 # Ownership for dependency-related files at the root level
 /package.json @finos/architecture-as-code-maintainers
