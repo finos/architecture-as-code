@@ -1,18 +1,17 @@
 import { useState, useRef, useCallback } from 'react';
 import { THEME } from './theme.js';
 import { ControlsPanel } from './ControlsPanel.js';
-import { DeploymentPanel } from './DeploymentPanel.js';
 import { AdrsPanel } from './AdrsPanel.js';
 import { ControlEvaluationsPanel } from './ControlEvaluationsPanel.js';
 import { TabButton } from './TabButton.js';
 import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
-import type { DeploymentDecorator, MetadataPanelProps, MetadataPanelTabType } from '../../contracts/contracts.js';
+import type { MetadataPanelProps, MetadataPanelTabType } from '../../contracts/contracts.js';
 
 export function MetadataPanel({
     controls,
-    decorators,
     adrs,
     evaluations = [],
+    evaluationOverlay,
     onNodeClick,
     onControlClick,
     isCollapsed,
@@ -21,23 +20,19 @@ export function MetadataPanel({
     onHeightChange,
 }: MetadataPanelProps) {
     const hasControls = Object.keys(controls).length > 0;
-    const hasDeployment = decorators.length > 0;
     const hasAdrs = adrs.length > 0;
     const hasEvaluations = evaluations.length > 0;
     const defaultTab: MetadataPanelTabType = hasEvaluations
         ? 'evaluations'
         : hasControls
           ? 'controls'
-          : hasDeployment
-            ? 'deployment'
-            : 'adrs';
+          : 'adrs';
     // Only a tab the user clicked is remembered; otherwise the default follows the data, so evaluations that
     // arrive after mount still open on their tab.
     const [userTab, setUserTab] = useState<MetadataPanelTabType | null>(null);
     const tabAvailable: Record<MetadataPanelTabType, boolean> = {
         evaluations: hasEvaluations,
         controls: hasControls,
-        deployment: hasDeployment,
         adrs: hasAdrs,
     };
     const activeTab: MetadataPanelTabType = userTab && tabAvailable[userTab] ? userTab : defaultTab;
@@ -71,7 +66,7 @@ export function MetadataPanel({
         [height, onHeightChange]
     );
 
-    if (!hasEvaluations && !hasControls && !hasDeployment && !hasAdrs) {
+    if (!hasEvaluations && !hasControls && !hasAdrs) {
         return null;
     }
 
@@ -91,11 +86,9 @@ export function MetadataPanel({
             >
                 <div style={{ display: 'flex', gap: '8px', fontSize: '13px', fontWeight: 600, color: THEME.colors.foreground }}>
                     {hasEvaluations && <span>Evaluations ({evaluations.length})</span>}
-                    {hasEvaluations && (hasControls || hasDeployment || hasAdrs) && <span style={{ color: THEME.colors.muted }}>•</span>}
+                    {hasEvaluations && (hasControls || hasAdrs) && <span style={{ color: THEME.colors.muted }}>•</span>}
                     {hasControls && <span>Controls ({Object.keys(controls).length})</span>}
-                    {hasControls && hasDeployment && <span style={{ color: THEME.colors.muted }}>•</span>}
-                    {hasDeployment && <span>Deployment ({decorators.length})</span>}
-                    {(hasControls || hasDeployment) && hasAdrs && <span style={{ color: THEME.colors.muted }}>•</span>}
+                    {hasControls && hasAdrs && <span style={{ color: THEME.colors.muted }}>•</span>}
                     {hasAdrs && <span>ADRs ({adrs.length})</span>}
                 </div>
                 <button
@@ -230,11 +223,6 @@ export function MetadataPanel({
                         Controls ({Object.keys(controls).length})
                     </TabButton>
                 )}
-                {hasDeployment && (
-                    <TabButton isActive={activeTab === 'deployment'} onClick={() => setUserTab('deployment')}>
-                        Deployment
-                    </TabButton>
-                )}
                 {hasAdrs && (
                     <TabButton isActive={activeTab === 'adrs'} onClick={() => setUserTab('adrs')}>
                         ADRs ({adrs.length})
@@ -244,12 +232,9 @@ export function MetadataPanel({
 
             {/* Tab Content */}
             <div style={{ flex: 1, overflow: 'hidden', padding: '12px' }}>
-                {activeTab === 'evaluations' && hasEvaluations && <ControlEvaluationsPanel evaluations={evaluations} />}
+                {activeTab === 'evaluations' && hasEvaluations && <ControlEvaluationsPanel evaluations={evaluations} overlay={evaluationOverlay} />}
                 {activeTab === 'controls' && hasControls && (
                     <ControlsPanel controls={controls} onNodeClick={onNodeClick} onControlClick={onControlClick} />
-                )}
-                {activeTab === 'deployment' && (
-                    <DeploymentPanel decorators={decorators as DeploymentDecorator[]} />
                 )}
                 {activeTab === 'adrs' && hasAdrs && <AdrsPanel adrs={adrs} />}
             </div>

@@ -262,6 +262,25 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
             >
                 report decorators
             </button>
+            {/* A decorator on a containment relationship, which its container lists. */}
+            <button
+                data-testid="report-containment-decorator"
+                onClick={() =>
+                    onDecoratorsChange?.([
+                        { uniqueId: 'obs-deploy', type: 'observability', target: [], appliesTo: ['n1-in-cluster'], data: {} },
+                    ])
+                }
+            >
+                report containment decorator
+            </button>
+            <button
+                data-testid="select-cluster"
+                onClick={() =>
+                    onItemSelect?.({ data: { 'unique-id': 'cluster', name: 'Cluster', 'node-type': 'system' } })
+                }
+            >
+                select cluster
+            </button>
             <button
                 data-testid="select-edge"
                 onClick={() =>
@@ -937,7 +956,7 @@ describe('Hub', () => {
             fireEvent.click(screen.getByTestId('report-decorators'));
             fireEvent.click(screen.getByTestId('select-node'));
 
-            expect(screen.getByRole('heading', { name: 'Decorators' })).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: 'All decorators' })).toBeInTheDocument();
             expect(screen.getByRole('article', { name: 'observability decorator obs-n1' })).toBeInTheDocument();
             expect(screen.queryByRole('article', { name: 'observability decorator obs-n2' })).not.toBeInTheDocument();
         });
@@ -954,13 +973,57 @@ describe('Hub', () => {
             restore();
         });
 
+        const loadArchitectureWithRelationships = (relationships: unknown) =>
+            act(() => {
+                captured?.onDataLoad({
+                    id: 'arch',
+                    version: '1.0',
+                    calmType: 'Architectures',
+                    name: 'test-namespace',
+                    data: { nodes: [], relationships },
+                } as unknown as Data);
+            });
+        const deployedIn = {
+            'unique-id': 'n1-in-cluster',
+            'relationship-type': { 'deployed-in': { container: 'cluster', nodes: ['n1'] } },
+        };
+
+        it('lists the decorators of a containment relationship on its container', () => {
+            renderAt('/');
+            loadArchitectureWithRelationships([deployedIn]);
+            fireEvent.click(screen.getByTestId('report-containment-decorator'));
+            fireEvent.click(screen.getByTestId('select-cluster'));
+
+            expect(screen.getByRole('article', { name: 'observability decorator obs-deploy' })).toBeInTheDocument();
+        });
+
+        it('keeps the view and the containment decorators when the relationships hold malformed entries', () => {
+            renderAt('/');
+            loadArchitectureWithRelationships([null, 'bad', { 'relationship-type': null }, deployedIn]);
+            fireEvent.click(screen.getByTestId('report-containment-decorator'));
+            fireEvent.click(screen.getByTestId('select-cluster'));
+
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+            expect(screen.getByRole('article', { name: 'observability decorator obs-deploy' })).toBeInTheDocument();
+        });
+
+        it('keeps the view when the relationships are not a list', () => {
+            renderAt('/');
+            loadArchitectureWithRelationships({ not: 'a list' });
+            fireEvent.click(screen.getByTestId('report-containment-decorator'));
+            fireEvent.click(screen.getByTestId('select-cluster'));
+
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+            expect(screen.queryByRole('heading', { name: 'All decorators' })).not.toBeInTheDocument();
+        });
+
         it('shows no Decorators section when none applies to the selected element', () => {
             renderAt('/');
             loadData();
             fireEvent.click(screen.getByTestId('report-decorators'));
             fireEvent.click(screen.getByTestId('select-edge'));
 
-            expect(screen.queryByRole('heading', { name: 'Decorators' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('heading', { name: 'All decorators' })).not.toBeInTheDocument();
         });
     });
 

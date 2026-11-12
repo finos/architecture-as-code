@@ -15,7 +15,31 @@ const decorator = (uniqueId: string, type: string): Decorator => ({
 const decorators = [decorator('dep-1', 'deployment'), decorator('obs-1', 'observability'), decorator('dep-2', 'deployment')];
 const loaded = { status: 'loaded' as const, decorators };
 
+const withSchema = (uniqueId: string, type: string, schema: string): Decorator => ({ ...decorator(uniqueId, type), schema });
+
 describe('DecoratorsPanel', () => {
+    it('takes focus on mount when asked, and not otherwise', () => {
+        const { unmount } = render(<DecoratorsPanel state={loaded} typeFilter={null} onTypeFilterChange={vi.fn()} autoFocus />);
+        expect(screen.getByRole('region', { name: 'Decorators' })).toHaveFocus();
+        unmount();
+
+        render(<DecoratorsPanel state={loaded} typeFilter={null} onTypeFilterChange={vi.fn()} />);
+        expect(screen.getByRole('region', { name: 'Decorators' })).not.toHaveFocus();
+    });
+
+    it('reports once that it took focus, and not when it was not asked to', () => {
+        const onAutoFocused = vi.fn();
+        const { rerender, unmount } = render(
+            <DecoratorsPanel state={loaded} typeFilter={null} onTypeFilterChange={vi.fn()} autoFocus onAutoFocused={onAutoFocused} />
+        );
+        rerender(<DecoratorsPanel state={loaded} typeFilter={null} onTypeFilterChange={vi.fn()} autoFocus onAutoFocused={onAutoFocused} />);
+        expect(onAutoFocused).toHaveBeenCalledTimes(1);
+        unmount();
+
+        render(<DecoratorsPanel state={loaded} typeFilter={null} onTypeFilterChange={vi.fn()} onAutoFocused={onAutoFocused} />);
+        expect(onAutoFocused).toHaveBeenCalledTimes(1);
+    });
+
     describe('card identity', () => {
         const jsonShown = (name: string) =>
             within(screen.getByRole('article', { name })).getByRole('button', { name: 'JSON' }).getAttribute('aria-pressed');
@@ -38,6 +62,49 @@ describe('DecoratorsPanel', () => {
             const repeated = { status: 'loaded' as const, decorators: [decorator('same', 'deployment'), decorator('same', 'deployment')] };
             render(<DecoratorsPanel state={repeated} typeFilter={null} onTypeFilterChange={vi.fn()} />);
             expect(screen.getAllByRole('article', { name: 'deployment decorator same' })).toHaveLength(2);
+        });
+    });
+
+    describe('schema filter', () => {
+        const scans = { status: 'loaded' as const, decorators: [...decorators, withSchema('scan-1', 'scan', 'https://example.org/scan.json')] };
+
+        it('lists only the decorators with the filtered $schema, and counts the types among them', () => {
+            render(<DecoratorsPanel state={scans} typeFilter={null} schemaFilter="https://example.org/scan.json" onTypeFilterChange={vi.fn()} />);
+            expect(screen.getAllByRole('article').map((card) => card.getAttribute('aria-label'))).toEqual(['scan decorator scan-1']);
+            expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['All types (1)', 'scan (1)']);
+            expect(within(screen.getByRole('group', { name: 'Schema filter' })).getByText('https://example.org/scan.json')).toBeInTheDocument();
+        });
+
+        it('applies the type and the $schema filter together', () => {
+            render(<DecoratorsPanel state={scans} typeFilter="deployment" schemaFilter="https://example.org/scan.json" onTypeFilterChange={vi.fn()} />);
+            expect(screen.queryByRole('article')).not.toBeInTheDocument();
+            expect(screen.getByText('No decorators of type deployment.')).toBeInTheDocument();
+        });
+
+        it('says that no decorator has the $schema', () => {
+            render(<DecoratorsPanel state={loaded} typeFilter={null} schemaFilter="https://example.org/none.json" onTypeFilterChange={vi.fn()} />);
+            expect(screen.getByText('No decorators with schema https://example.org/none.json.')).toBeInTheDocument();
+        });
+
+        it('reports null when the $schema filter is cleared', async () => {
+            const onSchemaFilterChange = vi.fn();
+            render(
+                <DecoratorsPanel
+                    state={scans}
+                    typeFilter={null}
+                    schemaFilter="https://example.org/scan.json"
+                    onTypeFilterChange={vi.fn()}
+                    onSchemaFilterChange={onSchemaFilterChange}
+                />
+            );
+            await userEvent.setup().click(screen.getByRole('button', { name: 'Show all schemas' }));
+            expect(onSchemaFilterChange).toHaveBeenCalledWith(null);
+        });
+
+        it('shows no $schema filter when there is none', () => {
+            render(<DecoratorsPanel state={scans} typeFilter={null} onTypeFilterChange={vi.fn()} />);
+            expect(screen.queryByRole('button', { name: 'Show all schemas' })).not.toBeInTheDocument();
+            expect(screen.getAllByRole('article')).toHaveLength(4);
         });
     });
 

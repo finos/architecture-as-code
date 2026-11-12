@@ -27,7 +27,8 @@ import { DiagramSection } from './components/diagram-section/DiagramSection.js';
 import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
 import { NodeSheet } from '../visualizer/components/sidebar/NodeSheet.js';
 import { DiagramActionsContext } from '../visualizer/context/DiagramActionsContext.js';
-import { DecoratorsContext } from '../visualizer/context/DecoratorsContext.js';
+import { DecoratorsContext, type DecoratorsState } from '../visualizer/context/DecoratorsContext.js';
+import { containersOfContainment } from '../visualizer/overlay/overlayEngine.js';
 import { ResourceNotFound } from './components/resource-not-found/ResourceNotFound.js';
 import { parseCALMHubPath } from '../visualizer/components/reactflow/utils/calmHelpers.js';
 import type { Decorator, SelectedItem } from '../visualizer/contracts/contracts.js';
@@ -336,6 +337,13 @@ export default function Hub() {
     );
 
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
+    const decoratorsState = useMemo(
+        (): DecoratorsState => ({
+            decorators,
+            drawnAs: containersOfContainment((data?.data as { relationships?: unknown } | undefined)?.relationships),
+        }),
+        [data, decorators]
+    );
 
     // Mobile node bottom-sheet prev/next steppers (Frame G). The ordered node list
     // is already in Hub — it's exactly what the Drawer renders (`data.data.nodes`)
@@ -488,7 +496,7 @@ export default function Hub() {
 
     return (
         <DiagramActionsContext.Provider value={diagramActions}>
-        <DecoratorsContext.Provider value={decorators}>
+        <DecoratorsContext.Provider value={decoratorsState}>
         <div className="flex flex-col h-screen overflow-hidden">
             <Navbar />
             {isMobile && !isMobileNavOpen && (

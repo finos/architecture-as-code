@@ -172,14 +172,26 @@ hidden tab falls back to `diagram`. An unknown tab id is also dropped from the U
 code, so that it can move to a package that the VS Code extension shares. The UI calls them
 "Decorators", never "Metadata", which is the CALM `metadata` field (`MetadataPanel` is the panel
 under the diagram). Hub gets the decorators from `DiagramSection` (`onDecoratorsChange`) and gives
-them to the details drawer through `DecoratorsContext`. The API does not require any decorator
-field, so guard each read. A missing type shows as "(no type)". A card is keyed by `decoratorKeys()`: the `uniqueId`,
-or the list index when the id is missing or not unique, so a shift in the list does not remount a card. The card's
+them to the details drawer through `DecoratorsContext`, with the containment map that the overlays use, so a
+container lists each decorator that its badges count. The API does not require any decorator field, so guard each
+read. A missing type shows as "(no type)". A card is keyed by `decoratorKeys()`: the `uniqueId`, or the list index when the id is missing or
+not unique, so a shift in the list does not remount a card. The details drawer heads its list "All decorators": a badge can count only
+the newest decorator of each key. The card's
 JSON view uses the write field names (`writableDecorator`) and leaves out the Hub-owned times, so it can be copied into
-a `PUT`. `DiagramSection` polls all decorators of the version every 5 s while the diagram, a decorator tab or the
-details drawer shows (`useArchitectureDecorators`, one request; after three failures in a row it backs off to 30 s,
-also when the view shows again) and gives the one list to the Decorators tab, the Deployments tab and the details
-drawer. Do not add a second request for them.
+a `PUT`.
+
+### Decorator overlays
+
+One engine (`visualizer/overlay/`) draws decorators on the diagram from `decorator-views` entries that have an
+`overlay` (types in `visualizer/contracts/decorator-view-contracts.ts`). Status values map to the fixed scale
+`ok`, `warn`, `error`, `info`. The built-in views for `control-evaluation` and `deployment` are in
+`builtinDecoratorViews.ts`, and `useDecoratorViews()` returns them. `DiagramSection` polls all decorators of
+the version every 5 s while the diagram, the Decorators tab or the details drawer shows (`useArchitectureDecorators`, one request;
+after three failures in a row it backs off to 30 s, also when the view shows again) and gives the one list to the Decorators tab, the
+details drawer and `Drawer`. Do not add a second request. `Drawer` gives the overlays to the diagram through
+`DecoratorOverlayContext`. Nodes and
+edges read `useElementOverlays(id)`; do not add a type-specific badge. The decision callouts, the hover list and the
+Evaluations panel read control-evaluation fields, so they use only the view with the id `CONTROL_EVALUATION_VIEW_ID`.
 
 ### Operator UI config
 

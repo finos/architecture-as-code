@@ -54,10 +54,6 @@ export type {
 export type {
     Decorator,
     DecoratorData,
-    DeploymentStatus,
-    DeploymentDecoratorData,
-    DeploymentDecorator,
-    DeploymentPanelProps,
     ControlEvaluationStatus,
     ControlEvaluationFinding,
     ControlEvaluationDecoratorData,
@@ -71,3 +67,14 @@ export type HubParams = {
     id?: string;
     version?: string;
 };
+
+export type {
+    OverlayStatus,
+    DecoratorViewMatch,
+    DecoratorOverlay,
+    DecoratorView,
+    OverlayDecoratorView,
+    OverlayEntry,
+    ElementOverlay,
+    ViewOverlay,
+} from './decorator-view-contracts.js';

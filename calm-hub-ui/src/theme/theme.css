@@ -128,23 +128,13 @@
     --calm-diff-del-border: #f1bfbf;
     --calm-diff-del-fg: #b91c1c;
 
-    /* Deployment status badges. The `dot` beside each badge stays a chromatic hex. */
-    --calm-status-completed-bg: #dcfce7;
-    --calm-status-completed-fg: #15803d;
-    --calm-status-failed-bg: #fee2e2;
-    --calm-status-failed-fg: #b91c1c;
-
-    /* Control-evaluation status as text (`colors.status.errorText` / `successText`).
-       Error stays the hex it replaces; success uses green-700, because green-600 is
-       3.3:1 on white and these are 11–13px labels. */
+    /* Overlay status as text (`colors.status.*Text`). Error stays the hex it replaces;
+       success, warning and info use the 700/800 shades, because the 600 shades are
+       below 4.5:1 on white and these are 11–13px labels. */
     --calm-status-error-text: #dc2626;
     --calm-status-success-text: #15803d;
-    --calm-status-inprogress-bg: #dbeafe;
-    --calm-status-inprogress-fg: #1d4ed8;
-    --calm-status-pending-bg: #f3f4f6;
-    --calm-status-pending-fg: #4b5563;
-    --calm-status-rolledback-bg: #fef3c7;
-    --calm-status-rolledback-fg: #92400e;
+    --calm-status-warning-text: #92400e;
+    --calm-status-info-text: #0369a1;
 
     /* Disabled chip (e.g. "Deployment link not recorded") */
     --calm-chip-disabled-bg: #e5e7eb;
@@ -289,21 +279,11 @@
     --calm-diff-del-border: #6B2020;
     --calm-diff-del-fg: #F87171;
 
-    /* Deployment status badges — dark washes with lifted text. */
-    --calm-status-completed-bg: #0F2A1A;
-    --calm-status-completed-fg: #4ADE80;
-    --calm-status-failed-bg: #2E1414;
-    --calm-status-failed-fg: #F87171;
-
-    /* Control-evaluation status as text — lifted so it reads on dark cards. */
+    /* Overlay status as text — lifted so it reads on dark cards. */
     --calm-status-error-text: #F87171;
     --calm-status-success-text: #4ADE80;
-    --calm-status-inprogress-bg: #1B2942;
-    --calm-status-inprogress-fg: #93B4FF;
-    --calm-status-pending-bg: #1E293B;
-    --calm-status-pending-fg: #94A3B8;
-    --calm-status-rolledback-bg: #2E2410;
-    --calm-status-rolledback-fg: #FBBF24;
+    --calm-status-warning-text: #FBBF24;
+    --calm-status-info-text: #38BDF8;
 
     /* Disabled chip */
     --calm-chip-disabled-bg: #334155;

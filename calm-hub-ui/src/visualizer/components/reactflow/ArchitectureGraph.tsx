@@ -31,6 +31,8 @@ import { ExportButton } from './ExportButton.js';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
+import { OverlayLegend } from './overlay/OverlayLegend.js';
+import { useDecoratorOverlays } from '../../context/DecoratorOverlayContext.js';
 import { parseCALMData } from './utils/calmTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
@@ -201,6 +203,7 @@ export function ArchitectureGraph({
     // `?present=1` in a link turns presentation mode on, and `?present=0` off. It is saved for the session, because a
     // switch between diagram tabs rewrites the query.
     const { presenting, setPresenting } = usePresentationMode(presentationStore);
+    const hasOverlays = useDecoratorOverlays().overlays.length > 0;
 
     // The decision overlay draws each element's latest decision on the diagram. It follows presentation mode until it
     // is switched on its own, and switching presentation mode hands it back.
@@ -588,6 +591,11 @@ export function ArchitectureGraph({
                             >
                                 This diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.
                             </div>
+                        </Panel>
+                    )}
+                    {hasOverlays && (
+                        <Panel position="bottom-center">
+                            <OverlayLegend />
                         </Panel>
                     )}
                     {!externalSearch && (

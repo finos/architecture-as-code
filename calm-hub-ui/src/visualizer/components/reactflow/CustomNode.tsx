@@ -21,12 +21,14 @@ import { extractId, extractNodeType, isNavigableArch, resolveDetailedArchitectur
 import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
 import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
 import { useDiagramActions } from '../../context/DiagramActionsContext.js';
-import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
+import { useElementEvaluation, useElementOverlays } from '../../context/DecoratorOverlayContext.js';
 import { usableColor } from './utils/usableColor.js';
 import { scalePx, useDiagramTextScale, type DiagramTextScaleStore } from '../../../theme/useDiagramTextScale.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { FindingText } from './FindingText.js';
-import { EvaluationBadge } from './EvaluationBadge.js';
+import { OverlayBadge } from './overlay/OverlayBadge.js';
+import { overlayOutline } from './overlay/overlayStyle.js';
+import { worstStatus } from '../../overlay/overlayEngine.js';
 import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
 import { decisionSummary } from './utils/decisionSummary.js';
 import { DecisionCallout } from './DecisionCallout.js';
@@ -146,8 +148,9 @@ function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: Cu
         badgeIcon: scalePx(base.badgeIcon, scale),
     };
     const badgesBelow = presenting || scale > 1;
+    const overlays = useElementOverlays(data['unique-id']);
+    const outline = overlayOutline(worstStatus(overlays.map(({ overlay }) => overlay.status)));
     const evaluation = useElementEvaluation(data['unique-id']);
-    const evaluationNotMet = evaluation?.status === 'not-met';
     const { showDecisions, subjectLabels } = useDecisionOverlay();
     const summary = showDecisions && evaluation
         ? decisionSummary(evaluation, { elementId: data['unique-id'], subjectLabel: (id) => subjectLabels.get(id) })
@@ -215,8 +218,8 @@ function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: Cu
         style={{
           background: blockBackground ?? THEME.colors.card,
           // The AIGF risk colour outranks the block style so a risky node stays flagged
-          border: evaluationNotMet
-            ? `3px solid ${THEME.colors.error}`
+          border: outline
+            ? `3px solid ${outline}`
             : `2px solid ${riskLevel ? borderColor : (blockBackground ?? borderColor)}`,
           borderRadius: '12px',
           padding: size.padding,
@@ -244,9 +247,9 @@ function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: Cu
             </div>
           )}
         </div>
-        {(riskCount > 0 || mitigationCount > 0 || controlCount > 0 || evaluation) && (
-          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} scale={scale} />}
+        {(riskCount > 0 || mitigationCount > 0 || controlCount > 0 || overlays.length > 0) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '4px', alignItems: 'center' }}>
+            {overlays.map((shown) => <OverlayBadge key={shown.view.id} shown={shown} presenting={presenting} scale={scale} />)}
             {riskCount > 0 && (
               <div
                 style={{
@@ -409,12 +412,12 @@ function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: Cu
           {evaluation && (
             <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
               <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Latest control evaluations:</div>
-              {evaluation.latest.map((d) => {
+              {evaluation.latest.map((d, index) => {
                 const notMet = d.data.status === 'not-met';
                 const controlId = d.data.control['control-id'];
                 const finding = notMet ? d.data.findings?.[0] : undefined;
                 return (
-                  <div key={d.uniqueId} style={{ fontSize: '12px', marginBottom: '6px' }}>
+                  <div key={`${d.uniqueId}-${index}`} style={{ fontSize: '12px', marginBottom: '6px' }}>
                     <div>
                       <span aria-hidden="true" style={{ fontWeight: 600, color: notMet ? THEME.colors.errorText : THEME.colors.successText }}>
                         {notMet ? '✗' : '✓'}

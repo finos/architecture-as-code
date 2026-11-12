@@ -1,16 +1,26 @@
-import { IoCodeOutline, IoEyeOutline, IoGitNetworkOutline, IoPricetagsOutline, IoRocketOutline } from 'react-icons/io5';
-import { DeploymentPanel } from '../../../../visualizer/components/reactflow/DeploymentPanel.js';
+import { IoCodeOutline, IoEyeOutline, IoGitNetworkOutline, IoPricetagsOutline } from 'react-icons/io5';
 import { JsonRenderer } from '../../json-renderer/JsonRenderer.js';
 import { DecoratorsPanel } from '../decorators/DecoratorsPanel.js';
 import { UsedByPanel } from '../used-by/UsedByPanel.js';
 import { USED_BY_TOOLTIP, usedByLabel } from '../used-by/usedBy.js';
 import { DEFAULT_DIAGRAM_TAB_ID, type DiagramTab } from './diagramTabRegistry.js';
 
-export const DEPLOYMENTS_TAB_ID = 'deployments';
 export const DECORATORS_TAB_ID = 'decorators';
 
-/** The `?tab=decorators` query parameter that filters by decorator type. */
+/** The `?tab=decorators` query parameters that filter by decorator type and by `$schema`. */
 export const DECORATOR_TYPE_PARAM = 'type';
+export const DECORATOR_SCHEMA_PARAM = 'schema';
+
+/** The query that keeps only the given filters. */
+export const decoratorFilterParams = (type: string | null | undefined, schema: string | null | undefined): Record<string, string> => ({
+    ...(type ? { [DECORATOR_TYPE_PARAM]: type } : {}),
+    ...(schema ? { [DECORATOR_SCHEMA_PARAM]: schema } : {}),
+});
+
+/** Old `?tab=` values, and the query that replaces each. Deployments became a decorator view. */
+export const DIAGRAM_TAB_REDIRECTS: Readonly<Record<string, Record<string, string>>> = {
+    deployments: { tab: DECORATORS_TAB_ID, [DECORATOR_TYPE_PARAM]: 'deployment' },
+};
 
 /** The tabs of the diagram section, in display order. */
 export const DIAGRAM_TABS: readonly DiagramTab[] = [
@@ -31,29 +41,26 @@ export const DIAGRAM_TABS: readonly DiagramTab[] = [
         ),
     },
     {
-        id: DEPLOYMENTS_TAB_ID,
-        label: 'Deployments',
-        icon: IoRocketOutline,
-        isVisible: ({ isArchitecture }) => isArchitecture,
-        render: ({ deploymentDecorators }) => (
-            <div className="h-full bg-base-200 overflow-auto p-4">
-                <DeploymentPanel decorators={deploymentDecorators} />
-            </div>
-        ),
-    },
-    {
         id: DECORATORS_TAB_ID,
         label: 'Decorators',
         icon: IoPricetagsOutline,
         isVisible: ({ isArchitecture }) => isArchitecture,
-        searchParams: [DECORATOR_TYPE_PARAM],
-        render: ({ decorators, searchParams, setTabParams }) => (
-            <DecoratorsPanel
-                state={decorators}
-                typeFilter={searchParams.get(DECORATOR_TYPE_PARAM) || null}
-                onTypeFilterChange={(type) => setTabParams(type ? { [DECORATOR_TYPE_PARAM]: type } : {})}
-            />
-        ),
+        searchParams: [DECORATOR_TYPE_PARAM, DECORATOR_SCHEMA_PARAM],
+        render: ({ decorators, searchParams, setTabParams, focusPanel, onPanelFocused }) => {
+            const typeFilter = searchParams.get(DECORATOR_TYPE_PARAM) || null;
+            const schemaFilter = searchParams.get(DECORATOR_SCHEMA_PARAM) || null;
+            return (
+                <DecoratorsPanel
+                    state={decorators}
+                    autoFocus={focusPanel}
+                    onAutoFocused={onPanelFocused}
+                    typeFilter={typeFilter}
+                    schemaFilter={schemaFilter}
+                    onTypeFilterChange={(type) => setTabParams(decoratorFilterParams(type, schemaFilter))}
+                    onSchemaFilterChange={(schema) => setTabParams(decoratorFilterParams(typeFilter, schema))}
+                />
+            );
+        },
     },
     {
         id: 'used-by',

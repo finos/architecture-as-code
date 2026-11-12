@@ -25,7 +25,7 @@ import { computeChanges, type VersionChange } from './timeline/perVersionChanges
 import { fetchVersionData, fetchVersionList } from './compare/compareData.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { colors } from '../../../theme/colors.js';
-import type { Decorator, DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
+import type { Decorator, DecoratorView, SelectedItem } from '../../../visualizer/contracts/contracts.js';
 import { useDefaultLayout } from '../../hooks/useDefaultLayout.js';
 import { loadStoredNodePositions, type StoredNodePosition } from '../../../visualizer/services/node-position-service.js';
 import { useUserAccess } from '../../../admin/context/UserAccessContext.js';
@@ -33,11 +33,12 @@ import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
 import { useArchitectureDecorators } from './decorators/useArchitectureDecorators.js';
-import { DECORATORS_TAB_ID, DEPLOYMENTS_TAB_ID, DIAGRAM_TABS } from './tabs/diagramTabs.js';
+import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS } from './tabs/diagramTabs.js';
 import {
     DEFAULT_DIAGRAM_TAB_ID,
     diagramTabLabel,
     diagramTabQuery,
+    redirectedTabQuery,
     resolveDiagramTab,
     visibleDiagramTabs,
     type DiagramTab,
@@ -69,7 +70,7 @@ const iconMap = {
 } as const;
 
 const NO_DECORATORS: Decorator[] = [];
-const DECORATOR_TAB_IDS: ReadonlySet<string> = new Set([DEFAULT_DIAGRAM_TAB_ID, DEPLOYMENTS_TAB_ID, DECORATORS_TAB_ID]);
+const DECORATOR_TAB_IDS: ReadonlySet<string> = new Set([DEFAULT_DIAGRAM_TAB_ID, DECORATORS_TAB_ID]);
 const NO_MOMENTS: TimelineMoment[] = [];
 
 const subscribeToNothing = () => () => {};
@@ -77,7 +78,10 @@ const getNavbarSlot = () => document.getElementById('navbar-actions');
 const getNoNavbarSlot = () => null;
 
 export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange, onDecoratorsChange }: DiagramSectionProps) {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [urlSearchParams, setSearchParams] = useSearchParams();
+    // An old tab link opens its replacement at once; the effect below then fixes the URL.
+    const redirectedQuery = redirectedTabQuery(DIAGRAM_TAB_REDIRECTS, urlSearchParams);
+    const searchParams = redirectedQuery ?? urlSearchParams;
     const navigate = useNavigate();
     const location = useLocation();
     const isMobile = useIsMobile();
@@ -209,21 +213,33 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const tabQuery = diagramTabQuery(activeTab, searchParams);
     const usedByOpen = activeTab.id === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
-    // Polled only while the diagram, a decorator tab or the details drawer shows them.
+    // Polled only while the diagram, the Decorators tab or the details drawer shows them.
     const showsDecorators = (!comparing && DECORATOR_TAB_IDS.has(activeTab.id)) || !!hasDetailsPanel;
     const decoratorsState = useArchitectureDecorators(calmService, data, isArchitecture, showsDecorators);
     const allDecorators = decoratorsState.status === 'loaded' ? decoratorsState.decorators : NO_DECORATORS;
-    const decorators = useMemo(
-        () => allDecorators.filter((d): d is DeploymentDecorator => d.type === 'deployment'),
-        [allDecorators]
-    );
 
+    // "View all" opens the Decorators tab and unmounts itself, so the tab takes focus.
+    // The panel reads it on mount only, and clears it once it took focus, so a later visit does not take focus.
+    const [focusPanel, setFocusPanel] = useState(false);
+    const clearFocusPanel = useCallback(() => setFocusPanel(false), []);
     const setActiveTab = (tab: DiagramTab) => {
+        setFocusPanel(false);
         setSearchParams({ tab: tab.id }, { replace: true, state: location.state });
     };
     const setTabParams = (params: Record<string, string>) => {
         setSearchParams({ tab: activeTab.id, ...params }, { replace: true, state: location.state });
     };
+    const redirectTo = redirectedQuery?.toString();
+    useEffect(() => {
+        if (redirectTo !== undefined) setSearchParams(new URLSearchParams(redirectTo), { replace: true, state: location.state });
+    }, [redirectTo, setSearchParams, location.state]);
+    const openDecoratorView = useCallback((view: DecoratorView) => {
+        setFocusPanel(true);
+        setSearchParams(
+            { tab: DECORATORS_TAB_ID, ...decoratorFilterParams(view.match.type, view.match.schema) },
+            { replace: true, state: location.state }
+        );
+    }, [setSearchParams, location.state]);
 
     // A tab id no entry registers is dropped from the URL, so a copied link does not keep it. A hidden tab such as
     // used-by is kept, because it can become visible when the pattern summary loads.
@@ -469,17 +485,19 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             <Drawer
                 data={data}
                 onItemSelect={onItemSelect}
-                decorators={decorators}
                 viewportKeyOverride={defaultLayoutState.viewportKey}
                 defaultLayout={defaultLayoutState.defaultLayout}
                 layoutEpoch={defaultLayoutState.layoutEpoch}
                 onPositionsChange={handlePositionsChange}
                 onDroppedFileChange={setShowsDroppedFile}
+                decorators={allDecorators}
+                onOpenView={openDecoratorView}
             />
         ),
         decorators: decoratorsState,
-        deploymentDecorators: decorators,
         usedBy,
+        focusPanel,
+        onPanelFocused: clearFocusPanel,
     };
 
     // Desktop: inline tabs in the section header (unchanged).

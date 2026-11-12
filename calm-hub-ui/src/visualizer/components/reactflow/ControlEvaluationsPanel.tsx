@@ -1,7 +1,9 @@
 import { THEME } from './theme.js';
 import { newestFirst } from './utils/controlEvaluations.js';
 import { FindingText } from './FindingText.js';
-import type { ControlEvaluationDecorator, ControlEvaluationStatus } from '../../contracts/contracts.js';
+import { OVERLAY_STYLES } from './overlay/overlayStyle.js';
+import { overlayStatus, statusText } from '../../overlay/overlayEngine.js';
+import type { ControlEvaluationDecorator, DecoratorOverlay } from '../../contracts/contracts.js';
 
 interface Chip {
     label: string;
@@ -15,17 +17,22 @@ interface Chip {
 
 const NEUTRAL_CHIP = { text: THEME.colors.muted, accent: THEME.colors.border, fill: THEME.colors.backgroundSecondary };
 
-const STATUS_CHIPS: Record<ControlEvaluationStatus, Chip> = {
-    'not-met': { label: 'Not met', text: THEME.colors.errorText, accent: THEME.colors.error, fill: `${THEME.colors.error}18` },
-    met: { label: 'Met', text: THEME.colors.successText, accent: THEME.colors.success, fill: `${THEME.colors.success}18` },
-    'not-applicable': { label: 'Not applicable', ...NEUTRAL_CHIP },
-};
+/**
+ * The chip takes the colour the control-evaluation view gives the status. A hidden status is neutral; an unknown one
+ * is neutral too, and shows as written.
+ */
+function chipFor(evaluation: ControlEvaluationDecorator, overlay?: DecoratorOverlay): Chip {
+    const known = overlay ? overlayStatus(overlay, evaluation) : undefined;
+    const label = known ? statusText(known.value) : String(evaluation.data.status ?? '');
+    const status = known?.status;
+    if (!status) return { label, ...NEUTRAL_CHIP };
+    const { text, accent } = OVERLAY_STYLES[status];
+    return { label, text, accent, fill: `${accent}18` };
+}
 
-const chipFor = (status: string): Chip => STATUS_CHIPS[status as ControlEvaluationStatus] ?? { label: status, ...NEUTRAL_CHIP };
-
-function EvaluationRow({ evaluation }: { evaluation: ControlEvaluationDecorator }) {
+function EvaluationRow({ evaluation, overlay }: { evaluation: ControlEvaluationDecorator; overlay?: DecoratorOverlay }) {
     const { data } = evaluation;
-    const chip = chipFor(data.status);
+    const chip = chipFor(evaluation, overlay);
     const findings = data.status === 'not-met' ? (data.findings ?? []) : [];
     const evaluatedAt = new Date(data['evaluated-at']);
 
@@ -91,7 +98,8 @@ function EvaluationRow({ evaluation }: { evaluation: ControlEvaluationDecorator 
     );
 }
 
-export function ControlEvaluationsPanel({ evaluations }: { evaluations: ControlEvaluationDecorator[] }) {
+/** `overlay` is the built-in control-evaluation view's, from the views the diagram draws, so the chips match the badges. */
+export function ControlEvaluationsPanel({ evaluations, overlay }: { evaluations: ControlEvaluationDecorator[]; overlay?: DecoratorOverlay }) {
     const sorted = newestFirst(evaluations ?? []);
 
     if (sorted.length === 0) {
@@ -130,7 +138,7 @@ export function ControlEvaluationsPanel({ evaluations }: { evaluations: ControlE
             </div>
             <div style={{ flex: 1, overflow: 'auto', background: THEME.colors.card }}>
                 {sorted.map((evaluation, index) => (
-                    <EvaluationRow key={evaluation.uniqueId ?? index} evaluation={evaluation} />
+                    <EvaluationRow key={evaluation.uniqueId ?? index} evaluation={evaluation} overlay={overlay} />
                 ))}
             </div>
         </div>
