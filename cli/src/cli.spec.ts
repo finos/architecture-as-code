@@ -983,6 +983,46 @@ describe('CLI Commands', () => {
         });
     });
 
+    describe('whoami command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runWhoami').mockResolvedValue(undefined);
+        });
+
+        it('calls runWhoami with hub url and format', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'whoami',
+                '--calm-hub-url', 'http://hub',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runWhoami).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+                format: 'pretty',
+            }));
+        });
+    });
+
+    describe('create my-namespace command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runCreateMyNamespace').mockResolvedValue(undefined);
+        });
+
+        it('calls runCreateMyNamespace with hub url and format', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'create', 'my-namespace',
+                '--calm-hub-url', 'http://hub',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runCreateMyNamespace).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+                format: 'pretty',
+            }));
+        });
+    });
+
     describe('create domain command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');

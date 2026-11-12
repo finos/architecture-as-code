@@ -26,6 +26,19 @@ export interface HubNamespaceCreateResult {
     location: string;
 }
 
+/** The caller's personal namespace, from `/api/calm/me/namespace`. */
+export interface HubPersonalNamespace {
+    name: string;
+    exists: boolean;
+    owned: boolean;
+}
+
+export interface HubPersonalNamespaceCreateResult {
+    name: string;
+    created: boolean;
+    location: string;
+}
+
 export interface HubDomainCreateResult {
     name: string;
     location: string;
@@ -122,6 +135,36 @@ export class CalmHubClient {
             const response = await this.ax.post('/api/calm/namespaces', { name, description });
             const location = (response.headers['location'] as string | undefined) ?? `/api/calm/namespaces/${name}`;
             return { name, location };
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    /**
+     * Gets the caller's personal namespace. Hub returns 404 when personal namespaces are off,
+     * and 422 when the caller's user name cannot be a namespace segment.
+     */
+    async getPersonalNamespace(): Promise<HubPersonalNamespace> {
+        const endpoint = 'GET /api/calm/me/namespace';
+        try {
+            const response = await this.ax.get('/api/calm/me/namespace');
+            return response.data as HubPersonalNamespace;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    /**
+     * Creates the caller's personal namespace. `created` is false when the caller already owns it.
+     * Hub returns 409 when another user holds the name.
+     */
+    async createPersonalNamespace(): Promise<HubPersonalNamespaceCreateResult> {
+        const endpoint = 'PUT /api/calm/me/namespace';
+        try {
+            const response = await this.ax.put('/api/calm/me/namespace');
+            const { name } = response.data as HubPersonalNamespace;
+            const location = (response.headers['location'] as string | undefined) ?? `/api/calm/namespaces/${name}`;
+            return { name, created: response.status === 201, location };
         } catch (err) {
             throw this.wrapError(err, endpoint);
         }

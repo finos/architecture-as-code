@@ -527,6 +527,69 @@ export async function runCreateNamespace(options: CreateNamespaceOptions): Promi
     }
 }
 
+// ── personal namespace ───────────────────────────────────────────────────────
+
+export interface PersonalNamespaceOptions {
+    calmHubOptions: CalmHubOptions;
+    format?: string;
+}
+
+/**
+ * Shows the caller's personal namespace and whether they own it.
+ * @param options Command options.
+ */
+export async function runWhoami(options: PersonalNamespaceOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const personal = await client.getPersonalNamespace();
+        if (format === 'pretty') {
+            const state = !personal.exists ? 'Not created' : personal.owned ? 'Yours' : 'Held by another user';
+            printTableSuccess(
+                [{ NAMESPACE: personal.name, STATE: state }],
+                [
+                    { key: 'NAMESPACE', header: 'PERSONAL NAMESPACE' },
+                    { key: 'STATE', header: 'STATE' }
+                ]
+            );
+        } else {
+            printJsonSuccess(personal);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+/**
+ * Creates the caller's personal namespace. Does nothing when the caller already owns it.
+ * @param options Command options.
+ */
+export async function runCreateMyNamespace(options: PersonalNamespaceOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const result = await client.createPersonalNamespace();
+        if (format === 'pretty') {
+            printTableSuccess(
+                [{ STATUS: result.created ? 'Created' : 'Exists', NAME: result.name, LOCATION: result.location }],
+                [
+                    { key: 'STATUS', header: 'STATUS' },
+                    { key: 'NAME', header: 'NAME' },
+                    { key: 'LOCATION', header: 'LOCATION' }
+                ]
+            );
+        } else {
+            printJsonSuccess(result);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
 // ── list namespaces ───────────────────────────────────────────────────────────
 
 export interface ListNamespacesOptions {

@@ -148,6 +148,59 @@ describe('CalmHubClient', () => {
         });
     });
 
+    // ── personal namespace ───────────────────────────────────────────────────
+
+    describe('getPersonalNamespace', () => {
+        it('returns the personal namespace', async () => {
+            mock.onGet('/api/calm/me/namespace').reply(200, { name: 'users.alice', exists: true, owned: false });
+
+            await expect(client.getPersonalNamespace()).resolves.toEqual({ name: 'users.alice', exists: true, owned: false });
+        });
+
+        it('throws HubClientError(404) when the feature is off', async () => {
+            mock.onGet('/api/calm/me/namespace').reply(404, { error: 'Personal namespaces are not enabled' });
+
+            await expect(client.getPersonalNamespace()).rejects.toMatchObject({
+                status: 404,
+                error: 'Personal namespaces are not enabled',
+                request: 'GET /api/calm/me/namespace'
+            });
+        });
+    });
+
+    describe('createPersonalNamespace', () => {
+        it('reports a create on 201', async () => {
+            mock.onPut('/api/calm/me/namespace').reply(201, { name: 'users.alice', exists: true, owned: true }, {
+                location: 'http://localhost:8080/api/calm/namespaces/users.alice'
+            });
+
+            await expect(client.createPersonalNamespace()).resolves.toEqual({
+                name: 'users.alice',
+                created: true,
+                location: 'http://localhost:8080/api/calm/namespaces/users.alice'
+            });
+        });
+
+        it('reports an existing namespace on 200, with a constructed location', async () => {
+            mock.onPut('/api/calm/me/namespace').reply(200, { name: 'users.alice', exists: true, owned: true });
+
+            await expect(client.createPersonalNamespace()).resolves.toEqual({
+                name: 'users.alice',
+                created: false,
+                location: '/api/calm/namespaces/users.alice'
+            });
+        });
+
+        it('throws HubClientError(409) when another user holds the name', async () => {
+            mock.onPut('/api/calm/me/namespace').reply(409, { error: 'Your personal namespace is held by another user' });
+
+            await expect(client.createPersonalNamespace()).rejects.toMatchObject({
+                status: 409,
+                request: 'PUT /api/calm/me/namespace'
+            });
+        });
+    });
+
     // ── createNamespace ──────────────────────────────────────────────────────
 
     describe('createNamespace', () => {

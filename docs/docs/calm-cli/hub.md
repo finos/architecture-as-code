@@ -74,6 +74,28 @@ calm hub create namespace --name my-namespace --description "Architectures for t
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
 
+### Your personal namespace
+
+If the CALM Hub operator turns on [personal namespaces](../working-with-calm/calm-hub-entitlements.md#personal-namespaces), you can have one private namespace for scratch work, for example `users.mark-scott`.
+
+To show its name and whether it exists:
+
+```shell
+calm hub whoami -c http://localhost:8080 -f pretty
+```
+
+The `pretty` format shows the **PERSONAL NAMESPACE** and its **STATE**: `Not created`, `Yours`, or `Held by another user`.
+
+To create it:
+
+```shell
+calm hub create my-namespace -c http://localhost:8080
+```
+
+If you already own the namespace, the command does nothing and reports `Exists`. Put the namespace name in the `$id` of each document that you push to it.
+
+Both commands take `-c, --calm-hub-url <url>` and `-f, --format <format>`. They fail with 404 when personal namespaces are off, and with 409 (`create`) when another user holds the name.
+
 ## Managing Architectures
 
 ### List architectures

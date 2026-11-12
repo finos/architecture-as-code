@@ -1,6 +1,6 @@
 # Personal Namespaces
 
-> **Status: built in the Hub API and the Hub UI.**
+> **Status: everything is built: the Hub API, the Hub UI card and the CLI.**
 > [ADR 0018](decisions/0018-personal-namespaces.md) records the decisions that are
 > hard to change later. Tracked in
 > [#3075](https://github.com/finos/architecture-as-code/issues/3075).
@@ -156,12 +156,13 @@ When the feature is off, the root is a normal namespace and none of these change
 
 ## CLI
 
-No CLI change is planned yet. A user copies the namespace name from the UI and
-uses it with `calm hub push`. Later work can add:
+| Command | Calls |
+|---|---|
+| `calm hub whoami` | `GET /api/calm/me/namespace`. Shows the name and its state |
+| `calm hub create my-namespace` | `PUT /api/calm/me/namespace` |
 
-- `calm hub whoami`, which prints the principal and the personal namespace.
-- A `@me` value for the namespace option of `calm hub push`, which calls the `PUT`
-  first.
+`calm hub push` takes the namespace from the document's `$id`, so the user puts the
+personal namespace name there. There is no `@me` placeholder.
 
 ## Out of scope
 

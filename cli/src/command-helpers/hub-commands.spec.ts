@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs/promises';
 import * as cliConfig from '../cli-config';
 import * as hubOutput from './hub-output';
-import { runCreateNamespace, runListArchitectures, runListNamespaces,
+import { runCreateNamespace, runListArchitectures, runListNamespaces, runWhoami, runCreateMyNamespace,
     runPullArchitecture, runPushArchitecture,  printPushResult,
     resolveCalmHubOptions,
     runCreateDomain, runListDomains, runListControls,
@@ -19,6 +19,8 @@ vi.mock('@finos/calm-shared', async () => {
     const actual = await vi.importActual<typeof import('@finos/calm-shared')>('@finos/calm-shared');
     const mockClient = {
         createNamespace: vi.fn(),
+        getPersonalNamespace: vi.fn(),
+        createPersonalNamespace: vi.fn(),
         listNamespaces: vi.fn(),
         // type-scoped mapping list used by runListMappedResources (architectures/patterns/standards)
         getNamespaceMappings: vi.fn(),
@@ -789,6 +791,84 @@ describe('hub-commands', () => {
                 [{ STATUS: 'Created', ID: 'my-org', LOCATION: '/calm/namespaces/my-org' }],
                 expect.arrayContaining([expect.objectContaining({ key: 'STATUS' })])
             );
+        });
+    });
+
+    // ── runWhoami / runCreateMyNamespace ───────────────────────────────────
+
+    describe('runWhoami', () => {
+        it('prints the personal namespace as JSON', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getPersonalNamespace).mockResolvedValue({ name: 'users.alice', exists: false, owned: false });
+
+            await runWhoami({ calmHubOptions: { calmHubUrl: 'http://hub' } });
+
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith({ name: 'users.alice', exists: false, owned: false });
+        });
+
+        it.each([
+            [false, false, 'Not created'],
+            [true, true, 'Yours'],
+            [true, false, 'Held by another user'],
+        ])('renders exists=%s owned=%s as %s', async (exists, owned, state) => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getPersonalNamespace).mockResolvedValue({ name: 'users.alice', exists, owned });
+
+            await runWhoami({ calmHubOptions: { calmHubUrl: 'http://hub' }, format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ NAMESPACE: 'users.alice', STATE: state }],
+                expect.arrayContaining([expect.objectContaining({ key: 'STATE' })])
+            );
+        });
+
+        it('exits when personal namespaces are off', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.getPersonalNamespace).mockRejectedValue(
+                new shared.HubClientError(404, 'Personal namespaces are not enabled', 'GET /api/calm/me/namespace')
+            );
+
+            await expect(runWhoami({ calmHubOptions: { calmHubUrl: 'http://hub' } })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Personal namespaces are not enabled', expect.any(String), 'json');
+        });
+    });
+
+    describe('runCreateMyNamespace', () => {
+        it('prints the created namespace as JSON', async () => {
+            const { mockClient } = await getSharedMocks();
+            const result = { name: 'users.alice', created: true, location: '/api/calm/namespaces/users.alice' };
+            vi.mocked(mockClient.createPersonalNamespace).mockResolvedValue(result);
+
+            await runCreateMyNamespace({ calmHubOptions: { calmHubUrl: 'http://hub' } });
+
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(result);
+        });
+
+        it.each([
+            [true, 'Created'],
+            [false, 'Exists'],
+        ])('renders created=%s as %s', async (created, status) => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.createPersonalNamespace).mockResolvedValue({
+                name: 'users.alice', created, location: '/api/calm/namespaces/users.alice'
+            });
+
+            await runCreateMyNamespace({ calmHubOptions: { calmHubUrl: 'http://hub' }, format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ STATUS: status, NAME: 'users.alice', LOCATION: '/api/calm/namespaces/users.alice' }],
+                expect.arrayContaining([expect.objectContaining({ key: 'STATUS' })])
+            );
+        });
+
+        it('exits when another user holds the name', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.createPersonalNamespace).mockRejectedValue(
+                new shared.HubClientError(409, 'Your personal namespace is held by another user', 'PUT /api/calm/me/namespace')
+            );
+
+            await expect(runCreateMyNamespace({ calmHubOptions: { calmHubUrl: 'http://hub' } })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(409, 'Your personal namespace is held by another user', expect.any(String), 'json');
         });
     });
 
