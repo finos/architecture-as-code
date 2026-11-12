@@ -1,8 +1,8 @@
 import type { DecoratorView } from '../contracts/contracts.js';
 
 /**
- * The views Hub draws without an extension, in the `decorator-views` shape that a manifest declares. Field names come
- * from the control-evaluation and deployment decorator Standards.
+ * The views of the built-in extensions, for when the registry cannot be loaded. Keep them the same as the manifests in
+ * `calm-hub/src/main/resources/META-INF/calm-extensions/builtin`: `builtinDecoratorViews.test.ts` fails if they differ.
  */
 export const BUILTIN_DECORATOR_VIEWS: readonly DecoratorView[] = [
     {

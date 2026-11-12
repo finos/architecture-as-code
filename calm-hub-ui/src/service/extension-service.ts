@@ -1,10 +1,13 @@
 import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { ExtensionContext, ExtensionPoint, ExtensionRoute, ExtensionSummary } from '../model/extensions.js';
+import type { DecoratorView } from '../visualizer/contracts/contracts.js';
 import { authStore } from './utils/auth-store.js';
 
 /** The extension contract version this UI reads. The registry and each blocks reply give theirs. */
 export const SUPPORTED_HUB_API = 0;
+
+type RegistryEntry = ExtensionSummary & { contributes: { 'decorator-views'?: unknown } };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -15,7 +18,7 @@ const hasStrings = (value: unknown, fields: readonly string[]) =>
     isObject(value) && fields.every((field) => typeof value[field] === 'string');
 
 // Hub always sends these fields. The pages read them outside an error boundary, so a malformed entry must not reach them.
-function isRegistryEntry(value: unknown): value is ExtensionSummary {
+function isRegistryEntry(value: unknown): value is RegistryEntry {
     if (!isObject(value) || value.hubApi !== SUPPORTED_HUB_API || typeof value.id !== 'string') return false;
     const { routes, contributes } = value;
     return Array.isArray(routes) && routes.every((route) => hasStrings(route, ['id', 'method', 'path']))
@@ -26,7 +29,7 @@ function isRegistryEntry(value: unknown): value is ExtensionSummary {
         });
 }
 
-function keepRegistryEntry(value: unknown): value is ExtensionSummary {
+function keepRegistryEntry(value: unknown): value is RegistryEntry {
     if (isRegistryEntry(value)) return true;
     const id = isObject(value) && typeof value.id === 'string' ? value.id : undefined;
     console.warn('%s', id === undefined ? 'Dropped an extension registry entry with no id' : `Dropped extension registry entry: ${id}`);
@@ -77,14 +80,14 @@ export function extensionRequest(id: string, route: ExtensionRoute, context: Ext
 
 export class ExtensionService {
     private readonly ax: AxiosInstance;
-    private registry?: Promise<ExtensionSummary[]>;
+    private registry?: Promise<RegistryEntry[]>;
 
     constructor(axiosInstance?: AxiosInstance) {
         // Not apiClient: an extension failure stays in its slot and must not open the global auth or outage page.
         this.ax = axiosInstance ?? axios.create();
     }
 
-    private loadRegistry(): Promise<ExtensionSummary[]> {
+    private loadRegistry(): Promise<RegistryEntry[]> {
         this.registry ??= getAuthHeaders()
             .then((headers) => this.ax.get<{ values?: unknown }>('/api/calm/extensions', { headers }))
             .then((res) => (Array.isArray(res.data?.values) ? (res.data.values as unknown[]) : []))
@@ -103,6 +106,22 @@ export class ExtensionService {
             console.error('%s', 'Error fetching extensions:', error);
             return Promise.reject(new ExtensionRegistryError('Error fetching extensions', isSignedOut(error)));
         });
+    }
+
+    public async fetchDecoratorViews(): Promise<DecoratorView[]> {
+        return this.loadRegistry()
+            .then((values) =>
+                values.flatMap((extension) => {
+                    const views = extension.contributes['decorator-views'];
+                    // One bad value must not fail the load, which would replace every view with the built-in ones.
+                    return Array.isArray(views) ? (views as DecoratorView[]) : [];
+                })
+            )
+            .catch((error) => {
+                const errorMessage = 'Error fetching decorator views:';
+                console.error('%s', errorMessage, error);
+                return Promise.reject(new Error(errorMessage));
+            });
     }
 
     public async call(id: string, route: ExtensionRoute, context: ExtensionContext, signal?: AbortSignal): Promise<unknown> {

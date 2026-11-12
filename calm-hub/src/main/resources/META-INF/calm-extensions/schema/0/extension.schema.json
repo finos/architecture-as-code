@@ -270,12 +270,25 @@
         "label": {
           "type": "string",
           "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "hide": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "time": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
         }
       },
       "required": [
         "status",
-        "map",
-        "default"
+        "map"
       ],
       "additionalProperties": false
     },

@@ -159,7 +159,7 @@ Put one folder for each extension in `calm.extensions.dir`, with an `extension.j
 
 | Setting | Default | Purpose |
 |:--------|:--------|:--------|
-| `calm.extensions.dir` | not set | The folder of manifests. When it is not set, CALM Hub has no extensions |
+| `calm.extensions.dir` | not set | The folder of manifests. When it is not set, CALM Hub loads only the built-in decorator views |
 | `calm.extensions."<id>".enabled` | `true` | Set `false` to turn off an extension |
 | `calm.extensions."<id>".order` | `0` | Lower values come first in the list. Equal values sort by id |
 | `calm.extensions."<id>".backend-url` | not set | The base URL of the extension service. Required for an enabled extension with routes |
@@ -295,6 +295,42 @@ cd calm-hub && ../mvnw quarkus:dev
 ```
 
 ---
+
+### Show your decorators in Hub
+
+An external service can write decorators with its own service account and ship a
+views-only manifest. Hub draws the results; the service supplies no browser code.
+
+1. Give the service account write access to the target namespace. Use that account's
+   credentials with the decorator API, not a user's token. If the decorator type is
+   reserved, the operator must also allow this principal to write that type.
+2. Write decorators with a stable `type`, architecture version URLs in `target`,
+   element ids in `applies-to`, and results in `data`. A known `$schema` is validated on write. For a reserved type, `PUT` the new
+   result to the current decorator id (the id that the last write returned). Hub stores it as a new decorator and keeps the old one in the history.
+3. Put this manifest at `<calm.extensions.dir>/scanner/extension.json`, then restart Hub:
+
+```json
+{
+  "id": "scanner",
+  "version": "1.0.0",
+  "hubApi": 0,
+  "name": "Security scan",
+  "contributes": {
+    "decorator-views": [{
+      "id": "security-scan",
+      "match": { "type": "security-scan" },
+      "label": "Security scan",
+      "overlay": {
+        "status": "/result",
+        "map": { "safe": "ok", "unsafe": "error" },
+        "default": "info"
+      }
+    }]
+  }
+}
+```
+
+No routes or backend URL are needed.
 
 ## Further Reading
 

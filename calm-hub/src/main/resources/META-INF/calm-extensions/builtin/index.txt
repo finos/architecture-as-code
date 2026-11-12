@@ -1,1 +1,2 @@
-# Built-in extension ids, one per line. No built-in manifests yet.
+control-evaluation
+deployment

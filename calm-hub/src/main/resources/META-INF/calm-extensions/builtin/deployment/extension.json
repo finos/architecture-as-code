@@ -1,0 +1,29 @@
+{
+  "id": "deployment",
+  "version": "0.1.0",
+  "hubApi": 0,
+  "name": "Deployments",
+  "contributes": {
+    "decorator-views": [
+      {
+        "id": "deployment",
+        "match": {
+          "type": "deployment"
+        },
+        "label": "Deployments",
+        "overlay": {
+          "status": "/status",
+          "map": {
+            "completed": "ok",
+            "in-progress": "info",
+            "pending": "info",
+            "rolled-back": "warn",
+            "failed": "error"
+          },
+          "default": "info",
+          "time": "/start-time"
+        }
+      }
+    ]
+  }
+}
