@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
+import org.finos.calm.extensions.ExtensionTestKeys;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -21,11 +22,16 @@ class TestExtensionResourceConfiguredShould {
     static final String BACKEND_URL = "http://localhost:8091/backend-secret-path";
 
     public static class ExtensionsConfiguredProfile implements QuarkusTestProfile {
+        private static final ExtensionTestKeys.KeyFiles KEYS = ExtensionTestKeys.rsaInTempDir();
+
         @Override
         public Map<String, String> getConfigOverrides() {
             return Map.of(
                     "calm.extensions.dir", "local-dev/extensions",
-                    "calm.extensions.\"example-services\".backend-url", BACKEND_URL);
+                    "calm.extensions.\"example-services\".backend-url", BACKEND_URL,
+                    // The static settings must not clash with the settings of each extension.
+                    "calm.extensions.identity.private-key-location", KEYS.privateKey().toString(),
+                    "calm.extensions.identity.public-key-locations", KEYS.publicKey().toString());
         }
     }
 

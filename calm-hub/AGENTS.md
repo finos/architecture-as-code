@@ -424,6 +424,10 @@ All four workflows:
   new per-id key there, in `ExtensionsConfig.Extension`, and in the settings table of `docs/docs/calm-hub/index.md`
 - A field change in `domain/extensions/ExtensionManifest` needs the same change in the schema: the
   schema rejects unknown fields
+- `ExtensionIdentitySigner` signs with the JDK, not a JWT library. `ExtensionAssertionRejectingMechanism`
+  refuses a bearer token with `typ: calm-ext+jwt` in every auth mode, and sends the 401 challenge for it itself, so
+  that an OIDC provider that is down cannot make it a 500
+- Tests generate key pairs at run time (`ExtensionTestKeys`); `*.pem` is git-ignored
 - Try it: `../mvnw quarkus:dev -Pstandalone,server-only -Dcalm.extensions.dir=local-dev/extensions
   -Dcalm.extensions.example-services.backend-url=http://localhost:8091`, then `GET /api/calm/extensions`
 

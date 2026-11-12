@@ -165,6 +165,9 @@ Put one folder for each extension in `calm.extensions.dir`, with an `extension.j
 | `calm.extensions."<id>".enabled` | `true` | Set `false` to turn off an extension |
 | `calm.extensions."<id>".order` | `0` | Lower values come first in the list. Equal values sort by id |
 | `calm.extensions."<id>".backend-url` | not set | The base URL of the extension service. Required for an enabled extension with routes |
+| `calm.extensions.identity.private-key-location` | not set | The PKCS#8 PEM key that signs the identity assertion: RSA (2048 bits or more, RS256) or P-256 (ES256). Required when an enabled extension has routes. A shared secret (HS256) is refused |
+| `calm.extensions.identity.public-key-locations` | not set | Comma-separated PEM public keys for the JWKS. The first is the public key of the signing key. Required when `private-key-location` is set, and not allowed without it |
+| `calm.extensions.identity.ttl-seconds` | `60` | The lifetime of an assertion, at most `300` |
 
 ```bash
 CALM_EXTENSIONS_DIR=/etc/calm-hub/extensions
@@ -183,6 +186,24 @@ The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in 
 
 - CALM Hub does not start if a manifest or a setting is not valid. The error names the file or the setting.
 - `GET /api/calm/extensions` lists the enabled extensions, for any signed-in user. It never shows the backend URL. On a read-only CALM Hub it leaves out write routes that are not `readOnly`, and the commands and contributions that use them.
+
+### Identity keys
+
+CALM Hub signs a short-lived JWT for each call, and publishes the public keys at `GET /api/calm/auth/jwks`. This endpoint is public. Set `calm.hub.base-url` to the URL that the backends expect in `iss`. When it is not set, `iss` is `http://localhost:8080`, and CALM Hub gives a warning at start up if an enabled extension has routes. Create a key pair:
+
+```bash
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out hub-private.pem
+openssl pkey -in hub-private.pem -pubout -out hub-public.pem
+```
+
+To change the key with no outage, put the new key first and keep the old public key in the list for at least `ttl-seconds`:
+
+```bash
+CALM_EXTENSIONS_IDENTITY_PRIVATE_KEY_LOCATION=/keys/new-private.pem
+CALM_EXTENSIONS_IDENTITY_PUBLIC_KEY_LOCATIONS=/keys/new-public.pem,/keys/old-public.pem
+```
+
+In `proxy-auth` mode, any client that reaches CALM Hub directly can set `Remote-User`. Make CALM Hub listen only on loopback or behind the proxy.
 
 ---
 
