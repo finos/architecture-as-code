@@ -8,7 +8,6 @@ import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -156,13 +155,7 @@ public class UserAccessValidator {
         if (isGlobalAdmin(grants)) {
             return grants;
         }
-        List<UserAccess> memberGrants = groupGrants.forMembers(username, userAccessStore.getAllGroupGrants());
-        if (memberGrants.isEmpty()) {
-            return grants;
-        }
-        List<UserAccess> merged = new ArrayList<>(grants);
-        merged.addAll(memberGrants);
-        return merged;
+        return groupGrants.withMemberGrants(username, grants, userAccessStore.getAllGroupGrants());
     }
 
     private boolean isGlobalAdmin(List<UserAccess> grants) {

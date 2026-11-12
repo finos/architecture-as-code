@@ -5,6 +5,7 @@ import org.finos.calm.domain.UserAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,6 +25,21 @@ public class GroupGrants {
 
     public GroupGrants(GroupMembershipResolver groupMembershipResolver) {
         this.groupMembershipResolver = groupMembershipResolver;
+    }
+
+    /**
+     * Returns the user's own grants plus the candidate group grants whose group the user is a
+     * member of. Every caller that combines user and group grants uses this.
+     */
+    public List<UserAccess> withMemberGrants(String username, List<UserAccess> userGrants,
+                                             List<UserAccess> candidateGroupGrants) {
+        List<UserAccess> memberGrants = forMembers(username, candidateGroupGrants);
+        if (memberGrants.isEmpty()) {
+            return userGrants;
+        }
+        List<UserAccess> combined = new ArrayList<>(userGrants);
+        combined.addAll(memberGrants);
+        return combined;
     }
 
     public List<UserAccess> forMembers(String username, List<UserAccess> groupGrants) {

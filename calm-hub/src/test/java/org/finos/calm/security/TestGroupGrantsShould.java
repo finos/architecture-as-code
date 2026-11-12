@@ -12,6 +12,7 @@ import java.util.Set;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
@@ -79,5 +80,28 @@ class TestGroupGrantsShould {
 
         assertThat(new GroupGrants(mockGroupMembershipResolver)
                 .forMembers("alice", List.of(groupGrant("architects", "org"))), empty());
+    }
+
+    @Test
+    void add_member_group_grants_to_the_user_grants() {
+        UserAccess own = new UserAccess("alice", UserAccess.Permission.read, "finos");
+        UserAccess architects = groupGrant("architects", "org");
+        UserAccess reviewers = groupGrant("reviewers", "org");
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("architects", "reviewers")))
+                .thenReturn(Set.of("architects"));
+
+        List<UserAccess> result = new GroupGrants(mockGroupMembershipResolver)
+                .withMemberGrants("alice", List.of(own), List.of(architects, reviewers));
+
+        assertThat(result, contains(own, architects));
+    }
+
+    @Test
+    void return_the_user_grants_when_no_group_grant_applies() {
+        List<UserAccess> own = List.of(new UserAccess("alice", UserAccess.Permission.read, "finos"));
+
+        assertThat(new GroupGrants(mockGroupMembershipResolver).withMemberGrants("alice", own, List.of()),
+                sameInstance(own));
+        verifyNoInteractions(mockGroupMembershipResolver);
     }
 }

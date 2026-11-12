@@ -1,6 +1,5 @@
 package org.finos.calm.resources;
 
-import java.util.ArrayList;
 import java.util.List;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -61,8 +60,8 @@ public class CurrentUserAccessResource {
             return Response.ok(List.of(syntheticGrant)).build();
         }
         logger.debug("Fetching grants for user [{}]", username);
-        List<UserAccess> grants = new ArrayList<>(store.getGrantsForUser(username));
-        grants.addAll(groupGrants.forMembers(username, store.getAllGroupGrants()));
+        List<UserAccess> grants = groupGrants.withMemberGrants(username, store.getGrantsForUser(username),
+                store.getAllGroupGrants());
         return Response.ok(grants).build();
     }
 }

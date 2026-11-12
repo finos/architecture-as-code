@@ -113,7 +113,8 @@ public class CalmHubPermissionChecker {
         logger.debug("Checking global admin access for user [{}]", username);
         List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
         boolean granted = isGlobalAdminFromGrants(username, grants)
-                || isGlobalAdminFromGrants(username, memberGroupGrants(username, List.of(GLOBAL_ACCESS)));
+                || isGlobalAdminFromGrants(username, groupGrants.withMemberGrants(username, grants,
+                        userAccessStore.getGroupGrantsForNamespaces(List.of(GLOBAL_ACCESS))));
         if (granted) {
             logger.debug("User [{}] AUTHORIZED for GLOBAL admin privileges", username);
         } else {
@@ -134,12 +135,9 @@ public class CalmHubPermissionChecker {
         if (!result) {
             List<String> groupScopes = new ArrayList<>(ancestors);
             groupScopes.add(GLOBAL_ACCESS);
-            List<UserAccess> memberGrants = memberGroupGrants(username, groupScopes);
-            if (!memberGrants.isEmpty()) {
-                List<UserAccess> merged = new ArrayList<>(grants);
-                merged.addAll(memberGrants);
-                result = namespaceGrantsAllow(username, namespace, ancestors, merged, action);
-            }
+            List<UserAccess> withGroups = groupGrants.withMemberGrants(username, grants,
+                    userAccessStore.getGroupGrantsForNamespaces(groupScopes));
+            result = namespaceGrantsAllow(username, namespace, ancestors, withGroups, action);
         }
 
         if (result) {
@@ -159,10 +157,6 @@ public class CalmHubPermissionChecker {
         return action == UserAction.READ
                 ? allAncestorsHaveGrant(ancestors, grants, action)
                 : anyAncestorHasGrant(ancestors, grants, action);
-    }
-
-    private List<UserAccess> memberGroupGrants(String username, List<String> namespaces) {
-        return groupGrants.forMembers(username, userAccessStore.getGroupGrantsForNamespaces(namespaces));
     }
 
     private boolean isGlobalAdminFromGrants(String username, List<UserAccess> grants) {
@@ -205,10 +199,7 @@ public class CalmHubPermissionChecker {
         if (!result) {
             List<UserAccess> candidates = new ArrayList<>(userAccessStore.getGroupGrantsForDomain(domain));
             candidates.addAll(userAccessStore.getGroupGrantsForNamespaces(List.of(GLOBAL_ACCESS)));
-            List<UserAccess> memberGrants = groupGrants.forMembers(username, candidates);
-            if (!memberGrants.isEmpty()) {
-                result = domainGrantsAllow(username, domain, memberGrants, action);
-            }
+            result = domainGrantsAllow(username, domain, groupGrants.withMemberGrants(username, grants, candidates), action);
         }
 
         if (result) {
