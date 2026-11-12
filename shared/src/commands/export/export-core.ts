@@ -5,8 +5,14 @@
 import path from 'path';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import type { Archiver } from 'archiver';
 import type { Logger } from '../../logger.js';
+
+export interface ArchiveWriter {
+    on(event: 'error', listener: (error: Error) => void): unknown;
+    pipe(destination: NodeJS.WritableStream): unknown;
+    append(data: Buffer | string, options: { name: string }): unknown;
+    finalize(): Promise<void> | void;
+}
 
 export interface ExportCommandOptions {
     /** Path to a project directory or an index.md entry point. */
@@ -324,7 +330,7 @@ export function computeZipEntryNames(discovery: DiscoveryResult): Map<string, st
  */
 export async function runExportCommand(
     options: ExportCommandOptions,
-    archiverFactory: (format: 'zip', options: { zlib: { level: number } }) => Archiver,
+    archiverFactory: (format: 'zip', options: { zlib: { level: number } }) => ArchiveWriter,
     logger: Logger
 ): Promise<void> {
     try {
