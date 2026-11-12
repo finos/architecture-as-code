@@ -6,6 +6,8 @@ import { THEME } from './theme.js';
 import { EvaluationOverlayProvider } from '../../../test-support/evaluation-overlay.js';
 import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
 import type { ElementEvaluation } from '../../contracts/contracts.js';
+import { DecoratorOverlayContext } from '../../context/DecoratorOverlayContext.js';
+import { fakeElement, fakeView } from '../../../test-support/fake-overlays.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
@@ -84,6 +86,34 @@ describe('SystemGroupNode decision overlay', () => {
         expect(callout.textContent).toContain('residency');
         expect(callout.style.transform).toBe('translate(40px, 456px)');
         expect(callout.style.width).toBe('220px');
+    });
+});
+
+describe('SystemGroupNode extension overlays', () => {
+    const renderWith = (hiddenViews: ReadonlySet<string>) => {
+        const overlays = ['ext-a', 'ext-b'].map((extension) => ({
+            view: fakeView(extension, 'risk'),
+            elements: new Map([['cluster', fakeElement('warn')]]),
+        }));
+        const props = { id: 'cluster', data: { label: 'Cluster', 'unique-id': 'cluster' } } as unknown as NodeProps;
+        render(
+            <DecoratorOverlayContext.Provider value={{ overlays, hiddenViews, toggleView: vi.fn() }}>
+                <SystemGroupNode {...props} />
+            </DecoratorOverlayContext.Provider>
+        );
+    };
+
+    it('draws one badge for each extension when two extensions use the same view id', () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        renderWith(new Set());
+        expect(screen.getAllByTestId('overlay-badge')).toHaveLength(2);
+        expect(error.mock.calls.flat().join(' ')).not.toMatch(/same key/);
+        error.mockRestore();
+    });
+
+    it('hides only the extension whose view key the legend turned off', () => {
+        renderWith(new Set(['ext-b/risk']));
+        expect(screen.getAllByTestId('overlay-badge')).toHaveLength(1);
     });
 });
 

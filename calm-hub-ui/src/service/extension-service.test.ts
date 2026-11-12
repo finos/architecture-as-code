@@ -41,6 +41,20 @@ describe('ExtensionService', () => {
         expect(await new ExtensionService(ax).fetchDecoratorViews()).toMatchObject([first, second, second]);
         expect(mock.history.get[0].headers?.Authorization).toBe('test');
     });
+    it('tags each decorator view with its extension, and marks built-in ones', async () => {
+        const view = { id: 'risk', match: { type: 'risk' }, label: 'Risk' };
+        mock.onGet('/api/calm/extensions').reply(200, { values: [
+            entry('release-tracker', { name: 'Release tracker', ...views(view) }),
+            entry('deployment', { name: 'Deployments', ...views(view) }),
+            entry('nameless', views(view)),
+        ] });
+        expect((await new ExtensionService(ax).fetchDecoratorViews()).map((v) => v.source)).toEqual([
+            { id: 'release-tracker', name: 'Release tracker', builtIn: false },
+            { id: 'deployment', name: 'Deployments', builtIn: true },
+            { id: 'nameless', name: 'nameless', builtIn: false },
+        ]);
+        expect(mock.history.get[0].headers?.Authorization).toBe('test');
+    });
     it('rejects a failed decorator view request', async () => {
         mock.onGet('/api/calm/extensions').reply(503);
         await expect(new ExtensionService(ax).fetchDecoratorViews()).rejects.toThrow('Error fetching decorator views:');

@@ -71,6 +71,7 @@ export type HubParams = {
 export type {
     OverlayStatus,
     DecoratorViewMatch,
+    DecoratorViewSource,
     DecoratorOverlay,
     DecoratorView,
     OverlayDecoratorView,

@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getAuthHeaders } from '../authService.js';
+import { isBuiltInExtension } from '../extensions/extensionIdentity.js';
 import { ExtensionContext, ExtensionPoint, ExtensionRoute, ExtensionSummary } from '../model/extensions.js';
 import type { DecoratorView } from '../visualizer/contracts/contracts.js';
 import { authStore } from './utils/auth-store.js';
@@ -114,7 +115,13 @@ export class ExtensionService {
                 values.flatMap((extension) => {
                     const views = extension.contributes['decorator-views'];
                     // One bad value must not fail the load, which would replace every view with the built-in ones.
-                    return Array.isArray(views) ? (views as DecoratorView[]) : [];
+                    if (!Array.isArray(views)) return [];
+                    const source = {
+                        id: extension.id,
+                        name: extension.name || extension.id,
+                        builtIn: isBuiltInExtension(extension.id),
+                    };
+                    return (views as DecoratorView[]).map((view) => ({ ...view, source }));
                 })
             )
             .catch((error) => {
