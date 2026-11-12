@@ -143,6 +143,7 @@ describe('generateChangelog', () => {
         const changelog = await generateChangelog(repo, '2026-01-02');
         assert.match(changelog, /\*\*vscode:\*\* a security fix/);
         assert.doesNotMatch(changelog, /Merge commit from fork/);
+    });
 
     it('lists changes to the node packs, but not to the rest of calm-diagram', async () => {
         commit(`${PACKS_PATH}/definitions/aws.ts`, 'feat(calm-diagram): add a pack node type');
