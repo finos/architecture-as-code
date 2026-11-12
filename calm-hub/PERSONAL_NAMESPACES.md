@@ -103,9 +103,10 @@ READ needs a grant at each level, so all users can see the root, and only Alice
 can see `users.alice`. Alice adds and removes grants with the existing
 `/api/calm/namespaces/{namespace}/user-access` endpoints and the entitlements panel.
 
-If the root exists at start up without a `*` read grant, Hub does not add one. It
-logs a warning, because owners cannot read their own namespaces until an admin
-adds the grant.
+Hub checks the root on each request. If the root does not exist, or has no `*` read
+grant, the feature is off: both personal namespace endpoints return 404 and the UI
+card is hidden. Without that grant, owners could not read their own namespaces. If the
+root exists at start up without the grant, Hub does not add one, and logs an error.
 
 ADMIN on the root gives WRITE and ADMIN on every personal namespace, because WRITE
 and ADMIN need a grant at one level only. It does not give READ, but an admin can
@@ -113,8 +114,15 @@ grant READ to themselves. Give root ADMIN to GLOBAL_ADMIN users only.
 
 ## Clashes
 
-Hub never gives a grant on a namespace that exists. It does not record an owner:
-the owner is the user with the ADMIN grant.
+Hub never gives a grant on a namespace that exists, with one exception below. It
+does not record an owner: the owner is the user with the ADMIN grant.
+
+If the owner grant fails after Hub creates the namespace, Hub deletes the namespace
+again. If a namespace exists with **no grants** and the description
+`Personal namespace for <principal>` of the caller, the caller claims it and gets 200.
+That happens when two requests from one user race, or when the grant and the delete
+both failed. A different principal with the same segment has a different description,
+so it cannot claim the namespace.
 
 When the owner deletes their empty namespace, Hub also deletes its grants. Then
 another principal with the same segment can create it. Content in the namespace
@@ -126,8 +134,8 @@ A user whose segment is taken can ask an admin for a normal namespace.
 
 | Endpoint | Change when the feature is on |
 |---|---|
-| `POST /api/calm/namespaces` | Returns 400 for a child of the root, for GLOBAL_ADMIN too. Personal namespaces come only from `PUT /api/calm/me/namespace` |
-| MCP `createNamespace` tool | Returns an error for a child of the root, as `POST` does |
+| `POST /api/calm/namespaces` | Returns 400 for a direct child of the root, for GLOBAL_ADMIN too. Personal namespaces come only from `PUT /api/calm/me/namespace`. An owner can create namespaces below their own, for example `users.alice.drafts` |
+| MCP `createNamespace` tool | Returns an error for a direct child of the root, as `POST` does |
 | `DELETE /api/calm/namespaces/{namespace}` | No change. The owner can delete their empty namespace |
 | `GET /api/calm/namespaces` | No change. The list already holds only readable namespaces |
 
@@ -171,6 +179,6 @@ uses it with `calm hub push`. Later work can add:
 | Start up | Create the root and its `*` read grant if the root does not exist |
 | Service | `PersonalNamespaceService`: make the segment, find the state, create the namespace and the ADMIN grant |
 | Resource | `PersonalNamespaceResource` for `/api/calm/me/namespace`, with the staged audit context |
-| `NamespaceResource` | Reject a child of the root when the feature is on |
+| `NamespaceResource` | Reject a direct child of the root when the feature is on |
 | Tests | Unit tests for the segment rules and each status in the tables above. Integration tests for MongoDB and NitriteDB. JaCoCo needs 90% line coverage for each class |
 | Docs | [PERMISSIONS.md](PERMISSIONS.md), the README configuration section, and the CALM Hub entitlements guide in `docs/` |

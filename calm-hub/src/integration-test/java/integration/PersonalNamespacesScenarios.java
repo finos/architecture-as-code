@@ -80,6 +80,18 @@ abstract class PersonalNamespacesScenarios {
     }
 
     @Test
+    void let_the_owner_create_a_namespace_below_their_own() {
+        as("pn-jo").when().put(ME).then().statusCode(201);
+
+        as("pn-jo")
+                .contentType("application/json")
+                .body("{\"name\":\"users.pn-jo.drafts\",\"description\":\"drafts\"}")
+                .when().post("/api/calm/namespaces")
+                .then().statusCode(201);
+        as("pn-kim").when().get("/api/calm/namespaces/users.pn-jo.drafts/patterns").then().statusCode(403);
+    }
+
+    @Test
     void return_422_for_a_principal_that_cannot_be_a_segment() {
         as("pn grace").when().get(ME).then().statusCode(422);
         as("pn grace").when().put(ME).then().statusCode(422);

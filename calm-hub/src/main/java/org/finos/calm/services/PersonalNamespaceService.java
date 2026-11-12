@@ -70,8 +70,16 @@ public class PersonalNamespaceService {
         return null;
     }
 
-    public boolean isActive() {
+    private boolean isConfiguredOn() {
         return inactiveReason == null;
+    }
+
+    /**
+     * True when the feature is on and the root is usable: it exists and has a {@code *} read
+     * grant. Checked on each request, because an admin can delete the root or change its grants.
+     */
+    public boolean isActive() {
+        return isConfiguredOn() && namespaceStore.namespaceExists(config.root()) && hasPublicRead(config.root());
     }
 
     // Runs after the default-priority observers, so that schema migrations finish first.
@@ -79,7 +87,7 @@ public class PersonalNamespaceService {
         if (!config.enabled()) {
             return;
         }
-        if (!isActive()) {
+        if (!isConfiguredOn()) {
             LOG.warn("calm.namespaces.personal.enabled is true, but personal namespaces stay off because {}", inactiveReason);
             return;
         }
@@ -108,7 +116,7 @@ public class PersonalNamespaceService {
             }
         }
         if (!hasPublicRead(root)) {
-            LOG.warn("Personal namespace root [{}] has no * read grant, so owners cannot read their own namespaces", root);
+            LOG.error("Personal namespace root [{}] has no * read grant, so personal namespaces stay off until it has one", root);
         }
     }
 
@@ -133,11 +141,13 @@ public class PersonalNamespaceService {
     }
 
     /**
-     * True when the name is a child of the root while the feature is active. The general
+     * True when the name is a direct child of the root while the feature is on. The general
      * create paths reject these names, so every personal namespace comes from {@link #create}.
+     * An owner can still create namespaces below their own.
      */
     public boolean isReserved(String namespace) {
-        return isActive() && namespace.startsWith(config.root() + ".");
+        String prefix = config.root() + ".";
+        return isConfiguredOn() && namespace.startsWith(prefix) && namespace.indexOf('.', prefix.length()) < 0;
     }
 
     public Optional<PersonalNamespace> get(String principal) {
@@ -149,7 +159,8 @@ public class PersonalNamespaceService {
 
     /**
      * Creates the principal's personal namespace with an admin grant for them and no
-     * {@code *} read grant. Never grants anything on a namespace that already exists.
+     * {@code *} read grant. Grants nothing on an existing namespace, except one that this
+     * principal created and that has no grants yet (see {@link #isUnclaimedFor}).
      */
     public Optional<CreateOutcome> create(String principal) {
         Optional<String> name = namespaceFor(principal);
@@ -158,17 +169,62 @@ public class PersonalNamespaceService {
         }
         String namespace = name.get();
         try {
-            namespaceStore.createNamespace(namespace, "Personal namespace for " + principal);
+            namespaceStore.createNamespace(namespace, description(principal));
         } catch (NamespaceAlreadyExistsException e) {
-            return Optional.of(isOwner(principal, namespace) ? CreateOutcome.ALREADY_OWNED : CreateOutcome.TAKEN);
+            if (isOwner(principal, namespace)) {
+                return Optional.of(CreateOutcome.ALREADY_OWNED);
+            }
+            if (isUnclaimedFor(principal, namespace)) {
+                grantOwner(principal, namespace, false);
+                LOG.info("Claimed personal namespace [{}] that had no owner grant", namespace);
+                return Optional.of(CreateOutcome.ALREADY_OWNED);
+            }
+            return Optional.of(CreateOutcome.TAKEN);
         }
-        try {
-            userAccessStore.createUserAccessForNamespace(new UserAccess(principal, UserAccess.Permission.admin, namespace));
-        } catch (NamespaceNotFoundException e) {
-            throw new IllegalStateException("Personal namespace disappeared before its owner grant was written", e);
-        }
+        grantOwner(principal, namespace, true);
         LOG.info("Created personal namespace [{}]", namespace);
         return Optional.of(CreateOutcome.CREATED);
+    }
+
+    private static String description(String principal) {
+        return "Personal namespace for " + principal;
+    }
+
+    /**
+     * Writes the owner grant. When this request created the namespace and the grant fails,
+     * deletes the namespace again, so it is not left with no owner.
+     */
+    private void grantOwner(String principal, String namespace, boolean rollBack) {
+        try {
+            userAccessStore.createUserAccessForNamespace(new UserAccess(principal, UserAccess.Permission.admin, namespace));
+        } catch (NamespaceNotFoundException | RuntimeException e) {
+            if (rollBack) {
+                try {
+                    namespaceStore.deleteNamespace(namespace);
+                } catch (NamespaceNotFoundException | RuntimeException rollbackFailure) {
+                    LOG.error("Could not delete personal namespace [{}] after its owner grant failed", namespace, rollbackFailure);
+                }
+            }
+            throw new IllegalStateException("Could not write the owner grant for personal namespace " + namespace, e);
+        }
+    }
+
+    /**
+     * True when the namespace has no grants and its description shows that this principal
+     * created it. That happens when a second request races the first, or when the first
+     * request's grant and roll-back both failed. A different principal whose name gives the
+     * same segment has a different description, so it cannot claim the namespace.
+     */
+    private boolean isUnclaimedFor(String principal, String namespace) {
+        try {
+            if (!userAccessStore.getUserAccessForNamespace(namespace).isEmpty()) {
+                return false;
+            }
+        } catch (NamespaceNotFoundException e) {
+            return false;
+        }
+        return namespaceStore.getNamespaces().stream()
+                .anyMatch(ns -> namespace.equals(ns.getName()) && description(principal).equals(ns.getDescription()));
     }
 
     private boolean isOwner(String principal, String namespace) {

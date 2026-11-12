@@ -46,9 +46,11 @@ grant only when the namespace does not exist. If it exists and the caller has
 no ADMIN on it, Hub returns 409. Thus two principals with the same segment, for
 example `mark.scott` and `mark-scott`, cannot share a namespace: the second gets
 409. Hub does not record an owner. The owner is the user with the ADMIN grant.
+The one exception is a namespace with no grants whose description names the
+caller, which only a failed or racing request by that caller can leave.
 
 **Reserved root.** When the feature is on, the general create endpoint and the MCP
-create tool reject a child of the root. All personal namespaces come from the personal namespace
+create tool reject a direct child of the root. All personal namespaces come from the personal namespace
 request, so none has a `*` read grant.
 
 **Off by default.** The operator turns the feature on. Hub does not turn it on
@@ -57,6 +59,8 @@ when:
 - auth is off (`no-auth`), because all callers have one principal and every
   check passes.
 - Hub is read-only (`calm.readonly=true`) or in GitHub mode, because writes fail.
+- the root does not exist or has no `*` read grant, because owners could not read
+  their own namespaces. Hub checks this on each request.
 
 ## Consequences
 

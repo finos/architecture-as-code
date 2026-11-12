@@ -5,6 +5,7 @@ import org.finos.calm.config.PersonalNamespacesConfig;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.domain.namespaces.PersonalNamespace;
 import org.finos.calm.services.PersonalNamespaceService.CreateOutcome;
 import org.finos.calm.store.NamespaceStore;
@@ -56,6 +57,17 @@ class TestPersonalNamespaceServiceShould {
     void setUp() {
         when(mockConfig.enabled()).thenReturn(true);
         when(mockConfig.root()).thenReturn(ROOT);
+        rootIsReady();
+    }
+
+    private void rootIsReady() {
+        when(mockNamespaceStore.namespaceExists(ROOT)).thenReturn(true);
+        try {
+            when(mockUserAccessStore.getUserAccessForNamespace(ROOT))
+                    .thenReturn(List.of(new UserAccess("*", UserAccess.Permission.read, ROOT)));
+        } catch (NamespaceNotFoundException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private PersonalNamespaceService service(boolean authEnabled, boolean allowPublicRead, boolean readOnly, String mode) {
@@ -85,6 +97,21 @@ class TestPersonalNamespaceServiceShould {
         when(mockConfig.enabled()).thenReturn(enabled);
 
         assertThat(service(authEnabled, false, readOnly, mode).isActive(), is(expected));
+    }
+
+    @Test
+    void be_inactive_when_the_root_is_missing() {
+        when(mockNamespaceStore.namespaceExists(ROOT)).thenReturn(false);
+
+        assertThat(activeService().isActive(), is(false));
+    }
+
+    @Test
+    void be_inactive_when_the_root_has_no_public_read_grant() throws Exception {
+        when(mockUserAccessStore.getUserAccessForNamespace(ROOT))
+                .thenReturn(List.of(new UserAccess("admin", UserAccess.Permission.admin, ROOT)));
+
+        assertThat(activeService().isActive(), is(false));
     }
 
     static Stream<Arguments> providePrincipals() {
@@ -120,6 +147,7 @@ class TestPersonalNamespaceServiceShould {
         assertThat(activeService().isReserved("users.alice"), is(true));
         assertThat(activeService().isReserved("users"), is(false));
         assertThat(activeService().isReserved("usersx.alice"), is(false));
+        assertThat(activeService().isReserved("users.alice.drafts"), is(false));
         assertThat(service(false, false, false, DatabaseMode.MONGO).isReserved("users.alice"), is(false));
     }
 
@@ -217,6 +245,59 @@ class TestPersonalNamespaceServiceShould {
         when(mockUserAccessStore.createUserAccessForNamespace(any())).thenThrow(new NamespaceNotFoundException());
 
         assertThrows(IllegalStateException.class, () -> activeService().create("alice"));
+    }
+
+    @Test
+    void delete_the_namespace_when_the_owner_grant_fails() throws Exception {
+        when(mockUserAccessStore.createUserAccessForNamespace(any())).thenThrow(new RuntimeException("timeout"));
+
+        assertThrows(IllegalStateException.class, () -> activeService().create("alice"));
+        verify(mockNamespaceStore).deleteNamespace("users.alice");
+    }
+
+    @Test
+    void still_fail_when_the_roll_back_fails_too() throws Exception {
+        when(mockUserAccessStore.createUserAccessForNamespace(any())).thenThrow(new RuntimeException("timeout"));
+        doThrow(new RuntimeException("still down")).when(mockNamespaceStore).deleteNamespace("users.alice");
+
+        assertThrows(IllegalStateException.class, () -> activeService().create("alice"));
+    }
+
+    @Test
+    void claim_a_namespace_that_this_principal_created_with_no_grants() throws Exception {
+        doThrow(new NamespaceAlreadyExistsException("exists")).when(mockNamespaceStore).createNamespace(anyString(), anyString());
+        when(mockUserAccessStore.getUserAccessForNamespace("users.alice")).thenReturn(List.of());
+        when(mockNamespaceStore.getNamespaces()).thenReturn(List.of(
+                new NamespaceInfo("users.alice", "Personal namespace for alice")));
+
+        assertThat(activeService().create("alice"), is(Optional.of(CreateOutcome.ALREADY_OWNED)));
+        ArgumentCaptor<UserAccess> captor = ArgumentCaptor.forClass(UserAccess.class);
+        verify(mockUserAccessStore).createUserAccessForNamespace(captor.capture());
+        assertThat(captor.getValue().getUsername(), is("alice"));
+        verify(mockNamespaceStore, never()).deleteNamespace(anyString());
+    }
+
+    @Test
+    void not_claim_a_namespace_that_another_principal_created() throws Exception {
+        doThrow(new NamespaceAlreadyExistsException("exists")).when(mockNamespaceStore).createNamespace(anyString(), anyString());
+        when(mockUserAccessStore.getUserAccessForNamespace("users.mark-scott")).thenReturn(List.of());
+        when(mockNamespaceStore.getNamespaces()).thenReturn(List.of(
+                new NamespaceInfo("users.mark-scott", "Personal namespace for mark.scott")));
+
+        assertThat(activeService().create("mark-scott"), is(Optional.of(CreateOutcome.TAKEN)));
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
+
+    @Test
+    void not_delete_a_claimed_namespace_when_its_grant_fails() throws Exception {
+        doThrow(new NamespaceAlreadyExistsException("exists")).when(mockNamespaceStore).createNamespace(anyString(), anyString());
+        when(mockUserAccessStore.getUserAccessForNamespace("users.alice")).thenReturn(List.of());
+        when(mockNamespaceStore.getNamespaces()).thenReturn(List.of(
+                new NamespaceInfo("users.alice", "Personal namespace for alice")));
+        when(mockUserAccessStore.createUserAccessForNamespace(any())).thenThrow(new RuntimeException("timeout"));
+
+        assertThrows(IllegalStateException.class, () -> activeService().create("alice"));
+        verify(mockNamespaceStore, never()).deleteNamespace(anyString());
     }
 
     @Test
