@@ -1,5 +1,7 @@
 package org.finos.calm.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
@@ -14,6 +16,8 @@ public class UserAccessRequest {
 
     @NotNull
     private UserAccess.Permission permission;
+
+    private UserAccess.SubjectType subjectType = UserAccess.SubjectType.user;
 
     public UserAccessRequest() {
     }
@@ -32,5 +36,19 @@ public class UserAccessRequest {
 
     public void setPermission(UserAccess.Permission permission) {
         this.permission = permission;
+    }
+
+    public UserAccess.SubjectType getSubjectType() {
+        return subjectType;
+    }
+
+    public void setSubjectType(UserAccess.SubjectType subjectType) {
+        this.subjectType = subjectType == null ? UserAccess.SubjectType.user : subjectType;
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "The '*' wildcard is not a valid group name")
+    public boolean isValidGroupName() {
+        return subjectType != UserAccess.SubjectType.group || !"*".equals(username);
     }
 }

@@ -88,6 +88,15 @@
             <artifactId>quarkus-caffeine</artifactId>
         </dependency>
 
+        <!-- LDAP client for the LDAP group membership provider. Not JDK JNDI: Quarkus disables
+             JNDI (quarkus.naming.enable-jndi), and enabling it would remove that guard for the
+             whole application. No transitive dependencies; the tests also use its in-memory server. -->
+        <dependency>
+            <groupId>com.unboundid</groupId>
+            <artifactId>unboundid-ldapsdk</artifactId>
+            <version>7.0.5</version>
+        </dependency>
+
         <!-- JGit via its Quarkus extension, which configures JGit for native builds -->
         <dependency>
             <groupId>io.quarkiverse.jgit</groupId>

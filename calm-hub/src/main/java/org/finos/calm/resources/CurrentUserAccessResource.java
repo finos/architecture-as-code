@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import java.util.ArrayList;
 import java.util.List;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -13,6 +14,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.UserAccess;
+import org.finos.calm.security.GroupGrants;
 import org.finos.calm.store.UserAccessStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,7 @@ import static org.finos.calm.security.CalmHubPermissionChecker.GLOBAL_ACCESS;
 public class CurrentUserAccessResource {
 
     private final UserAccessStore store;
+    private final GroupGrants groupGrants;
     private final Logger logger = LoggerFactory.getLogger(CurrentUserAccessResource.class);
 
     @Inject
@@ -33,8 +36,9 @@ public class CurrentUserAccessResource {
     @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
     boolean authEnabled;
 
-    public CurrentUserAccessResource(UserAccessStore store) {
+    public CurrentUserAccessResource(UserAccessStore store, GroupGrants groupGrants) {
         this.store = store;
+        this.groupGrants = groupGrants;
     }
 
     @GET
@@ -43,7 +47,7 @@ public class CurrentUserAccessResource {
     @Authenticated
     @Operation(
             summary = "Get grants for the authenticated user",
-            description = "Returns all user-access grants for the calling user, including wildcard grants that grant implicit access. Used by UIs to determine which namespaces the user can access."
+            description = "Returns all user-access grants for the calling user, including wildcard grants that grant implicit access and the grants of each group the user is a member of. Used by UIs to determine which namespaces the user can access."
     )
     public Response getCurrentUserAccess() {
         String username = identity.getPrincipal().getName();
@@ -57,7 +61,8 @@ public class CurrentUserAccessResource {
             return Response.ok(List.of(syntheticGrant)).build();
         }
         logger.debug("Fetching grants for user [{}]", username);
-        List<UserAccess> grants = store.getGrantsForUser(username);
+        List<UserAccess> grants = new ArrayList<>(store.getGrantsForUser(username));
+        grants.addAll(groupGrants.forMembers(username, store.getAllGroupGrants()));
         return Response.ok(grants).build();
     }
 }

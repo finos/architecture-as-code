@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import io.quarkus.arc.lookup.LookupIfProperty;
 
@@ -27,6 +28,11 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 @ApplicationScoped
 @Typed(MongoUserAccessStore.class)
 public class MongoUserAccessStore implements UserAccessStore {
+
+    private static final String SUBJECT_TYPE = "subjectType";
+    // ne also matches rows written before subjectType existed, which are user grants.
+    private static final Bson NOT_GROUP = Filters.ne(SUBJECT_TYPE, UserAccess.SubjectType.group.name());
+    private static final Bson IS_GROUP = Filters.eq(SUBJECT_TYPE, UserAccess.SubjectType.group.name());
 
     private final MongoCollection<Document> userAccessCollection;
     private final MongoNamespaceStore namespaceStore;
@@ -66,6 +72,7 @@ public class MongoUserAccessStore implements UserAccessStore {
     private UserAccess createUserAccess(UserAccess userAccess, String scopeField, String scopeValue) {
         int userAccessId = counterStore.getNextUserAccessSequenceValue();
         Document userAccessDoc = new Document("username", userAccess.getUsername())
+                .append(SUBJECT_TYPE, userAccess.getSubjectType().name())
                 .append("permission", userAccess.getPermission().name())
                 .append(scopeField, scopeValue)
                 .append("createdAt", userAccess.getCreationDateTime())
@@ -99,7 +106,7 @@ public class MongoUserAccessStore implements UserAccessStore {
             throws UserAccessNotFoundException {
 
         List<UserAccess> userAccessList = new ArrayList<>();
-        for (Document doc : userAccessCollection.find(Filters.eq("username", username))) {
+        for (Document doc : userAccessCollection.find(Filters.and(Filters.eq("username", username), NOT_GROUP))) {
             userAccessList.add(buildFromDocument(doc));
         }
 
@@ -112,7 +119,31 @@ public class MongoUserAccessStore implements UserAccessStore {
     @Override
     public List<UserAccess> getGrantsForUser(String username) {
         List<UserAccess> grants = new ArrayList<>();
-        for (Document doc : userAccessCollection.find(Filters.in("username", username, "*"))) {
+        for (Document doc : userAccessCollection.find(Filters.and(Filters.in("username", username, "*"), NOT_GROUP))) {
+            grants.add(buildFromDocument(doc));
+        }
+        return grants;
+    }
+
+    @Override
+    public List<UserAccess> getGroupGrantsForNamespaces(Collection<String> namespaces) {
+        return findGroupGrants(Filters.in("namespace", namespaces));
+    }
+
+    @Override
+    public List<UserAccess> getGroupGrantsForDomain(String domain) {
+        return findGroupGrants(Filters.eq("domain", domain));
+    }
+
+    @Override
+    public List<UserAccess> getAllGroupGrants() {
+        return findGroupGrants(null);
+    }
+
+    private List<UserAccess> findGroupGrants(Bson scopeFilter) {
+        Bson filter = scopeFilter == null ? IS_GROUP : Filters.and(IS_GROUP, scopeFilter);
+        List<UserAccess> grants = new ArrayList<>();
+        for (Document doc : userAccessCollection.find(filter)) {
             grants.add(buildFromDocument(doc));
         }
         return grants;
@@ -213,14 +244,20 @@ public class MongoUserAccessStore implements UserAccessStore {
     private Document findExistingGrant(Bson scopeFilter, UserAccess userAccess) {
         return userAccessCollection.find(Filters.and(
                 Filters.eq("username", userAccess.getUsername()),
+                userAccess.getSubjectType() == UserAccess.SubjectType.group ? IS_GROUP : NOT_GROUP,
                 scopeFilter,
                 Filters.eq("permission", userAccess.getPermission().name())
         )).first();
     }
 
+    private static UserAccess.SubjectType parseSubjectType(String value) {
+        return value == null ? UserAccess.SubjectType.user : UserAccess.SubjectType.valueOf(value);
+    }
+
     private UserAccess buildFromDocument(Document doc) {
         return new UserAccess.UserAccessBuilder()
                 .setUsername(doc.getString("username"))
+                .setSubjectType(parseSubjectType(doc.getString(SUBJECT_TYPE)))
                 .setPermission(UserAccess.Permission.valueOf(doc.getString("permission")))
                 .setNamespace(doc.getString("namespace"))
                 .setDomain(doc.getString("domain"))

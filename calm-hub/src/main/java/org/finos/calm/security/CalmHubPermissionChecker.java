@@ -23,6 +23,7 @@ public class CalmHubPermissionChecker {
     public static final String GLOBAL_ACCESS = "GLOBAL";
 
     private final UserAccessStore userAccessStore;
+    private final GroupGrants groupGrants;
 
     @Inject
     @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
@@ -32,8 +33,9 @@ public class CalmHubPermissionChecker {
     @ConfigProperty(name = "calm.auth.allow-public-read", defaultValue = "false")
     boolean allowPublicRead;
 
-    public CalmHubPermissionChecker(UserAccessStore userAccessStore) {
+    public CalmHubPermissionChecker(UserAccessStore userAccessStore, GroupGrants groupGrants) {
         this.userAccessStore = userAccessStore;
+        this.groupGrants = groupGrants;
     }
 
     // "event" is unused but must stay in the signature: it's what makes this an
@@ -110,7 +112,8 @@ public class CalmHubPermissionChecker {
         String username = identity.getPrincipal().getName();
         logger.debug("Checking global admin access for user [{}]", username);
         List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
-        boolean granted = isGlobalAdminFromGrants(username, grants);
+        boolean granted = isGlobalAdminFromGrants(username, grants)
+                || isGlobalAdminFromGrants(username, memberGroupGrants(username, List.of(GLOBAL_ACCESS)));
         if (granted) {
             logger.debug("User [{}] AUTHORIZED for GLOBAL admin privileges", username);
         } else {
@@ -125,16 +128,19 @@ public class CalmHubPermissionChecker {
         logger.debug("Checking namespace access for user [{}] on namespace [{}] action=[{}]", username, namespace, action);
 
         List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
-
-        if (isGlobalAdminFromGrants(username, grants)) {
-            logger.debug("User [{}] AUTHORIZED for [{}] in namespace [{}] via GLOBAL admin grant", username, action, namespace);
-            return true;
-        }
-
         List<String> ancestors = ancestorChain(namespace);
-        boolean result = action == UserAction.READ
-                ? allAncestorsHaveGrant(ancestors, grants, action)
-                : anyAncestorHasGrant(ancestors, grants, action);
+        boolean result = namespaceGrantsAllow(username, namespace, ancestors, grants, action);
+
+        if (!result) {
+            List<String> groupScopes = new ArrayList<>(ancestors);
+            groupScopes.add(GLOBAL_ACCESS);
+            List<UserAccess> memberGrants = memberGroupGrants(username, groupScopes);
+            if (!memberGrants.isEmpty()) {
+                List<UserAccess> merged = new ArrayList<>(grants);
+                merged.addAll(memberGrants);
+                result = namespaceGrantsAllow(username, namespace, ancestors, merged, action);
+            }
+        }
 
         if (result) {
             logger.debug("User [{}] AUTHORIZED for [{}] in namespace [{}]", username, action, namespace);
@@ -144,9 +150,24 @@ public class CalmHubPermissionChecker {
         return result;
     }
 
+    private boolean namespaceGrantsAllow(String username, String namespace, List<String> ancestors,
+                                         List<UserAccess> grants, UserAction action) {
+        if (isGlobalAdminFromGrants(username, grants)) {
+            logger.debug("User [{}] AUTHORIZED for [{}] in namespace [{}] via GLOBAL admin grant", username, action, namespace);
+            return true;
+        }
+        return action == UserAction.READ
+                ? allAncestorsHaveGrant(ancestors, grants, action)
+                : anyAncestorHasGrant(ancestors, grants, action);
+    }
+
+    private List<UserAccess> memberGroupGrants(String username, List<String> namespaces) {
+        return groupGrants.forMembers(username, userAccessStore.getGroupGrantsForNamespaces(namespaces));
+    }
+
     private boolean isGlobalAdminFromGrants(String username, List<UserAccess> grants) {
         return grants.stream()
-                .anyMatch(g -> username.equals(g.getUsername())
+                .anyMatch(g -> (g.getSubjectType() == UserAccess.SubjectType.group || username.equals(g.getUsername()))
                         && GLOBAL_ACCESS.equals(g.getNamespace())
                         && permissionSufficient(g, UserAction.ADMIN));
     }
@@ -179,16 +200,16 @@ public class CalmHubPermissionChecker {
         logger.debug("Checking domain access for user [{}] on domain [{}] action=[{}]", username, domain, action);
 
         List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+        boolean result = domainGrantsAllow(username, domain, grants, action);
 
-        if (isGlobalAdminFromGrants(username, grants)) {
-            logger.debug("User [{}] AUTHORIZED for [{}] in domain [{}] via GLOBAL admin grant", username, action, domain);
-            return true;
+        if (!result) {
+            List<UserAccess> candidates = new ArrayList<>(userAccessStore.getGroupGrantsForDomain(domain));
+            candidates.addAll(userAccessStore.getGroupGrantsForNamespaces(List.of(GLOBAL_ACCESS)));
+            List<UserAccess> memberGrants = groupGrants.forMembers(username, candidates);
+            if (!memberGrants.isEmpty()) {
+                result = domainGrantsAllow(username, domain, memberGrants, action);
+            }
         }
-
-        boolean result = grants.stream().anyMatch(g ->
-                domain.equals(g.getDomain())
-                        && permissionSufficient(g, action)
-                        && !(action == UserAction.ADMIN && "*".equals(g.getUsername())));
 
         if (result) {
             logger.debug("User [{}] AUTHORIZED for [{}] in domain [{}]", username, action, domain);
@@ -196,6 +217,17 @@ public class CalmHubPermissionChecker {
             logger.debug("User [{}] DENIED for [{}] in domain [{}]", username, action, domain);
         }
         return result;
+    }
+
+    private boolean domainGrantsAllow(String username, String domain, List<UserAccess> grants, UserAction action) {
+        if (isGlobalAdminFromGrants(username, grants)) {
+            logger.debug("User [{}] AUTHORIZED for [{}] in domain [{}] via GLOBAL admin grant", username, action, domain);
+            return true;
+        }
+        return grants.stream().anyMatch(g ->
+                domain.equals(g.getDomain())
+                        && permissionSufficient(g, action)
+                        && !(action == UserAction.ADMIN && "*".equals(g.getUsername())));
     }
 
     private boolean permissionSufficient(UserAccess grant, UserAction action) {

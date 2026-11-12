@@ -105,6 +105,84 @@ When a namespace is created, CALM Hub automatically inserts a `* read` grant so 
 
 ---
 
+## Group Access
+
+A grant can name a **group** instead of a user. Each member of the group gets the access of that grant. Set `subjectType` to `group` and put the group name in `username`:
+
+```
+subjectType: group
+username: architects
+permission: write
+namespace: org.ab
+```
+
+Group grants follow the same rules as user grants: the AND rule for reading, the OR rule for writing and administering, flat domain access, and `GLOBAL` admin. A user's own grants, `*` grants and group grants all count together. For example, a user grant at `org` and a group grant at `org.ab` together let a member read `org.ab`.
+
+- `*` is not a valid group name.
+- Only direct membership counts. CALM Hub does not resolve nested groups.
+- If CALM Hub cannot get a user's group membership (for example, the directory is not available), the user gets no access from group grants.
+- A grant with no `subjectType` is a user grant.
+
+### Group Membership
+
+`calm.auth.groups.provider` sets where CALM Hub gets group membership from:
+
+| Value | Effect |
+| :--- | :--- |
+| `none` (default) | No user is a member of any group. Group grants give no access |
+| `ldap` | Membership comes from an LDAP directory |
+
+A deployment can also add its own membership source in source code: an `@ApplicationScoped` implementation of `GroupMembershipResolver` replaces the built-in one.
+
+### LDAP Group Membership
+
+With `provider=ldap`, CALM Hub finds the user's entry with one or more user searches, then searches for the groups that list the user's DN as a member. It asks only about groups that have CALM Hub grants. It caches the answers, so removing a user from a group takes effect after `cache.positive-ttl` (5 minutes by default).
+
+```properties
+calm.auth.groups.provider=ldap
+calm.auth.groups.ldap.url=ldaps://ldap.example.com
+calm.auth.groups.ldap.auth-mode=simple
+calm.auth.groups.ldap.bind-dn=cn=calm-hub,ou=services,dc=example,dc=com
+calm.auth.groups.ldap.bind-password=${LDAP_BIND_PASSWORD}
+calm.auth.groups.ldap.user-searches.people.base=ou=people,dc=example,dc=com
+calm.auth.groups.ldap.user-searches.people.order=0
+calm.auth.groups.ldap.group-search-base=ou=groups,dc=example,dc=com
+calm.auth.groups.ldap.member-attribute=uniqueMember
+```
+
+All settings are under `calm.auth.groups.ldap`:
+
+| Setting | Default | Notes |
+| :--- | :--- | :--- |
+| `url` | required | One `ldap://` or `ldaps://` URL |
+| `auth-mode` | required | `none`, `simple` or `gssapi` |
+| `bind-dn`, `bind-password` | — | Required for `simple`. Supply the password as a secret |
+| `start-tls` | `false` | `simple` over plain `ldap://` without StartTLS is refused |
+| `truststore`, `truststore-password` | JVM default | |
+| `canonicalize-host` | `false` | For GSSAPI service principals behind host aliases |
+| `connect-timeout`, `read-timeout` | `PT5S`, `PT10S` | |
+| `pool`, `pool-size` | `false`, `10` | Connection pooling. Not permitted with StartTLS |
+| `user-search-policy` | `unique` | `unique`: more than one matching entry gives no groups. `first`: the first match wins |
+| `user-searches.<name>.base`, `.order` | required | At least one search. Searches run in ascending `order` |
+| `user-searches.<name>.filter` | `(uid={0})` | `{0}` is the username |
+| `user-searches.<name>.scope` | `onelevel` | `onelevel`, `subtree` or `object` |
+| `group-search-base` | required | |
+| `group-search-scope` | `onelevel` | |
+| `group-name-attribute` | `cn` | The attribute that holds the group name used in grants |
+| `member-attribute` | `member` | Holds user DNs, e.g. `member` or `uniqueMember` |
+| `groups-per-query` | `100` | Groups in each search |
+| `cache.positive-ttl`, `cache.negative-ttl`, `cache.dn-ttl` | `PT5M`, `PT1M`, `PT10M` | `PT0S` turns a cache off |
+| `cache.max-size` | `10000` | |
+| `gssapi.use-subject-creds-only` | `false` | `false` lets the GSSAPI bind use the Kerberos ticket cache, which the deployment keeps current |
+
+CALM Hub checks these settings at startup and does not start if they are not valid.
+
+:::note
+LDAP group membership is supported in the JVM image only. Native images do not start with `calm.auth.groups.provider=ldap`.
+:::
+
+---
+
 ## Global Access Modes
 
 ### `allow-public-read` flag
@@ -160,6 +238,8 @@ The easiest way to manage entitlements is the built-in admin UI, available at `/
 - **Domain Access** — available to global admins only; manage grants for any domain
 - **Global Admin Access** — available to global admins only; grant or revoke GLOBAL admin access for other users
 
+The admin UI does not yet create group grants. Use the REST API for them.
+
 ### REST API
 
 Entitlements can also be managed directly through the REST API. Use the [Swagger UI](http://localhost:8080/q/swagger-ui) to explore available operations.
@@ -192,6 +272,19 @@ Content-Type: application/json
 
 ```http
 DELETE /api/calm/namespaces/org.ab/user-access/{id}
+```
+
+**Grant the `architects` group write access to `org.ab`:**
+
+```http
+POST /api/calm/namespaces/org.ab/user-access
+Content-Type: application/json
+
+{
+  "subjectType": "group",
+  "username": "architects",
+  "permission": "write"
+}
 ```
 
 **Grant `carol` admin access to the `payments` domain:**
