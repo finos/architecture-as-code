@@ -1,7 +1,8 @@
 # ADR 0018: Personal namespaces
 
-**Status**: Proposed. Not built. The design is in
-[PERSONAL_NAMESPACES.md](../PERSONAL_NAMESPACES.md).
+**Status**: Accepted
+
+The full design is in [PERSONAL_NAMESPACES.md](../PERSONAL_NAMESPACES.md).
 
 ## Context
 
@@ -46,8 +47,8 @@ no ADMIN on it, Hub returns 409. Thus two principals with the same segment, for
 example `mark.scott` and `mark-scott`, cannot share a namespace: the second gets
 409. Hub does not record an owner. The owner is the user with the ADMIN grant.
 
-**Reserved root.** When the feature is on, the general create endpoint rejects a
-child of the root. All personal namespaces come from the personal namespace
+**Reserved root.** When the feature is on, the general create endpoint and the MCP
+create tool reject a child of the root. All personal namespaces come from the personal namespace
 request, so none has a `*` read grant.
 
 **Off by default.** The operator turns the feature on. Hub does not turn it on

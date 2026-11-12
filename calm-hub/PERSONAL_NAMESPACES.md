@@ -1,6 +1,6 @@
 # Personal Namespaces
 
-> **Status: proposed, not built.** This document describes the target design.
+> **Status: the Hub API is built. The Hub UI card is not built.**
 > [ADR 0018](decisions/0018-personal-namespaces.md) records the decisions that are
 > hard to change later. Tracked in
 > [#3075](https://github.com/finos/architecture-as-code/issues/3075).
@@ -66,18 +66,19 @@ Returns the caller's personal namespace and whether it is theirs.
 | Principal cannot be made into a segment | 422 | Error |
 | Feature off | 404 | Error |
 
-`owned` is true when the caller has ADMIN on the namespace.
+`owned` is true when the caller has an `admin` grant on the namespace itself. ADMIN from
+the root or from GLOBAL_ADMIN does not count.
 
 ### `PUT /api/calm/me/namespace`
 
 Creates the caller's personal namespace. The request has no body. A second call
-changes nothing.
+changes nothing. A 201 or 200 response has the same body as the `GET`.
 
 | Case | Status |
 |---|---|
 | Created | 201, with `Location: /api/calm/namespaces/<name>` |
-| Exists and the caller has ADMIN on it | 200 |
-| Exists and the caller has no ADMIN on it | 409 |
+| Exists and the caller owns it | 200 |
+| Exists and the caller does not own it | 409 |
 | Principal cannot be made into a segment | 422 |
 | Feature off | 404 |
 
@@ -126,6 +127,7 @@ A user whose segment is taken can ask an admin for a normal namespace.
 | Endpoint | Change when the feature is on |
 |---|---|
 | `POST /api/calm/namespaces` | Returns 400 for a child of the root, for GLOBAL_ADMIN too. Personal namespaces come only from `PUT /api/calm/me/namespace` |
+| MCP `createNamespace` tool | Returns an error for a child of the root, as `POST` does |
 | `DELETE /api/calm/namespaces/{namespace}` | No change. The owner can delete their empty namespace |
 | `GET /api/calm/namespaces` | No change. The list already holds only readable namespaces |
 
@@ -156,6 +158,7 @@ uses it with `calm hub push`. Later work can add:
 | Item | Where |
 |---|---|
 | Share links for documents in a private namespace | A separate issue, as agreed on #3075 |
+| A starter `my-architecture` in a new personal namespace | [#3689](https://github.com/finos/architecture-as-code/issues/3689) |
 | Archive, and move documents out of a personal namespace | [#2856](https://github.com/finos/architecture-as-code/issues/2856) |
 | Personal domains | Not planned |
 | Clean-up when a user leaves | Not planned. An admin deletes the content and the namespace |
@@ -170,4 +173,4 @@ uses it with `calm hub push`. Later work can add:
 | Resource | `PersonalNamespaceResource` for `/api/calm/me/namespace`, with the staged audit context |
 | `NamespaceResource` | Reject a child of the root when the feature is on |
 | Tests | Unit tests for the segment rules and each status in the tables above. Integration tests for MongoDB and NitriteDB. JaCoCo needs 90% line coverage for each class |
-| Docs | [PERMISSIONS.md](PERMISSIONS.md), the README configuration section, and the CALM Hub learning guide |
+| Docs | [PERMISSIONS.md](PERMISSIONS.md), the README configuration section, and the CALM Hub entitlements guide in `docs/` |

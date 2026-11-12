@@ -69,6 +69,19 @@ To create a **top-level namespace** (e.g. `org`), a user must be a global admin.
 
 To create a **child namespace** (e.g. `org.ecosystem`), a user must be a global admin **or** have `admin` on the direct parent namespace (`org` in this example).
 
+### Personal Namespaces
+
+If the operator sets `calm.namespaces.personal.enabled=true`, each user can create one private namespace for scratch work, without an admin:
+
+```http
+GET /api/calm/me/namespace     # the name, for example users.mark-scott, and whether it exists
+PUT /api/calm/me/namespace     # creates it
+```
+
+The name is `users.<user name>`, with each `.`, `@` and `_` changed to `-`. The owner gets `admin`, and there is no `*` read grant, so other users cannot see the namespace until the owner grants access. If another user already holds the same name, the request returns 409. The general create endpoint rejects names under `users`.
+
+The feature stays off when auth is off, when Hub is read-only and in GitHub mode.
+
 ---
 
 ## Domain Permissions
