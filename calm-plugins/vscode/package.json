@@ -50,6 +50,18 @@
         "command": "calm.importSvg",
         "title": "Import SVG as CALM Architecture",
         "category": "CALM"
+      },
+      {
+        "command": "calm.exportBundle",
+        "title": "Export CALM Bundle",
+        "category": "CALM",
+        "icon": "$(export)"
+      },
+      {
+        "command": "calm.importBundle",
+        "title": "Import CALM Bundle",
+        "category": "CALM",
+        "icon": "$(file-add)"
       }
     ],
     "keybindings": [
@@ -85,6 +97,16 @@
           "command": "calm.importSvg",
           "when": "resourceExtname == .svg",
           "group": "navigation"
+        },
+        {
+          "command": "calm.exportBundle",
+          "when": "resourceFilename =~ /\\.(calm|architecture|template|solution|standard|guideline)\\.json$/ || resourceFilename == index.md",
+          "group": "2_workspace@5"
+        },
+        {
+          "command": "calm.importBundle",
+          "when": "resourceExtname == .zip",
+          "group": "2_workspace@6"
         }
       ]
     },
