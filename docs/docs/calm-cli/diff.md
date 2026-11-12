@@ -6,7 +6,7 @@ sidebar_label: diff
 
 # Comparing CALM Documents
 
-The `diff` command compares two versions of a CALM architecture or pattern, or the moments of a [CALM timeline](../core-concepts/timelines.md). It matches nodes and relationships by their `unique-id`. It reports each one as added, removed, modified, renamed or unchanged.
+The `diff` command compares two versions of a CALM architecture or pattern, or the moments of a [CALM timeline](../core-concepts/timelines.md). It matches nodes, relationships and flows by their `unique-id`. It reports each node and relationship as added, removed, modified, renamed or unchanged, and each flow as added, removed, modified or unchanged.
 
 ## Basic Usage
 
@@ -48,13 +48,14 @@ CALM architecture diff
 ----------------------
 Nodes:         +1  -0  ~1  ↔0  =3
 Relationships: +1  -0  ~0  ↔0  =2
+Flows:         +0  -0  ~1  =1
 
 Nodes added:
   - audit-service
 ...
 ```
 
-The symbols are: `+` added, `-` removed, `~` modified, `↔` renamed and `=` unchanged.
+The symbols are: `+` added, `-` removed, `~` modified, `↔` renamed and `=` unchanged. The `Flows:` line shows only when a document has flows. Flows have no renamed count.
 
 ## Using `diff` in CI
 
