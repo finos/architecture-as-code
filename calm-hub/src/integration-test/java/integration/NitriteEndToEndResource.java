@@ -16,6 +16,7 @@ public class NitriteEndToEndResource implements QuarkusTestResourceLifecycleMana
 
     private static final Logger logger = LoggerFactory.getLogger(NitriteEndToEndResource.class);
     private Path tempDir;
+    private Map<String, String> config = Map.of();
 
     @Override
     public Map<String, String> start() {
@@ -26,7 +27,7 @@ public class NitriteEndToEndResource implements QuarkusTestResourceLifecycleMana
             throw new RuntimeException("Failed to create temp directory for Nitrite integration tests", e);
         }
 
-        return Map.of(
+        config = Map.of(
                 "calm.database.mode", "standalone",
                 "calm.standalone.seed-demo-data", "false",
                 "calm.standalone.data-directory", tempDir.toString(),
@@ -35,10 +36,15 @@ public class NitriteEndToEndResource implements QuarkusTestResourceLifecycleMana
                 "calm.standalone.password", "admin",
                 "quarkus.mongodb.devservices.enabled", "false"
         );
+        // As in EndToEndResource: the returned Map alone does not reach @ConfigProperty or @LookupIfProperty
+        // (quarkusio/quarkus#52919). Without these properties the Nitrite suites run on Mongo.
+        config.forEach(System::setProperty);
+        return config;
     }
 
     @Override
     public void stop() {
+        config.keySet().forEach(System::clearProperty);
         if (tempDir != null) {
             try {
                 Files.walkFileTree(tempDir, new SimpleFileVisitor<>() {
