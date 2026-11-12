@@ -171,7 +171,6 @@
     "changelog": "node ../../scripts/vscode-changelog.mjs"
   },
   "dependencies": {
-    "@finos/calm-diagram": "*",
     "@finos/calm-models": "file:../../calm-models",
     "@finos/calm-shared": "file:../../shared",
     "adm-zip": "^0.5.10",

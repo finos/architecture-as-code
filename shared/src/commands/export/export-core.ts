@@ -54,7 +54,7 @@ function isRemoteOrAnchorReference(target: string): boolean {
 }
 
 function addMarkdownFileReference(refs: string[], value: string): void {
-    const reference = value.trim().replace(/^['"]|['"]$/g, '').replace(/\s+#.*$/, '');
+    const reference = value.trim().replace(/\s+#.*$/, '').replace(/^['"]|['"]$/g, '').trim();
     if (reference && !isRemoteOrAnchorReference(reference)) {
         refs.push(reference);
     }
