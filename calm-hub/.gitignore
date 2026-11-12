@@ -126,6 +126,8 @@ META-INF/
 # The generated META-INF/resources/ (UI + brand assets) stays ignored.
 !src/main/resources/META-INF/
 src/main/resources/META-INF/*
+!src/main/resources/META-INF/calm-extensions/
+!src/main/resources/META-INF/calm-extensions/**
 !src/main/resources/META-INF/native-image/
 !src/main/resources/META-INF/native-image/**
 # ...and the hand-authored calm-schemas index files (versions.txt / files.txt) that

@@ -132,8 +132,8 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-hibernate-validator</artifactId>
         </dependency>
-        <!-- Validates decorators against the bundled decorator Standards. Version from the Vert.x BOM in the
-             Quarkus BOM. -->
+        <!-- Validates extension manifests (ADR 0012), and decorators against the bundled decorator Standards.
+             Version from the Vert.x BOM in the Quarkus BOM. -->
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-json-schema</artifactId>

@@ -1,0 +1,63 @@
+{
+  "id": "example-services",
+  "version": "0.1.0",
+  "hubApi": 0,
+  "name": "Example services",
+  "description": "A fixture extension for local development. It lists the services that each namespace owns.",
+  "provider": "CALM Hub local development",
+  "routes": [
+    { "id": "screen", "method": "GET", "path": "/screen", "scope": "authenticated", "readOnly": true },
+    { "id": "namespace-services", "method": "GET", "path": "/namespaces/{namespace}/services", "scope": "read" },
+    { "id": "search", "method": "POST", "path": "/search", "scope": "authenticated", "readOnly": true },
+    { "id": "add-service", "method": "POST", "path": "/namespaces/{namespace}/services", "scope": "write" }
+  ],
+  "commands": {
+    "list-services": {
+      "route": "namespace-services",
+      "description": "List the services that a namespace owns",
+      "input": {
+        "type": "object",
+        "properties": { "namespace": { "type": "string" } },
+        "required": ["namespace"]
+      },
+      "output": {
+        "type": "object",
+        "properties": { "services": { "type": "array", "items": { "type": "string" } } }
+      },
+      "destructive": false,
+      "idempotent": true
+    },
+    "add-service": {
+      "route": "add-service",
+      "description": "Record a service that a namespace owns",
+      "input": {
+        "type": "object",
+        "properties": { "namespace": { "type": "string" }, "name": { "type": "string" } },
+        "required": ["namespace", "name"]
+      },
+      "destructive": false,
+      "idempotent": false
+    }
+  },
+  "contributes": {
+    "screen": [
+      { "id": "services", "title": "Services", "route": "screen" }
+    ],
+    "search-provider": [
+      { "id": "services", "title": "Services", "route": "search" }
+    ],
+    "decorator-views": [
+      {
+        "id": "services-control-evaluation",
+        "match": { "type": "control-evaluation" },
+        "label": "Control evaluations",
+        "overlay": {
+          "status": "/status",
+          "map": { "met": "ok", "not-met": "error", "not-applicable": "info" },
+          "default": "info",
+          "label": "/control/unique-id"
+        }
+      }
+    ]
+  }
+}
