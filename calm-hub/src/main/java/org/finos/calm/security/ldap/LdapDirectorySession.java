@@ -13,6 +13,8 @@ import com.unboundid.ldap.sdk.SearchScope;
 import org.finos.calm.config.LdapGroupsConfig;
 import org.finos.calm.config.LdapGroupsConfig.UserSearch;
 import org.finos.calm.config.LdapGroupsConfig.UserSearchPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,9 +34,10 @@ import java.util.Set;
  */
 class LdapDirectorySession implements DirectorySession {
 
+    private static final Logger LOG = LoggerFactory.getLogger(LdapDirectorySession.class);
     private static final String NO_ATTRIBUTES = SearchRequest.NO_ATTRIBUTES;
 
-    private final LDAPConnection connection;
+    private LDAPConnection connection;
     private final LdapGroupsConfig config;
     private final LDAPConnectionPool pool;
     private boolean failed;
@@ -54,7 +57,8 @@ class LdapDirectorySession implements DirectorySession {
         Map<DN, String> matches = new LinkedHashMap<>();
         for (UserSearch search : orderedUserSearches()) {
             Filter filter = parseFilter(search.filter().replace("{0}", Filter.encodeValue(username)));
-            for (SearchResultEntry entry : search(search.base().orElseThrow(), search.scope(), filter, first ? 1 : 2, NO_ATTRIBUTES)) {
+            for (SearchResultEntry entry : search(search.base().orElseThrow(), search.scope(), filter, first ? 1 : 2,
+                    NO_ATTRIBUTES, true)) {
                 if (first) {
                     return Optional.of(entry.getDN());
                 }
@@ -84,7 +88,7 @@ class LdapDirectorySession implements DirectorySession {
                     Filter.createEqualityFilter(config.memberAttribute(), userDn),
                     Filter.createORFilter(nameFilters));
             for (SearchResultEntry entry : search(config.groupSearchBase().orElseThrow(), config.groupSearchScope(),
-                    filter, 0, config.groupNameAttribute())) {
+                    filter, 0, config.groupNameAttribute(), false)) {
                 String[] values = entry.getAttributeValues(config.groupNameAttribute());
                 if (values != null) {
                     for (String value : values) {
@@ -96,17 +100,46 @@ class LdapDirectorySession implements DirectorySession {
         return found;
     }
 
+    /**
+     * @param missingBaseIsEmpty if true, a base that does not exist gives no entries instead of
+     *                           failing, so that one stale user search does not stop the others.
+     */
     private List<SearchResultEntry> search(String base, LdapGroupsConfig.Scope scope, Filter filter, int limit,
-                                           String attribute) throws DirectoryException {
+                                           String attribute, boolean missingBaseIsEmpty) throws DirectoryException {
         SearchRequest request = searchRequest(base, scope, filter, limit, attribute);
         try {
-            return connection.search(request).getSearchEntries();
+            return searchWithRetry(request);
         } catch (LDAPSearchException e) {
             if (e.getResultCode() == ResultCode.SIZE_LIMIT_EXCEEDED) {
                 return e.getSearchEntries();
             }
+            if (missingBaseIsEmpty && e.getResultCode() == ResultCode.NO_SUCH_OBJECT) {
+                LOG.warn("LDAP search base [{}] does not exist; treating it as no match", base);
+                return List.of();
+            }
             failed = true;
             throw new DirectoryException("LDAP search under [" + base + "] failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Retries once on a fresh connection when a pooled connection is no longer usable, for
+     * example after the server closed it while it was idle in the pool.
+     */
+    private List<SearchResultEntry> searchWithRetry(SearchRequest request) throws LDAPSearchException {
+        try {
+            return connection.search(request).getSearchEntries();
+        } catch (LDAPSearchException e) {
+            if (pool == null || ResultCode.isConnectionUsable(e.getResultCode())) {
+                throw e;
+            }
+            try {
+                connection = pool.replaceDefunctConnection(connection);
+            } catch (LDAPException replaceFailure) {
+                connection = null;
+                throw e;
+            }
+            return connection.search(request).getSearchEntries();
         }
     }
 
@@ -153,6 +186,9 @@ class LdapDirectorySession implements DirectorySession {
 
     @Override
     public void close() {
+        if (connection == null) {
+            return;
+        }
         if (pool == null) {
             connection.close();
         } else if (failed) {

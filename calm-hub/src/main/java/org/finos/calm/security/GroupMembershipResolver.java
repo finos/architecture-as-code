@@ -1,7 +1,6 @@
 package org.finos.calm.security;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -13,7 +12,7 @@ import java.util.Set;
  * add an {@code @ApplicationScoped} implementation of this interface in source; it replaces the
  * built-in one.
  *
- * <p>Only direct membership is in scope. An exception thrown from either method counts as
+ * <p>Only direct membership is in scope. An exception thrown from {@link #memberGroups} counts as
  * "not a member" for every group in the call.
  */
 public interface GroupMembershipResolver {
@@ -24,13 +23,4 @@ public interface GroupMembershipResolver {
      * @return the groups of which the user is a direct member (empty if none).
      */
     Set<String> memberGroups(String username, Collection<String> groups);
-
-    /**
-     * @param username the name of the authenticated principal.
-     * @param group    the group name stored in the grant.
-     * @return {@code true} if the user is a direct member of the group.
-     */
-    default boolean isMember(String username, String group) {
-        return memberGroups(username, List.of(group)).contains(group);
-    }
 }

@@ -184,7 +184,7 @@ Settings are under `calm.auth.groups.ldap`. `LdapGroupsConfigValidator` checks t
 | `start-tls` | `false` | `simple` over plain `ldap://` without StartTLS is refused |
 | `truststore`, `truststore-password` | JVM default | |
 | `canonicalize-host` | `false` | Resolves the host to its canonical name, for GSSAPI service principals behind host aliases |
-| `connect-timeout`, `read-timeout` | `PT5S`, `PT10S` | `read-timeout` is also the server-side search time limit, in whole seconds. An operation that times out is abandoned on the server |
+| `connect-timeout`, `read-timeout` | `PT5S`, `PT10S` | `read-timeout` must be at least `PT1S`. It is also the server-side search time limit, in whole seconds. An operation that times out is abandoned on the server |
 | `pool`, `pool-size` | `false`, `10` | Connection pooling. Not permitted with StartTLS |
 | `user-search-policy` | `unique` | `unique`: more than one matching entry gives no groups. `first`: the first match, in search order, wins |
 | `user-searches.<name>.base`, `.order` | required | At least one search. Searches run in ascending `order` |
@@ -205,4 +205,6 @@ Gotchas:
 - A group named the same in two subtrees is ambiguous with `group-search-scope=subtree`: membership of either one satisfies the grant.
 - A member removed from a group keeps that group's access until `positive-ttl` expires; each CALM Hub instance has its own cache.
 - For a GSSAPI bind, UnboundID sets `java.security.auth.login.config` (to a generated JAAS file) and `javax.security.auth.useSubjectCredsOnly` as JVM-wide system properties.
+- A user search whose base does not exist counts as no match and logs a `WARN`, so the other user searches still run. A missing `group-search-base` is a failure.
+- With `pool=true`, a search on a pooled connection that is no longer usable is retried once on a new connection.
 - Native images refuse `provider=ldap` at startup. Use the JVM image.

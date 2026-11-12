@@ -68,7 +68,9 @@ public class LdapGroupsConfigValidator {
             errors.add(PREFIX + "groups-per-query must be at least 1");
         }
         requirePositive("connect-timeout", config.connectTimeout(), errors);
-        requirePositive("read-timeout", config.readTimeout(), errors);
+        if (config.readTimeout().compareTo(Duration.ofSeconds(1)) < 0) {
+            errors.add(PREFIX + "read-timeout must be at least 1 second, because it is also the server search time limit");
+        }
         requireNotNegative("cache.positive-ttl", config.cache().positiveTtl(), errors);
         requireNotNegative("cache.negative-ttl", config.cache().negativeTtl(), errors);
         requireNotNegative("cache.dn-ttl", config.cache().dnTtl(), errors);

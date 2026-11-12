@@ -25,7 +25,6 @@ public class TestNoGroupMembershipResolverShould {
     void report_that_no_user_is_a_member_of_any_group() {
         NoGroupMembershipResolver noGroups = new NoGroupMembershipResolver();
 
-        assertThat(noGroups.isMember("alice", "architects"), is(false));
         assertThat(noGroups.memberGroups("alice", List.of("architects", "alice")), is(empty()));
     }
 }

@@ -178,6 +178,12 @@ class TestLdapGroupsConfigValidatorShould {
     }
 
     @Test
+    void reject_a_read_timeout_under_one_second() {
+        config.readTimeout = Duration.ofMillis(500);
+        assertThat(validateLdap(), contains(containsString("read-timeout must be at least 1 second")));
+    }
+
+    @Test
     void accept_zero_cache_ttls() {
         config.cache.positiveTtl = Duration.ZERO;
         config.cache.negativeTtl = Duration.ZERO;

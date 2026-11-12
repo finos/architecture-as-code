@@ -210,10 +210,18 @@ class TestLdapDirectoryClientShould {
     }
 
     @Test
-    void fail_for_a_search_base_that_does_not_exist() {
-        config.userSearch("people").base = "ou=missing," + BASE;
+    void skip_a_user_search_whose_base_does_not_exist() throws Exception {
+        config.userSearch("old", "ou=missing," + BASE, -1);
 
-        assertThrows(DirectoryException.class, () -> findUserDn("alice"));
+        assertThat(findUserDn("alice"), is(Optional.of(ALICE)));
+    }
+
+    @Test
+    void skip_a_missing_user_search_base_under_the_first_policy() throws Exception {
+        config.userSearchPolicy = UserSearchPolicy.first;
+        config.userSearch("old", "ou=missing," + BASE, -1);
+
+        assertThat(findUserDn("alice"), is(Optional.of(ALICE)));
     }
 
     // --- Group searches ---
@@ -431,6 +439,25 @@ class TestLdapDirectoryClientShould {
             try (DirectorySession first = client.open(); DirectorySession second = client.open()) {
                 assertThat(first.findUserDn("alice"), is(Optional.of(ALICE)));
                 assertThat(second.findUserDn("bob"), is(Optional.of(BOB)));
+            }
+        } finally {
+            client.closePool();
+        }
+    }
+
+    @Test
+    void recover_after_the_server_closes_pooled_connections() throws Exception {
+        config.pool = true;
+        LdapDirectoryClient client = new LdapDirectoryClient(config);
+        try {
+            try (DirectorySession session = client.open()) {
+                assertThat(session.findUserDn("alice"), is(Optional.of(ALICE)));
+            }
+            server.closeAllConnections(false);
+            Thread.sleep(500); // the server closes connections asynchronously
+            try (DirectorySession session = client.open()) {
+                assertThat(session.findUserDn("alice"), is(Optional.of(ALICE)));
+                assertThat(session.findMemberGroups(ALICE, List.of("architects")), containsInAnyOrder("architects"));
             }
         } finally {
             client.closePool();
