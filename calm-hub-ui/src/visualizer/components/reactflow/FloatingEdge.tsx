@@ -11,7 +11,7 @@ import { calloutRects, calloutShift, coveredNodeTop } from './utils/labelPlaceme
 import { useElementEvaluation, useElementOverlays } from '../../context/DecoratorOverlayContext.js';
 import { OverlayEdgeBadge } from './overlay/OverlayBadge.js';
 import { overlayOutline } from './overlay/overlayStyle.js';
-import { worstStatus } from '../../overlay/overlayEngine.js';
+import { viewKey, worstStatus } from '../../overlay/overlayEngine.js';
 import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
 import { useElementSize } from './hooks/useElementSize.js';
 
@@ -197,7 +197,7 @@ function FloatingEdgeComponent({
                                 badgeStyle={badgeStyle}
                             />
                         )}
-                        {flagged.map((shown) => <OverlayEdgeBadge key={shown.view.id} shown={shown} presenting={presenting} scale={scale} />)}
+                        {flagged.map((shown) => <OverlayEdgeBadge key={viewKey(shown.view)} shown={shown} presenting={presenting} scale={scale} />)}
                         {requirement && (
                             <span
                                 data-testid="edge-decision-finding"

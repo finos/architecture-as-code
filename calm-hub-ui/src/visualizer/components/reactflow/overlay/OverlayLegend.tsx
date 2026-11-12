@@ -1,13 +1,11 @@
-import { useId, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { IoChevronDownOutline, IoChevronUpOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../../hooks/useMediaQuery.js';
 import { THEME } from '../theme.js';
-import { OVERLAY_STATUSES } from '../../../overlay/overlayEngine.js';
-import { OVERLAY_STYLES } from './overlayStyle.js';
+import { OVERLAY_STATUSES, viewKey, viewTitle } from '../../../overlay/overlayEngine.js';
+import { OVERLAY_STYLES, STATUS_NAMES, viewMarkerColour } from './overlayStyle.js';
 import { useDecoratorOverlays } from '../../../context/DecoratorOverlayContext.js';
 import type { OverlayStatus, ViewOverlay } from '../../../contracts/contracts.js';
-
-const STATUS_NAMES: Record<OverlayStatus, string> = { ok: 'OK', warn: 'Warning', error: 'Error', info: 'Info' };
 
 function statusCounts({ elements }: ViewOverlay): [OverlayStatus, number][] {
     const counts = new Map<OverlayStatus, number>();
@@ -15,11 +13,55 @@ function statusCounts({ elements }: ViewOverlay): [OverlayStatus, number][] {
     return OVERLAY_STATUSES.filter((s) => counts.has(s)).map((s) => [s, counts.get(s)!]);
 }
 
+/** The overlays of each extension, in first-seen order. A view without a source is its own group. */
+function byExtension(overlays: readonly ViewOverlay[]): { id: string; name: string; overlays: ViewOverlay[] }[] {
+    const groups = new Map<string, { id: string; name: string; overlays: ViewOverlay[] }>();
+    for (const overlay of overlays) {
+        const { source } = overlay.view;
+        const id = source?.id ?? viewKey(overlay.view);
+        const group = groups.get(id) ?? { id, name: source ? (source.builtIn ? `Built-in: ${source.name}` : source.name) : overlay.view.label, overlays: [] };
+        group.overlays.push(overlay);
+        groups.set(id, group);
+    }
+    return [...groups.values()];
+}
+
+function Marker({ colour }: { colour: string }) {
+    return (
+        <span
+            aria-hidden="true"
+            data-testid="overlay-marker"
+            data-colour={colour}
+            style={{ width: '10px', height: '10px', borderRadius: '2px', flexShrink: 0, background: colour }}
+        />
+    );
+}
+
+function GroupCheckbox({ name, checked, indeterminate, onChange }: { name: string; checked: boolean; indeterminate: boolean; onChange: () => void }) {
+    const ref = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        if (ref.current) ref.current.indeterminate = indeterminate;
+    }, [indeterminate]);
+    return (
+        <input
+            ref={ref}
+            type="checkbox"
+            className="checkbox checkbox-xs"
+            aria-label={`All views of ${name}`}
+            checked={checked}
+            onChange={onChange}
+        />
+    );
+}
+
 const LEGEND_STYLE: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
     maxWidth: 'calc(100vw - 120px)',
+    // Many extensions must not cover the diagram.
+    maxHeight: '30vh',
+    overflowY: 'auto',
     padding: '6px 10px',
     borderRadius: '8px',
     border: `1px solid ${THEME.colors.border}`,
@@ -30,24 +72,31 @@ const LEGEND_STYLE: CSSProperties = {
 };
 
 /**
- * One row per decorator view on the diagram, with a toggle and how many elements show each status. Below 1024px
- * (`useIsMobile`), the legend starts collapsed to one button, so it does not cover the diagram.
+ * One row per decorator view on the diagram, with a toggle and how many elements show each status. An extension
+ * with several views also gets a row that toggles all of them. Below 1024px (`useIsMobile`), the legend starts collapsed
+ * to one button, so it does not cover the diagram.
  */
 export function OverlayLegend() {
-    const { overlays, hiddenViews, toggleView, onOpenView } = useDecoratorOverlays();
+    const { overlays, hiddenViews, toggleView, setViewsShown, onOpenView } = useDecoratorOverlays();
     const isMobile = useIsMobile();
     const [expanded, setExpanded] = useState(false);
     const bodyId = useId();
     if (overlays.length === 0) return null;
 
-    const rows = overlays.map((overlay) => {
+    const viewRow = (overlay: ViewOverlay, indent: boolean) => {
         const { view } = overlay;
-        const shown = !hiddenViews.has(view.id);
+        const key = viewKey(view);
+        const shown = !hiddenViews.has(key);
         return (
-            <div key={view.id} data-testid="overlay-legend-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div
+                key={key}
+                data-testid="overlay-legend-row"
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', paddingLeft: indent ? '18px' : 0 }}
+            >
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, cursor: 'pointer' }}>
-                    <input type="checkbox" className="checkbox checkbox-xs" checked={shown} onChange={() => toggleView(view.id)} />
-                    {view.label}
+                    <input type="checkbox" className="checkbox checkbox-xs" checked={shown} onChange={() => toggleView(key)} />
+                    <Marker colour={viewMarkerColour(view)} />
+                    {viewTitle(view)}
                 </label>
                 {statusCounts(overlay).map(([status, count]) => (
                     <span
@@ -63,13 +112,34 @@ export function OverlayLegend() {
                     <button
                         type="button"
                         className="link"
-                        aria-label={`View all ${view.label}`}
+                        aria-label={`View all ${viewTitle(view)}`}
                         style={{ marginLeft: 'auto', color: THEME.colors.accentText }}
                         onClick={() => onOpenView(view)}
                     >
                         View all
                     </button>
                 )}
+            </div>
+        );
+    };
+
+    const rows = byExtension(overlays).map((group) => {
+        if (group.overlays.length === 1 || !setViewsShown) return group.overlays.map((overlay) => viewRow(overlay, false));
+        const keys = group.overlays.map(({ view }) => viewKey(view));
+        const shownCount = keys.filter((key) => !hiddenViews.has(key)).length;
+        return (
+            <div key={group.id} data-testid="overlay-legend-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, cursor: 'pointer' }}>
+                    <GroupCheckbox
+                        name={group.name}
+                        checked={shownCount === keys.length}
+                        indeterminate={shownCount > 0 && shownCount < keys.length}
+                        onChange={() => setViewsShown(keys, shownCount < keys.length)}
+                    />
+                    <Marker colour={viewMarkerColour(group.overlays[0].view)} />
+                    {group.name}
+                </label>
+                {group.overlays.map((overlay) => viewRow(overlay, true))}
             </div>
         );
     });
@@ -82,7 +152,7 @@ export function OverlayLegend() {
         );
     }
 
-    const shownCount = overlays.filter(({ view }) => !hiddenViews.has(view.id)).length;
+    const shownCount = overlays.filter(({ view }) => !hiddenViews.has(viewKey(view))).length;
     const Chevron = expanded ? IoChevronDownOutline : IoChevronUpOutline;
     return (
         <div
