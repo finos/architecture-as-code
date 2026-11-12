@@ -555,6 +555,71 @@ describe('diff', () => {
         });
     });
 
+    describe('diffArchitectures - flow changes', () => {
+        it.each([
+            ['flowTwoMissingIdsArchitecture', 'flowOneMissingIdArchitecture', 3],
+            ['flowTwoMissingIdsArchitecture', 'flowRemovalArchitecture', 2],
+            ['flowRemovalArchitecture', 'flowOneMissingIdArchitecture', 1],
+        ] as const)('reports missing flow IDs from %s versus %s', (a, b, count) => {
+            const result = diffArchitectures(
+                testArchitectures[a] as CalmArchitectureSchema,
+                testArchitectures[b] as CalmArchitectureSchema,
+            );
+            expect(result.invalidItems).toMatchObject({ flows: expect.any(Array) });
+            expect(result.invalidItems?.flows).toHaveLength(count);
+            expect(result.flowsSame).toEqual([]);
+            expect(result.flowsAdded).toEqual([]);
+            expect(result.flowsRemoved).toEqual([]);
+            expect(result.flowsModified).toEqual([]);
+        });
+
+        it('combines invalid flows with invalid nodes and relationships while diffing valid flows', () => {
+            const invalidFlows = testArchitectures.flowOneMissingIdArchitecture.flows;
+            const invalidNode = { name: 'No ID' };
+            const invalidRelationship = { description: 'No ID' };
+            const base = {
+                ...testArchitectures.flowBaseArchitecture,
+                nodes: [invalidNode],
+                flows: [...testArchitectures.flowBaseArchitecture.flows, ...invalidFlows],
+            } as CalmArchitectureSchema;
+            const changed = {
+                ...testArchitectures.flowChangedArchitecture,
+                relationships: [invalidRelationship],
+                flows: [...testArchitectures.flowChangedArchitecture.flows, ...invalidFlows],
+            } as CalmArchitectureSchema;
+            const result = diffArchitectures(base, changed);
+            expect(result.invalidItems).toEqual({
+                nodes: [invalidNode], relationships: [invalidRelationship],
+                flows: [...invalidFlows, ...invalidFlows],
+            });
+            expect(result.flowsAdded.map((flow) => flow['unique-id'])).toEqual(['read-flow']);
+            expect(result.flowsModified).toHaveLength(1);
+            expect(result.flowsSame).toEqual([]);
+        });
+
+        it('preserves unchanged valid flows', () => {
+            const base = testArchitectures.flowBaseArchitecture as CalmArchitectureSchema;
+            const result = diffArchitectures(base, base);
+            expect(result.flowsSame).toEqual(base.flows);
+            expect(result.flowsModified).toEqual([]);
+            expect(result.flowsAdded).toEqual([]);
+            expect(result.flowsRemoved).toEqual([]);
+        });
+
+        it('detects added, removed, modified, and unchanged flows', () => {
+            const base = testArchitectures.flowBaseArchitecture as CalmArchitectureSchema;
+            const result = diffArchitectures(base, testArchitectures.flowChangedArchitecture as CalmArchitectureSchema);
+            expect(result.flowsAdded.map((item) => item['unique-id'])).toEqual(['read-flow']);
+            expect(result.flowsRemoved).toEqual([]);
+            expect(result.flowsModified).toHaveLength(1);
+            expect(result.flowsModified[0].original['unique-id']).toBe('write-flow');
+            expect(result.flowsSame).toEqual([]);
+
+            const removed = diffArchitectures(base, testArchitectures.flowRemovalArchitecture as CalmArchitectureSchema);
+            expect(removed.flowsRemoved.map((item) => item['unique-id'])).toEqual(['write-flow']);
+        });
+    });
+
     describe('diffArchitectures - comprehensive scenarios', () => {
         const empty = (): CalmArchitectureSchema => ({
             nodes: [],

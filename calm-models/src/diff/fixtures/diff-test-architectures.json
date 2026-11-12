@@ -1,4 +1,49 @@
 {
+  "flowBaseArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "flows": [
+      {
+        "unique-id": "write-flow",
+        "name": "Write flow",
+        "description": "Writes a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Write." }
+        ]
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "flowChangedArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "flows": [
+      {
+        "unique-id": "write-flow",
+        "name": "Write flow",
+        "description": "Writes a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Write." },
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 2, "description": "Confirm." }
+        ]
+      },
+      {
+        "unique-id": "read-flow",
+        "name": "Read flow",
+        "description": "Reads a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Write." }
+        ]
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "flowRemovalArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "flows": [],
+    "nodes": [],
+    "relationships": []
+  },
   "baseArchitecture": {
     "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "metadata": {
@@ -995,5 +1040,20 @@
     ],
     "nodes": [],
     "relationships": []
+  },
+  "flowTwoMissingIdsArchitecture": {
+    "nodes": [],
+    "relationships": [],
+    "flows": [
+      { "name": "Write flow", "description": "Writes a record.", "transitions": [] },
+      { "name": "Write flow", "description": "Writes a record.", "transitions": [] }
+    ]
+  },
+  "flowOneMissingIdArchitecture": {
+    "nodes": [],
+    "relationships": [],
+    "flows": [
+      { "name": "Write flow", "description": "Writes a record.", "transitions": [] }
+    ]
   }
 }
