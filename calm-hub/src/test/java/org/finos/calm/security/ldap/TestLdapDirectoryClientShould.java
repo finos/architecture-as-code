@@ -475,4 +475,9 @@ class TestLdapDirectoryClientShould {
         config.gssapi.useSubjectCredsOnly = true;
         assertThat(((GSSAPIBindRequest) new LdapDirectoryClient(config).bindRequest()).useSubjectCredentialsOnly(), is(true));
     }
+
+    @Test
+    void abandon_an_operation_that_times_out() {
+        assertThat(new LdapDirectoryClient(config).connectionOptions().abandonOnTimeout(), is(true));
+    }
 }

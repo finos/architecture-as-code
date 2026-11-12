@@ -51,6 +51,7 @@ public class LdapDirectoryClient implements DirectoryClient {
         this.options = new LDAPConnectionOptions();
         options.setConnectTimeoutMillis(Math.toIntExact(config.connectTimeout().toMillis()));
         options.setResponseTimeoutMillis(config.readTimeout().toMillis());
+        options.setAbandonOnTimeout(true);
         options.setFollowReferrals(false);
         options.setSSLSocketVerifier(new HostNameSSLSocketVerifier(true));
     }
@@ -104,6 +105,10 @@ public class LdapDirectoryClient implements DirectoryClient {
             pool.close();
             pool = null;
         }
+    }
+
+    LDAPConnectionOptions connectionOptions() {
+        return options;
     }
 
     BindRequest bindRequest() {

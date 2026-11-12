@@ -98,8 +98,7 @@ class LdapDirectorySession implements DirectorySession {
 
     private List<SearchResultEntry> search(String base, LdapGroupsConfig.Scope scope, Filter filter, int limit,
                                            String attribute) throws DirectoryException {
-        SearchRequest request = new SearchRequest(base, searchScope(scope), filter, attribute);
-        request.setSizeLimit(limit);
+        SearchRequest request = searchRequest(base, scope, filter, limit, attribute);
         try {
             return connection.search(request).getSearchEntries();
         } catch (LDAPSearchException e) {
@@ -109,6 +108,17 @@ class LdapDirectorySession implements DirectorySession {
             failed = true;
             throw new DirectoryException("LDAP search under [" + base + "] failed: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * The server-side time limit is {@code read-timeout} in whole seconds (at least 1), so the
+     * server stops no later than the client gives up.
+     */
+    SearchRequest searchRequest(String base, LdapGroupsConfig.Scope scope, Filter filter, int limit, String attribute) {
+        SearchRequest request = new SearchRequest(base, searchScope(scope), filter, attribute);
+        request.setSizeLimit(limit);
+        request.setTimeLimitSeconds((int) Math.max(1, config.readTimeout().toSeconds()));
+        return request;
     }
 
     private static SearchScope searchScope(LdapGroupsConfig.Scope scope) {
