@@ -46,6 +46,8 @@ Feature IDs are build-specific and are not listed in the extension manifest.
   schema and semantic rules. Review the results in the canvas validation panel.
 - **Reusable assets:** load standard nodes, patterns, and controls
   from the workspace, an external assets folder, or CALM Hub.
+- **Generate Spec:** generate an architecture specification from the current
+  model.
 - **Patterns:** export and apply reusable architecture patterns with their
   controls and standard-node metadata.
 - **SVG export:** click **Export SVG** in the canvas toolbar and choose a file

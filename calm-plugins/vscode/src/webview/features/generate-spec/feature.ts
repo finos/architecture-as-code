@@ -8,7 +8,6 @@ export const generateSpecFeature: CanvasFeatureDefinition = {
             id: 'generateSpec',
             label: 'Generate Spec',
             title: 'Generate an architecture spec',
-            className: 'fid-toolbar-btn fid-toolbar-btn--spec',
             execute: notifyRequestGenerateSpec,
             group: 'generation',
             order: 10,
