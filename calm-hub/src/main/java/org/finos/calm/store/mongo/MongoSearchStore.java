@@ -26,7 +26,7 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * ADR's header carries a denormalized copy of the latest revision's title (see
  * {@code calm-hub/decisions/0006-denormalize-adr-title-onto-header.md}), so it reads the
  * same as every other type. Controls are scoped by domain rather than namespace, so they
- * bypass the readable-namespaces filter.
+ * are filtered by the readable domains in place of the readable namespaces.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
@@ -54,7 +54,8 @@ public class MongoSearchStore implements SearchStore {
     }
 
     @Override
-    public GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces) {
+    public GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces,
+                                       Optional<Set<String>> readableDomains) {
         String lowerQuery = query.toLowerCase();
 
         return new GroupedSearchResults(
@@ -63,9 +64,8 @@ public class MongoSearchStore implements SearchStore {
                 searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
                 searchHeaderCollection(interfaceCollection, "interfaceId", lowerQuery, readableNamespaces),
-                // Optional.empty() bypasses the readable-namespaces filter — controls are
-                // scoped by domain, not namespace (ADR 0007).
-                searchHeaderCollection(controlCollection, "controlId", lowerQuery, Optional.empty()),
+                // A control header keeps its domain in the "namespace" field (ADR 0007).
+                searchHeaderCollection(controlCollection, "controlId", lowerQuery, readableDomains),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
     }
@@ -92,7 +92,7 @@ public class MongoSearchStore implements SearchStore {
                 return results;
             }
             String namespace = header.getString("namespace");
-            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
+            if (readableNamespaces.isPresent() && (namespace == null || !readableNamespaces.get().contains(namespace))) {
                 continue;
             }
             Integer id = header.getInteger(idField);
@@ -144,7 +144,7 @@ public class MongoSearchStore implements SearchStore {
                 return results;
             }
             String namespace = header.getString("namespace");
-            if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
+            if (readableNamespaces.isPresent() && (namespace == null || !readableNamespaces.get().contains(namespace))) {
                 continue;
             }
             Integer adrId = header.getInteger("adrId");

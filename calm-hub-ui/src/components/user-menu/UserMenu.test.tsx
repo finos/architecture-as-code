@@ -5,9 +5,9 @@ import { UserMenu } from './UserMenu.js';
 vi.mock('../../authService.js', () => ({
     getUser: vi.fn().mockResolvedValue({
         profile: {
-            name: 'Shivaji Byrapaneni',
-            preferred_username: 'shivaji.byrapaneni@fmr.com',
-            email: 'shivaji.byrapaneni@fmr.com',
+            name: 'Alice Example',
+            preferred_username: 'alice@example.com',
+            email: 'alice@example.com',
         },
     }),
     authService: {
@@ -24,8 +24,8 @@ describe('UserMenu', () => {
         render(<UserMenu />);
 
         await waitFor(() => {
-            expect(screen.getByText('S')).toBeDefined();
-            expect(screen.getByText('Shivaji Byrapaneni')).toBeDefined();
+            expect(screen.getByText('A')).toBeDefined();
+            expect(screen.getByText('Alice Example')).toBeDefined();
         });
     });
 
@@ -33,12 +33,12 @@ describe('UserMenu', () => {
         render(<UserMenu />);
 
         await waitFor(() => {
-            expect(screen.getByText('Shivaji Byrapaneni')).toBeDefined();
+            expect(screen.getByText('Alice Example')).toBeDefined();
         });
 
         fireEvent.click(screen.getByLabelText('User menu'));
 
-        expect(screen.getByText('shivaji.byrapaneni@fmr.com')).toBeDefined();
+        expect(screen.getByText('alice@example.com')).toBeDefined();
         expect(screen.getByText('Sign out')).toBeDefined();
     });
 

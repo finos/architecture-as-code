@@ -6,6 +6,7 @@ import { FloatingEdge } from './FloatingEdge.js';
 import { THEME } from './theme.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
 import { mockOffsetSize } from '../../../test-support/layout-mocks.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
 import { DecisionOverlayContext, type CalloutSize } from '../../context/DecisionOverlayContext.js';
@@ -454,5 +455,23 @@ describe('FloatingEdge clearing the decision callouts', () => {
         storeNodes.set('middle', { id: 'middle', type: 'custom', width: 50, height: 50, positionAbsolute: { x: 0, y: 4 } });
         render(edge({ calloutSizes: callout(25) }));
         expect(labelBox().style.transform).toBe('translate(-50%, -100%) translate(11px,-4px)');
+    });
+});
+
+describe('FloatingEdge diagram text size', () => {
+    it('scales the label', () => {
+        const storage = createMemoryStorage();
+        storage.setItem(DIAGRAM_TEXT_SCALE_KEY, '1.5');
+        render(
+            <svg>
+                <FloatingEdge
+                    {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })}
+                    presentationStore={createPresentationModeStore(createMemoryStorage())}
+                    textScaleStore={createDiagramTextScaleStore(storage)}
+                />
+            </svg>
+        );
+        expect(screen.getByText('writes').style.fontSize).toBe('15px');
+        expect(screen.getByText('writes').style.maxWidth).toBe('240px');
     });
 });

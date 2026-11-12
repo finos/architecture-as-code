@@ -5,6 +5,22 @@ All notable changes to the CALM Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.8.0...calm-server-v0.9.0) (2026-11-10)
+
+### 🚀 Features
+
+* resolve CURIEs in control requirement-url during validate ([#3592](https://github.com/finos/architecture-as-code/issues/3592)) ([9716348](https://github.com/finos/architecture-as-code/commit/9716348d6fb8c4b868ad30ed689aceab7e179c0f))
+
+## [0.8.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.7.0...calm-server-v0.8.0) (2026-11-10)
+
+### 🚀 Features
+
+* add timelines to CalmHub ResourceType and workspace mapping ([#3640](https://github.com/finos/architecture-as-code/issues/3640)) ([f896ee2](https://github.com/finos/architecture-as-code/commit/f896ee2ec03a2b88df833d4291413bc2a4f65dae))
+
+### 🐛 Bug Fixes
+
+* share the HTTP loaders' path guards and catch encoded traversal ([#3617](https://github.com/finos/architecture-as-code/issues/3617)) ([bb6cdb4](https://github.com/finos/architecture-as-code/commit/bb6cdb49595460a7f719a131270bfd7cc082cae6))
+
 ## [0.7.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.6.0...calm-server-v0.7.0) (2026-11-03)
 
 ### 🚀 Features

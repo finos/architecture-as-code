@@ -52,36 +52,27 @@ calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
 </section>
 
 <section>
-  <h2>🧩 VSCode Extension</h2>
-  <p>First-class IDE support for working with CALM architectures.</p>
+  <h2>🧩 VSCode Extension — CALM Canvas</h2>
+  <p>A visual editor for CALM architectures, beside the JSON.</p>
   <p style={{fontSize:'1.65rem', color:'#555', marginTop:'-0.3rem', marginBottom:'0.5rem'}}>
-    CALM Hub connection and login · import SVG → CALM · export diagrams · themes, including high contrast · ELK or dagre layout
+    Component palette · drag-and-connect editing · auto layout · SVG import and export · CALM Hub assets
   </p>
-  <img src="/img/vscode/04-preview-hero.png" alt="VSCode CALM preview" style={{maxHeight:'400px', maxWidth:'95%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0 auto'}} />
+  <img src="/img/vscode/canvas-hero-light.png" alt="CALM Canvas beside the architecture JSON in VSCode" style={{maxHeight:'400px', maxWidth:'95%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0 auto'}} />
   <aside className="notes">
-    The VSCode extension gives you a live preview of your architecture as a diagram,
-    a tree view of nodes and relationships, real-time validation, and timeline visualisation.
-    It's the best way to author CALM files.
-    It can also connect to CALM Hub, turn an SVG diagram into a CALM architecture,
-    and export diagrams as SVG or PNG.
+    CALM Canvas opens beside the JSON document. Edits on the canvas update the JSON, and saved
+    file changes go back to the canvas. Add nodes from the palette, connect them, and edit their
+    properties. Load standard nodes, patterns, and controls from the workspace or CALM Hub.
+    It can also turn an SVG diagram into a CALM architecture and export the canvas as SVG.
   </aside>
 </section>
 
 <section>
-  <h2>🧩 VSCode — Validation &amp; Timeline</h2>
-  <div className="two-col">
-    <div>
-      <img src="/img/vscode/07-validation-problems.png" alt="VSCode validation problems" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
-      <p style={{fontSize:'1.65rem', textAlign:'center', color:'#666'}}>Live validation errors</p>
-    </div>
-    <div>
-      <img src="/img/vscode/09-timeline.png" alt="VSCode timeline view" style={{width:'100%', borderRadius:'6px', border:'1px solid #ddd'}} />
-      <p style={{fontSize:'1.65rem', textAlign:'center', color:'#666'}}>Timeline visualisation</p>
-    </div>
-  </div>
+  <h2>🧩 VSCode — Validation</h2>
+  <img src="/img/vscode/canvas-validation-light.png" alt="CALM Canvas validation results for a broken architecture" style={{maxHeight:'420px', maxWidth:'95%', borderRadius:'6px', border:'1px solid #ddd', display:'block', margin:'0 auto'}} />
+  <p style={{fontSize:'1.65rem', textAlign:'center', color:'#666'}}>Schema and semantic checks, with issue badges on the nodes</p>
   <aside className="notes">
-    Validation runs in real-time as you edit. The timeline view shows the evolution
-    of the architecture across moments — you can click to compare moments side-by-side.
+    Click Validate to check the model against the bundled CALM schema and semantic rules.
+    Errors and warnings appear in the validation panel, and each node shows its issue count.
   </aside>
 </section>
 
@@ -156,14 +147,16 @@ calm diff -a architecture-v1.json -b architecture-v2.json`}</code></pre>
 calm init-ai -p copilot   # GitHub Copilot
 calm init-ai -p kiro      # AWS Kiro / Amazon Q
 calm init-ai -p claude    # Claude Code
-calm init-ai -p codex     # OpenAI Codex`}</code></pre>
+calm init-ai -p codex     # OpenAI Codex
+calm init-ai -p bob       # IBM Bob
+calm init-ai -p opencode  # OpenCode`}</code></pre>
   <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginTop:'0.8rem'}}>
     <div style={{background:'#e8f5e9', borderRadius:'8px', padding:'0.9rem 1.1rem'}}>
       <p style={{fontSize:'1.65rem', margin:0, fontWeight:'bold', marginBottom:'0.4rem'}}>What gets installed:</p>
       <ul style={{fontSize:'1.65rem', margin:0, lineHeight:'1.8'}}>
         <li>14 task-specific prompt files (node-creation, decorator-creation, timeline-creation …)</li>
         <li>Schema v1.3 rules, examples, pitfall warnings</li>
-        <li>AI assistant config (<code>.github/copilot-instructions</code> etc.)</li>
+        <li>AI assistant config (<code>.github/agents/CALM.agent.md</code> etc.)</li>
       </ul>
     </div>
     <div style={{background:'#e3f2fd', borderRadius:'8px', padding:'0.9rem 1.1rem'}}>
@@ -181,7 +174,9 @@ calm init-ai -p codex     # OpenAI Codex`}</code></pre>
     control creation, flow creation, etc.) with schema-v1.3 rules, good examples, and
     known pitfalls called out explicitly.
     calm init-ai writes these into the right place for each AI provider's convention —
-    .github/copilot-instructions for Copilot, .kiro/steering for Kiro, CLAUDE.md for Claude Code,
-    AGENTS.md for Codex — so the assistant has them in context on every file it touches.
+    .github/agents/CALM.agent.md for Copilot, .kiro/steering/CALM.chatmode.md for Kiro,
+    .claude/skills/calm/SKILL.md for Claude Code, .agents/skills/calm/SKILL.md for Codex,
+    .bob/skills/calm/SKILL.md for IBM Bob, .opencode/skills/finos-calm/SKILL.md for OpenCode — so the
+    assistant has them in context on every file it touches.
   </aside>
 </section>

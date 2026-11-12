@@ -59,31 +59,17 @@ export const TOOLS = {
             'npm run test --workspace=calm-lab',
         ],
     },
-    // calm-core reads the schema. The other packages bundle or call calm-core, so test them all.
-    // The Playwright e2e job of build-calm-studio.yml is left out.
-    'calm-studio': {
-        workflow: 'build-calm-studio.yml',
+    // calm-diagram takes its CALM types from calm-models, and the Docusaurus plugin renders with it.
+    'calm-diagram': {
+        workflow: 'build-calm-diagram.yml',
         commands: [
-            'npm run build --if-present --workspace=@finos/calm-models',
-            'npm run build --if-present --workspace=@calmstudio/calm-core',
-            'npm run build --if-present --workspace=@calmstudio/extensions',
-            'npm run build --if-present --workspace=@calmstudio/mcp',
-            'npm run build --if-present --workspace=@calmstudio/diagram',
-            'npm run build --if-present --workspace=@calmstudio/studio',
-            'npm run build --if-present --workspace=calmstudio',
-            'npm run build --if-present --workspace=@calmstudio/github-action',
-            'npm run build --if-present --workspace=@finos/calm-docusaurus-plugin',
-            'npm run typecheck --if-present --workspace=@calmstudio/calm-core',
-            'npm run typecheck --if-present --workspace=@calmstudio/extensions',
-            'npm run typecheck --if-present --workspace=@calmstudio/mcp',
-            'npm run typecheck --if-present --workspace=@calmstudio/github-action',
-            'npm run typecheck --if-present --workspace=@finos/calm-docusaurus-plugin',
-            'npm run test --if-present --workspace=@calmstudio/calm-core',
-            'npm run test --if-present --workspace=@calmstudio/extensions',
-            'npm run test --if-present --workspace=@calmstudio/mcp',
-            'npm run test --if-present --workspace=@calmstudio/studio',
-            'npm run test --if-present --workspace=@calmstudio/diagram',
-            'npm run test --if-present --workspace=@finos/calm-docusaurus-plugin',
+            'npm run build --workspace=calm-models',
+            'npm run build --workspace=calm-diagram',
+            'npm run build --workspace=calm-docusaurus-plugin',
+            'npm run typecheck --workspace=calm-diagram',
+            'npm run typecheck --workspace=calm-docusaurus-plugin',
+            'npm run test --workspace=calm-diagram',
+            'npm run test --workspace=calm-docusaurus-plugin',
         ],
     },
     vscode: {

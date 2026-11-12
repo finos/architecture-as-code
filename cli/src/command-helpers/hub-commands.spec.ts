@@ -10,7 +10,8 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces,
     printIdCreateResult,
     runListControlConfigurations,
     runPushInterface, runPullInterface, runListInterfaces,
-    runPushFlow, runPullFlow, runListFlows } from './hub-commands';
+    runPushFlow, runPullFlow, runListFlows,
+    runPushTimeline, runPullTimeline, runListTimelines } from './hub-commands';
 
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
 // real (pure) document-id-utils helpers that orchestratePush relies on.
@@ -1688,6 +1689,185 @@ describe('hub-commands', () => {
 
         it('exits when no hub URL is available', async () => {
             await expect(runListFlows({ calmHubOptions: {}, namespace: 'finos' })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalled();
+        });
+    });
+
+    // ── runPushTimeline ────────────────────────────────────────────────────
+
+    describe('runPushTimeline', () => {
+        const TIMELINE_ID = 'http://hub/calm/namespaces/finos/timelines/my-timeline/versions';
+
+        function timelineDoc(version = '1.0.0', description = 'Roadmap timeline'): string {
+            return JSON.stringify({
+                $id: `${TIMELINE_ID}/${version}`,
+                'unique-id': 'my-timeline',
+                title: 'My Timeline',
+                description,
+                moments: []
+            });
+        }
+
+        it('creates 1.0.0 for a new timeline', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(timelineDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(`${TIMELINE_ID}/1.0.0`);
+
+            await runPushTimeline({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'timeline.json' });
+
+            expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-timeline', 'timelines');
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    namespace: 'finos', mapping: 'my-timeline', type: 'timelines', version: '1.0.0', name: 'My Timeline', description: 'Roadmap timeline'
+                }),
+                expect.any(String)
+            );
+            const written = JSON.parse(vi.mocked(fs.writeFile).mock.calls[0][1] as string);
+            expect(written.$id).toBe(`${TIMELINE_ID}/1.0.0`);
+            expect(written.title).toBe('My Timeline');
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'created', mapping: 'my-timeline', namespace: 'finos', version: '1.0.0' })
+            );
+        });
+
+        it('creates a bumped timeline version when versions already exist', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(timelineDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0']);
+
+            await runPushTimeline({ calmHubOptions: { calmHubUrl: 'http://hub' }, changeType: 'MINOR', file: 'timeline.json' });
+
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'timelines', version: '1.2.0', name: 'My Timeline' }),
+                expect.any(String)
+            );
+        });
+
+        it('exits without calling the Hub when the $id is not a timeline id', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({
+                $id: 'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.0.0',
+                title: 'My Arch'
+            }) as unknown as Uint8Array);
+
+            await expect(runPushTimeline({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json' }))
+                .rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, 'Document $id is for architectures, but this command pushes timelines: arch.json', 'push timelines arch.json', 'json'
+            );
+            expect(mockClient.getMappedResourceVersions).not.toHaveBeenCalled();
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+        });
+
+        describe('--fail-if-modified', () => {
+            it('skips an unchanged timeline without creating a version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue(timelineDoc() as unknown as Uint8Array);
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0']);
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue(JSON.parse(timelineDoc('1.1.0')));
+
+                await runPushTimeline({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'timeline.json', failIfModified: true });
+
+                expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-timeline', '1.1.0', 'timelines');
+                expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+                expect(fs.writeFile).not.toHaveBeenCalled();
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'skipped', version: '1.1.0' })
+                );
+            });
+
+            it('fails a timeline that changed relative to the latest published version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue(timelineDoc('1.0.0', 'Edited locally') as unknown as Uint8Array);
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue(JSON.parse(timelineDoc('1.0.0')));
+
+                await expect(runPushTimeline({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'timeline.json', failIfModified: true }))
+                    .rejects.toThrow('process.exit');
+
+                expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+                expect(fs.writeFile).not.toHaveBeenCalled();
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    0, expect.stringContaining('has changed relative to the latest published version'), expect.any(String), 'json'
+                );
+            });
+        });
+    });
+
+    // ── runPullTimeline ────────────────────────────────────────────────────
+
+    describe('runPullTimeline', () => {
+        it('pulls a specific version by mapping and prints JSON to stdout', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ 'unique-id': 'my-timeline', title: 'My Timeline' });
+            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
+
+            await runPullTimeline({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-timeline', version: '1.0.0' });
+
+            expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-timeline', '1.0.0', 'timelines');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"title": "My Timeline"'));
+            consoleSpy.mockRestore();
+        });
+
+        it('pulls the latest version when no version is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceLatestVersion).mockResolvedValue({ title: 'My Timeline' });
+
+            await runPullTimeline({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-timeline' });
+
+            expect(mockClient.getMappedResourceLatestVersion).toHaveBeenCalledWith('finos', 'my-timeline', 'timelines');
+            expect(mockClient.getMappedResourceByVersion).not.toHaveBeenCalled();
+        });
+
+        it('writes to file when --output is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ title: 'My Timeline' });
+
+            await runPullTimeline({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-timeline', version: '1.0.0', output: 'out.json' });
+
+            expect(fs.writeFile).toHaveBeenCalledWith('out.json', expect.stringContaining('"title": "My Timeline"'), 'utf-8');
+        });
+
+        it('exits on HubClientError', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockRejectedValue(
+                new shared.HubClientError(404, 'Timeline not found', 'GET /calm/namespaces/finos/timelines/my-timeline/versions/1.0.0')
+            );
+
+            await expect(runPullTimeline({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-timeline', version: '1.0.0' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Timeline not found', expect.any(String), 'json');
+        });
+    });
+
+    // ── runListTimelines ───────────────────────────────────────────────────
+
+    describe('runListTimelines', () => {
+        it('prints JSON array of timeline ids', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getNamespaceMappings).mockResolvedValue(['timeline-a', 'timeline-b']);
+
+            await runListTimelines({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos' });
+
+            expect(mockClient.getNamespaceMappings).toHaveBeenCalledWith('finos', 'timelines');
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(['timeline-a', 'timeline-b']);
+        });
+
+        it('renders a single ID column when format is pretty', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getNamespaceMappings).mockResolvedValue(['timeline-a']);
+
+            await runListTimelines({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ MAPPING: 'timeline-a' }],
+                [{ key: 'MAPPING', header: 'MAPPING' }]
+            );
+        });
+
+        it('exits when no hub URL is available', async () => {
+            await expect(runListTimelines({ calmHubOptions: {}, namespace: 'finos' })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
         });
     });

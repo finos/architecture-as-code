@@ -88,6 +88,21 @@ For additional information see [Claude Agent Skills](https://platform.claude.com
 For additional information see [Codex Agent Skills](https://developers.openai.com/codex/skills).
 
   </TabItem>
+  <TabItem value="opencode" label="OpenCode">
+
+### OpenCode Skill Setup
+
+1. Create this subdirectory structure `.opencode/skills/calm-architecture-discovery`
+
+2. Create a file `.opencode/skills/calm-architecture-discovery/SKILL.md`
+
+3. Paste the copied skill definition from the clipboard into `SKILL.md` and save the file.
+
+4. If you are using OpenCode within an IDE, restart the IDE.
+
+For additional information see [OpenCode Skills](https://opencode.ai/).
+
+  </TabItem>
 </Tabs>
 
 After saving `SKILL.md`, the beginning part of the file should look like this:
@@ -840,7 +855,7 @@ The discovered architecture is a draft and may contain mistakes or omissions. Us
 Architects are encouraged to experiment with and revise the skill definition. By adjusting prompts, parameters, and logic—including package detection and source code signals—the discovery process can be tailored to better fit organizational needs and technology stacks.
 
 4. **Skill Setup Is Platform-Specific but Straightforward**  
-Setting up the architecture discovery skill involves creating a specific directory and file structure depending on the AI assistant platform (Copilot, KIRO, Claude, or Codex). Clear instructions are provided for each, making it easy to get started.
+Setting up the architecture discovery skill involves creating a specific directory and file structure depending on the AI assistant platform (Copilot, KIRO, Claude, Codex, or OpenCode). Clear instructions are provided for each, making it easy to get started.
 
 5. **Field Notes and Troubleshooting Are Documented**  
 The tutorial documents a range of field notes and troubleshooting tips, such as preview errors from node names with parentheses, permission prompts for writing to `/dev/null`, Copilot Chat cache fetches, and the probabilistic nature of discovery results. Each issue is paired with practical fixes or guidance, helping users avoid common mistakes and ensuring smoother adoption of the tool.

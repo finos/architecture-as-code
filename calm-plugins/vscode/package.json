@@ -2,7 +2,7 @@
   "name": "calm-vscode-plugin",
   "displayName": "CALM Canvas",
   "description": "Visual architecture editor for CALM models using ReactFlow",
-  "version": "0.9.4",
+  "version": "0.9.6",
   "publisher": "FINOS",
   "license": "Apache-2.0",
   "repository": {
@@ -142,6 +142,7 @@
     "changelog": "node ../../scripts/vscode-changelog.mjs"
   },
   "dependencies": {
+    "@finos/calm-diagram": "*",
     "@finos/calm-models": "file:../../calm-models",
     "@finos/calm-shared": "file:../../shared",
     "react": "^19.1.0",

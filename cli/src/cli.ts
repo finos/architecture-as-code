@@ -29,6 +29,9 @@ import {
     runPushFlow,
     runPullFlow,
     runListFlows,
+    runPushTimeline,
+    runPullTimeline,
+    runListTimelines,
     CreateDomainOptions,
     ListDomainsOptions,
     PushControlOptions,
@@ -74,7 +77,7 @@ const CLEAR_OUTPUT_DIRECTORY_OPTION = '--clear-output-directory';
 // init-ai command options
 const AI_DIRECTORY_OPTION = '-d, --directory <path>';
 const AI_PROVIDER_OPTION = '-p, --provider <provider>';
-const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex'];
+const AI_PROVIDER_CHOICES = ['copilot', 'kiro', 'claude', 'codex', 'bob', 'opencode'];
 
 // Hub command options
 const NAMESPACE_OPTION = '--namespace <namespace>';
@@ -132,7 +135,7 @@ Validation requires:
         .option(TIMELINE_OPTION, 'Path to the timeline file to validate. May be a file path or a URL.')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option(ASSETS_PATH_OPTION, 'Local path to CALM assets directory for resolving detailed-architecture CURIEs without a Hub')
+        .option(ASSETS_PATH_OPTION, 'Local path to CALM assets directory for resolving CURIEs without a Hub')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
         .addOption(
@@ -612,6 +615,28 @@ Example:
         });
 
     hubPushCmd
+        .command('timeline <timeline-file>')
+        .description('Push a CALM timeline file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
+        .option(NAME_OPTION, 'Name for the timeline in CALM Hub; overrides `title` field if set.')
+        .option(DESCRIPTION_OPTION, 'Description for the timeline; overrides `description` field if set.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
+        .action(async (timelineFile, options) => {
+            const pushTimelineOptions: PushOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                name: options.name,
+                description: options.description,
+                file: timelineFile,
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
+            };
+            await runPushTimeline(pushTimelineOptions);
+        });
+
+    hubPushCmd
         .command('control-requirement <requirement-file>')
         .description('Push a control requirement version to CALM Hub. $id of document must contain a full control requirement document ID including domain, control name and version.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
@@ -746,6 +771,25 @@ Example:
         });
 
     hubPullCmd
+        .command('timeline')
+        .description('Pull a specific version of a CALM timeline from CALM Hub')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the timeline to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const pullTimelineOptions: PullOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                mapping: options.mapping,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullTimeline(pullTimelineOptions);
+        });
+
+    hubPullCmd
         .command('control-requirement')
         .description('Pull a control requirement version from CALM Hub')
         .requiredOption(DOMAIN_OPTION, 'Source domain')
@@ -874,6 +918,21 @@ Example:
                 format: options.format
             };
             await runListFlows(listFlowsOptions);
+        });
+
+    hubListCmd
+        .command('timelines')
+        .description('List timelines in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listTimelinesOptions: ListOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListTimelines(listTimelinesOptions);
         });
 
     hubListCmd

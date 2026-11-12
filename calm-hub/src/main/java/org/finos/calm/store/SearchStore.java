@@ -19,14 +19,17 @@ public interface SearchStore {
      *                           <em>before</em> the per-type cap is applied. Controls are
      *                           domain-scoped and are not affected by this filter.
      *                           When empty, no namespace filtering is applied.
+     * @param readableDomains    the same for controls, which are scoped by domain.
+     *                           When empty, no domain filtering is applied.
      */
-    GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces);
+    GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces,
+                                Optional<Set<String>> readableDomains);
 
     /**
      * Convenience overload that performs an unfiltered search. Equivalent to
-     * {@link #search(String, Optional)} with {@link Optional#empty()}.
+     * {@link #search(String, Optional, Optional)} with {@link Optional#empty()} for both scopes.
      */
     default GroupedSearchResults search(String query) {
-        return search(query, Optional.empty());
+        return search(query, Optional.empty(), Optional.empty());
     }
 }

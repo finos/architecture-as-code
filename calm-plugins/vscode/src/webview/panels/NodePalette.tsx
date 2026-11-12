@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { initAllPacks, getAllPacks, type PackDefinition, type NodeTypeEntry } from '../../packs/index.js';
+import { initAllPacks, getAllPacks, type PackDefinition, type NodeTypeEntry } from '@finos/calm-diagram/packs';
 import { theme, tint } from '../canvas/theme-colors';
 
 initAllPacks();

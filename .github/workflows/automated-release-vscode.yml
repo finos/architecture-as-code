@@ -185,7 +185,7 @@ jobs:
       startsWith(github.event.pull_request.head.ref, 'release/vscode-v')
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2
         with:
           egress-policy: audit
 
@@ -256,6 +256,7 @@ jobs:
           PRE_RELEASE_FLAG: ${{ steps.version.outputs.pre-release == 'true' && '--pre-release' || '' }}
         run: |
           npm run build:shared
+          npm run build --workspace calm-diagram
           npm run build --workspace calm-plugins/vscode
           (cd calm-plugins/vscode && npx @vscode/vsce package $PRE_RELEASE_FLAG --no-dependencies)
 

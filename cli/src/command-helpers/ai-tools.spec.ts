@@ -74,7 +74,7 @@ describe('ai-tools', () => {
         vi.restoreAllMocks();
     });
 
-    const providers = ['copilot', 'kiro', 'claude', 'codex'] as const;
+    const providers = ['copilot', 'kiro', 'claude', 'codex', 'bob', 'opencode'] as const;
     const targetDirectory = '/test/directory';
     const normalizePath = (path: string): string => String(path).replace(/\\/g, '/');
 

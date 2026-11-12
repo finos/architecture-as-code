@@ -34,7 +34,8 @@ public class CalmDocumentParser {
             "architectures", ResourceType.ARCHITECTURE,
             "flows",         ResourceType.FLOW,
             "standards",     ResourceType.STANDARD,
-            "interfaces",    ResourceType.INTERFACE
+            "interfaces",    ResourceType.INTERFACE,
+            "timelines",     ResourceType.TIMELINE
     );
 
     /** Maps {@link ResourceType} back to its plural URL segment. */
@@ -43,7 +44,8 @@ public class CalmDocumentParser {
             ResourceType.ARCHITECTURE, "architectures",
             ResourceType.FLOW,         "flows",
             ResourceType.STANDARD,     "standards",
-            ResourceType.INTERFACE,    "interfaces"
+            ResourceType.INTERFACE,    "interfaces",
+            ResourceType.TIMELINE,     "timelines"
     );
 
     @ConfigProperty(name = "calm.hub.base-url", defaultValue = "http://localhost:8080")
@@ -256,7 +258,7 @@ public class CalmDocumentParser {
         if (resourceType == null) {
             throw new IllegalArgumentException(
                     "Unsupported resource type in $id: " + type
-                            + ". Supported: patterns, architectures, flows, standards, interfaces");
+                            + ". Supported: patterns, architectures, flows, standards, interfaces, timelines");
         }
         return new CanonicalId(namespace, resourceType, name, version);
     }

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-import { compareVersions, EXTENSION_PATH, generateChangelog, keep } from './vscode-changelog.mjs';
+import { compareVersions, EXTENSION_PATH, generateChangelog, keep, PACKS_PATH } from './vscode-changelog.mjs';
 
 let repo;
 
@@ -135,6 +135,14 @@ describe('generateChangelog', () => {
         const changelog = await generateChangelog(repo, '2026-01-02');
         assert.match(changelog, /shared title \(\[#6\]/);
         assert.match(changelog, /shared title \(\[#7\]/);
+    });
+
+    it('lists changes to the node packs, but not to the rest of calm-diagram', async () => {
+        commit(`${PACKS_PATH}/definitions/aws.ts`, 'feat(calm-diagram): add a pack node type');
+        commit('calm-diagram/src/render/elkRender.ts', 'fix(calm-diagram): fix the docs renderer');
+        const changelog = await generateChangelog(repo, '2026-01-02');
+        assert.match(changelog, /add a pack node type/);
+        assert.doesNotMatch(changelog, /fix the docs renderer/);
     });
 
     it('leaves out other paths, dependency updates, repo-wide docs and chores', async () => {

@@ -30,7 +30,7 @@ export function ToolbarMenu({ items }: Readonly<{ items: ToolbarMenuItem[] }>) {
     return (
         <div ref={ref} style={{ position: 'relative' }}>
             <button
-                className="fid-toolbar-btn"
+                className="calm-toolbar-btn"
                 title="More actions"
                 aria-label="More actions"
                 aria-haspopup="menu"
@@ -50,7 +50,7 @@ export function ToolbarMenu({ items }: Readonly<{ items: ToolbarMenuItem[] }>) {
                         <button
                             key={item.label}
                             role="menuitem"
-                            className="fid-menu-item"
+                            className="calm-menu-item"
                             style={item.color ? { color: item.color } : undefined}
                             onClick={() => { item.onClick(); setOpen(false); }}
                         >

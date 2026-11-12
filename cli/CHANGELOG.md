@@ -5,6 +5,27 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.70.0](https://github.com/finos/architecture-as-code/compare/cli-v1.69.0...cli-v1.70.0) (2026-11-11)
+
+### 🚀 Features
+
+* add hub push, pull, and list subcommands for timelines ([#3650](https://github.com/finos/architecture-as-code/issues/3650)) ([50d7422](https://github.com/finos/architecture-as-code/commit/50d742258ce0ccbe125c2724cee67ade1dbb4f5d))
+* add IBM Bob AI provider support to calm init-ai ([#3655](https://github.com/finos/architecture-as-code/issues/3655)) ([151039f](https://github.com/finos/architecture-as-code/commit/151039f666952b27addb65000ba1558bc59a8f3a)), closes [#3649](https://github.com/finos/architecture-as-code/issues/3649)
+* add timelines to CalmHub ResourceType and workspace mapping ([#3640](https://github.com/finos/architecture-as-code/issues/3640)) ([f896ee2](https://github.com/finos/architecture-as-code/commit/f896ee2ec03a2b88df833d4291413bc2a4f65dae))
+* resolve CURIEs in control requirement-url during validate ([#3592](https://github.com/finos/architecture-as-code/issues/3592)) ([9716348](https://github.com/finos/architecture-as-code/commit/9716348d6fb8c4b868ad30ed689aceab7e179c0f))
+* validate interface config against its definition-url ([#3618](https://github.com/finos/architecture-as-code/issues/3618)) ([cb419bd](https://github.com/finos/architecture-as-code/commit/cb419bd6a551aa3652cc14eddbb3cfe80b6c633e)), closes [#1994](https://github.com/finos/architecture-as-code/issues/1994)
+
+## [1.69.0](https://github.com/finos/architecture-as-code/compare/cli-v1.68.0...cli-v1.69.0) (2026-11-09)
+
+### 🚀 Features
+
+* warn when tracked document directory mismatches CALM Hub layout ([#3612](https://github.com/finos/architecture-as-code/issues/3612)) ([1b8cc82](https://github.com/finos/architecture-as-code/commit/1b8cc82d978ae93ad463f6a9249c5ca9a299d306))
+
+### 🐛 Bug Fixes
+
+* prevent workspace timeline and adr documents from using CalmHub resource $ids ([#3591](https://github.com/finos/architecture-as-code/issues/3591)) ([ec1cd7f](https://github.com/finos/architecture-as-code/commit/ec1cd7f06311e068d5eed13d7a43f0767649b6df))
+* share the HTTP loaders' path guards and catch encoded traversal ([#3617](https://github.com/finos/architecture-as-code/issues/3617)) ([bb6cdb4](https://github.com/finos/architecture-as-code/commit/bb6cdb49595460a7f719a131270bfd7cc082cae6))
+
 ## [1.68.0](https://github.com/finos/architecture-as-code/compare/cli-v1.67.0...cli-v1.68.0) (2026-11-04)
 
 ### 🚀 Features

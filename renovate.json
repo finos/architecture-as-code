@@ -71,9 +71,7 @@
         "angular",
         "@angular/*",
         "next",
-        "nuxt",
-        "svelte",
-        "@sveltejs/*"
+        "nuxt"
       ],
       "groupName": "framework updates",
       "separateMultipleMajor": true
@@ -164,6 +162,12 @@
       "allowedVersions": "<10"
     },
     {
+      "description": "Keep the minimatch overrides on v3: eslint, Spectral and serve-handler call require('minimatch') as a function, which v4+ removed",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["minimatch"],
+      "allowedVersions": "<4"
+    },
+    {
       "description": "Never update the calm-schema-x.y release aliases (matched by depName)",
       "matchManagers": ["npm"],
       "matchDepNames": ["calm-schema-*"],
@@ -193,20 +197,6 @@
       "matchManagers": ["maven"],
       "matchPackageNames": ["io.quarkus:*", "io.quarkus.platform:*"],
       "allowedVersions": "/^(3\\.40|4\\.3)\\./"
-    },
-    {
-      "description": "CALM Studio is to be retired: no major upgrades of its Svelte stack. This also stops vulnerability fixes that need a major upgrade, which are triaged in osv-scanner.toml instead",
-      "matchFileNames": ["calm-studio/**"],
-      "matchPackageNames": [
-        "svelte",
-        "svelte-*",
-        "@sveltejs/*",
-        "@svelte-put/*",
-        "@xyflow/svelte",
-        "@testing-library/svelte"
-      ],
-      "matchUpdateTypes": ["major"],
-      "enabled": false
     }
   ]
 }

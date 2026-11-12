@@ -13,7 +13,7 @@ sub-architectures.
 ## 1. Objectives
 
 - **O1: One authoritative validator in `shared`.** Validation is a library concern, not a CLI
-  concern. The CLI, CALM Hub (upload), CalmStudio, and any future tool call the same
+  concern. The CLI, CALM Hub (upload), and any future tool call the same
   `validate(...)` entry point so guarantees cannot be bypassed by hitting an API directly.
 - **O2: Phased validation.** Run cheap/broad linting (Spectral) and structural schema validation
   (JSON Schema) as distinct phases, plus semantic/model checks (controls, node-details recursion).
@@ -39,7 +39,7 @@ sub-architectures.
   external output *shape*; it does not mandate always-on recursion, which is policy-controlled (O6).
 - **A2: `SchemaDirectory` is the single resolution boundary.** All remote/relative document and
   schema loading goes through `SchemaDirectory` (backed by a `DocumentLoader`). Validators never
-  fetch directly.
+  fetch directly. Spectral's `$ref` resolver also loads through `SchemaDirectory`, when the context has one.
 - **A3: The model owns references.** `Resolvable`/`ResolvableAndAdaptable` (calm-models) are the
   canonical representation of a `$ref`-like pointer. Raw documents are transient; only adapted model
   objects persist.
@@ -151,7 +151,8 @@ class).
   `interfaceIdExistsOnNode`, `sequenceNumbersAreUnique` are Spectral custom functions over JSONPath.
 - **Model/schema-backed**: reason over the parsed `CalmCore` model or an AJV schema:
   `JsonSchemaValidationRule` (STRUCTURAL, AJV), `ControlsValidationRule` (SEMANTIC, via
-  `iterateControls`), and `NodeDetailsValidationRule` (RECURSIVE, node iteration). Node-details
+  `iterateControls`), `InterfacesValidationRule` (SEMANTIC, node interfaces) and
+  `NodeDetailsValidationRule` (RECURSIVE, node iteration). Node-details
   tracks visited references through the `CachingTrackingResolver` on the context. `ModelWalker` is
   the shared cycle-safe traversal available to model-backed rules.
 
@@ -258,7 +259,7 @@ For an architecture-against-pattern validation the phases are:
 flowchart TD
     A[validate entry] --> B[LINT: SpectralValidationRule x3<br/>pattern + architecture + timeline rulesets]
     B --> C[STRUCTURAL: JsonSchemaValidationRule<br/>compile pattern, validate architecture]
-    C --> D[SEMANTIC: ControlsValidationRule<br/>iterateControls -> requirement schema -> AJV]
+    C --> D[SEMANTIC: ControlsValidationRule<br/>iterateControls -> requirement schema -> AJV<br/>InterfacesValidationRule<br/>definition-url -> AJV]
     D --> E[RECURSIVE: NodeDetailsValidationRule<br/>recurse detailed-architecture per sub-arch]
     E --> F[Aggregate -> ValidationOutcome]
     F --> G[formatOutput / CLI exit code]
@@ -272,6 +273,9 @@ flowchart TD
 - **SEMANTIC: Controls (`ControlsValidationRule`).** Enumerates controls via `iterateControls`,
   resolves each requirement schema (URL or `#`-pointer into the pattern) and validates the control
   config against it with AJV.
+- **SEMANTIC: Interfaces (`InterfacesValidationRule`).** For each node interface with a
+  `definition-url`, loads that schema and validates the interface `config` against it with AJV. A
+  definition that cannot be loaded or compiled gives a warning, so the config is not checked.
 - **RECURSIVE: Node details (`NodeDetailsValidationRule`).** For every node that carries a
   `details.detailed-architecture` reference *that the resolution policy permits* (deep runs only; see
   §6), loads that sub-architecture document through the shared `CachingTrackingResolver`, discovers

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Node, Edge } from 'reactflow';
-import { flowToCalm, setLastParsedArch } from './calm-editor-transformer';
+import { flowToCalm, relayoutByPath, setLastParsedArch, type CalmArchitecture } from './calm-editor-transformer';
+import { parseCALMData } from './calm-parser';
 
 describe('flowToCalm - definition-id handling', () => {
     beforeEach(() => {
@@ -205,6 +206,512 @@ describe('flowToCalm - definition-id handling', () => {
 
         const arch = flowToCalm(nodes, []);
         expect(arch.nodes[0].metadata).toEqual({ 'standard-node-style': { background: '#1c4587' } });
+    });
+});
+
+
+describe('flowToCalm - round trip', () => {
+    const fullArchitecture = (): CalmArchitecture => ({
+        $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+        'unique-id': 'round-trip',
+        name: 'Round trip',
+        description: 'Uses each optional field',
+        adrs: ['https://example.com/adr/1'],
+        nodes: [
+            {
+                'unique-id': 'cluster',
+                'node-type': 'system',
+                name: 'Cluster',
+                description: 'Holds the services',
+                'run-as': 'k8s',
+                metadata: { region: 'eu' },
+            },
+            {
+                'unique-id': 'user',
+                'node-type': 'actor',
+                name: 'User',
+                description: 'A person',
+            },
+            {
+                'unique-id': 'api',
+                'node-type': 'service',
+                name: 'API',
+                description: 'Serves requests',
+                'development-language': 'TypeScript',
+                'data-classification': 'Confidential',
+                instance: 'api-1',
+                interfaces: [{ 'unique-id': 'api-http', port: 443 }],
+                controls: { security: { description: 'TLS', requirements: [{ 'requirement-url': 'https://example.com/tls' }] } },
+                details: { 'detailed-architecture': 'https://example.com/api.json' },
+                metadata: { owner: 'team-a' },
+            },
+            {
+                'unique-id': 'db',
+                'node-type': 'database',
+                name: 'DB',
+                description: 'Stores data',
+                interfaces: [{ 'unique-id': 'db-sql', port: 5432 }],
+            },
+            {
+                'unique-id': 'platform',
+                'node-type': 'system',
+                name: 'Platform',
+                description: 'Groups the services',
+            },
+            {
+                'unique-id': 'worker',
+                'node-type': 'service',
+                name: 'Worker',
+                description: 'Runs jobs',
+            },
+        ],
+        relationships: [
+            {
+                'unique-id': 'api-db',
+                description: 'Reads data',
+                protocol: 'JDBC',
+                authentication: 'OAuth2',
+                'relationship-type': {
+                    connects: {
+                        source: { node: 'api', interfaces: ['api-http'] },
+                        destination: { node: 'db', interfaces: ['db-sql'] },
+                    },
+                },
+                controls: { audit: { description: 'Logged', requirements: [{ 'requirement-url': 'https://example.com/audit' }] } },
+                metadata: { 'line-style': 'dashed', criticality: 'high' },
+            },
+            {
+                'unique-id': 'user-api',
+                description: 'Calls the API',
+                protocol: 'HTTPS',
+                'relationship-type': { interacts: { actor: 'user', nodes: ['api', 'db'] } },
+                controls: { access: { description: 'SSO', requirements: [{ 'requirement-url': 'https://example.com/sso' }] } },
+                metadata: [{ channel: 'web' }],
+            },
+            {
+                'unique-id': 'platform-api',
+                description: 'Contains the API',
+                'relationship-type': { 'composed-of': { container: 'platform', nodes: ['api'] } },
+            },
+            {
+                'unique-id': 'cluster-contents',
+                description: 'Services run in the cluster',
+                'relationship-type': { 'deployed-in': { container: 'cluster', nodes: ['db', 'api'] } },
+                metadata: { zone: 'a' },
+            },
+            {
+                'unique-id': 'platform-worker',
+                description: 'Contains the worker',
+                'relationship-type': { 'composed-of': { container: 'platform', nodes: ['worker'] } },
+            },
+            {
+                'unique-id': 'api-pending',
+                description: 'Destination not chosen yet',
+                'relationship-type': { connects: { source: { node: 'api' }, destination: { interfaces: ['db-sql'] } } },
+            },
+            {
+                'unique-id': 'api-observes-db',
+                description: 'Custom type',
+                'relationship-type': { observes: { source: { node: 'api', interfaces: ['api-http'] }, destination: { node: 'db' } } },
+            },
+        ],
+        flows: ['https://example.com/flow/1'],
+        controls: { governance: { description: 'Doc control', requirements: [{ 'requirement-url': 'https://example.com/gov' }] } },
+        metadata: { version: '1.0.0' },
+    });
+
+    function openCanvas(arch: CalmArchitecture) {
+        setLastParsedArch(arch);
+        return parseCALMData(arch);
+    }
+
+    function withoutLayout(arch: CalmArchitecture): CalmArchitecture {
+        const { _layout, ...metadata } = arch.metadata as Record<string, unknown>;
+        return { ...arch, metadata };
+    }
+
+    const relationship = (arch: CalmArchitecture, id: string) =>
+        arch.relationships.find((r) => r['unique-id'] === id) as Record<string, any>;
+
+    const containedNodes = (arch: CalmArchitecture, id: string) => {
+        const rt = relationship(arch, id)['relationship-type'];
+        return (rt['deployed-in'] ?? rt['composed-of']).nodes;
+    };
+
+    beforeEach(() => {
+        setLastParsedArch(null);
+    });
+
+    it('writes the same document when the canvas changes nothing', () => {
+        const original = fullArchitecture();
+        const { nodes, edges } = openCanvas(fullArchitecture());
+
+        const result = flowToCalm(nodes, edges, original.controls as Record<string, unknown>);
+
+        expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
+    });
+
+    it('applies canvas edits and keeps the other fields', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        const api = nodes.find((n) => n.id === 'api')!;
+        api.data = { ...api.data, description: 'Edited', details: undefined };
+        const apiDb = edges.find((e) => e.id === 'api-db')!;
+        apiDb.data = { ...apiDb.data, protocol: 'TLS' };
+
+        const result = flowToCalm(nodes, edges);
+
+        const apiNode = result.nodes.find((n) => n['unique-id'] === 'api')!;
+        expect(apiNode.description).toBe('Edited');
+        expect(apiNode.details).toBeUndefined();
+        expect(apiNode['development-language']).toBe('TypeScript');
+        const rel = relationship(result, 'api-db');
+        expect(rel.protocol).toBe('TLS');
+        expect(rel.authentication).toBe('OAuth2');
+        expect(rel['relationship-type'].connects.source.interfaces).toEqual(['api-http']);
+    });
+
+    it('removes the interfaces of an end that is connected to a different node', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        const apiDb = edges.find((e) => e.id === 'api-db')!;
+        apiDb.target = 'cluster';
+
+        const ends = relationship(flowToCalm(nodes, edges), 'api-db')['relationship-type'].connects;
+
+        expect(ends.source).toEqual({ node: 'api', interfaces: ['api-http'] });
+        expect(ends.destination).toEqual({ node: 'cluster' });
+    });
+
+    it('keeps relationships that the canvas does not draw, and removes deleted edges', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+
+        const result = flowToCalm(nodes, edges.filter((e) => e.id !== 'api-db'));
+
+        expect(relationship(result, 'api-pending')).toEqual(relationship(fullArchitecture(), 'api-pending'));
+        expect(relationship(result, 'api-db')).toBeUndefined();
+    });
+
+    it('keeps the fields of the reverse relationship of a bidirectional edge', () => {
+        const arch = fullArchitecture();
+        arch.relationships.push({
+            'unique-id': 'db-api',
+            authentication: 'mTLS',
+            'relationship-type': {
+                connects: { source: { node: 'db', interfaces: ['db-sql'] }, destination: { node: 'api' } },
+            },
+        });
+        const { nodes, edges } = openCanvas(arch);
+
+        const reverse = relationship(flowToCalm(nodes, edges), 'db-api');
+
+        expect(reverse.authentication).toBe('mTLS');
+        expect(reverse['relationship-type'].connects.source).toEqual({ node: 'db', interfaces: ['db-sql'] });
+    });
+
+    it('keeps the containment fields when a child moves out', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        const db = nodes.find((n) => n.id === 'db')!;
+        delete db.parentId;
+
+        const rel = relationship(flowToCalm(nodes, edges), 'cluster-contents');
+
+        expect(rel.description).toBe('Services run in the cluster');
+        expect(rel.metadata).toEqual({ zone: 'a' });
+        expect(rel['relationship-type']).toEqual({ 'deployed-in': { container: 'cluster', nodes: ['api'] } });
+    });
+
+    it('removes a moved child only from the containment relationship of the container it was drawn in', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        delete nodes.find((n) => n.id === 'api')!.parentId;
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(containedNodes(result, 'cluster-contents')).toEqual(['db']);
+        expect(containedNodes(result, 'platform-api')).toEqual(['api']);
+    });
+
+    it('adds a new child to the first containment relationship of the container', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        nodes.find((n) => n.id === 'db')!.parentId = 'platform';
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(containedNodes(result, 'cluster-contents')).toEqual(['api']);
+        expect(containedNodes(result, 'platform-api')).toEqual(['api', 'db']);
+        expect(containedNodes(result, 'platform-worker')).toEqual(['worker']);
+    });
+
+    it('removes a deleted node from each containment relationship', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+
+        // api is drawn in platform and in cluster: delete both drawings
+        const result = flowToCalm(nodes.filter((n) => n.data.calmId !== 'api'), edges);
+
+        expect(containedNodes(result, 'cluster-contents')).toEqual(['db']);
+        expect(relationship(result, 'platform-api')).toBeUndefined();
+    });
+
+    it('creates a containment relationship for a new container', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        nodes.push({ id: 'zone', type: 'container', position: { x: 0, y: 0 }, data: { calmId: 'zone', containmentType: 'deployed-in' } });
+        nodes.find((n) => n.id === 'worker')!.parentId = 'zone';
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(relationship(result, 'platform-worker')).toBeUndefined();
+        expect(relationship(result, 'containment-zone')['relationship-type']).toEqual({ 'deployed-in': { container: 'zone', nodes: ['worker'] } });
+    });
+});
+
+describe('flowToCalm - nodes with several parents', () => {
+    const node = (id: string) => ({ 'unique-id': id, 'node-type': 'system', name: id, description: id });
+    const deployedIn = (id: string, container: string, nodes: string[]) =>
+        ({ 'unique-id': id, 'relationship-type': { 'deployed-in': { container, nodes } } });
+    const sharedNamespace = (): CalmArchitecture => ({
+        nodes: [node('cluster-a'), node('cluster-b'), node('ns'), node('svc'), node('client')],
+        relationships: [
+            deployedIn('r1', 'cluster-a', ['ns']),
+            deployedIn('r2', 'cluster-b', ['ns']),
+            deployedIn('r3', 'ns', ['svc']),
+            { 'unique-id': 'c1', 'relationship-type': { connects: { source: { node: 'client' }, destination: { node: 'svc' } } } },
+        ],
+    });
+    const roundTrip = (arch: CalmArchitecture) => {
+        setLastParsedArch(arch);
+        const parsed = parseCALMData(arch);
+        return { parsed, out: flowToCalm(parsed.nodes, parsed.edges) };
+    };
+    const containment = (out: CalmArchitecture) =>
+        out.relationships
+            .filter((r) => (r['relationship-type'] as Record<string, unknown>)['deployed-in'])
+            .map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in']]);
+
+    beforeEach(() => {
+        setLastParsedArch(null);
+    });
+
+    it('keeps every container membership of a node', () => {
+        const { out } = roundTrip(sharedNamespace());
+        expect(containment(out)).toEqual([
+            ['r1', { container: 'cluster-a', nodes: ['ns'] }],
+            ['r2', { container: 'cluster-b', nodes: ['ns'] }],
+            ['r3', { container: 'ns', nodes: ['svc'] }],
+        ]);
+    });
+
+    it('writes each node once', () => {
+        const { out } = roundTrip(sharedNamespace());
+        expect(out.nodes.map((n) => n['unique-id'])).toEqual(['cluster-a', 'cluster-b', 'ns', 'svc', 'client']);
+    });
+
+    it('writes the original ids for an edge drawn to a copy', () => {
+        const { parsed } = roundTrip(sharedNamespace());
+        const edges: Edge[] = [{
+            id: 'c2', source: 'client', target: 'svc__in__ns__in__cluster-a',
+            data: { calmRelId: 'c2', calmVariant: 'connects' },
+        }];
+        const out = flowToCalm(parsed.nodes, edges);
+        expect(out.relationships.find((r) => r['unique-id'] === 'c2')?.['relationship-type']).toEqual({
+            connects: { source: { node: 'client' }, destination: { node: 'svc' } },
+        });
+    });
+
+    it('keeps the order of containment relationships, so the same drawing stays the original', () => {
+        const arch = sharedNamespace();
+        arch.relationships = [arch.relationships[1], arch.relationships[0], ...arch.relationships.slice(2)];
+        const { out } = roundTrip(arch);
+        expect(containment(out).map(([id]) => id)).toEqual(['r2', 'r1', 'r3']);
+    });
+
+    it('draws each node once past the copy limit and still keeps every membership', () => {
+        // Each level has two containers that are both in both containers of the level above
+        const levels = 12;
+        const ids = Array.from({ length: levels }, (_, k) => [`l${k}a`, `l${k}b`]);
+        const arch: CalmArchitecture = {
+            nodes: ids.flat().map(node),
+            relationships: ids.slice(1).flatMap(([a, b], k) => [
+                deployedIn(`r${k}a`, ids[k][0], [a, b]),
+                deployedIn(`r${k}b`, ids[k][1], [a, b]),
+            ]),
+        };
+        const { parsed, out } = roundTrip(arch);
+        expect(parsed.nodes).toHaveLength(levels * 2);
+        expect(parsed.nodes.find((n) => n.id === 'l11a')?.parentId).toBe('l10b');
+        expect(containment(out)).toEqual(arch.relationships.map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in']]));
+    });
+
+    it.each([
+        ['a container that is not a node', [node('x')], [deployedIn('r1', 'ghost', ['x'])]],
+        ['a containment cycle', [node('a'), node('b')], [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['a'])]],
+        ['a node listed as its own container', [node('c'), node('x')], [deployedIn('r1', 'c', ['c', 'x'])]],
+        ['a node in a container and in a container inside it', [node('cluster'), node('ns'), node('svc')],
+            [deployedIn('r1', 'cluster', ['ns', 'svc']), deployedIn('r2', 'ns', ['svc'])]],
+    ])('writes back %s unchanged', (_name, nodes, relationships) => {
+        const arch: CalmArchitecture = { nodes, relationships };
+        const { out } = roundTrip(arch);
+        expect(out.relationships).toEqual(relationships);
+    });
+
+    it('keeps each containment relationship, so the same drawing keeps the CALM id after a reload', () => {
+        const arch: CalmArchitecture = {
+            nodes: [node('c1'), node('c2'), node('a'), node('x')],
+            relationships: [
+                { ...deployedIn('r1', 'c1', ['a']), description: 'kept' },
+                deployedIn('r2', 'c2', ['x']),
+                deployedIn('r3', 'c1', ['x']),
+            ],
+        };
+        const { out } = roundTrip(arch);
+        expect(out.relationships).toEqual(arch.relationships);
+        expect(parseCALMData(out).nodes.find((n) => n.id === 'x')?.parentId).toBe('c1');
+    });
+
+    it('writes the layout in file order', () => {
+        const arch: CalmArchitecture = {
+            nodes: [node('web'), node('k8s'), node('api'), node('db'), node('user')],
+            relationships: [deployedIn('r1', 'k8s', ['api', 'db'])],
+        };
+        const { out } = roundTrip(arch);
+        expect(Object.keys((out.metadata as any)._layout)).toEqual(['web', 'k8s', 'api', 'db', 'user']);
+    });
+
+    it('keeps the position of a drawing that takes the CALM id when another drawing of it goes', () => {
+        const { parsed } = roundTrip(sharedNamespace());
+        const moved = parsed.nodes.map((n) => (n.id === 'ns__in__cluster-a' ? { ...n, position: { x: 11, y: 22 } } : n));
+        const remaining = moved.filter((n) => n.id !== 'ns' && n.parentId !== 'ns');
+        const out = flowToCalm(remaining, []);
+        expect(relayoutByPath(out, remaining).ns).toMatchObject({ x: 11, y: 22 });
+    });
+
+    it('keeps the position of a nested drawing apart from a node whose id has the same path in it', () => {
+        const { parsed } = roundTrip({ nodes: [node('a'), node('a/b'), node('b')], relationships: [deployedIn('r1', 'a', ['b'])] });
+        const moved = parsed.nodes.map((n) => (n.id === 'b' ? { ...n, position: { x: 11, y: 22 } } : n.id === 'a/b' ? { ...n, position: { x: 33, y: 44 } } : n));
+        const layout = relayoutByPath(flowToCalm(moved, []), moved);
+        expect([layout.b, layout['a/b']]).toMatchObject([{ x: 11, y: 22 }, { x: 33, y: 44 }]);
+    });
+
+    it('drops a hidden membership when its container is deleted', () => {
+        setLastParsedArch({
+            nodes: [node('a'), node('x'), node('gone')],
+            relationships: [deployedIn('r1', 'a', ['x']), deployedIn('r2', 'gone', ['x'])],
+        });
+        const nodes: Node[] = [
+            { id: 'a', type: 'container', position: { x: 0, y: 0 }, data: { calmId: 'a' } },
+            { id: 'x', position: { x: 0, y: 0 }, parentId: 'a', data: { calmId: 'x', otherParents: ['gone'] } },
+        ];
+        const out = flowToCalm(nodes, []);
+        expect(containment(out)).toEqual([['r1', { container: 'a', nodes: ['x'] }]]);
+    });
+
+    it('drops a relationship that an edit leaves empty when its container has another one', () => {
+        const arch: CalmArchitecture = {
+            nodes: [node('c1'), node('a'), node('x')],
+            relationships: [deployedIn('r1', 'c1', ['a']), deployedIn('r3', 'c1', ['x'])],
+        };
+        const { parsed } = roundTrip(arch);
+        const out = flowToCalm(parsed.nodes.filter((n) => n.id !== 'x'), parsed.edges);
+        expect(containment(out)).toEqual([['r1', { container: 'c1', nodes: ['a'] }]]);
+    });
+
+    it('drops a relationship that an edit leaves empty when its container is not a node', () => {
+        const arch: CalmArchitecture = { nodes: [node('x'), node('y')], relationships: [deployedIn('r1', 'ghost', ['x'])] };
+        const { parsed } = roundTrip(arch);
+        const out = flowToCalm(parsed.nodes.filter((n) => n.id !== 'x'), parsed.edges);
+        expect(containment(out)).toEqual([]);
+    });
+
+    it('writes an unchanged containment relationship back as it was, also without a unique-id', () => {
+        const { 'unique-id': _, ...noId } = deployedIn('r1', 'c1', ['a']);
+        const relationships = [
+            noId,
+            { description: 'd', 'unique-id': 'r2', 'relationship-type': { 'deployed-in': { container: 'c2', nodes: ['b'] } } },
+            { 'unique-id': 'x', 'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } } },
+        ];
+        const { out } = roundTrip({ nodes: [node('c1'), node('a'), node('c2'), node('b')], relationships });
+        expect(JSON.stringify(out.relationships)).toBe(JSON.stringify(relationships));
+    });
+
+    it('keeps every membership of a cycle of three, in either relationship order', () => {
+        const rels = [deployedIn('r1', 'a', ['b']), deployedIn('r2', 'b', ['c']), deployedIn('r3', 'c', ['a'])];
+        for (const relationships of [rels, [...rels].reverse()]) {
+            const { out } = roundTrip({ nodes: [node('a'), node('b'), node('c')], relationships });
+            expect(containment(out).sort()).toEqual([
+                ['r1', { container: 'a', nodes: ['b'] }],
+                ['r2', { container: 'b', nodes: ['c'] }],
+                ['r3', { container: 'c', nodes: ['a'] }],
+            ]);
+        }
+    });
+
+    it('writes a node once when two nodes share a unique-id', () => {
+        const { out } = roundTrip({ nodes: [node('a'), { ...node('a'), name: 'second' }], relationships: [] });
+        expect(out.nodes.map((n) => [n['unique-id'], n.name])).toEqual([['a', 'a']]);
+    });
+
+    it('writes the CALM ids for an interacts edge drawn to a copy', () => {
+        const interacts = { 'unique-id': 'i1', 'relationship-type': { interacts: { actor: 'client', nodes: ['svc'] } } };
+        const { parsed } = roundTrip({ ...sharedNamespace(), relationships: [...sharedNamespace().relationships, interacts] });
+        const copy = parsed.nodes.find((n) => n.id !== 'svc' && n.data.calmId === 'svc')!;
+        const edges = parsed.edges.map((e) => (e.data?.calmRelId === 'i1' ? { ...e, target: copy.id } : e));
+        const out = flowToCalm(parsed.nodes, edges);
+        expect(out.relationships.find((r) => r['unique-id'] === 'i1')!['relationship-type']).toEqual({ interacts: { actor: 'client', nodes: ['svc'] } });
+    });
+
+    it('writes the CALM ids for both directions of a two-way edge drawn to a copy', () => {
+        const back = { 'unique-id': 'c2', 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'client' } } } };
+        const { parsed } = roundTrip({ ...sharedNamespace(), relationships: [...sharedNamespace().relationships, back] });
+        const copy = parsed.nodes.find((n) => n.id !== 'svc' && n.data.calmId === 'svc')!;
+        const edges = parsed.edges.map((e) => (e.data?.calmRelId === 'c1' ? { ...e, target: copy.id } : e));
+        const out = flowToCalm(parsed.nodes, edges);
+        const ends = (id: string) => (out.relationships.find((r) => r['unique-id'] === id)!['relationship-type'] as any).connects;
+        expect([ends('c1').source.node, ends('c1').destination.node]).toEqual(['client', 'svc']);
+        expect([ends('c2').source.node, ends('c2').destination.node]).toEqual(['svc', 'client']);
+    });
+
+    it('adds a new member to the first relationship of its container', () => {
+        const { parsed } = roundTrip({ nodes: [node('c1'), node('a'), node('x')], relationships: [deployedIn('r1', 'c1', ['a'])] });
+        const nodes = parsed.nodes.map((n) => (n.id === 'x' ? { ...n, parentId: 'c1' } : n));
+        expect(containment(flowToCalm(nodes, parsed.edges))).toEqual([['r1', { container: 'c1', nodes: ['a', 'x'] }]]);
+    });
+
+    it('keeps one empty relationship when an edit empties every relationship of a drawn container', () => {
+        const { parsed } = roundTrip({
+            nodes: [node('c1'), node('a'), node('b')],
+            relationships: [deployedIn('r1', 'c1', ['a']), deployedIn('r2', 'c1', ['b'])],
+        });
+        const out = flowToCalm(parsed.nodes.filter((n) => n.id === 'c1'), parsed.edges);
+        expect(containment(out)).toEqual([['r1', { container: 'c1', nodes: [] }]]);
+    });
+
+    it('writes a new empty container with the variant it was drawn as', () => {
+        const { parsed } = roundTrip({ nodes: [node('a')], relationships: [] });
+        const box: Node = { id: 'box', type: 'container', position: { x: 0, y: 0 }, data: { calmId: 'box', containmentType: 'composed-of' } };
+        const out = flowToCalm([...parsed.nodes, box], parsed.edges);
+        expect(out.relationships).toEqual([
+            { 'unique-id': 'containment-box', 'relationship-type': { 'composed-of': { container: 'box', nodes: [] } } },
+        ]);
+    });
+
+    it('keeps the place in the file of a node with no unique-id', () => {
+        const nameless = { 'node-type': 'system', name: 'x', description: '' };
+        const { out } = roundTrip({ nodes: [nameless, node('c')], relationships: [deployedIn('r1', 'c', ['node-0'])] });
+        expect(out.nodes.map((n) => n['unique-id'])).toEqual(['node-0', 'c']);
+    });
+
+    it('carries positions over for a reload in the order of the file', () => {
+        const arch: CalmArchitecture = { nodes: [node('b'), node('a')], relationships: [] };
+        const layout = relayoutByPath(arch, parseCALMData({ nodes: [node('a'), node('b')], relationships: [] }).nodes);
+        expect(Object.keys(layout)).toEqual(['b', 'a']);
+    });
+
+    it('drops a membership when its copy is removed', () => {
+        const { parsed } = roundTrip(sharedNamespace());
+        const nodes = parsed.nodes.filter((n) => !n.id.endsWith('__in__cluster-a'));
+        const out = flowToCalm(nodes, parsed.edges);
+        expect(containment(out)).toEqual([
+            ['r1', { container: 'cluster-a', nodes: [] }],
+            ['r2', { container: 'cluster-b', nodes: ['ns'] }],
+            ['r3', { container: 'ns', nodes: ['svc'] }],
+        ]);
     });
 });
 

@@ -18,6 +18,8 @@ The `init-ai` command configures your development environment with comprehensive
 |Claude family of LLM|KIRO|
 |Claude family of LLM|Claude Code - CLI|
 |OpenAI Codex|Codex CLI, IDE extension, or app|
+|IBM Bob supported models|IBM Bob CLI, IDE extension, or app|
+|OpenCode supported models|OpenCode CLI or IDE extension|
 
 ## Prerequisites
 
@@ -39,6 +41,12 @@ Before setting up CALM AI Support, ensure you have:
 ### Codex
 - **Codex**: Codex CLI, IDE extension, or app with access to the target repository
 
+### IBM Bob
+- **IBM Bob**: IBM Bob CLI, IDE extension, or app with access to the target repository
+
+### OpenCode
+- **OpenCode**: OpenCode CLI or IDE extension with access to the target repository
+
 ### Install CALM CLI
 - **CALM CLI**: Installed globally (`npm install -g @finos/calm-cli`)
 - **Git Repository**: Your project should be in a Git repository
@@ -57,11 +65,11 @@ Or specify a different directory:
 calm init-ai -p kiro --directory /path/to/your/calm-project
 ```
 
-This command creates assistant-specific configuration files in your repository. For Codex, it creates a CALM skill under `.agents/skills/calm` and does not create or modify root `AGENTS.md`.
+This command creates assistant-specific configuration files in your repository. For Codex, it creates a CALM skill under `.agents/skills/calm` and does not create or modify root `AGENTS.md`. For OpenCode, it creates a CALM skill under `.opencode/skills/finos-calm`.
 
 ## Command Options
 
-- **`-p, --provider <provider>`**: The AI coding assistant to setup.  Currently, these are supported `copilot`, `kiro`, `claude`, and `codex`.
+- **`-p, --provider <provider>`**: The AI coding assistant to setup.  Currently, these are supported `copilot`, `kiro`, `claude`, `codex`, `bob`, and `opencode`.
 - **`-d, --directory <path>`**: Target directory (defaults to current directory)
 - **`-v, --verbose`**: Enable verbose logging (default: false)
 - **`-h, --help`**: Display help for command
@@ -76,7 +84,7 @@ Usage: calm init-ai [options]
 Augment a git repository with AI assistance for CALM
 
 Options:
-  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex")
+  -p, --provider <provider>  AI provider to initialize (choices: "copilot", "kiro", "claude", "codex", "bob", "opencode")
   -d, --directory <path>     Target directory (defaults to current directory) (default: ".")
   -v, --verbose              Enable verbose logging. (default: false)
   -h, --help                 display help for command
@@ -87,10 +95,12 @@ Options:
 ```shell
 $ calm init-ai
 ? Select an AI provider: (Use arrow keys)
-❯ copilot 
-  kiro 
+❯ copilot
+  kiro
   claude
   codex
+  bob
+  opencode
 ```
 
 ### Specify the AI Assistant
@@ -104,7 +114,7 @@ info [calm-ai-tools]:     AI assistant top level directory: .github/agents
 info [calm-ai-tools]:     Creating enhanced agent config at: /Desktop/finos/architecture-as-code/cli/.github/agents/CALM.agents.md
 info [calm-ai-tools]:     ✅ Created configuration from bundled resource
 info [calm-ai-tools]:     📁 Created calm-prompts directory
-info [calm-ai-tools]:     ✅ Successfully created all 11 tool prompt files
+info [calm-ai-tools]:     ✅ Successfully created all 14 tool prompt files
 info [calm-ai-tools]:     ✅ CALM AI tools setup completed successfully!
 info [calm-ai-tools]:     🚀 To use: Open this repository in your IDE and start a chat with the CALM agent
 info [calm-ai-tools]:     📁 Files created in .github/agents directory following copilot AI Assistant conventions
@@ -132,6 +142,9 @@ The AI Support includes separate tools for each CALM component:
 - **Metadata Creation**: Metadata structure and requirements
 - **Standards Creation**: JSON Schema 2020-12 Standards for extending CALM components with organizational requirements
 - **Documentation Creation**: Generating documentation from CALM models
+- **Moment Creation**: Guide for adding moments to timelines with proper validation
+- **Timeline Creation**: Guide for creating architecture timelines
+- **Decorator Creation**: Guide for creating decorators
 
 ## Using CALM AI Tools
 
@@ -163,6 +176,20 @@ With Codex:
 
 1. Open the repository in Codex CLI, the Codex IDE extension, or the Codex app
 2. Use the generated CALM skill for CALM architecture work, for example by asking Codex to use the `calm` skill
+3. Ask questions or request assistance with your CALM architecture
+
+### IBM Bob
+With IBM Bob:
+
+1. Open the repository in IBM Bob CLI, IDE extension, or app
+2. Use the generated CALM skill under `.bob/skills/calm` for CALM architecture work, for example by asking Bob to use the `calm` skill
+3. Ask questions or request assistance with your CALM architecture
+
+### OpenCode
+With OpenCode:
+
+1. Open the repository in OpenCode CLI or IDE extension
+2. Use the generated CALM skill under `.opencode/skills/finos-calm` for CALM architecture work; OpenCode discovers it automatically from `SKILL.md`
 3. Ask questions or request assistance with your CALM architecture
 
 ### Example Queries

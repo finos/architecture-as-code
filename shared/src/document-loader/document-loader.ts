@@ -24,6 +24,9 @@ export type DocumentLoaderOptions = {
     urlToLocalMap?: Map<string, string>;
     basePath?: string;
     allowedRemoteHosts?: string[];
+    // False for a server that takes documents from requests: the file system loader then reads only the schema
+    // directories, at start-up, and never a file that a document references. Defaults to true.
+    readReferencedFiles?: boolean;
     debug?: boolean;
     // If set, a WorkspaceDocumentLoader is added as the highest-priority source, resolving any
     // reference to a document tracked in the workspace bundle at this path to its local copy.

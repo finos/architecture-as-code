@@ -1,5 +1,6 @@
 import { ErrorObject } from 'ajv/dist/2020.js';
 import { Spectral, ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spectral-core';
+import { Resolver } from '@stoplight/spectral-ref-resolver';
 import { DiagnosticSeverity } from '@stoplight/types';
 import { ValidationOutput } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
@@ -28,18 +29,29 @@ export function sortSpectralIssueBySeverity(issues: ISpectralDiagnostic[]): void
 }
 
 /**
+ * Spectral's default resolver reads files and fetches URLs by itself. This one loads each external `$ref` through the
+ * document loader, so the loader's rules apply to it too: the allowed hosts, and no referenced local files on a server.
+ */
+function documentLoaderResolver(schemaDirectory: SchemaDirectory): Resolver {
+    const resolve = async (uri: { toString(): string }) =>
+        JSON.stringify(await schemaDirectory.loadDocument(uri.toString(), 'architecture'));
+    return new Resolver({ resolvers: { file: { resolve }, http: { resolve }, https: { resolve } } });
+}
+
+/**
  * Run a single Spectral ruleset against a stringified document.
  */
 export async function runSpectralValidations(
     schema: string,
     spectralRuleset: RulesetDefinition,
     source: string,
-    logger: Logger = initLogger(false, 'calm-validate')
+    logger: Logger = initLogger(false, 'calm-validate'),
+    schemaDirectory?: SchemaDirectory
 ): Promise<SpectralResult> {
     let errors = false;
     let warnings = false;
     let spectralIssues: ValidationOutput[] = [];
-    const spectral = new Spectral();
+    const spectral = new Spectral(schemaDirectory ? { resolver: documentLoaderResolver(schemaDirectory) } : undefined);
 
     spectral.setRuleset(spectralRuleset);
     const issues = await spectral.run(schema);

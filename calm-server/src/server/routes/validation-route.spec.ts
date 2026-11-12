@@ -512,3 +512,61 @@ describe('hasDisallowedPatternRef (pattern $ref guard)', () => {
     });
 
 });
+
+describe('ValidationRouter - references to local files, with the server loader', () => {
+    let app: Application;
+    let base: string;
+    const schema = 'https://calm.finos.org/release/1.2/meta/calm.json';
+
+    beforeEach(() => {
+        base = fs.mkdtempSync(path.join(os.tmpdir(), 'calm-server-base-'));
+        fs.writeFileSync(path.join(base, 'secret.txt'), 'SECRET-MARKER');
+        app = express();
+        app.use(express.json());
+        const router: express.Router = express.Router();
+        new ValidationRouter(router, new SchemaDirectory(
+            new FileSystemDocumentLoader([schemaDirectoryPath, apiGatewayPatternPath], false, base, false)
+        ));
+        app.use('/calm/validate', router);
+    });
+
+    const node = (details: object) => ({ 'unique-id': 'n', 'node-type': 'service', name: 'n', description: 'n', details });
+    const control = (requirement: object) => ({ c: { description: 'c', requirements: [requirement] } });
+
+    test.each([
+        ['an absolute detailed-architecture', () => ({ $schema: schema, nodes: [node({ 'detailed-architecture': path.join(base, 'secret.txt') })] })],
+        ['a "#" path in detailed-architecture', () => ({ $schema: schema, nodes: [node({ 'detailed-architecture': '#/../secret.txt' })] })],
+        ['a relative requirement-url', () => ({ $schema: schema, nodes: [], controls: control({ 'requirement-url': 'secret.txt', config: {} }) })],
+    ])('does not read %s', async (_case, architecture) => {
+        const response = await request(app).post('/calm/validate').send({ architecture: JSON.stringify(architecture()) });
+
+        expect(JSON.stringify(response.body)).not.toContain('SECRET');
+    });
+
+    test.each(['#/../secret.txt', ' http:/../secret.txt'])('does not read config-url %j', async (configUrl) => {
+        const architecture = { $schema: 'https://example.com/p', nodes: [], controls: control({ 'requirement-url': '#/defs/r', 'config-url': configUrl }) };
+        const pattern = { $id: 'https://example.com/p', type: 'object', defs: { r: { type: 'object' } } };
+
+        const response = await request(app).post('/calm/validate').send({ architecture: JSON.stringify(architecture), pattern: JSON.stringify(pattern) });
+
+        expect(JSON.stringify(response.body)).not.toContain('SECRET');
+    });
+
+    test('does not read a local "$ref" in the architecture', async () => {
+        fs.writeFileSync(path.join(base, 'nodes.json'), JSON.stringify({ nodes: [{ 'unique-id': 'SECRET-NODE' }] }));
+        const architecture = { $schema: schema, nodes: [{ $ref: `${path.join(base, 'nodes.json')}#/nodes/0` }], relationships: [] };
+
+        const response = await request(app).post('/calm/validate').send({ architecture: JSON.stringify(architecture) });
+
+        expect(JSON.stringify(response.body)).not.toContain('SECRET');
+    });
+
+    test('does not read a local "$schema" in a supplied pattern', async () => {
+        const architecture = { $schema: 'https://example.com/p', nodes: [] };
+        const pattern = { $schema: path.join(base, 'secret.txt'), $id: 'https://example.com/p', type: 'object' };
+
+        const response = await request(app).post('/calm/validate').send({ architecture: JSON.stringify(architecture), pattern: JSON.stringify(pattern) });
+
+        expect(JSON.stringify(response.body)).not.toContain('SECRET');
+    });
+});

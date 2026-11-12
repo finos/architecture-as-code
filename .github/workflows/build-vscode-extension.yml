@@ -69,5 +69,6 @@ jobs:
             - name: Package VS Code Extension
               run: |
                   npm run build:shared
+                  npm run build --workspace calm-diagram
                   npm run build --workspace calm-plugins/vscode
                   (cd calm-plugins/vscode && npx @vscode/vsce package ${{ steps.prerelease.outputs.flag }} --no-dependencies)

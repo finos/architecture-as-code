@@ -45,7 +45,7 @@ npx vitest run ${TEST FILE}
 | Entry | File | Audience |
 |---|---|---|
 | `@finos/calm-shared` | `src/index.ts` | CLI, calm-server, anything on Node. Registers winston logging and the JUnit formatter at load. |
-| `@finos/calm-shared/browser` | `src/browser.ts` | Browser bundles (the docs learning lab, Studio/Guard). Validate (JSON Schema + Spectral), generate, diff (including `diff --timeline` via `diffTimeline`), `SchemaDirectory`, loaders, the CLI capability manifest. |
+| `@finos/calm-shared/browser` | `src/browser.ts` | Browser bundles (the docs learning lab, CALMGuard). Validate (JSON Schema + Spectral), generate, diff (including `diff --timeline` via `diffTimeline`), `SchemaDirectory`, loaders, the CLI capability manifest. |
 
 Rules:
 - New modules are browser-safe by default. Node-only code (`fs`, `path`, `net`, `__dirname`, winston, mkdirp, playwright) lives in a `*.node.ts` / `node-*.ts` module or in a wrapper that the root barrel imports — never imported from `browser.ts` or anything it reaches.
@@ -58,7 +58,7 @@ Rules:
 
 ## Key Components
 
-- **Document Loader** (`document-loader/`): Strategies for loading CALM documents — FileSystem, MultiStrategy, plus CalmHub, direct-URL, and mapped loaders. Also `InMemoryDocumentLoader` (pass-a-map loader for tests and embedders) and `buildBrowserDocumentLoader` (the browser-entry loader factory, `document-loader/browser-document-loader.ts`).
+- **Document Loader** (`document-loader/`): Strategies for loading CALM documents — FileSystem, MultiStrategy, plus CalmHub, direct-URL, and mapped loaders. Also `InMemoryDocumentLoader` (pass-a-map loader for tests and embedders) and `buildBrowserDocumentLoader` (the browser-entry loader factory, `document-loader/browser-document-loader.ts`). The HTTP loaders share their request-path checks in `document-loader/request-guards.ts` (traversal guard and path allowlist): change them there, not in one loader.
 - **Template Processor** (`template/`): Handlebars-based template generation logic.
 - **Model Visitors** (`model-visitor/`): Visitor pattern implementations for traversing CALM models.
 - **Validation** (`commands/validate/`, `spectral/`): Core validation logic (Spectral integration) and output enrichment.

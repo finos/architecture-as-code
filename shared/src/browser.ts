@@ -84,5 +84,15 @@ export {
     SNAPSHOT_SUFFIX
 } from './hub/semver.js';
 export { canonicalEqual, canonicalize } from './hub/canonical.js';
+export {
+    GITHUB_RESOURCE_DIRECTORIES,
+    GITHUB_DIRECTORY_ALIASES,
+    isKnownGitHubDirectory,
+    canonicalGitHubDirectory,
+    detectDirectorySegment,
+    classifyGitHubDocument,
+    type GitHubResourceDirectory,
+    type GitHubContentClassification,
+} from './hub/github-layout.js';
 export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport, type BrowserOptionSupport } from './browser-capabilities.js';
 export { mergeControls } from './controls/merge-controls.js';
