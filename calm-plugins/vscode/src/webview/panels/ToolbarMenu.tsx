@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { theme } from '../canvas/theme-colors';
 
 export interface ToolbarMenuItem {
+    id: string;
     label: string;
     onClick: () => void;
     color?: string;
@@ -30,7 +31,7 @@ export function ToolbarMenu({ items }: Readonly<{ items: ToolbarMenuItem[] }>) {
     return (
         <div ref={ref} style={{ position: 'relative' }}>
             <button
-                className="calm-toolbar-btn"
+                className="fid-toolbar-btn"
                 title="More actions"
                 aria-label="More actions"
                 aria-haspopup="menu"
@@ -48,9 +49,9 @@ export function ToolbarMenu({ items }: Readonly<{ items: ToolbarMenuItem[] }>) {
                 <div role="menu" style={menuStyle}>
                     {items.map((item) => (
                         <button
-                            key={item.label}
+                            key={item.id}
                             role="menuitem"
-                            className="calm-menu-item"
+                            className="fid-menu-item"
                             style={item.color ? { color: item.color } : undefined}
                             onClick={() => { item.onClick(); setOpen(false); }}
                         >

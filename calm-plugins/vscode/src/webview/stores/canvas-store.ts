@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Node, Edge } from 'reactflow';
+import type { CalmFlow } from '../../core/types';
 
 export interface ValidationIssue {
     severity: 'error' | 'warning' | 'info';
@@ -32,6 +33,10 @@ export interface CanvasState {
     standardNodes: unknown[];
     loadedPatterns: unknown[];
     hubLoading: boolean;
+    flows: CalmFlow[];
+    activeFlowId: string | null;
+    flowHighlightEnabled: boolean;
+    canvasMode: 'architecture' | 'sequence';
 
     // Actions
     setNodes: (nodes: Node[]) => void;
@@ -48,6 +53,13 @@ export interface CanvasState {
     setPanelWidth: (width: number) => void;
     setExpandControlKey: (key: string | null) => void;
     setHubLoading: (loading: boolean) => void;
+    setFlows: (flows: CalmFlow[]) => void;
+    addFlow: (flow: CalmFlow) => void;
+    updateFlow: (flowId: string, updates: Partial<CalmFlow>) => void;
+    removeFlow: (flowId: string) => void;
+    setActiveFlowId: (id: string | null) => void;
+    setFlowHighlightEnabled: (enabled: boolean) => void;
+    setCanvasMode: (mode: 'architecture' | 'sequence') => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set) => ({
@@ -67,6 +79,10 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     standardNodes: [],
     loadedPatterns: [],
     hubLoading: false,
+    flows: [],
+    activeFlowId: null,
+    flowHighlightEnabled: false,
+    canvasMode: 'architecture',
 
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
@@ -84,4 +100,26 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     setPanelWidth: (width) => set({ panelWidth: width }),
     setExpandControlKey: (key) => set({ expandControlKey: key }),
     setHubLoading: (loading) => set({ hubLoading: loading }),
+    setFlows: (flows) => set((s) => ({
+        flows,
+        activeFlowId: flows.length > 0 && (s.activeFlowId === '__all__' || flows.some(f => f['unique-id'] === s.activeFlowId)) ? s.activeFlowId : null,
+        canvasMode: flows.length > 0 ? s.canvasMode : 'architecture',
+    })),
+    addFlow: (flow) => set((s) => ({ flows: [...s.flows, flow] })),
+    updateFlow: (flowId, updates) => set((s) => ({
+        flows: s.flows.map((f) =>
+            f['unique-id'] === flowId ? { ...f, ...updates } : f
+        ),
+    })),
+    removeFlow: (flowId) => set((s) => {
+        const flows = s.flows.filter((f) => f['unique-id'] !== flowId);
+        return {
+            flows,
+            activeFlowId: s.activeFlowId === flowId || flows.length === 0 ? null : s.activeFlowId,
+            canvasMode: flows.length === 0 ? 'architecture' : s.canvasMode,
+        };
+    }),
+    setActiveFlowId: (id) => set({ activeFlowId: id }),
+    setFlowHighlightEnabled: (enabled) => set({ flowHighlightEnabled: enabled }),
+    setCanvasMode: (mode) => set({ canvasMode: mode }),
 }));

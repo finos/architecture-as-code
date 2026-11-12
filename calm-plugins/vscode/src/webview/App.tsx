@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
     ReactFlowProvider,
     Background,
@@ -10,7 +10,6 @@ import ReactFlow, {
     useReactFlow,
     addEdge,
     updateEdge,
-    getRectOfNodes,
     type Node,
     type Edge,
     type Connection,
@@ -18,7 +17,6 @@ import ReactFlow, {
     type EdgeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { toSvg } from 'html-to-image';
 import { useCanvasStore } from './stores/canvas-store';
 import {
     initBridge,
@@ -33,8 +31,6 @@ import {
     notifyCanvasChanged,
     notifyDrillInto,
     notifyDrillUp,
-    notifySaveStandardNode,
-    notifyRequestImportSvg,
     requestControlResolve,
 } from './stores/sync-bridge';
 import { postMessage } from './vscode-api';
@@ -48,47 +44,40 @@ import {
 import { parseCALMData } from './transforms/calm-parser';
 import { updateInstances, hasSharedDrawings, pathOf } from './transforms/node-instances';
 import { resolveLiveSelectedNode } from './utils/live-selected-node';
-import { deleteDrawings, unparentDrawing, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
+import { deleteDrawings, unparentDrawing, pastedNode, originalsOf } from './transforms/canvas-edits';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
-import { ControlsList } from './panels/ControlsList';
 import { CustomMetadata } from './panels/CustomMetadata';
 import { NodeAppearance } from './panels/NodeAppearance';
-import { getNodeStyleOverride } from './utils/standard-node-style';
-import { applyStandardToNode } from './utils/standard-drop';
-import { defaultNodeColours } from './canvas/node-colours';
-import { PatternPicker } from './panels/PatternPicker';
-import { StandardNodeCreator } from './panels/StandardNodeCreator';
-import { ControlPicker } from './panels/ControlPicker';
-import { ControlCreator } from './panels/ControlCreator';
+import { getNodeStyleOverride, isStandardNode } from './utils/standard-node-style';
+import { theme } from './canvas/theme-colors';
 import {
     type ControlEntry,
-    buildControlEntry,
     enrichControlWithRequirement,
     getRequirementUrl,
     needsEnrichment,
 } from './panels/control-metadata';
-import { isControlRef, isLocalControlPath, makeControlMapKey, parseControlCurie } from '../extension/services/control-curie';
-import type { ParsedRequirement } from '../extension/services/requirement-parser';
-import { ToolbarMenu } from './panels/ToolbarMenu';
+import { isControlRef, isLocalControlPath } from '../extension/services/control-curie';
 import { nodeTypes } from './canvas/nodeTypes';
 import { edgeTypes } from './canvas/edgeTypes';
 import { minimapNodeClassName } from './canvas/minimap';
 import { makeContainment, getAbsolutePosition, containerAt } from './utils/containment';
-import { validateArchitecture } from './utils/validation';
+import { createPaletteNodeFromDrop, resolveFlowNodeType } from './canvas/node-drop';
+import { CanvasToolbar } from './features/CanvasToolbar';
+import { dispatchFeatureDrop, getEnabledFeatureDefinitions, getEnabledNodeTypes, notifyRelationshipsDeleted, resolveEnabledFeatures, transformCanvasView } from './features/registry';
+import type { CanvasFeatureDropContext } from './features/types';
+import { CanvasFeatureSlot } from './features/CanvasFeatureSlot';
+import { useFeatureRuntimeRevision } from './features/runtime-invalidation';
 
 const SUPPRESS_ECHO_MS = 1200;
-const CORE_NODE_TYPES = new Set(['actor', 'ecosystem', 'system', 'service', 'database', 'network', 'ldap', 'webclient', 'data-asset']);
-
-function resolveFlowNodeType(calmType: string): string {
-    if (CORE_NODE_TYPES.has(calmType)) return calmType;
-    return 'extension';
-}
-
 function isInputDOMNode(e: KeyboardEvent): boolean {
     const tag = (e.target as HTMLElement)?.tagName;
     return tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable === true;
+}
+
+function getCoreNodeColours(type: string | undefined) {
+    return { background: type === 'container' ? theme.bg : theme.bgWidget, text: theme.text };
 }
 
 function getInitialCalmJson(): string | undefined {
@@ -98,6 +87,16 @@ function getInitialCalmJson(): string | undefined {
 function CanvasApp() {
     const containerRef = useRef<HTMLDivElement>(null);
     const store = useCanvasStore();
+    useFeatureRuntimeRevision();
+    const [enabledCanvasFeatures] = useState(() => resolveEnabledFeatures(
+        (window as unknown as { __CALM_ENABLED_FEATURES__?: string[] }).__CALM_ENABLED_FEATURES__
+    ));
+    const activeNodeTypes = useMemo(
+        () => getEnabledNodeTypes(enabledCanvasFeatures, nodeTypes),
+        [enabledCanvasFeatures],
+    );
+    const nodeAppearanceDefaults = getEnabledFeatureDefinitions(enabledCanvasFeatures)
+        .find((feature) => feature.nodeAppearanceDefaults)?.nodeAppearanceDefaults;
     const reactFlowInstance = useReactFlow();
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChangeBase] = useEdgesState([]);
@@ -112,17 +111,8 @@ function CanvasApp() {
     }, [reactFlowInstance]);
     const [panelWidth, setPanelWidth] = useState(280);
     const [panelCollapsed, setPanelCollapsed] = useState(false);
-    const [showPatternPicker, setShowPatternPicker] = useState(false);
-    const [patternPickerMode, setPatternPickerMode] = useState<'new' | 'apply'>('new');
-    const [showStandardNodeCreator, setShowStandardNodeCreator] = useState(false);
-    const [showControlCreator, setShowControlCreator] = useState(false);
-    const [showControlPicker, setShowControlPicker] = useState(false);
-    const [controlPickerTarget, setControlPickerTarget] = useState<
-        | { type: 'node'; nodeId: string }
-        | { type: 'document' }
-        | { type: 'standard-node-draft'; onAttach: (ref: string, parsed: ParsedRequirement) => void; existingKeys?: Set<string> }
-        | null
-    >(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; edge: Edge } | null>(null);
+    const [nodeContextMenu, setNodeContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null);
     const [expandControlKey, setExpandControlKey] = useState<string | null>(null);
 
     // Undo/redo
@@ -141,6 +131,15 @@ function CanvasApp() {
     // and the drawings it keeps must not be removed.
     const reloadPending = useRef(false);
     const keptOnDelete = useRef<Set<string> | null>(null);
+    const pendingNodeDelete = useRef(false);
+
+    // Fresh refs for nodes/edges — used by emitChange when ReactFlow is unmounted (sequence mode)
+    const nodesRef = useRef(nodes);
+    const edgesRef = useRef(edges);
+    useEffect(() => {
+        nodesRef.current = nodes;
+        edgesRef.current = edges;
+    }, [nodes, edges]);
 
     // Copy/paste
     const clipboardNode = useRef<Node | null>(null);
@@ -162,10 +161,10 @@ function CanvasApp() {
                 if (undoStack.current.length > 50) undoStack.current.shift();
                 redoStack.current = [];
             }
-            const currentNodes = pendingNodesRef.current ?? reactFlowInstance.getNodes();
+            const currentNodes = pendingNodesRef.current ?? nodesRef.current;
             pendingNodesRef.current = null;
-            const currentEdges = reactFlowInstance.getEdges();
-            const arch = flowToCalm(currentNodes, currentEdges, currentState.documentControls);
+            const currentEdges = edgesRef.current;
+            const arch = flowToCalm(currentNodes, currentEdges, currentState.documentControls, currentState.flows);
             if (forReload) (arch.metadata as Record<string, unknown>)._layout = relayoutByPath(arch, currentNodes);
             const json = JSON.stringify(arch, null, 2);
             lastEmittedJson.current = json;
@@ -175,7 +174,7 @@ function CanvasApp() {
 
         if (immediate) flush();
         else debounceTimer.current = setTimeout(flush, 300);
-    }, [reactFlowInstance, store.readonlyMode]);
+    }, [store.readonlyMode]);
 
     // --- Control enrichment (webview-driven) ---
     // Resolve each control's requirement to attach validation metadata and seed
@@ -254,6 +253,7 @@ function CanvasApp() {
         if (!json || json.trim() === '') {
             setNodes([]); setEdges([]); setLastParsedArch(null);
             useCanvasStore.setState({ documentControls: {}, copiesLimited: false });
+            useCanvasStore.getState().setFlows([]);
             lastEmittedJson.current = json;
             return;
         }
@@ -262,16 +262,20 @@ function CanvasApp() {
             if (!arch || !arch.nodes || arch.nodes.length === 0) {
                 setNodes([]); setEdges([]); setLastParsedArch(null);
                 useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>)?.controls as Record<string, unknown> ?? {}, copiesLimited: false });
+                useCanvasStore.getState().setFlows(arch?.flows ?? []);
                 lastEmittedJson.current = json;
                 return;
             }
             setLastParsedArch(arch);
+
             const { nodes: parsedNodes, edges: parsedEdges, copiesLimited } = parseCALMData(arch);
             useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>).controls as Record<string, unknown> ?? {}, copiesLimited });
+            const parsedFlows = (arch.flows ?? []) as CalmFlow[];
             const metadata = (arch as Record<string, unknown>).metadata as Record<string, unknown> | undefined;
             const layoutedNodes = applyLayoutFromMetadata(parsedNodes, metadata);
             setNodes(layoutedNodes);
             setEdges(parsedEdges);
+            useCanvasStore.getState().setFlows(parsedFlows);
             lastEmittedJson.current = json;
             // Request resolution for any nodes with definition-id references, once per CALM node:
             // the result is applied to every drawing of it
@@ -303,13 +307,20 @@ function CanvasApp() {
     // --- Bridge setup ---
     useEffect(() => {
         setModelUpdateCallback((json, source) => {
-            if (source === 'file' && Date.now() < suppressFileUpdatesUntil.current) return;
+            if (source === 'file') {
+                if (Date.now() < suppressFileUpdatesUntil.current) return;
+                if (lastEmittedJson.current && json === lastEmittedJson.current) return;
+                if (debounceTimer.current) {
+                    clearTimeout(debounceTimer.current);
+                    debounceTimer.current = null;
+                }
+            }
             loadArchitecture(json);
             setInitialized(true);
         });
-        setPatternsLoadedCallback((p) => useCanvasStore.setState({ loadedPatterns: p as any }));
+        setPatternsLoadedCallback((p) => useCanvasStore.setState({ loadedPatterns: p }));
         setHubLoadingCallback((loading) => useCanvasStore.setState({ hubLoading: loading }));
-        setStandardNodesLoadedCallback((n) => useCanvasStore.setState({ standardNodes: n as any }));
+        setStandardNodesLoadedCallback((n) => useCanvasStore.setState({ standardNodes: n }));
         setDrillResultCallback((json, label, _filePath, readonly) => {
             undoStack.current = [];
             redoStack.current = [];
@@ -444,7 +455,13 @@ function CanvasApp() {
             positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
             return;
         }
-        if (structural) setTimeout(() => { if (!reloadPending.current) emitChange(true); }, 0);
+        if (structural) setTimeout(() => {
+            if (pendingNodeDelete.current) {
+                pendingNodeDelete.current = false;
+                return;
+            }
+            if (!reloadPending.current) emitChange(true);
+        }, 0);
         else if (hasDimensions) {
             if (positionDebounceTimer.current) clearTimeout(positionDebounceTimer.current);
             positionDebounceTimer.current = setTimeout(() => emitChange(true), 800);
@@ -454,12 +471,28 @@ function CanvasApp() {
     const onEdgesChange = useCallback((changes: EdgeChange[]) => {
         if (store.readonlyMode) return;
         onEdgesChangeBase(changes);
-        if (changes.some((c) => c.type === 'remove')) {
-            // Delay emit to allow ReactFlow's internal store to sync the removal. A delete that
-            // reloads the canvas saves the file itself.
-            setTimeout(() => { if (!reloadPending.current) emitChange(true); }, 0);
+        const removals = changes.filter((c) => c.type === 'remove');
+        if (removals.length > 0) {
+            const removedEdgeIds = new Set(removals.map(c => c.id));
+            const removedEdges = edgesRef.current.filter((edge) => removedEdgeIds.has(edge.id));
+            setTimeout(() => {
+                if (pendingNodeDelete.current) return;
+                const remainingRelIds = new Set(edgesRef.current.flatMap((edge) => {
+                    const data = (edge.data ?? {}) as Record<string, unknown>;
+                    return [data.calmRelId, data.calmReverseRelId].filter((id): id is string => typeof id === 'string');
+                }));
+                const deletedRelIds = new Set<string>();
+                for (const edge of removedEdges) {
+                    const data = (edge.data ?? {}) as Record<string, unknown>;
+                    for (const id of [data.calmRelId, data.calmReverseRelId]) {
+                        if (typeof id === 'string' && !remainingRelIds.has(id)) deletedRelIds.add(id);
+                    }
+                }
+                if (deletedRelIds.size > 0) notifyRelationshipsDeleted(enabledCanvasFeatures, deletedRelIds);
+                if (!reloadPending.current) emitChange(true);
+            }, 0);
         }
-    }, [onEdgesChangeBase, emitChange, store.readonlyMode]);
+    }, [enabledCanvasFeatures, onEdgesChangeBase, emitChange, store.readonlyMode]);
 
     // --- Connect ---
     const onConnect = useCallback((connection: Connection) => {
@@ -482,6 +515,7 @@ function CanvasApp() {
         if (store.readonlyMode) return;
         const edit = deleteDrawings(nodes, edges, deletedNodes);
         const deletedIds = new Set(deletedNodes.map((n) => n.id));
+        pendingNodeDelete.current = edit.reload;
         keptOnDelete.current = new Set(edit.nodes.map((n) => n.id));
         const selected = resolveLiveSelectedNode(selectedNode, nodes, selectedPlace);
         if (selected && !edit.nodes.some((n) => n.id === selected.id)) setSelectedNode(null);
@@ -494,6 +528,19 @@ function CanvasApp() {
             const live = new Set(eds.map((e) => e.id));
             return edit.edges.filter((e) => live.has(e.id) || decided.has(e.id));
         });
+        const removedRelIds = new Set<string>();
+        const remainingRelIds = new Set(edit.edges.flatMap((edge) => {
+            const data = (edge.data ?? {}) as Record<string, unknown>;
+            return [data.calmRelId, data.calmReverseRelId].filter((id): id is string => typeof id === 'string');
+        }));
+        for (const e of edgesRef.current) {
+            if (deletedIds.has(e.source) || deletedIds.has(e.target)) {
+                const d = (e.data ?? {}) as Record<string, unknown>;
+                if (typeof d.calmRelId === 'string' && !remainingRelIds.has(d.calmRelId)) removedRelIds.add(d.calmRelId);
+                if (typeof d.calmReverseRelId === 'string' && !remainingRelIds.has(d.calmReverseRelId)) removedRelIds.add(d.calmReverseRelId);
+            }
+        }
+        if (removedRelIds.size > 0) notifyRelationshipsDeleted(enabledCanvasFeatures, removedRelIds);
         if (!edit.reload) {
             setTimeout(() => emitChange(true), 0);
             return;
@@ -504,7 +551,7 @@ function CanvasApp() {
             // After the saves that React Flow's change callbacks queued for this delete
             setTimeout(() => { reloadPending.current = false; }, 0);
         }, 0);
-    }, [nodes, edges, selectedNode, selectedPlace, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
+    }, [enabledCanvasFeatures, nodes, edges, selectedNode, selectedPlace, setNodes, setEdges, emitChange, emitAndReload, store.readonlyMode]);
 
     // --- Node click (select) ---
     const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -519,14 +566,18 @@ function CanvasApp() {
         const details = data?.details as { 'detailed-architecture'?: string } | undefined;
         const calmType = (data?.calmType as string) ?? '';
         const label = (data?.label as string) || node.id;
+        const metadata = data?.metadata as Record<string, unknown> | undefined;
+        const sourceStandardNode = metadata?.['source-standard-node'] as string | undefined;
 
-        if (details?.['detailed-architecture'] || calmType.includes(':')) {
+        if (details?.['detailed-architecture'] || sourceStandardNode || calmType.includes(':')) {
             loadGeneration.current++;
             if (debounceTimer.current) { clearTimeout(debounceTimer.current); debounceTimer.current = null; }
             if (positionDebounceTimer.current) { clearTimeout(positionDebounceTimer.current); positionDebounceTimer.current = null; }
             pendingNodesRef.current = null;
             if (details?.['detailed-architecture']) {
                 notifyDrillInto(label, details['detailed-architecture'], calmType);
+            } else if (sourceStandardNode) {
+                notifyDrillInto(label, `standard-nodes/${sourceStandardNode}.calm.json`, `standard-node:${sourceStandardNode}`);
             } else {
                 const safeName = calmType.replace(/^standard-node:/, '');
                 notifyDrillInto(label, `standard-nodes/${safeName}.calm.json`, calmType);
@@ -547,7 +598,25 @@ function CanvasApp() {
     const handlePaneClick = useCallback(() => {
         setSelectedNode(null); setSelectedEdge(null);
         store.selectNode(null); store.selectEdge(null);
+        setContextMenu(null);
+        setNodeContextMenu(null);
     }, [store]);
+
+    // --- Node role context menu ---
+
+    const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
+        event.preventDefault();
+        if (store.readonlyMode) return;
+        setNodeContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id });
+    }, [store.readonlyMode]);
+
+    // --- Flow context menu ---
+
+    const handleEdgeContextMenu = useCallback((event: React.MouseEvent, edge: Edge) => {
+        event.preventDefault();
+        if (store.readonlyMode) return;
+        setContextMenu({ x: event.clientX, y: event.clientY, edge });
+    }, [store.readonlyMode]);
 
     // --- Node drag stop (containment detection) ---
     const handleNodeDragStop = useCallback((_event: React.MouseEvent, draggedNode: Node) => {
@@ -590,6 +659,34 @@ function CanvasApp() {
         setTimeout(() => emitChange(field !== 'name' && field !== 'description'), 0);
     }, [setNodes, emitChange]);
 
+    // Expose capabilities, not feature IDs, so core composition stays independent of bundled modules.
+    const featureRuntime = {
+        readonlyMode: store.readonlyMode,
+        nodes,
+        edges,
+        selectedNode,
+        selectedEdge,
+        expandControlKey,
+        contextMenu,
+        setContextMenu,
+        nodeContextMenu,
+        setNodeContextMenu,
+        containerRef,
+        setSelectedNode,
+        setSelectedEdge,
+        setExpandControlKey,
+        setNodes,
+        setEdges,
+        updateNode: onNodeUpdate,
+        getCurrentNodes: () => nodesRef.current,
+        getCurrentEdges: () => edgesRef.current,
+        enrichNodeControls: (nodeList: Node[]) => enrichNodeControls(nodeList, loadGeneration.current),
+        enrichAllControls: () => enrichAllControls(reactFlowInstance.getNodes(), loadGeneration.current),
+        emitChange,
+        postMessage: (message: unknown) => postMessage(message as any),
+        loadArchitecture,
+    };
+
     // --- Drop from palette ---
     const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }, []);
 
@@ -598,121 +695,33 @@ function CanvasApp() {
         e.stopPropagation();
         if (store.readonlyMode) return;
 
-        const standardNodeId = e.dataTransfer.getData('application/standard-node-id');
-        const behaviour = e.dataTransfer.getData('application/standard-node-behaviour');
+        const dropContext: CanvasFeatureDropContext = {
+            readonlyMode: store.readonlyMode,
+            nodes,
+            edges,
+            setNodes,
+            setEdges,
+            getCurrentNodes: () => nodesRef.current,
+            enrichNodeControls: (nodeList) => enrichNodeControls(nodeList, loadGeneration.current),
+            enrichAllControls: () => enrichAllControls(reactFlowInstance.getNodes(), loadGeneration.current),
+            emitChange,
+            postMessage: (message) => postMessage(message as any),
+            clientX: e.clientX,
+            clientY: e.clientY,
+            screenToFlowPosition: (position) => reactFlowInstance.screenToFlowPosition(position),
+            dataTransfer: e.dataTransfer,
+        };
+        if (dispatchFeatureDrop(enabledCanvasFeatures, dropContext)) return;
+
         const nodeType = e.dataTransfer.getData('application/calm-node-type');
         const nodeLabel = e.dataTransfer.getData('application/calm-node-label');
         const isContainer = e.dataTransfer.getData('application/calm-container') === 'true';
-
         const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
-
-        if (standardNodeId && behaviour) {
-            // Standard node / standard drop
-            const standardNode = (store.standardNodes as any[]).find((n: any) => n.id === standardNodeId);
-            if (!standardNode) return;
-            const isHubSourced = !!standardNode.namespace;
-            const controlsCopy = JSON.parse(JSON.stringify(standardNode.controls ?? {})) as Record<string, unknown>;
-
-            if (behaviour === 'apply-controls-on-drop') {
-                // Find the node under the drop point.
-                // Try DOM-based detection first, fall back to coordinate hit-test.
-                let targetId: string | null = null;
-                const elements = document.elementsFromPoint(e.clientX, e.clientY);
-                for (const el of elements) {
-                    const nodeEl = el.closest('.react-flow__node');
-                    if (nodeEl) { targetId = nodeEl.getAttribute('data-id'); break; }
-                }
-                // Fallback: check flow coordinates against node bounds
-                if (!targetId) {
-                    const flowPos = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
-                    for (const n of nodes) {
-                        if (n.type === 'container') continue;
-                        const w = n.width ?? 150;
-                        const h = n.height ?? 40;
-                        const absX = n.positionAbsolute?.x ?? n.position.x;
-                        const absY = n.positionAbsolute?.y ?? n.position.y;
-                        if (flowPos.x >= absX && flowPos.x <= absX + w
-                            && flowPos.y >= absY && flowPos.y <= absY + h) {
-                            targetId = n.id;
-                            break;
-                        }
-                    }
-                }
-                if (targetId) {
-                    setNodes((nds) => applyStandardToNode(nds, targetId!, controlsCopy));
-                    setTimeout(() => emitChange(true), 0);
-                    setTimeout(() => enrichAllControls(originalsOf(reactFlowInstance.getNodes()), loadGeneration.current), 0);
-                }
-                return;
-            }
-
-            const id = `${standardNode.nodeType}-${Date.now()}`;
-            const hasCustomId = standardNode.id && /[a-zA-Z]/.test(standardNode.id);
-            const newNode: Node = {
-                id,
-                type: resolveFlowNodeType(standardNode.nodeType),
-                position,
-                data: {
-                    label: standardNode.name,
-                    calmId: id,
-                    calmType: standardNode.nodeType,
-                    description: standardNode.description ?? '',
-                    interfaces: [],
-                    controls: controlsCopy,
-                    ...(isHubSourced && hasCustomId && standardNode.sha ? { 'definition-id': `${standardNode.namespace}:standards:${standardNode.id}@${standardNode.sha}` } : {}),
-                },
-            };
-            setNodes((nds) => [...nds, newNode]);
-            // Request resolution for Hub-sourced blocks so the webview can render controls
-            if (isHubSourced) {
-                postMessage({ type: 'resolveDefinitionId', nodeId: id, curie: newNode.data['definition-id'] as string });
-            }
-            setTimeout(() => emitChange(true), 0);
-            setTimeout(() => enrichNodeControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
-            return;
-        }
-
         if (!nodeType) return;
-        const id = `${nodeType.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
-
-        if (isContainer) {
-            setNodes((nds) => [...nds, {
-                id, type: 'container', position, width: 400, height: 300,
-                data: { label: nodeLabel || 'Container', calmId: id, calmType: nodeType, description: '', containerRole: 'default', containmentType: 'deployed-in' },
-            } as Node]);
-        } else {
-            setNodes((nds) => [...nds, {
-                id, type: resolveFlowNodeType(nodeType), position,
-                data: { label: nodeLabel || nodeType, calmId: id, calmType: nodeType, description: '', interfaces: [], metadata: {} },
-            }]);
-        }
+        const newNode = createPaletteNodeFromDrop({ nodeType, nodeLabel, isContainer, position });
+        setNodes((nds) => [...nds, newNode]);
         setTimeout(() => emitChange(true), 0);
-    }, [nodes, setNodes, setEdges, emitChange, reactFlowInstance, store.readonlyMode, store.standardNodes, enrichAllControls, enrichNodeControls]);
-
-    // --- Validate ---
-    const handleValidate = useCallback(() => {
-        const arch = flowToCalm(nodes, edges, store.documentControls);
-        const issues = validateArchitecture(arch);
-        // Count controls actually present so the result makes it clear whether there was
-        // anything to validate (a common confusion: plain node-type nodes have no controls).
-        let controlCount = Object.keys((arch.controls as Record<string, unknown>) ?? {}).length;
-        for (const n of arch.nodes) {
-            const c = n.controls as Record<string, unknown> | undefined;
-            if (c) controlCount += Object.keys(c).length;
-        }
-        if (issues.length === 0) {
-            issues.push({
-                severity: 'info',
-                message: controlCount === 0
-                    ? `Valid — ${arch.nodes.length} node(s), but 0 controls found. Drop a standard node that defines controls (e.g. "Microservice") onto a node, then Validate.`
-                    : `Valid — checked ${arch.nodes.length} node(s) and ${controlCount} control(s); all requirements satisfied.`,
-            });
-        }
-        store.setValidationIssues(issues);
-        store.setShowValidation(true);
-        // Annotate nodes with error/warning counts so validation badges appear on them.
-        setNodes(withIssueCounts(nodes, issues));
-    }, [nodes, edges, store, setNodes]);
+    }, [edges, enabledCanvasFeatures, emitChange, enrichAllControls, enrichNodeControls, nodes, reactFlowInstance, setEdges, setNodes, store.readonlyMode]);
 
     // --- Layout ---
     const handleLayout = useCallback((direction: 'DOWN' | 'RIGHT') => {
@@ -723,60 +732,10 @@ function CanvasApp() {
             const { nodes: laid, edges: parsedEdges, copiesLimited } = parseCALMData(arch, direction);
             setNodes(laid); setEdges(parsedEdges);
             useCanvasStore.setState({ copiesLimited });
+            useCanvasStore.getState().setFlows((arch.flows ?? []) as CalmFlow[]);
             setTimeout(() => emitChange(true), 0);
         } catch { /* */ }
     }, [setNodes, setEdges, emitChange]);
-
-    // --- Export SVG ---
-    const handleExportSvg = useCallback(async () => {
-        const viewport = containerRef.current?.querySelector('.react-flow__viewport') as HTMLElement | null;
-        if (!viewport) return;
-        const bounds = getRectOfNodes(nodes);
-        if (!bounds.width || !bounds.height) return;
-        const margin = 40;
-        const imageWidth = Math.ceil(bounds.width + margin * 2);
-        const imageHeight = Math.ceil(bounds.height + margin * 2);
-        try {
-            const dataUrl = await toSvg(viewport, {
-                width: imageWidth,
-                height: imageHeight,
-                style: {
-                    width: `${imageWidth}px`,
-                    height: `${imageHeight}px`,
-                    transform: `translate(${margin - bounds.x}px, ${margin - bounds.y}px)`,
-                },
-            });
-            // html-to-image returns a URI-encoded `data:image/svg+xml` URL; decode to raw SVG.
-            let svgText = decodeURIComponent(dataUrl.slice(dataUrl.indexOf(',') + 1));
-            // Inject a full-cover background rect at the SVG root (unaffected by the inner
-            // viewport transform) so the diagram has a solid backdrop and the light node
-            // labels stay legible. Using html-to-image's `backgroundColor` gets transformed
-            // with the content and produces a misplaced black box.
-            const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--calm-bg').trim() || '#1e1e1e';
-            svgText = svgText.replace(/(<svg[^>]*>)/, `$1<rect x="0" y="0" width="100%" height="100%" fill="${bgColor}"/>`);
-            postMessage({ type: 'exportDiagram', format: 'svg', data: svgText });
-        } catch (err) {
-            console.error('SVG export failed', err);
-        }
-    }, [nodes]);
-
-    // --- Issue click ---
-    const handleIssueClick = useCallback((issue: { nodeId?: string; controlId?: string }) => {
-        if (issue.nodeId) {
-            const node = nodes.find((n) => n.id === issue.nodeId);
-            if (node) {
-                selectDrawing(node);
-                setSelectedEdge(null);
-                store.selectNode(node.id);
-            }
-        } else {
-            // Architecture-level control — surface the architecture controls panel.
-            setSelectedNode(null);
-            setSelectedEdge(null);
-            store.selectNode(null);
-        }
-        if (issue.controlId) setExpandControlKey(issue.controlId);
-    }, [nodes, store, selectDrawing]);
 
     // --- Panel resize ---
     const handlePanelResizeStart = useCallback((e: React.MouseEvent) => {
@@ -832,14 +791,12 @@ function CanvasApp() {
             const variant = (data.calmVariant as string) ?? 'connects';
             const STANDARD_VARIANTS = new Set(['connects', 'interacts', 'deployed-in', 'composed-of', 'options']);
             const customVariantLabel = !STANDARD_VARIANTS.has(variant) ? variant : '';
-            const label = (data.protocol as string) || (data.description as string) || customVariantLabel;
+            const rawLabel = (data.protocol as string) || (data.description as string) || customVariantLabel;
+            const label = rawLabel && rawLabel.length > 30 ? rawLabel.slice(0, 30) + '...' : rawLabel;
             const direction = (data.direction as string) ?? 'source-to-target';
-            const markerEnd = direction !== 'none'
-                ? { type: MarkerType.ArrowClosed, width: 15, height: 15 }
-                : undefined;
-            const markerStart = direction === 'bidirectional'
-                ? { type: MarkerType.ArrowClosed, width: 15, height: 15 }
-                : undefined;
+            const arrow = { type: MarkerType.ArrowClosed, width: 15, height: 15 };
+            const markerEnd = (direction === 'source-to-target' || direction === 'bidirectional') ? arrow : undefined;
+            const markerStart = (direction === 'target-to-source' || direction === 'bidirectional') ? arrow : undefined;
             const updated = { ...e, data, label, markerEnd, markerStart };
             setSelectedEdge(updated);
             return updated;
@@ -854,118 +811,9 @@ function CanvasApp() {
         setTimeout(() => emitChange(true), 0);
     }, [setEdges, emitChange, store.readonlyMode]);
 
-    // --- Pattern handlers ---
-    const handlePatterns = useCallback(() => { setPatternPickerMode('new'); setShowPatternPicker(true); }, []);
-    const handleApplyPattern = useCallback(() => { setPatternPickerMode('apply'); setShowPatternPicker(true); }, []);
-    const handleArchApply = useCallback((arch: any, patternId?: string) => {
-        if (patternId) {
-            const metadata = (arch.metadata ?? {}) as Record<string, unknown>;
-            const patterns = (metadata.patterns as string[]) ?? [];
-            if (!patterns.includes(patternId)) patterns.push(patternId);
-            metadata.patterns = patterns;
-            arch.metadata = metadata;
-        }
-        const json = JSON.stringify(arch, null, 2);
-        loadArchitecture(json);
-        notifyCanvasChanged(json);
-    }, [loadArchitecture]);
-
-    const handlePatternMerge = useCallback((arch: any, patternId: string) => {
-        const current = flowToCalm(nodes, edges, store.documentControls) as Record<string, unknown>;
-        const currentNodes = (current.nodes as Array<Record<string, unknown>>) ?? [];
-        const currentRels = (current.relationships as Array<Record<string, unknown>>) ?? [];
-        const incomingNodes = (arch.nodes ?? []) as Array<Record<string, unknown>>;
-        const incomingRels = (arch.relationships ?? []) as Array<Record<string, unknown>>;
-
-        const existingNodeIds = new Set(currentNodes.map((n) => n['unique-id']));
-        const existingRelIds = new Set(currentRels.map((r) => r['unique-id']));
-
-        for (const n of incomingNodes) { if (!existingNodeIds.has(n['unique-id'])) currentNodes.push(n); }
-        for (const r of incomingRels) { if (!existingRelIds.has(r['unique-id'])) currentRels.push(r); }
-
-        current.nodes = currentNodes;
-        current.relationships = currentRels;
-        const metadata = (current.metadata ?? {}) as Record<string, unknown>;
-        const patterns = (metadata.patterns as string[]) ?? [];
-        if (!patterns.includes(patternId)) patterns.push(patternId);
-        metadata.patterns = patterns;
-        current.metadata = metadata;
-
-        const json = JSON.stringify(current, null, 2);
-        loadArchitecture(json);
-        notifyCanvasChanged(json);
-    }, [nodes, edges, store.documentControls, loadArchitecture]);
-
-    // --- Control focused (standards panel) ---
-
-    // --- Control picker attach ---
-    const handleControlAttach = useCallback((ref: string, parsed: ParsedRequirement) => {
-        const key = makeControlMapKey(ref);
-        const entry = buildControlEntry(ref, parsed);
-        const target = controlPickerTarget;
-        setShowControlPicker(false);
-        setControlPickerTarget(null);
-        if (!target) return;
-        const generation = loadGeneration.current;
-        if (target.type === 'node') {
-            setNodes((nds) => updateInstances(nds, target.nodeId, (n) => {
-                const data = n.data as Record<string, unknown>;
-                const existing = (data.controls as Record<string, ControlEntry>) ?? {};
-                const prev = existing[key];
-                if (prev && getRequirementUrl(prev) === getRequirementUrl(entry)) return n;
-                return { ...n, data: { ...data, controls: { ...existing, [key]: entry } } };
-            }));
-            setTimeout(() => {
-                emitChange(true);
-                const n = reactFlowInstance.getNodes().find((x) => x.id === target.nodeId);
-                if (n) enrichNodeControls([n], generation);
-            }, 0);
-        } else if (target.type === 'document') {
-            const existing = (useCanvasStore.getState().documentControls as Record<string, ControlEntry>) ?? {};
-            const prev = existing[key];
-            if (prev && getRequirementUrl(prev) === getRequirementUrl(entry)) return;
-            useCanvasStore.setState({ documentControls: { ...existing, [key]: entry } });
-            setTimeout(() => {
-                emitChange(true);
-                enrichAllControls(reactFlowInstance.getNodes(), generation);
-            }, 0);
-        } else if (target.type === 'standard-node-draft') {
-            target.onAttach(ref, parsed);
-        }
-    }, [controlPickerTarget, setNodes, emitChange, reactFlowInstance, enrichNodeControls, enrichAllControls]);
-
-    const existingControlKeys = React.useMemo(() => {
-        const target = controlPickerTarget;
-        if (!target) return new Set<string>();
-        let controls: Record<string, unknown> | undefined;
-        if (target.type === 'node') {
-            const node = nodes.find((n) => n.id === target.nodeId);
-            controls = (node?.data as Record<string, unknown>)?.controls as Record<string, unknown> | undefined;
-        } else if (target.type === 'document') {
-            controls = store.documentControls as Record<string, unknown> | undefined;
-        } else {
-            return target.existingKeys ?? new Set<string>();
-        }
-        const keys = new Set(Object.keys(controls ?? {}));
-        for (const ctrl of Object.values(controls ?? {})) {
-            const reqs = (ctrl as Record<string, unknown>)?.requirements as Array<Record<string, unknown>> | undefined;
-            const url = reqs?.[0]?.['requirement-url'];
-            if (typeof url === 'string') {
-                keys.add(makeControlMapKey(url));
-                const parsed = parseControlCurie(url);
-                if (parsed) keys.add(parsed.controlName);
-            }
-        }
-        return keys;
-    }, [controlPickerTarget, nodes, store.documentControls]);
-
-    // --- Export as Pattern ---
-    const handleExportAsPattern = useCallback(() => {
-        const currentNodes = reactFlowInstance.getNodes();
-        const currentEdges = reactFlowInstance.getEdges();
-        const doc = flowToCalm(currentNodes, currentEdges, useCanvasStore.getState().documentControls);
-        postMessage({ type: 'requestExportPattern', doc: JSON.stringify(doc) });
-    }, [reactFlowInstance]);
+    const canvasView = transformCanvasView(enabledCanvasFeatures, { nodes, edges });
+    const displayNodes = canvasView.nodes;
+    const displayEdges = canvasView.edges;
 
     if (!initialized) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--calm-fg-muted)' }}>Loading CALM architecture...</div>;
@@ -980,25 +828,14 @@ function CanvasApp() {
             <div style={toolbarStyle}>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--calm-fg)', marginRight: '12px', flex: '0 0 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>CALM Canvas</span>
                 <div style={{ display: 'flex', gap: '2px', alignItems: 'center', flexShrink: 0 }}>
-                    <button onClick={() => handleLayout('DOWN')} className="calm-toolbar-btn" title="Top-to-bottom layout">↓ Layout</button>
-                    <button onClick={() => handleLayout('RIGHT')} className="calm-toolbar-btn" title="Left-to-right layout">→ Layout</button>
-                    <span className="calm-toolbar-sep" />
-                    <button onClick={handleValidate} className="calm-toolbar-btn calm-toolbar-btn--validate">Validate</button>
-                    {!store.readonlyMode && (
-                        <button onClick={handleApplyPattern} className="calm-toolbar-btn calm-toolbar-btn--apply" title="Apply a pattern to the canvas">Apply Pattern</button>
-                    )}
-                    <button onClick={handleExportSvg} className="calm-toolbar-btn" title="Export the canvas as an SVG">Export SVG</button>
-                    {!store.readonlyMode && (
-                        <button onClick={() => notifyRequestImportSvg()} className="calm-toolbar-btn" title="Import an SVG diagram as CALM architecture">Import SVG</button>
-                    )}
-                    {!store.readonlyMode && (
-                        <ToolbarMenu items={[
-                            { label: 'New from Pattern', onClick: handlePatterns },
-                            { label: 'Create Node', onClick: () => setShowStandardNodeCreator(true) },
-                            { label: 'Create Control', onClick: () => setShowControlCreator(true) },
-                            { label: 'Export as Pattern', onClick: handleExportAsPattern },
-                        ]} />
-                    )}
+                    <button onClick={() => handleLayout('DOWN')} className="fid-toolbar-btn" title="Top-to-bottom layout">↓ Layout</button>
+                    <button onClick={() => handleLayout('RIGHT')} className="fid-toolbar-btn" title="Left-to-right layout">→ Layout</button>
+                    <span className="fid-toolbar-sep" />
+                    <CanvasToolbar
+                        enabledFeatures={enabledCanvasFeatures}
+                        state={{ readonlyMode: store.readonlyMode }}
+                        runtime={featureRuntime}
+                    />
                 </div>
             </div>
 
@@ -1021,47 +858,54 @@ function CanvasApp() {
 
             {/* Main area */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                {!store.readonlyMode && <NodePalette standardNodes={store.standardNodes as any[]} hubLoading={store.hubLoading} />}
+                {!store.readonlyMode && (
+                    <NodePalette renderFeatureContent={(paletteSearchQuery) => (
+                        <CanvasFeatureSlot
+                            slot="palette"
+                            definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
+                            enabledFeatures={enabledCanvasFeatures}
+                            runtime={{ ...featureRuntime, paletteSearchQuery }}
+                        />
+                    )} />
+                )}
 
-                <div style={{ flex: 1, position: 'relative' }} onDragOver={handleDragOver} onDrop={handleDrop}>
-                    <ReactFlow
-                        nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
-                        onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-                        onConnect={onConnect} onNodesDelete={onNodesDelete}
-                        onEdgeUpdate={store.readonlyMode ? undefined : handleEdgeReconnect}
-                        edgeUpdaterRadius={20}
-                        onNodeClick={handleNodeClick} onNodeDoubleClick={handleNodeDoubleClick}
-                        onEdgeClick={handleEdgeClick}
-                        onPaneClick={handlePaneClick} onNodeDragStop={handleNodeDragStop}
-                        onDragOver={handleDragOver} onDrop={handleDrop}
-                        fitView minZoom={0.1} maxZoom={4} panOnDrag
-                        connectionMode={'loose' as any}
-                        deleteKeyCode={store.readonlyMode ? null : ['Backspace', 'Delete']}
-                        selectionKeyCode="Shift"
+                <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }} onDragOver={handleDragOver} onDrop={handleDrop}>
+                    <CanvasFeatureSlot
+                        slot="canvas"
+                        definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
+                        enabledFeatures={enabledCanvasFeatures}
+                        runtime={featureRuntime}
                     >
-                        <Background />
-                        <Controls />
-                        <MiniMap nodeClassName={minimapNodeClassName} />
-                    </ReactFlow>
+                        <ReactFlow
+                            nodes={displayNodes} edges={displayEdges} nodeTypes={activeNodeTypes} edgeTypes={edgeTypes}
+                            onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+                            onConnect={onConnect} onNodesDelete={onNodesDelete}
+                            onEdgeUpdate={store.readonlyMode ? undefined : handleEdgeReconnect}
+                            edgeUpdaterRadius={20}
+                            onNodeClick={handleNodeClick} onNodeDoubleClick={handleNodeDoubleClick}
+                            onNodeContextMenu={handleNodeContextMenu}
+                            onEdgeClick={handleEdgeClick}
+                            onEdgeContextMenu={handleEdgeContextMenu}
+                            onPaneClick={handlePaneClick} onNodeDragStop={handleNodeDragStop}
+                            onDragOver={handleDragOver} onDrop={handleDrop}
+                            fitView minZoom={0.1} maxZoom={4} panOnDrag
+                            connectionMode={'loose' as any}
+                            deleteKeyCode={store.readonlyMode ? null : ['Backspace', 'Delete']}
+                            selectionKeyCode="Shift"
+                        >
+                            <Background />
+                            <Controls />
+                            <MiniMap nodeClassName={minimapNodeClassName} />
+                        </ReactFlow>
+                    </CanvasFeatureSlot>
 
                     {/* Validation Panel */}
-                    {store.showValidation && (
-                        <div style={validationPanelStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderBottom: '1px solid var(--calm-border)' }}>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--calm-fg)' }}>Validation Results</span>
-                                <button onClick={() => store.setShowValidation(false)} style={{ border: 'none', background: 'transparent', color: 'var(--calm-fg)', cursor: 'pointer', fontSize: '16px' }}>&times;</button>
-                            </div>
-                            <div style={{ flex: 1, overflowY: 'auto' }}>
-                                {store.validationIssues.length === 0 && <div style={{ padding: '12px 14px', color: 'var(--vscode-testing-iconPassed, #4ec9b0)', fontSize: '12px' }}>Architecture is valid</div>}
-                                {store.validationIssues.map((issue, idx) => (
-                                    <div key={idx} onClick={() => handleIssueClick(issue)} style={{ display: 'flex', gap: '8px', padding: '6px 14px', borderBottom: '1px solid var(--calm-border)', cursor: issue.nodeId ? 'pointer' : 'default' }}>
-                                        <span style={{ color: issue.severity === 'error' ? 'var(--vscode-editorError-foreground, #f14c4c)' : issue.severity === 'warning' ? 'var(--vscode-editorWarning-foreground, #cca700)' : 'var(--vscode-testing-iconPassed, #4ec9b0)', fontSize: '12px' }}>{issue.severity === 'error' ? '⊘' : issue.severity === 'warning' ? '⚠' : '✓'}</span>
-                                        <div><div style={{ fontSize: '11px', color: 'var(--calm-fg)' }}>{issue.message}</div>{issue.nodeId && <div style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', fontFamily: 'monospace' }}>Node: {issue.nodeId}</div>}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    <CanvasFeatureSlot
+                        slot="overlay"
+                        definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
+                        enabledFeatures={enabledCanvasFeatures}
+                        runtime={featureRuntime}
+                    />
                 </div>
 
                 {/* Properties panel */}
@@ -1072,14 +916,22 @@ function CanvasApp() {
                     </button>
                 ) : (
                     <div style={{ width: `${panelWidth}px`, minWidth: `${panelWidth}px`, display: 'flex', flexDirection: 'row', maxHeight: '100%', overflow: 'hidden' }}>
-                        <div onMouseDown={handlePanelResizeStart} className="calm-resize-handle" title="Drag to resize" />
+                        <div onMouseDown={handlePanelResizeStart} className="fid-resize-handle" title="Drag to resize" />
                         <div style={{ flex: 1, overflowY: 'auto', borderLeft: '1px solid var(--calm-border)', background: 'var(--calm-bg)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid var(--calm-border)' }}>
                                 <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--calm-fg)' }}>PROPERTIES</span>
                                 <button onClick={() => setPanelCollapsed(true)} title="Collapse panel" style={collapseToggleStyle}>›</button>
                             </div>
                             {selectedEdge && !liveSelectedNode ? (
+                                <>
                                 <EdgeProperties edge={selectedEdge} readonlyMode={store.readonlyMode} onEdgeUpdate={onEdgeUpdate} />
+                                <CanvasFeatureSlot
+                                    slot="properties"
+                                    definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
+                                    enabledFeatures={enabledCanvasFeatures}
+                                    runtime={featureRuntime}
+                                />
+                                </>
                             ) : liveSelectedNode && data ? (
                                 <>
                                     <div style={{ padding: '12px' }}>
@@ -1102,17 +954,19 @@ function CanvasApp() {
                                         onUpdate={(ifaces) => onNodeUpdate(liveSelectedNode.id, 'interfaces', ifaces)}
                                         readonly={store.readonlyMode}
                                     />
-                                    <ControlsList
-                                        controls={data.controls as any}
-                                        onUpdate={(ctrls) => onNodeUpdate(liveSelectedNode.id, 'controls', ctrls)}
-                                        readonly={store.readonlyMode}
-                                        expandControl={expandControlKey}
-                                        onBrowseControls={() => { setControlPickerTarget({ type: 'node', nodeId: liveSelectedNode.id }); setShowControlPicker(true); }}
+                                    <CanvasFeatureSlot
+                                        slot="properties"
+                                        definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
+                                        enabledFeatures={enabledCanvasFeatures}
+                                        runtime={featureRuntime}
                                     />
                                     <NodeAppearance
                                         key={`${liveSelectedNode.id}-appearance`}
                                         style={getNodeStyleOverride(data as Record<string, unknown>)}
-                                        defaults={defaultNodeColours(liveSelectedNode.type)}
+                                        defaults={nodeAppearanceDefaults?.(
+                                            liveSelectedNode.type,
+                                            isStandardNode(data as Record<string, unknown>),
+                                        ) ?? getCoreNodeColours(liveSelectedNode.type)}
                                         onUpdate={(style) => {
                                             const meta = { ...((data.metadata as Record<string, unknown>) ?? {}) };
                                             if (style) {
@@ -1132,17 +986,12 @@ function CanvasApp() {
                                 </>
                             ) : (
                                 <div style={{ padding: '12px' }}>
-                                    <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--calm-fg-muted)', marginBottom: '8px' }}>Architecture Controls</div>
-                                    <ControlsList
-                                        controls={store.documentControls as any}
-                                        onUpdate={(ctrls) => { useCanvasStore.setState({ documentControls: ctrls }); setTimeout(() => emitChange(true), 0); }}
-                                        readonly={store.readonlyMode}
-                                        expandControl={expandControlKey}
-                                        onBrowseControls={() => { setControlPickerTarget({ type: 'document' }); setShowControlPicker(true); }}
+                                    <CanvasFeatureSlot
+                                        slot="properties"
+                                        definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
+                                        enabledFeatures={enabledCanvasFeatures}
+                                        runtime={featureRuntime}
                                     />
-                                    {(!store.documentControls || Object.keys(store.documentControls).length === 0) && (
-                                        <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', textAlign: 'center', padding: '20px 0' }}>No architecture-level controls. Select a node or drop a standard here.</p>
-                                    )}
                                 </div>
                             )}
                         </div>
@@ -1152,41 +1001,20 @@ function CanvasApp() {
 
 
             {/* Pattern Picker */}
-            <PatternPicker
-                visible={showPatternPicker}
-                mode={patternPickerMode}
-                patterns={store.loadedPatterns as any[]}
-                onApply={(arch, patternId) => {
-                    if (patternPickerMode === 'apply') handlePatternMerge(arch, patternId);
-                    else handleArchApply(arch, patternId);
-                }}
-                onClose={() => setShowPatternPicker(false)}
+            <CanvasFeatureSlot
+                slot="modal"
+                definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
+                enabledFeatures={enabledCanvasFeatures}
+                runtime={featureRuntime}
             />
 
-            {/* Standard Node Creator */}
-            <StandardNodeCreator
-                visible={showStandardNodeCreator}
-                onClose={() => setShowStandardNodeCreator(false)}
-                onSave={(json, fileName) => notifySaveStandardNode(fileName, json)}
-                onRequestBrowseControls={(onAttach, existingKeys) => {
-                    setControlPickerTarget({ type: 'standard-node-draft', onAttach, existingKeys });
-                    setShowControlPicker(true);
-                }}
+            <CanvasFeatureSlot
+                slot="context-menu"
+                definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
+                enabledFeatures={enabledCanvasFeatures}
+                runtime={featureRuntime}
             />
 
-            {/* Control Picker */}
-            <ControlPicker
-                visible={showControlPicker}
-                onClose={() => { setShowControlPicker(false); setControlPickerTarget(null); }}
-                onAttach={handleControlAttach}
-                existingControlKeys={existingControlKeys}
-            />
-
-            {/* Control Creator */}
-            <ControlCreator
-                visible={showControlCreator}
-                onClose={() => setShowControlCreator(false)}
-            />
         </div>
     );
 }
@@ -1197,7 +1025,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const toolbarStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '6px 12px', background: 'var(--calm-bg-secondary)', borderBottom: '1px solid var(--calm-border)', flexShrink: 0 };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '5px 8px', fontSize: '12px', color: 'var(--calm-fg)', background: 'var(--calm-bg-input)', border: '1px solid var(--calm-border-input)', borderRadius: '3px', outline: 'none', fontFamily: 'inherit' };
-const validationPanelStyle: React.CSSProperties = { position: 'absolute', bottom: 0, left: 0, right: 0, maxHeight: '40%', display: 'flex', flexDirection: 'column', background: 'var(--calm-bg)', borderTop: '1px solid var(--calm-border-heavy)', zIndex: 100, boxShadow: '0 -2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36))' };
 const collapsedPanelStyle: React.CSSProperties = { width: '30px', minWidth: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '10px 0', border: 'none', borderLeft: '1px solid var(--calm-border)', background: 'var(--calm-bg-secondary)', cursor: 'pointer' };
 const collapsedLabelStyle: React.CSSProperties = { fontSize: '10px', fontWeight: 700, color: 'var(--calm-fg-muted)', writingMode: 'vertical-rl', letterSpacing: '1px' };
 const collapseToggleStyle: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--calm-fg)', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: '0 4px' };

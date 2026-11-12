@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { NodeStyleOverride } from '../utils/standard-node-style';
 import { THEME_BG_FALLBACK, THEME_TEXT_FALLBACK, cssColorToHex } from '../canvas/theme-colors';
-import type { NodeColours } from '../canvas/node-colours';
+import type { CanvasNodeColours as NodeColours } from '../features/types';
 
 /**
  * A CSS colour as `#rrggbb`, for `<input type="color">`. Theme colours are variables or

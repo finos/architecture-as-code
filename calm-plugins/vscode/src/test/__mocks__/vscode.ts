@@ -88,6 +88,12 @@ export const workspace: {
     };
     getConfiguration: (section?: string) => {
         get: <T>(key: string, defaultValue?: T) => T | undefined;
+        inspect: <T>(key: string) => {
+            defaultValue?: T;
+            globalValue?: T;
+            workspaceValue?: T;
+            workspaceFolderValue?: T;
+        } | undefined;
         update: (key: string, value: unknown, target?: ConfigurationTarget) => Promise<void>;
     };
     findFiles: (...args: unknown[]) => Promise<Uri[]>;
@@ -110,6 +116,7 @@ export const workspace: {
     },
     getConfiguration: () => ({
         get: (_key: string, defaultValue?: unknown) => defaultValue,
+        inspect: () => undefined,
         update: async () => {},
     }),
     findFiles: async () => [],

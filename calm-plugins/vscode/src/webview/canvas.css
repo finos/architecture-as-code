@@ -135,7 +135,7 @@
 
 /* Toolbar: simple colored-text actions (matches the classic viewer toolbar). Chart colours alone
    are too pale for text in light themes, so they are mixed with the editor text colour. */
-.calm-toolbar-btn {
+.fid-toolbar-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -151,19 +151,23 @@
     transition: background 0.1s;
 }
 
-.calm-toolbar-btn:hover {
+.fid-toolbar-btn:hover {
     background: var(--calm-hover);
 }
 
-.calm-toolbar-btn--validate {
+.fid-toolbar-btn--validate {
     color: color-mix(in srgb, var(--calm-green) 60%, var(--calm-text));
 }
 
-.calm-toolbar-btn--apply {
+.fid-toolbar-btn--apply {
     color: color-mix(in srgb, var(--vscode-charts-yellow, #cca700) 60%, var(--calm-text));
 }
 
-.calm-toolbar-sep {
+.fid-toolbar-btn--spec {
+    color: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 60%, var(--calm-text));
+}
+
+.fid-toolbar-sep {
     width: 1px;
     height: 18px;
     background: var(--calm-border-heavy);
@@ -197,7 +201,7 @@
 }
 
 /* Properties panel resize grip — visible and highlights on hover */
-.calm-resize-handle {
+.fid-resize-handle {
     width: 5px;
     cursor: col-resize;
     background: var(--calm-border);
@@ -205,12 +209,12 @@
     transition: background 0.15s;
 }
 
-.calm-resize-handle:hover {
+.fid-resize-handle:hover {
     background: var(--calm-focus);
 }
 
 /* Overflow (⋮) dropdown menu items */
-.calm-menu-item {
+.fid-menu-item {
     display: block;
     width: 100%;
     text-align: left;
@@ -225,7 +229,7 @@
     cursor: pointer;
 }
 
-.calm-menu-item:hover {
+.fid-menu-item:hover {
     background: var(--calm-hover);
 }
 

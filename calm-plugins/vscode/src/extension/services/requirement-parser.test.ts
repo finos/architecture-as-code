@@ -57,6 +57,26 @@ describe('parseRequirementSchema', () => {
         expect(parsed?.properties.retries.allowedValues).toEqual([1, 2, 3]);
     });
 
+    it('treats allowedValues as enum metadata', () => {
+        const { parsed } = parseRequirementSchema({
+            properties: {
+                ...identity,
+                value: {
+                    allowedValues: ['Edge', 'Internal'],
+                    description: 'Select the appropriate gateway type for this platform',
+                },
+            },
+            required: ['value'],
+        });
+
+        expect(parsed?.properties.value).toEqual({
+            type: 'enum',
+            allowedValues: ['Edge', 'Internal'],
+            description: 'Select the appropriate gateway type for this platform',
+            required: true,
+        });
+    });
+
     it('resolves a $ref to a local defs entry', () => {
         const { parsed } = parseRequirementSchema({
             properties: {

@@ -91,6 +91,13 @@
     "configuration": {
       "title": "CALM Canvas",
       "properties": {
+        "calm.canvas.enabledFeatures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Optional canvas feature IDs to enable. When unset, all bundled features are enabled; use an empty array to disable them. The core architecture canvas is always available."
+        },
         "calm.externalAssetsPath": {
           "type": "string",
           "default": "",
@@ -145,6 +152,7 @@
     "@finos/calm-diagram": "*",
     "@finos/calm-models": "file:../../calm-models",
     "@finos/calm-shared": "file:../../shared",
+    "adm-zip": "^0.5.10",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "reactflow": "^11.11.4",
@@ -159,6 +167,7 @@
   },
   "devDependencies": {
     "@finos/calm-schema": "*",
+    "@types/adm-zip": "^0.5.5",
     "vite": "^8.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "@tailwindcss/vite": "^4.1.0",

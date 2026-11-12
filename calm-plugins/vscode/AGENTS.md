@@ -21,13 +21,15 @@ src/
 │   └── types/messages.ts         # Extension/webview message contracts
 ├── webview/
 │   ├── main.tsx                  # React entry point
-│   ├── App.tsx                   # Canvas, editing, layout, validation, export
+│   ├── App.tsx                   # Core canvas and feature composition
+│   ├── features/                 # Optional canvas capabilities and toolbar contributions
 │   ├── stores/                   # Zustand canvas state and sync bridge
 │   ├── transforms/               # CALM parsing and editor transformations
 │   ├── canvas/                   # ReactFlow node and edge components
 │   ├── panels/                   # Palette, properties, assets, controls
 │   └── utils/                    # Webview validation and helpers
 ├── core/                         # CALM types, helpers, bundled schemas
+├── packs/                        # Palette pack definitions and registry
 └── test/__mocks__/vscode.ts       # VS Code API mock for unit tests
 ```
 
@@ -38,7 +40,7 @@ src/
 - Command: `calm.openCanvas` (**CALM: View in CALM Canvas**).
 - Supported document suffixes: `.calm.json`, `.architecture.json`.
 - Settings: `calm.externalAssetsPath`, `calm.packs.enabled`,
-  `calm.packs.excludeNodes`.
+  `calm.packs.excludeNodes`, `calm.canvas.enabledFeatures`.
 
 The editor title, context menus, keybinding, and CodeLens open the same canvas.
 Do not add guidance for removed preview tabs or settings such as `calm.urlMapping`.
@@ -53,16 +55,25 @@ Do not add guidance for removed preview tabs or settings such as `calm.urlMappin
   File watchers and save events send file changes back to the canvas.
 - `WorkspaceAssetService` scans workspace roots and `calm.externalAssetsPath`
   for standard nodes, patterns, and controls.
+- `calm.canvas.enabledFeatures` selects statically bundled optional canvas
+  features. Feature definitions in `src/webview/features/*/feature.ts` are
+  discovered at build time. If unset, all discovered features are enabled; an
+  empty list disables all optional features. Disabled features must not remove
+  their data when an architecture is edited or serialized.
 - Webview validation uses `src/webview/utils/validation.ts` and the schema and
   semantic checks in `src/core/validation.ts`. Results appear in the canvas.
-- SVG export starts in `App.tsx` and is saved by `DiagramExportService`.
+- SVG export is implemented in
+  `src/webview/features/import-export/useSvgExport.ts` and saved by
+  `DiagramExportService`.
 
-The palette node packs come from `@finos/calm-diagram/packs`, which the docs diagram embed also
-uses. Change a pack in `calm-diagram/src/packs`.
-
-When adding a feature, update the appropriate host or webview module and the
-message contract when necessary. Keep VS Code API access in the extension host
-and preserve the file/canvas synchronization guards.
+When adding an optional canvas feature, add its definition at
+`src/webview/features/<feature-id>/feature.ts`. The build automatically
+registers feature definitions from these folders. The generic
+`calm.canvas.enabledFeatures` setting accepts IDs without enumerating them in the
+extension manifest. Feature code is compiled into the extension; configuration
+enables or disables registered IDs and does not load code dynamically. Keep VS
+Code API access in the extension host, use the typed message contract for host
+requests, and preserve the file/canvas synchronization guards.
 
 ## Development commands
 
@@ -72,7 +83,6 @@ repository root, with workspace selectors:
 ```bash
 npm ci
 npm run build --workspace calm-models
-npm run build --workspace calm-diagram
 npm run build --workspace calm-plugins/vscode
 npm run watch --workspace calm-plugins/vscode
 npm test --workspace calm-plugins/vscode
@@ -81,7 +91,7 @@ npm run package --workspace calm-plugins/vscode
 ```
 
 The root also provides `npm run test:vscode` and `npm run package:vscode`, which
-run `build:shared` and build `calm-diagram` before the extension command. Watch mode builds the extension
+run `build:shared` before the extension command. Watch mode builds the extension
 host; rebuild the webview after changes to React components.
 
 `esbuild.mjs` bundles `src/extension/extension.ts` into `dist/extension.js`.
@@ -110,10 +120,10 @@ the parity of the minor. A preview gets a patch for each release. A stable `feat
 (1.2.x → 1.4.0). To start a new line, run the workflow with `force-release` and a `release-type`:
 `preview` (next odd minor), `stable` (next even minor), `major` or `patch`.
 
-A change releases the extension when it touched `calm-plugins/vscode` or `calm-diagram/src/packs`
-and is a `feat`, `fix`, `perf` or `revert`, or has a breaking-change note. A PR for another package
-that changes the extension counts too. Dependency updates do not. The changelog lists the same
-changes, plus scoped `docs` and `refactor` changes. `npm run changelog --workspace calm-plugins/vscode` writes the whole
+A change releases the extension when it touched `calm-plugins/vscode` and is a `feat`, `fix`,
+`perf` or `revert`, or has a breaking-change note. A PR for another package that changes the
+extension counts too. Dependency updates do not. The changelog lists the same changes, plus scoped
+`docs` and `refactor` changes. `npm run changelog --workspace calm-plugins/vscode` writes the whole
 file again from the tags.
 
 ## Bundled Schemas
@@ -130,6 +140,9 @@ version of that package. Do not write a release number into these URLs.
 - Do not bypass `SyncCoordinator` when changing synchronization.
 - Respect read-only navigation when drilling into referenced assets.
 - Keep the webview and extension message types aligned.
+- Keep each feature definition ID aligned with its folder name and the
+  `package.json` setting enum.
+- Feature enablement controls UI and actions only; it must not discard CALM data.
 - Update the current canvas modules rather than adding code to the removed
   `src/features/preview/` or Tree View structure.
 - Use the current build and test configuration files; this package does not use

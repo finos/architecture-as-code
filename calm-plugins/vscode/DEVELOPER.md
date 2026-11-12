@@ -1,198 +1,134 @@
-# CALM VS Code Extension - Developer Guide
+# CALM VS Code Extension Developer Guide
 
 ## Architecture
 
-The extension follows a **Redux Pattern + MVVM + Hexagonal Architecture** approach with clear separation of concerns:
+The extension has a TypeScript VS Code host and a React webview. ReactFlow
+renders the architecture canvas, Zustand stores canvas state, and the host and
+webview communicate through the typed contracts in
+`src/extension/types/messages.ts`.
 
-### 🏗️ Core Architecture Principles
-
-```mermaid
-graph TB
-    UI[VS Code UI<br/>TreeView, Webview, Commands]
-    VM[View Models<br/>Presentation Logic]
-    M[Mediators<br/>Cross-cutting Concerns]
-    Store[Application Store<br/>Global State]
-    
-    UI <--> VM
-    VM --> Store
-    M --> Store
-    M --> VM
-    
-    subgraph "Framework-Free Zone"
-        VM
-        Store
-    end
-    
-    subgraph "VS Code Integration"
-        UI
-        M
-    end
-    
-    style Store fill:#e1f5fe
-    style VM fill:#f3e5f5
-    style M fill:#fff3e0
-    style UI fill:#e8f5e8
-```
-
-#### **MVVM (Model-View-ViewModel)**
-- **Models**: `application-store.ts` - Zustand-based global state management
-- **ViewModels**: Framework-free presentation logic (no `vscode` imports)
-  - `TreeViewModel` - Tree structure and navigation
-  - `EditorViewModel` - Editor interactions and positioning  
-  - `DocifyViewModel` - Documentation generation state
-  - `CalmModelViewModel` - Model data display
-  - `TemplateViewModel` - Template processing and live mode
-- **Views**: VS Code specific UI implementations (TreeDataProvider, WebviewPanel, etc.)
-- **Controller**: `calm-extension-controller.ts` handles dependency wiring and VS Code lifecycle
-
-#### **Hexagonal Architecture (Ports & Adapters)**
-```
-src/core/
-├── ports/           # Interfaces (dependency inversion)
-├── services/        # Core business logic
-├── mediators/       # Cross-cutting concerns coordination
-└── application-store.ts  # Central state management
-```
-
-#### **Mediator Pattern**
-Mediators handle cross-cutting concerns without tight coupling:
-- **RefreshService**: Coordinates model updates and UI refreshes
-- **SelectionService**: Syncs selection across tree, editor, and preview
-- **WatchService**: File system monitoring and change detection
-- **StoreReactionMediator**: Reactive state management orchestration
-
-### 📁 Project Structure
-
-```
+```text
 src/
-├── application-store.ts         # Zustand store (global state)
-├── calm-extension-controller.ts # Main orchestration controller
-├── extension.ts                 # VS Code entry point
-├── 
-├── core/                        # Hexagonal architecture core
-│   ├── ports/                   # Dependency inversion interfaces
-│   ├── services/                # Business logic services
-│   ├── mediators/               # Cross-cutting concern coordinators
-│   └── emitter.ts              # Framework-free event system
-│   
-├── features/                    # Feature-based organization
-│   ├── editor/                  # Editor integration (hover, CodeLens)
-│   ├── preview/                 # Webview preview panel
-│   │   ├── docify-tab/         # Documentation generation
-│   │   ├── model-tab/          # Model data display
-│   │   └── template-tab/       # Template processing
-│   └── tree-view/              # Sidebar tree navigation
-│       └── view-model/         # MVVM presentation logic
-│
-├── commands/                    # VS Code command implementations
-├── models/                      # Model parsing and indexing
-└── cli/                        # CLI integration (to be replaced)
+├── extension/
+│   ├── extension.ts                 # Commands and activation
+│   ├── webview/
+│   │   ├── canvas-panel.ts          # Panel lifecycle, message dispatch, host services
+│   │   └── html-provider.ts         # Webview HTML and initial settings
+│   ├── services/                    # Workspace assets, sync, import/export, Hub
+│   └── types/messages.ts            # Host/webview message contracts
+├── webview/
+│   ├── App.tsx                      # Core canvas and feature composition
+│   ├── features/                    # Optional capabilities and toolbar contributions
+│   ├── canvas/                      # ReactFlow nodes, edges, and canvas helpers
+│   ├── panels/                      # Palette and shared property editors
+│   ├── stores/                      # Canvas state and message bridge
+│   ├── transforms/                  # CALM parsing and serialization
+│   └── utils/                       # Canvas-specific helpers and validation
+├── core/                            # CALM types, helpers, and schema validation
+└── packs/                           # Declarative palette packs
 ```
 
-## Development Setup
+The core canvas is always available. Optional feature definitions in
+`src/webview/features/<feature-id>/feature.ts` are discovered and statically
+bundled at build time. If `calm.canvas.enabledFeatures` is unset, all discovered
+features are enabled. An explicit array selects feature IDs, and an empty array
+disables all optional features. The manifest accepts strings without listing
+feature IDs, so it does not expose build-specific features. Disabling a feature
+hides its actions and UI, but must not remove that feature's data from a CALM
+document during load, edit, or serialization.
 
-### Prerequisites
-- VS Code 1.88+
-- Node.js 20+
+Palette packs are separate from canvas features. Packs define node types and
+visual metadata; `calm.packs.enabled` filters which registered packs appear in
+the palette.
 
-### Development Setup
+## Adding A Canvas Feature
 
-1. **Install dependencies**:
-   ```bash
-   cd calm-plugins/vscode
-   npm install
-   ```
+1. Add the feature definition at
+  `src/webview/features/<feature-id>/feature.ts`. Its ID must match the folder
+  name; the build discovers and registers it automatically.
+2. Add feature-owned UI in the same folder and contribute it through a generic
+   surface slot. Add focused tests, including an App integration test if the
+   feature changes editing or model preservation.
 
-2. **Start development server**:
-   ```bash
-   npm run watch
-   ```
+Do not add feature imports, IDs, or action handlers to `App.tsx`, the feature
+registry, or `package.json`. The build discovers each `feature.ts`; the generic
+registry filters by the setting and composes its actions, surfaces, and lifecycle
+hooks. Keep host-only work behind the typed webview message bridge; do not import
+`vscode` APIs into a feature. Host requests and responses belong in
+`src/extension/types/messages.ts` and are dispatched by `CanvasPanel`.
 
-3. **Launch Extension Development Host**:
-   - Press `F5` in VS Code
-   - Or use "Run CALM Extension" from the debug panel
+### Minimal Example
 
-### Building for Production
+Create `src/webview/features/example-feature/feature.ts`:
 
-At the root project level
+```ts
+import type { CanvasFeatureDefinition } from '../types';
+import { ExampleSummary } from './ExampleSummary';
+
+export const exampleFeature: CanvasFeatureDefinition = {
+  id: 'example-feature',
+  toolbarActions: [
+    {
+      id: 'example-feature.count-nodes',
+      label: 'Count Nodes',
+      title: 'Log the current canvas node count',
+      group: 'example-feature',
+      order: 10,
+      execute: ({ nodes }) => console.info(`Canvas nodes: ${nodes.length}`),
+    },
+  ],
+  surfaces: { overlay: ExampleSummary },
+};
+```
+
+Create `src/webview/features/example-feature/ExampleSummary.tsx`:
+
+```tsx
+import type { CanvasFeatureRuntime } from '../types';
+
+export function ExampleSummary({ runtime }: { runtime: CanvasFeatureRuntime }) {
+  return <output>{runtime.nodes.length} nodes on canvas</output>;
+}
+```
+
+The feature ID is the folder name. Enable only it in local settings with
+`"calm.canvas.enabledFeatures": ["example-feature"]`; setting the option to
+`[]` disables optional features. Do not add the ID to the extension manifest.
+
+Feature settings are injected by `html-provider.ts` when the webview is
+initialized. A setting change takes effect the next time the canvas webview is
+opened.
+
+## Data Flow
+
+- `CanvasPanel` sends the current document and workspace assets to the webview.
+- Canvas edits return as `canvasChanged` messages and are applied with
+  `vscode.WorkspaceEdit`; they do not save the document to disk.
+- `SyncCoordinator` prevents file and canvas updates from echoing indefinitely.
+- `WorkspaceAssetService` scans workspace roots and
+  `calm.externalAssetsPath` for standard nodes, patterns, and controls.
+- The webview parses and serializes CALM documents through `transforms/`; feature
+  enablement must not change the document shape or discard unrendered data.
+
+## Development
+
+Use Node 26 as pinned by the repository's `.nvmrc`. Run commands from the
+repository root:
 
 ```bash
-npm run package:vscode
+npm run build --workspace calm-models
+npm run build --workspace calm-plugins/vscode
+npm test --workspace calm-plugins/vscode
+npm run lint --workspace calm-plugins/vscode
+npm run package --workspace calm-plugins/vscode
 ```
 
-This will ensure dependent projects are compiled first
+The extension host is bundled by `esbuild.mjs`. The webview is bundled from
+`src/webview/main.tsx` by `vite.webview.config.mts`. Tests use Vitest and live
+beside the affected source. For packaged-extension checks, install the VSIX in a
+VS Code test profile and inspect the webview developer tools and CALM Canvas
+output channel.
 
-### Testing
-
-```bash
-npm test                    # Run all tests
-npm test -- --watch       # Run tests in watch mode
-npm test -- tree-view     # Run specific test suite
-```
-
-**Test Coverage**: 109 tests across all ViewModels with comprehensive:
-- State management validation
-- Event emission testing  
-- Resource cleanup verification
-- Edge case handling
-
-## Publishing
-
-### GitHub Actions Publishing
-
-The extension can be published via GitHub Actions using manual workflow dispatch:
-
-1. **Navigate to Actions tab** in your GitHub repository
-2. **Select "Build VS Code Extension"** from the workflow list
-3. **Click "Run workflow"** button
-4. **Choose your options**:
-   - ☐ Leave unchecked: Build, test, and package only
-   - ☑️ Check "Publish to VS Code Marketplace": Build, test, package, AND publish
-
-**What it does**
-- **Always runs**: Lint → Test → Package
-- **Conditionally runs**: Publish (only when checkbox is selected)
-
-
-**Prerequisites**
-- Ensure `VSCE_PAT` secret is configured in repository settings
-- Secret is only needed if you plan to publish
-
-**VS Code Marketplace**
-The extension will be published to the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin).
-
-
-## Developer Guide
-
-### 🎯 Current Implementation Status
-
-#### ✅ **Completed** 
-- **MVVM Architecture**: Clean separation with framework-free ViewModels
-- **Comprehensive Testing**: 109 tests covering all ViewModels
-- **State Management**: Zustand-based reactive store  
-- **Interactive Preview**: Cytoscape-powered graph with rich interactions
-- **Tree Navigation**: Full CRUD operations with search/filter
-- **Editor Integration**: Hover, CodeLens, and automatic refresh
-- **Template System**: Handlebars processing with live mode
-
-#### 📋 **In Progress/Planned**
-- **Hexagonal Architecture Refinement**: Completing ports/adapters pattern
-- **Mediator Coordination**: Fine-tuning cross-cutting concerns
-- **CLI Integration Replacement**: `--scaffold` mode from docify CLI will replace most of the code in  `src/cli/` folder (See https://github.com/finos/architecture-as-code/issues/1563)
-- **Model Updates**: Original [POC](https://github.com/finos/architecture-as-code/pull/1516) models in `src/models/` and settings need updating to potentially use models from @finos/calm-models and reduce use of any
-- **Enhanced Validation**: Richer diagnostics and error reporting
-
-### 🎯 Contribution Guidelines
-
-#### **ViewModels Should**
-- ✅ Be framework-free (no `vscode` imports)
-- ✅ React to store state changes only
-- ✅ Provide presentation-ready data
-- ✅ Emit events for user intents
-- ❌ **NOT** know about mediators directly
-
-#### **Mediators Should** 
-- ✅ Coordinate between different parts of the system
-- ✅ Handle cross-cutting concerns (selection, refresh, etc.)
-- ✅ Subscribe to store changes and ViewModel events
-- ❌ **NOT** contain business logic
+Release versioning and changelog generation are automated. Follow
+`AGENTS.md` and the repository release workflow; do not edit the extension
+version or generated changelog by hand.

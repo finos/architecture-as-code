@@ -29,7 +29,18 @@ export function instantiateFromPattern(schema: unknown, standardNodes?: Standard
             return r;
         });
 
-    return { nodes, relationships };
+    const flows = (p?.properties?.flows?.prefixItems ?? [])
+        .map((entry: any) => firstBuildable(entry))
+        .filter(Boolean)
+        .map((flow: any) => ({
+            ...flow,
+            'unique-id': flow['unique-id'] || '[[PLACEHOLDER]]',
+            name: flow.name || '[[PLACEHOLDER]]',
+            description: flow.description ?? '',
+            transitions: flow.transitions ?? [],
+        }));
+
+    return { nodes, relationships, ...(flows.length > 0 ? { flows } : {}) };
 }
 
 /**
@@ -116,6 +127,8 @@ function resolveStandardNode(node: any, standardNodes: StandardNodeDef[]): void 
         node['definition-id'] = `${match.namespace}:standards:${match.id}@${match.sha}`;
     } else {
         delete node['definition-id'];
+        if (!node.metadata) node.metadata = {};
+        node.metadata['source-standard-node'] = match.id;
     }
 }
 

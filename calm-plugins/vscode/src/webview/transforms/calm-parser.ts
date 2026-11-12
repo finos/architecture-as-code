@@ -2,15 +2,25 @@ import type { Node, Edge } from 'reactflow';
 import { MarkerType } from 'reactflow';
 import dagre from '@dagrejs/dagre';
 import type { CalmArchitecture } from './calm-editor-transformer';
+import type { CalmFlow } from '../../core/types';
+import { getDetailNodeVisual, DEFAULT_DETAIL_NODE_VISUAL } from '../canvas/nodes/nodeVisuals';
 
 export interface ParsedCALMData {
     nodes: Node[];
     edges: Edge[];
+    flows: CalmFlow[];
     copiesLimited: boolean;
 }
 
-const NODE_WIDTH = 250;
-const NODE_HEIGHT = 60;
+const MAX_LABEL_LENGTH = 30;
+
+function truncate(text: string | undefined, max: number): string | undefined {
+    if (!text) return text;
+    return text.length > max ? text.slice(0, max) + '...' : text;
+}
+
+const NODE_WIDTH = DEFAULT_DETAIL_NODE_VISUAL.width;
+const NODE_HEIGHT = DEFAULT_DETAIL_NODE_VISUAL.height;
 const GROUP_PADDING = 50;
 const CONTAINER_BASE_WIDTH = 500;
 const CONTAINER_BASE_HEIGHT = 350;
@@ -24,7 +34,7 @@ export function parseCALMData(
     arch: CalmArchitecture,
     direction: 'DOWN' | 'RIGHT' = 'DOWN'
 ): ParsedCALMData {
-    if (!arch || !arch.nodes) return { nodes: [], edges: [], copiesLimited: false };
+    if (!arch || !arch.nodes) return { nodes: [], edges: [], flows: [], copiesLimited: false };
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
@@ -169,6 +179,7 @@ export function parseCALMData(
 
         let containerWidth = CONTAINER_BASE_WIDTH;
         let containerHeight = CONTAINER_BASE_HEIGHT;
+        const visual = getDetailNodeVisual((n['node-type'] as string) ?? 'system');
         if (isContainer) {
             const desc = descendantCount.get(id) ?? 0;
             containerWidth = CONTAINER_BASE_WIDTH + Math.ceil(Math.sqrt(desc)) * CONTAINER_CHILD_WIDTH_INCREMENT;
@@ -195,16 +206,19 @@ export function parseCALMData(
             ...(parent ? { parentId: parent, extent: 'parent' as const, zIndex: depth } : {}),
             ...(isContainer
                 ? {
+                      width: containerWidth,
+                      height: containerHeight,
                       style: { width: containerWidth, height: containerHeight },
                   }
-                : {}),
-            width: isContainer ? containerWidth : NODE_WIDTH,
-            height: isContainer ? containerHeight : NODE_HEIGHT,
+                : {
+                      width: visual.width,
+                      height: visual.height,
+                  }),
         };
     }
 
     // Build edges from non-containment relationships
-    interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; edgeMetadata: Record<string, unknown> }
+    interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; sourceHandle?: string; targetHandle?: string; metaDirection?: string; edgeMetadata: Record<string, unknown> }
     const connectsList: ConnectsEntry[] = [];
     for (const rel of arch.relationships ?? []) {
         const rt = rel['relationship-type'] as
@@ -231,9 +245,13 @@ export function parseCALMData(
                 const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
                 const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
                 const routing = (relMeta?.['routing'] as string) ?? 'bezier';
+                const sourceHandle = relMeta?.['source-handle'] as string | undefined;
+                const targetHandle = relMeta?.['target-handle'] as string | undefined;
+                const metaDirection = relMeta?.['direction'] as string | undefined;
+                const edgeMetaKeys = new Set(['line-style', 'routing', 'source-handle', 'target-handle', 'direction']);
                 const edgeMetadata: Record<string, unknown> = {};
-                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
-                connectsList.push({ relId, src, dst, protocol, description, controls: (rel as any).controls, lineStyle, routing, edgeMetadata });
+                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (!edgeMetaKeys.has(k)) edgeMetadata[k] = v; } }
+                connectsList.push({ relId, src, dst, protocol, description, controls: (rel as any).controls, lineStyle, routing, sourceHandle, targetHandle, metaDirection, edgeMetadata });
             }
         } else if (interacts) {
             const actor = interacts.actor;
@@ -242,29 +260,36 @@ export function parseCALMData(
             const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
             const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
             const routing = (relMeta?.['routing'] as string) ?? 'bezier';
+            const sourceHandle = relMeta?.['source-handle'] as string | undefined;
+            const targetHandle = relMeta?.['target-handle'] as string | undefined;
+            const metaDirection = (relMeta?.['direction'] as string) ?? 'source-to-target';
+            const edgeMetaKeys = new Set(['line-style', 'routing', 'source-handle', 'target-handle', 'direction']);
             const edgeMetadata: Record<string, unknown> = {};
-            if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
+            if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (!edgeMetaKeys.has(k)) edgeMetadata[k] = v; } }
             for (const target of interacts.nodes ?? []) {
                 if (actor && target) {
                     edges.push({
                         id: `${relId}#${target}`,
                         source: actor,
                         target,
-                        label: description || undefined,
+                        label: truncate(description, MAX_LABEL_LENGTH) || undefined,
+                        ...(sourceHandle ? { sourceHandle } : {}),
+                        ...(targetHandle ? { targetHandle } : {}),
                         data: {
                             calmVariant: 'interacts',
                             calmRelId: relId,
                             protocol,
                             description,
                             controls: (rel as any).controls,
-                            direction: 'source-to-target',
+                            direction: metaDirection,
                             lineStyle,
                             routing,
                             edgeMetadata,
                         },
                         type: 'tooltip',
-                        markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                        style: { strokeWidth: 1.5 },
+                        ...((metaDirection === 'source-to-target' || metaDirection === 'bidirectional') ? { markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 } } : {}),
+                        ...((metaDirection === 'target-to-source' || metaDirection === 'bidirectional') ? { markerStart: { type: MarkerType.ArrowClosed, width: 15, height: 15 } } : {}),
+                        style: { stroke: '#94a3b8', strokeWidth: 1.5 },
                     });
                 }
             }
@@ -282,27 +307,34 @@ export function parseCALMData(
                 const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
                 const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
                 const routing = (relMeta?.['routing'] as string) ?? 'bezier';
+                const srcHandle = relMeta?.['source-handle'] as string | undefined;
+                const tgtHandle = relMeta?.['target-handle'] as string | undefined;
+                const customDirection = (relMeta?.['direction'] as string) ?? 'source-to-target';
+                const edgeMetaKeys = new Set(['line-style', 'routing', 'source-handle', 'target-handle', 'direction']);
                 const edgeMetadata: Record<string, unknown> = {};
-                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
+                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (!edgeMetaKeys.has(k)) edgeMetadata[k] = v; } }
                 edges.push({
                     id: relId,
                     source: src,
                     target: dst,
-                    label: protocol || description || variantKey,
+                    label: truncate(protocol || description || variantKey, MAX_LABEL_LENGTH),
+                    ...(srcHandle ? { sourceHandle: srcHandle } : {}),
+                    ...(tgtHandle ? { targetHandle: tgtHandle } : {}),
                     data: {
                         calmVariant: variantKey,
                         calmRelId: relId,
                         protocol,
                         description,
                         controls: (rel as any).controls,
-                        direction: 'source-to-target',
+                        direction: customDirection,
                         lineStyle,
                         routing,
                         edgeMetadata,
                     },
                     type: 'tooltip',
-                    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                    style: { strokeWidth: 1.5 },
+                    ...((customDirection === 'source-to-target' || customDirection === 'bidirectional') ? { markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 } } : {}),
+                    ...((customDirection === 'target-to-source' || customDirection === 'bidirectional') ? { markerStart: { type: MarkerType.ArrowClosed, width: 15, height: 15 } } : {}),
+                    style: { stroke: '#94a3b8', strokeWidth: 1.5 },
                 });
             }
         }
@@ -319,15 +351,19 @@ export function parseCALMData(
         if (reverse) consumed.add(reverse.relId);
         consumed.add(entry.relId);
 
-        const directionValue = isBidi ? 'bidirectional' : 'source-to-target';
-        const markerEnd = { type: MarkerType.ArrowClosed, width: 15, height: 15 };
-        const markerStart = isBidi ? { type: MarkerType.ArrowClosed, width: 15, height: 15 } : undefined;
+const directionValue = entry.metaDirection === 'none' || entry.metaDirection === 'target-to-source' || entry.metaDirection === 'bidirectional'
+            ? entry.metaDirection : isBidi ? 'bidirectional' : 'source-to-target';
+        const arrowMarker = { type: MarkerType.ArrowClosed, width: 15, height: 15 };
+        const markerEnd = (directionValue === 'source-to-target' || directionValue === 'bidirectional') ? arrowMarker : undefined;
+        const markerStart = (directionValue === 'target-to-source' || directionValue === 'bidirectional') ? arrowMarker : undefined;
 
         edges.push({
             id: entry.relId,
             source: entry.src,
             target: entry.dst,
-            label: entry.protocol || entry.description || undefined,
+            label: truncate(entry.protocol || entry.description, MAX_LABEL_LENGTH) || undefined,
+            ...(entry.sourceHandle ? { sourceHandle: entry.sourceHandle } : {}),
+            ...(entry.targetHandle ? { targetHandle: entry.targetHandle } : {}),
             data: {
                 calmVariant: 'connects',
                 calmRelId: entry.relId,
@@ -347,9 +383,12 @@ export function parseCALMData(
         });
     }
 
+    // Extract flows (already in the right shape for the store)
+    const flows: CalmFlow[] = (arch as Record<string, unknown>).flows as CalmFlow[] ?? [];
+
     // Apply Dagre auto-layout
     const layoutedNodes = applyDagreLayout(nodes, edges, direction);
-    return { nodes: layoutedNodes, edges, copiesLimited: capped };
+    return { nodes: layoutedNodes, edges, flows, copiesLimited: capped };
 }
 
 const KNOWN_NODE_TYPES = new Set([

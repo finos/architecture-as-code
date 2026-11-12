@@ -86,12 +86,19 @@ export class HubApiError extends Error {
     }
 }
 
+export type HubApiErrorListener = (status: number, url: string) => void;
+
 export class HubClient {
     private baseUrl: string;
     private authHeaders: Record<string, string> = {};
+    private errorListeners: HubApiErrorListener[] = [];
 
     constructor(baseUrl: string) {
         this.baseUrl = baseUrl.replace(/\/$/, '');
+    }
+
+    onApiError(listener: HubApiErrorListener): void {
+        this.errorListeners.push(listener);
     }
 
     getBaseUrl(): string {

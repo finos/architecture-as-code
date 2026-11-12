@@ -1,4 +1,5 @@
 import type { Node, Edge } from 'reactflow';
+import type { CalmFlow } from '../../core/types';
 import { calmIdOf, pathOf } from './node-instances';
 import { parseCALMData } from './calm-parser';
 
@@ -8,6 +9,7 @@ export type LayoutMap = Record<string, LayoutEntry>;
 export interface CalmArchitecture {
     nodes: Array<Record<string, unknown>>;
     relationships: Array<Record<string, unknown>>;
+    flows?: CalmFlow[];
     [key: string]: unknown;
 }
 
@@ -20,11 +22,15 @@ export function setLastParsedArch(arch: CalmArchitecture | null): void {
 export function buildLayoutMap(nodes: Node[]): LayoutMap {
     const layout: LayoutMap = {};
     for (const n of nodes) {
+        const width = n.width ?? (n as any).measured?.width;
+        const height = n.height ?? (n as any).measured?.height;
+        const size = typeof width === 'number' && typeof height === 'number'
+            ? { w: Math.round(width), h: Math.round(height) }
+            : {};
         layout[n.id] = {
             x: Math.round(n.position.x),
             y: Math.round(n.position.y),
-            w: Math.round((n as any).width ?? (n as any).measured?.width ?? 0),
-            h: Math.round((n as any).height ?? (n as any).measured?.height ?? 0),
+            ...size,
         };
     }
     return layout;
@@ -37,10 +43,11 @@ export function applyLayoutFromMetadata(nodes: Node[], metadata: Record<string, 
     return nodes.map((n) => {
         const entry = layoutData[n.id];
         if (!entry) return n;
+        const shouldApplySize = typeof entry.w === 'number' && typeof entry.h === 'number';
         return {
             ...n,
             position: { x: entry.x, y: entry.y },
-            ...(entry.w && entry.h ? { width: entry.w, height: entry.h, style: { ...n.style, width: entry.w, height: entry.h } } : {}),
+            ...(shouldApplySize ? { width: entry.w, height: entry.h, style: { ...n.style, width: entry.w, height: entry.h } } : {}),
         };
     });
 }
@@ -49,6 +56,7 @@ export function flowToCalm(
     nodes: Node[],
     edges: Edge[],
     documentControls?: Record<string, unknown>,
+    flows?: CalmFlow[],
 ): CalmArchitecture {
     const calmNodes: Array<Record<string, unknown>> = [];
     const calmRelationships: Array<Record<string, unknown>> = [];
@@ -171,7 +179,7 @@ export function flowToCalm(
 
         const direction = (data.direction as string) ?? 'source-to-target';
         const original = originalRels.get(relId);
-        const metadata = buildEdgeMetadata(data, original);
+        const metadata = buildEdgeMetadata(data, original, edge);
 
         calmRelationships.push(applyCanvasFields(original, {
             'unique-id': relId,
@@ -227,6 +235,11 @@ export function flowToCalm(
         (relOrder.get(a['unique-id'] as string) ?? Infinity) - (relOrder.get(b['unique-id'] as string) ?? Infinity));
 
     const arch: CalmArchitecture = { ...lastParsedArch, nodes: calmNodes, relationships: calmRelationships };
+    if (flows && flows.length > 0) {
+        arch.flows = flows;
+    } else if (flows !== undefined) {
+        delete arch.flows;
+    }
 
     if (documentControls && Object.keys(documentControls).length > 0) {
         arch.controls = documentControls;
@@ -285,12 +298,17 @@ function originalVariant(
 function buildEdgeMetadata(
     data: Record<string, unknown>,
     original: Record<string, unknown> | undefined,
+    edge?: Edge,
 ): Record<string, unknown> | unknown[] | undefined {
     const lineStyle = (data.lineStyle as string) ?? 'solid';
     const routing = (data.routing as string) ?? 'bezier';
     const meta: Record<string, unknown> = { ...((data.edgeMetadata as Record<string, unknown>) ?? {}) };
     if (lineStyle && lineStyle !== 'solid') meta['line-style'] = lineStyle;
     if (routing && routing !== 'bezier') meta['routing'] = routing;
+    if (edge?.sourceHandle) meta['source-handle'] = edge.sourceHandle;
+    if (edge?.targetHandle) meta['target-handle'] = edge.targetHandle;
+    const direction = data.direction as string | undefined;
+    if (direction === 'none' || direction === 'target-to-source') meta.direction = direction;
     const originalMeta = original?.metadata;
     if (Array.isArray(originalMeta) && JSON.stringify(meta) === JSON.stringify({ ...originalMeta })) return originalMeta;
     if (Object.keys(meta).length === 0) return undefined;

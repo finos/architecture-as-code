@@ -8,6 +8,7 @@ function createMockClient(): HubClient {
         getResources: vi.fn(),
         getVersions: vi.fn(),
         getResourceAtVersion: vi.fn(),
+        getAdrs: vi.fn().mockResolvedValue([]),
     } as unknown as HubClient;
 }
 

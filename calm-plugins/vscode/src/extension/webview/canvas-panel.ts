@@ -11,6 +11,8 @@ import { ControlAssetService, LOCAL_DOMAIN } from '../services/control-asset-ser
 import { resolveSelectedNamespaces } from '../services/namespace-selection';
 import { ShaCacheService } from '../services/sha-cache-service';
 import { SvgImportService } from '../services/svg-import';
+import { ExportService, ExportCancelledError } from '../services/export-service';
+import { ImportService, ImportCancelledError } from '../services/import-service';
 import {
     parseRequirementSchema,
     type ParseResult,
@@ -52,6 +54,8 @@ export class CanvasPanel {
     private shaCache = new ShaCacheService();
     private hubBaseHash = '';
     private importService: SvgImportService | undefined;
+    private exportBundleService: ExportService | undefined;
+    private importBundleService: ImportService | undefined;
     private fileWatcher: vscode.FileSystemWatcher | undefined;
     private log: vscode.OutputChannel;
 
@@ -69,6 +73,8 @@ export class CanvasPanel {
     ) {
         this.log = outputChannel;
         this.importService = new SvgImportService(outputChannel);
+        this.exportBundleService = new ExportService(outputChannel);
+        this.importBundleService = new ImportService(outputChannel);
         const workspaceRoot =
             vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
         this.log.appendLine(
@@ -174,9 +180,10 @@ export class CanvasPanel {
             vscode.ViewColumn.One;
 
         if (!this.panel) {
+            const docFileName = nodePath.basename(document.uri.fsPath);
             this.panel = vscode.window.createWebviewPanel(
                 'calmCanvas',
-                'CALM Canvas',
+                `CALM Canvas — ${docFileName}`,
                 vscode.ViewColumn.Beside,
                 {
                     enableScripts: true,
@@ -210,6 +217,7 @@ export class CanvasPanel {
             this.context,
             document
         );
+        this.panel.title = `CALM Canvas — ${nodePath.basename(document.uri.fsPath)}`;
         this.panel.reveal(vscode.ViewColumn.Beside);
     }
 
@@ -283,6 +291,9 @@ export class CanvasPanel {
                     message.readonly
                 );
                 break;
+            case 'requestGenerateSpec':
+                void this.handleGenerateSpec();
+                break;
             case 'saveStandardNode':
                 void this.handleSaveStandardNode(
                     message.filename,
@@ -300,6 +311,21 @@ export class CanvasPanel {
                 break;
             case 'requestImportSvg':
                 void this.handleImportSvg();
+                break;
+            case 'requestExportBundle':
+                if (this.currentDocument) {
+                    void vscode.commands.executeCommand(
+                        'calm.exportBundle',
+                        this.currentDocument.uri
+                    );
+                } else {
+                    void vscode.window.showWarningMessage(
+                        'Open a CALM architecture before exporting a bundle.'
+                    );
+                }
+                break;
+            case 'requestImportBundle':
+                void vscode.commands.executeCommand('calm.importBundle');
                 break;
             case 'requestControlBrowse':
                 void this.handleControlBrowse(message.requestId);
@@ -520,6 +546,43 @@ export class CanvasPanel {
             vscode.window.showWarningMessage(`Cannot read: ${resolvedPath}`);
         }
     }
+
+    private async handleGenerateSpec(): Promise<void> {
+        if (!this.currentDocument) return;
+
+        const filePath = this.currentDocument.uri.fsPath;
+        const fileName = nodePath.basename(filePath);
+        const baseName = fileName.replace(/\.(calm\.)?json$/, '');
+        const sdFileName = `${baseName}-solution-design.md`;
+        const sdPath = nodePath.resolve(nodePath.dirname(filePath), sdFileName);
+
+        const prompt = [
+            `@CALM Generate a Solution Design document for the architecture at: ${filePath}`,
+            ``,
+            `Write the output to: ${sdPath}`,
+            ``,
+            `Instructions:`,
+            `- Read the architecture file at the path above`,
+            `- Follow the 13-section structure from .github/agents/calm-prompts/solution-design-creation.md`,
+            `- ALL diagrams MUST be Mermaid syntax`,
+            `- Include ALL 13 sections`,
+        ].join('\n');
+
+        const commands = await vscode.commands.getCommands(true);
+        if (commands.includes('workbench.action.chat.open')) {
+            await vscode.commands.executeCommand('workbench.action.chat.open', {
+                query: prompt,
+                isPartialQuery: false,
+                newChat: true,
+            });
+        } else {
+            vscode.window.showWarningMessage(
+                'Copilot Chat is not available in this VS Code version.'
+            );
+        }
+    }
+
+
 
     private async handleSaveStandardNode(
         filename: string,
@@ -1049,6 +1112,90 @@ export class CanvasPanel {
             this.postMessage({ type: 'modelUpdated', json, source: 'import' });
         } else {
             this.log.appendLine('[CanvasPanel] Import returned null (cancelled or failed)');
+        }
+    }
+
+    private async handleExportBundle(): Promise<void> {
+        this.log.appendLine('[CanvasPanel] handleExportBundle triggered');
+        if (!this.exportBundleService) {
+            this.log.appendLine('[CanvasPanel] exportBundleService is undefined');
+            void vscode.window.showErrorMessage('Export service is not available');
+            return;
+        }
+        if (!this.currentDocument) {
+            this.log.appendLine('[CanvasPanel] currentDocument is undefined');
+            void vscode.window.showErrorMessage('No architecture file is currently open');
+            return;
+        }
+        try {
+            if (this.currentDocument.isDirty && !await this.currentDocument.save()) {
+                throw new Error('Save the architecture before exporting the bundle');
+            }
+            const result = await this.exportBundleService.exportBundle({
+                architecturePath: this.currentDocument.uri.fsPath,
+                currentDirectory: nodePath.dirname(this.currentDocument.uri.fsPath),
+            });
+
+            let message = `Exported ${result.fileCount} files to ${nodePath.basename(result.archivePath)}`;
+            if (result.warnings.length > 0) {
+                message += ` (${result.warnings.length} warnings)`;
+            }
+
+            const selection = await vscode.window.showInformationMessage(
+                message,
+                'Open Folder',
+                'OK'
+            );
+
+            if (selection === 'Open Folder') {
+                await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(result.archivePath));
+            }
+
+            this.log.appendLine(`[CanvasPanel] Export successful: ${result.archivePath}`);
+        } catch (err) {
+            if (err instanceof ExportCancelledError) {
+                this.log.appendLine('[CanvasPanel] Export cancelled by user');
+                return;
+            }
+
+            const msg = err instanceof Error ? err.message : String(err);
+            this.log.appendLine(`[CanvasPanel] Export failed: ${msg}`);
+
+            void vscode.window.showErrorMessage(`Export failed: ${msg}`);
+        }
+    }
+
+    private async handleImportBundle(): Promise<void> {
+        this.log.appendLine('[CanvasPanel] handleImportBundle triggered');
+        if (!this.importBundleService) {
+            this.log.appendLine('[CanvasPanel] importBundleService is undefined');
+            void vscode.window.showErrorMessage('Import service is not available');
+            return;
+        }
+        try {
+            const result = await this.importBundleService.importBundle({});
+
+            const selection = await vscode.window.showInformationMessage(
+                `Imported ${result.fileCount} files to ${nodePath.basename(result.extractedPath)}`,
+                'Open Folder',
+                'OK'
+            );
+
+            if (selection === 'Open Folder') {
+                await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(result.extractedPath));
+            }
+
+            this.log.appendLine(`[CanvasPanel] Import successful: ${result.extractedPath}`);
+        } catch (err) {
+            if (err instanceof ImportCancelledError) {
+                this.log.appendLine('[CanvasPanel] Import cancelled by user');
+                return;
+            }
+
+            const msg = err instanceof Error ? err.message : String(err);
+            this.log.appendLine(`[CanvasPanel] Import failed: ${msg}`);
+
+            void vscode.window.showErrorMessage(`Import failed: ${msg}`);
         }
     }
 

@@ -40,6 +40,7 @@ export function buildArchitecturePattern(
 
     const nodes = (doc.nodes ?? []) as Record<string, unknown>[];
     const rels = (doc.relationships ?? []) as Record<string, unknown>[];
+    const flows = (doc.flows ?? []) as Record<string, unknown>[];
     const pattern = {
         $schema: `${CALM_META_SCHEMA_BASE_URL}/calm.json`,
         $id: `patterns/${fileName}`,
@@ -61,8 +62,17 @@ export function buildArchitecturePattern(
                     itemSchema(r, `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship`)
                 ),
             },
+            ...(flows.length > 0 ? {
+                flows: {
+                    type: 'array',
+                    minItems: flows.length,
+                    prefixItems: flows.map((flow) =>
+                        itemSchema(flow, `${CALM_META_SCHEMA_BASE_URL}/flow.json#/defs/flow`)
+                    ),
+                },
+            } : {}),
         },
-        required: ['nodes', 'relationships'],
+        required: ['nodes', 'relationships', ...(flows.length > 0 ? ['flows'] : [])],
     };
 
     return { fileName, json: JSON.stringify(pattern, null, 2) };
