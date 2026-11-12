@@ -14,4 +14,8 @@ public interface PersonalNamespacesConfig {
 
     @WithDefault("users")
     String root();
+
+    /** Whether a new personal namespace gets the starter {@code my-architecture}. */
+    @WithDefault("true")
+    boolean starterArchitecture();
 }

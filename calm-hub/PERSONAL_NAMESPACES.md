@@ -1,6 +1,6 @@
 # Personal Namespaces
 
-> **Status: everything is built: the Hub API, the Hub UI card and the CLI.**
+> **Status: everything is built: the Hub API, the Hub UI card, the CLI and the starter architecture.**
 > [ADR 0018](decisions/0018-personal-namespaces.md) records the decisions that are
 > hard to change later. Tracked in
 > [#3075](https://github.com/finos/architecture-as-code/issues/3075).
@@ -15,6 +15,7 @@ users.
 |---|---|---|
 | `calm.namespaces.personal.enabled` | `false` | Turns the feature on |
 | `calm.namespaces.personal.root` | `users` | The parent namespace of all personal namespaces. It must match the namespace pattern |
+| `calm.namespaces.personal.starter-architecture` | `true` | Gives each new personal namespace the [starter architecture](#starter-architecture) |
 
 Hub ignores `enabled=true`, and logs a warning, when:
 
@@ -87,10 +88,28 @@ On create, Hub:
 1. creates the namespace with the description `Personal namespace for <principal>`.
 2. gives the caller `admin` on the namespace.
 3. does not add the `*` read grant that `NamespaceService.createNamespace` adds.
+4. writes the [starter architecture](#starter-architecture), unless the operator turns it off.
 
 The path has no `{namespace}` parameter, so `AuditRequestFilter` cannot find the
 entity from the path. The resource stages an `AuditContext` for NAMESPACE CREATE,
 as `NamespaceResource.createNamespace` does.
+
+## Starter architecture
+
+When Hub creates a personal namespace, it also writes version `1.0.0` of
+`my-architecture` in it (#3689). The owner then has a valid CALM document to open,
+pull and push.
+
+| Part | Content |
+|---|---|
+| `$schema` | The newest release in `META-INF/calm-schemas/versions.txt` |
+| Nodes | An `actor` named after the user (`unique-id` `user-<segment>`, in lower case), `CALM CLI` (`service`), `CALM Hub UI` (`webclient`) and `CALM Hub API` (`service`) |
+| Relationships | The actor `interacts` with the CLI and the UI. The CLI and the UI each `connects` to the API over HTTPS |
+| Flows | Create the namespace with the CLI, and in the UI. Pull and push an architecture with the CLI. Browse architectures in the UI |
+
+Hub writes it through the same path as `POST /calm`. If the write fails, Hub logs a
+warning and still returns 201, because the namespace is the main result. A `PUT`
+that returns 200 does not write it again, so an owner who deletes it keeps it deleted.
 
 ## Grants
 
@@ -169,7 +188,6 @@ personal namespace name there. There is no `@me` placeholder.
 | Item | Where |
 |---|---|
 | Share links for documents in a private namespace | [#3719](https://github.com/finos/architecture-as-code/issues/3719) |
-| A starter `my-architecture` in a new personal namespace | [#3689](https://github.com/finos/architecture-as-code/issues/3689) |
 | Archive, and move documents out of a personal namespace | [#2856](https://github.com/finos/architecture-as-code/issues/2856) |
 | Personal domains | Not planned |
 | Clean-up when a user leaves | Not planned. An admin deletes the content and the namespace |

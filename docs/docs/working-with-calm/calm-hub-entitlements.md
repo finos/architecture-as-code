@@ -80,6 +80,8 @@ PUT /api/calm/me/namespace     # creates it
 
 The name is `users.<user name>`, with each `.`, `@` and `_` changed to `-`. The owner gets `admin`, and there is no `*` read grant, so other users cannot see the namespace until the owner grants access. If another user already holds the same name, the request returns 409. The general create endpoint rejects names under `users`.
 
+A new personal namespace also gets `my-architecture`, a starter architecture with you, the CALM CLI, CALM Hub UI and the CALM Hub API, and flows for how you use them. The operator can turn this off with `calm.namespaces.personal.starter-architecture=false`.
+
 The feature stays off when auth is off, when Hub is read-only and in GitHub mode.
 
 ---

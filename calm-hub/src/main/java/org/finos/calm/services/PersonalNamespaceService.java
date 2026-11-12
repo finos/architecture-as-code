@@ -42,6 +42,7 @@ public class PersonalNamespaceService {
     private final NamespaceService namespaceService;
     private final NamespaceStore namespaceStore;
     private final UserAccessStore userAccessStore;
+    private final StarterArchitectureService starterArchitectureService;
     private final boolean allowPublicRead;
     private final String inactiveReason;
 
@@ -50,6 +51,7 @@ public class PersonalNamespaceService {
                                     NamespaceService namespaceService,
                                     NamespaceStore namespaceStore,
                                     UserAccessStore userAccessStore,
+                                    StarterArchitectureService starterArchitectureService,
                                     @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false") boolean authEnabled,
                                     @ConfigProperty(name = "calm.auth.allow-public-read", defaultValue = "false") boolean allowPublicRead,
                                     @ConfigProperty(name = "calm.readonly", defaultValue = "false") boolean readOnly,
@@ -58,6 +60,7 @@ public class PersonalNamespaceService {
         this.namespaceService = namespaceService;
         this.namespaceStore = namespaceStore;
         this.userAccessStore = userAccessStore;
+        this.starterArchitectureService = starterArchitectureService;
         this.allowPublicRead = allowPublicRead;
         this.inactiveReason = inactiveReason(config.enabled(), authEnabled, readOnly, databaseMode);
     }
@@ -185,6 +188,7 @@ public class PersonalNamespaceService {
         }
         grantOwner(principal, namespace, true);
         LOG.info("Created personal namespace [{}]", namespace);
+        starterArchitectureService.create(namespace, principal);
         return Optional.of(CreateOutcome.CREATED);
     }
 

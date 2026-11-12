@@ -53,6 +53,9 @@ class TestPersonalNamespaceServiceShould {
     @Mock
     UserAccessStore mockUserAccessStore;
 
+    @Mock
+    StarterArchitectureService mockStarterArchitectureService;
+
     @BeforeEach
     void setUp() {
         when(mockConfig.enabled()).thenReturn(true);
@@ -72,6 +75,7 @@ class TestPersonalNamespaceServiceShould {
 
     private PersonalNamespaceService service(boolean authEnabled, boolean allowPublicRead, boolean readOnly, String mode) {
         return new PersonalNamespaceService(mockConfig, mockNamespaceService, mockNamespaceStore, mockUserAccessStore,
+                mockStarterArchitectureService,
                 authEnabled, allowPublicRead, readOnly, mode);
     }
 
@@ -225,6 +229,7 @@ class TestPersonalNamespaceServiceShould {
         assertThat(grant.getNamespace(), is("users.alice"));
         verify(mockUserAccessStore, times(1)).createUserAccessForNamespace(any());
         verifyNoInteractions(mockNamespaceService);
+        verify(mockStarterArchitectureService).create("users.alice", "alice");
     }
 
     @Test
@@ -235,6 +240,7 @@ class TestPersonalNamespaceServiceShould {
 
         assertThat(activeService().create("alice"), is(Optional.of(CreateOutcome.ALREADY_OWNED)));
         verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+        verifyNoInteractions(mockStarterArchitectureService);
     }
 
     @Test
