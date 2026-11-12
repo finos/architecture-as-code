@@ -1,0 +1,58 @@
+{
+  "id": "release-tracker",
+  "version": "0.1.0",
+  "hubApi": 0,
+  "name": "Release tracker",
+  "description": "A demo extension: release status, risk and reviews for architectures.",
+  "provider": "Demo",
+  "routes": [
+    { "id": "screen", "method": "GET", "path": "/screen", "scope": "authenticated", "readOnly": true },
+    { "id": "tab", "method": "GET", "path": "/tab/{resourceType}/{resourceId}", "scope": "authenticated", "readOnly": true },
+    { "id": "card", "method": "GET", "path": "/card", "scope": "authenticated", "readOnly": true },
+    { "id": "element", "method": "GET", "path": "/element", "scope": "authenticated", "readOnly": true },
+    { "id": "request-review", "method": "POST", "path": "/reviews", "scope": "authenticated" },
+    { "id": "releases", "method": "GET", "path": "/releases", "scope": "authenticated", "readOnly": true }
+  ],
+  "commands": {
+    "list-releases": {
+      "route": "releases",
+      "description": "List recent releases and their status",
+      "input": { "type": "object", "properties": {} },
+      "output": {
+        "type": "object",
+        "properties": {
+          "releases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": { "version": { "type": "string" }, "status": { "type": "string" }, "date": { "type": "string" } },
+              "required": ["version", "status"]
+            }
+          }
+        }
+      },
+      "destructive": false,
+      "idempotent": true
+    }
+  },
+  "contributes": {
+    "screen": [ { "id": "releases", "title": "Releases", "route": "screen" } ],
+    "designer-tab": [ { "id": "releases", "title": "Releases", "route": "tab" } ],
+    "landing-card": [ { "id": "releases", "title": "Release health", "route": "card" } ],
+    "detail-panel": [ { "id": "release", "title": "Release info", "route": "element" } ],
+    "action": [ { "id": "request-review", "title": "Request release review", "route": "request-review" } ],
+    "decorator-views": [
+      {
+        "id": "release-risk",
+        "match": { "type": "release-risk" },
+        "label": "Release risk",
+        "overlay": {
+          "status": "/risk",
+          "map": { "low": "ok", "medium": "warn", "high": "error" },
+          "default": "info",
+          "label": "/summary"
+        }
+      }
+    ]
+  }
+}

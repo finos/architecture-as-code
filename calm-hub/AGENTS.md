@@ -472,7 +472,10 @@ from; it fails if there is none.
   that an OIDC provider that is down cannot make it a 500
 - Tests generate key pairs at run time (`ExtensionTestKeys`); `*.pem` is git-ignored. `FixtureBackend` is a
   loopback backend for proxy tests
-- Try it: see `local-dev/extensions/example-services/README.md`
+- Try it: see `local-dev/extensions/example-services/README.md`. `local-dev/demo-extensions/` holds a demo
+  (release-tracker) that uses every UI extension point, to test the UI layout.
+  Keep it out of `local-dev/extensions`: it has routes, so a Hub that loads it without its `backend-url` does
+  not start
 
 ### Read-Only Deployment Mode
 - `calm.readonly=true` opens Nitrite with `readOnly(true)` and installs

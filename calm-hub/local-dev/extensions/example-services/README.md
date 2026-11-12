@@ -27,4 +27,6 @@ The standalone profile has auth off, so `allow-without-auth` is needed and every
 `no-auth` principal. Hub warns that `calm.hub.base-url` is not set: its default, `http://localhost:8080`, is the
 issuer that `server.mjs` expects. Set `PORT`, `CALM_HUB_URL` or `CALM_HUB_ISSUER` to change the defaults.
 
+The [release-tracker demo](../../demo-extensions/release-tracker/README.md) is in its own folder, `local-dev/demo-extensions`.
+
 Test the verifier and the backend with `node --test local-dev/extensions/example-services/*.test.mjs`.
