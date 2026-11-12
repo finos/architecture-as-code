@@ -151,6 +151,14 @@ An extension adds features to CALM Hub without a fork. It is an HTTP service tha
 
 The Hub UI shows the contributions of an extension, the CLI runs its commands (see [Running extension commands](../calm-cli/hub.md#running-extension-commands)), and MCP makes a tool for each command (see [Extension tools](mcp-and-api.md#extension-tools)).
 
+| Page | Read it to |
+|:-----|:-----------|
+| [Build and install an extension](../tutorials/advanced/hub-extension.md) | Follow a tutorial from the manifest to the UI, CLI and MCP |
+| [Extension points](extension-points.md) | Find the fields, the context and the limits of each extension point and of commands |
+| [Extension blocks](extension-blocks.md) | Write the JSON that the UI draws |
+| [Decorator views](decorator-views.md) | Draw decorators on the diagram, with no backend |
+| [Extension access](extension-access.md) | Learn the scopes, the identity assertion and the trust model |
+
 Put one folder for each extension in `calm.extensions.dir`, with an `extension.json` in it. The folder name must equal the manifest `id`. Hub skips hidden folders and warns about folders without a manifest. A per-id setting for an unknown extension id gives a warning at start up, as a property or as an environment variable.
 
 ```text
@@ -161,7 +169,7 @@ Put one folder for each extension in `calm.extensions.dir`, with an `extension.j
 
 | Setting | Default | Purpose |
 |:--------|:--------|:--------|
-| `calm.extensions.dir` | not set | The folder of manifests. When it is not set, CALM Hub loads only the built-in decorator views |
+| `calm.extensions.dir` | not set | The folder of manifests. When it is not set, CALM Hub loads only the built-in [decorator views](decorator-views.md) |
 | `calm.extensions."<id>".enabled` | `true` | Set `false` to turn off an extension |
 | `calm.extensions."<id>".order` | `0` | Lower values come first in the list. Equal values sort by id |
 | `calm.extensions."<id>".backend-url` | not set | The base URL of the extension service. Required for an enabled extension with routes |
@@ -235,6 +243,10 @@ CALM_EXTENSIONS_IDENTITY_PUBLIC_KEY_LOCATIONS=/keys/new-public.pem,/keys/old-pub
 ```
 
 In `proxy-auth` mode, any client that reaches CALM Hub directly can set `Remote-User`. Make CALM Hub listen only on loopback or behind the proxy.
+
+### For extension authors
+
+Verify `X-Calm-Hub-Identity` on each request, and return only what the user may see. See [Extension access](extension-access.md) for the claims, the checks and the trust model, and [the example backend](https://github.com/finos/architecture-as-code/blob/main/calm-hub/local-dev/extensions/example-services/).
 
 ---
 
@@ -332,10 +344,12 @@ views-only manifest. Hub draws the results; the service supplies no browser code
 }
 ```
 
-No routes or backend URL are needed.
+No routes or backend URL are needed. See [Decorator views](decorator-views.md) for the fields, how Hub draws a view, the legend, and the built-in `control-evaluation` and `deployment` views.
 
 ## Further Reading
 
 - [UI Walkthrough](../working-with-calm/calm-hub.md) - visual interface guide (namespace explorer, diagram canvas, timeline, compare mode)
 - [Developer Guide](./developer-guide.md) - test pyramid, storage extension points, running CALM Hub from any data source
 - [MCP & API Reference](./mcp-and-api.md) - Model Context Protocol tools, OpenAPI spec, Swagger UI
+- [Build and install an extension](../tutorials/advanced/hub-extension.md) - tutorial with the release-tracker demo extension
+- [Extension points](./extension-points.md), [Extension blocks](./extension-blocks.md), [Decorator views](./decorator-views.md), [Extension access](./extension-access.md) - extension reference
