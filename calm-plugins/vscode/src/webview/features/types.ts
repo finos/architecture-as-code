@@ -3,11 +3,6 @@ import type { Edge, Node, NodeTypes } from 'reactflow';
 
 export type CanvasFeatureId = string;
 
-export interface CanvasNodeColours {
-    background: string;
-    text: string;
-}
-
 export interface CanvasToolbarState {
     readonlyMode: boolean;
 }
@@ -95,7 +90,6 @@ export interface CanvasFeatureDefinition {
     menuActions?: readonly CanvasMenuAction[];
     surfaces?: Partial<Record<CanvasFeatureSlot, CanvasFeatureSurface>>;
     nodeTypes?: Partial<NodeTypes>;
-    nodeAppearanceDefaults?: (type: string | undefined, isBlock: boolean) => CanvasNodeColours;
     onDrop?: (context: CanvasFeatureDropContext) => boolean;
     /** Decorates the rendered view only; returned styles are never serialized to CALM. */
     transformCanvas?: (view: CanvasFeatureCanvasView) => CanvasFeatureCanvasView;

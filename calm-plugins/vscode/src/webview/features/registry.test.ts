@@ -4,13 +4,13 @@ import type { CanvasFeatureDefinition, CanvasFeatureDropContext } from './types'
 
 describe('canvas feature registry', () => {
     it('enables only registered feature IDs from configuration', () => {
-        const enabled = resolveEnabledFeatures(['flows', 'unknown-feature', 'import-export']);
+        const enabled = resolveEnabledFeatures(['patterns', 'unknown-feature', 'import-export']);
 
-        expect([...enabled]).toEqual(['flows', 'import-export']);
-        expect(getEnabledFeatureDefinitions(enabled).map((feature) => feature.id)).toEqual([
-            'flows',
+        expect(enabled).toEqual(new Set(['patterns', 'import-export']));
+        expect(new Set(getEnabledFeatureDefinitions(enabled).map((feature) => feature.id))).toEqual(new Set([
+            'patterns',
             'import-export',
-        ]);
+        ]));
     });
 
     it('keeps optional features disabled when the setting is an empty array', () => {
@@ -38,7 +38,14 @@ describe('canvas feature registry', () => {
         expect(featureIds.length).toBeGreaterThan(0);
         expect(new Set(featureIds).size).toBe(featureIds.length);
         expect(new Set(actionIds).size).toBe(actionIds.length);
-        expect(featureIds).toContain('default-colors');
+        expect(new Set(featureIds)).toEqual(new Set([
+            'export-pattern',
+            'generate-spec',
+            'import-export',
+            'patterns',
+            'standards-controls',
+            'validation',
+        ]));
     });
 
     it('rejects duplicate feature and action IDs with useful diagnostics', () => {
@@ -58,7 +65,7 @@ describe('canvas feature registry', () => {
         const coreNodeTypes = { service: coreServiceRenderer };
 
         expect(getEnabledNodeTypes(new Set(), coreNodeTypes).service).toBe(coreServiceRenderer);
-        expect(getEnabledNodeTypes(new Set(['node-appearance']), coreNodeTypes).service).not.toBe(coreServiceRenderer);
+        expect(getEnabledNodeTypes(new Set(['unavailable-renderer']), coreNodeTypes).service).toBe(coreServiceRenderer);
     });
 
     it('rejects conflicting enabled feature renderers for the same node type', () => {

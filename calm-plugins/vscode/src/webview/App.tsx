@@ -49,9 +49,6 @@ import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
 import { CustomMetadata } from './panels/CustomMetadata';
-import { NodeAppearance } from './panels/NodeAppearance';
-import { getNodeStyleOverride, isStandardNode } from './utils/standard-node-style';
-import { theme } from './canvas/theme-colors';
 import {
     type ControlEntry,
     enrichControlWithRequirement,
@@ -76,10 +73,6 @@ function isInputDOMNode(e: KeyboardEvent): boolean {
     return tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable === true;
 }
 
-function getCoreNodeColours(type: string | undefined) {
-    return { background: type === 'container' ? theme.bg : theme.bgWidget, text: theme.text };
-}
-
 function getInitialCalmJson(): string | undefined {
     return (window as unknown as { __INITIAL_CALM_JSON__?: string }).__INITIAL_CALM_JSON__;
 }
@@ -95,8 +88,6 @@ function CanvasApp() {
         () => getEnabledNodeTypes(enabledCanvasFeatures, nodeTypes),
         [enabledCanvasFeatures],
     );
-    const nodeAppearanceDefaults = getEnabledFeatureDefinitions(enabledCanvasFeatures)
-        .find((feature) => feature.nodeAppearanceDefaults)?.nodeAppearanceDefaults;
     const reactFlowInstance = useReactFlow();
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChangeBase] = useEdgesState([]);
@@ -959,24 +950,6 @@ function CanvasApp() {
                                         definitions={getEnabledFeatureDefinitions(enabledCanvasFeatures)}
                                         enabledFeatures={enabledCanvasFeatures}
                                         runtime={featureRuntime}
-                                    />
-                                    <NodeAppearance
-                                        key={`${liveSelectedNode.id}-appearance`}
-                                        style={getNodeStyleOverride(data as Record<string, unknown>)}
-                                        defaults={nodeAppearanceDefaults?.(
-                                            liveSelectedNode.type,
-                                            isStandardNode(data as Record<string, unknown>),
-                                        ) ?? getCoreNodeColours(liveSelectedNode.type)}
-                                        onUpdate={(style) => {
-                                            const meta = { ...((data.metadata as Record<string, unknown>) ?? {}) };
-                                            if (style) {
-                                                meta['standard-node-style'] = style;
-                                            } else {
-                                                delete meta['standard-node-style'];
-                                            }
-                                            onNodeUpdate(liveSelectedNode.id, 'metadata', meta);
-                                        }}
-                                        readonly={store.readonlyMode}
                                     />
                                     <CustomMetadata
                                         metadata={(data.metadata as Record<string, string>) ?? {}}

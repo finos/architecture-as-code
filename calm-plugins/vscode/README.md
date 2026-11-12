@@ -46,18 +46,10 @@ Feature IDs are build-specific and are not listed in the extension manifest.
   schema and semantic rules. Review the results in the canvas validation panel.
 - **Reusable assets:** load standard nodes, patterns, and controls
   from the workspace, an external assets folder, or CALM Hub.
-- **Flows:** create and edit ordered transitions in the Solution panel.
-  Select a flow and use Play or the step buttons to highlight transitions in
-  either view, including reverse and parallel steps. Pause keeps the current
-  step highlighted; Stop clears playback. The highlight checkbox controls
-  the architecture overview when playback is idle, not playback highlighting.
-  Switch to **Sequence Diagram** to view the messages between participants.
-  Flow edits update the same architecture document in either view.
-- **Patterns:** export and apply patterns with their flows, controls, and
-  standard-node appearance.
+- **Patterns:** export and apply reusable architecture patterns with their
+  controls and standard-node metadata.
 - **SVG export:** click **Export SVG** in the canvas toolbar and choose a file
-  in the VS Code save dialog. The export uses the current architecture or
-  sequence view.
+  in the VS Code save dialog.
 
 ### 📦 Bundle Export and Import
 Package a CALM architecture with all its dependencies into a portable ZIP archive, or import an existing bundle.

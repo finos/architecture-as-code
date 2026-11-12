@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, getStraightPath, type EdgeProps } from 'reactflow';
 import { theme } from '../theme-colors';
 import { ArrowMarker, arrowMarkerId, hasMarker } from './ArrowMarker';
-import type { FlowEdgeDirection } from '../flow-playback';
 
 export type EdgeDirection = 'source-to-target' | 'target-to-source' | 'bidirectional' | 'none';
 export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
@@ -65,40 +64,21 @@ export function TooltipEdge({
     const protocol = edgeData.protocol as string | undefined;
     const variant = edgeData.calmVariant as string | undefined;
     const lineStyle = edgeData.lineStyle as EdgeLineStyle | undefined;
-    const flowColor = edgeData._flowColor as string | null | undefined;
-    const flowColors = (edgeData._flowColors as string[]) ?? [];
-    const flowDimmed = edgeData._flowDimmed as boolean | undefined;
-    const flowActive = edgeData._flowActive as boolean | undefined;
-    const flowVisited = edgeData._flowVisited as boolean | undefined;
-    const flowDirections = (edgeData._flowDirections as FlowEdgeDirection[] | undefined) ?? ['forward'];
-    const flowBadges = (edgeData._flowBadges as Array<{ flowId: string; name: string; color: string }>) ?? [];
-
     const hasTooltipContent = !!(description || protocol);
     const dashArray = strokeDasharray(lineStyle);
     const edgeStyle = style as React.CSSProperties | undefined;
-    const endMarkerId = (flowActive ? flowDirections.includes('forward') : hasMarker(markerEnd)) ? arrowMarkerId(id, 'end') : undefined;
-    const startMarkerId = (flowActive ? flowDirections.includes('reverse') : hasMarker(markerStart)) ? arrowMarkerId(id, 'start') : undefined;
+    const endMarkerId = hasMarker(markerEnd) ? arrowMarkerId(id, 'end') : undefined;
+    const startMarkerId = hasMarker(markerStart) ? arrowMarkerId(id, 'start') : undefined;
     const endMarkerUrl = endMarkerId && `url(#${endMarkerId})`;
     const startMarkerUrl = startMarkerId && `url(#${startMarkerId})`;
     const pathStyle: React.CSSProperties = {
         ...edgeStyle,
         stroke: edgeStroke(hovered, edgeStyle),
         ...(dashArray ? { strokeDasharray: dashArray } : {}),
-        ...(flowDimmed && !hovered && !selected ? { opacity: 0.12 } : {}),
-        ...(flowVisited && !flowActive && !hovered && !selected ? { stroke: flowColor ?? edgeStyle?.stroke, strokeWidth: 2, opacity: 0.5 } : {}),
-        ...(flowColor && !flowVisited && !flowActive && !hovered && !selected ? { stroke: flowColor, strokeWidth: 2.5 } : {}),
         ...(selected ? { stroke: theme.focus, strokeWidth: 3, opacity: 1 } : {}),
         ...(hovered ? { strokeWidth: 2.5 } : {}),
-        ...(flowActive ? {
-            stroke: flowColor ?? theme.link,
-            strokeWidth: hovered || selected ? 4.5 : 3.5,
-            opacity: 1,
-            filter: `drop-shadow(0 0 6px ${flowColor ?? theme.link})`,
-        } : {}),
     };
     const stroke = pathStyle.stroke ?? theme.fgMuted;
-    const badgeLabelX = isSelfLoop ? labelX + 60 : labelX;
-    const badgeLabelY = isSelfLoop ? labelY - 30 : labelY;
 
     return (
         <>
@@ -114,18 +94,6 @@ export function TooltipEdge({
                 style={pathStyle}
             />
 
-            {/* Parallel lines for multi-flow edges */}
-            {flowColors.length > 1 && flowColors.slice(1).map((c, i) => (
-                <path
-                    key={`flow-line-${i}`}
-                    d={edgePath}
-                    fill="none"
-                    stroke={c}
-                    strokeWidth={2}
-                    style={{ transform: `translate(0, ${(i + 1) * 4}px)`, pointerEvents: 'none' }}
-                />
-            ))}
-
             {/* Transparent overlay for hover detection */}
             <path
                 d={edgePath}
@@ -136,21 +104,6 @@ export function TooltipEdge({
                 onMouseEnter={showTooltip}
                 onMouseLeave={scheduleHide}
             />
-
-            {/* Pulse dot on active flow edge */}
-            {flowActive && flowDirections.map(direction => (
-                <circle key={direction} r={5} fill={flowColor ?? '#60a5fa'} style={{ pointerEvents: 'none', filter: `drop-shadow(0 0 6px ${flowColor ?? '#60a5fa'})` }}>
-                    <animateMotion
-                        path={edgePath}
-                        keyPoints={direction === 'reverse' ? '1;0' : '0;1'}
-                        keyTimes="0;1"
-                        calcMode="linear"
-                        dur="1s"
-                        repeatCount="indefinite"
-                    />
-                    <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.9;1" dur="1s" repeatCount="indefinite" />
-                </circle>
-            ))}
 
             <EdgeLabelRenderer>
                 {/* SVG paints edges in DOM order, so other edges can cover the hovered one where
@@ -182,40 +135,9 @@ export function TooltipEdge({
                             padding: '1px 5px',
                             borderRadius: '3px',
                             border: `1px solid ${theme.border}`,
-                            ...(flowColor ? { borderLeft: `3px solid ${flowColor}`, paddingLeft: '6px' } : {}),
-                            ...(flowDimmed && !hovered && !selected ? { opacity: 0.2 } : {}),
                         }}
                     >
                         {label}
-                    </div>
-                )}
-
-                {/* Flow badges */}
-                {flowBadges.length > 0 && (
-                    <div
-                        style={{
-                            position: 'absolute',
-                            transform: `translate(-50%, 4px) translate(${badgeLabelX}px,${badgeLabelY}px)`,
-                            pointerEvents: 'none',
-                            display: 'flex',
-                            gap: '3px',
-                            ...(flowDimmed && !hovered ? { opacity: 0.2 } : {}),
-                        }}
-                    >
-                        {flowBadges.map((b) => (
-                            <span
-                                key={b.flowId}
-                                title={b.name}
-                                style={{
-                                    width: '8px',
-                                    height: '8px',
-                                    borderRadius: '50%',
-                                    background: b.color,
-                                    border: '1px solid rgba(255,255,255,0.3)',
-                                    flexShrink: 0,
-                                }}
-                            />
-                        ))}
                     </div>
                 )}
 
