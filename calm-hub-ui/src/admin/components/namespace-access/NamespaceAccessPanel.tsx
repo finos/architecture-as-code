@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { UserAccess, UserAccessRequest } from '../../../model/user-access.js';
+import { UserAccess, UserAccessRequest, subjectLabel } from '../../../model/user-access.js';
 import { UserAccessService } from '../../../service/user-access-service.js';
 import { GrantRow } from './GrantRow.js';
 import { AddGrantForm } from './AddGrantForm.js';
@@ -59,7 +59,7 @@ export function NamespaceAccessPanel({ namespace, service }: NamespaceAccessPane
         fetchGrants();
     }
 
-    const revokeTarget = pendingRevoke?.username === '*' ? '* (everyone)' : pendingRevoke?.username;
+    const revokeTarget = pendingRevoke ? subjectLabel(pendingRevoke) : undefined;
 
     return (
         <div className="card bg-base-100 shadow-sm border border-base-300">
@@ -79,7 +79,8 @@ export function NamespaceAccessPanel({ namespace, service }: NamespaceAccessPane
                         <table className="table table-sm">
                             <thead>
                                 <tr>
-                                    <th>User</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
                                     <th>Permission</th>
                                     <th />
                                 </tr>
@@ -87,7 +88,7 @@ export function NamespaceAccessPanel({ namespace, service }: NamespaceAccessPane
                             <tbody>
                                 {grants.length === 0 ? (
                                     <tr>
-                                        <td colSpan={3} className="text-center text-base-content/50 italic text-sm">
+                                        <td colSpan={4} className="text-center text-base-content/50 italic text-sm">
                                             No access grants
                                         </td>
                                     </tr>

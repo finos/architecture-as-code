@@ -35,7 +35,7 @@ describe('AddGrantForm', () => {
         fireEvent.click(screen.getByRole('button', { name: /grant access/i }));
 
         await waitFor(() =>
-            expect(onSubmit).toHaveBeenCalledWith({ username: 'alice', permission: 'write' })
+            expect(onSubmit).toHaveBeenCalledWith({ username: 'alice', subjectType: 'user', permission: 'write' })
         );
     });
 
@@ -80,5 +80,72 @@ describe('AddGrantForm', () => {
             expect(screen.getByRole('textbox', { name: /username/i })).toBeDisabled()
         );
         resolve!();
+    });
+
+    it('submits a group grant', async () => {
+        const onSubmit = vi.fn().mockResolvedValue(undefined);
+        render(<AddGrantForm onSubmit={onSubmit} />);
+
+        fireEvent.change(screen.getByRole('combobox', { name: /subject type/i }), {
+            target: { value: 'group' },
+        });
+        fireEvent.change(screen.getByRole('textbox', { name: /group name/i }), {
+            target: { value: ' architects ' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /grant access/i }));
+
+        await waitFor(() =>
+            expect(onSubmit).toHaveBeenCalledWith({ username: 'architects', subjectType: 'group', permission: 'read' })
+        );
+    });
+
+    it('labels the name field for the selected type', () => {
+        render(<AddGrantForm onSubmit={vi.fn()} />);
+        expect(screen.getByRole('textbox', { name: /username/i })).toHaveAttribute('placeholder', 'username or *');
+
+        fireEvent.change(screen.getByRole('combobox', { name: /subject type/i }), {
+            target: { value: 'group' },
+        });
+        expect(screen.getByRole('textbox', { name: /group name/i })).toHaveAttribute('placeholder', 'group name');
+    });
+
+    it('rejects * as a group name', () => {
+        const onSubmit = vi.fn();
+        render(<AddGrantForm onSubmit={onSubmit} />);
+
+        fireEvent.change(screen.getByRole('combobox', { name: /subject type/i }), {
+            target: { value: 'group' },
+        });
+        fireEvent.change(screen.getByRole('textbox', { name: /group name/i }), {
+            target: { value: '*' },
+        });
+
+        expect(screen.getByRole('button', { name: /grant access/i })).toBeDisabled();
+        expect(screen.getByText(/is not a valid group name/i)).toBeInTheDocument();
+        expect(screen.getByRole('textbox', { name: /group name/i })).toHaveAttribute('aria-invalid', 'true');
+        fireEvent.submit(screen.getByRole('textbox', { name: /group name/i }).closest('form')!);
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('allows * for a user grant', () => {
+        render(<AddGrantForm onSubmit={vi.fn()} />);
+        fireEvent.change(screen.getByRole('textbox', { name: /username/i }), {
+            target: { value: '*' },
+        });
+        expect(screen.getByRole('button', { name: /grant access/i })).not.toBeDisabled();
+    });
+
+    it('resets the type to user after a successful submit', async () => {
+        const onSubmit = vi.fn().mockResolvedValue(undefined);
+        render(<AddGrantForm onSubmit={onSubmit} />);
+
+        const type = screen.getByRole('combobox', { name: /subject type/i });
+        fireEvent.change(type, { target: { value: 'group' } });
+        fireEvent.change(screen.getByRole('textbox', { name: /group name/i }), {
+            target: { value: 'architects' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /grant access/i }));
+
+        await waitFor(() => expect((type as HTMLSelectElement).value).toBe('user'));
     });
 });

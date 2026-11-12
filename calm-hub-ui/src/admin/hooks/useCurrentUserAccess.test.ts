@@ -88,6 +88,14 @@ describe('useCurrentUserAccess', () => {
     });
 
     describe('isGlobalAdmin', () => {
+        it('is true for a GLOBAL admin grant held through a group', async () => {
+            const groupGlobalAdmin: UserAccess = {
+                userAccessId: 98, username: 'hub-admins', subjectType: 'group', permission: 'admin', namespace: 'GLOBAL',
+            };
+            const { result } = renderHook(() => useCurrentUserAccess(mockService([groupGlobalAdmin])));
+            await waitFor(() => expect(result.current.isGlobalAdmin).toBe(true));
+        });
+
         it('is false when user has no grants', async () => {
             const svc = mockService([]);
             const { result } = renderHook(() => useCurrentUserAccess(svc));
