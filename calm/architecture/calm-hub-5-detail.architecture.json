@@ -25,7 +25,7 @@
             "unique-id": "calm-hub-storage",
             "node-type": "service",
             "name": "Storage Layer",
-            "description": "Store implementations under org.finos.calm.store for MongoDB and NitriteDB, selected at runtime based on the calm.database.mode configuration property",
+            "description": "Store implementations under org.finos.calm.store for MongoDB, NitriteDB and GitHub, selected at runtime based on the calm.database.mode configuration property",
             "development-language": "Java"
         },
         {
@@ -48,6 +48,12 @@
             "description": "Embedded, file-based document database used in standalone and read-only deployment modes (calm.database.mode=standalone), avoiding the need for an external database"
         },
         {
+            "unique-id": "github-repository",
+            "node-type": "system",
+            "name": "GitHub Repository",
+            "description": "Read-only source of CALM documents when calm.database.mode is github. Writes return 501, so there are no write events. The sync job emits one synced event for each commit. Hub does not validate in GitHub mode"
+        },
+        {
             "unique-id": "observed-stores",
             "node-type": "service",
             "name": "Observed Stores",
@@ -55,15 +61,43 @@
             "development-language": "Java",
             "controls": {
                 "validation-decorator-trust": {
-                    "description": "The decorator store wrapper rejects a decorator of type validation from any writer other than Hub's validation service",
+                    "description": "Hub maps the validation decorator type to the system writer, which only Hub code sets. The operator cannot change this. The decorator store wrapper returns 403 to any other writer",
                     "requirements": [
                         {
                             "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
                             "config": {
                                 "control-id": "calm-hub-val-01",
                                 "name": "Only Hub writes validation decorators",
-                                "description": "The decorator store wrapper rejects a decorator of type validation from any writer other than Hub's validation service",
-                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md"
+                                "description": "Hub maps the validation decorator type to the system writer, which only Hub code sets. The operator cannot change this. The decorator store wrapper returns 403 to any other writer",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
+                            }
+                        }
+                    ]
+                },
+                "reserved-types-append-only": {
+                    "description": "An update returns 409 if the stored or the new type is reserved. A writer creates a new decorator, which supersedes the current one with the same type, target and key",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-dec-01",
+                                "name": "Reserved types are append-only",
+                                "description": "An update returns 409 if the stored or the new type is reserved. A writer creates a new decorator, which supersedes the current one with the same type, target and key",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
+                            }
+                        }
+                    ]
+                },
+                "decorator-standard-check": {
+                    "description": "When a validator is configured and a decorator's $schema is a Standard that Hub holds, Hub checks the decorator before the write and returns 400 if it is not valid. If the validator call fails, a reserved type gets 503 and other types are accepted. Hub's own writes skip the check",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-dec-02",
+                                "name": "Decorators checked against a known Standard",
+                                "description": "When a validator is configured and a decorator's $schema is a Standard that Hub holds, Hub checks the decorator before the write and returns 400 if it is not valid. If the validator call fails, a reserved type gets 503 and other types are accepted. Hub's own writes skip the check",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
                             }
                         }
                     ]
@@ -315,14 +349,14 @@
             "development-language": "Java",
             "controls": {
                 "validation-failure-not-pass": {
-                    "description": "A validator error or timeout is recorded as status error",
+                    "description": "A validator error or timeout is recorded as not-met, with one finding whose cause is validator-error",
                     "requirements": [
                         {
                             "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
                             "config": {
                                 "control-id": "calm-hub-val-02",
                                 "name": "A failed validation is never a pass",
-                                "description": "A validator error or timeout is recorded as status error",
+                                "description": "A validator error or timeout is recorded as not-met, with one finding whose cause is validator-error",
                                 "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md"
                             }
                         }
@@ -375,6 +409,18 @@
                     "url": "/calm/validate"
                 }
             ]
+        },
+        {
+            "unique-id": "extension-service",
+            "node-type": "service",
+            "name": "Extension Service",
+            "description": "External extension backend. The proxy forwards declared routes to it"
+        },
+        {
+            "unique-id": "event-subscriber",
+            "node-type": "service",
+            "name": "Event Subscriber",
+            "description": "External service that receives post-write events from the relay"
         }
     ],
     "relationships": [
@@ -425,12 +471,41 @@
             }
         },
         {
+            "unique-id": "storage-to-github",
+            "description": "Reads from, when calm.database.mode is github. Writes return 501",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-storage"
+                    },
+                    "destination": {
+                        "node": "github-repository"
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
             "unique-id": "services-to-observed-stores",
             "description": "Reads and writes CALM resources via",
             "relationship-type": {
                 "connects": {
                     "source": {
                         "node": "calm-hub-services"
+                    },
+                    "destination": {
+                        "node": "observed-stores"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "resources-to-observed-stores",
+            "description": "Resources such as ArchitectureResource create, update and delete directly via",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-resources"
                     },
                     "destination": {
                         "node": "observed-stores"
@@ -537,6 +612,21 @@
             }
         },
         {
+            "unique-id": "proxy-to-extension",
+            "description": "Forwards the declared route with the signed assertion",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "extension-proxy"
+                    },
+                    "destination": {
+                        "node": "extension-service"
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
             "unique-id": "relay-to-storage",
             "description": "Claims and clears outbox entries",
             "relationship-type": {
@@ -563,6 +653,21 @@
                     }
                 }
             }
+        },
+        {
+            "unique-id": "relay-to-subscriber",
+            "description": "Delivers signed, thin events",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "event-relay"
+                    },
+                    "destination": {
+                        "node": "event-subscriber"
+                    }
+                }
+            },
+            "protocol": "HTTPS"
         },
         {
             "unique-id": "validation-to-calm-server",
@@ -595,6 +700,20 @@
                     }
                 }
             }
+        },
+        {
+            "unique-id": "observed-stores-to-validation",
+            "description": "Checks a decorator with a known Standard before the write, synchronously",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "observed-stores"
+                    },
+                    "destination": {
+                        "node": "validation-service"
+                    }
+                }
+            }
         }
     ],
     "adrs": [
@@ -605,7 +724,8 @@
         "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md",
         "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0014-extension-commands-in-the-cli-and-mcp.md",
         "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0015-architecture-validation-is-a-hub-feature-behind-an-spi.md",
-        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md",
+        "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
     ],
     "flows": [
         {
@@ -614,43 +734,38 @@
             "description": "A new architecture version is stored, then validated asynchronously against its Pattern and bound standards-only Patterns",
             "transitions": [
                 {
-                    "relationship-unique-id": "resources-to-services",
+                    "relationship-unique-id": "resources-to-observed-stores",
                     "sequence-number": 1,
-                    "description": "The resource passes the new version to the services layer"
-                },
-                {
-                    "relationship-unique-id": "services-to-observed-stores",
-                    "sequence-number": 2,
-                    "description": "The write goes through the observed store"
+                    "description": "ArchitectureResource writes the new version through the observed store"
                 },
                 {
                     "relationship-unique-id": "observed-stores-to-storage",
-                    "sequence-number": 3,
+                    "sequence-number": 2,
                     "description": "The version and its pending event are written in one insert"
                 },
                 {
                     "relationship-unique-id": "storage-to-mongo",
-                    "sequence-number": 4,
+                    "sequence-number": 3,
                     "description": "MongoDB stores the version document"
                 },
                 {
                     "relationship-unique-id": "relay-to-storage",
-                    "sequence-number": 5,
+                    "sequence-number": 4,
                     "description": "The relay claims the pending event"
                 },
                 {
                     "relationship-unique-id": "relay-to-validation",
-                    "sequence-number": 6,
+                    "sequence-number": 5,
                     "description": "The relay passes the event to the validation service"
                 },
                 {
                     "relationship-unique-id": "validation-to-calm-server",
-                    "sequence-number": 7,
+                    "sequence-number": 6,
                     "description": "Hub validates the version against each source"
                 },
                 {
                     "relationship-unique-id": "validation-to-observed-stores",
-                    "sequence-number": 8,
+                    "sequence-number": 7,
                     "description": "Hub records one validation decorator for each source"
                 }
             ]
@@ -658,12 +773,12 @@
         {
             "unique-id": "flow-extension-call",
             "name": "Proxy an extension call",
-            "description": "The REST proxy or an MCP tool forwards a call to an extension route",
+            "description": "An MCP tool forwards a call to an extension route",
             "transitions": [
                 {
                     "relationship-unique-id": "mcp-to-proxy",
                     "sequence-number": 1,
-                    "description": "An MCP tool, or the REST resource, calls the proxy service"
+                    "description": "An extension MCP tool calls the proxy service"
                 },
                 {
                     "relationship-unique-id": "proxy-to-registry",
@@ -674,6 +789,11 @@
                     "relationship-unique-id": "proxy-to-signer",
                     "sequence-number": 3,
                     "description": "The proxy gets a request-bound assertion"
+                },
+                {
+                    "relationship-unique-id": "proxy-to-extension",
+                    "sequence-number": 4,
+                    "description": "The proxy calls the backend with the assertion"
                 }
             ]
         }
