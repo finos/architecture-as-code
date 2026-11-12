@@ -7,6 +7,8 @@ import { EnvironmentPill } from '../../../components/navbar/EnvironmentPill.js';
 import { useUiConfig } from '../../../components/ui-config/UiConfigContext.js';
 import { IntroSearchBar } from './IntroSearchBar.js';
 import { IntroBrowse } from './IntroBrowse.js';
+import { MyNamespaceCard } from './MyNamespaceCard.js';
+import { PersonalNamespaceControl } from '../../hooks/usePersonalNamespace.js';
 
 /** The navy lockup is unreadable on a dark base, so dark gets the white variant. */
 const LOGO_SRC = {
@@ -17,6 +19,7 @@ const LOGO_SRC = {
 interface IntroScreenProps {
     namespaceCounts: NamespaceCounts[];
     domainCounts: DomainControlCount[];
+    personalNamespace?: PersonalNamespaceControl;
     /** Injected for tests; see the storage note in calm-hub-ui/AGENTS.md. */
     storage?: Storage;
 }
@@ -26,7 +29,7 @@ interface IntroScreenProps {
  * navbar, no rail), so it mounts its own `useTheme` for the corner toggle — the
  * navbar, which normally owns theme state, is hidden here.
  */
-export function IntroScreen({ namespaceCounts, domainCounts, storage }: IntroScreenProps) {
+export function IntroScreen({ namespaceCounts, domainCounts, personalNamespace, storage }: IntroScreenProps) {
     const { theme, toggleTheme } = useTheme(storage);
     const { environment } = useUiConfig();
 
@@ -55,6 +58,12 @@ export function IntroScreen({ namespaceCounts, domainCounts, storage }: IntroScr
                 <div className="w-full flex justify-center mt-10 sm:mt-12">
                     <IntroSearchBar />
                 </div>
+
+                {personalNamespace && (
+                    <div className="w-full flex justify-center mt-14 sm:mt-16 empty:hidden">
+                        <MyNamespaceCard personalNamespace={personalNamespace} />
+                    </div>
+                )}
 
                 <div className="w-full flex justify-center mt-14 sm:mt-16">
                     <IntroBrowse namespaceCounts={namespaceCounts} domainCounts={domainCounts} />

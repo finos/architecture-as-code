@@ -105,3 +105,33 @@ describe('IntroScreen environment pill', () => {
         expect(screen.getByTestId('environment-pill')).toHaveTextContent('PROD');
     });
 });
+
+describe('IntroScreen personal namespace', () => {
+    it('shows no card when no personal namespace control is given', () => {
+        renderIntro(lightStorage());
+        expect(screen.queryByTestId('my-namespace-card')).not.toBeInTheDocument();
+    });
+
+    it('shows the card between the search bar and the browse grid', () => {
+        render(
+            <UiConfigContext.Provider value={{}}>
+                <MemoryRouter>
+                    <IntroScreen
+                        namespaceCounts={namespaceCounts}
+                        domainCounts={domainCounts}
+                        personalNamespace={{
+                            state: { status: 'available', name: 'users.alice' },
+                            creating: false,
+                            createFailed: false,
+                            create: () => Promise.resolve(true),
+                        }}
+                        storage={lightStorage()}
+                    />
+                </MemoryRouter>
+            </UiConfigContext.Provider>
+        );
+        const card = screen.getByTestId('my-namespace-card');
+        const browse = screen.getByText('finos');
+        expect(card.compareDocumentPosition(browse) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+});

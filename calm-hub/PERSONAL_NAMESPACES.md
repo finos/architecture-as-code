@@ -1,6 +1,6 @@
 # Personal Namespaces
 
-> **Status: the Hub API is built. The Hub UI card is not built.**
+> **Status: built in the Hub API and the Hub UI.**
 > [ADR 0018](decisions/0018-personal-namespaces.md) records the decisions that are
 > hard to change later. Tracked in
 > [#3075](https://github.com/finos/architecture-as-code/issues/3075).
@@ -150,7 +150,9 @@ When the feature is off, the root is a normal namespace and none of these change
   - If the caller owns it, the card shows the name, a link to the namespace, and a
     copy button for the CLI.
   - If it is taken, the card says so and tells the user to ask an admin.
-- The namespace list hides the root when it has no content of its own.
+- The browse grid and the explore rail hide the root when it has no content of its own and
+  the user can see none of its children.
+- After a create, the UI loads the namespace counts again, so the new namespace shows at once.
 
 ## CLI
 
