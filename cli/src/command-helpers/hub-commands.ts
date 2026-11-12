@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, latestReleaseVersion, isSnapshotVersion, toReleaseVersion, toSnapshotVersion, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, latestReleaseVersion, isSnapshotVersion, toReleaseVersion, toSnapshotVersion, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual, HubExtension, HubExtensionCommand, HubExtensionRoute, numberText } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -1166,6 +1166,317 @@ export async function runListControlConfigurations(options: ListControlConfigura
     }
 }
 
+// ── extensions ────────────────────────────────────────────────────────────────
+
+const EXTENSIONS_REQUEST = 'GET /api/calm/extensions';
+
+export interface ListExtensionsOptions {
+    calmHubOptions: CalmHubOptions;
+    format?: string;
+}
+
+export interface DescribeExtensionOptions {
+    calmHubOptions: CalmHubOptions;
+    id: string;
+    command?: string;
+    format?: string;
+}
+
+export interface RunExtensionCommandOptions {
+    calmHubOptions: CalmHubOptions;
+    id: string;
+    command: string;
+    /** A file path, or `-` for stdin. */
+    input?: string;
+    /** `key=value` pairs that set top-level input properties. */
+    args?: string[];
+    /** Seconds to wait for the reply. With none, CALM Hub ends the call at the timeout of the extension. */
+    timeout?: string;
+    format?: string;
+}
+
+/**
+ * Lists the extensions that CALM Hub enabled, with their command names.
+ * @param options Command options.
+ */
+export async function runListExtensions(options: ListExtensionsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const extensions = await client.listExtensions();
+        if (format === 'pretty') {
+            printTableSuccess(
+                extensions.map(e => ({
+                    ID: e.id, VERSION: e.version ?? '', NAME: e.name ?? '', COMMANDS: Object.keys(e.commands ?? {}).join(', ')
+                })),
+                [
+                    { key: 'ID', header: 'ID' },
+                    { key: 'VERSION', header: 'VERSION' },
+                    { key: 'NAME', header: 'NAME' },
+                    { key: 'COMMANDS', header: 'COMMANDS' }
+                ]
+            );
+        } else {
+            printJsonSuccess(extensions);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+/**
+ * Shows an extension, or one of its commands with the method, path and scope of its route.
+ * @param options Command options.
+ */
+export async function runDescribeExtension(options: DescribeExtensionOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const extension = await findExtension(client, options.id);
+        if (options.command === undefined) {
+            printExtension(extension, format);
+        } else {
+            printExtensionCommand(describeCommand(extension, options.command), format);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+/**
+ * Runs an extension command through the CALM Hub proxy and prints the reply. The proxy does not
+ * validate the input (only MCP does), so the extension does, and its error is printed as Hub sent it.
+ * @param options Command options.
+ */
+export async function runExtensionCommand(options: RunExtensionCommandOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const request = `ext ${options.id} ${options.command}`;
+    const input = await readExtensionInput(options.input, request, format);
+    const args = parseExtensionArgs(options.args ?? [], request, format);
+    const timeoutMs = parseExtensionTimeout(options.timeout, request, format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const extension = await findExtension(client, options.id);
+        const { command, route } = findCommand(extension, options.command);
+        for (const [key, value] of args) {
+            input[key] = coerceArg(value, command.input?.['properties'], key);
+        }
+        const reply = await client.callExtension(extension, route, input, { timeoutMs });
+        if (typeof reply.data === 'string') {
+            if (reply.data !== '') {
+                process.stdout.write(reply.data.endsWith('\n') ? reply.data : `${reply.data}\n`);
+            }
+        } else {
+            printJsonSuccess(reply.data);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+interface DescribedExtensionCommand extends HubExtensionCommand {
+    extension: string;
+    command: string;
+    method: string;
+    path: string;
+    scope: string;
+    readOnly: boolean;
+}
+
+async function findExtension(client: CalmHubClient, id: string): Promise<HubExtension> {
+    const extension = (await client.listExtensions()).find(e => e.id === id);
+    if (!extension) {
+        throw new HubCommandError(404, `Extension '${id}' is not enabled on this CALM Hub`, EXTENSIONS_REQUEST);
+    }
+    return extension;
+}
+
+function findCommand(extension: HubExtension, name: string): { command: HubExtensionCommand, route: HubExtensionRoute } {
+    const commands = extension.commands ?? {};
+    const command = Object.prototype.hasOwnProperty.call(commands, name) ? commands[name] : undefined;
+    if (!command) {
+        const known = Object.keys(commands);
+        throw new HubCommandError(
+            404,
+            `Extension '${extension.id}' has no command '${name}' that this CALM Hub can run. `
+            + (known.length > 0 ? `Commands: ${known.join(', ')}` : 'It has no commands.'),
+            EXTENSIONS_REQUEST
+        );
+    }
+    const route = extension.routes?.find(r => r.id === command.route);
+    if (!route) {
+        throw new HubCommandError(0, `Command '${name}' names route '${command.route}', which extension '${extension.id}' does not list`, EXTENSIONS_REQUEST);
+    }
+    return { command, route };
+}
+
+function describeCommand(extension: HubExtension, name: string): DescribedExtensionCommand {
+    const { command, route } = findCommand(extension, name);
+    return {
+        extension: extension.id,
+        command: name,
+        ...command,
+        method: route.method,
+        path: route.path,
+        scope: route.scope,
+        // As the MCP readOnlyHint: Hub treats every GET as a read.
+        readOnly: route.method.toUpperCase() === 'GET' || route.readOnly === true,
+    };
+}
+
+function printExtension(extension: HubExtension, format: OutputFormat): void {
+    if (format !== 'pretty') {
+        printJsonSuccess(extension);
+        return;
+    }
+    console.log(`${extension.name ?? extension.id} (${extension.id}${extension.version ? ` ${extension.version}` : ''})`);
+    if (extension.description) {
+        console.log(extension.description);
+    }
+    console.log('');
+    const routes = extension.routes ?? [];
+    printTableSuccess(
+        Object.entries(extension.commands ?? {}).map(([name, command]) => {
+            const route = routes.find(r => r.id === command.route);
+            return {
+                COMMAND: name,
+                METHOD: route?.method ?? '',
+                PATH: route?.path ?? '',
+                DESCRIPTION: command.description ?? ''
+            };
+        }),
+        [
+            { key: 'COMMAND', header: 'COMMAND' },
+            { key: 'METHOD', header: 'METHOD' },
+            { key: 'PATH', header: 'PATH' },
+            { key: 'DESCRIPTION', header: 'DESCRIPTION' }
+        ]
+    );
+}
+
+function printExtensionCommand(command: DescribedExtensionCommand, format: OutputFormat): void {
+    if (format !== 'pretty') {
+        printJsonSuccess(command);
+        return;
+    }
+    printTableSuccess(
+        (['command', 'description', 'method', 'path', 'scope', 'readOnly', 'destructive', 'idempotent'] as const)
+            .filter(field => command[field] !== undefined)
+            .map(field => ({ FIELD: field, VALUE: String(command[field]) })),
+        [
+            { key: 'FIELD', header: 'FIELD' },
+            { key: 'VALUE', header: 'VALUE' }
+        ]
+    );
+    console.log('\nInput schema:');
+    console.log(JSON.stringify(command.input ?? {}, null, 2));
+    if (command.output) {
+        console.log('\nOutput schema:');
+        console.log(JSON.stringify(command.output, null, 2));
+    }
+}
+
+async function readExtensionInput(source: string | undefined, request: string, format: OutputFormat): Promise<Record<string, unknown>> {
+    if (source === undefined) {
+        return {};
+    }
+    const content = source === '-' ? await readStdin() : await loadFileContent(source, request, format);
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(content);
+    } catch {
+        printError(0, `Input is not valid JSON: ${source === '-' ? 'stdin' : source}`, request, format);
+        process.exit(1);
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        printError(0, 'Input must be a JSON object', request, format);
+        process.exit(1);
+    }
+    return parsed as Record<string, unknown>;
+}
+
+async function readStdin(): Promise<string> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) {
+        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    }
+    return Buffer.concat(chunks).toString('utf-8');
+}
+
+function parseExtensionArgs(args: string[], request: string, format: OutputFormat): [string, string][] {
+    return args.map(arg => {
+        const separator = arg.indexOf('=');
+        if (separator <= 0) {
+            printError(0, `--arg must have the form key=value: ${arg}`, request, format);
+            process.exit(1);
+        }
+        const key = arg.slice(0, separator);
+        // Assigning __proto__ would set the prototype of the input, so the value would be lost.
+        if (key === '__proto__') {
+            printError(0, '--arg cannot set __proto__. Use --input to send it', request, format);
+            process.exit(1);
+        }
+        return [key, arg.slice(separator + 1)];
+    });
+}
+
+// Node runs a timer above 2^31-1 ms after 1 ms, which would stop waiting at once.
+const MAX_TIMEOUT_SECONDS = 2147483;
+const DECIMAL_SECONDS = /^(\d+(\.\d*)?|\.\d+)$/;
+
+function parseExtensionTimeout(timeout: string | undefined, request: string, format: OutputFormat): number | undefined {
+    if (timeout === undefined) {
+        return undefined;
+    }
+    const seconds = Number(timeout);
+    if (!DECIMAL_SECONDS.test(timeout.trim()) || seconds <= 0 || seconds > MAX_TIMEOUT_SECONDS) {
+        printError(0, `--timeout must be a positive number of seconds: ${timeout}`, request, format);
+        process.exit(1);
+    }
+    return Math.ceil(seconds * 1000);
+}
+
+/**
+ * Converts an `--arg` value to the type that the input schema declares for the property, so that
+ * `--arg limit=5` sends a number. A value that does not convert stays a string. The REST proxy does
+ * not check the input, so the extension must reject it. A number converts only when it is in the form
+ * that it is sent in and is finite, so that `0x10`, `1e3` and an integer above 2^53 do not change value, and so
+ * that JSON does not send `NaN` or `Infinity` as `null`.
+ */
+function coerceArg(value: string, properties: unknown, key: string): unknown {
+    const schema = properties && typeof properties === 'object' && Object.prototype.hasOwnProperty.call(properties, key)
+        ? (properties as Record<string, { type?: unknown }>)[key]
+        : undefined;
+    const declared = schema?.type;
+    const types = Array.isArray(declared) ? declared : [declared];
+    if (declared === undefined || types.includes('string')) {
+        return value;
+    }
+    if (types.includes('integer') || types.includes('number')) {
+        const number = Number(value);
+        if (Number.isFinite(number) && numberText(number) === value.trim() && (types.includes('number') || Number.isSafeInteger(number))) {
+            return number;
+        }
+    }
+    if (types.includes('boolean') && (value === 'true' || value === 'false')) {
+        return value === 'true';
+    }
+    if (types.some(t => t === 'object' || t === 'array' || t === 'null')) {
+        try {
+            return JSON.parse(value);
+        } catch {
+            return value;
+        }
+    }
+    return value;
+}
+
 // ── shared error handler ──────────────────────────────────────────────────────
 
 /**
@@ -1174,7 +1485,9 @@ export async function runListControlConfigurations(options: ListControlConfigura
  * @param format Output format selector.
  */
 function handleHubError(err: unknown, format: OutputFormat): never {
-    if (err instanceof HubClientError || err instanceof HubCommandError) {
+    if (err instanceof HubClientError && err.body !== undefined) {
+        printError(err.status, err.error, err.request, format, err.body);
+    } else if (err instanceof HubClientError || err instanceof HubCommandError) {
         printError(err.status, err.error, err.request, format);
     } else {
         printError(0, err instanceof Error ? err.message : String(err), 'unknown', format);

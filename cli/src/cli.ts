@@ -49,6 +49,9 @@ import {
     runListControls,
     runListControlConfigurations,
     ListOptions,
+    runListExtensions,
+    runDescribeExtension,
+    runExtensionCommand,
 } from './command-helpers/hub-commands';
 import type { ResourceChangeType } from '@finos/calm-shared';
 
@@ -1045,10 +1048,60 @@ Example:
             await runCreateDomain(createOptions);
         });
 
+    // hub extensions / hub ext: static commands, so that --help works without a CALM Hub (ADR 0014).
+    // Extension commands are only reachable under `hub ext <id>`, so they cannot replace a built-in command.
+    const hubExtensionsCmd = hubCmd.command('extensions').description('List and describe the extensions that CALM Hub enabled');
+
+    hubExtensionsCmd
+        .command('list')
+        .description('List the enabled extensions and their commands')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            await runListExtensions({ calmHubOptions: { calmHubUrl: options.calmHubUrl }, format: options.format });
+        });
+
+    hubExtensionsCmd
+        .command('describe')
+        .description('Describe an extension, or one of its commands with its route and input schema')
+        .argument('<id>', 'Extension id')
+        .argument('[command]', 'Command name')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (id: string, command: string | undefined, options) => {
+            await runDescribeExtension({ calmHubOptions: { calmHubUrl: options.calmHubUrl }, id, command, format: options.format });
+        });
+
+    hubCmd
+        .command('ext')
+        .description('Run an extension command through CALM Hub and print the reply')
+        .argument('<id>', 'Extension id')
+        .argument('<command>', 'Command name')
+        .option('--input <file>', 'JSON file with the command input object, or - for stdin')
+        .option('--arg <key=value>', 'Set a top-level input property. Repeatable; overrides --input', collectArg)
+        .option('--timeout <seconds>', 'Stop waiting for the reply after this many seconds. By default, CALM Hub sets the limit')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (id: string, command: string, options) => {
+            await runExtensionCommand({
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                id,
+                command,
+                input: options.input,
+                args: options.arg,
+                timeout: options.timeout,
+                format: options.format
+            });
+        });
+
     program.addCommand(hubCmd);
 
     // Dev commands
     setupWorkspaceCommands(program);
+}
+
+function collectArg(value: string, previous: string[] | undefined): string[] {
+    return [...(previous ?? []), value];
 }
 
 export async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {
