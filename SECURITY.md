@@ -53,7 +53,7 @@ Releases are produced only by the automated release workflows in this repository
 npm audit signatures
 ```
 
-The command reports `verified attestations` for each `@finos` package whose registry signature and provenance attestation are valid. To confirm who published a version, open the package's version page on npmjs.com and check that the *Provenance* panel names `finos/architecture-as-code` and the workflow `.github/workflows/automated-release.yml` (`automated-release-calm-server.yml` for `@finos/calm-server`, `automated-release-calm-studio.yml` for the CALM Studio packages). To compare a downloaded tarball with the registry, check its integrity hash against `npm view @finos/calm-cli@<version> dist.integrity`.
+The command reports `verified attestations` for each `@finos` package whose registry signature and provenance attestation are valid. To confirm who published a version, open the package's version page on npmjs.com and check that the *Provenance* panel names `finos/architecture-as-code` and the workflow `.github/workflows/automated-release.yml` (`automated-release-calm-server.yml` for `@finos/calm-server`). To compare a downloaded tarball with the registry, check its integrity hash against `npm view @finos/calm-cli@<version> dist.integrity`.
 
 **GitHub releases** for the CLI and CALM Server attach the published tarball and a CycloneDX software bill of materials (`*.cdx.json`) describing its runtime dependencies. The release workflow publishes that same tarball to npm, so its integrity hash matches the registry value above.
 
