@@ -58,6 +58,8 @@ final class LocationSegmentParser {
             // before reaching this switch. They exist only because the switch is exhaustive
             // over AuditEntityType and LAYOUT/PATTERN_LAYOUT must be handled to compile.
             case LAYOUT, PATTERN_LAYOUT -> new LocationIds(null, null);
+            // ExtensionProxyService records its own entries; the filter never parses one.
+            case EXTENSION -> new LocationIds(null, null);
         };
     }
 

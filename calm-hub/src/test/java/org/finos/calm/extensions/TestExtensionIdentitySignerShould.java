@@ -18,6 +18,7 @@ import java.security.MessageDigest;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -126,7 +127,8 @@ class TestExtensionIdentitySignerShould {
 
         ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
                 List.of(new ExtensionManifest.Route("screen", "GET", "/screen", "authenticated", false)), null, null);
-        when(registry.enabled()).thenReturn(List.of(new RegisteredExtension(manifest, 0, Optional.empty())));
+        when(registry.enabled()).thenReturn(List.of(new RegisteredExtension(manifest, 0, Optional.empty(),
+                new ExtensionLimits(Duration.ofSeconds(1), Duration.ofSeconds(1), 1, 1, 1))));
         assertThat(TestExtensionManifestLoaderShould.captureWarnings(ExtensionIdentitySigner.class, this::signer),
                 contains(containsString("calm.hub.base-url is the default")));
 
@@ -217,7 +219,8 @@ class TestExtensionIdentitySignerShould {
     void need_a_key_when_an_enabled_extension_has_routes() {
         ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
                 List.of(new ExtensionManifest.Route("screen", "GET", "/screen", "authenticated", false)), null, null);
-        RegisteredExtension extension = new RegisteredExtension(manifest, 0, Optional.empty());
+        RegisteredExtension extension = new RegisteredExtension(manifest, 0, Optional.empty(),
+                new ExtensionLimits(Duration.ofSeconds(1), Duration.ofSeconds(1), 1, 1, 1));
         when(registry.enabled()).thenReturn(List.of(extension));
 
         IllegalStateException e = assertThrows(IllegalStateException.class, this::signer);

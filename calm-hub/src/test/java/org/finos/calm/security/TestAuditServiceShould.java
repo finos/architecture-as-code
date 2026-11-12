@@ -5,12 +5,20 @@ import org.finos.calm.domain.audit.AuditEntityType;
 import org.finos.calm.domain.audit.AuditLogEntry;
 import org.finos.calm.domain.audit.AuditOutcome;
 import org.finos.calm.store.AuditLogStore;
+import org.finos.calm.testutil.LogCapture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+import java.util.logging.Level;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -66,6 +74,37 @@ public class TestAuditServiceShould {
         doThrow(new RuntimeException("Mongo down")).when(auditLogStore).record(any(AuditLogEntry.class));
 
         auditService.record(sampleEntry());
+    }
+
+    @Test
+    void name_the_route_and_jti_of_an_extension_entry_when_the_store_write_fails() {
+        auditService.storeEnabled = true;
+        auditService.logEnabled = false;
+        doThrow(new RuntimeException("Mongo down")).when(auditLogStore).record(any(AuditLogEntry.class));
+        AuditLogEntry entry = new AuditLogEntry.AuditLogEntryBuilder()
+                .setActor("alice")
+                .setAction(AuditAction.CREATE)
+                .setEntityType(AuditEntityType.EXTENSION)
+                .setEntityId("team-services")
+                .setOutcome(AuditOutcome.SUCCESS)
+                .setRoute("add-service")
+                .setJti("jti-1")
+                .build();
+
+        List<String> warnings = LogCapture.messages(AuditService.class, Level.WARNING, () -> auditService.record(entry));
+
+        assertThat(warnings, contains(containsString("route=[add-service] jti=[jti-1]")));
+    }
+
+    @Test
+    void leave_out_the_extension_fields_of_another_entry_when_the_store_write_fails() {
+        auditService.storeEnabled = true;
+        auditService.logEnabled = false;
+        doThrow(new RuntimeException("Mongo down")).when(auditLogStore).record(any(AuditLogEntry.class));
+
+        List<String> warnings = LogCapture.messages(AuditService.class, Level.WARNING, () -> auditService.record(sampleEntry()));
+
+        assertThat(warnings, contains(not(containsString("route="))));
     }
 
     @Test

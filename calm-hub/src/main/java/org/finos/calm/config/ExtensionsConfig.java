@@ -14,6 +14,13 @@ import java.util.Optional;
 @ConfigMapping(prefix = "calm.extensions")
 public interface ExtensionsConfig {
 
+    /**
+     * Allows enabled extensions with routes when {@code calm.auth.enabled} is false. Only for local
+     * development: every caller is then a global admin.
+     */
+    @WithDefault("false")
+    boolean allowWithoutAuth();
+
     /** Holds one folder for each extension, with an {@code extension.json} in it. */
     Optional<String> dir();
 
@@ -28,6 +35,9 @@ public interface ExtensionsConfig {
     /** The keys that sign the identity assertion that Hub sends to an extension (ADR 0010). */
     Identity identity();
 
+    /** The default limits on each call to an extension backend. Each extension can override them. */
+    Http http();
+
     /** Strings, so that {@code ExtensionRegistry} does the checks and names the bad setting. */
     interface Extension {
         Optional<String> enabled();
@@ -35,6 +45,19 @@ public interface ExtensionsConfig {
         Optional<String> order();
 
         Optional<String> backendUrl();
+
+        /** Allows a plain http backend that is not on loopback, such as a cluster-internal host. */
+        Optional<String> allowHttp();
+
+        Optional<String> connectTimeoutSeconds();
+
+        Optional<String> requestTimeoutSeconds();
+
+        Optional<String> maxRequestBytes();
+
+        Optional<String> maxResponseBytes();
+
+        Optional<String> maxConcurrentCalls();
     }
 
     interface Identity {
@@ -51,5 +74,23 @@ public interface ExtensionsConfig {
         /** The lifetime of an assertion, at most 300. */
         @WithDefault("60")
         int ttlSeconds();
+    }
+
+    interface Http {
+        @WithDefault("5")
+        int connectTimeoutSeconds();
+
+        @WithDefault("10")
+        int requestTimeoutSeconds();
+
+        @WithDefault("1048576")
+        int maxRequestBytes();
+
+        @WithDefault("1048576")
+        int maxResponseBytes();
+
+        /** Calls to one extension at the same time, so that a slow backend cannot hold every worker thread. */
+        @WithDefault("32")
+        int maxConcurrentCalls();
     }
 }

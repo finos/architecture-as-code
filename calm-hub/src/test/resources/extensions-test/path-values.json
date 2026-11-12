@@ -1,0 +1,28 @@
+{
+  "description": "Values that fill a {param} of a route path. The CLI and shared client, the UI and MCP refuse each 'refused' value, and accept each 'accepted' value. TestExtensionToolsShould checks each list against ExtensionPaths, so the client copies of the rule cannot drift from Hub. 'lookAlikes' are refused in any value, as in a<c>b: each code point whose NFKC form contains / or \\, such as U+2100 (a/c), and each code point whose NFKC form is only ., %, @ or ;. They also include U+2044, U+2215, U+2216, U+29F5 and U+29F8: visual look-alikes of / and \\ that NFKC does not change. 'encodedNever' lists the ExtensionPaths.FORBIDDEN parts that no encoded value can contain, such as a raw ; of a matrix parameter: each other part must be in a 'refused' value, raw or encoded. 'encoded' gives the path and query form that each client sends for a value, so that Hub signs the same pathAndQuery for each client. In 'otherRoute', each 'refused' value fills the path of 'route' so that Hub matches another route, and each 'accepted' value does not.",
+  "refused": [
+    "", ".", "..", "a..b", "../admin", "a/b", "/", "architectures/1", "a\\b", "50%", "%2e", "%2F", "%5c", "%40",
+    "%61dmin", "alice@x", "a//b", "a\u0000b", "a\tb", "a\nb", "a\u001fb", "a\u007fb"
+  ],
+  "accepted": [
+    ".a", "a.", "v1.2", "~x_y-z", "a b", ".admin?x=1 é", "a#b", "a!*'()b", "a;b=c", "a,b", "a+b", "a&b", "😀", "a\u0080b"
+  ],
+  "lookAlikes": [
+    "\u037e", "\u2024", "\u2025", "\u2026", "\u2044", "\u2100", "\u2101", "\u2105", "\u2106", "\u2215", "\u2216", "\u29f5", "\u29f8", "\ufe14", "\ufe19", "\ufe30", "\ufe52", "\ufe54", "\ufe68", "\ufe6a", "\ufe6b", "\uff05", "\uff0e", "\uff0f", "\uff1b", "\uff20", "\uff3c"
+  ],
+  "encodedNever": [";"],
+  "encoded": [
+    { "value": "a!*'()b", "path": "a!*'()b", "query": "a%21*%27%28%29b" },
+    { "value": "a b~é", "path": "a%20b~%C3%A9", "query": "a+b%7E%C3%A9" },
+    { "value": "a+b&c=d;e,f", "path": "a%2Bb%26c%3Dd%3Be%2Cf", "query": "a%2Bb%26c%3Dd%3Be%2Cf" }
+  ],
+  "otherRoute": {
+    "routes": [
+      { "id": "get-service", "method": "GET", "path": "/services/{name}" },
+      { "id": "get-admin", "method": "GET", "path": "/services/admin" }
+    ],
+    "route": "get-service",
+    "refused": ["admin"],
+    "accepted": ["admins", "Admin", "admin2"]
+  }
+}

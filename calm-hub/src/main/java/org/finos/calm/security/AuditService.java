@@ -86,15 +86,23 @@ public class AuditService {
         if (logEnabled) {
             try {
                 AUDIT_LOG.info("AUDIT actor=[{}] action=[{}] entityType=[{}] namespace=[{}] domain=[{}] "
-                                + "entityId=[{}] version=[{}] outcome=[{}] sourceIp=[{}] timestamp=[{}]",
+                                + "entityId=[{}] version=[{}] outcome=[{}] sourceIp=[{}] timestamp=[{}]{}",
                         sanitize(entry.getActor()), entry.getAction(), entry.getEntityType(),
                         sanitize(entry.getNamespace()), sanitize(entry.getDomain()), sanitize(entry.getEntityId()),
                         sanitize(entry.getVersion()), entry.getOutcome(), sanitize(entry.getSourceIp()),
-                        entry.getTimestamp());
+                        entry.getTimestamp(), extensionFields(entry));
             } catch (Exception e) {
                 LOG.warn("Failed to emit audit log line: {}", sanitizedSummary(entry), e);
             }
         }
+    }
+
+    /** Empty for other entity types, so that their log line does not change. */
+    private static String extensionFields(AuditLogEntry entry) {
+        if (entry.getRoute() == null && entry.getJti() == null) {
+            return "";
+        }
+        return " route=[" + sanitize(entry.getRoute()) + "] jti=[" + sanitize(entry.getJti()) + "]";
     }
 
     /**
@@ -118,6 +126,6 @@ public class AuditService {
                 + ", version=" + sanitize(entry.getVersion())
                 + ", outcome=" + entry.getOutcome()
                 + ", sourceIp=" + sanitize(entry.getSourceIp())
-                + ", timestamp=" + entry.getTimestamp() + "}";
+                + ", timestamp=" + entry.getTimestamp() + extensionFields(entry) + "}";
     }
 }

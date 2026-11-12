@@ -9,10 +9,13 @@ import jakarta.ws.rs.container.PreMatching;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.finos.calm.extensions.ExtensionPaths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * When {@code calm.readonly=true} this filter rejects any mutating HTTP method
@@ -27,6 +30,10 @@ import java.util.Set;
  *
  * <p>MCP ({@code /mcp}) is served by Vert.x routes, not JAX-RS, so this filter never sees it. The MCP tools refuse
  * writes themselves ({@code ReadOnlyHubGuard}).
+ *
+ * <p>The one exception is the extension proxy, {@code /api/calm/extensions/<id>/api/...}. It
+ * enforces read-only mode itself, because a {@code readOnly} extension route (a search or a chat)
+ * changes nothing and must work on a read-only Hub (ADR 0011).
  *
  * <p>This filter runs at priority 0 (before {@link AccessControlFilter} at
  * priority 1) so read-only violations are rejected before auth checks.
@@ -49,6 +56,7 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "DELETE", "PATCH");
     private static final String ALLOW_HEADER = "Allow";
     private static final String ALLOWED_METHODS = "GET, HEAD, OPTIONS";
+    private static final Pattern EXTENSION_PROXY_PATH = Pattern.compile("^/?api/calm/extensions/[^/]+/api(/|$)");
 
     // Resolved once at runtime startup via @PostConstruct (see init()).  We deliberately
     // avoid @ConfigProperty here: in native image, @ConfigProperty values on CDI beans
@@ -74,6 +82,10 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
         String method = requestContext.getMethod();
         if (MUTATING_METHODS.contains(method)) {
             String path = requestContext.getUriInfo().getPath();
+            if (isExtensionProxyPath(requestContext, path)) {
+                // The proxy allows a non-GET method only on a readOnly route (ADR 0011).
+                return;
+            }
             LOG.warn("Read-only mode: rejected {} {}", method, path);
             requestContext.abortWith(
                     Response.status(Response.Status.METHOD_NOT_ALLOWED)
@@ -81,5 +93,19 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
                             .entity("This CALM Hub instance is read-only.")
                             .build());
         }
+    }
+
+    /**
+     * Exempts only the extension proxy, and only a path in normal form, decoded and raw, so that a
+     * dot segment cannot exempt a request that routing then sends to another resource.
+     */
+    private static boolean isExtensionProxyPath(ContainerRequestContext requestContext, String path) {
+        if (path == null || !EXTENSION_PROXY_PATH.matcher(path).find()) {
+            return false;
+        }
+        URI requestUri = requestContext.getUriInfo().getRequestUri();
+        String rawPath = requestUri == null ? null : requestUri.getRawPath();
+        return rawPath != null && !ExtensionPaths.hasForbiddenPart(path) && !ExtensionPaths.hasForbiddenPart(rawPath)
+                && rawPath.contains("/api/calm/extensions/");
     }
 }
