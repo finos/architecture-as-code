@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, renderHook } from '@testing-library/react';
 import { createElement, useCallback, useState, type MouseEvent as ReactMouseEvent } from 'react';
-import { useNodesState } from 'reactflow';
-import type { Node, NodeChange } from 'reactflow';
+import { useNodesState } from '@xyflow/react';
+import type { Node, NodeChange } from '@xyflow/react';
 import { useGraphInteractions } from './useGraphInteractions.js';
 import { saveNodePositions, toStoredPositions, type StoredNodePosition } from '../../../services/node-position-service.js';
 import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';

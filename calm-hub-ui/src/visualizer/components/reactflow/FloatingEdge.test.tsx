@@ -20,15 +20,15 @@ const { bezier, smoothStep, straight, edgeParams, storeNodes } = vi.hoisted(() =
     edgeParams: vi.fn(),
 }));
 
-vi.mock('reactflow', () => ({
+vi.mock('@xyflow/react', () => ({
     getBezierPath: bezier,
     getSmoothStepPath: smoothStep,
     getStraightPath: straight,
     // Like React Flow's, a portal out of the edge's SVG, so the label is HTML and has a layout size.
     EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) =>
         createPortal(<div data-testid="label-renderer">{children}</div>, document.body),
-    useStore: (selector: (store: { nodeInternals: Map<string, object> }) => unknown) =>
-        selector({ nodeInternals: new Map([['a', { id: 'a' }], ['b', { id: 'b' }], ...storeNodes]) }),
+    useStore: (selector: (store: { nodeLookup: Map<string, object> }) => unknown) =>
+        selector({ nodeLookup: new Map([['a', { id: 'a' }], ['b', { id: 'b' }], ...storeNodes]) }),
 }));
 
 vi.mock('./utils/floatingEdges.js', async (importOriginal) => ({

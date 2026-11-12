@@ -1,16 +1,9 @@
-import type { Rect } from 'reactflow';
+import type { Rect } from '@xyflow/react';
 import type { CalloutSize } from '../../../context/DecisionOverlayContext.js';
+import { nodeGeometry, type NodeGeometrySource } from './nodeGeometry.js';
 
 /** The space left between a moved edge label and the callout above it. */
 const CALLOUT_CLEARANCE = 8;
-
-interface PlacedNode {
-    id: string;
-    type?: string;
-    width?: number | null;
-    height?: number | null;
-    positionAbsolute?: { x: number; y: number };
-}
 
 /**
  * The top edge of the node an edge label at (x, y) would cover, or undefined when it covers none. Only drawn nodes
@@ -18,13 +11,14 @@ interface PlacedNode {
  * such a node, so the larger label does not hide the node's own label.
  */
 export function coveredNodeTop(
-    nodes: Iterable<PlacedNode>,
+    nodes: Iterable<NodeGeometrySource>,
     x: number,
     y: number,
     ends: string[],
 ): number | undefined {
-    for (const node of nodes) {
-        if (node.type !== 'custom' || ends.includes(node.id)) continue;
+    for (const raw of nodes) {
+        const node = nodeGeometry(raw);
+        if (!node || node.type !== 'custom' || ends.includes(node.id)) continue;
         const { positionAbsolute: p, width, height } = node;
         if (!p || !width || !height) continue;
         if (x >= p.x && x <= p.x + width && y >= p.y && y <= p.y + height) return p.y;
@@ -36,11 +30,13 @@ export function coveredNodeTop(
  * The area each decision callout covers, in flow units: from the bottom of its node to the bottom of the callout. A
  * node with no reported callout, or not yet measured, has none.
  */
-export function calloutRects(nodes: Iterable<PlacedNode>, sizes: ReadonlyMap<string, CalloutSize>): Rect[] {
+export function calloutRects(nodes: Iterable<NodeGeometrySource>, sizes: ReadonlyMap<string, CalloutSize>): Rect[] {
     const rects: Rect[] = [];
-    for (const node of nodes) {
-        const size = sizes.get(node.id);
-        const { positionAbsolute: p, height } = node;
+    for (const raw of nodes) {
+        const node = nodeGeometry(raw);
+        const size = sizes.get(raw.id);
+        const p = node?.positionAbsolute;
+        const height = node?.height;
         if (!size || !p || !height) continue;
         rects.push({ x: p.x, y: p.y + height, width: size.width, height: size.height });
     }

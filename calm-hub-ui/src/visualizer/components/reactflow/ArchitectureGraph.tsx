@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import ReactFlow, {
+import {
+    ReactFlow,
     Node,
     Background,
     Controls,
@@ -12,8 +13,8 @@ import ReactFlow, {
     type FitViewOptions,
     type ReactFlowInstance,
     type Viewport,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { Gavel, Map as MapIcon, Presentation as PresentationIcon } from 'lucide-react';
 import { MotionToggleButton } from './MotionToggleButton.js';
 import { TextSizeButtons } from './TextSizeButtons.js';
@@ -327,7 +328,7 @@ export function ArchitectureGraph({
         const container = containerRef.current;
         if (!instance || !container) return undefined;
         return getViewportForBounds(
-            diagramBounds(instance.getNodes(), callouts),
+            diagramBounds(instance.getNodes().map((n) => instance.getInternalNode(n.id) ?? n), callouts),
             container.clientWidth,
             container.clientHeight,
             options.minZoom ?? MIN_ZOOM,

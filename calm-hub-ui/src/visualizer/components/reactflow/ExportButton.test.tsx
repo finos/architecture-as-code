@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { Node } from 'reactflow';
+import type { Node } from '@xyflow/react';
 import { ExportButton } from './ExportButton.js';
 import { exportDiagram } from './utils/diagramExport.js';
 
@@ -18,9 +18,9 @@ let zoom = 1;
 
 const nodes: Node[] = [{ id: 'a', position: { x: 0, y: 0 }, positionAbsolute: { x: 0, y: 0 }, width: 100, height: 50, data: {} }];
 
-vi.mock('reactflow', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('reactflow')>()),
-    useReactFlow: () => ({ getNodes: () => nodes, getZoom: () => zoom }),
+vi.mock('@xyflow/react', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@xyflow/react')>()),
+    useReactFlow: () => ({ getNodes: () => nodes, getZoom: () => zoom, getInternalNode: (id: string) => nodes.find((n) => n.id === id) }),
     useStore: (selector: (state: { domNode: HTMLElement }) => unknown) => selector({ domNode: flow }),
 }));
 

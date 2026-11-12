@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Node } from 'reactflow';
+import type { Node } from '@xyflow/react';
 import {
     applyPositions,
     applyStoredPositions,

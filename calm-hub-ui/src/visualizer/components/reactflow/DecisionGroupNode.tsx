@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { NodeProps, Handle, Position } from 'reactflow';
+import { NodeProps, Handle, Position } from '@xyflow/react';
 import { THEME } from './theme';
 import { scalePx, useDiagramTextScale, type DiagramTextScaleStore } from '../../../theme/useDiagramTextScale.js';
 

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import type { NodeProps } from 'reactflow';
+import type { NodeProps } from '@xyflow/react';
 import { SystemGroupNode } from './SystemGroupNode.js';
 import { THEME } from './theme.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
@@ -10,12 +10,12 @@ import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 
-vi.mock('reactflow', () => ({
+vi.mock('@xyflow/react', () => ({
     Handle: () => null,
     Position: { Left: 'left', Right: 'right' },
     EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-    useStore: (selector: (store: { nodeInternals: Map<string, object> }) => unknown) => selector({
-        nodeInternals: new Map([['cluster', { id: 'cluster', width: 600, height: 400, positionAbsolute: { x: 40, y: 50 } }]]),
+    useStore: (selector: (store: { nodeLookup: Map<string, object> }) => unknown) => selector({
+        nodeLookup: new Map([['cluster', { id: 'cluster', width: 600, height: 400, positionAbsolute: { x: 40, y: 50 } }]]),
     }),
 }));
 

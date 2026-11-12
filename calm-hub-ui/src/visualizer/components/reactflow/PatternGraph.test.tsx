@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { useState, type ReactNode } from 'react';
-import { ReactFlowProvider, type Node } from 'reactflow';
+import { ReactFlowProvider, type Node } from '@xyflow/react';
 import { PatternGraph } from './PatternGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
 
@@ -27,12 +27,13 @@ function MockReactFlow(props: Record<string, unknown>) {
     );
 }
 
-vi.mock('reactflow', async () => {
-    const actual = await vi.importActual<typeof import('reactflow')>('reactflow');
+vi.mock('@xyflow/react', async () => {
+    const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react');
     return {
         ...actual,
         __esModule: true,
         default: MockReactFlow,
+        ReactFlow: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
         Controls: ({ children }: { children?: ReactNode }) => (
             <div data-testid="rf-controls">{children}</div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Node, Edge, NodeChange } from 'reactflow';
+import { Node, Edge, NodeChange } from '@xyflow/react';
 import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';
 import { saveNodePositions, toStoredPositions, type StoredNodePosition } from '../../../services/node-position-service.js';
 import { useDiagramTextScale } from '../../../../theme/useDiagramTextScale.js';

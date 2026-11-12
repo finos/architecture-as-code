@@ -1,6 +1,7 @@
 import { memo, useState, useCallback } from 'react';
-import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore, type Node } from 'reactflow';
+import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore } from '@xyflow/react';
 import { getEdgeParams, sameNodeGeometry } from './utils/floatingEdges.js';
+import type { NodeGeometrySource } from './utils/nodeGeometry.js';
 import { THEME } from './theme.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
@@ -36,8 +37,8 @@ function FloatingEdgeComponent({
 
     // reactflow gives every node a new object on each node change, for example the z-index change on a hover. Only
     // the geometry is compared, so such a change does not render every edge again.
-    const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]), sameNodeGeometry);
-    const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]), sameNodeGeometry);
+    const sourceNode = useStore(useCallback((store) => store.nodeLookup.get(source), [source]), sameNodeGeometry);
+    const targetNode = useStore(useCallback((store) => store.nodeLookup.get(target), [target]), sameNodeGeometry);
     const { presenting } = usePresentationMode(presentationStore);
     const { scale } = useDiagramTextScale(textScaleStore);
     const path = sourceNode && targetNode
@@ -52,7 +53,7 @@ function FloatingEdgeComponent({
     const coveredTop = useStore(useCallback(
         (store) => (hitX === undefined || hitY === undefined
             ? undefined
-            : coveredNodeTop(store.nodeInternals.values(), hitX, hitY, [source, target])),
+            : coveredNodeTop(store.nodeLookup.values(), hitX, hitY, [source, target])),
         [hitX, hitY, source, target],
     ));
 
@@ -68,7 +69,7 @@ function FloatingEdgeComponent({
             ? 0
             : calloutShift(
                 { x: hitX - labelSize.width / 2, y: hitY - labelSize.height / 2, ...labelSize },
-                calloutRects(store.nodeInternals.values(), calloutSizes),
+                calloutRects(store.nodeLookup.values(), calloutSizes),
             )),
         [shiftForCallouts, hitX, hitY, labelSize, calloutSizes],
     ));
@@ -270,8 +271,8 @@ function FloatingEdgeComponent({
 export const FloatingEdge = memo(FloatingEdgeComponent);
 
 function getFloatingEdgePath(
-    sourceNode: Node,
-    targetNode: Node,
+    sourceNode: NodeGeometrySource,
+    targetNode: NodeGeometrySource,
     direction: EdgeData['direction'],
     routing: NonNullable<EdgeData['metadata']>['routing'],
 ) {

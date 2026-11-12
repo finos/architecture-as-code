@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ReactFlowProvider, type NodeProps } from 'reactflow';
+import { ReactFlowProvider, type NodeProps } from '@xyflow/react';
 import { DecisionGroupNode } from './DecisionGroupNode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';

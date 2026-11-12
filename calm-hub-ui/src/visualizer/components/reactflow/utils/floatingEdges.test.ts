@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Node, Position } from 'reactflow';
+import { Node, Position } from '@xyflow/react';
 import { getEdgeParams, sameNodeGeometry } from './floatingEdges';
 
 // Helper to create a mock node with required properties

@@ -5,7 +5,7 @@ import { DiagramSection } from './DiagramSection.js';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { saveNodePositions } from '../../../visualizer/services/node-position-service.js';
-import type { Node } from 'reactflow';
+import type { Node } from '@xyflow/react';
 
 const calmServiceMock = {
     fetchDeploymentDecoratorsForArchitecture: vi.fn().mockResolvedValue([]),

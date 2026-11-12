@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ControlButton, getBoundsOfRects, useReactFlow, useStore } from 'reactflow';
+import { ControlButton, useReactFlow, useStore } from '@xyflow/react';
 import { ImageDown } from 'lucide-react';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';
-import { diagramBounds, exportDiagram, exportFileName, labelRects, type ExportFormat } from './utils/diagramExport.js';
+import { diagramBounds, exportDiagram, exportFileName, getBoundsOfRects, labelRects, type ExportFormat } from './utils/diagramExport.js';
 
 interface ExportButtonProps {
     /** Names the saved file. */
@@ -17,7 +17,7 @@ const NO_CALLOUTS = new Map();
 /** Saves the whole diagram, as it is drawn, as an SVG or PNG image. */
 export function ExportButton({ diagramKey }: ExportButtonProps) {
     const [open, setOpen] = useState(false);
-    const { getNodes, getZoom } = useReactFlow();
+    const { getNodes, getZoom, getInternalNode } = useReactFlow();
     const flow = useStore((state) => state.domNode);
 
     const save = (format: ExportFormat) => {
@@ -26,7 +26,10 @@ export function ExportButton({ diagramKey }: ExportButtonProps) {
         if (!flow || !viewport) return;
         exportDiagram(
             viewport,
-            labelRects(viewport, getZoom()).reduce(getBoundsOfRects, diagramBounds(getNodes(), NO_CALLOUTS)),
+            labelRects(viewport, getZoom()).reduce(
+                getBoundsOfRects,
+                diagramBounds(getNodes().map((n) => getInternalNode(n.id) ?? n), NO_CALLOUTS),
+            ),
             format,
             exportFileName(diagramKey, format),
             getComputedStyle(flow).backgroundColor,

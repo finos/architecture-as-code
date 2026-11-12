@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
-import ReactFlow, {
+import {
+    ReactFlow,
     Background,
     Controls,
     MiniMap,
@@ -8,8 +9,8 @@ import ReactFlow, {
     useEdgesState,
     useReactFlow,
     useNodesInitialized,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import type { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { FloatingEdge } from '../../visualizer/components/reactflow/FloatingEdge.js';
 import { CustomNode } from '../../visualizer/components/reactflow/CustomNode.js';
