@@ -8,9 +8,10 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.finos.calm.config.LdapGroupsConfig;
-import org.finos.calm.security.GroupMembershipException;
 import org.finos.calm.security.GroupMembershipResolver;
 import org.finos.calm.security.GroupMembershipResolverProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -22,12 +23,16 @@ import java.util.function.Function;
 
 /**
  * Resolves group membership from an LDAP directory. Caches each (user, group) answer and each
- * user DN. Asks the directory only about groups that are not in the cache. A failure is not cached.
+ * user DN. Asks the directory only about groups that are not in the cache. If the directory
+ * fails, the cached answers still count, the uncached groups count as "not a member", and
+ * nothing is cached.
  */
 @LookupIfProperty(name = GroupMembershipResolverProducer.PROVIDER_PROPERTY, stringValue = GroupMembershipResolverProducer.LDAP)
 @Typed(LdapGroupMembershipResolver.class)
 @ApplicationScoped
 public class LdapGroupMembershipResolver implements GroupMembershipResolver {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LdapGroupMembershipResolver.class);
 
     private record Membership(String username, String group) {
     }
@@ -85,7 +90,9 @@ public class LdapGroupMembershipResolver implements GroupMembershipResolver {
             }
             return result;
         } catch (DirectoryException e) {
-            throw new GroupMembershipException("LDAP group membership lookup failed for user [" + username + "]", e);
+            LOG.warn("LDAP group membership lookup failed for user [{}]; {} uncached group(s) treated as non-member",
+                    username, uncached.size(), e);
+            return result;
         }
     }
 

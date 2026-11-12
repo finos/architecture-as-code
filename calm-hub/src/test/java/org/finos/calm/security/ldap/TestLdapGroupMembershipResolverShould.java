@@ -1,7 +1,6 @@
 package org.finos.calm.security.ldap;
 
 import org.finos.calm.config.LdapGroupsConfigStub;
-import org.finos.calm.security.GroupMembershipException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,9 +15,7 @@ import java.util.Set;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -113,7 +110,7 @@ class TestLdapGroupMembershipResolverShould {
     }
 
     @Test
-    void wrap_a_directory_failure_and_cache_nothing() throws Exception {
+    void return_no_groups_and_cache_nothing_when_the_directory_fails() throws Exception {
         givenDirectory();
         when(mockSession.findUserDn("alice"))
                 .thenThrow(new DirectoryException("timeout"))
@@ -121,19 +118,40 @@ class TestLdapGroupMembershipResolverShould {
         when(mockSession.findMemberGroups(ALICE_DN, Set.of("architects"))).thenReturn(Set.of("architects"));
         LdapGroupMembershipResolver resolver = resolver();
 
-        GroupMembershipException e = assertThrows(GroupMembershipException.class,
-                () -> resolver.memberGroups("alice", List.of("architects")));
-        assertThat(e.getCause(), instanceOf(DirectoryException.class));
+        assertThat(resolver.memberGroups("alice", List.of("architects")), is(empty()));
         verify(mockSession).close();
 
         assertThat(resolver.memberGroups("alice", List.of("architects")), containsInAnyOrder("architects"));
     }
 
     @Test
-    void wrap_a_failure_to_open_a_session() throws Exception {
-        when(mockDirectoryClient.open()).thenThrow(new DirectoryException("connection refused"));
+    void keep_cached_members_and_deny_uncached_groups_when_the_directory_fails() throws Exception {
+        givenDirectory();
+        when(mockSession.findUserDn("alice")).thenReturn(Optional.of(ALICE_DN));
+        when(mockSession.findMemberGroups(ALICE_DN, Set.of("architects", "operators")))
+                .thenReturn(Set.of("architects"));
+        when(mockSession.findMemberGroups(ALICE_DN, Set.of("reviewers")))
+                .thenThrow(new DirectoryException("connection reset"));
+        LdapGroupMembershipResolver resolver = resolver();
+        resolver.memberGroups("alice", List.of("architects", "operators"));
 
-        assertThrows(GroupMembershipException.class, () -> resolver().memberGroups("alice", List.of("architects")));
+        Set<String> during = resolver.memberGroups("alice", List.of("architects", "operators", "reviewers"));
+
+        assertThat(during, containsInAnyOrder("architects"));
+        verify(mockSession, times(2)).findMemberGroups(anyString(), anyCollection());
+    }
+
+    @Test
+    void keep_cached_members_when_a_session_cannot_be_opened() throws Exception {
+        when(mockDirectoryClient.open())
+                .thenReturn(mockSession)
+                .thenThrow(new DirectoryException("connection refused"));
+        when(mockSession.findUserDn("alice")).thenReturn(Optional.of(ALICE_DN));
+        when(mockSession.findMemberGroups(ALICE_DN, Set.of("architects"))).thenReturn(Set.of("architects"));
+        LdapGroupMembershipResolver resolver = resolver();
+        resolver.memberGroups("alice", List.of("architects"));
+
+        assertThat(resolver.memberGroups("alice", List.of("architects", "reviewers")), containsInAnyOrder("architects"));
     }
 
     @Test

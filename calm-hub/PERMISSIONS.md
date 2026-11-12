@@ -151,7 +151,7 @@ check(username, scope, action):
     if rules(grants) allow: return true
     candidates = group grants on the scope's ancestors + GLOBAL   // domain: the domain + GLOBAL
     groups = distinct group names of candidates
-    members = resolver.memberGroups(username, groups)            // one call; failure → no groups
+    members = resolver.memberGroups(username, groups)            // one call; exception → no groups
     return rules(grants + candidates where group in members)
 ```
 
@@ -172,7 +172,7 @@ check(username, scope, action):
 
 The LDAP provider uses the UnboundID LDAP SDK. Quarkus disables JNDI (`quarkus.naming.enable-jndi`), so JDK JNDI is not used. For each uncached user it finds the user DN with the user searches, then searches `group-search-base` for the candidate groups that have the user in `member-attribute`, one OR-filtered search for each `groups-per-query` batch. Usernames and group names are escaped before they go into a filter. TLS connections verify the server host name.
 
-Answers are cached for each (user, group) pair, and the user DN for each user. A directory error or timeout gives no group access and is not cached.
+Answers are cached for each (user, group) pair, and the user DN for each user. If the directory fails (error or timeout), groups cached as "member" keep their access until `cache.positive-ttl` expires, the uncached groups count as "not a member", and nothing is cached. The resolver logs the failure at `WARN` and does not throw.
 
 Settings are under `calm.auth.groups.ldap`. `LdapGroupsConfigValidator` checks them at startup when `provider=ldap`, and CALM Hub does not start if they are not valid.
 

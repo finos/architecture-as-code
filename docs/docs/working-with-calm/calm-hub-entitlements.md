@@ -120,7 +120,7 @@ Group grants follow the same rules as user grants: the AND rule for reading, the
 
 - `*` is not a valid group name.
 - Only direct membership counts. CALM Hub does not resolve nested groups.
-- If CALM Hub cannot get a user's group membership (for example, the directory is not available), the user gets no access from group grants.
+- If CALM Hub cannot get a user's group membership (for example, the directory is not available), the user gets no access from group grants, except for groups whose membership CALM Hub has cached.
 - A grant with no `subjectType` is a user grant.
 
 ### Group Membership
