@@ -47,19 +47,20 @@ A guided introduction to the Common Architecture Language Model — what it is, 
 |---|-------|------|
 | 1–2 | Title & agenda | 2 min |
 | 3–5 | The problem & what CALM is | 5 min |
-| 6–8 | Six benefits, JSON structure & artifact types | 3 min |
-| 9 | Part 2 divider — Building Blocks | — |
-| 10–14 | Building blocks (nodes ×2, relationships ×2, interfaces) | 8 min |
-| 15 | Part 3 divider — Governance | — |
-| 16–24 | Governance (controls ×2, custom properties, standards, decorators, patterns ×3, disambiguation) | 10 min |
-| 25 | Part 4 divider — Process & Evolution | — |
-| 26–28 | Process & evolution (flows ×2, timelines) | 5 min |
-| 29 | Part 5 divider — Tooling | — |
-| 30–36 | Tooling (CLI, VSCode ×2, Hub ×2, widgets, AI tools) | 6 min |
-| 37 | Part 6 divider — CALM in Practice | — |
-| 38–39 | CALM in practice (deployments, gating) | 5 min |
-| 40 | Part 7 divider — Putting It Together | — |
-| 41–43 | Trading system example (architecture, what's modelled, workflow) | 4 min |
-| 44 | Getting Involved (open source, Slack, community) | 1 min |
-| 45 | Workshop (Beginner / Intermediate / Practitioner / Advanced) | 1 min |
-| 46 | Close | — |
+| 6 | A graduated FINOS project | 1 min |
+| 7–9 | Six benefits, JSON structure & artifact types | 3 min |
+| 10 | Part 2 divider — Building Blocks | — |
+| 11–15 | Building blocks (nodes ×2, relationships ×2, interfaces) | 8 min |
+| 16 | Part 3 divider — Governance | — |
+| 17–25 | Governance (controls ×2, custom properties, standards, decorators, patterns ×3, disambiguation) | 10 min |
+| 26 | Part 4 divider — Process & Evolution | — |
+| 27–29 | Process & evolution (flows ×2, timelines) | 5 min |
+| 30 | Part 5 divider — Tooling | — |
+| 31–37 | Tooling (CLI, VSCode ×2, Hub ×2, widgets, AI tools) | 6 min |
+| 38 | Part 6 divider — CALM in Practice | — |
+| 39–40 | CALM in practice (deployments, gating) | 5 min |
+| 41 | Part 7 divider — Putting It Together | — |
+| 42–44 | Trading system example (architecture, what's modelled, workflow) | 4 min |
+| 45 | Getting Involved (open source, Slack, community) | 1 min |
+| 46 | Workshop (Beginner / Intermediate / Practitioner / Advanced) | 1 min |
+| 47 | Close | — |
