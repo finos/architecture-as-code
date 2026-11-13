@@ -99,6 +99,28 @@ Under each namespace, you can browse and retrieve the following artifacts:
 
 ---
 
+### My Namespace
+
+If the operator turns on personal namespaces, each user can have one private namespace for scratch work, for example `users.jane-doe`. The home page shows a **My namespace** card:
+
+| Card | What it means |
+| :--- | :--- |
+| Name and **Create** | The namespace does not exist yet. **Create** makes it |
+| Name, **Open** and **Copy name** | The namespace is yours. **Copy name** is for the `$id` of documents that you push with the CLI |
+| A message to ask an admin | Another user holds the name, or your user name cannot be used |
+
+No card shows when personal namespaces are off.
+
+![My namespace card](/img/hub-ui/my-namespace-card.png)
+
+Only you can see your namespace until you give other users access. See [Personal Namespaces](./calm-hub-entitlements.md#personal-namespaces) for the rules. From the command line, use `calm hub whoami` and `calm hub create my-namespace` (see the [CLI hub commands](../calm-cli/hub.md#your-personal-namespace)).
+
+A new namespace contains **My architecture**, a starter architecture. It shows you, the CALM CLI, CALM Hub UI and the CALM Hub API, with flows for how you use them. Change it, or replace it with your own.
+
+![The starter architecture in a new personal namespace](/img/hub-ui/my-architecture.png)
+
+---
+
 ## Interactive Architecture Visualizer
 
 When you select an **Architecture** or **Pattern** artifact, CALM Hub renders the model using an interactive canvas.
