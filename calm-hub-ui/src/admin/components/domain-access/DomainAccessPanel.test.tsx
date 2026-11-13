@@ -137,6 +137,7 @@ describe('DomainAccessPanel', () => {
 
             await waitFor(() =>
                 expect(svc.grantDomainAccess).toHaveBeenCalledWith('retail', {
+                    subjectType: 'user',
                     username: 'carol',
                     permission: 'read',
                 })
@@ -157,6 +158,23 @@ describe('DomainAccessPanel', () => {
 
             expect(await screen.findByText('alice')).toBeInTheDocument();
             expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        });
+    });
+
+    describe('group grants', () => {
+        const groupGrant: UserAccess = { userAccessId: 7, username: 'architects', subjectType: 'group', permission: 'write', domain: 'retail' };
+
+        it('shows the type column and names the group in the revoke dialog', async () => {
+            const svc = mockSvc({ getDomainUserAccess: () => Promise.resolve([groupGrant]) });
+            render(<DomainAccessPanel domain="retail" service={svc} />);
+            await waitFor(() => screen.getByText('architects'));
+
+            expect(screen.getByRole('columnheader', { name: 'Type' })).toBeInTheDocument();
+            const row = screen.getAllByRole('row')[1];
+            expect(within(row).getByText('group')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByRole('button', { name: /revoke access for architects \(group\)/i }));
+            expect(within(screen.getByRole('dialog')).getByText('architects (group)')).toBeInTheDocument();
         });
     });
 });

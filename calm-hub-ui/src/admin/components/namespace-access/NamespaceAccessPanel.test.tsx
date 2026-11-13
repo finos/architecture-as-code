@@ -137,11 +137,29 @@ describe('NamespaceAccessPanel', () => {
 
             await waitFor(() =>
                 expect(svc.grantNamespaceAccess).toHaveBeenCalledWith('finos', {
+                    subjectType: 'user',
                     username: 'carol',
                     permission: 'read',
                 })
             );
             expect(svc.getNamespaceUserAccess).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    describe('group grants', () => {
+        const groupGrant: UserAccess = { userAccessId: 7, username: 'architects', subjectType: 'group', permission: 'write', namespace: 'finos' };
+
+        it('shows the type column and names the group in the revoke dialog', async () => {
+            const svc = mockSvc({ getNamespaceUserAccess: () => Promise.resolve([groupGrant]) });
+            render(<NamespaceAccessPanel namespace="finos" service={svc} />);
+            await waitFor(() => screen.getByText('architects'));
+
+            expect(screen.getByRole('columnheader', { name: 'Type' })).toBeInTheDocument();
+            const row = screen.getAllByRole('row')[1];
+            expect(within(row).getByText('group')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByRole('button', { name: /revoke access for architects \(group\)/i }));
+            expect(within(screen.getByRole('dialog')).getByText('architects (group)')).toBeInTheDocument();
         });
     });
 });

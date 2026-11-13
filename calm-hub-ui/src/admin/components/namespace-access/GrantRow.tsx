@@ -1,4 +1,4 @@
-import { UserAccess, UserAccessPermission } from '../../../model/user-access.js';
+import { UserAccess, UserAccessPermission, isGroupGrant, subjectLabel } from '../../../model/user-access.js';
 
 const PERMISSION_BADGE: Record<UserAccessPermission, string> = {
     read: 'badge-info',
@@ -12,11 +12,17 @@ interface GrantRowProps {
 }
 
 export function GrantRow({ grant, onRequestRevoke }: GrantRowProps) {
-    const displayUsername = grant.username === '*' ? '* (everyone)' : grant.username;
+    const group = isGroupGrant(grant);
+    const displayName = !group && grant.username === '*' ? '* (everyone)' : grant.username;
 
     return (
         <tr>
-            <td className="font-mono text-sm">{displayUsername}</td>
+            <td className="font-mono text-sm">{displayName}</td>
+            <td>
+                <span className={`badge badge-sm ${group ? 'badge-neutral' : 'badge-ghost'}`}>
+                    {group ? 'group' : 'user'}
+                </span>
+            </td>
             <td>
                 <span className={`badge badge-sm ${PERMISSION_BADGE[grant.permission]}`}>
                     {grant.permission}
@@ -26,7 +32,7 @@ export function GrantRow({ grant, onRequestRevoke }: GrantRowProps) {
                 <button
                     className="btn btn-xs btn-error btn-outline"
                     onClick={() => onRequestRevoke(grant)}
-                    aria-label={`Revoke access for ${displayUsername}`}
+                    aria-label={`Revoke access for ${subjectLabel(grant)}`}
                 >
                     Revoke
                 </button>
