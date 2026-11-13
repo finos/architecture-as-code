@@ -100,7 +100,10 @@ export default function Hub() {
     const loadNamespaceCounts = useCallback(() => {
         countsService
             .fetchNamespaceCounts()
-            .then(setNamespaceCounts)
+            .then((counts) => {
+                setNamespaceCounts(counts);
+                setNamespaceCountsFailed(false);
+            })
             // On failure counts are unknown, not zero: flag it so the tabs render
             // resting (no badge) rather than a misleading dimmed 0 while the
             // independent item grid still fills below.

@@ -50,9 +50,10 @@ vi.mock('./hooks/useResourceFromRoute', () => ({
 }));
 
 vi.mock('./components/explore-rail/ExploreRail', () => ({
-    ExploreRail: ({ onCollapse }: { onCollapse?: () => void }) => (
+    ExploreRail: ({ onCollapse, namespacesFailed }: { onCollapse?: () => void; namespacesFailed?: boolean }) => (
         <div data-testid="explore-rail">
             <div>Explore Rail</div>
+            <div data-testid="rail-namespaces-failed">{String(Boolean(namespacesFailed))}</div>
             {onCollapse && (
                 <button aria-label="Collapse sidebar" onClick={onCollapse}>
                     Collapse
@@ -526,6 +527,23 @@ describe('Hub', () => {
 
             await waitFor(() => expect(screen.getByTestId('intro-screen')).toHaveTextContent('Intro (3)'));
             expect(fetchCounts).toHaveBeenCalledTimes(2);
+        });
+
+        it('clears the counts failure when the reload after a create succeeds', async () => {
+            vi.spyOn(PersonalNamespaceService.prototype, 'fetchPersonalNamespace').mockResolvedValue({ status: 'available', name: 'users.bob' });
+            vi.spyOn(PersonalNamespaceService.prototype, 'createPersonalNamespace').mockResolvedValue({ status: 'owned', name: 'users.bob' });
+            const fetchCounts = vi
+                .spyOn(CountsService.prototype, 'fetchNamespaceCounts')
+                .mockRejectedValueOnce(new Error('boom'))
+                .mockResolvedValueOnce([finos, usersRoot, bob]);
+
+            renderWithNav('/', ['/namespace/finos']);
+            await waitFor(() => expect(fetchCounts).toHaveBeenCalledTimes(1));
+            fireEvent.click(screen.getByText('create-personal'));
+            await waitFor(() => expect(fetchCounts).toHaveBeenCalledTimes(2));
+            navigateTo('/namespace/finos');
+
+            await waitFor(() => expect(screen.getByTestId('rail-namespaces-failed')).toHaveTextContent('false'));
         });
 
         it('does not reload the counts when the name is taken', async () => {
