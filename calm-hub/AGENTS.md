@@ -399,7 +399,10 @@ All four workflows:
 - **Read-only mode:** `/mcp` is a Vert.x route, so `ReadOnlyRequestFilter` never sees it. Put
   `@ReadOnlyHubGuard` on each `*Tools` class: on a read-only Hub it refuses each `@Tool` that needs more
   than a read scope. Its priority (`PLATFORM_BEFORE`) puts it before the `@PermissionsAllowed` check.
-  `TestMcpToolsReadOnlyShould` fails for a write tool in a class without it
+  `TestMcpToolsReadOnlyShould` fails for a write tool in a class without it. `ReadOnlyHubToolFilter` uses the
+  same rule (`changesData`) to hide those tools from `tools/list` for all users. It does not filter `tools/call`, so
+  the guard still gives the read-only error. This is not the per-user `ToolFilter` that ADR 0014 rejects. A tool
+  registered through `ToolManager` has no method, so it stays listed and must refuse writes itself
 
 ### UI Customization
 - `config/UiConfig` (`@ConfigMapping(prefix = "calm.ui")`) holds the operator values that

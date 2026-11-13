@@ -20,7 +20,8 @@ import java.util.Set;
 /**
  * Refuses the MCP tools that change data when {@code calm.readonly=true}, as the REST read-only filter refuses
  * a mutating method. A tool is a read when it needs only read scopes, or only authentication. Any other tool,
- * also one with no permission annotation, is refused.
+ * also one with no permission annotation, is refused. {@link ReadOnlyHubToolFilter} hides the same tools from
+ * {@code tools/list}.
  */
 @ReadOnlyHubGuard
 @Interceptor
@@ -34,7 +35,11 @@ public class ReadOnlyHubGuardInterceptor {
     // Read at call time, not injected, for the reason that ReadOnlyRequestFilter gives.
     @AroundInvoke
     Object refuseWritesOnReadOnlyHub(InvocationContext context) throws Exception {
-        return refuseWrites(context, ConfigProvider.getConfig().getOptionalValue("calm.readonly", Boolean.class).orElse(false));
+        return refuseWrites(context, readOnlyHub());
+    }
+
+    static boolean readOnlyHub() {
+        return ConfigProvider.getConfig().getOptionalValue("calm.readonly", Boolean.class).orElse(false);
     }
 
     static Object refuseWrites(InvocationContext context, boolean readOnly) throws Exception {

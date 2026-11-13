@@ -131,7 +131,7 @@ class TestReadOnlyHubGuardInterceptorShould {
         return context;
     }
 
-    private static Method method(String name) throws NoSuchMethodException {
+    static Method method(String name) throws NoSuchMethodException {
         return Arrays.stream(SampleTools.class.getDeclaredMethods())
                 .filter(method -> method.getName().equals(name))
                 .findFirst()
