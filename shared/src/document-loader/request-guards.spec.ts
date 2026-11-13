@@ -1,5 +1,5 @@
 import { DocumentLoadError } from './document-loader';
-import { assertNoTraversal, assertSafeRequestPath } from './request-guards';
+import { assertNoTraversal, isSafeRequestPath, unsafeRequestPathError } from './request-guards';
 
 describe('request-guards', () => {
     describe('assertNoTraversal', () => {
@@ -52,13 +52,13 @@ describe('request-guards', () => {
         });
     });
 
-    describe('assertSafeRequestPath', () => {
+    describe('isSafeRequestPath and unsafeRequestPathError', () => {
         it.each([
             '/calm/schemas/2025-03/meta/core.json',
             '/schemas/2025-03/meta/core',
             '/a_b-c.d/e',
         ])('accepts an allowlisted path: %s', (path) => {
-            expect(() => assertSafeRequestPath(path, 'Test loader')).not.toThrow();
+            expect(isSafeRequestPath(path)).toBe(true);
         });
 
         it.each([
@@ -67,15 +67,11 @@ describe('request-guards', () => {
             '/schemas/a b.json',
             '/schemas/a%2fb.json',
         ])('rejects a path with disallowed characters: %s', (path) => {
-            let thrown: unknown;
-            try {
-                assertSafeRequestPath(path, 'Test loader');
-            } catch (error) {
-                thrown = error;
-            }
-            expect(thrown).toBeInstanceOf(DocumentLoadError);
-            expect(thrown).toMatchObject({ recoverable: false });
-            expect((thrown as Error).message)
+            expect(isSafeRequestPath(path)).toBe(false);
+            const error = unsafeRequestPathError(path, 'Test loader');
+            expect(error).toBeInstanceOf(DocumentLoadError);
+            expect(error).toMatchObject({ recoverable: false });
+            expect(error.message)
                 .toBe(`Test loader rejected a path with disallowed characters: ${path}`);
         });
 
@@ -86,15 +82,11 @@ describe('request-guards', () => {
             'schemas/core.json',
             '//evil.example/x',
         ])('rejects a path that does not start with a single "/": %s', (path) => {
-            let thrown: unknown;
-            try {
-                assertSafeRequestPath(path, 'Test loader');
-            } catch (error) {
-                thrown = error;
-            }
-            expect(thrown).toBeInstanceOf(DocumentLoadError);
-            expect(thrown).toMatchObject({ recoverable: false });
-            expect((thrown as Error).message)
+            expect(isSafeRequestPath(path)).toBe(false);
+            const error = unsafeRequestPathError(path, 'Test loader');
+            expect(error).toBeInstanceOf(DocumentLoadError);
+            expect(error).toMatchObject({ recoverable: false });
+            expect(error.message)
                 .toBe(`Test loader rejected a path that does not start with a single '/': ${path}`);
         });
     });
