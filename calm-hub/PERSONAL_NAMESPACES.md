@@ -168,7 +168,7 @@ personal namespace name there. There is no `@me` placeholder.
 
 | Item | Where |
 |---|---|
-| Share links for documents in a private namespace | A separate issue, as agreed on #3075 |
+| Share links for documents in a private namespace | [#3719](https://github.com/finos/architecture-as-code/issues/3719) |
 | A starter `my-architecture` in a new personal namespace | [#3689](https://github.com/finos/architecture-as-code/issues/3689) |
 | Archive, and move documents out of a personal namespace | [#2856](https://github.com/finos/architecture-as-code/issues/2856) |
 | Personal domains | Not planned |
