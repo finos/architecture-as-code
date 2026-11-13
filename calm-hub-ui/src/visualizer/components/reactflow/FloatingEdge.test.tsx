@@ -327,7 +327,7 @@ describe('FloatingEdge in presentation mode', () => {
 
     it('moves the label above a node it would cover, only in presentation mode', () => {
         // The mocked bezier puts the label at (11, 12), inside this node.
-        storeNodes.set('middle', { id: 'middle', type: 'custom', width: 50, height: 50, positionAbsolute: { x: 0, y: 4 } });
+        storeNodes.set('middle', { id: 'middle', type: 'custom', measured: { width: 50, height: 50 }, internals: { positionAbsolute: { x: 0, y: 4 } } });
 
         const { unmount } = renderEdge(false);
         expect(screen.getByText('writes').style.fontSize).toBe('10px');
@@ -394,7 +394,7 @@ describe('FloatingEdge with the decision overlay', () => {
 describe('FloatingEdge clearing the decision callouts', () => {
     // The mocked bezier puts the label's centre at (11, 12). At 40 by 20 it spans y 2 to 22, so the callout below
     // this node, from y 0, covers its top.
-    const blocked = { id: 'blocked', type: 'custom', width: 50, height: 30, positionAbsolute: { x: 0, y: -30 } };
+    const blocked = { id: 'blocked', type: 'custom', measured: { width: 50, height: 30 }, internals: { positionAbsolute: { x: 0, y: -30 } } };
     const callout = (height = 20): Map<string, CalloutSize> => new Map([['blocked', { width: 100, height }]]);
 
     beforeEach(() => {
@@ -427,7 +427,7 @@ describe('FloatingEdge clearing the decision callouts', () => {
     });
 
     it('leaves a label that covers no callout where it is', () => {
-        storeNodes.set('blocked', { ...blocked, positionAbsolute: { x: 200, y: -30 } });
+        storeNodes.set('blocked', { ...blocked, internals: { positionAbsolute: { x: 200, y: -30 } } });
         render(edge());
         expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,12px)');
     });
@@ -451,8 +451,8 @@ describe('FloatingEdge clearing the decision callouts', () => {
 
     it('does not move a label lifted above a node it would cover, though a callout hangs into the gap above it', () => {
         // The lifted label spans y -24 to -4, and the callout below this node spans y -30 to -5.
-        storeNodes.set('blocked', { ...blocked, positionAbsolute: { x: 0, y: -60 } });
-        storeNodes.set('middle', { id: 'middle', type: 'custom', width: 50, height: 50, positionAbsolute: { x: 0, y: 4 } });
+        storeNodes.set('blocked', { ...blocked, internals: { positionAbsolute: { x: 0, y: -60 } } });
+        storeNodes.set('middle', { id: 'middle', type: 'custom', measured: { width: 50, height: 50 }, internals: { positionAbsolute: { x: 0, y: 4 } } });
         render(edge({ calloutSizes: callout(25) }));
         expect(labelBox().style.transform).toBe('translate(-50%, -100%) translate(11px,-4px)');
     });

@@ -31,8 +31,6 @@ vi.mock('@xyflow/react', async () => {
     const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react');
     return {
         ...actual,
-        __esModule: true,
-        default: MockReactFlow,
         ReactFlow: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
         Controls: ({ children }: { children?: ReactNode }) => (

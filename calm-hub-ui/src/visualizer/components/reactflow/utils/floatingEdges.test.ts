@@ -13,11 +13,10 @@ function createMockNode(
     return {
         id,
         position: { x, y },
-        positionAbsolute: { x, y },
-        width,
-        height,
+        measured: { width, height },
+        internals: { positionAbsolute: { x, y } },
         data: {},
-    };
+    } as Node;
 }
 
 describe('getEdgeParams', () => {
@@ -114,19 +113,19 @@ describe('getEdgeParams', () => {
         const source: Node = {
             id: 'source',
             position: { x: 0, y: 0 },
-            positionAbsolute: { x: 0, y: 0 },
+            internals: { positionAbsolute: { x: 0, y: 0 } },
             data: {},
-        };
+        } as Node;
         const target: Node = {
             id: 'target',
             position: { x: 100, y: 0 },
-            positionAbsolute: { x: 100, y: 0 },
+            internals: { positionAbsolute: { x: 100, y: 0 } },
             data: {},
-        };
+        } as Node;
 
         const result = getEdgeParams(source, target);
 
-        // Should return positionAbsolute values as fallback when dimensions missing
+        // Should return internals.positionAbsolute values as fallback when dimensions missing
         expect(result.sx).toBe(0);
         expect(result.sy).toBe(0);
         expect(result.tx).toBe(100);

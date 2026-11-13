@@ -57,8 +57,6 @@ vi.mock('@xyflow/react', async () => {
     const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react');
     return {
         ...actual,
-        __esModule: true,
-        default: MockReactFlow,
         ReactFlow: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
         Controls: (props: { children?: ReactNode }) => {
@@ -99,8 +97,8 @@ const mockCalmData: CalmArchitectureSchema = {
 
 // Two nodes span x 0 to 300 and y 0 to 100. A callout that reaches 160 below node-1 takes the content down to y 260.
 const measuredNodes = [
-    { id: 'node-1', position: { x: 0, y: 0 }, positionAbsolute: { x: 0, y: 0 }, width: 200, height: 100 },
-    { id: 'node-2', position: { x: 100, y: 0 }, positionAbsolute: { x: 100, y: 0 }, width: 200, height: 100 },
+    { id: 'node-1', position: { x: 0, y: 0 }, internals: { positionAbsolute: { x: 0, y: 0 } }, measured: { width: 200, height: 100 } },
+    { id: 'node-2', position: { x: 100, y: 0 }, internals: { positionAbsolute: { x: 100, y: 0 } }, measured: { width: 200, height: 100 } },
 ];
 const contentWithCallout = { x: 0, y: 0, width: 300, height: 260 };
 

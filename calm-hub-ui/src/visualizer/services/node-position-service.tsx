@@ -152,11 +152,13 @@ export function applyPositions(nodes: Node[], positions: StoredNodePosition[] | 
         const stored = positionsById.get(node.id);
         if (!stored) return node;
         const updated = { ...node, position: { ...stored.position } } as Node & { width?: number; height?: number };
-        if (stored.width != null && stored.height != null) {
+        // In React Flow 12, width and height are inputs. Cards size themselves to
+        // their text, which the diagram text size and presentation mode change.
+        // Fixing a card at the stored size would leave a stale, overflowing box.
+        if (stored.width != null && stored.height != null && node.type !== 'custom') {
             updated.width = stored.width;
             updated.height = stored.height;
-            // A card sizes itself to its text, which the diagram text size changes. Fixing it would leave a stale box.
-            if (node.type !== 'custom') updated.style = { ...updated.style, width: stored.width, height: stored.height };
+            updated.style = { ...updated.style, width: stored.width, height: stored.height };
         }
         return updated;
     });

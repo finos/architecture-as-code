@@ -74,7 +74,7 @@ describe('useGraphInteractions persistence', () => {
     });
 
     describe('with the viewer\'s own diagram settings', () => {
-        const sized = [{ id: 'a', type: 'custom', position: { x: 10, y: 20 }, data: {}, width: 220, height: 130 }] as Node[];
+        const sized = [{ id: 'a', type: 'custom', position: { x: 10, y: 20 }, data: {}, width: 220, height: 130, measured: { width: 220, height: 130 } }] as Node[];
 
         afterEach(() => {
             viewSettings.scale = 1;
@@ -105,6 +105,7 @@ describe('useGraphInteractions persistence', () => {
             expect(refitted).toEqual([expect.objectContaining({ id: 'a', position: { x: 10, y: 20 } })]);
             expect(refitted[0].width).toBeUndefined();
             expect(refitted[0].height).toBeUndefined();
+            expect(refitted[0].measured).toBeUndefined();
             expect(saveNodePositions).toHaveBeenCalledWith('ns/id', refitted);
         });
 
@@ -114,7 +115,7 @@ describe('useGraphInteractions persistence', () => {
             viewSettings.scale = 2;
             const measured = [
                 { id: 'sys', type: 'group', position: { x: 0, y: 0 }, data: {}, width: 600, height: 500 },
-                { id: 'a', type: 'custom', position: { x: 80, y: 80 }, data: {}, parentId: 'sys', width: 220, height: 300 },
+                { id: 'a', type: 'custom', position: { x: 80, y: 80 }, data: {}, parentId: 'sys', measured: { width: 220, height: 300 } },
                 { id: 'empty', type: 'group', position: { x: 700, y: 0 }, data: {}, width: 600, height: 400 },
             ] as Node[];
             const setNodes = vi.fn((updater: (nodes: Node[]) => Node[]) => updater(measured));
@@ -236,7 +237,7 @@ describe('useGraphInteractions reporting (real state)', () => {
         Object.assign(viewSettings, settings);
         try {
             vi.mocked(reflowContainersToFitChildren).mockReturnValueOnce([
-                { id: 'a', type: 'custom', position: { x: 999, y: 888 }, data: {}, width: 220, height: 130 } as Node,
+                { id: 'a', type: 'custom', position: { x: 999, y: 888 }, data: {}, width: 220, height: 130, measured: { width: 220, height: 130 } } as Node,
             ]);
             const onPositionsChange = vi.fn();
             const api = renderHarness({ persistKey: 'ns/id', onPositionsChange });

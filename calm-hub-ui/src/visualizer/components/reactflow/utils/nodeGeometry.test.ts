@@ -22,7 +22,7 @@ describe('nodeGeometry', () => {
         });
     });
 
-    it('falls back to width, height and positionAbsolute from a React Flow 11-shaped node', () => {
+    it('does not use the React Flow 11 fields width, height or positionAbsolute', () => {
         const node = {
             id: 'b',
             width: 100,
@@ -33,9 +33,9 @@ describe('nodeGeometry', () => {
         expect(nodeGeometry(node)).toEqual({
             id: 'b',
             type: undefined,
-            width: 100,
-            height: 50,
-            positionAbsolute: { x: 1, y: 2 },
+            width: undefined,
+            height: undefined,
+            positionAbsolute: undefined,
         });
     });
 });

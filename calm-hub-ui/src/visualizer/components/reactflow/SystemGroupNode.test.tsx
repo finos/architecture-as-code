@@ -15,7 +15,7 @@ vi.mock('@xyflow/react', () => ({
     Position: { Left: 'left', Right: 'right' },
     EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     useStore: (selector: (store: { nodeLookup: Map<string, object> }) => unknown) => selector({
-        nodeLookup: new Map([['cluster', { id: 'cluster', width: 600, height: 400, positionAbsolute: { x: 40, y: 50 } }]]),
+        nodeLookup: new Map([['cluster', { id: 'cluster', measured: { width: 600, height: 400 }, internals: { positionAbsolute: { x: 40, y: 50 } } }]]),
     }),
 }));
 

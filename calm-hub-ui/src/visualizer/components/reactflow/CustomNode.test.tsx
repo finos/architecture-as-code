@@ -468,7 +468,7 @@ describe('decision overlay', () => {
     beforeEach(() => {
         reportCalloutSize.mockClear();
         storeNodes.clear();
-        storeNodes.set('node-1', { id: 'node-1', width: 220, height: 80, positionAbsolute: { x: 10, y: 20 } });
+        storeNodes.set('node-1', { id: 'node-1', measured: { width: 220, height: 80 }, internals: { positionAbsolute: { x: 10, y: 20 } } });
     });
 
     afterEach(() => {
@@ -558,13 +558,13 @@ describe('decision overlay', () => {
     });
 
     it('is dimmed with its node', () => {
-        storeNodes.set('node-1', { id: 'node-1', width: 220, height: 80, positionAbsolute: { x: 10, y: 20 }, style: { opacity: 0.15 } });
+        storeNodes.set('node-1', { id: 'node-1', measured: { width: 220, height: 80 }, internals: { positionAbsolute: { x: 10, y: 20 } }, style: { opacity: 0.15 } });
         renderOverlay(true, notMet());
         expect(screen.getByTestId('decision-callout').style.opacity).toBe('0.15');
     });
 
     it('waits for the node to be measured', () => {
-        storeNodes.set('node-1', { id: 'node-1', positionAbsolute: { x: 10, y: 20 } });
+        storeNodes.set('node-1', { id: 'node-1', internals: { positionAbsolute: { x: 10, y: 20 } } });
         renderOverlay(true, notMet());
         expect(screen.queryByTestId('decision-callout')).toBeNull();
     });

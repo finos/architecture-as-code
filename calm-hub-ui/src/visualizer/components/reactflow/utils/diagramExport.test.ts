@@ -10,8 +10,7 @@ vi.mock('html-to-image', () => ({
 const node = (id: string, x: number, y: number, extra: Partial<Node> = {}): Node => ({
     id,
     position: { x, y },
-    width: 100,
-    height: 50,
+    measured: { width: 100, height: 50 },
     data: {},
     ...extra,
     internals: { positionAbsolute: { x, y } },

@@ -1,16 +1,12 @@
 /**
  * React Flow 12 stores measured size on `node.measured` and the absolute
- * position on `node.internals.positionAbsolute`. v11 put both on the node
- * itself. These helpers read either shape so layout, edges and callouts work
- * with InternalNode values from the store and with plain Node fixtures in tests.
+ * position on `node.internals.positionAbsolute`. These helpers read that
+ * shape so layout, edges and callouts work with InternalNode values from the store.
  */
 export type NodeGeometrySource = {
     id: string;
     type?: string;
-    width?: number | null;
-    height?: number | null;
     measured?: { width?: number; height?: number };
-    positionAbsolute?: { x: number; y: number };
     internals?: { positionAbsolute?: { x: number; y: number } };
     style?: { width?: number | string; height?: number | string; opacity?: number | string };
 };
@@ -28,15 +24,15 @@ function numeric(value: number | string | null | undefined): number | undefined 
 }
 
 export function nodeWidth(node: NodeGeometrySource): number | undefined {
-    return numeric(node.measured?.width) ?? numeric(node.width) ?? numeric(node.style?.width);
+    return numeric(node.measured?.width);
 }
 
 export function nodeHeight(node: NodeGeometrySource): number | undefined {
-    return numeric(node.measured?.height) ?? numeric(node.height) ?? numeric(node.style?.height);
+    return numeric(node.measured?.height);
 }
 
 export function nodePositionAbsolute(node: NodeGeometrySource): { x: number; y: number } | undefined {
-    return node.internals?.positionAbsolute ?? node.positionAbsolute;
+    return node.internals?.positionAbsolute;
 }
 
 export function nodeGeometry(node: NodeGeometrySource | undefined): NodeGeometry | undefined {

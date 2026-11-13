@@ -229,7 +229,7 @@ describe('node-position-service', () => {
             expect(viaStorage).toEqual(viaDirectPositions);
         });
 
-        it('applies width and height when present in positions, without fixing the size of a card', () => {
+        it('restores a card\'s position without fixing its size', () => {
             const parsed: Node[] = [
                 { id: 'node-1', type: 'custom', position: { x: 0, y: 0 }, data: {} },
             ];
@@ -239,9 +239,9 @@ describe('node-position-service', () => {
             const result = applyPositions(parsed, positions);
             const node = result.find((n) => n.id === 'node-1')! as Node & { width?: number; height?: number };
             expect(node.position).toEqual({ x: 50, y: 60 });
-            expect(node.width).toBe(200);
-            expect(node.height).toBe(80);
-            // The card sizes itself, so a change of text size does not leave a stale box.
+            // In React Flow 12, width and height are inputs. Leaving them unset lets the card size itself.
+            expect(node.width).toBeUndefined();
+            expect(node.height).toBeUndefined();
             expect(node.style).toBeUndefined();
         });
 

@@ -16,7 +16,7 @@ vi.spyOn(viewport.querySelector('.react-flow__edgelabel-renderer > *')!, 'getBou
 
 let zoom = 1;
 
-const nodes: Node[] = [{ id: 'a', position: { x: 0, y: 0 }, positionAbsolute: { x: 0, y: 0 }, width: 100, height: 50, data: {} }];
+const nodes = [{ id: 'a', position: { x: 0, y: 0 }, internals: { positionAbsolute: { x: 0, y: 0 } }, measured: { width: 100, height: 50 }, data: {} }] as unknown as Node[];
 
 vi.mock('@xyflow/react', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@xyflow/react')>()),
