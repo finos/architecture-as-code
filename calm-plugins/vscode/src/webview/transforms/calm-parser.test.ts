@@ -87,6 +87,64 @@ describe('parseCALMData', () => {
         expect(result.edges[0].data.direction).toBe('bidirectional');
     });
 
+    it('merges each relationship into one pair at most', () => {
+        const connects = (id: string, src: string, dst: string) =>
+            ({ 'unique-id': id, 'relationship-type': { connects: { source: { node: src }, destination: { node: dst } } } });
+        const result = parseCALMData(arch(
+            [
+                { 'unique-id': 'a', 'node-type': 'service', name: 'A' },
+                { 'unique-id': 'b', 'node-type': 'service', name: 'B' },
+            ],
+            [connects('r1', 'a', 'b'), connects('r2', 'a', 'b'), connects('r3', 'b', 'a'), connects('r4', 'b', 'a'), connects('r5', 'a', 'b')]
+        ));
+        expect(result.edges.map((e) => [e.id, e.data.calmReverseRelId])).toEqual([['r1', 'r3'], ['r2', 'r4'], ['r5', undefined]]);
+    });
+
+    it('does not merge a connects pair whose data differs only in key order', () => {
+        const result = parseCALMData(arch(
+            [
+                { 'unique-id': 'a', 'node-type': 'service', name: 'A' },
+                { 'unique-id': 'b', 'node-type': 'service', name: 'B' },
+            ],
+            [
+                { 'unique-id': 'r1', 'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } }, metadata: { x: 1, y: 2 } },
+                { 'unique-id': 'r2', 'relationship-type': { connects: { source: { node: 'b' }, destination: { node: 'a' } } }, metadata: { y: 2, x: 1 } },
+            ]
+        ));
+        expect(result.edges).toHaveLength(2);
+    });
+
+    it('does not merge a connects pair with different data', () => {
+        const result = parseCALMData(arch(
+            [
+                { 'unique-id': 'a', 'node-type': 'service', name: 'A' },
+                { 'unique-id': 'b', 'node-type': 'service', name: 'B' },
+            ],
+            [
+                { 'unique-id': 'r1', description: 'A calls B', 'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } } },
+                { 'unique-id': 'r2', description: 'B reads A', 'relationship-type': { connects: { source: { node: 'b' }, destination: { node: 'a' } } } },
+            ]
+        ));
+        expect(result.edges.map((e) => [e.id, e.data.description, e.data.direction])).toEqual([
+            ['r1', 'A calls B', 'source-to-target'],
+            ['r2', 'B reads A', 'source-to-target'],
+        ]);
+    });
+
+    it('draws the second edge of an unmerged pair to the other target handle', () => {
+        const result = parseCALMData(arch(
+            [
+                { 'unique-id': 'a', 'node-type': 'service', name: 'A' },
+                { 'unique-id': 'b', 'node-type': 'service', name: 'B' },
+            ],
+            [
+                { 'unique-id': 'r1', description: 'A calls B', 'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } } },
+                { 'unique-id': 'r2', description: 'B reads A', 'relationship-type': { connects: { source: { node: 'b' }, destination: { node: 'a' } } } },
+            ]
+        ));
+        expect(result.edges.map((e) => [e.id, e.targetHandle])).toEqual([['r1', undefined], ['r2', 'left-target']]);
+    });
+
     it('parses deployed-in containment', () => {
         const result = parseCALMData(arch(
             [

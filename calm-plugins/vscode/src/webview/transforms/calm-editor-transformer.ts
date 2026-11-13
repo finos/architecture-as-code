@@ -1,4 +1,5 @@
 import type { Node, Edge } from 'reactflow';
+import { joinEdgeMetadata } from './edge-metadata';
 import { calmIdOf, pathOf } from './node-instances';
 import { parseCALMData } from './calm-parser';
 
@@ -171,7 +172,6 @@ export function flowToCalm(
 
         const direction = (data.direction as string) ?? 'source-to-target';
         const original = originalRels.get(relId);
-        const metadata = buildEdgeMetadata(data, original);
 
         calmRelationships.push(applyCanvasFields(original, {
             'unique-id': relId,
@@ -179,7 +179,7 @@ export function flowToCalm(
             protocol: data.protocol || undefined,
             description: data.description || undefined,
             controls: data.controls || undefined,
-            metadata,
+            metadata: joinEdgeMetadata(data, original?.metadata),
         }));
 
         // Bidirectional: emit a second relationship in the reverse direction
@@ -191,7 +191,8 @@ export function flowToCalm(
                 'relationship-type': buildRelationshipType(variant, toCalmId(edge.target), toCalmId(edge.source), reverseOriginal),
                 protocol: data.protocol || undefined,
                 description: data.description || undefined,
-                metadata,
+                controls: data.controls || undefined,
+                metadata: joinEdgeMetadata(data, (reverseOriginal ?? original)?.metadata),
             }));
         }
     }
@@ -208,14 +209,14 @@ export function flowToCalm(
             protocol: data.protocol || undefined,
             description: data.description || undefined,
             controls: data.controls || undefined,
-            metadata: buildEdgeMetadata(data, original),
+            metadata: joinEdgeMetadata(data, original?.metadata),
         }));
     }
 
     // Passthrough: relationships that the canvas does not draw must be kept verbatim
     if (lastParsedArch) {
         const emittedIds = new Set(calmRelationships.map((r) => r['unique-id'] as string));
-        for (const rel of lastParsedArch.relationships) {
+        for (const rel of lastParsedArch.relationships ?? []) {
             if (emittedIds.has(rel['unique-id'] as string)) continue;
             if (!isDrawnOnCanvas(rel)) calmRelationships.push(rel);
         }
@@ -280,23 +281,6 @@ function originalVariant(
 ): Record<string, unknown> | undefined {
     const rt = rel?.['relationship-type'] as Record<string, unknown> | undefined;
     return rt?.[variant] as Record<string, unknown> | undefined;
-}
-
-function buildEdgeMetadata(
-    data: Record<string, unknown>,
-    original: Record<string, unknown> | undefined,
-): Record<string, unknown> | unknown[] | undefined {
-    const lineStyle = (data.lineStyle as string) ?? 'solid';
-    const routing = (data.routing as string) ?? 'bezier';
-    const meta: Record<string, unknown> = { ...((data.edgeMetadata as Record<string, unknown>) ?? {}) };
-    if (lineStyle && lineStyle !== 'solid') meta['line-style'] = lineStyle;
-    if (routing && routing !== 'bezier') meta['routing'] = routing;
-    const originalMeta = original?.metadata;
-    if (Array.isArray(originalMeta) && JSON.stringify(meta) === JSON.stringify({ ...originalMeta })) return originalMeta;
-    if (Object.keys(meta).length === 0) return undefined;
-    // The parser holds line-style and routing apart from the other metadata, so put them back where they were
-    const originalKeys = Object.keys((original?.metadata as Record<string, unknown> | undefined) ?? {});
-    return { ...Object.fromEntries(originalKeys.filter((k) => k in meta).map((k) => [k, meta[k]])), ...meta };
 }
 
 function buildRelationshipType(
