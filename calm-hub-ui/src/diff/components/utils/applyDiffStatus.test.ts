@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Node, Edge } from 'reactflow';
+import type { Node, Edge } from '@xyflow/react';
 import type { DiffResult } from '@finos/calm-models/diff';
 import { applyDiffStatus } from './applyDiffStatus.js';
 

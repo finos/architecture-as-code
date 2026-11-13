@@ -14,12 +14,12 @@ import type { ElementEvaluation, ControlEvaluationDecorator } from '../../contra
 
 const { storeNodes } = vi.hoisted(() => ({ storeNodes: new Map<string, object>() }));
 
-vi.mock('reactflow', () => ({
+vi.mock('@xyflow/react', () => ({
     Handle: () => null,
     Position: { Right: 'right', Left: 'left' },
     // The decision callout is drawn in the edge-label layer, from its node's bounds in the store.
     EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <div data-testid="label-renderer">{children}</div>,
-    useStore: (selector: (store: { nodeInternals: Map<string, object> }) => unknown) => selector({ nodeInternals: storeNodes }),
+    useStore: (selector: (store: { nodeLookup: Map<string, object> }) => unknown) => selector({ nodeLookup: storeNodes }),
 }));
 
 function makeNodeProps(details?: Record<string, unknown>, extraData: Record<string, unknown> = {}) {
@@ -29,8 +29,11 @@ function makeNodeProps(details?: Record<string, unknown>, extraData: Record<stri
         selected: false,
         zIndex: 0,
         isConnectable: true,
-        xPos: 0,
-        yPos: 0,
+        selectable: true,
+        deletable: true,
+        draggable: true,
+        positionAbsoluteX: 0,
+        positionAbsoluteY: 0,
         dragging: false,
         data: {
             label: 'Test Node',
@@ -465,7 +468,7 @@ describe('decision overlay', () => {
     beforeEach(() => {
         reportCalloutSize.mockClear();
         storeNodes.clear();
-        storeNodes.set('node-1', { id: 'node-1', width: 220, height: 80, positionAbsolute: { x: 10, y: 20 } });
+        storeNodes.set('node-1', { id: 'node-1', measured: { width: 220, height: 80 }, internals: { positionAbsolute: { x: 10, y: 20 } } });
     });
 
     afterEach(() => {
@@ -555,13 +558,13 @@ describe('decision overlay', () => {
     });
 
     it('is dimmed with its node', () => {
-        storeNodes.set('node-1', { id: 'node-1', width: 220, height: 80, positionAbsolute: { x: 10, y: 20 }, style: { opacity: 0.15 } });
+        storeNodes.set('node-1', { id: 'node-1', measured: { width: 220, height: 80 }, internals: { positionAbsolute: { x: 10, y: 20 } }, style: { opacity: 0.15 } });
         renderOverlay(true, notMet());
         expect(screen.getByTestId('decision-callout').style.opacity).toBe('0.15');
     });
 
     it('waits for the node to be measured', () => {
-        storeNodes.set('node-1', { id: 'node-1', positionAbsolute: { x: 10, y: 20 } });
+        storeNodes.set('node-1', { id: 'node-1', internals: { positionAbsolute: { x: 10, y: 20 } } });
         renderOverlay(true, notMet());
         expect(screen.queryByTestId('decision-callout')).toBeNull();
     });

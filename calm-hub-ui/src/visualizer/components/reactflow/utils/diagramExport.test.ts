@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Node } from 'reactflow';
+import type { Node } from '@xyflow/react';
 import { toSvg } from 'html-to-image';
-import { diagramBounds, exportDiagram, exportFileName, labelRects, pngScale, withBackground, withSvgStyles } from './diagramExport.js';
+import { diagramBounds, exportDiagram, exportFileName, getBoundsOfRects, labelRects, pngScale, withBackground, withSvgStyles } from './diagramExport.js';
 
 vi.mock('html-to-image', () => ({
     toSvg: vi.fn(async () => `data:image/svg+xml;charset=utf-8,${encodeURIComponent('<svg width="10"><g/></svg>')}`),
@@ -10,12 +10,11 @@ vi.mock('html-to-image', () => ({
 const node = (id: string, x: number, y: number, extra: Partial<Node> = {}): Node => ({
     id,
     position: { x, y },
-    positionAbsolute: { x, y },
-    width: 100,
-    height: 50,
+    measured: { width: 100, height: 50 },
     data: {},
     ...extra,
-});
+    internals: { positionAbsolute: { x, y } },
+} as Node);
 
 describe('diagramBounds', () => {
     it('takes in every shown node', () => {
@@ -30,6 +29,16 @@ describe('diagramBounds', () => {
     it('takes in the decision callouts below the nodes', () => {
         const bounds = diagramBounds([node('a', 0, 0)], new Map([['a', { width: 220, height: 90 }]]));
         expect(bounds).toEqual({ x: 0, y: 0, width: 220, height: 140 });
+    });
+});
+
+
+describe('getBoundsOfRects', () => {
+    it('returns the smallest rectangle that contains both inputs', () => {
+        expect(getBoundsOfRects(
+            { x: 0, y: 0, width: 100, height: 50 },
+            { x: 80, y: -20, width: 40, height: 30 },
+        )).toEqual({ x: 0, y: -20, width: 120, height: 70 });
     });
 });
 

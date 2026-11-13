@@ -211,7 +211,7 @@ aesthetic choice:
    pass theme colours through those props — omit them and style
    `.react-flow__background circle`, `.react-flow__minimap-mask` etc. in `index.css`,
    where a CSS *property* beats the attribute.
-2. **`reactflow/dist/style.css` is bundled after `index.css`.** It defines
+2. **`@xyflow/react/dist/style.css` is bundled after `index.css`.** It defines
    `.react-flow__controls-button`, `.react-flow__minimap` and `.react-flow__attribution a`,
    so an unqualified override here silently loses the source-order tie. Scope ours under
    `.react-flow` to win on specificity.

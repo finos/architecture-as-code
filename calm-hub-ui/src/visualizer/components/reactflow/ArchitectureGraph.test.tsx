@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import { useState, type ReactNode } from 'react';
-import { getViewportForBounds, ReactFlowProvider, type Node, type Viewport } from 'reactflow';
+import { getViewportForBounds, ReactFlowProvider, type Node, type Viewport } from '@xyflow/react';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
@@ -50,15 +50,14 @@ function MockReactFlow(props: Record<string, unknown>) {
     );
 }
 
-vi.mock('reactflow', async () => {
+vi.mock('@xyflow/react', async () => {
     // Keep the real hooks (useNodesState/useEdgesState/useStore) so the graph's
     // node state populates as it does in production; stub only the heavy,
     // DOM-measuring view components and capture their props.
-    const actual = await vi.importActual<typeof import('reactflow')>('reactflow');
+    const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react');
     return {
         ...actual,
-        __esModule: true,
-        default: MockReactFlow,
+        ReactFlow: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
         Controls: (props: { children?: ReactNode }) => {
             onControlsRender(props);
@@ -98,8 +97,8 @@ const mockCalmData: CalmArchitectureSchema = {
 
 // Two nodes span x 0 to 300 and y 0 to 100. A callout that reaches 160 below node-1 takes the content down to y 260.
 const measuredNodes = [
-    { id: 'node-1', position: { x: 0, y: 0 }, positionAbsolute: { x: 0, y: 0 }, width: 200, height: 100 },
-    { id: 'node-2', position: { x: 100, y: 0 }, positionAbsolute: { x: 100, y: 0 }, width: 200, height: 100 },
+    { id: 'node-1', position: { x: 0, y: 0 }, internals: { positionAbsolute: { x: 0, y: 0 } }, measured: { width: 200, height: 100 } },
+    { id: 'node-2', position: { x: 100, y: 0 }, internals: { positionAbsolute: { x: 100, y: 0 } }, measured: { width: 200, height: 100 } },
 ];
 const contentWithCallout = { x: 0, y: 0, width: 300, height: 260 };
 
@@ -107,7 +106,7 @@ const contentWithCallout = { x: 0, y: 0, width: 300, height: 260 };
 function initMeasuredFlow() {
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(800);
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600);
-    const instance = { fitView: vi.fn(), getNodes: () => measuredNodes, setViewport: vi.fn() };
+    const instance = { fitView: vi.fn(), getNodes: () => measuredNodes, getInternalNode: (id: string) => measuredNodes.find((n) => n.id === id), setViewport: vi.fn() };
     (reactFlowProps()?.onInit as (i: unknown) => void)(instance);
     return instance;
 }

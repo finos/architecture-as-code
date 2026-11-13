@@ -1,4 +1,4 @@
-import type { Node, Edge } from 'reactflow';
+import type { Node, Edge } from '@xyflow/react';
 import type { CalmArchitectureSchema } from '@finos/calm-models/types';
 import type { DiffResult } from '@finos/calm-models/diff';
 import { parseCALMData } from '../../../visualizer/components/reactflow/utils/calmTransformer.js';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Node, Edge } from 'reactflow';
+import { Node, Edge } from '@xyflow/react';
 import { isNodeMatch, getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './searchUtils';
 
 function makeNode(id: string, overrides: Partial<Node> = {}): Node {

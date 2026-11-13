@@ -1,4 +1,4 @@
-import type { Node, Edge } from 'reactflow';
+import type { Node, Edge } from '@xyflow/react';
 import type { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import type { DiffResult } from '@finos/calm-models/diff';
 import type { DiffEdgeData, DiffNodeData } from '../../model/diff-ui-types.js';

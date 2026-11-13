@@ -1,4 +1,4 @@
-import { Node, Edge } from 'reactflow';
+import { Node, Edge } from '@xyflow/react';
 
 /** Resolves the CALM node type from node data. */
 function getNodeType(node: Node): string {

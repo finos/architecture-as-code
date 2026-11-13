@@ -1,5 +1,5 @@
 import { memo, useState, type ReactNode } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position, NodeProps } from '@xyflow/react';
 import {
     Shield,
     AlertTriangle,

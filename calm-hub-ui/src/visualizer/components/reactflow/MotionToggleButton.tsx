@@ -1,4 +1,4 @@
-import { ControlButton } from 'reactflow';
+import { ControlButton } from '@xyflow/react';
 import { Pause, Play } from 'lucide-react';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';

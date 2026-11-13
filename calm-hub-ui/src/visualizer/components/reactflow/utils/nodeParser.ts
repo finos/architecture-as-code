@@ -1,4 +1,4 @@
-import { Node } from 'reactflow';
+import { Node } from '@xyflow/react';
 import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 
 /**

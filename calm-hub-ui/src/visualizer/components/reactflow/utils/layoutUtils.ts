@@ -1,4 +1,4 @@
-import { Node, Edge } from 'reactflow';
+import { Node, Edge } from '@xyflow/react';
 import dagre from '@dagrejs/dagre';
 import { GRAPH_LAYOUT } from './constants';
 
@@ -9,14 +9,14 @@ import { GRAPH_LAYOUT } from './constants';
  * being treated as a standard 250x100 node.
  */
 export function getNodeWidth(node: Node): number {
-    return (node.width as number) ?? (node.style?.width as number) ?? GRAPH_LAYOUT.NODE_WIDTH;
+    return (node.width as number) ?? (node.measured?.width as number) ?? (node.style?.width as number) ?? GRAPH_LAYOUT.NODE_WIDTH;
 }
 
 /**
  * Returns the effective height of a node (see {@link getNodeWidth}).
  */
 export function getNodeHeight(node: Node): number {
-    return (node.height as number) ?? (node.style?.height as number) ?? GRAPH_LAYOUT.NODE_HEIGHT;
+    return (node.height as number) ?? (node.measured?.height as number) ?? (node.style?.height as number) ?? GRAPH_LAYOUT.NODE_HEIGHT;
 }
 
 /**

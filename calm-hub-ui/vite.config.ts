@@ -10,7 +10,7 @@ export default defineConfig({
         dedupe: ['d3-selection', 'd3-transition', 'd3-zoom', 'd3-drag'],
     },
     optimizeDeps: {
-        include: ['reactflow'],
+        include: ['@xyflow/react'],
     },
     test: {
         globals: true,

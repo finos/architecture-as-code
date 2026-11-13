@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { Node, Edge, NodeChange } from 'reactflow';
+import { Node, Edge, NodeChange } from '@xyflow/react';
 import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';
 import { saveNodePositions, toStoredPositions, type StoredNodePosition } from '../../../services/node-position-service.js';
 import { useDiagramTextScale } from '../../../../theme/useDiagramTextScale.js';
@@ -41,9 +41,11 @@ export function useGraphInteractions({
     const pendingReport = useRef<StoredNodePosition[] | null>(null);
 
     // Cards size themselves to the viewer's text size and presentation mode, and the reflow fits containers to them.
-    // Away from 100% text size, or in presentation mode, a drag drops the cards' measured sizes and fits the containers
-    // to the standard node size again, so a saved layout does not carry the viewer's sizes. Positions do not depend on
-    // sizes, so they do not move. On screen the containers keep fitting the cards until the layout loads again.
+    // Away from 100% text size, or in presentation mode, a drag drops the cards' width, height and measured sizes and
+    // fits the containers to the standard node size again, so a saved layout does not carry the viewer's sizes. In
+    // React Flow 12 the measured size lives on `node.measured`, and a spread that only clears width/height would leave
+    // it in place. Positions do not depend on sizes, so they do not move. On screen the containers keep fitting the
+    // cards until the layout loads again.
     const { scale } = useDiagramTextScale();
     const { presenting } = usePresentationMode();
     const keepSizes = scale === 1 && !presenting;
@@ -95,7 +97,7 @@ export function useGraphInteractions({
                     const toKeep = keepSizes
                         ? reflowed
                         : reflowContainersToFitChildren(
-                              reflowed.map((node) => (node.type === 'custom' ? { ...node, width: undefined, height: undefined } : node))
+                              reflowed.map((node) => (node.type === 'custom' ? { ...node, width: undefined, height: undefined, measured: undefined } : node))
                           );
                     // Persist the post-reflow positions and container sizes so a
                     // restore needs no further reflow. Writing in the updater reads the

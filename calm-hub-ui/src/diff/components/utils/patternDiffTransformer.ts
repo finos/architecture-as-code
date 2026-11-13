@@ -1,4 +1,4 @@
-import type { Node, Edge } from 'reactflow';
+import type { Node, Edge } from '@xyflow/react';
 import type { DiffResult } from '@finos/calm-models/diff';
 import { parsePatternData } from '../../../visualizer/components/reactflow/utils/patternTransformer.js';
 import { applyDiffStatus } from './applyDiffStatus.js';
