@@ -44,20 +44,21 @@ export function assertNoTraversal(documentId: string, loaderName: string): void 
  * Strict allowlist for the request path, checked in addition to each loader's host checks. The path
  * must start with exactly one '/'. The HTTP client adds a relative path to the base URL, where '..' is
  * resolved, and treats a path that starts with '//' as a URL on another host.
+ *
+ * Callers test this inline, `if (!isSafeRequestPath(path)) throw ...`, on the same variable they pass
+ * to the HTTP client. CodeQL (js/request-forgery) does not see a guard inside a function that throws.
  */
-export function assertSafeRequestPath(path: string, loaderName: string): void {
-    if (!path.startsWith('/') || path.startsWith('//')) {
-        throw new DocumentLoadError({
-            name: 'UNKNOWN',
-            message: `${loaderName} rejected a path that does not start with a single '/': ${path}`,
-            recoverable: false
-        });
-    }
-    if (!SAFE_PATH_PATTERN.test(path)) {
-        throw new DocumentLoadError({
-            name: 'UNKNOWN',
-            message: `${loaderName} rejected a path with disallowed characters: ${path}`,
-            recoverable: false
-        });
-    }
+export function isSafeRequestPath(path: string): boolean {
+    return path.startsWith('/') && !path.startsWith('//') && SAFE_PATH_PATTERN.test(path);
+}
+
+export function unsafeRequestPathError(path: string, loaderName: string): DocumentLoadError {
+    const reason = !path.startsWith('/') || path.startsWith('//')
+        ? 'that does not start with a single \'/\''
+        : 'with disallowed characters';
+    return new DocumentLoadError({
+        name: 'UNKNOWN',
+        message: `${loaderName} rejected a path ${reason}: ${path}`,
+        recoverable: false
+    });
 }

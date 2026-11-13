@@ -3,7 +3,7 @@ import { ipLiteralVersion } from '../util/ip-literal.js';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { assertResponseOrigin } from './response-origin.js';
-import { assertNoTraversal, assertSafeRequestPath } from './request-guards.js';
+import { assertNoTraversal, isSafeRequestPath, unsafeRequestPathError } from './request-guards.js';
 import { Logger, initLogger } from '../logger';
 import type { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin.js';
 import type { CalmDocumentType } from '@finos/calm-models/types';
@@ -270,7 +270,9 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             }
             assertNoTraversal(documentId, 'Direct URL loading');
             const requestPath = toRequestPath(parsedUrl);
-            assertSafeRequestPath(requestPath, 'Direct URL loading');
+            if (!isSafeRequestPath(requestPath)) {
+                throw unsafeRequestPathError(requestPath, 'Direct URL loading');
+            }
             if (parsedUrl.search) {
                 throw new DocumentLoadError({
                     name: 'UNKNOWN',
