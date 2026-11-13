@@ -1,5 +1,6 @@
 package org.finos.calm.security.ldap;
 
+import com.github.benmanes.caffeine.cache.Ticker;
 import org.finos.calm.config.LdapGroupsConfigStub;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -182,5 +183,35 @@ class TestLdapGroupMembershipResolverShould {
         assertThat(resolver.memberGroups("alice", List.of("operators")), is(empty()));
 
         verify(mockDirectoryClient, times(1)).open();
+    }
+
+    @Test
+    void look_up_the_user_dn_again_after_the_dn_ttl_when_memberships_keep_expiring() throws Exception {
+        FakeTicker ticker = new FakeTicker();
+        givenDirectory();
+        when(mockSession.findUserDn("alice")).thenReturn(Optional.of(ALICE_DN));
+        when(mockSession.findMemberGroups(ALICE_DN, Set.of("operators"))).thenReturn(Set.of());
+        LdapGroupMembershipResolver resolver = new LdapGroupMembershipResolver(mockDirectoryClient, config, ticker);
+
+        resolver.memberGroups("alice", List.of("operators"));
+        for (int i = 0; i < 10; i++) {
+            ticker.advance(config.cache.negativeTtl.plusSeconds(1));
+            resolver.memberGroups("alice", List.of("operators"));
+        }
+
+        verify(mockSession, times(2)).findUserDn("alice");
+    }
+
+    private static final class FakeTicker implements Ticker {
+        private long nanos;
+
+        @Override
+        public long read() {
+            return nanos;
+        }
+
+        void advance(Duration duration) {
+            nanos += duration.toNanos();
+        }
     }
 }

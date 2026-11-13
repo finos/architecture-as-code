@@ -3,6 +3,7 @@ package org.finos.calm.security.ldap;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
+import com.github.benmanes.caffeine.cache.Ticker;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
@@ -13,13 +14,11 @@ import org.finos.calm.security.GroupMembershipResolverProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * Resolves group membership from an LDAP directory. Caches each (user, group) answer and each
@@ -43,15 +42,21 @@ public class LdapGroupMembershipResolver implements GroupMembershipResolver {
 
     @Inject
     public LdapGroupMembershipResolver(DirectoryClient directoryClient, LdapGroupsConfig config) {
+        this(directoryClient, config, Ticker.systemTicker());
+    }
+
+    LdapGroupMembershipResolver(DirectoryClient directoryClient, LdapGroupsConfig config, Ticker ticker) {
         this.directoryClient = directoryClient;
         LdapGroupsConfig.Cache cache = config.cache();
         this.memberships = Caffeine.newBuilder()
                 .maximumSize(cache.maxSize())
-                .expireAfter(expiry((Boolean member) -> member ? cache.positiveTtl() : cache.negativeTtl()))
+                .ticker(ticker)
+                .expireAfter(Expiry.writing((Membership key, Boolean member) -> member ? cache.positiveTtl() : cache.negativeTtl()))
                 .build();
         this.userDns = Caffeine.newBuilder()
                 .maximumSize(cache.maxSize())
-                .expireAfter(expiry((Optional<String> dn) -> dn.isPresent() ? cache.dnTtl() : cache.negativeTtl()))
+                .ticker(ticker)
+                .expireAfter(Expiry.writing((String key, Optional<String> dn) -> dn.isPresent() ? cache.dnTtl() : cache.negativeTtl()))
                 .build();
     }
 
@@ -76,7 +81,9 @@ public class LdapGroupMembershipResolver implements GroupMembershipResolver {
         }
         try (DirectorySession session = directoryClient.open()) {
             Optional<String> userDn = cachedDn != null ? cachedDn : session.findUserDn(username);
-            userDns.put(username, userDn);
+            if (cachedDn == null) {
+                userDns.put(username, userDn);
+            }
             if (userDn.isEmpty()) {
                 return result;
             }
@@ -94,24 +101,5 @@ public class LdapGroupMembershipResolver implements GroupMembershipResolver {
                     username, uncached.size(), e);
             return result;
         }
-    }
-
-    private static <K, V> Expiry<K, V> expiry(Function<V, Duration> ttl) {
-        return new Expiry<>() {
-            @Override
-            public long expireAfterCreate(K key, V value, long currentTime) {
-                return ttl.apply(value).toNanos();
-            }
-
-            @Override
-            public long expireAfterUpdate(K key, V value, long currentTime, long currentDuration) {
-                return ttl.apply(value).toNanos();
-            }
-
-            @Override
-            public long expireAfterRead(K key, V value, long currentTime, long currentDuration) {
-                return currentDuration;
-            }
-        };
     }
 }
