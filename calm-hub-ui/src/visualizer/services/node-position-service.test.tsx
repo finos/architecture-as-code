@@ -308,6 +308,32 @@ describe('node-position-service', () => {
         });
     });
 
+    describe('applyPositions with a new copy below a tall stored card', () => {
+        const padding = GRAPH_LAYOUT.SYSTEM_NODE_PADDING;
+        const parsed: Node[] = [
+            { id: 'group', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'child', type: 'custom', position: { x: 0, y: 0 }, data: {}, parentId: 'group' } as Node,
+            { id: 'copy', type: 'custom', position: { x: 20, y: 40 }, data: {}, parentId: 'group' } as Node,
+        ];
+        const positions: StoredNodePosition[] = [
+            { id: 'group', position: { x: 10, y: 10 }, width: 410, height: 460 },
+            { id: 'child', position: { x: 80, y: 80 }, width: 250, height: 300 },
+        ];
+        const result = applyPositions(parsed, positions) as (Node & { height?: number; width?: number })[];
+        const byId = (id: string) => result.find((n) => n.id === id)!;
+
+        it('places the new copy below the tall stored card, not inside it', () => {
+            // Stored card at y=80 with height 300; padding is 80, so the copy goes to y=460.
+            expect(byId('copy').position).toEqual({ x: padding, y: 80 + 300 + padding });
+        });
+
+        it('grows the container to hold the copy', () => {
+            expect(byId('group').height).toBeGreaterThanOrEqual(
+                byId('copy').position.y + GRAPH_LAYOUT.NODE_HEIGHT + padding
+            );
+        });
+    });
+
     describe('applyPositions with a new child in a nested container', () => {
         const parsed: Node[] = [
             { id: 'ca', type: 'group', position: { x: 0, y: 0 }, data: {} },

@@ -200,16 +200,23 @@ function placeNewChildren(nodes: Node[], positionsById: Map<string, StoredNodePo
 
     const padding = GRAPH_LAYOUT.SYSTEM_NODE_PADDING;
     const placed = new Set(positionsById.keys());
+    // Cards no longer get stored size applied in applyPositions, so a placed
+    // sibling's width/height come from positionsById. Prefer a size already on
+    // the node, including a container just grown in an earlier pass.
+    const widthOf = (n: Node) =>
+        n.width ?? n.measured?.width ?? (n.style?.width as number | undefined) ?? positionsById.get(n.id)?.width ?? getNodeWidth(n);
+    const heightOf = (n: Node) =>
+        n.height ?? n.measured?.height ?? (n.style?.height as number | undefined) ?? positionsById.get(n.id)?.height ?? getNodeHeight(n);
     for (const container of sortContainersDeepestFirst([...affected.values()])) {
         const children = working.filter((n) => n.parentId === container.id);
         for (const child of children.filter((n) => !placed.has(n.id))) {
             const below = children.filter((n) => placed.has(n.id))
-                .reduce((y, n) => Math.max(y, n.position.y + getNodeHeight(n)), 0);
+                .reduce((y, n) => Math.max(y, n.position.y + heightOf(n)), 0);
             child.position = { x: padding, y: below + padding };
             placed.add(child.id);
         }
-        const width = Math.max(getNodeWidth(container), ...children.map((n) => n.position.x + getNodeWidth(n) + padding));
-        const height = Math.max(getNodeHeight(container), ...children.map((n) => n.position.y + getNodeHeight(n) + padding));
+        const width = Math.max(widthOf(container), ...children.map((n) => n.position.x + widthOf(n) + padding));
+        const height = Math.max(heightOf(container), ...children.map((n) => n.position.y + heightOf(n) + padding));
         Object.assign(container, { width, height, style: { ...container.style, width, height } });
     }
     return working;
