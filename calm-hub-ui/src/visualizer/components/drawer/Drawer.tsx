@@ -172,10 +172,16 @@ export function Drawer({
             }
         };
         const resolveTarget = async () => {
-            target ??= calmService.resolveArchitectureVersionTarget(name, id, version);
-            const resolved = await target;
+            const lookup = (target ??= calmService.resolveArchitectureVersionTarget(name, id, version));
+            const forget = () => {
+                if (target === lookup) target = undefined;
+            };
+            const resolved = await lookup.catch((error: unknown) => {
+                forget();
+                throw error;
+            });
             if (!resolved) {
-                target = undefined;
+                forget();
                 throw new Error(`Could not resolve architecture ${id}`);
             }
             return resolved;

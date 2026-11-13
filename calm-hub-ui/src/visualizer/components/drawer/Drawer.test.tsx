@@ -668,6 +668,20 @@ describe('Drawer — control evaluations', () => {
         expect(mockResolveArchitectureVersionTarget).toHaveBeenCalledTimes(1);
     });
 
+    it('looks the slug up again on the next refresh when the lookup fails', async () => {
+        mockResolveArchitectureVersionTarget.mockRejectedValueOnce(new Error('hub down'));
+        mockFetchDecoratorsForTarget.mockResolvedValue([evaluation('not-met')]);
+        render(<Drawer data={architectureWithNode} />);
+        await flush();
+        expect(mockFetchDecoratorsForTarget).not.toHaveBeenCalled();
+
+        await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+        expect(mockResolveArchitectureVersionTarget).toHaveBeenCalledTimes(2);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledWith('my-namespace', EVALUATION_TARGET, 'control-evaluation');
+        expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('not-met');
+    });
+
     it('keeps the last known evaluations when a refresh fails', async () => {
         mockFetchDecoratorsForTarget.mockResolvedValueOnce([evaluation('not-met')]).mockRejectedValue(new Error('hub down'));
         render(<Drawer data={architectureWithNode} />);
