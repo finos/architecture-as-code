@@ -8,6 +8,7 @@ import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.finos.calm.migration.steps.MongoArchitectureVersionSplitStep;
 import org.finos.calm.migration.steps.MongoControlVersionSplitStep;
+import org.finos.calm.migration.steps.MongoDecoratorSplitStep;
 import org.finos.calm.migration.steps.MongoConventionIndexStep;
 import org.finos.calm.migration.steps.MongoDocumentIndexStep;
 import org.finos.calm.migration.steps.MongoIndexInitializationStep;
@@ -88,6 +89,7 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             new MongoInterfaceVersionSplitStep(database).transitionIndexes();
             new MongoTimelineVersionSplitStep(database).transitionIndexes();
             new MongoAdrVersionSplitStep(database).transitionIndexes();
+            new MongoDecoratorSplitStep(database).transitionIndexes();
             // Not a version split — layout was never in the header/version shape to begin
             // with — but the same principle applies: without this, MongoIndexInitializationStep
             // creates no layouts index at all (it was deliberately removed from that step's

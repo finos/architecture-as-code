@@ -167,9 +167,6 @@ public class MongoMcpIntegration {
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("decorators")) {
                 database.createCollection("decorators");
-                database.getCollection("decorators").insertOne(
-                        new Document("namespace", "finos").append("decorators", new ArrayList<>())
-                );
             }
 
             // flows and timelines are header collections now, so they need no priming — and a

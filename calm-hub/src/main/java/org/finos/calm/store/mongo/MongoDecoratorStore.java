@@ -3,13 +3,17 @@ package org.finos.calm.store.mongo;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.GraphLookupOptions;
 import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
-import com.mongodb.client.result.UpdateResult;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
+import org.bson.BsonMaximumSizeExceededException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.Decimal128;
@@ -19,12 +23,10 @@ import org.finos.calm.domain.exception.DecoratorKeyRefusedException;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.DecoratorSupersededException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.util.DecoratorHistoryChain;
 import org.finos.calm.store.util.DecoratorJson;
 import org.finos.calm.store.util.DecoratorTimestamps;
-import org.finos.calm.store.util.MongoUpsertPush;
 import org.finos.calm.store.util.MongoWriteFailures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +34,10 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -42,99 +46,108 @@ import java.util.stream.Stream;
 import static org.finos.calm.store.util.DecoratorTimestamps.CREATION_DATE_TIME_FIELD;
 import static org.finos.calm.store.util.DecoratorTimestamps.SUPERSEDED_DATE_TIME_FIELD;
 import static org.finos.calm.store.util.DecoratorTimestamps.UPDATE_DATE_TIME_FIELD;
-import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB implementation of DecoratorStore.
+ *
+ * <p>One document per decorator. {@code type} and {@code target} are copied to the top level
+ * so that the {@code (namespace, target, type)} index answers the filtered reads. See
+ * {@code calm-hub/decisions/0020-decorator-storage-one-document-per-decorator.md}.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoDecoratorStore.class)
 public class MongoDecoratorStore implements DecoratorStore {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoDecoratorStore.class);
-    private static final String DECORATOR_ID_FIELD = "decoratorId";
+    public static final String COLLECTION_NAME = "decorators";
+    public static final String NAMESPACE_FIELD = "namespace";
+    public static final String DECORATOR_ID_FIELD = "decoratorId";
+    public static final String TYPE_FIELD = "type";
+    public static final String TARGET_FIELD = "target";
+    public static final String DECORATOR_FIELD = "decorator";
     // Hub-owned history links and times, stored beside the decorator rather than in it.
-    private static final String SUPERSEDES_FIELD = "supersedes";
-    private static final String SUPERSEDED_BY_FIELD = "supersededBy";
+    public static final String SUPERSEDES_FIELD = "supersedes";
+    public static final String SUPERSEDED_BY_FIELD = "supersededBy";
+    public static final List<String> HUB_FIELDS = List.of(SUPERSEDES_FIELD, SUPERSEDED_BY_FIELD,
+            CREATION_DATE_TIME_FIELD, UPDATE_DATE_TIME_FIELD, SUPERSEDED_DATE_TIME_FIELD);
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDecoratorStore.class);
     private static final int DECIMAL128_DIGITS = 34;
+
     private final MongoCollection<Document> decoratorCollection;
     private final MongoNamespaceStore namespaceStore;
     private final MongoCounterStore counterStore;
 
     @Inject
     public MongoDecoratorStore(MongoDatabase database, MongoNamespaceStore namespaceStore, MongoCounterStore counterStore) {
-        this.decoratorCollection = database.getCollection("decorators");
+        this.decoratorCollection = database.getCollection(COLLECTION_NAME);
         this.namespaceStore = namespaceStore;
         this.counterStore = counterStore;
+    }
+
+    /**
+     * Builds the stored document for a decorator. The migration step uses it too, so that
+     * migrated and new decorators have the same shape. The caller adds the Hub fields.
+     */
+    public static Document toStoredDocument(String namespace, int decoratorId, Document decorator) {
+        Document stored = new Document(NAMESPACE_FIELD, namespace).append(DECORATOR_ID_FIELD, decoratorId);
+        indexedFields(decorator).forEach(stored::append);
+        return stored.append(DECORATOR_FIELD, decorator);
+    }
+
+    // Copied only with the types that the filters match, so a wrongly typed field matches no filter.
+    private static Map<String, Object> indexedFields(Document decorator) {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        if (decorator.get(TYPE_FIELD) instanceof String type) {
+            fields.put(TYPE_FIELD, type);
+        }
+        if (decorator.get(TARGET_FIELD) instanceof List<?> target) {
+            fields.put(TARGET_FIELD, target);
+        }
+        return fields;
     }
 
     @Override
     public List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        Document namespaceDocument = fetchNamespaceDocument(namespace);
-        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
-            LOG.debug("No decorators found for namespace '{}'", namespace);
-            return List.of();
-        }
+        List<Integer> ids = decoratorCollection.find(currentFilterFor(namespace, target, type))
+                .projection(Projections.include(DECORATOR_ID_FIELD))
+                .sort(Sorts.ascending(DECORATOR_ID_FIELD))
+                .into(new ArrayList<>())
+                .stream()
+                .map(doc -> doc.getInteger(DECORATOR_ID_FIELD))
+                .filter(Objects::nonNull)
+                .toList();
 
-        List<Document> decorators = extractDecorators(namespaceDocument, namespace);
-        if (decorators.isEmpty()) {
-            return List.of();
-        }
-
-        List<Integer> decoratorIds = filterDecorators(decorators, target, type);
-
-        LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})", 
-                decoratorIds.size(), namespace, target, type);
-        return decoratorIds;
+        LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})",
+                ids.size(), namespace, target, type);
+        return ids;
     }
 
     @Override
     public List<Decorator> getDecoratorValuesForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        Document namespaceDocument = fetchNamespaceDocument(namespace);
-        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
-            LOG.debug("No decorators found for namespace '{}'", namespace);
-            return List.of();
-        }
-
-        List<Document> decorators = extractDecorators(namespaceDocument, namespace);
-        if (decorators.isEmpty()) {
-            return List.of();
-        }
-
-        List<Decorator> decoratorValues = filterDecoratorsToValues(decorators, target, type);
+        List<Decorator> decorators = decoratorCollection.find(currentFilterFor(namespace, target, type))
+                .sort(Sorts.ascending(DECORATOR_ID_FIELD))
+                .into(new ArrayList<>())
+                .stream()
+                .map(MongoDecoratorStore::toDecorator)
+                .filter(Objects::nonNull)
+                .toList();
 
         LOG.debug("Retrieved {} decorator values for namespace '{}' with filters (target: {}, type: {})",
-                decoratorValues.size(), namespace, target, type);
-        return decoratorValues;
+                decorators.size(), namespace, target, type);
+        return decorators;
     }
 
     @Override
     public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        // Fetch only the entry, not the whole namespace document, which can be up to 16 MB.
-        Document namespaceDocument = decoratorCollection.find(Filters.eq("namespace", namespace))
-                .projection(Projections.elemMatch("decorators", Filters.eq(DECORATOR_ID_FIELD, id)))
-                .first();
-        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
-            return Optional.empty();
-        }
-
-        List<Document> decorators = extractDecorators(namespaceDocument, namespace);
-        if (decorators.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return decorators.stream()
-                .filter(decoratorDoc -> Integer.valueOf(id).equals(decoratorDoc.getInteger(DECORATOR_ID_FIELD)))
-                .filter(decoratorDoc -> decoratorDoc.get("decorator", Document.class) != null)
-                .map(MongoDecoratorStore::toDecorator)
-                .findFirst();
+        Document stored = decoratorCollection.find(byId(namespace, id)).first();
+        return stored == null ? Optional.empty() : Optional.ofNullable(toDecorator(stored));
     }
 
     @Override
@@ -144,18 +157,11 @@ public class MongoDecoratorStore implements DecoratorStore {
         Document parsedDecorator = toBsonDocument(DecoratorJson.parseObject(decoratorJson));
         int id = counterStore.getNextDecoratorSequenceValue();
         String now = DecoratorTimestamps.now();
-        Document decoratorDocument = new Document(DECORATOR_ID_FIELD, id)
-                .append("decorator", parsedDecorator)
+        Document stored = toStoredDocument(namespace, id, parsedDecorator)
                 .append(CREATION_DATE_TIME_FIELD, now)
                 .append(UPDATE_DATE_TIME_FIELD, now);
 
-        try {
-            MongoUpsertPush.pushWithDuplicateRetry(decoratorCollection,
-                    Filters.eq("namespace", namespace),
-                    "decorators", decoratorDocument);
-        } catch (MongoWriteException e) {
-            throw writeFailure(namespace, e);
-        }
+        write(namespace, () -> decoratorCollection.insertOne(stored));
 
         LOG.debug("Created decorator with ID {} in namespace '{}'", id, namespace);
         return id;
@@ -167,14 +173,17 @@ public class MongoDecoratorStore implements DecoratorStore {
         namespaceStore.requireNamespace(namespace);
 
         Document parsedDecorator = toBsonDocument(DecoratorJson.parseObject(decoratorJson));
+        Map<String, Object> indexed = indexedFields(parsedDecorator);
+        List<Bson> updates = new ArrayList<>();
+        updates.add(Updates.set(DECORATOR_FIELD, parsedDecorator));
+        updates.add(Updates.set(UPDATE_DATE_TIME_FIELD, DecoratorTimestamps.now()));
+        for (String field : List.of(TYPE_FIELD, TARGET_FIELD)) {
+            updates.add(indexed.containsKey(field) ? Updates.set(field, indexed.get(field)) : Updates.unset(field));
+        }
 
+        // Matched, not modified: an update with identical content is still a success.
         long matched = write(namespace, () -> decoratorCollection.updateOne(
-                currentEntryFilter(namespace, id),
-                Updates.combine(
-                        Updates.set("decorators.$.decorator", parsedDecorator),
-                        Updates.set("decorators.$." + UPDATE_DATE_TIME_FIELD, DecoratorTimestamps.now()))
-        )).getMatchedCount();
-
+                currentById(namespace, id), Updates.combine(updates))).getMatchedCount();
         if (matched == 0) {
             throwSupersededOrNotFound(namespace, id);
         }
@@ -182,6 +191,10 @@ public class MongoDecoratorStore implements DecoratorStore {
         LOG.debug("Updated decorator with ID {} in namespace '{}'", id, namespace);
     }
 
+    /**
+     * Two writes, because a standalone MongoDB has no transactions. The mark on the old decorator
+     * is the lock: a concurrent supersede of the same decorator then matches nothing.
+     */
     @Override
     public int supersedeDecorator(String namespace, int id, String decoratorJson)
             throws NamespaceNotFoundException, DecoratorNotFoundException, DecoratorSupersededException {
@@ -189,32 +202,30 @@ public class MongoDecoratorStore implements DecoratorStore {
 
         Document parsedDecorator = toBsonDocument(DecoratorJson.parseObject(decoratorJson));
         // As in Nitrite, a refused supersede takes no ID, unless it loses a race to another write.
-        if (decoratorCollection.countDocuments(currentEntryFilter(namespace, id)) == 0) {
+        if (decoratorCollection.countDocuments(currentById(namespace, id)) == 0) {
             throwSupersededOrNotFound(namespace, id);
         }
         int newId = counterStore.getNextDecoratorSequenceValue();
         String now = DecoratorTimestamps.now();
 
-        // Replace the links and append the successor in one atomic namespace-document update.
-        Document successor = new Document(DECORATOR_ID_FIELD, newId)
-                .append("decorator", parsedDecorator)
+        long matched = write(namespace, () -> decoratorCollection.updateOne(currentById(namespace, id),
+                Updates.combine(Updates.set(SUPERSEDED_BY_FIELD, newId), Updates.set(SUPERSEDED_DATE_TIME_FIELD, now))))
+                .getMatchedCount();
+        if (matched == 0) {
+            throwSupersededOrNotFound(namespace, id);
+        }
+
+        Document successor = toStoredDocument(namespace, newId, parsedDecorator)
                 .append(SUPERSEDES_FIELD, id)
                 .append(CREATION_DATE_TIME_FIELD, now)
                 .append(UPDATE_DATE_TIME_FIELD, now);
-        Document marked = new Document("$map", new Document("input", "$decorators")
-                .append("as", "entry")
-                .append("in", new Document("$cond", List.of(
-                        new Document("$eq", List.of("$$entry.decoratorId", id)),
-                        new Document("$mergeObjects", List.of("$$entry",
-                                new Document(SUPERSEDED_BY_FIELD, newId).append(SUPERSEDED_DATE_TIME_FIELD, now))),
-                        "$$entry"))));
-        List<Document> update = List.of(new Document("$set", new Document("decorators",
-                new Document("$concatArrays", List.of(marked,
-                        new Document("$literal", List.of(successor)))))));
-        long modified = write(namespace, () -> decoratorCollection.updateOne(currentEntryFilter(namespace, id), update)).getModifiedCount();
-
-        if (modified == 0) {
-            throwSupersededOrNotFound(namespace, id);
+        try {
+            write(namespace, () -> decoratorCollection.insertOne(successor));
+        } catch (RuntimeException e) {
+            // With no successor, the old decorator must be current again.
+            decoratorCollection.updateOne(Filters.and(byId(namespace, id), Filters.eq(SUPERSEDED_BY_FIELD, newId)),
+                    Updates.combine(Updates.unset(SUPERSEDED_BY_FIELD), Updates.unset(SUPERSEDED_DATE_TIME_FIELD)));
+            throw e;
         }
 
         LOG.debug("Decorator with ID {} supersedes decorator {} in namespace '{}'", newId, id, namespace);
@@ -226,7 +237,7 @@ public class MongoDecoratorStore implements DecoratorStore {
             throws NamespaceNotFoundException, DecoratorNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        List<DecoratorHistoryEntry> history = DecoratorHistoryChain.of(historyEntries(namespace), id);
+        List<DecoratorHistoryEntry> history = DecoratorHistoryChain.of(historyEntries(namespace, id), id);
         if (history.isEmpty()) {
             throw new DecoratorNotFoundException();
         }
@@ -238,77 +249,64 @@ public class MongoDecoratorStore implements DecoratorStore {
             throws NamespaceNotFoundException, DecoratorNotFoundException, DecoratorSupersededException {
         namespaceStore.requireNamespace(namespace);
 
-        List<Integer> ids = DecoratorHistoryChain.of(historyEntries(namespace), currentId).stream()
+        List<Integer> olderIds = DecoratorHistoryChain.of(historyEntries(namespace, currentId), currentId).stream()
                 .map(DecoratorHistoryEntry::getId)
+                .filter(historyId -> historyId != currentId)
                 .toList();
-        if (ids.isEmpty()) {
-            throw new DecoratorNotFoundException();
-        }
 
-        long modified = write(namespace, () -> decoratorCollection.updateOne(currentEntryFilter(namespace, currentId),
-                Updates.pull("decorators", Filters.in(DECORATOR_ID_FIELD, ids)))).getModifiedCount();
-
-        if (modified == 0) {
+        // Delete the head only while it is current, so that a successor written meanwhile is kept.
+        long deleted = write(namespace, () -> decoratorCollection.deleteOne(currentById(namespace, currentId)))
+                .getDeletedCount();
+        if (deleted == 0) {
             throwSupersededOrNotFound(namespace, currentId);
+        }
+        if (!olderIds.isEmpty()) {
+            write(namespace, () -> decoratorCollection.deleteMany(
+                    Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.in(DECORATOR_ID_FIELD, olderIds))));
         }
 
         LOG.debug("Deleted decorator with ID {} and its history in namespace '{}'", currentId, namespace);
     }
 
-    // A namespace document near 16 MB fails a write on the server. Map it as the version stores do.
-    private static UpdateResult write(String namespace, Supplier<UpdateResult> update) {
+    // The 16 MB limit now applies to one decorator, not to the namespace. Map it as the version stores do.
+    private static <T> T write(String namespace, Supplier<T> write) {
         try {
-            return update.get();
+            return write.get();
         } catch (MongoWriteException e) {
-            throw writeFailure(namespace, e);
+            LOG.error("Failed to write a decorator of namespace [{}]", namespace, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
+        } catch (BsonMaximumSizeExceededException e) {
+            LOG.error("Failed to write a decorator of namespace [{}]", namespace, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
         }
     }
 
-    private static StorageWriteException writeFailure(String namespace, MongoWriteException e) {
-        LOG.error("Failed to write the decorators of namespace [{}]", namespace, e);
-        return MongoWriteFailures.toStorageWriteException(e);
-    }
-
-    private static Bson currentEntryFilter(String namespace, int id) {
-        return Filters.and(Filters.eq("namespace", namespace), Filters.elemMatch("decorators",
-                Filters.and(Filters.eq(DECORATOR_ID_FIELD, id), Filters.exists(SUPERSEDED_BY_FIELD, false))));
-    }
-
-    // Called when a write that needs the current entry matched nothing.
+    // Called when a write that needs the current decorator matched nothing.
     private void throwSupersededOrNotFound(String namespace, int id) throws DecoratorNotFoundException, DecoratorSupersededException {
-        long withId = decoratorCollection.countDocuments(Filters.and(Filters.eq("namespace", namespace),
-                Filters.elemMatch("decorators", Filters.eq(DECORATOR_ID_FIELD, id))));
-        if (withId > 0) {
+        if (decoratorCollection.countDocuments(byId(namespace, id)) > 0) {
             throw new DecoratorSupersededException();
         }
         throw new DecoratorNotFoundException();
     }
 
-    /**
-     * Fetches the namespace document from MongoDB
-     */
-    private Document fetchNamespaceDocument(String namespace) {
-        return decoratorCollection.find(Filters.eq("namespace", namespace)).first();
-    }
-
-    /**
-     * Extracts the list of decorators from the namespace document
-     */
-    private List<Document> extractDecorators(Document namespaceDocument, String namespace) {
-        List<Document> decorators = namespaceDocument.getList("decorators", Document.class);
-        if (decorators == null || decorators.isEmpty()) {
-            LOG.debug("Decorators list is empty for namespace '{}'", namespace);
+    // The history through id in one query: id, then each decorator after it and before it.
+    private List<DecoratorHistoryEntry> historyEntries(String namespace, int id) {
+        GraphLookupOptions inNamespace = new GraphLookupOptions()
+                .restrictSearchWithMatch(Filters.eq(NAMESPACE_FIELD, namespace));
+        Document result = decoratorCollection.aggregate(List.of(
+                Aggregates.match(byId(namespace, id)),
+                Aggregates.graphLookup(COLLECTION_NAME, "$" + SUPERSEDED_BY_FIELD,
+                        SUPERSEDED_BY_FIELD, DECORATOR_ID_FIELD, "newer", inNamespace),
+                Aggregates.graphLookup(COLLECTION_NAME, "$" + SUPERSEDES_FIELD,
+                        SUPERSEDES_FIELD, DECORATOR_ID_FIELD, "older", inNamespace)
+        )).first();
+        if (result == null) {
             return List.of();
         }
-        return decorators;
-    }
-
-    private List<DecoratorHistoryEntry> historyEntries(String namespace) {
-        Document namespaceDocument = fetchNamespaceDocument(namespace);
-        if (namespaceDocument == null) {
-            return List.of();
-        }
-        return extractDecorators(namespaceDocument, namespace).stream()
+        return Stream.of(Stream.of(result),
+                        result.getList("newer", Document.class, List.of()).stream(),
+                        result.getList("older", Document.class, List.of()).stream())
+                .flatMap(entries -> entries)
                 .filter(doc -> doc.getInteger(DECORATOR_ID_FIELD) != null)
                 .map(doc -> new DecoratorHistoryEntry(
                         doc.getInteger(DECORATOR_ID_FIELD),
@@ -367,64 +365,35 @@ public class MongoDecoratorStore implements DecoratorStore {
         return value;
     }
 
-    private static Decorator toDecorator(Document entry) {
-        Decorator decorator = Decorator.fromDocument((Document) fromBsonValue(entry.get("decorator", Document.class)));
+    private static Decorator toDecorator(Document stored) {
+        Document content = stored.get(DECORATOR_FIELD, Document.class);
+        if (content == null) {
+            return null;
+        }
+        Decorator decorator = Decorator.fromDocument((Document) fromBsonValue(content));
         return decorator == null ? null
-                : decorator.withTimestamps(entry.getString(CREATION_DATE_TIME_FIELD), entry.getString(UPDATE_DATE_TIME_FIELD));
+                : decorator.withTimestamps(stored.getString(CREATION_DATE_TIME_FIELD), stored.getString(UPDATE_DATE_TIME_FIELD));
     }
 
-    private Stream<Document> streamCurrent(List<Document> decorators) {
-        return decorators.stream()
-                .filter(doc -> doc.getInteger(DECORATOR_ID_FIELD) != null)
-                .filter(doc -> doc.get(SUPERSEDED_BY_FIELD) == null);
+    private static Bson byId(String namespace, int id) {
+        return Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(DECORATOR_ID_FIELD, id));
     }
 
-    private List<Integer> filterDecorators(List<Document> decorators, String target, String type) {
-        return streamCurrent(decorators)
-                .filter(doc -> {
-                    Document decorator = doc.get("decorator", Document.class);
-                    return decorator == null || matchesFilters(decorator, target, type);
-                })
-                .map(doc -> doc.getInteger(DECORATOR_ID_FIELD))
-                .collect(Collectors.toList());
+    private static Bson currentById(String namespace, int id) {
+        return Filters.and(byId(namespace, id), Filters.exists(SUPERSEDED_BY_FIELD, false));
     }
 
-    private List<Decorator> filterDecoratorsToValues(List<Document> decorators, String target, String type) {
-        return streamCurrent(decorators)
-                .filter(doc -> {
-                    Document decorator = doc.get("decorator", Document.class);
-                    return decorator != null && matchesFilters(decorator, target, type);
-                })
-                .map(MongoDecoratorStore::toDecorator)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Checks if a decorator matches the provided filters
-     */
-    private boolean matchesFilters(Document decorator, String target, String type) {
-        return matchesTypeFilter(decorator, type) && matchesTargetFilter(decorator, target);
-    }
-
-    /**
-     * Checks if the decorator matches the type filter (if provided)
-     */
-    private boolean matchesTypeFilter(Document decorator, String type) {
-        if (type == null || type.isEmpty()) {
-            return true;
+    /** {@code target} is an array, so {@code eq} matches when any element equals the value. */
+    private static Bson currentFilterFor(String namespace, String target, String type) {
+        List<Bson> filters = new ArrayList<>();
+        filters.add(Filters.eq(NAMESPACE_FIELD, namespace));
+        if (target != null && !target.isBlank()) {
+            filters.add(Filters.eq(TARGET_FIELD, target));
         }
-        
-        return type.equals(decorator.get("type"));
-    }
-
-    /**
-     * Checks if the decorator matches the target filter (if provided)
-     */
-    private boolean matchesTargetFilter(Document decorator, String target) {
-        if (target == null || target.isBlank()) {
-            return true;
+        if (type != null && !type.isEmpty()) {
+            filters.add(Filters.eq(TYPE_FIELD, type));
         }
-        
-        return decorator.get("target") instanceof List<?> targets && targets.contains(target);
+        filters.add(Filters.exists(SUPERSEDED_BY_FIELD, false));
+        return Filters.and(filters);
     }
 }

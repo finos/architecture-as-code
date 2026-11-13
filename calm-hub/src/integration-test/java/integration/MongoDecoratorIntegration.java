@@ -105,9 +105,6 @@ public class MongoDecoratorIntegration {
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("decorators")) {
                 database.createCollection("decorators");
-                database.getCollection("decorators").insertOne(
-                        new Document("namespace", "finos").append("decorators", new ArrayList<>())
-                );
             }
 
             counterSetup(database);
