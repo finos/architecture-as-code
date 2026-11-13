@@ -47,6 +47,24 @@ describe('validateCalmArchitecture', () => {
     expect(errors).toHaveLength(0);
   });
 
+  it('runs the semantic rules on an architecture with no relationships key', () => {
+    const arch = {
+      nodes: [makeNode('dup', 'First'), makeNode('dup', 'Second')]
+    } as unknown as CalmArchitecture;
+    const issues = validateCalmArchitecture(arch);
+    expect(issues.some((i) => i.severity === 'error' && i.message.includes('dup'))).toBe(true);
+    expect(issues.some((i) => i.message.includes('not referenced by any relationship'))).toBe(true);
+  });
+
+  it('skips the semantic rules when relationships is not an array', () => {
+    const arch = {
+      nodes: [makeNode('node-a', 'Node A')],
+      relationships: 'none'
+    } as unknown as CalmArchitecture;
+    const issues = validateCalmArchitecture(arch);
+    expect(issues.some((i) => i.message.includes('not referenced by any relationship'))).toBe(false);
+  });
+
   it('node missing unique-id returns error', () => {
     const arch = {
       nodes: [{ 'node-type': 'service', name: 'Missing ID', description: 'desc' }],

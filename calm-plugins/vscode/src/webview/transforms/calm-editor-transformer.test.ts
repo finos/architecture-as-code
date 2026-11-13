@@ -29,7 +29,7 @@ describe('flowToCalm - definition-id handling', () => {
         const arch = flowToCalm(nodes, edges);
 
         expect(arch.nodes).toHaveLength(1);
-        const calmNode = arch.nodes[0];
+        const calmNode = arch.nodes![0];
         expect(calmNode['definition-id']).toBe(
             'finos:standard-nodes:microservice@abc123'
         );
@@ -65,7 +65,7 @@ describe('flowToCalm - definition-id handling', () => {
         const arch = flowToCalm(nodes, edges);
 
         expect(arch.nodes).toHaveLength(1);
-        const calmNode = arch.nodes[0];
+        const calmNode = arch.nodes![0];
         expect(calmNode['definition-id']).toBeUndefined();
         expect(calmNode.controls).toEqual({
             'app-id': { description: 'App ID' },
@@ -109,7 +109,7 @@ describe('flowToCalm - definition-id handling', () => {
 
         expect(arch.nodes).toHaveLength(2);
 
-        const hubCalm = arch.nodes.find(
+        const hubCalm = arch.nodes!.find(
             (n) => n['unique-id'] === 'hub-node'
         )!;
         expect(hubCalm['definition-id']).toBe(
@@ -118,7 +118,7 @@ describe('flowToCalm - definition-id handling', () => {
         expect(hubCalm.controls).toBeUndefined();
         expect(hubCalm.metadata).toBeUndefined();
 
-        const localCalm = arch.nodes.find(
+        const localCalm = arch.nodes!.find(
             (n) => n['unique-id'] === 'local-node'
         )!;
         expect(localCalm['definition-id']).toBeUndefined();
@@ -148,7 +148,7 @@ describe('flowToCalm - definition-id handling', () => {
         ];
 
         const arch = flowToCalm(nodes, []);
-        const calmNode = arch.nodes[0];
+        const calmNode = arch.nodes![0];
         expect(calmNode['definition-id']).toBe(
             'org:standard-nodes:platform@v1'
         );
@@ -182,7 +182,7 @@ describe('flowToCalm - definition-id handling', () => {
         }];
 
         const arch = flowToCalm(nodes, []);
-        const ctrl = arch.nodes[0].controls as Record<string, any>;
+        const ctrl = arch.nodes![0].controls as Record<string, any>;
         expect(ctrl['platform--encryption'].description).toBe('Data at rest encryption');
         expect(ctrl['platform--encryption'].requirements[0]['config-url']).toBe('https://hub/config.json');
         expect(ctrl['platform--encryption'].requirements[0]['requirement-url']).toBe('platform:controls:encryption@1.0.0');
@@ -205,7 +205,7 @@ describe('flowToCalm - definition-id handling', () => {
         }];
 
         const arch = flowToCalm(nodes, []);
-        expect(arch.nodes[0].metadata).toEqual({ 'standard-node-style': { background: '#1c4587' } });
+        expect(arch.nodes![0].metadata).toEqual({ 'standard-node-style': { background: '#1c4587' } });
     });
 });
 
@@ -331,7 +331,7 @@ describe('flowToCalm - round trip', () => {
     }
 
     const relationship = (arch: CalmArchitecture, id: string) =>
-        arch.relationships.find((r) => r['unique-id'] === id) as Record<string, any>;
+        arch.relationships?.find((r) => r['unique-id'] === id) as Record<string, any>;
 
     const containedNodes = (arch: CalmArchitecture, id: string) => {
         const rt = relationship(arch, id)['relationship-type'];
@@ -351,6 +351,66 @@ describe('flowToCalm - round trip', () => {
         expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
     });
 
+    describe('a document with no relationships key', () => {
+        const nodesOnly = (): CalmArchitecture => {
+            const { relationships: _relationships, ...arch } = fullArchitecture();
+            return arch;
+        };
+
+        it('saves a moved node and does not add the key', () => {
+            const { nodes, edges } = openCanvas(nodesOnly());
+            nodes[0].position = { x: 500, y: 500 };
+
+            const result = flowToCalm(nodes, edges);
+
+            expect(result).not.toHaveProperty('relationships');
+            expect(result.nodes).toHaveLength(nodesOnly().nodes!.length);
+            expect((result.metadata as Record<string, any>)._layout[nodes[0].id]).toMatchObject({ x: 500, y: 500 });
+        });
+
+        it('adds the key when the canvas draws a relationship', () => {
+            const { nodes, edges } = openCanvas(nodesOnly());
+            const drawn: Edge = { id: 'api-db', source: 'api', target: 'db' };
+
+            const result = flowToCalm(nodes, [...edges, drawn]);
+
+            expect(relationship(result, 'api-db')['relationship-type'].connects).toMatchObject({
+                source: { node: 'api' },
+                destination: { node: 'db' },
+            });
+        });
+    });
+
+    describe('a document with no nodes', () => {
+        const node = (id: string): Node => ({ id, position: { x: 0, y: 0 }, data: { calmId: id, nodeType: 'service', label: id } });
+        const header = { $schema: 'https://calm.finos.org/release/1.3/meta/calm.json', 'unique-id': 'new', name: 'New', adrs: ['https://example.com/adr/1'] };
+
+        it.each([
+            ['no nodes key', { ...header }],
+            ['an empty nodes array', { ...header, nodes: [] }],
+        ])('keeps the other fields when the first node is added to %s', (_name, doc) => {
+            setLastParsedArch(doc as CalmArchitecture);
+
+            const result = flowToCalm([node('a')], []);
+
+            expect(result).toMatchObject(header);
+            expect(result.nodes!.map((n) => n['unique-id'])).toEqual(['a']);
+            expect(result).not.toHaveProperty('relationships');
+        });
+
+        it('does not add a nodes key when the canvas stays empty', () => {
+            setLastParsedArch({ ...header } as CalmArchitecture);
+
+            expect(flowToCalm([], [])).not.toHaveProperty('nodes');
+        });
+
+        it.each([['an array', []], ['a string', 'text'], ['null', null]])('does not keep %s as the document', (_name, value) => {
+            setLastParsedArch(value as unknown as CalmArchitecture);
+
+            expect(Object.keys(flowToCalm([node('a')], [])).sort()).toEqual(['metadata', 'nodes', 'relationships']);
+        });
+    });
+
     it('applies canvas edits and keeps the other fields', () => {
         const { nodes, edges } = openCanvas(fullArchitecture());
         const api = nodes.find((n) => n.id === 'api')!;
@@ -360,7 +420,7 @@ describe('flowToCalm - round trip', () => {
 
         const result = flowToCalm(nodes, edges);
 
-        const apiNode = result.nodes.find((n) => n['unique-id'] === 'api')!;
+        const apiNode = result.nodes!.find((n) => n['unique-id'] === 'api')!;
         expect(apiNode.description).toBe('Edited');
         expect(apiNode.details).toBeUndefined();
         expect(apiNode['development-language']).toBe('TypeScript');
@@ -392,7 +452,7 @@ describe('flowToCalm - round trip', () => {
 
     it('keeps the fields of the reverse relationship of a bidirectional edge', () => {
         const arch = fullArchitecture();
-        arch.relationships.push({
+        arch.relationships!.push({
             'unique-id': 'db-api',
             authentication: 'mTLS',
             'relationship-type': {
@@ -481,7 +541,7 @@ describe('flowToCalm - nodes with several parents', () => {
         return { parsed, out: flowToCalm(parsed.nodes, parsed.edges) };
     };
     const containment = (out: CalmArchitecture) =>
-        out.relationships
+        out.relationships!
             .filter((r) => (r['relationship-type'] as Record<string, unknown>)['deployed-in'])
             .map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in']]);
 
@@ -500,7 +560,7 @@ describe('flowToCalm - nodes with several parents', () => {
 
     it('writes each node once', () => {
         const { out } = roundTrip(sharedNamespace());
-        expect(out.nodes.map((n) => n['unique-id'])).toEqual(['cluster-a', 'cluster-b', 'ns', 'svc', 'client']);
+        expect(out.nodes!.map((n) => n['unique-id'])).toEqual(['cluster-a', 'cluster-b', 'ns', 'svc', 'client']);
     });
 
     it('writes the original ids for an edge drawn to a copy', () => {
@@ -510,14 +570,14 @@ describe('flowToCalm - nodes with several parents', () => {
             data: { calmRelId: 'c2', calmVariant: 'connects' },
         }];
         const out = flowToCalm(parsed.nodes, edges);
-        expect(out.relationships.find((r) => r['unique-id'] === 'c2')?.['relationship-type']).toEqual({
+        expect(out.relationships!.find((r) => r['unique-id'] === 'c2')?.['relationship-type']).toEqual({
             connects: { source: { node: 'client' }, destination: { node: 'svc' } },
         });
     });
 
     it('keeps the order of containment relationships, so the same drawing stays the original', () => {
         const arch = sharedNamespace();
-        arch.relationships = [arch.relationships[1], arch.relationships[0], ...arch.relationships.slice(2)];
+        arch.relationships! = [arch.relationships![1], arch.relationships![0], ...arch.relationships!.slice(2)];
         const { out } = roundTrip(arch);
         expect(containment(out).map(([id]) => id)).toEqual(['r2', 'r1', 'r3']);
     });
@@ -536,7 +596,7 @@ describe('flowToCalm - nodes with several parents', () => {
         const { parsed, out } = roundTrip(arch);
         expect(parsed.nodes).toHaveLength(levels * 2);
         expect(parsed.nodes.find((n) => n.id === 'l11a')?.parentId).toBe('l10b');
-        expect(containment(out)).toEqual(arch.relationships.map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in']]));
+        expect(containment(out)).toEqual(arch.relationships!.map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in']]));
     });
 
     it.each([
@@ -644,25 +704,25 @@ describe('flowToCalm - nodes with several parents', () => {
 
     it('writes a node once when two nodes share a unique-id', () => {
         const { out } = roundTrip({ nodes: [node('a'), { ...node('a'), name: 'second' }], relationships: [] });
-        expect(out.nodes.map((n) => [n['unique-id'], n.name])).toEqual([['a', 'a']]);
+        expect(out.nodes!.map((n) => [n['unique-id'], n.name])).toEqual([['a', 'a']]);
     });
 
     it('writes the CALM ids for an interacts edge drawn to a copy', () => {
         const interacts = { 'unique-id': 'i1', 'relationship-type': { interacts: { actor: 'client', nodes: ['svc'] } } };
-        const { parsed } = roundTrip({ ...sharedNamespace(), relationships: [...sharedNamespace().relationships, interacts] });
+        const { parsed } = roundTrip({ ...sharedNamespace(), relationships: [...sharedNamespace().relationships!, interacts] });
         const copy = parsed.nodes.find((n) => n.id !== 'svc' && n.data.calmId === 'svc')!;
         const edges = parsed.edges.map((e) => (e.data?.calmRelId === 'i1' ? { ...e, target: copy.id } : e));
         const out = flowToCalm(parsed.nodes, edges);
-        expect(out.relationships.find((r) => r['unique-id'] === 'i1')!['relationship-type']).toEqual({ interacts: { actor: 'client', nodes: ['svc'] } });
+        expect(out.relationships!.find((r) => r['unique-id'] === 'i1')!['relationship-type']).toEqual({ interacts: { actor: 'client', nodes: ['svc'] } });
     });
 
     it('writes the CALM ids for both directions of a two-way edge drawn to a copy', () => {
         const back = { 'unique-id': 'c2', 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'client' } } } };
-        const { parsed } = roundTrip({ ...sharedNamespace(), relationships: [...sharedNamespace().relationships, back] });
+        const { parsed } = roundTrip({ ...sharedNamespace(), relationships: [...sharedNamespace().relationships!, back] });
         const copy = parsed.nodes.find((n) => n.id !== 'svc' && n.data.calmId === 'svc')!;
         const edges = parsed.edges.map((e) => (e.data?.calmRelId === 'c1' ? { ...e, target: copy.id } : e));
         const out = flowToCalm(parsed.nodes, edges);
-        const ends = (id: string) => (out.relationships.find((r) => r['unique-id'] === id)!['relationship-type'] as any).connects;
+        const ends = (id: string) => (out.relationships!.find((r) => r['unique-id'] === id)!['relationship-type'] as any).connects;
         expect([ends('c1').source.node, ends('c1').destination.node]).toEqual(['client', 'svc']);
         expect([ends('c2').source.node, ends('c2').destination.node]).toEqual(['svc', 'client']);
     });
@@ -694,7 +754,7 @@ describe('flowToCalm - nodes with several parents', () => {
     it('keeps the place in the file of a node with no unique-id', () => {
         const nameless = { 'node-type': 'system', name: 'x', description: '' };
         const { out } = roundTrip({ nodes: [nameless, node('c')], relationships: [deployedIn('r1', 'c', ['node-0'])] });
-        expect(out.nodes.map((n) => n['unique-id'])).toEqual(['node-0', 'c']);
+        expect(out.nodes!.map((n) => n['unique-id'])).toEqual(['node-0', 'c']);
     });
 
     it('carries positions over for a reload in the order of the file', () => {

@@ -45,8 +45,6 @@ export type {
 import type {
   CalmArchitectureSchema,
   CalmDecoratorSchema as CalmDecorator,
-  CalmNodeSchema,
-  CalmRelationshipSchema,
 } from '@finos/calm-models/types';
 
 import type { CalmNodeInterfaceSchema } from '@finos/calm-models/types';
@@ -73,26 +71,11 @@ export type CalmRelationshipVariant =
 // ─── Extensions not in calm-models ──────────────────────────────────────────
 
 /**
- * Editor architecture model: the canonical CALM 1.2 core schema with
- * two editor-specific tightenings:
- *
- *   - `nodes` and `relationships` are required (never undefined). The
- *     canonical `CalmCoreSchema` makes both optional because architectures
- *     mid-construction may have neither; the editor's producers always
- *     populate both arrays (empty if the diagram is blank), so promoting
- *     them to required keeps `exactOptionalPropertyTypes: true` happy and
- *     removes a flood of `arch.nodes is possibly undefined` errors.
- *
- *   - `decorators?: CalmDecorator[]` extension used by the AIGF
- *     governance overlay and the threat-model overlay (#2551). The CALM
- *     core schema has no `decorators` property.
+ * The canonical CALM architecture, plus the `decorators` extension used by the
+ * AIGF governance overlay and the threat-model overlay (#2551). The CALM core
+ * schema has no `decorators` property.
  */
-export type CalmArchitecture = Omit<
-  CalmArchitectureSchema,
-  'nodes' | 'relationships'
-> & {
-  nodes: CalmNodeSchema[];
-  relationships: CalmRelationshipSchema[];
+export type CalmArchitecture = CalmArchitectureSchema & {
   decorators?: CalmDecorator[];
 };
 

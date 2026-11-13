@@ -16,11 +16,11 @@ const load = (arch: CalmArchitecture) => {
     return parseCALMData(arch);
 };
 const containment = (out: CalmArchitecture) =>
-    out.relationships
+    out.relationships!
         .filter((r) => (r['relationship-type'] as Record<string, unknown>)['deployed-in'])
         .map((r) => [r['unique-id'], (r['relationship-type'] as any)['deployed-in'].nodes]);
-const nodeIds = (out: CalmArchitecture) => out.nodes.map((n) => n['unique-id']);
-const relIds = (out: CalmArchitecture) => out.relationships.map((r) => r['unique-id']);
+const nodeIds = (out: CalmArchitecture) => out.nodes!.map((n) => n['unique-id']);
+const relIds = (out: CalmArchitecture) => out.relationships!.map((r) => r['unique-id']);
 const byId = (nodes: Node[], id: string) => nodes.find((n) => n.id === id)!;
 // React Flow passes the picked drawings and every drawing nested in them
 const withNested = (picked: Node[], nodes: Node[]) => {
