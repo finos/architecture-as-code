@@ -69,7 +69,7 @@ public class GitHubCloneManager {
             Path targetDir = config.getCloneDirectory().resolve(namespace);
 
             boolean success;
-            if (repoSync.isValidRepo(targetDir)) {
+            if (repoSync.isValidRepo(targetDir, repo.repoFullName())) {
                 success = repoSync.pullRepo(targetDir, repo.branch(), config.getServiceToken());
             } else {
                 success = repoSync.cloneRepo(repo.repoFullName(), repo.branch(), targetDir, config.getServiceToken());
@@ -110,7 +110,7 @@ public class GitHubCloneManager {
             // A namespace whose initial clone failed (or whose clone dir was otherwise left
             // invalid) never goes through cloneAll again — this is the only recovery path for
             // it, so it needs the same clone fallback cloneAll itself uses, not just a pull.
-            boolean success = repoSync.isValidRepo(targetDir)
+            boolean success = repoSync.isValidRepo(targetDir, repo.repoFullName())
                     ? repoSync.pullRepo(targetDir, repo.branch(), config.getServiceToken())
                     : repoSync.cloneRepo(repo.repoFullName(), repo.branch(), targetDir, config.getServiceToken());
 

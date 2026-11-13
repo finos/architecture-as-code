@@ -8,14 +8,22 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.RepositoryCache;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.util.FS;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Comparator;
+import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Handles git clone and sync operations for a single repository.
@@ -34,6 +42,8 @@ import java.nio.file.Path;
 public class GitHubRepoSync {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubRepoSync.class);
+    private static final Set<PosixFilePermission> OWNER_ONLY_PERMISSIONS =
+            PosixFilePermissions.fromString("rwx------");
 
     private final String githubBaseUrl;
     private final int gitTimeoutSeconds;
@@ -46,9 +56,12 @@ public class GitHubRepoSync {
     }
 
     public boolean cloneRepo(String repoFullName, String branch, Path targetDir, String token) {
-        String url = githubBaseUrl + "/" + repoFullName + ".git";
+        String url = expectedRemoteUrl(repoFullName);
         try {
-            Files.createDirectories(targetDir);
+            if (Files.exists(targetDir, LinkOption.NOFOLLOW_LINKS)) {
+                deleteRecursively(targetDir);
+            }
+            createRestrictedDirectories(targetDir);
             CloneCommand clone = Git.cloneRepository()
                     .setURI(url)
                     .setDirectory(targetDir.toFile())
@@ -71,6 +84,15 @@ public class GitHubRepoSync {
         }
     }
 
+    public boolean pullRepo(Path repoDir, String repoFullName, String branch, String token) {
+        if (!isValidRepo(repoDir, repoFullName)) {
+            LOG.error("Refusing to sync {}: repository is invalid or origin remote does not match {}",
+                    repoDir.getFileName(), repoFullName);
+            return false;
+        }
+        return pullRepo(repoDir, branch, token);
+    }
+
     /**
      * Fetches and hard-resets {@code repoDir} to {@code origin/<branch>}. {@code branch}
      * is the configured branch, deliberately not whatever the local checkout currently
@@ -83,6 +105,12 @@ public class GitHubRepoSync {
      */
     public boolean pullRepo(Path repoDir, String branch, String token) {
         try (Git git = Git.open(repoDir.toFile())) {
+            String originUrl = git.getRepository().getConfig().getString("remote", "origin", "url");
+            if (originUrl == null || originUrl.isBlank()) {
+                LOG.error("Failed to sync {}: missing origin remote URL", repoDir.getFileName());
+                return false;
+            }
+
             var fetchCommand = git.fetch().setTimeout(gitTimeoutSeconds);
 
             if (token != null && !token.isBlank()) {
@@ -105,7 +133,50 @@ public class GitHubRepoSync {
     }
 
     public boolean isValidRepo(Path repoDir) {
-        return Files.isDirectory(repoDir.resolve(".git"));
+        if (repoDir == null || !Files.isDirectory(repoDir.resolve(".git"), LinkOption.NOFOLLOW_LINKS)) {
+            return false;
+        }
+        return RepositoryCache.FileKey.isGitRepository(repoDir.resolve(".git").toFile(), FS.DETECTED);
+    }
+
+    public boolean isValidRepo(Path repoDir, String repoFullName) {
+        if (!isValidRepo(repoDir) || repoFullName == null || repoFullName.isBlank()) {
+            return false;
+        }
+        String expectedUrl = expectedRemoteUrl(repoFullName);
+        try (Git git = Git.open(repoDir.toFile())) {
+            String originUrl = git.getRepository().getConfig().getString("remote", "origin", "url");
+            if (!expectedUrl.equals(originUrl)) {
+                LOG.warn("Existing checkout at {} has origin '{}' instead of expected '{}' — treating as invalid",
+                        repoDir, originUrl, expectedUrl);
+                return false;
+            }
+            return true;
+        } catch (IOException e) {
+            LOG.warn("Failed to inspect git repository at {}: {}", repoDir, e.getMessage());
+            return false;
+        }
+    }
+
+    private String expectedRemoteUrl(String repoFullName) {
+        return githubBaseUrl + "/" + repoFullName + ".git";
+    }
+
+    private static void createRestrictedDirectories(Path targetDir) throws IOException {
+        if (targetDir.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+            Files.createDirectories(targetDir, PosixFilePermissions.asFileAttribute(OWNER_ONLY_PERMISSIONS));
+            Files.setPosixFilePermissions(targetDir, OWNER_ONLY_PERMISSIONS);
+        } else {
+            Files.createDirectories(targetDir);
+        }
+    }
+
+    private static void deleteRecursively(Path root) throws IOException {
+        try (Stream<Path> walk = Files.walk(root)) {
+            for (Path p : walk.sorted(Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(p);
+            }
+        }
     }
 
     /**
