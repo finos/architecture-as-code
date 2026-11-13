@@ -220,7 +220,7 @@ npm run build --workspace cli
 - `vitest.config.mts` - Test configuration
 - `eslint.config.mjs` - Linting rules
 - `release.config.mjs` - Semantic release configuration: the scopes that release the CLI. The rules
-  are in `scripts/release-notes.mjs`, which the CALM Server and VS Code extension changelogs also use
+  are in `scripts/release-notes.mjs`, which the CALM Server, CALM Hub and VS Code extension changelogs also use
 
 ## Release Process
 

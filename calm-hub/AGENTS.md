@@ -359,22 +359,47 @@ curl -s -X POST http://localhost:8080/mcp \
 
 ## GitHub Actions — Docker Publish Workflows
 
-| Workflow file | Image tag | Trigger (path filter on `main`) |
-|:-------------|:----------|:-------------------------------|
-| `docker-publish-calm-hub.yml` | `latest` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
-| `docker-publish-calm-hub-native.yml` | `latest-native` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
-| `docker-publish-calm-hub-readonly.yml` | `latest-read-only-static` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
-| `docker-publish-calm-hub-readonly-native.yml` | `latest-read-only-native` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
+| Workflow file | Tag suffix |
+|:-------------|:-----------|
+| `docker-publish-calm-hub.yml` | (none) |
+| `docker-publish-calm-hub-native.yml` | `-native` |
+| `docker-publish-calm-hub-readonly.yml` | `-read-only-static` |
+| `docker-publish-calm-hub-readonly-native.yml` | `-read-only-native` |
 
-`calm-hub/ec2/**` (the EC2 deployment scripts) is excluded from all four triggers so edits to the on-box install/deploy tooling don't kick off a native multi-arch image rebuild.
+Each workflow pushes different tags for a merge and for a release:
+
+| Run | Tags |
+|:----|:-----|
+| Push to `main` (path filter: `calm-hub/**` excl. `calm-hub/ec2/**`, `calm-hub-ui/**`, `package.json`, `scripts/copy-calm-schemas.mjs`), or `workflow_dispatch` | `main<suffix>`, `sha-<short><suffix>` |
+| `workflow_call` from `automated-release-calm-hub.yml` | `<version><suffix>`, `<major.minor><suffix>`, `latest<suffix>` |
+
+A version tag is pushed once. `scripts/check-calm-hub-release.sh` fails the release if the tag is
+already in the registry, or if `pom.xml` is not at that version. Security advisories name these
+versions, so never push a version tag by hand.
 
 All four workflows:
-- Support `workflow_dispatch` with a `tag` input (default: the tag above).
 - Run `smoke-test.sh` against a locally loaded single-arch image before pushing to Docker Hub.
 - Use `${{ secrets.DOCKER_USERNAME }}/calm-hub` as the image namespace.
 - Have `cancel-in-progress: false` (a publish in flight is never cancelled).
 
 **Native workflows** (`-native.yml`) use a per-architecture build matrix (`ubuntu-latest` for `amd64`, `ubuntu-24.04-arm` for `arm64`). Each runner builds for its own arch, pushes by digest, and a final merge job assembles the multi-arch manifest via `docker buildx imagetools create`.
+
+The EC2 demo (`ec2/`) runs `main-read-only-native`, so it changes on every merge, not on a release.
+
+## Releasing
+
+`automated-release-calm-hub.yml` releases CALM Hub every Tuesday, or on demand:
+
+1. semantic-release (`release.config.mjs`) finds the next version from the commits since the last
+   `calm-hub-v*` tag. It releases on the `calm-hub`, `calm-hub-ui` and `deps` scopes, and on unscoped
+   `feat`/`fix`/`perf`/`revert`, but only for commits that changed the paths the image is built from.
+2. It opens a `release/calm-hub-v<version>` PR that sets the `pom.xml` version and adds to
+   `CHANGELOG.md`. Merging the PR approves the release, major releases included.
+3. On merge, it tags the merge commit `calm-hub-v<version>`, calls the four Docker workflows for
+   that commit, then creates the GitHub release.
+
+The `pom.xml` version changes only in a release PR. The workflow needs a `calm-hub-v*` tag to start
+from; it fails if there is none.
 
 ## Key Concepts
 

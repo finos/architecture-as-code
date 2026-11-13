@@ -14,16 +14,22 @@ on:
             - 'package.json'
             - 'scripts/copy-calm-schemas.mjs'
             - '.github/workflows/docker-publish-calm-hub-native.yml'
-    # Manual trigger from GitHub UI (allows custom tag)
+    # Rebuilds the main tags. Version tags come only from automated-release-calm-hub.yml.
     workflow_dispatch:
+    workflow_call:
         inputs:
-            tag:
-                description: 'Image tag (default: latest-native)'
-                required: false
-                default: 'latest-native'
+            version:
+                description: 'Release version. Pushes the version and latest tags, never the main tags'
+                required: true
+                type: string
+            ref:
+                description: 'Commit to build'
+                required: true
+                type: string
 
+# A release has its own group, so that a queued main build can never replace it.
 concurrency:
-    group: docker-publish-calm-hub-native
+    group: docker-publish-calm-hub-native-${{ inputs.version || 'main' }}
     cancel-in-progress: false
 
 jobs:
@@ -35,6 +41,8 @@ jobs:
     build:
         name: Build ${{ matrix.arch }}
         runs-on: ${{ matrix.runner }}
+        outputs:
+            minor: ${{ steps.release.outputs.minor }}
         strategy:
             fail-fast: false
             matrix:
@@ -50,6 +58,8 @@ jobs:
             # Step 1: Checkout the repository
             - name: Checkout
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+              with:
+                  ref: ${{ inputs.ref }}
 
             # Step 2: Set up JDK
             - name: Set up JDK
@@ -85,6 +95,16 @@ jobs:
               with:
                   username: ${{ secrets.DOCKER_USERNAME }}
                   password: ${{ secrets.DOCKER_PASSWORD }}
+
+            # A version tag is pushed once, so that each version is one build of one commit.
+            - name: Check the release version
+              id: release
+              if: inputs.version != ''
+              working-directory: calm-hub
+              env:
+                  VERSION: ${{ inputs.version }}
+                  IMAGE: ${{ secrets.DOCKER_USERNAME }}/calm-hub:${{ inputs.version }}-native
+              run: bash ../scripts/check-calm-hub-release.sh "$VERSION" "$IMAGE" >> "$GITHUB_OUTPUT"
 
             # Step 7: Build image locally for smoke testing.
             # load: true loads the image into the local Docker daemon (single-arch only).
@@ -177,17 +197,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-
-            - name: Set up JDK
-              uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
               with:
-                  distribution: 'temurin'
-                  java-version: '21'
-
-            - name: Resolve CALM Hub version
-              id: version
-              working-directory: calm-hub
-              run: echo "value=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> "$GITHUB_OUTPUT"
+                  ref: ${{ inputs.ref }}
 
             - name: Download digests
               uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -209,12 +220,15 @@ jobs:
               id: meta
               uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
               with:
+                  context: git
                   images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
+                  flavor: latest=false
                   tags: |
-                      type=raw,value=${{ github.event.inputs.tag || 'latest-native' }}
-                      type=raw,value=${{ steps.version.outputs.value }}-native
-                      type=sha,format=short,suffix=-native
-                      type=ref,event=tag,suffix=-native
+                      type=raw,value=main-native,enable=${{ inputs.version == '' }}
+                      type=sha,format=short,suffix=-native,enable=${{ inputs.version == '' }}
+                      type=raw,value=${{ inputs.version }}-native,enable=${{ inputs.version != '' }}
+                      type=raw,value=${{ needs.build.outputs.minor }}-native,enable=${{ inputs.version != '' }}
+                      type=raw,value=latest-native,enable=${{ inputs.version != '' }}
 
             # Assemble a multi-arch manifest from the per-arch digests and tag it.
             - name: Create multi-arch manifest

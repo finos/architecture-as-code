@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { analyzeCommits } from '@semantic-release/commit-analyzer';
 
-import { expandForkMerges, finalizeContext, gitIn, isRepoWide, listedCommits, parserOpts, releaseRules, splitForkMerge, withPrLink } from './release-notes.mjs';
+import { analyzeCommits as analyzeListedCommits } from './release-analyzer.mjs';
+import { expandForkMerges, finalizeContext, gitIn, isRepoWide, listedCommits, parserOpts, releaseConfig, releaseRules, splitForkMerge, withPrLink } from './release-notes.mjs';
 import { generateNotes } from './release-notes-generator.mjs';
 
 const FORK_MERGE = [
@@ -77,6 +78,25 @@ describe('releaseRules', () => {
 
     it('does not release on a plain git revert', async () => {
         assert.equal(await analyze('Revert "feat(calm-server): add an endpoint"\n\nThis reverts commit abc1234.'), null);
+    });
+});
+
+describe('releaseConfig', () => {
+    const plugins = config => config.plugins.map(([name]) => name);
+
+    it('updates package.json by default', () => {
+        assert.ok(plugins(releaseConfig({ product: 'P', tagFormat: 'p-v${version}', scopes: ['p'] })).includes('@semantic-release/npm'));
+    });
+
+    it('leaves out the npm plugin for a product with no package.json', () => {
+        const config = releaseConfig({ product: 'P', tagFormat: 'p-v${version}', scopes: ['p'], npmPackage: false });
+        assert.ok(!plugins(config).includes('@semantic-release/npm'));
+        assert.ok(plugins(config).includes('@semantic-release/changelog'));
+    });
+
+    it('gives the paths to the analyzer', () => {
+        const [, analyzerConfig] = releaseConfig({ product: 'P', tagFormat: 'p-v${version}', scopes: ['p'], paths: ['p'] }).plugins[0];
+        assert.deepEqual(analyzerConfig.paths, ['p']);
     });
 });
 
@@ -182,5 +202,22 @@ describe('listedCommits', () => {
         assert.ok(listed.includes(pr.branch[0]));
         assert.ok(!listed.includes(other));
         assert.ok(!listed.includes(pr.branch[1]));
+    });
+
+    it('releases only on the commits that changed the given paths', async () => {
+        const hub = commit('hub/a.java', 'fix(deps): update a hub dependency');
+        const other = commit('cli/a.ts', 'feat(deps): update a CLI dependency');
+        const analyze = paths => analyzeListedCommits(
+            { preset: 'conventionalcommits', releaseRules: releaseRules(['hub', 'deps']), parserOpts, paths },
+            { commits: [hub, other].map(hash => ({ hash, message: git('log', '-1', '--format=%B', hash) })), logger: { log() {} } },
+        );
+        const cwd = process.cwd();
+        process.chdir(repo);
+        try {
+            assert.equal(await analyze([':(top)hub']), 'patch');
+            assert.equal(await analyze([':(top)cli']), 'minor');
+        } finally {
+            process.chdir(cwd);
+        }
     });
 });
