@@ -5,6 +5,16 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.71.0](https://github.com/finos/architecture-as-code/compare/cli-v1.70.0...cli-v1.71.0) (2026-11-13)
+
+### 🚀 Features
+
+* add OpenCode support to init-ai ([#3662](https://github.com/finos/architecture-as-code/issues/3662)) ([c57c3d9](https://github.com/finos/architecture-as-code/commit/c57c3d9ab92b8c5442c8bc40dc161be7dabbcce4))
+
+### 🐛 Bug Fixes
+
+* do not send calm: requests outside the CALM Hub base path ([#3638](https://github.com/finos/architecture-as-code/issues/3638)) ([33adfc9](https://github.com/finos/architecture-as-code/commit/33adfc93e84bc71e6a5c44de82a3ca4c740da151)), closes [#3627](https://github.com/finos/architecture-as-code/issues/3627)
+
 ## [1.70.0](https://github.com/finos/architecture-as-code/compare/cli-v1.69.0...cli-v1.70.0) (2026-11-11)
 
 ### 🚀 Features
