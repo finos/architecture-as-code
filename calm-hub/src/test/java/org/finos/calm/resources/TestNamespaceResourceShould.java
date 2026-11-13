@@ -12,6 +12,7 @@ import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.services.CountsService;
+import org.finos.calm.services.PersonalNamespaceService;
 import org.finos.calm.services.NamespaceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,9 @@ public class TestNamespaceResourceShould {
 
     @InjectMock
     CalmHubPermissionChecker mockPermissionChecker;
+
+    @InjectMock
+    PersonalNamespaceService mockPersonalNamespaceService;
 
     // This class tests namespace-listing/CRUD logic, not the per-user filtering that
     // ReadableScope applies — @TestSecurity(authorizationEnabled = false) bypasses
@@ -128,6 +132,22 @@ public class TestNamespaceResourceShould {
                 .body("values[0].total", equalTo(10));
 
         verify(mockCountsService, times(1)).getNamespaceCounts(any());
+    }
+
+    @Test
+    void return_400_when_creating_a_personal_namespace() throws NamespaceAlreadyExistsException {
+        when(mockPersonalNamespaceService.isReserved("users.alice")).thenReturn(true);
+
+        given()
+                .contentType("application/json")
+                .body("{\"name\":\"users.alice\",\"description\":\"desc\"}")
+                .when()
+                .post("/api/calm/namespaces")
+                .then()
+                .statusCode(400)
+                .body(containsString("/api/calm/me/namespace"));
+
+        verify(namespaceService, never()).createNamespace(any(), any());
     }
 
     @Test

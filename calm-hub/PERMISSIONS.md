@@ -119,6 +119,16 @@ To restrict a namespace: delete the `* read` record. The AND rule for child name
 
 ---
 
+## Personal namespaces
+
+When `calm.namespaces.personal.enabled=true`, `PersonalNamespaceService` creates the root (default
+`users`) at start up with the normal `* read` grant. `PUT /api/calm/me/namespace` creates
+`users.<segment>` with an `admin` grant for the caller and **no** `* read` grant. Because READ needs
+a grant at each level, only the owner can read it. ADMIN on the root gives WRITE and ADMIN, but not
+READ, on every personal namespace. See [PERSONAL_NAMESPACES.md](PERSONAL_NAMESPACES.md).
+
+---
+
 ## `getGrantsForUser` vs `getUserAccessForUsername`
 
 - **`getGrantsForUser(username)`** — returns grants where `username = :username OR username = '*'`. Used by the permission checker (single round-trip per request).
