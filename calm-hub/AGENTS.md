@@ -412,6 +412,21 @@ All four workflows:
 - The response leaves out a section that is not configured or not enabled. The server does not
   read `SecurityIdentity` unless `calm.ui.identity.enabled=true`
 
+### Extensions
+- ADRs 0009–0014 in `decisions/` are the design. `ExtensionRegistry` loads manifests at start up from
+  `calm.extensions.dir` and from the classpath index `META-INF/calm-extensions/builtin/index.txt`.
+  `ExtensionManifestLoader` validates them with the schema in `META-INF/calm-extensions/schema/<hubApi>/`
+  (vertx-json-schema) and then does the cross-reference checks. A bad manifest or setting stops start up
+- `ExtensionsConfig` declares the per-id keys (`calm.extensions."<id>".enabled|order|backend-url`) only
+  so that SmallRye accepts them. The registry reads them by full name, because a map key with a dash
+  does not bind from an environment variable
+- The unknown-id warning matches `ExtensionRegistry.PER_ID_KEYS` in property and environment-variable form. Add a
+  new per-id key there, in `ExtensionsConfig.Extension`, and in the settings table of `docs/docs/calm-hub/index.md`
+- A field change in `domain/extensions/ExtensionManifest` needs the same change in the schema: the
+  schema rejects unknown fields
+- Try it: `../mvnw quarkus:dev -Pstandalone,server-only -Dcalm.extensions.dir=local-dev/extensions
+  -Dcalm.extensions.example-services.backend-url=http://localhost:8091`, then `GET /api/calm/extensions`
+
 ### Read-Only Deployment Mode
 - `calm.readonly=true` opens Nitrite with `readOnly(true)` and installs
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)

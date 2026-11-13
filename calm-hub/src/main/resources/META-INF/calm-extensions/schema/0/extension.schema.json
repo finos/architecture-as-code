@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/calm-hub/extensions/hub-api-0/extension.schema.json",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "hubApi": {
+      "type": "integer",
+      "const": 0
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provider": {
+      "type": "string",
+      "minLength": 1
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/route"
+      }
+    },
+    "commands": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*$": {
+          "$ref": "#/$defs/command"
+        }
+      },
+      "additionalProperties": false
+    },
+    "contributes": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "designer-tab": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "landing-card": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "detail-panel": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "action": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "search-provider": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "chat": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "decorator-views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decoratorView"
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "hubApi",
+    "name"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "route": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/(?:[A-Za-z0-9._~-]+|\\{[A-Za-z][A-Za-z0-9_-]*\\})(?:/(?:[A-Za-z0-9._~-]+|\\{[A-Za-z][A-Za-z0-9_-]*\\}))*$|^/$"
+        },
+        "scope": {
+          "enum": [
+            "authenticated",
+            "read",
+            "write",
+            "admin",
+            "domain_read",
+            "domain_write",
+            "domain_admin",
+            "global_admin"
+          ]
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "id",
+        "method",
+        "path",
+        "scope"
+      ],
+      "additionalProperties": false
+    },
+    "command": {
+      "type": "object",
+      "properties": {
+        "route": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "object"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        "output": {
+          "type": "object"
+        },
+        "destructive": {
+          "type": "boolean"
+        },
+        "idempotent": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "route",
+        "description",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    "routeContribution": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "route"
+      ],
+      "additionalProperties": false
+    },
+    "match": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "required": [
+            "schema"
+          ]
+        }
+      ]
+    },
+    "overlay": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "map": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "ok",
+              "warn",
+              "error",
+              "info"
+            ]
+          }
+        },
+        "default": {
+          "enum": [
+            "ok",
+            "warn",
+            "error",
+            "info"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        }
+      },
+      "required": [
+        "status",
+        "map",
+        "default"
+      ],
+      "additionalProperties": false
+    },
+    "decoratorView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "match": {
+          "$ref": "#/$defs/match"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overlay": {
+          "$ref": "#/$defs/overlay"
+        }
+      },
+      "required": [
+        "id",
+        "match",
+        "label"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

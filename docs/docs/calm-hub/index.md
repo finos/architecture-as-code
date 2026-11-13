@@ -145,6 +145,47 @@ CALM_UI_ITEMS_1__VALUE=2026.10.1
 
 ---
 
+## Extensions
+
+An extension adds features to CALM Hub without a fork. It is an HTTP service that CALM Hub calls. The operator installs it with a manifest. CALM Hub reads the manifests at start up. No API adds an extension.
+
+> Work in progress: CALM Hub reads, checks and lists manifests. It does not call extension services yet.
+
+Put one folder for each extension in `calm.extensions.dir`, with an `extension.json` in it. The folder name must equal the manifest `id`. Hub skips hidden folders and warns about folders without a manifest. A per-id setting for an unknown extension id gives a warning at start up, as a property or as an environment variable.
+
+```text
+/etc/calm-hub/extensions/
+└── team-services/
+    └── extension.json
+```
+
+| Setting | Default | Purpose |
+|:--------|:--------|:--------|
+| `calm.extensions.dir` | not set | The folder of manifests. When it is not set, CALM Hub has no extensions |
+| `calm.extensions."<id>".enabled` | `true` | Set `false` to turn off an extension |
+| `calm.extensions."<id>".order` | `0` | Lower values come first in the list. Equal values sort by id |
+| `calm.extensions."<id>".backend-url` | not set | The base URL of the extension service. Required for an enabled extension with routes |
+
+```bash
+CALM_EXTENSIONS_DIR=/etc/calm-hub/extensions
+CALM_EXTENSIONS__TEAM_SERVICES__BACKEND_URL=https://team-services.internal
+CALM_EXTENSIONS__TEAM_SERVICES__ORDER=10
+```
+
+The manifest declares:
+
+- `id`, `version`, `hubApi` (now `0`), `name`, and optional `description` and `provider`.
+- `routes`: every call that the extension can receive, each with an `id`, `method`, `path`, `scope` and optional `readOnly`. A `read`, `write` or `admin` scope needs a `{namespace}` in the path. A `domain_*` scope needs a `{domain}`. When two routes with the same method match a path, the route with more literal segments wins. CALM Hub does not start if two such routes have the same number, for example `GET /{namespace}/report` and `GET /public/{id}`.
+- `commands`: CLI and MCP commands, keyed by name. Each names a route by `id`.
+- `contributes`: the UI extension points `screen`, `designer-tab`, `landing-card`, `detail-panel`, `action`, `search-provider` and `chat`, which name a route by `id`, and `decorator-views`, which CALM Hub draws from decorators with no route. A decorator view `id` must be unique in all enabled extensions.
+
+The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in the CALM Hub jar. Unknown fields are errors. See [the example manifest](https://github.com/finos/architecture-as-code/blob/main/calm-hub/local-dev/extensions/example-services/extension.json).
+
+- CALM Hub does not start if a manifest or a setting is not valid. The error names the file or the setting.
+- `GET /api/calm/extensions` lists the enabled extensions, for any signed-in user. It never shows the backend URL. On a read-only CALM Hub it leaves out write routes that are not `readOnly`, and the commands and contributions that use them.
+
+---
+
 ## Docker Hub Images
 
 All images are published to Docker Hub at [finos/calm-hub](https://hub.docker.com/r/finos/calm-hub/tags).
