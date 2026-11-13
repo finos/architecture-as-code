@@ -680,7 +680,7 @@ class TestNitriteDecoratorStoreShould {
     }
 
     @Test
-    void should_delete_decorator_successfully() throws NamespaceNotFoundException, DecoratorNotFoundException {
+    void should_delete_decorator_successfully() throws Exception {
         // Given
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
@@ -696,7 +696,7 @@ class TestNitriteDecoratorStoreShould {
         when(cursor.firstOrNull()).thenReturn(namespaceDocument);
 
         // When
-        decoratorStore.deleteDecorator(namespace, 1);
+        decoratorStore.deleteCurrentDecoratorHistory(namespace, 1);
 
         // Then
         verify(namespaceStore).namespaceExists(namespace);
@@ -718,7 +718,7 @@ class TestNitriteDecoratorStoreShould {
         when(cursor.firstOrNull()).thenReturn(namespaceDocument);
 
         // When & Then
-        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteDecorator(namespace, 99));
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteCurrentDecoratorHistory(namespace, 99));
 
         verify(decoratorCollection, never()).update(any(Document.class));
     }
@@ -732,7 +732,18 @@ class TestNitriteDecoratorStoreShould {
         when(cursor.firstOrNull()).thenReturn(null);
 
         // When & Then
-        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteDecorator(namespace, 1));
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteCurrentDecoratorHistory(namespace, 1));
+
+        verify(decoratorCollection, never()).update(any(Document.class));
+    }
+
+    @Test
+    void should_throw_decorator_not_found_when_deleting_from_a_namespace_with_no_decorators_list() {
+        when(namespaceStore.namespaceExists("finos")).thenReturn(true);
+        when(decoratorCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(Document.createDocument("namespace", "finos"));
+
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteCurrentDecoratorHistory("finos", 1));
 
         verify(decoratorCollection, never()).update(any(Document.class));
     }
@@ -744,7 +755,7 @@ class TestNitriteDecoratorStoreShould {
         when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
 
         // When & Then
-        assertThrows(NamespaceNotFoundException.class, () -> decoratorStore.deleteDecorator(namespace, 1));
+        assertThrows(NamespaceNotFoundException.class, () -> decoratorStore.deleteCurrentDecoratorHistory(namespace, 1));
 
         verify(decoratorCollection, never()).find(any(Filter.class));
     }

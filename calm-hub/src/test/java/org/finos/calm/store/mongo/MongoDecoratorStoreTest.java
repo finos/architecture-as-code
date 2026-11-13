@@ -68,6 +68,7 @@ class MongoDecoratorStoreTest {
 
         FindIterable<Document> findIterable = mock(FindIterable.class);
         when(decoratorCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(namespaceDoc);
 
         Optional<Decorator> result = decoratorStore.getDecoratorById(namespace, decoratorId);
@@ -93,6 +94,7 @@ class MongoDecoratorStoreTest {
 
         FindIterable<Document> findIterable = mock(FindIterable.class);
         when(decoratorCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(namespaceDoc);
 
         Optional<Decorator> result = decoratorStore.getDecoratorById(namespace, decoratorId);
@@ -119,6 +121,7 @@ class MongoDecoratorStoreTest {
 
         FindIterable<Document> findIterable = mock(FindIterable.class);
         when(decoratorCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(new Document());
 
         Optional<Decorator> result = decoratorStore.getDecoratorById(namespace, decoratorId);
@@ -138,6 +141,7 @@ class MongoDecoratorStoreTest {
 
         FindIterable<Document> findIterable = mock(FindIterable.class);
         when(decoratorCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(namespaceDoc);
 
         Optional<Decorator> result = decoratorStore.getDecoratorById(namespace, decoratorId);
@@ -165,6 +169,7 @@ class MongoDecoratorStoreTest {
 
         FindIterable<Document> findIterable = mock(FindIterable.class);
         when(decoratorCollection.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.first()).thenReturn(namespaceDoc);
 
         Optional<Decorator> result = decoratorStore.getDecoratorById(namespace, decoratorId);

@@ -11,6 +11,10 @@ Each subdirectory holds copies of the decorator standards of one
 
 Do not edit the files here. Change the standard in calm-schema, release it, then copy the released files.
 
+The build also bundles these files under `META-INF/decorator-standards/`, and CALM Hub validates a decorator
+with one of these `$schema` values on write. When you add a file, list it in
+`src/main/resources/META-INF/decorator-standards/files.txt`.
+
 `init-nitrite.sh` (`create_standards`) seeds every subdirectory through the numeric API, because the
 name-based API needs a hub `$id`. It seeds `deployment/` first, so that the deployment standard keeps standard
 id 1. The name-based seed (`create_namespace_standards`) reads only the JSON files at the top of each namespace

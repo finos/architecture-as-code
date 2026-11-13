@@ -6,6 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.finos.calm.domain.Decorator;
+import org.finos.calm.domain.DecoratorHistoryEntry;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
@@ -30,6 +31,11 @@ public class GitHubDecoratorStore extends AbstractGitHubStore implements Decorat
     @Inject
     public GitHubDecoratorStore(ResourceRegistry registryService) {
         super(registryService);
+    }
+
+    @Override
+    public void requireWritable() {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
@@ -61,7 +67,18 @@ public class GitHubDecoratorStore extends AbstractGitHubStore implements Decorat
     }
 
     @Override
-    public void deleteDecorator(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
+    public int supersedeDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public List<DecoratorHistoryEntry> getDecoratorHistory(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
+        verifyNamespace(namespace);
+        throw new DecoratorNotFoundException();
+    }
+
+    @Override
+    public void deleteCurrentDecoratorHistory(String namespace, int currentId) throws NamespaceNotFoundException, DecoratorNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 }

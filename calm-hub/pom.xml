@@ -132,6 +132,12 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-hibernate-validator</artifactId>
         </dependency>
+        <!-- Validates decorators against the bundled decorator Standards. Version from the Vert.x BOM in the
+             Quarkus BOM. -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-json-schema</artifactId>
+        </dependency>
 
         <!-- MCP Server -->
         <dependency>
@@ -207,6 +213,15 @@
             <resource>
                 <directory>${project.basedir}/target/calm-schemas/release</directory>
                 <targetPath>META-INF/calm-schemas</targetPath>
+            </resource>
+            <!-- The calm-schema decorator Standards. DecoratorSchemaValidator reads them through
+                 META-INF/decorator-standards/files.txt, which is hand-authored. -->
+            <resource>
+                <directory>${project.basedir}/mongo/standards/finos.calm</directory>
+                <targetPath>META-INF/decorator-standards</targetPath>
+                <includes>
+                    <include>**/*.json</include>
+                </includes>
             </resource>
         </resources>
         <plugins>

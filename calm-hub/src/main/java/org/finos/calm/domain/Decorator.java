@@ -1,5 +1,6 @@
 package org.finos.calm.domain;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -88,20 +89,38 @@ public class Decorator {
                 '}';
     }
 
-    @SuppressWarnings("unchecked")
     public static Decorator fromDocument(Map<String, Object> document) {
         if (document == null) {
             return null;
         }
         return new DecoratorBuilder()
-                .setSchema((String) document.get("$schema"))
-                .setUniqueId((String) document.get("unique-id"))
-                .setType((String) document.get("type"))
-                .setTarget((List<String>) document.get("target"))
-                .setTargetType((List<String>) document.get("target-type"))
-                .setAppliesTo((List<String>) document.get("applies-to"))
+                .setSchema(stringOrNull(document.get("$schema")))
+                .setUniqueId(stringOrNull(document.get("unique-id")))
+                .setType(stringOrNull(document.get("type")))
+                .setTarget(stringListOrNull(document.get("target")))
+                .setTargetType(stringListOrNull(document.get("target-type")))
+                .setAppliesTo(stringListOrNull(document.get("applies-to")))
                 .setData(document.get("data"))
                 .build();
+    }
+
+    // Data stored before Hub checked the field types can hold other types: they decode as null.
+    public static String stringOrNull(Object value) {
+        return value instanceof String string ? string : null;
+    }
+
+    public static List<String> stringListOrNull(Object value) {
+        if (!(value instanceof List<?> list)) {
+            return null;
+        }
+        List<String> strings = new ArrayList<>(list.size());
+        for (Object item : list) {
+            if (!(item instanceof String string)) {
+                return null;
+            }
+            strings.add(string);
+        }
+        return strings;
     }
 
     public static class DecoratorBuilder {

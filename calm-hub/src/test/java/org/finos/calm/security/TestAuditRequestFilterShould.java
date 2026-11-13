@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -370,6 +371,70 @@ public class TestAuditRequestFilterShould {
         AuditLogEntry entry = captureRecordedEntry();
         assertThat(entry.getEntityId(), is("4"));
         assertThat(entry.getAction(), is(AuditAction.CREATE));
+    }
+
+    @Test
+    void record_the_successor_when_a_decorator_put_supersedes_the_decorator() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) DecoratorResource.class);
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        pathParams.putSingle("id", "4");
+        ContainerRequestContext requestContext = mockRequest("PUT", pathParams);
+        ContainerResponseContext responseContext =
+                mockResponse(201, "/api/calm/namespaces/finos/decorators/9");
+
+        filter.filter(requestContext, responseContext);
+
+        ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+        verify(auditService, times(2)).record(captor.capture());
+        AuditLogEntry update = captor.getAllValues().get(0);
+        AuditLogEntry create = captor.getAllValues().get(1);
+        assertThat(update.getAction(), is(AuditAction.UPDATE));
+        assertThat(update.getEntityId(), is("4"));
+        assertThat(create.getAction(), is(AuditAction.CREATE));
+        assertThat(create.getEntityId(), is("9"));
+        assertThat(create.getNamespace(), is("finos"));
+        assertThat(create.getEntityType(), is(AuditEntityType.DECORATOR));
+        assertThat(create.getOutcome(), is(AuditOutcome.SUCCESS));
+    }
+
+    @Test
+    void record_only_the_update_when_a_decorator_put_updates_in_place() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) DecoratorResource.class);
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        pathParams.putSingle("id", "4");
+
+        filter.filter(mockRequest("PUT", pathParams), mockResponse(200, null));
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getAction(), is(AuditAction.UPDATE));
+        assertThat(entry.getEntityId(), is("4"));
+    }
+
+    @Test
+    void record_only_the_update_when_a_decorator_put_returns_201_with_no_location() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) DecoratorResource.class);
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        pathParams.putSingle("id", "4");
+
+        filter.filter(mockRequest("PUT", pathParams), mockResponse(201, null));
+
+        assertThat(captureRecordedEntry().getEntityId(), is("4"));
+    }
+
+    @Test
+    void record_one_entry_for_a_201_put_of_another_entity_type() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) ArchitectureResource.class);
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        pathParams.putSingle("architectureId", "4");
+        pathParams.putSingle("version", "1.0.0");
+
+        filter.filter(mockRequest("PUT", pathParams), mockResponse(201, "/api/calm/namespaces/finos/architectures/4/versions/1.0.0"));
+
+        assertThat(captureRecordedEntry().getAction(), is(AuditAction.UPDATE));
     }
 
     // --- user-access GRANT/REVOKE ----------------------------------------------

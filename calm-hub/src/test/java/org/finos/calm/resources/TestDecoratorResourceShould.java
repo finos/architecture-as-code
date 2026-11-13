@@ -6,6 +6,9 @@ import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Decorator;
+import org.finos.calm.domain.DecoratorHistoryEntry;
+import org.finos.calm.domain.SchemaValidationLimits;
+import org.finos.calm.domain.exception.DecoratorKeyRefusedException;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
@@ -13,12 +16,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
@@ -507,6 +517,70 @@ public class TestDecoratorResourceShould {
         verify(decoratorStore, never()).getDecoratorValuesForNamespace(any(), any(), any());
     }
 
+    // ---- GET /api/calm/namespaces/{namespace}/decorators/{id}/history ----
+
+    @Test
+    void return_the_history_of_a_decorator() throws Exception {
+        Decorator current = new Decorator.DecoratorBuilder().setUniqueId("eval-2").setType("control-evaluation").build();
+        Decorator old = new Decorator.DecoratorBuilder().setUniqueId("eval-1").setType("control-evaluation").build();
+        when(decoratorStore.getDecoratorHistory("finos", 1)).thenReturn(List.of(
+                new DecoratorHistoryEntry(2, 1, null, current),
+                new DecoratorHistoryEntry(1, null, 2, old)));
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/decorators/1/history")
+                .then()
+                .statusCode(200)
+                .body("values.id", contains(2, 1))
+                .body("values[0].supersedes", equalTo(1))
+                .body("values[1].supersededBy", equalTo(2))
+                .body("values[1].decorator.uniqueId", equalTo("eval-1"));
+    }
+
+    @Test
+    void return_404_when_the_decorator_of_a_history_does_not_exist() throws Exception {
+        when(decoratorStore.getDecoratorHistory("finos", 9)).thenThrow(new DecoratorNotFoundException());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/decorators/9/history")
+                .then()
+                .statusCode(404)
+                .body(containsString("Decorator with ID 9 does not exist in namespace: finos"));
+    }
+
+    @Test
+    void return_404_when_the_namespace_of_a_history_does_not_exist() throws Exception {
+        when(decoratorStore.getDecoratorHistory("missing", 1)).thenThrow(new NamespaceNotFoundException());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/missing/decorators/1/history")
+                .then()
+                .statusCode(404)
+                .body(containsString("Invalid namespace provided: missing"));
+    }
+
+    @Test
+    void return_400_when_the_history_path_is_invalid() throws Exception {
+        given()
+                .when()
+                .get("/api/calm/namespaces/invalid@namespace/decorators/1/history")
+                .then()
+                .statusCode(400)
+                .body(containsString("namespace must match pattern"));
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/decorators/0/history")
+                .then()
+                .statusCode(400)
+                .body(containsString("ID must be a positive integer"));
+
+        verify(decoratorStore, never()).getDecoratorHistory(anyString(), anyInt());
+    }
+
     // ---- POST /api/calm/namespaces/{namespace}/decorators ----
 
     private static final String VALID_DECORATOR_JSON = """
@@ -515,8 +589,9 @@ public class TestDecoratorResourceShould {
                 "unique-id": "test-decorator-1",
                 "type": "deployment",
                 "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],
+                "target-type": ["architecture"],
                 "applies-to": ["web-service"],
-                "data": {"key": "value"}
+                "data": {"start-time": "2026-02-23T10:00:00Z", "status": "completed"}
             }
             """;
 
@@ -551,6 +626,22 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
+    void never_echo_the_text_of_a_parse_error() throws Exception {
+        when(decoratorStore.createDecorator(anyString(), anyString()))
+                .thenThrow(new JsonParseException("Unrecognized token '<script>alert(1)</script>'"));
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(VALID_DECORATOR_JSON)
+                .when()
+                .post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400)
+                .body(equalTo(CalmResourceErrorResponses.INVALID_DECORATOR_JSON))
+                .body(not(containsString("script")));
+    }
+
+    @Test
     void return_404_when_namespace_does_not_exist_for_create_decorator() throws Exception {
         when(decoratorStore.createDecorator(anyString(), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
@@ -575,6 +666,54 @@ public class TestDecoratorResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString("namespace must match pattern"));
+    }
+
+    @Test
+    void return_400_with_the_errors_when_a_decorator_does_not_match_a_known_schema() throws Exception {
+        assumeMetaSchemasBuilt();
+        String invalid = VALID_DECORATOR_JSON.replace("\"status\": \"completed\"", "\"status\": \"done\"");
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(invalid)
+                .when()
+                .post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Decorator does not match its $schema"))
+                .body("errors.location", hasItem("/data/status"));
+
+        verify(decoratorStore, never()).createDecorator(anyString(), anyString());
+    }
+
+    @Test
+    void accept_a_decorator_with_an_unknown_schema() throws Exception {
+        when(decoratorStore.createDecorator(anyString(), anyString())).thenReturn(2);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"$schema\": \"https://example.com/my.decorator.json\", \"type\": \"deployment\", \"data\": 1}")
+                .when()
+                .post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(201);
+    }
+
+    @Test
+    void return_400_with_the_errors_when_an_update_does_not_match_a_known_schema() throws Exception {
+        assumeMetaSchemasBuilt();
+        String invalid = VALID_DECORATOR_JSON.replace("\"target-type\": [\"architecture\"],", "");
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(invalid)
+                .when()
+                .put("/api/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(400)
+                .body("errors.size()", greaterThan(0));
+
+        verify(decoratorStore, never()).updateDecorator(anyString(), anyInt(), anyString());
     }
 
     // ---- PUT /api/calm/namespaces/{namespace}/decorators/{id} ----
@@ -627,6 +766,82 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
+    void return_400_with_a_plain_message_when_the_store_cannot_keep_a_key_on_create() throws Exception {
+        when(decoratorStore.createDecorator(anyString(), anyString())).thenThrow(DecoratorKeyRefusedException.nulCharacter());
+
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"type\": \"deployment\", \"data\": {}}")
+                .when()
+                .post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400)
+                .body(equalTo(DecoratorKeyRefusedException.nulCharacter().getMessage()));
+    }
+
+    @Test
+    void return_400_with_a_plain_message_when_the_store_cannot_keep_a_key_on_update() throws Exception {
+        doThrow(DecoratorKeyRefusedException.emptyKeyPart())
+                .when(decoratorStore).updateDecorator(anyString(), anyInt(), anyString());
+
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"type\": \"deployment\", \"data\": {}}")
+                .when()
+                .put("/api/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(400)
+                .body(equalTo(DecoratorKeyRefusedException.emptyKeyPart().getMessage()));
+    }
+
+    @Test
+    void return_413_when_a_created_decorator_is_over_the_size_limit() throws Exception {
+        given()
+                .contentType(ContentType.JSON)
+                .body(decoratorOfBytes(SchemaValidationLimits.MAX_DECORATOR_JSON_BYTES + 1))
+                .when()
+                .post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(413)
+                .body(equalTo("The decorator JSON is larger than 1048576 bytes"));
+
+        verify(decoratorStore, never()).createDecorator(anyString(), anyString());
+    }
+
+    @Test
+    void return_413_when_an_updated_decorator_is_over_the_size_limit() throws Exception {
+        given()
+                .contentType(ContentType.JSON)
+                .body(decoratorOfBytes(SchemaValidationLimits.MAX_DECORATOR_JSON_BYTES + 1))
+                .when()
+                .put("/api/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(413);
+
+        verify(decoratorStore, never()).getDecoratorById(anyString(), anyInt());
+        verify(decoratorStore, never()).updateDecorator(anyString(), anyInt(), anyString());
+    }
+
+    @Test
+    void accept_a_decorator_of_exactly_the_size_limit() throws Exception {
+        when(decoratorStore.createDecorator(anyString(), anyString())).thenReturn(1);
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(decoratorOfBytes(SchemaValidationLimits.MAX_DECORATOR_JSON_BYTES))
+                .when()
+                .post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(201);
+    }
+
+    private static String decoratorOfBytes(int bytes) {
+        String prefix = "{\"data\": \"";
+        String suffix = "\"}";
+        return prefix + "x".repeat(bytes - prefix.length() - suffix.length()) + suffix;
+    }
+
+    @Test
     void return_400_when_update_decorator_json_is_invalid() throws Exception {
         doThrow(new JsonParseException("Invalid JSON"))
                 .when(decoratorStore).updateDecorator(anyString(), anyInt(), anyString());
@@ -639,6 +854,48 @@ public class TestDecoratorResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString("Invalid decorator JSON"));
+    }
+
+    @Test
+    void return_400_when_a_created_decorator_has_a_type_that_is_not_a_string() throws Exception {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"type\": 5, \"data\": {}}")
+                .when()
+                .post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400)
+                .body(equalTo(CalmResourceErrorResponses.INVALID_DECORATOR_JSON));
+
+        verify(decoratorStore, never()).createDecorator(anyString(), anyString());
+    }
+
+    @Test
+    void return_400_when_a_created_decorator_has_a_unique_id_that_is_not_a_string() throws Exception {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"unique-id\": 7, \"type\": \"x\"}")
+                .when()
+                .post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400)
+                .body(equalTo(CalmResourceErrorResponses.INVALID_DECORATOR_JSON));
+
+        verify(decoratorStore, never()).createDecorator(anyString(), anyString());
+    }
+
+    @Test
+    void return_400_when_an_updated_decorator_has_a_target_that_is_not_an_array_of_strings() throws Exception {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"type\": \"threat-model\", \"target\": \"t\"}")
+                .when()
+                .put("/api/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(400)
+                .body(equalTo(CalmResourceErrorResponses.INVALID_DECORATOR_JSON));
+
+        verify(decoratorStore, never()).updateDecorator(anyString(), anyInt(), anyString());
     }
 
     @Test
@@ -681,19 +938,21 @@ public class TestDecoratorResourceShould {
 
     @Test
     void return_204_when_decorator_deleted_successfully() throws Exception {
+        when(decoratorStore.getDecoratorHistory("finos", 1)).thenReturn(List.of(
+                new DecoratorHistoryEntry(1, null, null, new Decorator.DecoratorBuilder().setType("deployment").build())));
+
         given()
                 .when()
                 .delete("/api/calm/namespaces/finos/decorators/1")
                 .then()
                 .statusCode(204);
 
-        verify(decoratorStore, times(1)).deleteDecorator("finos", 1);
+        verify(decoratorStore, times(1)).deleteCurrentDecoratorHistory("finos", 1);
     }
 
     @Test
     void return_404_when_decorator_not_found_for_delete() throws Exception {
-        doThrow(new DecoratorNotFoundException())
-                .when(decoratorStore).deleteDecorator(anyString(), anyInt());
+        when(decoratorStore.getDecoratorHistory(anyString(), anyInt())).thenThrow(new DecoratorNotFoundException());
 
         given()
                 .when()
@@ -705,8 +964,7 @@ public class TestDecoratorResourceShould {
 
     @Test
     void return_404_when_namespace_does_not_exist_for_delete_decorator() throws Exception {
-        doThrow(new NamespaceNotFoundException())
-                .when(decoratorStore).deleteDecorator(anyString(), anyInt());
+        when(decoratorStore.getDecoratorHistory(anyString(), anyInt())).thenThrow(new NamespaceNotFoundException());
 
         given()
                 .when()
@@ -733,5 +991,11 @@ public class TestDecoratorResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString("ID must be a positive integer"));
+    }
+
+    // -Pserver-only and -Dskip.npm do not copy the meta-schemas that the decorator Standards reference.
+    private static void assumeMetaSchemasBuilt() {
+        assumeTrue(Files.exists(Path.of("target", "classes", "META-INF", "calm-schemas", "1.3", "meta", "decorators.json")),
+                "run a full build (without -Pserver-only or -Dskip.npm) first");
     }
 }

@@ -182,6 +182,7 @@ This is how the published `latest-read-only-static` and `latest-read-only-native
 | `calm.standalone.data-directory` | `CALM_STANDALONE_DATA_DIRECTORY` | `~/.calm-hub/data` | NitriteDB file location |
 | `calm.standalone.database-name` | `CALM_STANDALONE_DATABASE_NAME` | `calmSchemas` | NitriteDB database filename |
 | `calm.mcp.enabled` | `CALM_MCP_ENABLED` | `false` | Enable MCP tool invocations |
+| `calm.decorators.reserved."<type>".writers` | (use the property) | (none) | Principals that may write decorators of a reserved type. See [Decorator Write Rules](mcp-and-api.md#decorator-write-rules) |
 | `calm.ui.environment.name` | `CALM_UI_ENVIRONMENT_NAME` | (none) | Environment pill text in the UI header. No pill if not set |
 | `calm.ui.environment.colour` | `CALM_UI_ENVIRONMENT_COLOUR` | `warning` | `info`, `success`, `warning`, `error`, `neutral` or `#rrggbb` |
 | `calm.ui.identity.enabled` | `CALM_UI_IDENTITY_ENABLED` | `false` | Show the signed-in principal name in the UI menu |
