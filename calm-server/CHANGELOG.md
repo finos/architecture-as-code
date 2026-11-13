@@ -11,11 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * resolve CURIEs in control requirement-url during validate ([#3592](https://github.com/finos/architecture-as-code/issues/3592)) ([9716348](https://github.com/finos/architecture-as-code/commit/9716348d6fb8c4b868ad30ed689aceab7e179c0f))
 
-### 🐛 Bug Fixes
-
-* never read a local file that a request references ([0626cea](https://github.com/finos/architecture-as-code/commit/0626cea3235928ff70da740ed87e350fe15a11d1))
-* resolve Spectral $ref through the document loader ([0626cea](https://github.com/finos/architecture-as-code/commit/0626cea3235928ff70da740ed87e350fe15a11d1))
-
 ## [0.8.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.7.0...calm-server-v0.8.0) (2026-11-10)
 
 ### 🚀 Features
