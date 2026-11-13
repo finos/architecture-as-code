@@ -3,125 +3,122 @@ package org.finos.calm.store.mongo;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
-import org.finos.calm.store.util.MongoUpsertPush;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
  * MongoDB implementation of DecoratorStore.
+ *
+ * <p>One document per decorator. {@code type} and {@code target} are copied to the top level
+ * so that the {@code (namespace, target, type)} index answers the filtered reads. See
+ * {@code calm-hub/decisions/0019-decorator-storage-one-document-per-decorator.md}.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoDecoratorStore.class)
 public class MongoDecoratorStore implements DecoratorStore {
 
+    public static final String COLLECTION_NAME = "decorators";
+    public static final String NAMESPACE_FIELD = "namespace";
+    public static final String DECORATOR_ID_FIELD = "decoratorId";
+    public static final String TYPE_FIELD = "type";
+    public static final String TARGET_FIELD = "target";
+    public static final String DECORATOR_FIELD = "decorator";
+
     private static final Logger LOG = LoggerFactory.getLogger(MongoDecoratorStore.class);
-    private static final String DECORATOR_ID_FIELD = "decoratorId";
+
     private final MongoCollection<Document> decoratorCollection;
     private final MongoNamespaceStore namespaceStore;
     private final MongoCounterStore counterStore;
 
     @Inject
     public MongoDecoratorStore(MongoDatabase database, MongoNamespaceStore namespaceStore, MongoCounterStore counterStore) {
-        this.decoratorCollection = database.getCollection("decorators");
+        this.decoratorCollection = database.getCollection(COLLECTION_NAME);
         this.namespaceStore = namespaceStore;
         this.counterStore = counterStore;
+    }
+
+    /**
+     * Builds the stored document for a decorator. The migration step uses it too, so that
+     * migrated and new decorators have the same shape.
+     */
+    public static Document toStoredDocument(String namespace, int decoratorId, Document decorator) {
+        return new Document(NAMESPACE_FIELD, namespace)
+                .append(DECORATOR_ID_FIELD, decoratorId)
+                .append(TYPE_FIELD, decorator.get(TYPE_FIELD))
+                .append(TARGET_FIELD, decorator.get(TARGET_FIELD))
+                .append(DECORATOR_FIELD, decorator);
     }
 
     @Override
     public List<Integer> getDecoratorsForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        Document namespaceDocument = fetchNamespaceDocument(namespace);
-        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
-            LOG.debug("No decorators found for namespace '{}'", namespace);
-            return List.of();
-        }
+        List<Integer> ids = decoratorCollection.find(filterFor(namespace, target, type))
+                .projection(Projections.include(DECORATOR_ID_FIELD))
+                .sort(Sorts.ascending(DECORATOR_ID_FIELD))
+                .into(new ArrayList<>())
+                .stream()
+                .map(doc -> doc.getInteger(DECORATOR_ID_FIELD))
+                .toList();
 
-        List<Document> decorators = extractDecorators(namespaceDocument, namespace);
-        if (decorators.isEmpty()) {
-            return List.of();
-        }
-
-        List<Integer> decoratorIds = filterDecorators(decorators, target, type);
-
-        LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})", 
-                decoratorIds.size(), namespace, target, type);
-        return decoratorIds;
+        LOG.debug("Retrieved {} decorators for namespace '{}' with filters (target: {}, type: {})",
+                ids.size(), namespace, target, type);
+        return ids;
     }
 
     @Override
     public List<Decorator> getDecoratorValuesForNamespace(String namespace, String target, String type) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        Document namespaceDocument = fetchNamespaceDocument(namespace);
-        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
-            LOG.debug("No decorators found for namespace '{}'", namespace);
-            return List.of();
-        }
-
-        List<Document> decorators = extractDecorators(namespaceDocument, namespace);
-        if (decorators.isEmpty()) {
-            return List.of();
-        }
-
-        List<Decorator> decoratorValues = filterDecoratorsToValues(decorators, target, type);
+        List<Decorator> decorators = decoratorCollection.find(filterFor(namespace, target, type))
+                .sort(Sorts.ascending(DECORATOR_ID_FIELD))
+                .into(new ArrayList<>())
+                .stream()
+                .map(doc -> doc.get(DECORATOR_FIELD, Document.class))
+                .filter(Objects::nonNull)
+                .map(Decorator::fromDocument)
+                .toList();
 
         LOG.debug("Retrieved {} decorator values for namespace '{}' with filters (target: {}, type: {})",
-                decoratorValues.size(), namespace, target, type);
-        return decoratorValues;
+                decorators.size(), namespace, target, type);
+        return decorators;
     }
 
     @Override
     public Optional<Decorator> getDecoratorById(String namespace, int id) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        Document namespaceDocument = fetchNamespaceDocument(namespace);
-        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
+        Document stored = decoratorCollection.find(byId(namespace, id)).first();
+        if (stored == null) {
             return Optional.empty();
         }
-
-        List<Document> decorators = extractDecorators(namespaceDocument, namespace);
-        if (decorators.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return decorators.stream()
-                .filter(decoratorDoc -> Integer.valueOf(id).equals(decoratorDoc.getInteger("decoratorId")))
-                .map(decoratorDoc -> decoratorDoc.get("decorator", Document.class))
-                .filter(Objects::nonNull)
-                .map(Decorator::fromDocument)
-                .findFirst();
+        return Optional.ofNullable(stored.get(DECORATOR_FIELD, Document.class)).map(Decorator::fromDocument);
     }
 
     @Override
     public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        Document parsedDecorator = Document.parse(decoratorJson);
         int id = counterStore.getNextDecoratorSequenceValue();
-        Document decoratorDocument = new Document("decoratorId", id)
-                .append("decorator", parsedDecorator);
-
-        MongoUpsertPush.pushWithDuplicateRetry(decoratorCollection,
-                Filters.eq("namespace", namespace),
-                "decorators", decoratorDocument);
+        decoratorCollection.insertOne(toStoredDocument(namespace, id, Document.parse(decoratorJson)));
 
         LOG.debug("Created decorator with ID {} in namespace '{}'", id, namespace);
         return id;
@@ -131,14 +128,10 @@ public class MongoDecoratorStore implements DecoratorStore {
     public void updateDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        Document parsedDecorator = Document.parse(decoratorJson);
-
-        long modified = decoratorCollection.updateOne(
-                Filters.and(Filters.eq("namespace", namespace), Filters.eq("decorators.decoratorId", id)),
-                Updates.set("decorators.$.decorator", parsedDecorator)
-        ).getModifiedCount();
-
-        if (modified == 0) {
+        // Matched, not modified: an update with identical content is still a success.
+        long matched = decoratorCollection.replaceOne(byId(namespace, id),
+                toStoredDocument(namespace, id, Document.parse(decoratorJson))).getMatchedCount();
+        if (matched == 0) {
             throw new DecoratorNotFoundException();
         }
 
@@ -149,89 +142,27 @@ public class MongoDecoratorStore implements DecoratorStore {
     public void deleteDecorator(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        long modified = decoratorCollection.updateOne(
-                Filters.eq("namespace", namespace),
-                Updates.pull("decorators", Filters.eq(DECORATOR_ID_FIELD, id))
-        ).getModifiedCount();
-
-        if (modified == 0) {
+        if (decoratorCollection.deleteOne(byId(namespace, id)).getDeletedCount() == 0) {
             throw new DecoratorNotFoundException();
         }
 
         LOG.debug("Deleted decorator with ID {} in namespace '{}'", id, namespace);
     }
 
-    /**
-     * Fetches the namespace document from MongoDB
-     */
-    private Document fetchNamespaceDocument(String namespace) {
-        return decoratorCollection.find(Filters.eq("namespace", namespace)).first();
+    private static Bson byId(String namespace, int id) {
+        return Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(DECORATOR_ID_FIELD, id));
     }
 
-    /**
-     * Extracts the list of decorators from the namespace document
-     */
-    private List<Document> extractDecorators(Document namespaceDocument, String namespace) {
-        List<Document> decorators = namespaceDocument.getList("decorators", Document.class);
-        if (decorators == null || decorators.isEmpty()) {
-            LOG.debug("Decorators list is empty for namespace '{}'", namespace);
-            return List.of();
+    /** {@code target} is an array, so {@code eq} matches when any element equals the value. */
+    private static Bson filterFor(String namespace, String target, String type) {
+        List<Bson> filters = new ArrayList<>();
+        filters.add(Filters.eq(NAMESPACE_FIELD, namespace));
+        if (target != null && !target.isBlank()) {
+            filters.add(Filters.eq(TARGET_FIELD, target));
         }
-        return decorators;
-    }
-
-    private Stream<Document> streamWithValidId(List<Document> decorators) {
-        return decorators.stream()
-                .filter(doc -> doc.getInteger(DECORATOR_ID_FIELD) != null);
-    }
-
-    private List<Integer> filterDecorators(List<Document> decorators, String target, String type) {
-        return streamWithValidId(decorators)
-                .filter(doc -> {
-                    Document decorator = doc.get("decorator", Document.class);
-                    return decorator == null || matchesFilters(decorator, target, type);
-                })
-                .map(doc -> doc.getInteger(DECORATOR_ID_FIELD))
-                .collect(Collectors.toList());
-    }
-
-    private List<Decorator> filterDecoratorsToValues(List<Document> decorators, String target, String type) {
-        return streamWithValidId(decorators)
-                .map(doc -> doc.get("decorator", Document.class))
-                .filter(Objects::nonNull)
-                .filter(decorator -> matchesFilters(decorator, target, type))
-                .map(Decorator::fromDocument)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Checks if a decorator matches the provided filters
-     */
-    private boolean matchesFilters(Document decorator, String target, String type) {
-        return matchesTypeFilter(decorator, type) && matchesTargetFilter(decorator, target);
-    }
-
-    /**
-     * Checks if the decorator matches the type filter (if provided)
-     */
-    private boolean matchesTypeFilter(Document decorator, String type) {
-        if (type == null || type.isEmpty()) {
-            return true;
+        if (type != null && !type.isEmpty()) {
+            filters.add(Filters.eq(TYPE_FIELD, type));
         }
-        
-        String decoratorType = decorator.getString("type");
-        return decoratorType != null && decoratorType.equals(type);
-    }
-
-    /**
-     * Checks if the decorator matches the target filter (if provided)
-     */
-    private boolean matchesTargetFilter(Document decorator, String target) {
-        if (target == null || target.isBlank()) {
-            return true;
-        }
-        
-        List<String> targets = decorator.getList("target", String.class);
-        return targets != null && targets.contains(target);
+        return Filters.and(filters);
     }
 }

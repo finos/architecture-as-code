@@ -230,7 +230,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 16;
+const LATEST_SCHEMA_VERSION = 17;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -251,9 +251,8 @@ if (isEmptyDatabase) {
     // (namespace) — which is what allows more than one resource of a type per namespace at
     // all — plus a unique (namespace, <type>Id, version) on its sibling versions collection.
     // Control's configurations are a second, independently versioned axis under a synthetic
-    // (domain::controlId) namespace — see ADR 0007. Decorator alone keeps the
-    // one-document-per-namespace index (ADR 0004 — never versioned, no growth problem this
-    // redesign exists to solve). Layouts and pattern_layouts are a fourth, distinct shape:
+    // (domain::controlId) namespace — see ADR 0007. Decorator is not versioned: one
+    // document per decorator, no versions collection (ADR 0019). Layouts and pattern_layouts are a fourth, distinct shape:
     // flat and non-versioned, one document per (namespace, architectureId) / (namespace,
     // patternId), with no sibling versions collection and no version axis at all — see
     // MongoLayoutIndexStep / MongoPatternLayoutIndexStep. Do not fold either into the
@@ -294,11 +293,10 @@ if (isEmptyDatabase) {
     db.controlConfigurations.createIndex({ namespace: 1, configurationId: 1 }, unique);
     db.controlConfigurationVersions.createIndex({ namespace: 1, configurationId: 1, version: 1 }, unique);
 
-    // Still one document per namespace — Decorator is not versioned at all, so this redesign
-    // does not touch it (ADR 0004).
-    for (const collection of ["decorators"]) {
-        db[collection].createIndex({ namespace: 1 }, unique);
-    }
+    // Decorator (ADR 0019): one document per decorator, not versioned. The second index answers
+    // "decorators for this target" — target is an array, so it is a multikey index.
+    db.decorators.createIndex({ namespace: 1, decoratorId: 1 }, unique);
+    db.decorators.createIndex({ namespace: 1, target: 1, type: 1 });
 
     // Two partial indexes rather than one compound: namespace-scoped and domain-scoped
     // grant documents share no discriminating field.
@@ -6830,136 +6828,106 @@ if (isEmptyDatabase && db.adrs.countDocuments() === 0) {
 }
 
 logSection("Decorators");
+// One document per decorator (ADR 0019). `type` and `target` are copied to the top level for
+// the (namespace, target, type) index — decoratorDocument() does this, so each seed entry below
+// is only the decorator itself.
+const DEPLOYMENT_STANDARD = "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json";
+const FINOS_ARCHITECTURE_1 = "/calm/namespaces/finos/architectures/1/versions/1-0-0";
+const WORKSHOP_ARCHITECTURE_2 = "/calm/namespaces/workshop/architectures/2/versions/1-0-0";
+
+function decoratorDocument(namespace, decoratorId, decorator) {
+    return {
+        namespace: namespace,
+        decoratorId: NumberInt(decoratorId),
+        type: decorator.type,
+        target: decorator.target,
+        decorator: decorator
+    };
+}
+
 if (db.decorators.countDocuments() === 0) {
     db.decorators.insertMany([
-        {
-            namespace: "finos",
-            decorators: [
-                {
-                    decoratorId: NumberInt(1),
-                    decorator: {
-                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
-                        "unique-id": "finos-architecture-1-deployment",
-                        "type": "deployment",
-                        "target": [
-                            "/calm/namespaces/finos/architectures/1/versions/1-0-0"
-                        ],
-                        "target-type": [
-                            "architecture"
-                        ],
-                        "applies-to": [
-                            "example-node"
-                        ],
-                        "data": {
-                            "start-time": "2026-02-23T10:00:00Z",
-                            "end-time": "2026-02-23T10:05:30Z",
-                            "status": "completed",
-                            "observability": "https://grafana.example.com/d/finos-architecture-1",
-                            "deployment-url": "https://jenkins.example.com/job/finos-architecture/123/",
-                            "notes": "Production deployment of FINOS Architecture 1 with baseline configuration"
-                        }
-                    }
-                },
-                {
-                    decoratorId: NumberInt(2),
-                    decorator: {
-                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
-                        "unique-id": "finos-architecture-1-deployment-v2",
-                        "type": "deployment",
-                        "target": [
-                            "/calm/namespaces/finos/architectures/1/versions/1-0-0"
-                        ],
-                        "target-type": [
-                            "architecture"
-                        ],
-                        "applies-to": [
-                            "example-node"
-                        ],
-                        "data": {
-                            "start-time": "2026-03-04T15:00:00Z",
-                            "end-time": "2026-03-04T15:08:15Z",
-                            "status": "failed",
-                            "notes": "Second production deployment failed during canary rollout because of a configuration regression"
-                        }
-                    }
-                },
-                {
-                    decoratorId: NumberInt(3),
-                    decorator: {
-                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
-                        "unique-id": "finos-architecture-1-deployment-v3",
-                        "type": "deployment",
-                        "target": [
-                            "/calm/namespaces/finos/architectures/1/versions/1-0-0"
-                        ],
-                        "target-type": [
-                            "architecture"
-                        ],
-                        "applies-to": [
-                            "example-node"
-                        ],
-                        "data": {
-                            "start-time": "2026-03-10T11:20:00Z",
-                            "status": "in-progress",
-                            "helm-chart-version": "finos-architecture-service-2.4.1",
-                            "namespace": "finos-prod-core",
-                            "deployment-url": "https://argocd.example.com/applications/finos-architecture",
-                            "notes": "Third production deployment is currently rolling out with updated Helm chart values"
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            namespace: "workshop",
-            decorators: [
-                {
-                    decoratorId: NumberInt(1),
-                    decorator: {
-                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
-                        "unique-id": "workshop-conference-deployment",
-                        "type": "deployment",
-                        "target": [
-                            "/calm/namespaces/workshop/architectures/2/versions/1-0-0"
-                        ],
-                        "target-type": [
-                            "architecture"
-                        ],
-                        "applies-to": [
-                            "conference-website",
-                            "load-balancer"
-                        ],
-                        "data": {
-                            "start-time": "2026-03-01T14:30:00Z",
-                            "end-time": "2026-03-01T14:35:45Z",
-                            "status": "completed",
-                            "deployment-url": "https://vercel.com/workshop/deployments/abc123xyz",
-                            "notes": "Workshop conference system deployment via Vercel"
-                        }
-                    }
-                },
-                {
-                    decoratorId: NumberInt(2),
-                    decorator: {
-                        "unique-id": "workshop-conference-monitoring",
-                        "type": "observability",
-                        "target": [
-                            "/calm/namespaces/workshop/architectures/2/versions/1-0-0"
-                        ],
-                        "target-type": [
-                            "architecture"
-                        ],
-                        "applies-to": [
-                            "conference-website"
-                        ],
-                        "data": {
-                            "dashboard-url": "https://datadog.example.com/dashboard/workshop-conference",
-                            "notes": "Monitoring dashboard for workshop conference system"
-                        }
-                    }
-                }
-            ]
-        }
+
+        // ── finos ─────────────────────────────────────────────────────────────────
+
+        decoratorDocument("finos", 1, {
+            "$schema":     DEPLOYMENT_STANDARD,
+            "unique-id":   "finos-architecture-1-deployment",
+            "type":        "deployment",
+            "target":      [FINOS_ARCHITECTURE_1],
+            "target-type": ["architecture"],
+            "applies-to":  ["example-node"],
+            "data": {
+                "start-time":     "2026-02-23T10:00:00Z",
+                "end-time":       "2026-02-23T10:05:30Z",
+                "status":         "completed",
+                "observability":  "https://grafana.example.com/d/finos-architecture-1",
+                "deployment-url": "https://jenkins.example.com/job/finos-architecture/123/",
+                "notes":          "Production deployment of FINOS Architecture 1 with baseline configuration"
+            }
+        }),
+
+        decoratorDocument("finos", 2, {
+            "$schema":     DEPLOYMENT_STANDARD,
+            "unique-id":   "finos-architecture-1-deployment-v2",
+            "type":        "deployment",
+            "target":      [FINOS_ARCHITECTURE_1],
+            "target-type": ["architecture"],
+            "applies-to":  ["example-node"],
+            "data": {
+                "start-time": "2026-03-04T15:00:00Z",
+                "end-time":   "2026-03-04T15:08:15Z",
+                "status":     "failed",
+                "notes":      "Second production deployment failed during canary rollout because of a configuration regression"
+            }
+        }),
+
+        decoratorDocument("finos", 3, {
+            "$schema":     DEPLOYMENT_STANDARD,
+            "unique-id":   "finos-architecture-1-deployment-v3",
+            "type":        "deployment",
+            "target":      [FINOS_ARCHITECTURE_1],
+            "target-type": ["architecture"],
+            "applies-to":  ["example-node"],
+            "data": {
+                "start-time":         "2026-03-10T11:20:00Z",
+                "status":             "in-progress",
+                "helm-chart-version": "finos-architecture-service-2.4.1",
+                "namespace":          "finos-prod-core",
+                "deployment-url":     "https://argocd.example.com/applications/finos-architecture",
+                "notes":              "Third production deployment is currently rolling out with updated Helm chart values"
+            }
+        }),
+
+        // ── workshop ──────────────────────────────────────────────────────────────
+
+        decoratorDocument("workshop", 1, {
+            "$schema":     DEPLOYMENT_STANDARD,
+            "unique-id":   "workshop-conference-deployment",
+            "type":        "deployment",
+            "target":      [WORKSHOP_ARCHITECTURE_2],
+            "target-type": ["architecture"],
+            "applies-to":  ["conference-website", "load-balancer"],
+            "data": {
+                "start-time":     "2026-03-01T14:30:00Z",
+                "end-time":       "2026-03-01T14:35:45Z",
+                "status":         "completed",
+                "deployment-url": "https://vercel.com/workshop/deployments/abc123xyz",
+                "notes":          "Workshop conference system deployment via Vercel"
+            }
+        }),
+
+        decoratorDocument("workshop", 2, {
+            "unique-id":   "workshop-conference-monitoring",
+            "type":        "observability",
+            "target":      [WORKSHOP_ARCHITECTURE_2],
+            "target-type": ["architecture"],
+            "applies-to":  ["conference-website"],
+            "data": {
+                "dashboard-url": "https://datadog.example.com/dashboard/workshop-conference",
+                "notes":         "Monitoring dashboard for workshop conference system"
+            }
+        })
     ]);
     logSuccess("Initialized decorators for finos and workshop namespaces");
 } else {

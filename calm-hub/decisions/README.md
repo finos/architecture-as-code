@@ -20,7 +20,7 @@ assuming anything here reflects current behaviour.
 | [0001](0001-versioned-artefact-storage.md) | Versioned artefact storage redesign | Implemented |
 | [0002](0002-version-key-encoding.md) | Version field encoding — dots, not dashes | Implemented |
 | [0003](0003-shared-version-store-helper.md) | Shared header/version store helper | Implemented |
-| [0004](0004-defer-control-and-decorator-storage.md) | Defer Control and Decorator storage redesign | Accepted — fulfilled for Control by 0007; Decorator still deferred |
+| [0004](0004-defer-control-and-decorator-storage.md) | Defer Control and Decorator storage redesign | Accepted — fulfilled for Control by 0007; Decorator proposed in 0019 |
 | [0005](0005-layout-is-hub-internal-not-a-calm-schema.md) | Layout is a Hub-internal shape, not a CALM schema | Implemented |
 | [0006](0006-denormalize-adr-title-onto-header.md) | Denormalize ADR title onto the header | Implemented |
 | [0007](0007-control-storage-header-version-split.md) | Control storage — header/version split via two composed helper instances | Implemented |
@@ -32,3 +32,4 @@ assuming anything here reflects current behaviour.
 | [0013](0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md) | Extension UI is tiered, with Hub-rendered blocks by default | Proposed |
 | [0014](0014-extension-commands-in-the-cli-and-mcp.md) | Extension commands in the CLI and MCP | Proposed |
 | [0018](0018-personal-namespaces.md) | Personal namespaces | Proposed |
+| [0019](0019-decorator-storage-one-document-per-decorator.md) | Decorator storage — one document per decorator | Proposed |
