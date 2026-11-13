@@ -1,9 +1,10 @@
 # ADR 0019: Decorator storage — one document per decorator
 
-**Status**: Proposed. Implemented for MongoDB in a draft PR. NitriteDB is not changed yet.
+**Status**: Proposed. Implemented for MongoDB and NitriteDB in a draft PR.
 
 ## Context
 
+[#3639](https://github.com/finos/architecture-as-code/issues/3639) and
 [#3696](https://github.com/finos/architecture-as-code/issues/3696). All decorators of a
 namespace are in one document, as an array. Each read loads the full array and filters it in
 Java, also `getDecoratorById`. A request for one architecture's decorators costs O(N·T) and
@@ -39,4 +40,6 @@ The REST API does not change.
 - Entries without an integer ID or a `decorator` object were never returned by the API. The
   step keeps them in `decoratorsUnmigrated` and does not delete them.
 - `init-mongo.js` seeds the new shape and pins schema version 17.
-- NitriteDB still uses the old shape. It needs its own step and store change.
+- `NitriteDecoratorSplitStep` does the same split for NitriteDB, with the same rules, so the
+  two stores keep the same shape. Nitrite has no indexes here, so it filters by target in memory.
+  Read-only images are seeded at build time, so they get the new shape when they are rebuilt.

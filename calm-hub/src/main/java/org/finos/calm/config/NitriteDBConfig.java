@@ -121,8 +121,8 @@ public class NitriteDBConfig {
         db.getCollection("timelineVersions");
         db.getCollection("adrs");
         db.getCollection("adrVersions");
-        // decorators keeps the one-document-per-namespace shape (ADR 0004), so it has no
-        // sibling versions collection.
+        // One document per decorator (ADR 0019). Decorators are not versioned, so there is
+        // no sibling versions collection.
         db.getCollection("decorators");
         db.getCollection("namespaces");
         db.getCollection("domains");
