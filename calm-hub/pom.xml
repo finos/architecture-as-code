@@ -473,6 +473,10 @@
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
+            <properties>
+                <!-- The MongoDB image of the integration suite (EndToEndResource), for example -Dcalm.it.mongo-image=mongo:8. -->
+                <calm.it.mongo-image>mongo:5.0</calm.it.mongo-image>
+            </properties>
             <dependencies>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
@@ -540,6 +544,9 @@
                                  CI job's own timeout kills it with no stack trace. This forces
                                  failsafe to thread-dump and kill the fork after 5 minutes instead. -->
                             <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>
+                            <systemPropertyVariables>
+                                <calm.it.mongo-image>${calm.it.mongo-image}</calm.it.mongo-image>
+                            </systemPropertyVariables>
                         </configuration>
                     </plugin>
                 </plugins>

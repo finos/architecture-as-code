@@ -46,7 +46,7 @@ CALM Hub is published as four container image variants, each combining a **JVM r
 
 | Mode | Backend | External dependency | Mutating writes |
 |:-----|:--------|:-------------------|:----------------|
-| **MongoDB** (default) | External MongoDB 4.4+ | Yes — `QUARKUS_MONGODB_CONNECTION_STRING` | ✅ Yes |
+| **MongoDB** (default) | External MongoDB 5.0+ | Yes — `QUARKUS_MONGODB_CONNECTION_STRING` | ✅ Yes |
 | **Standalone** (NitriteDB) | Embedded file-based DB | No | ✅ Yes (file persisted at `CALM_STANDALONE_DATA_DIRECTORY`) |
 | **Read-only** | Pre-seeded NitriteDB | No | ❌ No — HTTP 405 for POST/PUT/DELETE/PATCH |
 | **GitHub** (`calm.database.mode=github`) | Cloned GitHub repositories | Yes — GitHub API | ❌ No — read-only from Git |
