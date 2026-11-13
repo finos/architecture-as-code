@@ -4,6 +4,7 @@ import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 
+import java.util.Collection;
 import java.util.List;
 
 
@@ -32,12 +33,43 @@ public interface UserAccessStore {
 
     /**
      * Retrieves all grants applicable to a user: their own grants plus any {@code *} (public) grants.
+     * Group grants are excluded.
      * Used by the permission checker so both are resolved in a single store round-trip.
      *
      * @param username the authenticated user's name.
      * @return a list of UserAccess details (may be empty, never throws UserAccessNotFoundException).
      */
     List<UserAccess> getGrantsForUser(String username);
+
+    /**
+     * Retrieves the group grants on any of the given namespaces.
+     *
+     * @param namespaces the namespaces to match, e.g. a namespace and its ancestors.
+     * @return the group grants (empty if none exist, or if the store does not support group grants).
+     */
+    default List<UserAccess> getGroupGrantsForNamespaces(Collection<String> namespaces) {
+        return List.of();
+    }
+
+    /**
+     * Retrieves the group grants on a domain.
+     *
+     * @param domain the domain name.
+     * @return the group grants (empty if none exist, or if the store does not support group grants).
+     */
+    default List<UserAccess> getGroupGrantsForDomain(String domain) {
+        return List.of();
+    }
+
+    /**
+     * Retrieves every group grant, for callers that resolve access across all namespaces
+     * and domains at once, such as search.
+     *
+     * @return the group grants (empty if none exist, or if the store does not support group grants).
+     */
+    default List<UserAccess> getAllGroupGrants() {
+        return List.of();
+    }
 
     /**
      * Retrieves a list of all UserAccess details associated to a namespace.

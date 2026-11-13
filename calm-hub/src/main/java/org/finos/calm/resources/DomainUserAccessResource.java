@@ -62,6 +62,7 @@ public class DomainUserAccessResource {
         UserAccess userAccess = new UserAccess.UserAccessBuilder()
                 .setDomain(domain)
                 .setUsername(request.getUsername())
+                .setSubjectType(request.getSubjectType())
                 .setPermission(request.getPermission())
                 .build();
         userAccess.setCreationDateTime(LocalDateTime.now());

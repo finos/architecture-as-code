@@ -23,11 +23,17 @@ public class UserAccess {
         admin
     }
 
+    public enum SubjectType {
+        user,
+        group
+    }
+
     private @Pattern(regexp = USERNAME_REGEX, message = USERNAME_MESSAGE) @NotNull String username;
     private @NotNull Permission permission;
     private @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace;
     private @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE) String domain;
     private int userAccessId;
+    private SubjectType subjectType = SubjectType.user;
 
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     @JsonSerialize(using = LocalDateTimeSerializer.class)
@@ -85,6 +91,14 @@ public class UserAccess {
         return updateDateTime;
     }
 
+    public SubjectType getSubjectType() {
+        return subjectType;
+    }
+
+    public void setSubjectType(SubjectType subjectType) {
+        this.subjectType = subjectType == null ? SubjectType.user : subjectType;
+    }
+
     public void setUsername(String username) {
         this.username = username;
     }
@@ -107,6 +121,7 @@ public class UserAccess {
         if (o == null || getClass() != o.getClass()) return false;
         UserAccess that = (UserAccess) o;
         if (userAccessId != that.userAccessId) return false;
+        if (!Objects.equals(subjectType, that.subjectType)) return false;
         if (!Objects.equals(username, that.username)) return false;
         if (!Objects.equals(permission, that.permission)) return false;
         if (!Objects.equals(namespace, that.namespace)) return false;
@@ -123,13 +138,14 @@ public class UserAccess {
 
     @Override
     public int hashCode() {
-        return Objects.hash(username, permission, namespace, domain, userAccessId);
+        return Objects.hash(username, subjectType, permission, namespace, domain, userAccessId);
     }
 
     @Override
     public String toString() {
         return "UserAccess{" +
                 "username='" + username + '\'' +
+                ", subjectType='" + subjectType + '\'' +
                 ", permission='" + permission + '\'' +
                 ", namespace='" + namespace + '\'' +
                 ", domain='" + domain + '\'' +
@@ -144,6 +160,12 @@ public class UserAccess {
         private String namespace;
         private String domain;
         private int userAccessId;
+        private SubjectType subjectType = SubjectType.user;
+
+        public UserAccessBuilder setSubjectType(SubjectType subjectType) {
+            this.subjectType = subjectType;
+            return this;
+        }
 
         public UserAccessBuilder setUsername(String username) {
             this.username = username;
@@ -173,6 +195,7 @@ public class UserAccess {
         public UserAccess build() {
             UserAccess ua = new UserAccess(username, permission, namespace, userAccessId);
             ua.domain = this.domain;
+            ua.setSubjectType(this.subjectType);
             return ua;
         }
     }

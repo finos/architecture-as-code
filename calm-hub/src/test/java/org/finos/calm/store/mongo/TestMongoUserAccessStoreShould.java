@@ -19,12 +19,14 @@ import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.bson.conversions.Bson;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -60,7 +62,7 @@ public class TestMongoUserAccessStoreShould {
         DocumentMongoCursor mockMongoCursor = mock(DocumentMongoCursor.class);
         when(mockMongoCursor.hasNext()).thenReturn(false);
         when(findIterable.iterator()).thenReturn(mockMongoCursor);
-        when(userAccessCollection.find(Filters.eq("username", "test")))
+        when(userAccessCollection.find(Filters.and(Filters.eq("username", "test"), Filters.ne("subjectType", "group"))))
                 .thenReturn(findIterable);
 
         assertThrows(UserAccessNotFoundException.class,
@@ -85,7 +87,8 @@ public class TestMongoUserAccessStoreShould {
         when(cursor.next()).thenReturn(doc);
         when(findIterable.iterator()).thenReturn(cursor);
 
-        when(userAccessCollection.find(Filters.eq("username", username))).thenReturn(findIterable);
+        when(userAccessCollection.find(Filters.and(Filters.eq("username", username), Filters.ne("subjectType", "group"))))
+                .thenReturn(findIterable);
 
         List<UserAccess> actual = mongoUserAccessStore.getUserAccessForUsername(username);
         assertThat(actual, hasSize(1));
@@ -606,5 +609,209 @@ public class TestMongoUserAccessStoreShould {
     }
 
     private interface DocumentMongoCursor extends MongoCursor<Document> {
+    }
+
+    @Test
+    void exclude_group_grants_from_get_grants_for_user() {
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(false);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(Filters.and(
+                Filters.in("username", "alice", "*"),
+                Filters.ne("subjectType", "group")))).thenReturn(findIterable);
+
+        assertThat(mongoUserAccessStore.getGrantsForUser("alice"), hasSize(0));
+    }
+
+    @Test
+    void write_the_subject_type_when_creating_a_grant() throws NamespaceNotFoundException {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(counterStore.getNextUserAccessSequenceValue()).thenReturn(101, 102);
+
+        UserAccess group = new UserAccess.UserAccessBuilder()
+                .setNamespace("finos")
+                .setUsername("architects")
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setPermission(Permission.write)
+                .build();
+        UserAccess domainUser = new UserAccess.UserAccessBuilder()
+                .setDomain("security")
+                .setUsername("alice")
+                .setPermission(Permission.read)
+                .build();
+
+        UserAccess createdGroup = mongoUserAccessStore.createUserAccessForNamespace(group);
+        UserAccess createdUser = mongoUserAccessStore.createUserAccessForDomain(domainUser);
+
+        ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
+        verify(userAccessCollection, times(2)).insertOne(inserted.capture());
+        assertThat(inserted.getAllValues().get(0).getString("subjectType"), is("group"));
+        assertThat(inserted.getAllValues().get(1).getString("subjectType"), is("user"));
+        assertThat(createdGroup.getSubjectType(), is(UserAccess.SubjectType.group));
+        assertThat(createdUser.getSubjectType(), is(UserAccess.SubjectType.user));
+    }
+
+    @Test
+    void read_a_missing_subject_type_as_user_and_a_stored_one_as_given() throws Exception {
+        Document legacyDoc = new Document("username", "alice")
+                .append("namespace", "finos")
+                .append("permission", Permission.read.name())
+                .append("userAccessId", 1);
+        Document groupDoc = new Document("username", "architects")
+                .append("subjectType", "group")
+                .append("namespace", "finos")
+                .append("permission", Permission.write.name())
+                .append("userAccessId", 2);
+
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, true, false);
+        when(cursor.next()).thenReturn(legacyDoc, groupDoc);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(Filters.eq("namespace", "finos"))).thenReturn(findIterable);
+        when(namespaceStore.namespaceExists("finos")).thenReturn(true);
+
+        List<UserAccess> result = mongoUserAccessStore.getUserAccessForNamespace("finos");
+
+        assertThat(result.stream().map(UserAccess::getSubjectType).toList(),
+                contains(UserAccess.SubjectType.user, UserAccess.SubjectType.group));
+    }
+
+    @Test
+    void return_group_grants_for_namespaces() {
+        Document groupDoc = new Document("username", "architects")
+                .append("subjectType", "group")
+                .append("namespace", "org")
+                .append("permission", Permission.read.name())
+                .append("userAccessId", 7);
+
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, false);
+        when(cursor.next()).thenReturn(groupDoc);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(Filters.and(
+                Filters.eq("subjectType", "group"),
+                Filters.in("namespace", List.of("org", "org.ab"))))).thenReturn(findIterable);
+
+        List<UserAccess> result = mongoUserAccessStore.getGroupGrantsForNamespaces(List.of("org", "org.ab"));
+
+        assertThat(result, hasSize(1));
+        assertThat(result.getFirst().getUsername(), is("architects"));
+        assertThat(result.getFirst().getSubjectType(), is(UserAccess.SubjectType.group));
+    }
+
+    @Test
+    void return_group_grants_for_domain() {
+        Document groupDoc = new Document("username", "security-team")
+                .append("subjectType", "group")
+                .append("domain", "security")
+                .append("permission", Permission.admin.name())
+                .append("userAccessId", 8);
+
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, false);
+        when(cursor.next()).thenReturn(groupDoc);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(Filters.and(
+                Filters.eq("subjectType", "group"),
+                Filters.eq("domain", "security")))).thenReturn(findIterable);
+
+        List<UserAccess> result = mongoUserAccessStore.getGroupGrantsForDomain("security");
+
+        assertThat(result, hasSize(1));
+        assertThat(result.getFirst().getDomain(), is("security"));
+        assertThat(result.getFirst().getSubjectType(), is(UserAccess.SubjectType.group));
+    }
+
+    @Test
+    void return_all_group_grants() {
+        Document namespaceGroup = new Document("username", "architects")
+                .append("subjectType", "group")
+                .append("namespace", "org")
+                .append("permission", Permission.read.name())
+                .append("userAccessId", 7);
+        Document domainGroup = new Document("username", "security-team")
+                .append("subjectType", "group")
+                .append("domain", "security")
+                .append("permission", Permission.read.name())
+                .append("userAccessId", 8);
+
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, true, false);
+        when(cursor.next()).thenReturn(namespaceGroup, domainGroup);
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(userAccessCollection.find(Filters.eq("subjectType", "group"))).thenReturn(findIterable);
+
+        List<UserAccess> result = mongoUserAccessStore.getAllGroupGrants();
+
+        assertThat(result.stream().map(UserAccess::getUsername).toList(),
+                contains("architects", "security-team"));
+    }
+
+    @Test
+    void match_the_subject_type_when_looking_up_a_concurrently_created_group_grant() throws NamespaceNotFoundException {
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+        when(counterStore.getNextUserAccessSequenceValue()).thenReturn(101);
+        when(userAccessCollection.insertOne(ArgumentMatchers.any(Document.class)))
+                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()));
+
+        Document existingDoc = new Document("username", "architects")
+                .append("subjectType", "group")
+                .append("namespace", "finos")
+                .append("permission", Permission.write.name())
+                .append("userAccessId", 55);
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        when(userAccessCollection.find(Filters.and(
+                Filters.eq("username", "architects"),
+                Filters.eq("subjectType", "group"),
+                Filters.eq("namespace", "finos"),
+                Filters.eq("permission", "write")))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(existingDoc);
+
+        UserAccess group = new UserAccess.UserAccessBuilder()
+                .setNamespace("finos")
+                .setUsername("architects")
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setPermission(Permission.write)
+                .build();
+
+        UserAccess actual = mongoUserAccessStore.createUserAccessForNamespace(group);
+
+        assertThat(actual.getUserAccessId(), is(55));
+        assertThat(actual.getSubjectType(), is(UserAccess.SubjectType.group));
+    }
+
+    @Test
+    void exclude_group_rows_when_looking_up_a_concurrently_created_user_grant() {
+        when(counterStore.getNextUserAccessSequenceValue()).thenReturn(101);
+        when(userAccessCollection.insertOne(ArgumentMatchers.any(Document.class)))
+                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()));
+
+        Document existingDoc = new Document("username", "alice")
+                .append("domain", "security")
+                .append("permission", Permission.read.name())
+                .append("userAccessId", 56);
+        DocumentFindIterable findIterable = mock(DocumentFindIterable.class);
+        when(userAccessCollection.find(Filters.and(
+                Filters.eq("username", "alice"),
+                Filters.ne("subjectType", "group"),
+                Filters.eq("domain", "security"),
+                Filters.eq("permission", "read")))).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(existingDoc);
+
+        UserAccess user = new UserAccess.UserAccessBuilder()
+                .setDomain("security")
+                .setUsername("alice")
+                .setPermission(Permission.read)
+                .build();
+
+        UserAccess actual = mongoUserAccessStore.createUserAccessForDomain(user);
+
+        assertThat(actual.getUserAccessId(), is(56));
+        assertThat(actual.getSubjectType(), is(UserAccess.SubjectType.user));
     }
 }

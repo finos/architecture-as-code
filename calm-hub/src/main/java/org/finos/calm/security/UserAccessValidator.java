@@ -37,13 +37,15 @@ public class UserAccessValidator {
     private static final Logger logger = LoggerFactory.getLogger(UserAccessValidator.class);
 
     private final UserAccessStore userAccessStore;
+    private final GroupGrants groupGrants;
 
     @Inject
     @ConfigProperty(name = "calm.auth.allow-public-read", defaultValue = "false")
     boolean allowPublicRead;
 
-    public UserAccessValidator(UserAccessStore userAccessStore) {
+    public UserAccessValidator(UserAccessStore userAccessStore, GroupGrants groupGrants) {
         this.userAccessStore = userAccessStore;
+        this.groupGrants = groupGrants;
     }
 
     /**
@@ -57,12 +59,12 @@ public class UserAccessValidator {
      * </ul>
      *
      * <p>Otherwise a namespace is included only if every level in its ancestor chain
-     * has a READ-sufficient grant (own or {@code *}) — the same AND rule enforced by
+     * has a READ-sufficient grant (own, {@code *} or group) — the same AND rule enforced by
      * {@link CalmHubPermissionChecker#canRead}.  An empty {@code Optional.of(Set.of())}
      * is returned when the user has no grants at all.
      *
-     * <p>{@link UserAccessStore#getGrantsForUser} returns both the user's own grants and
-     * all {@code *} grants in a single query, so the set of candidates is complete.
+     * <p>The candidates are the user's own grants, all {@code *} grants and the group grants
+     * of each group the user is a member of, so the set of candidates is complete.
      * Any namespace that passes the AND ancestor-chain check here will also pass
      * {@code canRead}, guaranteeing that search results never trigger a 403 on click-through.
      *
@@ -76,7 +78,7 @@ public class UserAccessValidator {
             return Optional.empty();
         }
 
-        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+        List<UserAccess> grants = effectiveGrants(username);
 
         if (isGlobalAdmin(grants)) {
             logger.debug("User [{}] has GLOBAL admin grant — all namespaces readable for search", username);
@@ -88,7 +90,7 @@ public class UserAccessValidator {
             return Optional.of(Set.of());
         }
 
-        // Namespaces covered by at least one READ-sufficient grant (own or *)
+        // Namespaces covered by at least one READ-sufficient grant (own, * or group)
         Set<String> readableGranted = grants.stream()
                 .filter(g -> g.getNamespace() != null && isReadSufficient(g))
                 .map(UserAccess::getNamespace)
@@ -110,7 +112,7 @@ public class UserAccessValidator {
      *   <li>the user holds a {@code GLOBAL admin} grant</li>
      * </ul>
      *
-     * <p>Otherwise a domain is included only if it has a READ-sufficient grant (own or
+     * <p>Otherwise a domain is included only if it has a READ-sufficient grant (own, group or
      * {@code *}). Domains are flat — there is no ancestor chain — so this mirrors the
      * READ rule enforced by {@link CalmHubPermissionChecker#canReadByDomain}, including
      * that {@code *}-username grants count for READ. An empty {@code Optional.of(Set.of())}
@@ -126,7 +128,7 @@ public class UserAccessValidator {
             return Optional.empty();
         }
 
-        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+        List<UserAccess> grants = effectiveGrants(username);
 
         if (isGlobalAdmin(grants)) {
             logger.debug("User [{}] has GLOBAL admin grant — all domains readable for counts", username);
@@ -142,6 +144,18 @@ public class UserAccessValidator {
                 .filter(g -> g.getDomain() != null && isReadSufficient(g))
                 .map(UserAccess::getDomain)
                 .collect(Collectors.toSet()));
+    }
+
+    /**
+     * The user's own and {@code *} grants, plus the grants of each group the user is a
+     * member of. Skips the group lookup when the user's own grants already give GLOBAL admin.
+     */
+    private List<UserAccess> effectiveGrants(String username) {
+        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+        if (isGlobalAdmin(grants)) {
+            return grants;
+        }
+        return groupGrants.withMemberGrants(username, grants, userAccessStore.getAllGroupGrants());
     }
 
     private boolean isGlobalAdmin(List<UserAccess> grants) {
