@@ -262,8 +262,27 @@ describe('CLI Commands', () => {
                 expect.any(Map),
                 'bundle',
                 false,
-                false
+                false,
+                false,
+                undefined,
+                mockDocLoader
             );
+        });
+
+        it('fetches references with the document loader that validate uses, from the CLI config', async () => {
+            vi.mocked(cliConfigModule.loadCliConfig).mockResolvedValue({ calmHubUrl: 'http://localhost:8080', allowedRemoteHosts: ['hub.example.com'] });
+            const documentLoader = { initialise: vi.fn(), loadMissingDocument: vi.fn(), resolvePath: vi.fn() };
+            const buildDocumentLoaderSpy = vi.spyOn(calmShared, 'buildDocumentLoader').mockReturnValue(documentLoader);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'template',
+                '--architecture', 'model.json',
+                '--bundle', 'templateDir',
+                '--output', 'outDir',
+            ]);
+
+            expect(buildDocumentLoaderSpy).toHaveBeenCalledWith(expect.objectContaining({ calmHubUrl: 'http://localhost:8080', allowedRemoteHosts: ['hub.example.com'] }));
+            expect(processorConstructorSpy.mock.calls[0][9]).toBe(documentLoader);
         });
 
         it('should handle --template mode correctly', async () => {
@@ -281,7 +300,10 @@ describe('CLI Commands', () => {
                 expect.any(Map),
                 'template',
                 false,
-                false
+                false,
+                false,
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -300,7 +322,10 @@ describe('CLI Commands', () => {
                 expect.any(Map),
                 'template-directory',
                 false,
-                false
+                false,
+                false,
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -320,7 +345,10 @@ describe('CLI Commands', () => {
                 expect.any(Map),
                 'template-directory',
                 false,
-                true
+                true,
+                false,
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -385,8 +413,24 @@ describe('CLI Commands', () => {
                 false,
                 undefined,
                 undefined,
-                undefined
+                undefined,
+                mockDocLoader
             );
+        });
+
+        it('fetches references with the document loader that validate uses, from the CLI config', async () => {
+            vi.mocked(cliConfigModule.loadCliConfig).mockResolvedValue({ calmHubUrl: 'http://localhost:8080', allowedRemoteHosts: ['hub.example.com'] });
+            const documentLoader = { initialise: vi.fn(), loadMissingDocument: vi.fn(), resolvePath: vi.fn() };
+            const buildDocumentLoaderSpy = vi.spyOn(calmShared, 'buildDocumentLoader').mockReturnValue(documentLoader);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'docify',
+                '--architecture', 'model.json',
+                '--output', 'outDir',
+            ]);
+
+            expect(buildDocumentLoaderSpy).toHaveBeenCalledWith(expect.objectContaining({ calmHubUrl: 'http://localhost:8080', allowedRemoteHosts: ['hub.example.com'] }));
+            expect(docifierConstructorSpy.mock.calls[0][11]).toBe(documentLoader);
         });
 
         it('should honour --clear-output-directory', async () => {
@@ -408,7 +452,8 @@ describe('CLI Commands', () => {
                 false,
                 undefined,
                 undefined,
-                undefined
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -431,7 +476,8 @@ describe('CLI Commands', () => {
                 false,
                 undefined,
                 undefined,
-                undefined
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -454,7 +500,8 @@ describe('CLI Commands', () => {
                 false,
                 undefined,
                 undefined,
-                undefined
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -497,7 +544,8 @@ describe('CLI Commands', () => {
                 false,
                 undefined,
                 undefined,
-                undefined
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -520,7 +568,8 @@ describe('CLI Commands', () => {
                 false,
                 undefined,
                 undefined,
-                undefined
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -564,7 +613,8 @@ describe('CLI Commands', () => {
                 false,
                 'svg',
                 undefined,
-                undefined
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -588,7 +638,8 @@ describe('CLI Commands', () => {
                 false,
                 'png',
                 '/path/to/chrome',
-                undefined
+                undefined,
+                mockDocLoader
             );
         });
 
@@ -612,7 +663,8 @@ describe('CLI Commands', () => {
                 false,
                 'svg',
                 undefined,
-                30000
+                30000,
+                mockDocLoader
             );
         });
 

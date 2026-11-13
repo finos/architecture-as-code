@@ -1,6 +1,8 @@
 import fs from 'fs';
 import { initLogger, Logger } from '../logger.js';
-import axios from 'axios';
+import type { DocumentLoader } from '../document-loader/document-loader.js';
+import { DirectUrlDocumentLoader } from '../document-loader/direct-url-document-loader.js';
+import { getErrorMessage } from '../error-utils.js';
 
 export interface CalmReferenceResolver {
     canResolve(ref: string): boolean;
@@ -53,6 +55,10 @@ export class InMemoryResolver implements CalmReferenceResolver {
 }
 
 
+/**
+ * Fetches http(s) references through a {@link DocumentLoader}, so they get the same host checks as
+ * `calm validate`. The default loader allows only calm.finos.org.
+ */
 export class HttpReferenceResolver implements CalmReferenceResolver {
     private static _logger: Logger | undefined;
 
@@ -63,21 +69,19 @@ export class HttpReferenceResolver implements CalmReferenceResolver {
         return this._logger;
     }
 
+    constructor(private readonly loader: DocumentLoader = new DirectUrlDocumentLoader(process.env.DEBUG === 'true')) {}
+
     canResolve(ref: string): boolean {
         return ref.startsWith('http://') || ref.startsWith('https://');
     }
 
     async resolve(ref: string): Promise<unknown> {
-        const logger = HttpReferenceResolver.logger;
-        logger.info(`Fetching reference via HTTP: ${ref}`);
+        HttpReferenceResolver.logger.info(`Fetching reference via HTTP: ${ref}`);
         try {
-            const response = await axios.get(ref);
-            return response.data;
+            return await this.loader.loadMissingDocument(ref, 'schema');
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                throw new Error(`HTTP request failed for ${ref}: ${error.message}`);
-            }
-            throw error;
+            const cause = (error as { cause?: unknown }).cause;
+            throw new Error(`HTTP request failed for ${ref}: ${getErrorMessage(error)}${cause ? `: ${getErrorMessage(cause)}` : ''}`);
         }
     }
 }

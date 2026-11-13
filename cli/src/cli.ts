@@ -209,7 +209,10 @@ Validation requires:
                 localDirectory,
                 mode,
                 false,
-                options.clearOutputDirectory
+                options.clearOutputDirectory,
+                false,
+                undefined,
+                buildDocumentLoader(await parseDocumentLoaderConfig({ verbose: options.verbose }))
             );
 
             await processor.processTemplate();
@@ -297,7 +300,8 @@ Validation requires:
                 options.scaffold,
                 options.exportDiagrams as DiagramExportFormat | undefined,
                 options.browserPath,
-                diagramRenderTimeoutMs
+                diagramRenderTimeoutMs,
+                buildDocumentLoader(await parseDocumentLoaderConfig({ verbose: options.verbose }))
             );
 
             await docifier.docify();

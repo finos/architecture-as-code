@@ -1,6 +1,7 @@
 import { TemplateProcessingMode, TemplateProcessor } from '../template/template-processor.js';
 import { readUrlMappingFile } from '../template/url-mapping.js';
 import { initLogger } from '../logger.js';
+import type { DocumentLoader } from '../document-loader/document-loader.js';
 import { launchBrowser, LaunchedBrowser } from './diagram-rendering/browser-launch.js';
 import { BrowserOverrideError } from './diagram-rendering/errors.js';
 import { MermaidBrowserRenderer } from './diagram-rendering/mermaid-browser-renderer.js';
@@ -34,7 +35,8 @@ export class Docifier {
         scaffoldOnly: boolean = false,
         exportDiagrams?: DiagramExportFormat,
         browserPath?: string,
-        renderTimeoutMs?: number
+        renderTimeoutMs?: number,
+        documentLoader?: DocumentLoader
     ) {
         if (mode === 'SAD') {
             throw new Error('Mode "SAD" is not supported.');
@@ -63,7 +65,8 @@ export class Docifier {
             true,
             clearOutputDirectory,
             scaffoldOnly,
-            urlMappingPath
+            urlMappingPath,
+            documentLoader
         );
     }
 

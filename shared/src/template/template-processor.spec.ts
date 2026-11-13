@@ -5,6 +5,8 @@ import { CalmTemplateTransformer, IndexFile } from './types';
 import { Mock } from 'vitest';
 import { WidgetEngine, WidgetRegistry } from '@finos/calm-widgets';
 
+import { HttpReferenceResolver } from '../resolver/calm-reference-resolver';
+
 vi.mock('fs');
 vi.mock('@finos/calm-widgets');
 
@@ -167,6 +169,13 @@ describe('TemplateProcessor', () => {
         const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', mapping);
         await processor.processTemplate();
         expect(mappedResolverSpy).toHaveBeenCalledWith(mapping);
+    });
+
+    it('fetches remote references with the document loader it is given', async () => {
+        const documentLoader = { initialise: vi.fn(), loadMissingDocument: vi.fn(), resolvePath: vi.fn() };
+        const processor = new TemplateProcessor('simple-nodes.json', 'bundle', 'output', new Map(), 'bundle', false, false, false, undefined, documentLoader);
+        await processor.processTemplate();
+        expect(HttpReferenceResolver).toHaveBeenCalledWith(documentLoader);
     });
 
     it('should process using SelfProvidedTemplateLoader when mode is "template"', async () => {
