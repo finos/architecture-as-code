@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline, IoGitNetworkOutline } from 'react-icons/io5';
+import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
-import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
-import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
 import { SearchBar } from '../../../visualizer/components/reactflow/SearchBar.js';
 import { NodeSearchProvider, type NodeSearchState } from '../../../visualizer/components/reactflow/node-search-context.js';
 import { CompareView } from './compare/CompareView.js';
@@ -27,15 +25,24 @@ import { computeChanges, type VersionChange } from './timeline/perVersionChanges
 import { fetchVersionData, fetchVersionList } from './compare/compareData.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { colors } from '../../../theme/colors.js';
-import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
+import type { Decorator, DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
 import { useDefaultLayout } from '../../hooks/useDefaultLayout.js';
 import { loadStoredNodePositions, type StoredNodePosition } from '../../../visualizer/services/node-position-service.js';
 import { useUserAccess } from '../../../admin/context/UserAccessContext.js';
 import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
-import { UsedByPanel } from './used-by/UsedByPanel.js';
-import { USED_BY_TOOLTIP, usedByLabel } from './used-by/usedBy.js';
+import { useArchitectureDecorators } from './decorators/useArchitectureDecorators.js';
+import { DECORATORS_TAB_ID, DEPLOYMENTS_TAB_ID, DIAGRAM_TABS } from './tabs/diagramTabs.js';
+import {
+    DEFAULT_DIAGRAM_TAB_ID,
+    diagramTabLabel,
+    diagramTabQuery,
+    resolveDiagramTab,
+    visibleDiagramTabs,
+    type DiagramTab,
+    type DiagramTabContext,
+} from './tabs/diagramTabRegistry.js';
 
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
@@ -49,6 +56,11 @@ interface DiagramSectionProps {
      * fetch effect that reports it.
      */
     onDisplayNameChange?: (name: string | undefined) => void;
+    /**
+     * Reports every decorator of the version on screen, so the details drawer can list those of the selected element.
+     * Called with an empty list on unmount. Must be identity-stable.
+     */
+    onDecoratorsChange?: (decorators: Decorator[]) => void;
 }
 
 const iconMap = {
@@ -56,21 +68,18 @@ const iconMap = {
     Patterns: IoGridOutline,
 } as const;
 
-type DiagramTabType = 'diagram' | 'json' | 'deployments' | 'used-by';
-
-const NO_DECORATORS: DeploymentDecorator[] = [];
+const NO_DECORATORS: Decorator[] = [];
+const DECORATOR_TAB_IDS: ReadonlySet<string> = new Set([DEFAULT_DIAGRAM_TAB_ID, DEPLOYMENTS_TAB_ID, DECORATORS_TAB_ID]);
 const NO_MOMENTS: TimelineMoment[] = [];
 
 const subscribeToNothing = () => () => {};
 const getNavbarSlot = () => document.getElementById('navbar-actions');
 const getNoNavbarSlot = () => null;
 
-export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange }: DiagramSectionProps) {
+export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange, onDecoratorsChange }: DiagramSectionProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const tabParam = searchParams.get('tab') as DiagramTabType | null;
-    const activeTab: DiagramTabType = tabParam ?? 'diagram';
     const isMobile = useIsMobile();
     const [showTimeline, setShowTimeline] = useState(false);
     const [showViewMenu, setShowViewMenu] = useState(false);
@@ -136,15 +145,14 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     );
     const isArchitecture = data.calmType === 'Architectures';
     const resourceKey = `${data.calmType}|${data.name}|${data.id}`;
-    // Fetched results are kept with the key they were fetched for, so a result for
-    // another resource, version or comparison is never shown.
-    const [loadedDecorators, setLoadedDecorators] = useState<{ source: Data; values: DeploymentDecorator[] } | null>(null);
-    const decorators =
-        isArchitecture && loadedDecorators?.source === data ? loadedDecorators.values : NO_DECORATORS;
+    // A dropped file is not the loaded architecture, so the details drawer must not show its decorators.
+    const [showsDroppedFile, setShowsDroppedFile] = useState(false);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
     const [compareTo, setCompareTo] = useState<string | null>(null);
     const comparing = compareFrom !== null && compareTo !== null;
     const [versions, setVersions] = useState<string[]>([]);
+    // Fetched results are kept with the key they were fetched for, so a result for
+    // another resource, version or comparison is never shown.
     // `doc` is null when the timeline could not be loaded.
     const [loadedTimeline, setLoadedTimeline] = useState<{ key: string; doc: CalmTimelineSchema | null } | null>(null);
     const timelineResult = isArchitecture && loadedTimeline?.key === resourceKey ? loadedTimeline : null;
@@ -191,18 +199,47 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const diffResult = comparison?.diffResult ?? null;
     const compareError = comparison?.error ?? null;
 
-    const setActiveTab = (tab: DiagramTabType) => {
-        setSearchParams({ tab }, { replace: true, state: location.state });
-    };
-
     const urlType = isArchitecture ? 'architectures' : 'patterns';
     const typeLabel = isArchitecture ? 'Architecture' : 'Pattern';
 
     const implementationService = useMemo(() => new PatternImplementationService(), []);
-    const showUsedBy = !isArchitecture && patternName !== undefined;
-    const usedByOpen = showUsedBy && activeTab === 'used-by' && !comparing;
+    const tabScope = { isArchitecture, patternName };
+    const visibleTabs = visibleDiagramTabs(DIAGRAM_TABS, tabScope);
+    const activeTab = resolveDiagramTab(DIAGRAM_TABS, searchParams.get('tab'), tabScope);
+    const tabQuery = diagramTabQuery(activeTab, searchParams);
+    const usedByOpen = activeTab.id === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
-    const usedByTabLabel = useMemo(() => usedByLabel(usedBy), [usedBy]);
+    // Polled only while the diagram, a decorator tab or the details drawer shows them.
+    const showsDecorators = (!comparing && DECORATOR_TAB_IDS.has(activeTab.id)) || !!hasDetailsPanel;
+    const decoratorsState = useArchitectureDecorators(calmService, data, isArchitecture, showsDecorators);
+    const allDecorators = decoratorsState.status === 'loaded' ? decoratorsState.decorators : NO_DECORATORS;
+    const decorators = useMemo(
+        () => allDecorators.filter((d): d is DeploymentDecorator => d.type === 'deployment'),
+        [allDecorators]
+    );
+
+    const setActiveTab = (tab: DiagramTab) => {
+        setSearchParams({ tab: tab.id }, { replace: true, state: location.state });
+    };
+    const setTabParams = (params: Record<string, string>) => {
+        setSearchParams({ tab: activeTab.id, ...params }, { replace: true, state: location.state });
+    };
+
+    // A tab id no entry registers is dropped from the URL, so a copied link does not keep it. A hidden tab such as
+    // used-by is kept, because it can become visible when the pattern summary loads.
+    const requestedTab = searchParams.get('tab');
+    const unknownTab = requestedTab !== null && !DIAGRAM_TABS.some((tab) => tab.id === requestedTab);
+    useEffect(() => {
+        if (!unknownTab) return;
+        setSearchParams(
+            (current) => {
+                const next = new URLSearchParams(current);
+                next.delete('tab');
+                return next;
+            },
+            { replace: true, state: location.state }
+        );
+    }, [unknownTab, setSearchParams, location.state]);
 
     // Save/reset the shared default layout — supported for both architectures
     // and patterns (backed by separate resources/collections server-side, see
@@ -232,8 +269,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         setCompareTo(null);
         if (version === data.version) return;
         // Preserve the active tab and breadcrumb state when switching version.
-        const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
-        navigate(`/${data.name}/${urlType}/${data.id}/${version}${query}`, {
+        navigate(`/${data.name}/${urlType}/${data.id}/${version}${tabQuery}`, {
             state: { ...(location.state as object | null), timelineSelection: true },
         });
     };
@@ -372,18 +408,11 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         };
     }, [isArchitecture, calmService, data.name, data.id, resourceKey]);
 
+    const drawerDecorators = showsDroppedFile ? NO_DECORATORS : allDecorators;
     useEffect(() => {
-        if (!isArchitecture) return;
-        let cancelled = false;
-
-        calmService
-            .fetchDeploymentDecoratorsForArchitecture(data.name, data.id, data.version)
-            .then((values) => values as DeploymentDecorator[])
-            .catch((): DeploymentDecorator[] => [])
-            .then((values) => { if (!cancelled) setLoadedDecorators({ source: data, values }); });
-
-        return () => { cancelled = true; };
-    }, [data, isArchitecture, calmService]);
+        onDecoratorsChange?.(drawerDecorators);
+    }, [drawerDecorators, onDecoratorsChange]);
+    useEffect(() => () => onDecoratorsChange?.(NO_DECORATORS), [onDecoratorsChange]);
 
     // When an architecture has an explicit timeline, landing on the latest
     // version (the tree's implicit default) one-shot redirects to the
@@ -410,9 +439,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         // is a deliberate pick (deep-link or manual navigation) we shouldn't override.
         if (data.version !== versions[0]) return;
 
-        const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
         navigate(
-            `/${data.name}/${urlType}/${data.id}/${currentMoment.version}${query}`,
+            `/${data.name}/${urlType}/${data.id}/${currentMoment.version}${tabQuery}`,
             { replace: true, state: location.state }
         );
     }, [
@@ -425,57 +453,55 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         data.id,
         data.version,
         urlType,
-        activeTab,
+        tabQuery,
         navigate,
         location.state,
     ]);
 
     const Icon = iconMap[data.calmType];
 
+    const tabContext: DiagramTabContext = {
+        ...tabScope,
+        data,
+        searchParams,
+        setTabParams,
+        diagram: (
+            <Drawer
+                data={data}
+                onItemSelect={onItemSelect}
+                decorators={decorators}
+                viewportKeyOverride={defaultLayoutState.viewportKey}
+                defaultLayout={defaultLayoutState.defaultLayout}
+                layoutEpoch={defaultLayoutState.layoutEpoch}
+                onPositionsChange={handlePositionsChange}
+                onDroppedFileChange={setShowsDroppedFile}
+            />
+        ),
+        decorators: decoratorsState,
+        deploymentDecorators: decorators,
+        usedBy,
+    };
+
     // Desktop: inline tabs in the section header (unchanged).
     const tabs = (
         <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
-            <button
-                role="tab"
-                aria-label="Diagram"
-                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'diagram' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
-                onClick={() => setActiveTab('diagram')}
-            >
-                <IoEyeOutline />
-                <span className="hidden sm:inline">Diagram</span>
-            </button>
-            <button
-                role="tab"
-                aria-label="JSON"
-                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'json' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
-                onClick={() => setActiveTab('json')}
-            >
-                <IoCodeOutline />
-                <span className="hidden sm:inline">JSON</span>
-            </button>
-            {isArchitecture && (
-                <button
-                    role="tab"
-                    aria-label="Deployments"
-                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'deployments' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
-                    onClick={() => setActiveTab('deployments')}
-                >
-                    <IoRocketOutline />
-                    <span className="hidden sm:inline">Deployments</span>
-                </button>
-            )}
-            {showUsedBy && (
-                <button
-                    role="tab"
-                    aria-label={usedByTabLabel}
-                    title={USED_BY_TOOLTIP}
-                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'used-by' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
-                    onClick={() => setActiveTab('used-by')}
-                >
-                    <IoGitNetworkOutline />
-                    <span className="hidden sm:inline">{usedByTabLabel}</span>
-                </button>
-            )}
+            {visibleTabs.map((tab) => {
+                const label = diagramTabLabel(tab, tabContext);
+                const TabIcon = tab.icon;
+                return (
+                    <button
+                        key={tab.id}
+                        role="tab"
+                        aria-label={label}
+                        title={tab.title}
+                        className={`tab gap-1 rounded-lg ${!comparing && activeTab === tab ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
+                        onClick={() => setActiveTab(tab)}
+                    >
+                        <TabIcon />
+                        <span className="hidden sm:inline">{label}</span>
+                    </button>
+                );
+            })}
         </div>
     );
 
@@ -483,7 +509,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     // view-options menu below). Only meaningful on the diagram tab, and never
     // while comparing versions. Not gated on isArchitecture — layout save is
     // supported for both architectures and patterns.
-    const showLayoutActions = !comparing && activeTab === 'diagram';
+    const showLayoutActions = !comparing && activeTab.id === DEFAULT_DIAGRAM_TAB_ID;
     const layoutActions = showLayoutActions && (
         <div className="flex items-center gap-1">
             {defaultLayoutState.hasBothSources && (
@@ -569,10 +595,13 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         </h2>
     );
 
-    const viewModeRow = (tab: DiagramTabType, icon: ReactNode, label: string, onSelect?: () => void) => {
+    const viewModeRow = (tab: DiagramTab, onSelect?: () => void) => {
         const active = !comparing && activeTab === tab;
+        const label = diagramTabLabel(tab, tabContext);
+        const TabIcon = tab.icon;
         return (
             <button
+                key={tab.id}
                 role="tab"
                 aria-label={label}
                 aria-selected={active}
@@ -584,7 +613,9 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                     active ? 'bg-base-200 text-[var(--color-interaction)] font-semibold' : 'text-base-content'
                 }`}
             >
-                <span className={active ? 'text-[var(--color-interaction)]' : 'text-base-content/60'}>{icon}</span>
+                <span className={active ? 'text-[var(--color-interaction)]' : 'text-base-content/60'}>
+                    <TabIcon size={18} />
+                </span>
                 <span className="flex-1 min-w-0 truncate">{label}</span>
                 {active && <IoCheckmarkOutline size={18} className="text-[var(--color-interaction)] shrink-0" />}
             </button>
@@ -593,23 +624,12 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
 
     const renderViewModes = (onSelect?: () => void) => (
         <div role="tablist" className="divide-y divide-base-200 border-b border-base-200">
-            {viewModeRow('diagram', <IoEyeOutline size={18} />, 'Diagram', onSelect)}
-            {viewModeRow('json', <IoCodeOutline size={18} />, 'JSON', onSelect)}
-            {isArchitecture && viewModeRow('deployments', <IoRocketOutline size={18} />, 'Deployments', onSelect)}
-            {showUsedBy && viewModeRow('used-by', <IoGitNetworkOutline size={18} />, usedByTabLabel, onSelect)}
+            {visibleTabs.map((tab) => viewModeRow(tab, onSelect))}
         </div>
     );
 
-    const activeViewIcon =
-        activeTab === 'json' ? (
-            <IoCodeOutline size={20} />
-        ) : activeTab === 'deployments' ? (
-            <IoRocketOutline size={20} />
-        ) : activeTab === 'used-by' ? (
-            <IoGitNetworkOutline size={20} />
-        ) : (
-            <IoEyeOutline size={20} />
-        );
+    const ActiveViewIcon = activeTab.icon;
+    const activeViewIcon = <ActiveViewIcon size={20} />;
 
     const viewMenu = (
         <>
@@ -693,7 +713,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                                 </button>
                             </div>
                         )}
-                        {!comparing && activeTab === 'diagram' && (
+                        {!comparing && activeTab.id === DEFAULT_DIAGRAM_TAB_ID && (
                             <div className="p-4">
                                 <div className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">
                                     Search components
@@ -724,28 +744,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             diffResult={diffResult}
             error={compareError}
         />
-    ) : activeTab === 'diagram' ? (
-        <div className="w-full h-full">
-            <Drawer
-                data={data}
-                onItemSelect={onItemSelect}
-                decorators={decorators}
-                viewportKeyOverride={defaultLayoutState.viewportKey}
-                defaultLayout={defaultLayoutState.defaultLayout}
-                layoutEpoch={defaultLayoutState.layoutEpoch}
-                onPositionsChange={handlePositionsChange}
-            />
-        </div>
-    ) : activeTab === 'deployments' && isArchitecture ? (
-        <div className="h-full bg-base-200 overflow-auto p-4">
-            <DeploymentPanel decorators={decorators} />
-        </div>
-    ) : activeTab === 'used-by' && showUsedBy ? (
-        <UsedByPanel state={usedBy} />
     ) : (
-        <div className="h-full bg-base-200 overflow-auto">
-            <JsonRenderer json={data} />
-        </div>
+        activeTab.render(tabContext)
     );
 
     const timelineBar = (

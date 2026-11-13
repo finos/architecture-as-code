@@ -22,13 +22,13 @@ function fakeFile(text: string): File {
 const mockFetchDeploymentDecoratorsForArchitecture = vi.fn().mockResolvedValue([]);
 const EVALUATION_TARGET = '/api/calm/namespaces/my-namespace/architectures/42/versions/1-0-0';
 const mockResolveArchitectureVersionTarget = vi.fn().mockResolvedValue(EVALUATION_TARGET);
-const mockFetchControlEvaluationDecorators = vi.fn().mockResolvedValue([]);
+const mockFetchDecoratorsForTarget = vi.fn().mockResolvedValue([]);
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(function () { return {
         fetchDeploymentDecoratorsForArchitecture: (...args: unknown[]) => mockFetchDeploymentDecoratorsForArchitecture(...args),
         resolveArchitectureVersionTarget: (...args: unknown[]) => mockResolveArchitectureVersionTarget(...args),
-        fetchControlEvaluationDecorators: (...args: unknown[]) => mockFetchControlEvaluationDecorators(...args),
+        fetchDecoratorsForTarget: (...args: unknown[]) => mockFetchDecoratorsForTarget(...args),
     }; }),
 }));
 
@@ -441,6 +441,32 @@ describe('Drawer — decorator fetching', () => {
         });
         expect(mockFetchDeploymentDecoratorsForArchitecture).not.toHaveBeenCalled();
     });
+
+    it('does not show externally provided decorators for a dropped file', async () => {
+        const decorators = [{ uniqueId: 'dec-1', type: 'deployment', target: [], appliesTo: ['node-a'], data: {} }];
+        render(<Drawer data={architectureData} decorators={decorators as never} />);
+        expect(screen.getByTestId('metadata-panel')).toHaveTextContent('decorators:1');
+
+        await act(async () => {
+            await mockDropzone.onDrop?.([fakeFile(JSON.stringify({ nodes: [], relationships: [] }))]);
+        });
+
+        expect(screen.queryByTestId('metadata-panel')).not.toBeInTheDocument();
+    });
+
+    it('reports whether a dropped file replaces the loaded resource, and false on unmount', async () => {
+        const onDroppedFileChange = vi.fn();
+        const { unmount } = render(<Drawer data={architectureData} onDroppedFileChange={onDroppedFileChange} />);
+        expect(onDroppedFileChange).toHaveBeenLastCalledWith(false);
+
+        await act(async () => {
+            await mockDropzone.onDrop?.([fakeFile(JSON.stringify({ nodes: [], relationships: [] }))]);
+        });
+        expect(onDroppedFileChange).toHaveBeenLastCalledWith(true);
+
+        unmount();
+        expect(onDroppedFileChange).toHaveBeenLastCalledWith(false);
+    });
 });
 
 /** jsdom's document is always visible; tests override the getter to simulate a background tab. */
@@ -476,8 +502,8 @@ describe('Drawer — control evaluations', () => {
         vi.useFakeTimers();
         mockFetchDeploymentDecoratorsForArchitecture.mockReset();
         mockFetchDeploymentDecoratorsForArchitecture.mockResolvedValue([]);
-        mockFetchControlEvaluationDecorators.mockReset();
-        mockFetchControlEvaluationDecorators.mockResolvedValue([]);
+        mockFetchDecoratorsForTarget.mockReset();
+        mockFetchDecoratorsForTarget.mockResolvedValue([]);
         mockResolveArchitectureVersionTarget.mockReset();
         mockResolveArchitectureVersionTarget.mockImplementation((_ns: string, _id: string, version: string) =>
             Promise.resolve(EVALUATION_TARGET.replace('1-0-0', version.replace(/\./g, '-'))));
@@ -497,24 +523,24 @@ describe('Drawer — control evaluations', () => {
         await flush();
 
         expect(mockResolveArchitectureVersionTarget).toHaveBeenCalledWith('my-namespace', 'my-arch', '1.0.0');
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(1);
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledWith('my-namespace', EVALUATION_TARGET);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledWith('my-namespace', EVALUATION_TARGET, 'control-evaluation');
 
         await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
 
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(2);
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenLastCalledWith('my-namespace', EVALUATION_TARGET);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(2);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenLastCalledWith('my-namespace', EVALUATION_TARGET, 'control-evaluation');
     });
 
     it('stops refreshing once unmounted', async () => {
         const { unmount } = render(<Drawer data={architectureData} />);
         await flush();
         unmount();
-        mockFetchControlEvaluationDecorators.mockClear();
+        mockFetchDecoratorsForTarget.mockClear();
 
         await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
 
-        expect(mockFetchControlEvaluationDecorators).not.toHaveBeenCalled();
+        expect(mockFetchDecoratorsForTarget).not.toHaveBeenCalled();
     });
 
     it('does not fetch for a pattern', async () => {
@@ -522,11 +548,11 @@ describe('Drawer — control evaluations', () => {
         await flush();
         await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
 
-        expect(mockFetchControlEvaluationDecorators).not.toHaveBeenCalled();
+        expect(mockFetchDecoratorsForTarget).not.toHaveBeenCalled();
     });
 
     it('stops fetching, and clears the evaluations, once a file is dropped over an architecture', async () => {
-        mockFetchControlEvaluationDecorators.mockResolvedValue([evaluation('not-met')]);
+        mockFetchDecoratorsForTarget.mockResolvedValue([evaluation('not-met')]);
         render(<Drawer data={architectureWithNode} />);
         await flush();
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('not-met');
@@ -536,15 +562,15 @@ describe('Drawer — control evaluations', () => {
                 fakeFile(JSON.stringify({ nodes: [{ 'unique-id': 'n1', name: 'Node 1', description: 'd', 'node-type': 'service' }], relationships: [] })),
             ]);
         });
-        mockFetchControlEvaluationDecorators.mockClear();
+        mockFetchDecoratorsForTarget.mockClear();
         await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
 
-        expect(mockFetchControlEvaluationDecorators).not.toHaveBeenCalled();
+        expect(mockFetchDecoratorsForTarget).not.toHaveBeenCalled();
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('(none)');
     });
 
     it('hands each node\'s latest evaluation to the diagram through the context, and lists them in the metadata panel', async () => {
-        mockFetchControlEvaluationDecorators.mockResolvedValue([evaluation('not-met')]);
+        mockFetchDecoratorsForTarget.mockResolvedValue([evaluation('not-met')]);
         render(<Drawer data={architectureWithNode} />);
         await flush();
 
@@ -565,7 +591,7 @@ describe('Drawer — control evaluations', () => {
                 ],
             },
         };
-        mockFetchControlEvaluationDecorators.mockResolvedValue([{ ...evaluation('not-met'), appliesTo: ['sys-has-n1'] }]);
+        mockFetchDecoratorsForTarget.mockResolvedValue([{ ...evaluation('not-met'), appliesTo: ['sys-has-n1'] }]);
         render(<Drawer data={architectureWithContainer} />);
         await flush();
 
@@ -574,12 +600,12 @@ describe('Drawer — control evaluations', () => {
     });
 
     it('shows a new evaluation picked up by a refresh', async () => {
-        mockFetchControlEvaluationDecorators.mockResolvedValue([evaluation('not-met')]);
+        mockFetchDecoratorsForTarget.mockResolvedValue([evaluation('not-met')]);
         render(<Drawer data={architectureWithNode} />);
         await flush();
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('not-met');
 
-        mockFetchControlEvaluationDecorators.mockResolvedValue([evaluation('met')]);
+        mockFetchDecoratorsForTarget.mockResolvedValue([evaluation('met')]);
         await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
 
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('met');
@@ -587,7 +613,7 @@ describe('Drawer — control evaluations', () => {
     });
 
     it('does not re-render the diagram when a refresh returns the same evaluations', async () => {
-        mockFetchControlEvaluationDecorators.mockImplementation(() => Promise.resolve([evaluation('not-met')]));
+        mockFetchDecoratorsForTarget.mockImplementation(() => Promise.resolve([evaluation('not-met')]));
         render(<Drawer data={architectureWithNode} />);
         await flush();
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('not-met');
@@ -595,35 +621,35 @@ describe('Drawer — control evaluations', () => {
 
         await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
 
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(2);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(2);
         expect(visualizerRenders.count).toBe(rendersAfterFirstLoad);
     });
 
     it('clears the previous version\'s evaluations as soon as another version is opened', async () => {
-        mockFetchControlEvaluationDecorators.mockResolvedValue([evaluation('not-met')]);
+        mockFetchDecoratorsForTarget.mockResolvedValue([evaluation('not-met')]);
         const { rerender } = render(<Drawer data={architectureWithNode} />);
         await flush();
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('not-met');
 
-        mockFetchControlEvaluationDecorators.mockImplementation(() => new Promise(() => {}));
+        mockFetchDecoratorsForTarget.mockImplementation(() => new Promise(() => {}));
         rerender(<Drawer data={{ ...architectureWithNode, version: '2.0.0' }} />);
         await flush();
 
         expect(mockResolveArchitectureVersionTarget).toHaveBeenLastCalledWith('my-namespace', 'my-arch', '2.0.0');
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenLastCalledWith('my-namespace', EVALUATION_TARGET.replace('1-0-0', '2-0-0'));
+        expect(mockFetchDecoratorsForTarget).toHaveBeenLastCalledWith('my-namespace', EVALUATION_TARGET.replace('1-0-0', '2-0-0'), 'control-evaluation');
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('(none)');
     });
 
     it('keeps a newer refresh\'s result when an older, slower one lands after it', async () => {
         let resolveFirst: (value: unknown) => void = () => {};
-        mockFetchControlEvaluationDecorators
+        mockFetchDecoratorsForTarget
             .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
             .mockImplementationOnce(() => Promise.resolve([evaluation('met')]));
         render(<Drawer data={architectureWithNode} />);
         await flush();
 
         await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(2);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(2);
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('met');
 
         await act(async () => { resolveFirst([evaluation('not-met')]); });
@@ -638,19 +664,33 @@ describe('Drawer — control evaluations', () => {
         await flush();
         await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
 
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(4);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(4);
         expect(mockResolveArchitectureVersionTarget).toHaveBeenCalledTimes(1);
     });
 
+    it('looks the slug up again on the next refresh when the lookup fails', async () => {
+        mockResolveArchitectureVersionTarget.mockRejectedValueOnce(new Error('hub down'));
+        mockFetchDecoratorsForTarget.mockResolvedValue([evaluation('not-met')]);
+        render(<Drawer data={architectureWithNode} />);
+        await flush();
+        expect(mockFetchDecoratorsForTarget).not.toHaveBeenCalled();
+
+        await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+        expect(mockResolveArchitectureVersionTarget).toHaveBeenCalledTimes(2);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledWith('my-namespace', EVALUATION_TARGET, 'control-evaluation');
+        expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('not-met');
+    });
+
     it('keeps the last known evaluations when a refresh fails', async () => {
-        mockFetchControlEvaluationDecorators.mockResolvedValueOnce([evaluation('not-met')]).mockRejectedValue(new Error('hub down'));
+        mockFetchDecoratorsForTarget.mockResolvedValueOnce([evaluation('not-met')]).mockRejectedValue(new Error('hub down'));
         render(<Drawer data={architectureWithNode} />);
         await flush();
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('not-met');
 
         await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
 
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(2);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(2);
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('not-met');
         expect(screen.getByTestId('metadata-panel')).toHaveTextContent('evaluations:1');
     });
@@ -660,43 +700,43 @@ describe('Drawer — control evaluations', () => {
         render(<Drawer data={architectureWithNode} />);
         await flush();
         await act(async () => { await vi.advanceTimersByTimeAsync(15000); });
-        expect(mockFetchControlEvaluationDecorators).not.toHaveBeenCalled();
+        expect(mockFetchDecoratorsForTarget).not.toHaveBeenCalled();
 
         setVisibility('visible');
         await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
         await flush();
 
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(1);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
     });
 
     it('stops listening for visibility changes once unmounted', async () => {
         const { unmount } = render(<Drawer data={architectureWithNode} />);
         await flush();
         unmount();
-        mockFetchControlEvaluationDecorators.mockClear();
+        mockFetchDecoratorsForTarget.mockClear();
 
         await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
 
-        expect(mockFetchControlEvaluationDecorators).not.toHaveBeenCalled();
+        expect(mockFetchDecoratorsForTarget).not.toHaveBeenCalled();
     });
 
     it('backs off to 30 seconds after three failures in a row, logging once, until a refresh succeeds', async () => {
-        mockFetchControlEvaluationDecorators.mockRejectedValue(new Error('hub down'));
+        mockFetchDecoratorsForTarget.mockRejectedValue(new Error('hub down'));
         render(<Drawer data={architectureWithNode} />);
         await flush();
         await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(3);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(3);
 
         await act(async () => { await vi.advanceTimersByTimeAsync(25000); });
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(3);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(3);
 
-        mockFetchControlEvaluationDecorators.mockResolvedValue([evaluation('met')]);
+        mockFetchDecoratorsForTarget.mockResolvedValue([evaluation('met')]);
         await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(4);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(4);
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('met');
 
         await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-        expect(mockFetchControlEvaluationDecorators).toHaveBeenCalledTimes(5);
+        expect(mockFetchDecoratorsForTarget).toHaveBeenCalledTimes(5);
         expect(errorSpy).toHaveBeenCalledTimes(1);
     });
 });

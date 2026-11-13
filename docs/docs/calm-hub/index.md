@@ -138,7 +138,7 @@ CALM_UI_ITEMS_1__VALUE=2026.10.1
 ```
 
 - Each item needs a `label` and a `value`, a `url`, or both. With both, the `value` is the link text.
-- Use a short environment name, for example `DEV`, `QA` or `PROD`. On narrow screens the UI truncates long names.
+- Use a short environment name, for example `DEV`, `QA` or `PROD`. The header cuts a long name to fit, and cuts it most on a narrow screen. Tap or click the pill to see the full name.
 - CALM Hub does not start if a colour or URL is not valid. URLs must be absolute `http` or `https` URLs.
 - Identity and roles are off by default. Turn on `show-roles` only if your role names are safe to show to users.
 - The UI gets these values from `GET /api/calm/ui/config`, which requires authentication.

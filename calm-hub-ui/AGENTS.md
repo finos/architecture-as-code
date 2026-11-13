@@ -160,11 +160,33 @@ Instead, place `HeaderSection` and `BodySection` in their own files and import t
 - Use `useCallback` for functions referenced in `useEffect` dependency arrays
 - **Never suppress** `react-hooks/exhaustive-deps` — fix the dependency array properly
 
+### Diagram tabs and decorators
+
+`DiagramSection` draws its tabs from `DIAGRAM_TABS` (`diagram-section/tabs/`). A tab has an id (the
+`?tab=` value), a label, an icon, an optional visibility rule and a render function. An unknown or
+hidden tab falls back to `diagram`. An unknown tab id is also dropped from the URL. A tab that keeps state in the URL lists its parameters in
+`searchParams`, so a version change keeps them. Add a tab there, not as a new branch in
+`DiagramSection`.
+
+`src/decorator-renderer/` renders any decorator by the shape of its `data`. It must not import Hub
+code, so that it can move to a package that the VS Code extension shares. The UI calls them
+"Decorators", never "Metadata", which is the CALM `metadata` field (`MetadataPanel` is the panel
+under the diagram). Hub gets the decorators from `DiagramSection` (`onDecoratorsChange`) and gives
+them to the details drawer through `DecoratorsContext`. The API does not require any decorator
+field, so guard each read. A missing type shows as "(no type)". A card is keyed by `decoratorKeys()`: the `uniqueId`,
+or the list index when the id is missing or not unique, so a shift in the list does not remount a card. The card's
+JSON view uses the write field names (`writableDecorator`) and leaves out the Hub-owned times, so it can be copied into
+a `PUT`. `DiagramSection` polls all decorators of the version every 5 s while the diagram, a decorator tab or the
+details drawer shows (`useArchitectureDecorators`, one request; after three failures in a row it backs off to 30 s,
+also when the view shows again) and gives the one list to the Decorators tab, the Deployments tab and the details
+drawer. Do not add a second request for them.
+
 ### Operator UI config
 
 `UiConfigProvider` (`components/ui-config/`) loads `GET /api/calm/ui/config` one time.
 `useUiConfig()` returns only the sections the operator configured, or `{}` if the request
-fails. The `EnvironmentPill` shows in the `Navbar` and on the `IntroScreen`, which has no navbar.
+fails. The `EnvironmentPill` shows in the `Navbar` and on the `IntroScreen`, which has no navbar. A tap shows a truncated
+name in full, because a touch screen has no hover for its `title`. The pill is a button only while the name is truncated.
 Identity and items show at the bottom of the navbar drawer (`MenuInfo`). The drawer identity is
 the server's principal, not the OIDC token profile that `UserMenu` shows.
 

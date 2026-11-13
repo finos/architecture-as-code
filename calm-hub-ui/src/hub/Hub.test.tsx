@@ -172,11 +172,13 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
         onItemSelect,
         breadcrumbs,
         onDisplayNameChange,
+        onDecoratorsChange,
     }: {
         data: { id?: string };
         onItemSelect?: (item: { data: unknown }) => void;
         breadcrumbs?: unknown[];
         onDisplayNameChange?: (name: string | undefined) => void;
+        onDecoratorsChange?: (decorators: unknown[]) => void;
     }) => {
         const { onNavigateToDetailedArch } = useDiagramActions();
         return (
@@ -247,6 +249,18 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
                 }
             >
                 select n3
+            </button>
+            {/* Simulates the decorators fetch resolving. */}
+            <button
+                data-testid="report-decorators"
+                onClick={() =>
+                    onDecoratorsChange?.([
+                        { uniqueId: 'obs-n1', type: 'observability', target: [], appliesTo: ['n1'], data: { owner: 'team-a' } },
+                        { uniqueId: 'obs-n2', type: 'observability', target: [], appliesTo: ['n2'], data: { owner: 'team-b' } },
+                    ])
+                }
+            >
+                report decorators
             </button>
             <button
                 data-testid="select-edge"
@@ -914,6 +928,40 @@ describe('Hub', () => {
         expect(screen.queryByTestId('node-sheet')).not.toBeInTheDocument();
         // The desktop Sidebar renders the node title in its drawer.
         expect(screen.getByText('Node One')).toBeInTheDocument();
+    });
+
+    describe('decorators in the details drawer', () => {
+        it('lists the decorators of the selected node on desktop', () => {
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('report-decorators'));
+            fireEvent.click(screen.getByTestId('select-node'));
+
+            expect(screen.getByRole('heading', { name: 'Decorators' })).toBeInTheDocument();
+            expect(screen.getByRole('article', { name: 'observability decorator obs-n1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-n2' })).not.toBeInTheDocument();
+        });
+
+        it('lists the decorators of the selected node in the mobile sheet', () => {
+            const restore = mockMobileViewport(true);
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('report-decorators'));
+            fireEvent.click(screen.getByTestId('select-node'));
+
+            expect(screen.getByTestId('node-sheet')).toBeInTheDocument();
+            expect(screen.getByRole('article', { name: 'observability decorator obs-n1' })).toBeInTheDocument();
+            restore();
+        });
+
+        it('shows no Decorators section when none applies to the selected element', () => {
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('report-decorators'));
+            fireEvent.click(screen.getByTestId('select-edge'));
+
+            expect(screen.queryByRole('heading', { name: 'Decorators' })).not.toBeInTheDocument();
+        });
     });
 
     describe('the node query parameter', () => {

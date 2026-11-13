@@ -446,20 +446,24 @@ export class CalmService {
         const query = params.toString() ? `?${params.toString()}` : '';
         return this.ax
             .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/decorators/values${query}`, { headers })
-            .then((res) => res.data.values ?? []);
+            .then((res) => {
+                const values: unknown = res.data.values;
+                // An entry that is not an object cannot be a decorator, and would break the views that read its fields.
+                return Array.isArray(values) ? values.filter((value): value is Decorator => typeof value === 'object' && value !== null) : [];
+            });
     }
 
     /**
      * Builds the exact-match decorator target for one architecture version.
      *
-     * Resolves a slug identifier to its numeric ID via the mapping API. Returns undefined when the slug cannot be
-     * resolved (including when the mappings cannot be fetched).
+     * Resolves a slug identifier to its numeric ID via the mapping API. Returns undefined when the slug has no
+     * mapping, and rejects when the mappings request fails, so the caller can tell a failure from no decorators.
      */
     public async resolveArchitectureVersionTarget(namespace: string, id: string, version: string): Promise<string | undefined> {
         const versionPath = version.replace(/\./g, '-');
         let numericId = id;
         if (isSlug(id)) {
-            const mappings = await this.fetchMappings(namespace, 'Architectures');
+            const mappings = await this.requestMappings(namespace, 'Architectures');
             const match = mappings.find((m) => m.customId === id);
             if (!match) return undefined;
             numericId = String(match.numericId);
@@ -474,22 +478,22 @@ export class CalmService {
      * fetch fails.
      */
     public async fetchDeploymentDecoratorsForArchitecture(namespace: string, id: string, version: string): Promise<Decorator[]> {
-        const target = await this.resolveArchitectureVersionTarget(namespace, id, version);
+        const target = await this.resolveArchitectureVersionTarget(namespace, id, version).catch(() => undefined);
         if (!target) return []; // cannot resolve slug — skip decorator fetch
         return this.fetchDecoratorValues(namespace, target, 'deployment');
     }
 
     /**
-     * Fetches the control-evaluation decorators recorded against one architecture version, given the target from
-     * `resolveArchitectureVersionTarget`.
+     * Fetches the decorators recorded against one architecture version, of one type or of all types, given the target
+     * from `resolveArchitectureVersionTarget`.
      *
      * Unlike `fetchDecoratorValues` this rejects when the request fails, so a caller that refreshes can tell a failed
-     * refresh from a version with no evaluations and keep what it last showed. It does not log: a caller polling an
+     * refresh from a version with no decorators and keep what it last showed. It does not log: a caller polling an
      * unreachable hub would otherwise log every few seconds, so logging is left to the caller.
      */
-    public async fetchControlEvaluationDecorators(namespace: string, target: string): Promise<Decorator[]> {
-        return this.requestDecoratorValues(namespace, target, 'control-evaluation').catch(() =>
-            Promise.reject(new Error(`Error fetching control-evaluation decorators for namespace ${namespace}`))
+    public async fetchDecoratorsForTarget(namespace: string, target: string, type?: string): Promise<Decorator[]> {
+        return this.requestDecoratorValues(namespace, target, type).catch(() =>
+            Promise.reject(new Error(`Error fetching ${type ?? 'all'} decorators for namespace ${namespace}`))
         );
     }
 
@@ -510,21 +514,23 @@ export class CalmService {
 
     /** Fetches all named resources of a given type from the name-based namespace API. */
     public async fetchMappings(namespace: string, type?: string): Promise<ResourceMapping[]> {
-        const headers = await getAuthHeaders();
         if (!type) {
+            await getAuthHeaders();
             return [];
         }
-        const pluralType = this.calmTypeToPath(type);
+        return this.requestMappings(namespace, type).catch((error) => {
+            const errorMessage = `Error fetching mappings for namespace ${namespace}:`;
+            console.error('%s', errorMessage, error);
+            return [];
+        });
+    }
+
+    /** Like `fetchMappings`, but rejects when the request fails. */
+    private async requestMappings(namespace: string, type: string): Promise<ResourceMapping[]> {
+        const headers = await getAuthHeaders();
         return this.ax
-            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${pluralType}`, { headers })
-            .then((res) => {
-                return Array.isArray(res.data?.values) ? res.data.values : [];
-            })
-            .catch((error) => {
-                const errorMessage = `Error fetching mappings for namespace ${namespace}:`;
-                console.error('%s', errorMessage, error);
-                return [];
-            });
+            .get(`/calm/namespaces/${encodeURIComponent(namespace)}/${this.calmTypeToPath(type)}`, { headers })
+            .then((res) => (Array.isArray(res.data?.values) ? res.data.values : []));
     }
 
     /** Fetches the list of versions for a named (slug) resource. */

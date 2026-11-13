@@ -13,11 +13,15 @@ export interface DeploymentDecoratorData extends DecoratorData {
 export interface Decorator {
     schema?: string;
     uniqueId: string;
-    type: string;
+    /** The API does not require a type. */
+    type?: string;
     target: string[];
     targetType?: string[];
     appliesTo: string[];
     data: DecoratorData;
+    /** Hub-owned timestamps. The API does not return them yet, so each is optional. */
+    creationDateTime?: string;
+    updateDateTime?: string;
 }
 
 export interface DeploymentDecorator extends Decorator {
