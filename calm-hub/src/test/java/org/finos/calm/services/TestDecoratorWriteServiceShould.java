@@ -43,12 +43,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -115,7 +117,7 @@ class TestDecoratorWriteServiceShould {
                 () -> service.createDecorator(principal, NAMESPACE, RESERVED_JSON));
 
         assertThat(e.getType(), is("control-evaluation"));
-        verifyNoInteractions(mockDecoratorStore);
+        verifyNothingStored();
     }
 
     @ParameterizedTest
@@ -135,7 +137,7 @@ class TestDecoratorWriteServiceShould {
                 () -> service.createDecorator("alice", NAMESPACE, UNRESERVED_JSON));
 
         assertThat(e.getErrors(), is(errors));
-        verifyNoInteractions(mockDecoratorStore);
+        verifyNothingStored();
     }
 
     @Test
@@ -288,7 +290,7 @@ class TestDecoratorWriteServiceShould {
     void refuse_a_decorator_whose_hub_read_fields_have_the_wrong_type(String json) {
         assertThrows(JsonParseException.class, () -> service.createDecorator("alice", NAMESPACE, json));
         assertThrows(JsonParseException.class, () -> service.updateDecorator("alice", NAMESPACE, 1, json));
-        verifyNoInteractions(mockDecoratorStore);
+        verifyNothingStored();
     }
 
     @Test
@@ -326,6 +328,12 @@ class TestDecoratorWriteServiceShould {
         assertThat(DecoratorWriteService.principalName(null), is(nullValue()));
     }
 
+    // A refused write may ask whether the store is writable, and nothing else.
+    private void verifyNothingStored() {
+        verify(mockDecoratorStore, atLeastOnce()).requireWritable();
+        verifyNoMoreInteractions(mockDecoratorStore);
+    }
+
     private static Decorator decorator(String type) {
         return new Decorator.DecoratorBuilder().setType(type).build();
     }
@@ -361,7 +369,8 @@ class TestDecoratorWriteServiceShould {
 
         assertThrows(DecoratorTooLargeException.class, () -> service.createDecorator("alice", NAMESPACE, json));
         assertThrows(DecoratorTooLargeException.class, () -> service.updateDecorator("alice", NAMESPACE, 1, json));
-        verifyNoInteractions(mockDecoratorStore, mockSchemaValidator);
+        verifyNothingStored();
+        verifyNoInteractions(mockSchemaValidator);
     }
 
     @Test
@@ -369,7 +378,7 @@ class TestDecoratorWriteServiceShould {
         String json = "{\"data\": \"" + "\u00e9".repeat(SchemaValidationLimits.MAX_DECORATOR_JSON_BYTES / 2) + "\"}";
 
         assertThrows(DecoratorTooLargeException.class, () -> service.createDecorator("alice", NAMESPACE, json));
-        verifyNoInteractions(mockDecoratorStore);
+        verifyNothingStored();
     }
 
     // A {"data": "..."} decorator of the given size in UTF-8 bytes.

@@ -73,6 +73,8 @@ public class DecoratorWriteService {
     public int createDecorator(String principal, String namespace, String decoratorJson)
             throws NamespaceNotFoundException, ReservedDecoratorTypeException, DecoratorSchemaValidationException,
             DecoratorTooLargeException {
+        // In GitHub mode the checks below would ask the caller to fix a decorator that Hub can never store.
+        decoratorStore.requireWritable();
         requireSize(decoratorJson);
         JsonObject decorator = parse(decoratorJson);
         requireFieldTypes(decorator);
@@ -91,6 +93,7 @@ public class DecoratorWriteService {
             throws NamespaceNotFoundException, DecoratorNotFoundException, DecoratorSupersededException,
             ReservedDecoratorTypeException, DecoratorSchemaValidationException,
             DecoratorTooLargeException {
+        decoratorStore.requireWritable();
         requireSize(decoratorJson);
         JsonObject decorator = parse(decoratorJson);
         requireFieldTypes(decorator);

@@ -42,11 +42,13 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -524,7 +526,7 @@ class TestDecoratorToolsShould {
 
         assertThat(response.isError(), is(true));
         assertThat(text(response), containsString("'type' must be a string"));
-        verifyNoInteractions(decoratorStore);
+        verifyNothingStored();
     }
 
     @Test
@@ -533,7 +535,7 @@ class TestDecoratorToolsShould {
 
         assertThat(response.isError(), is(true));
         assertThat(text(response), containsString("'target' must be an array of strings"));
-        verifyNoInteractions(decoratorStore);
+        verifyNothingStored();
     }
 
     @Test
@@ -545,7 +547,7 @@ class TestDecoratorToolsShould {
         assertThat(warnings, contains(allOf(containsString("control-evaluation"), containsString("null"), containsString("workshop"))));
         assertThat(response[0].isError(), is(true));
         assertThat(text(response[0]), containsString("'control-evaluation' is reserved"));
-        verifyNoInteractions(decoratorStore);
+        verifyNothingStored();
     }
 
     @Test
@@ -588,7 +590,7 @@ class TestDecoratorToolsShould {
         assertThat(text(response), containsString("- /data/status: bad status"));
         assertThat(text(response), containsString("- (root): missing property"));
         assertThat(text(response), not(containsString("more")));
-        verifyNoInteractions(decoratorStore);
+        verifyNothingStored();
     }
 
     @Test
@@ -747,5 +749,11 @@ class TestDecoratorToolsShould {
         assertThat(response.isError(), is(true));
         assertThat(text(response), containsString("Decorator JSON"));
         verifyNoInteractions(decoratorStore);
+    }
+
+    // A write the service refuses may ask whether the store is writable, and nothing else.
+    private void verifyNothingStored() {
+        verify(decoratorStore, atLeastOnce()).requireWritable();
+        verifyNoMoreInteractions(decoratorStore);
     }
 }
