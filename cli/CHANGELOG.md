@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * resolve CURIEs in control requirement-url during validate ([#3592](https://github.com/finos/architecture-as-code/issues/3592)) ([9716348](https://github.com/finos/architecture-as-code/commit/9716348d6fb8c4b868ad30ed689aceab7e179c0f))
 * validate interface config against its definition-url ([#3618](https://github.com/finos/architecture-as-code/issues/3618)) ([cb419bd](https://github.com/finos/architecture-as-code/commit/cb419bd6a551aa3652cc14eddbb3cfe80b6c633e)), closes [#1994](https://github.com/finos/architecture-as-code/issues/1994)
 
+### 🐛 Bug Fixes
+
+* resolve Spectral $ref through the document loader ([0626cea](https://github.com/finos/architecture-as-code/commit/0626cea3235928ff70da740ed87e350fe15a11d1))
+
 ## [1.69.0](https://github.com/finos/architecture-as-code/compare/cli-v1.68.0...cli-v1.69.0) (2026-11-09)
 
 ### 🚀 Features
