@@ -9,7 +9,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -93,10 +92,8 @@ class TestNitriteDecoratorTimestampsShould {
 
     @Test
     void return_no_times_for_a_decorator_stored_before_hub_recorded_them() throws Exception {
-        Document legacy = Document.createDocument("decoratorId", 7)
-                .put("decorator", Document.createDocument("unique-id", "legacy").put("type", "deployment"));
-        database.getCollection("decorators").insert(Document.createDocument("namespace", NAMESPACE)
-                .put("decorators", new ArrayList<>(List.of(legacy))));
+        database.getCollection("decorators").insert(NitriteDecoratorStore.toStoredDocument(NAMESPACE, 7,
+                Document.createDocument("unique-id", "legacy").put("type", "deployment")));
 
         Decorator decorator = store.getDecoratorById(NAMESPACE, 7).orElseThrow();
 
@@ -108,10 +105,8 @@ class TestNitriteDecoratorTimestampsShould {
     // Hub does not know when an old decorator was created, so it does not invent a creation time.
     @Test
     void give_an_old_decorator_only_an_update_time_when_updating_it_in_place() throws Exception {
-        Document legacy = Document.createDocument("decoratorId", 7)
-                .put("decorator", Document.createDocument("unique-id", "legacy").put("type", "deployment"));
-        database.getCollection("decorators").insert(Document.createDocument("namespace", NAMESPACE)
-                .put("decorators", new ArrayList<>(List.of(legacy))));
+        database.getCollection("decorators").insert(NitriteDecoratorStore.toStoredDocument(NAMESPACE, 7,
+                Document.createDocument("unique-id", "legacy").put("type", "deployment")));
 
         store.updateDecorator(NAMESPACE, 7, decorator("changed"));
 
