@@ -28,6 +28,7 @@ import java.util.Optional;
  * standards within CalmHub namespaces via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class StandardTools {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardTools.class);

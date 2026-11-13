@@ -24,6 +24,7 @@ import java.util.Optional;
  * via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class DecoratorTools {
 
     private static final Logger logger = LoggerFactory.getLogger(DecoratorTools.class);
