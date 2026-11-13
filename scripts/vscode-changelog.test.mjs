@@ -137,6 +137,14 @@ describe('generateChangelog', () => {
         assert.match(changelog, /shared title \(\[#7\]/);
     });
 
+    it('lists each commit of a security advisory fork merge', async () => {
+        commit(`${EXTENSION_PATH}/src/d.ts`, 'Merge commit from fork',
+            '* fix(vscode): a security fix\n\n* test(vscode): a test for it', '---------\n\nCo-authored-by: A <a@example.com>');
+        const changelog = await generateChangelog(repo, '2026-01-02');
+        assert.match(changelog, /\*\*vscode:\*\* a security fix/);
+        assert.doesNotMatch(changelog, /Merge commit from fork/);
+    });
+
     it('lists changes to the node packs, but not to the rest of calm-diagram', async () => {
         commit(`${PACKS_PATH}/definitions/aws.ts`, 'feat(calm-diagram): add a pack node type');
         commit('calm-diagram/src/render/elkRender.ts', 'fix(calm-diagram): fix the docs renderer');

@@ -258,7 +258,9 @@ does the same for its own scopes. The VS Code extension releases on the changes 
 [calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md#releasing)). Check these files before
 assuming a commit is release-neutral. A
 merged PR with a conventional title is released on its title alone, so give the PR the type and scope
-of its most significant change. A plain `git revert` does not release.
+of its most significant change. A plain `git revert` does not release. GitHub merges a security
+advisory's private fork as one commit titled "Merge commit from fork", which you cannot change. The
+release tools read each commit that it holds, so give those commits conventional messages.
 
 ## Pre-Commit Checklist
 
