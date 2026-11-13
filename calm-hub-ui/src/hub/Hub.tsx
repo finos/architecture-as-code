@@ -10,12 +10,14 @@ import { IntroScreen } from './components/intro-screen/IntroScreen.js';
 import { SearchResultsPage } from './components/search-results/SearchResultsPage.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
 import { useResourceNavigationKey } from './hooks/useResourceNavigationKey.js';
+import { PersonalNamespaceControl, usePersonalNamespace } from './hooks/usePersonalNamespace.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { BreadcrumbItem, Data, Adr } from '../model/calm.js';
 import { ControlData } from '../model/control.js';
 import { InterfaceData } from '../model/interface.js';
 import { NamespaceCounts, DomainControlCount } from '../model/counts.js';
 import { CountsService } from '../service/counts-service.js';
+import { hideEmptyPersonalRoot } from '../model/personal-namespace.js';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { DocumentDetailSection } from './components/document-detail-section/DocumentDetailSection.js';
@@ -95,13 +97,13 @@ export default function Hub() {
 
     const countsService = useMemo(() => new CountsService(), []);
 
-    // Runs once: countsService is memoised and Hub is the top-level page, so this effect
-    // never re-fires and there is no in-flight fetch to cancel on a dependency change. (Unlike
-    // useNamespaceItems, whose fetch effect re-runs per namespace and so needs a cancel guard.)
-    useEffect(() => {
+    const loadNamespaceCounts = useCallback(() => {
         countsService
             .fetchNamespaceCounts()
-            .then(setNamespaceCounts)
+            .then((counts) => {
+                setNamespaceCounts(counts);
+                setNamespaceCountsFailed(false);
+            })
             // On failure counts are unknown, not zero: flag it so the tabs render
             // resting (no badge) rather than a misleading dimmed 0 while the
             // independent item grid still fills below.
@@ -113,6 +115,13 @@ export default function Hub() {
             // unknown (loading)" from "known zero" — an absent namespace after a
             // successful fetch is genuinely zero, not still loading.
             .finally(() => setNamespaceCountsLoaded(true));
+    }, [countsService]);
+
+    // Runs once: countsService is memoised and Hub is the top-level page, so this effect
+    // never re-fires and there is no in-flight fetch to cancel on a dependency change. (Unlike
+    // useNamespaceItems, whose fetch effect re-runs per namespace and so needs a cancel guard.)
+    useEffect(() => {
+        loadNamespaceCounts();
         countsService
             .fetchDomainCounts()
             .then(setDomainCounts)
@@ -121,7 +130,24 @@ export default function Hub() {
                 setDomainCountsFailed(true);
             })
             .finally(() => setDomainCountsLoaded(true));
-    }, [countsService]);
+    }, [countsService, loadNamespaceCounts]);
+
+    const personalNamespaceControl = usePersonalNamespace();
+    const { create: createPersonalNamespace } = personalNamespaceControl;
+    // A new personal namespace must appear in the browse grid and the rail, so counts reload.
+    const createAndReload = useCallback(async () => {
+        const created = await createPersonalNamespace();
+        if (created) loadNamespaceCounts();
+        return created;
+    }, [createPersonalNamespace, loadNamespaceCounts]);
+    const personalNamespace = useMemo<PersonalNamespaceControl>(
+        () => ({ ...personalNamespaceControl, create: createAndReload }),
+        [personalNamespaceControl, createAndReload]
+    );
+    const visibleNamespaceCounts = useMemo(
+        () => hideEmptyPersonalRoot(namespaceCounts, personalNamespace.state),
+        [namespaceCounts, personalNamespace.state]
+    );
 
     // The mobile drill-down overlay defaults open and would otherwise cover the
     // results on /search. Close it on route entry (during render, so a direct
@@ -386,7 +412,13 @@ export default function Hub() {
         !controlData &&
         !interfaceData
     ) {
-        return <IntroScreen namespaceCounts={namespaceCounts} domainCounts={domainCounts} />;
+        return (
+            <IntroScreen
+                namespaceCounts={visibleNamespaceCounts}
+                domainCounts={domainCounts}
+                personalNamespace={personalNamespace}
+            />
+        );
     }
 
     const detailContent = interfaceData ? (
@@ -470,7 +502,7 @@ export default function Hub() {
                     <div className={`h-full shrink-0 ${isSidebarOpen ? '' : 'w-12'} transition-all duration-300`}>
                         {isSidebarOpen ? (
                             <ExploreRail
-                                namespaceCounts={namespaceCounts}
+                                namespaceCounts={visibleNamespaceCounts}
                                 domainCounts={domainCounts}
                                 namespacesLoading={!namespaceCountsLoaded}
                                 domainsLoading={!domainCountsLoaded}
@@ -479,7 +511,7 @@ export default function Hub() {
                                 onCollapse={() => setIsSidebarOpen(false)}
                             />
                         ) : (
-                            <CollapsedRail namespaceCounts={namespaceCounts} onExpand={() => setIsSidebarOpen(true)} />
+                            <CollapsedRail namespaceCounts={visibleNamespaceCounts} onExpand={() => setIsSidebarOpen(true)} />
                         )}
                     </div>
                 )}
@@ -497,7 +529,7 @@ export default function Hub() {
                     >
                         <div className="flex-1 min-h-0 overflow-hidden">
                             <MobileNavMenu
-                                namespaceCounts={namespaceCounts}
+                                namespaceCounts={visibleNamespaceCounts}
                                 domainCounts={domainCounts}
                                 namespacesLoading={!namespaceCountsLoaded}
                                 domainsLoading={!domainCountsLoaded}

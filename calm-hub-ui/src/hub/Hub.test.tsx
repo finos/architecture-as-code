@@ -1,10 +1,11 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import Hub from './Hub.js';
 import { vi, describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { authStore } from '../service/utils/auth-store.js';
 import { CountsService } from '../service/counts-service.js';
+import { PersonalNamespaceService } from '../service/personal-namespace-service.js';
 import type { Data, Adr } from '../model/calm.js';
 import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
@@ -49,9 +50,10 @@ vi.mock('./hooks/useResourceFromRoute', () => ({
 }));
 
 vi.mock('./components/explore-rail/ExploreRail', () => ({
-    ExploreRail: ({ onCollapse }: { onCollapse?: () => void }) => (
+    ExploreRail: ({ onCollapse, namespacesFailed }: { onCollapse?: () => void; namespacesFailed?: boolean }) => (
         <div data-testid="explore-rail">
             <div>Explore Rail</div>
+            <div data-testid="rail-namespaces-failed">{String(Boolean(namespacesFailed))}</div>
             {onCollapse && (
                 <button aria-label="Collapse sidebar" onClick={onCollapse}>
                     Collapse
@@ -91,8 +93,17 @@ vi.mock('./components/domain-page/DomainPage', () => ({
 // carries its own theme/search wiring, exercised in its own spec. Here we only need
 // to confirm Hub early-returns the chrome-free intro on the empty `/` route.
 vi.mock('./components/intro-screen/IntroScreen', () => ({
-    IntroScreen: ({ namespaceCounts }: { namespaceCounts: { namespace: string }[] }) => (
-        <div data-testid="intro-screen">Intro ({namespaceCounts.length})</div>
+    IntroScreen: ({
+        namespaceCounts,
+        personalNamespace,
+    }: {
+        namespaceCounts: { namespace: string }[];
+        personalNamespace?: { create: () => Promise<boolean> };
+    }) => (
+        <div data-testid="intro-screen">
+            Intro ({namespaceCounts.length})
+            <button onClick={() => void personalNamespace?.create()}>create-personal</button>
+        </div>
     ),
 }));
 
@@ -100,6 +111,18 @@ vi.mock('./components/intro-screen/IntroScreen', () => ({
 // the real SearchService.
 vi.mock('./components/search-results/SearchResultsPage', () => ({
     SearchResultsPage: () => <div data-testid="search-results-page">Search Results</div>,
+}));
+
+// Personal namespaces are off by default, so the hook sees the feature as unavailable.
+vi.mock('../service/personal-namespace-service', () => ({
+    PersonalNamespaceService: class {
+        fetchPersonalNamespace() {
+            return Promise.resolve({ status: 'unavailable' });
+        }
+        createPersonalNamespace() {
+            return Promise.resolve({ status: 'unavailable' });
+        }
+    },
 }));
 
 // Counts service returns deterministic data for the page meta assertions.
@@ -470,6 +493,71 @@ describe('Hub', () => {
         loadInterface();
         expect(screen.getByTestId('interface-detail-section')).toBeInTheDocument();
         expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+    });
+
+    describe('personal namespace', () => {
+        const usersRoot = { namespace: 'users', architectures: 0, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 0 };
+        const finos = { namespace: 'finos', architectures: 1, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 1 };
+        const bob = { namespace: 'users.bob', architectures: 0, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 0 };
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it('hides the empty personal namespace root on the intro', async () => {
+            vi.spyOn(PersonalNamespaceService.prototype, 'fetchPersonalNamespace').mockResolvedValue({ status: 'available', name: 'users.bob' });
+            vi.spyOn(CountsService.prototype, 'fetchNamespaceCounts').mockResolvedValue([finos, usersRoot]);
+
+            renderAt('/');
+
+            await waitFor(() => expect(screen.getByTestId('intro-screen')).toHaveTextContent('Intro (1)'));
+        });
+
+        it('reloads the namespace counts after the personal namespace is created', async () => {
+            vi.spyOn(PersonalNamespaceService.prototype, 'fetchPersonalNamespace').mockResolvedValue({ status: 'available', name: 'users.bob' });
+            vi.spyOn(PersonalNamespaceService.prototype, 'createPersonalNamespace').mockResolvedValue({ status: 'owned', name: 'users.bob' });
+            const fetchCounts = vi
+                .spyOn(CountsService.prototype, 'fetchNamespaceCounts')
+                .mockResolvedValueOnce([finos, usersRoot])
+                .mockResolvedValueOnce([finos, usersRoot, bob]);
+
+            renderAt('/');
+            await waitFor(() => expect(screen.getByTestId('intro-screen')).toHaveTextContent('Intro (1)'));
+            fireEvent.click(screen.getByText('create-personal'));
+
+            await waitFor(() => expect(screen.getByTestId('intro-screen')).toHaveTextContent('Intro (3)'));
+            expect(fetchCounts).toHaveBeenCalledTimes(2);
+        });
+
+        it('clears the counts failure when the reload after a create succeeds', async () => {
+            vi.spyOn(PersonalNamespaceService.prototype, 'fetchPersonalNamespace').mockResolvedValue({ status: 'available', name: 'users.bob' });
+            vi.spyOn(PersonalNamespaceService.prototype, 'createPersonalNamespace').mockResolvedValue({ status: 'owned', name: 'users.bob' });
+            const fetchCounts = vi
+                .spyOn(CountsService.prototype, 'fetchNamespaceCounts')
+                .mockRejectedValueOnce(new Error('boom'))
+                .mockResolvedValueOnce([finos, usersRoot, bob]);
+
+            renderWithNav('/', ['/namespace/finos']);
+            await waitFor(() => expect(fetchCounts).toHaveBeenCalledTimes(1));
+            fireEvent.click(screen.getByText('create-personal'));
+            await waitFor(() => expect(fetchCounts).toHaveBeenCalledTimes(2));
+            navigateTo('/namespace/finos');
+
+            await waitFor(() => expect(screen.getByTestId('rail-namespaces-failed')).toHaveTextContent('false'));
+        });
+
+        it('does not reload the counts when the name is taken', async () => {
+            vi.spyOn(PersonalNamespaceService.prototype, 'fetchPersonalNamespace').mockResolvedValue({ status: 'available', name: 'users.bob' });
+            vi.spyOn(PersonalNamespaceService.prototype, 'createPersonalNamespace').mockResolvedValue({ status: 'taken', name: 'users.bob' });
+            const fetchCounts = vi.spyOn(CountsService.prototype, 'fetchNamespaceCounts').mockResolvedValue([finos]);
+
+            renderAt('/');
+            await waitFor(() => expect(fetchCounts).toHaveBeenCalledTimes(1));
+            fireEvent.click(screen.getByText('create-personal'));
+
+            await waitFor(() => expect(PersonalNamespaceService.prototype.createPersonalNamespace).toHaveBeenCalled());
+            expect(fetchCounts).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe('route-driven pages', () => {
