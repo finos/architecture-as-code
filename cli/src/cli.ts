@@ -13,6 +13,8 @@ import {
     PushOptions,
     PullOptions,
     runCreateNamespace,
+    runCreateMyNamespace,
+    runWhoami,
     runListArchitectures,
     runListNamespaces,
     runListPatterns,
@@ -985,6 +987,18 @@ Example:
         });
 
     // hub create
+    hubCmd
+        .command('whoami')
+        .description('Show your personal namespace in CALM Hub, and whether it exists')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            await runWhoami({
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                format: options.format
+            });
+        });
+
     const hubCreateCmd = hubCmd.command('create').description('Create CALM Hub resources');
 
     hubCreateCmd
@@ -1002,6 +1016,18 @@ Example:
                 format: options.format
             };
             await runCreateNamespace(createOptions);
+        });
+
+    hubCreateCmd
+        .command('my-namespace')
+        .description('Create your personal namespace in CALM Hub. Does nothing if you already own it.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            await runCreateMyNamespace({
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                format: options.format
+            });
         });
 
     hubCreateCmd

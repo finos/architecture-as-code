@@ -795,10 +795,10 @@ calm hub list control-configurations --domain security --control-name encryption
 
 ### `calm hub create`
 
-Creates a new namespace or domain.
+Creates a new namespace or domain, or your personal namespace.
 
 ```
-calm hub create <namespace|domain> [options]
+calm hub create <namespace|domain|my-namespace> [options]
 ```
 
 | Option | Applies to | Description |
@@ -811,6 +811,16 @@ calm hub create <namespace|domain> [options]
 ```shell
 calm hub create namespace --name com.example --description "Example org namespace"
 calm hub create domain --name security
+```
+
+`calm hub create my-namespace` creates your personal namespace when the CALM Hub operator has turned on personal namespaces. It takes only `-c` and `-f`, and does nothing if you already own the namespace.
+
+### `calm hub whoami`
+
+Shows your personal namespace and whether it exists, is yours, or is held by another user. Takes `-c` and `-f`.
+
+```shell
+calm hub whoami --format pretty
 ```
 
 ## CALM Workspace

@@ -86,6 +86,8 @@ export {
     type HubNamespaceSummary,
     type HubCreateResult,
     type HubNamespaceCreateResult,
+    type HubPersonalNamespace,
+    type HubPersonalNamespaceCreateResult,
     type HubDomainCreateResult,
     type HubDomainSummary,
     type HubControlSummary,
