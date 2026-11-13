@@ -332,6 +332,11 @@ Reference components for the patterns above: `hub/Hub.tsx`, `components/navbar/N
 - All new components and services must have tests
 - Mock services at the module level with `vi.mock` and class constructor patterns
 - E2E tests are in `cypress/`
+- A test that fails only on CI with `Number of calls: 0` just after `await screen.findBy…` is
+  usually an effect that has not run yet. To reproduce it, stub `performance.now` to add 10 ms on
+  each call before `render`. Fix it with `await waitFor(...)` around the assertion.
+- React Flow 11 gives a custom edge `url('#')` for an unset marker. Treat it as no marker (see
+  `referencedMarker` in `FloatingEdge.tsx`), and test marker changes through a real `<ReactFlow>`.
 
 ### Storage must be injected, never taken from the global
 
