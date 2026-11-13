@@ -291,7 +291,10 @@ Before considering any code change ready:
 - [ ] **All new code has tests** (unit and/or integration tests)
 - [ ] **Linting passes**: `npm run lint` (0 errors)
 - [ ] **Code builds successfully**: `npm run build` AND `./mvnw clean install`
-- [ ] **Documentation updated** if behavior changed
+- [ ] **Docs match the change**: when a change alters behaviour, a command, a config option, an
+  API or a workflow, update every doc that describes it in the same PR: the docs site
+  (`docs/docs/`), the package README, and the AGENTS.md that covers it. Search the repo for the
+  old name or behaviour to find them.
 - [ ] **Test coverage meets requirements** (>80% for new code)
 - [ ] **Commit message follows Conventional Commits** (enforced by husky)
 
