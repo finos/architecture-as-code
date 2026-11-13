@@ -1,5 +1,6 @@
 package org.finos.calm.mcp.tools;
 
+import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolResponse;
 import io.quarkus.arc.Arc;
 import io.quarkus.test.InjectMock;
@@ -25,13 +26,17 @@ import static org.finos.calm.mcp.tools.McpTestClient.callTool;
 import static org.finos.calm.mcp.tools.McpTestClient.text;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/** MCP is not served through JAX-RS, so the read-only filter does not see it: each write tool must refuse itself. */
+/**
+ * MCP is not served through JAX-RS, so the read-only filter does not see it: each write tool must refuse itself.
+ * tools/list hides those tools.
+ */
 @QuarkusTest
 @TestProfile(TestMcpToolsReadOnlyShould.ReadOnlyProfile.class)
 class TestMcpToolsReadOnlyShould {
@@ -110,6 +115,39 @@ class TestMcpToolsReadOnlyShould {
 
         assertThat(text(result), is(ReadOnlyHubGuardInterceptor.READ_ONLY_MESSAGE));
         verifyNoInteractions(mockDecoratorStore);
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void list_only_the_tools_that_do_not_change_data() {
+        List<String> listed = McpTestClient.listTools().stream()
+                .map(tool -> ((JsonObject) tool).getString("name")).toList();
+
+        assertThat(listed, hasItems("listNamespaces", "listDecorators", "test_read_only_guard_read"));
+        for (Bean<?> bean : Arc.container().beanManager().getBeans(Object.class, Any.Literal.INSTANCE)) {
+            for (Method method : bean.getBeanClass().getDeclaredMethods()) {
+                if (ReadOnlyHubGuardInterceptor.changesData(method)) {
+                    assertThat(listed, not(hasItem(toolName(method))));
+                }
+            }
+        }
+        assertThat(listed, not(hasItem("createNamespace")));
+    }
+
+    @Test
+    @TestSecurity(user = "bob")
+    void refuse_a_hidden_tool_called_over_mcp_by_name() {
+        when(mockUserAccessStore.getGrantsForUser("bob")).thenReturn(List.of());
+
+        JsonObject result = callTool("createNamespace", new JsonObject().put("name", "hidden"));
+
+        assertThat(result.encode(), result.getBoolean("isError"), is(true));
+        assertThat(text(result), is(ReadOnlyHubGuardInterceptor.READ_ONLY_MESSAGE));
+    }
+
+    private static String toolName(Method method) {
+        String name = method.getAnnotation(Tool.class).name();
+        return name.isEmpty() ? method.getName() : name;
     }
 
     private static Object[] defaultArguments(Method method) {
