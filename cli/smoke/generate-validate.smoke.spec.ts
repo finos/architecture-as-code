@@ -5,7 +5,7 @@ import { installPackedCli, type CliInstall } from '../src/test_helpers/cli-runne
 import { SMOKE_HUB_URL } from './global-setup';
 import { hubApi } from './harness/hub-api';
 import { hubDocId, readJson } from './harness/fixtures';
-import { CROSS_HOST, serveCrossHostOrigin, type CrossHostOrigin } from './harness/cross-host-origin';
+import { crossHostEnv, serveCrossHostOrigin, type CrossHostOrigin } from './harness/cross-host-origin';
 
 const CLI_ROOT = path.resolve(__dirname, '..');
 const NS = 'smoke-genval';
@@ -42,7 +42,7 @@ describe('Flow 2: generate/validate (local + CalmHub refs)', () => {
 
     // The allowlist replaces the calm.finos.org default, so nothing in this flow is fetched from
     // calm.finos.org: its meta schemas come from the CLI bundle.
-    const run = (args: string[]) => cli.run(args, { env: { CALM_ALLOWED_REMOTE_HOSTS: CROSS_HOST } });
+    const run = (args: string[]) => cli.run(args, { env: crossHostEnv() });
 
     beforeAll(async () => {
         crossHost = await serveCrossHostOrigin(CROSS_HOST_CONTROLS_DIR);

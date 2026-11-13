@@ -112,6 +112,30 @@ describe('direct-url-document-loader', () => {
             .rejects.toThrow('private or internal network addresses are not allowed');
     });
 
+    it.each([
+        'http://x.localhost/admin',
+        'http://SMOKE.Controls.LocalHost./admin',
+        'http://[::ffff:127.0.0.1]/admin',
+        'http://[::ffff:7f00:1]/admin',
+        'http://[::ffff:10.0.0.1]/admin',
+        'http://[::ffff:169.254.169.254]/latest/meta-data',
+        'http://[::]/admin',
+    ])('rejects a loopback or private host even when it is allowlisted: %s', async (url) => {
+        const loader = new DirectUrlDocumentLoader(false, ax, [new URL(url).hostname]);
+        await expect(loader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('private or internal network addresses are not allowed');
+    });
+
+    it.each([
+        'https://localhost.example.com/document.json',
+        'https://notlocalhost/document.json',
+        'https://[::ffff:8.8.8.8]/document.json',
+        'https://[2001:db8::1]/document.json',
+    ])('does not treat a public host as private: %s', async (url) => {
+        await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('is not allowlisted');
+    });
+
     it('does not block legitimate hostnames starting with IP-like prefixes', async () => {
         const url = 'https://10.example.com/document.json';
         // Should NOT throw "private or internal" - it's a DNS name, not an IP

@@ -20,11 +20,15 @@ const PRIVATE_IPV4_PATTERNS = [
 ];
 
 const PRIVATE_IPV6_PATTERNS = [
+    /^::$/,
     /^::1$/,
     /^fc/i,
     /^fd/i,
     /^fe80:/i,
 ];
+
+// The URL parser writes [::ffff:127.0.0.1] as [::ffff:7f00:1].
+const IPV4_MAPPED_IPV6 = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i;
 
 const TLS_CERTIFICATE_ERROR_CODES = new Set([
     'ERR_TLS_CERT_ALTNAME_INVALID',
@@ -47,15 +51,27 @@ const TLS_CERTIFICATE_ERROR_MESSAGES = [
     /unable to verify leaf signature/i,
 ];
 
+function isPrivateIPv4(address: string): boolean {
+    return PRIVATE_IPV4_PATTERNS.some(p => p.test(address));
+}
+
 function isPrivateHost(hostname: string): boolean {
-    if (/^localhost$/i.test(hostname)) return true;
+    // RFC 6761: every *.localhost name is loopback.
+    if (/(^|\.)localhost\.?$/i.test(hostname)) return true;
     // URL.hostname wraps IPv6 in brackets; strip them for ipLiteralVersion/pattern checks
     const bare = hostname.startsWith('[') && hostname.endsWith(']')
         ? hostname.slice(1, -1)
         : hostname;
     const ipVersion = ipLiteralVersion(bare);
-    if (ipVersion === 4) return PRIVATE_IPV4_PATTERNS.some(p => p.test(bare));
-    if (ipVersion === 6) return PRIVATE_IPV6_PATTERNS.some(p => p.test(bare));
+    if (ipVersion === 4) return isPrivateIPv4(bare);
+    if (ipVersion === 6) {
+        const mapped = IPV4_MAPPED_IPV6.exec(bare);
+        if (mapped) {
+            const [high, low] = [mapped[1], mapped[2]].map(hextet => parseInt(hextet, 16));
+            return isPrivateIPv4(`${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`);
+        }
+        return PRIVATE_IPV6_PATTERNS.some(p => p.test(bare));
+    }
     return false;
 }
 
