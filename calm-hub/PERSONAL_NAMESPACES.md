@@ -60,7 +60,7 @@ Returns the caller's personal namespace and whether it is theirs.
 
 | Case | Status | Body |
 |---|---|---|
-| Not created yet | 200 | `exists: false`, `owned: false` |
+| Not created yet, or left with no grants by the caller's own failed create | 200 | `exists: false`, `owned: false`. A `PUT` creates or claims it |
 | Created by the caller | 200 | `exists: true`, `owned: true` |
 | Taken by a different principal | 200 | `exists: true`, `owned: false` |
 | Principal cannot be made into a segment | 422 | Error |

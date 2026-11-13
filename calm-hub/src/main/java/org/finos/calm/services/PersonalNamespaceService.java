@@ -153,7 +153,9 @@ public class PersonalNamespaceService {
     public Optional<PersonalNamespace> get(String principal) {
         return namespaceFor(principal).map(name -> {
             boolean exists = namespaceStore.namespaceExists(name);
-            return new PersonalNamespace(name, exists, exists && isOwner(principal, name));
+            boolean owned = exists && isOwner(principal, name);
+            boolean claimable = exists && !owned && isUnclaimedFor(principal, name);
+            return new PersonalNamespace(name, exists && !claimable, owned);
         });
     }
 
