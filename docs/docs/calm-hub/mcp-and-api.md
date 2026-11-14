@@ -170,6 +170,7 @@ Endpoints are protected by **per-namespace permissions**. Access is granted via 
 | `admin` | namespace | Read + write + manage access grants (implies `write`) |
 | `domain_read` | control domain | Read controls in a domain |
 | `domain_write` | control domain | Write controls in a domain |
+| `domain_admin` | control domain | Manage the access grants of a domain |
 | `global_admin` | all namespaces | Bypasses all namespace permission checks (`admin` on the reserved `GLOBAL` namespace) |
 
 Namespace permissions follow a hierarchical model using `.` as a separator (`org`, `org.team`, `org.team.project`). `read` is AND-ed across the ancestor chain (every level must have a matching grant); `write` and `admin` cascade from any ancestor via OR. See [`calm-hub/PERMISSIONS.md`](https://github.com/finos/architecture-as-code/blob/main/calm-hub/PERMISSIONS.md) and the [entitlements guide](../working-with-calm/calm-hub-entitlements.md) for the full model.

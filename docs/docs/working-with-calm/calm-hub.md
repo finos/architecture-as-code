@@ -146,7 +146,7 @@ An unknown `?tab=` value opens the Diagram tab. The old `?tab=deployments` link 
 
 ### Decorator Overlays
 
-Some decorator types are drawn on the diagram as an overlay. Each node or relationship gets a badge with its status, and a status that needs attention also colours the element: red for an error, amber for a warning. CALM Hub has two built-in overlays:
+Some decorator types are drawn on the diagram as an overlay. Each node or relationship gets a badge with its status, and a status that needs attention also colours the element: red for an error, amber for a warning. CALM Hub has two built-in overlays, and an extension can add more (see [decorator views](../calm-hub/decorator-views.md)):
 
 | Overlay | Decorator type | Shows |
 |---|---|---|
@@ -246,7 +246,8 @@ Selecting a control from a **Control Domain** (e.g. `security` or `ai-governance
 
 ## Extensions
 
-An operator can install extensions (see [Extensions](../calm-hub/index.md#extensions)). The UI groups what they add:
+An operator can install extensions (see [Extensions](../calm-hub/index.md#extensions), and the
+[extension tutorial](../tutorials/advanced/hub-extension.md)). The UI groups what they add:
 
 * **Home page:** an **Extensions** section under **Namespaces**, with one card per extension. A card shows the extension name, its provider and up to three figures, or one line of text. If the extension has a screen, click the card to open it.
 * **Side menu:** an **Extensions** group with one entry per extension screen.
@@ -259,3 +260,5 @@ An operator can install extensions (see [Extensions](../calm-hub/index.md#extens
 ## Access Control
 
 CALM Hub uses a hierarchical entitlement model to control who can read, write, and administer namespaces. See [CALM Hub Entitlements](./calm-hub-entitlements) for the full model, worked examples, and API usage.
+
+For extension routes and JSON blocks, see the [extension blocks reference](../calm-hub/extension-blocks.md).
