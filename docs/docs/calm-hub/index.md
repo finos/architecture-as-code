@@ -20,6 +20,7 @@ CALM Hub exposes a RESTful HTTP API that powers both the [CALM Hub UI](../workin
 | **Namespace-scoped artefact store** | Architectures, patterns, flows, standards, interfaces, ADRs, and controls organised under user-defined namespaces |
 | **Versioned resources** | Every artefact carries an incrementing version history; compare any two versions via the timeline UI |
 | **Multiple storage backends** | MongoDB (production), NitriteDB embedded (standalone/development), or a baked-in read-only database (static distribution) |
+| **Configs** | Versioned tool settings, such as a C4 mapping, checked against the schema of their type. A namespace names a default, and child namespaces inherit it. See [Configs](./mcp-and-api.md#configs) |
 | **Read-only mode** | Serves a pre-seeded, immutable CALM dataset with no external database dependency; mutating requests are rejected with HTTP 405 |
 | **Scope-based access control** | Fine-grained OAuth2 scopes (e.g. `architectures:read`, `architectures:all`, `namespace:admin`) enforced per endpoint |
 | **OpenAPI / Swagger UI** | Auto-generated API documentation always available at `/q/swagger-ui` |

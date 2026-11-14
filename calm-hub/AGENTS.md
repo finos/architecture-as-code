@@ -339,7 +339,7 @@ CALM Hub includes an experimental [Model Context Protocol](https://modelcontextp
 
 Tool providers are in `src/main/java/org/finos/calm/mcp/tools/`:  
 `ArchitectureTools`, `PatternTools`, `ControlTools`, `DomainTools`, `InterfaceTools`,  
-`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`.
+`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`, `ConfigTools`.
 
 Enable for development:
 ```bash
@@ -461,6 +461,14 @@ from; it fails if there is none.
 - Tests generate key pairs at run time (`ExtensionTestKeys`); `*.pem` is git-ignored. `FixtureBackend` is a
   loopback backend for proxy tests
 - Try it: see `local-dev/extensions/example-services/README.md`
+
+### Configs
+- Versioned tool settings at `/api/calm/namespaces/{ns}/configs/{type}`, with a namespace default that child
+  namespaces inherit (`ConfigService.resolveDefault`). See ADR 0019
+- To add a config type: put its JSON Schema in `src/main/resources/META-INF/calm-config-types/` with the `$id`
+  that the new `ConfigType` constant names, and add the constant. `ConfigSchemaValidator` fails start-up if the
+  file is missing or its `$id` differs. Storage, REST, MCP and GitHub mode need no change
+- GitHub mode reads `configs/<type>/*.json`. `configs/<type>/default.json` is the namespace default
 
 ### Read-Only Deployment Mode
 - `calm.readonly=true` opens Nitrite with `readOnly(true)` and installs

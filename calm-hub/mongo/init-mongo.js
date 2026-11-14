@@ -230,7 +230,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 16;
+const LATEST_SCHEMA_VERSION = 17;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -285,6 +285,9 @@ if (isEmptyDatabase) {
     db.pattern_layouts.createIndex({ namespace: 1, patternId: 1 }, unique);
     db.documents.createIndex({ namespace: 1, documentType: 1, documentId: 1 }, unique);
     db.documentVersions.createIndex({ namespace: 1, documentType: 1, documentId: 1, version: 1 }, unique);
+    db.configs.createIndex({ namespace: 1, configType: 1, configId: 1 }, unique);
+    db.configVersions.createIndex({ namespace: 1, configType: 1, configId: 1, version: 1 }, unique);
+    db.configDefaults.createIndex({ namespace: 1, configType: 1 }, unique);
     // Control (ADR 0007): the requirement axis is keyed exactly like the other seven types
     // above, domain standing in for namespace. The configuration axis is a second, independent
     // header/version pair keyed by a synthetic (domain::controlId) namespace, since a

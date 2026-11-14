@@ -42,6 +42,11 @@ public class CalmContentDetector {
             return Optional.empty();
         }
 
+        // Before the content checks: a config type's schema URL can contain a keyword such as "flow".
+        if (filePath != null && ConfigFiles.configType(filePath).isPresent()) {
+            return Optional.of(RegistryResourceType.CONFIG);
+        }
+
         String parentDir = getParentDirectoryName(filePath);
 
         if (isTimeline(json)) {

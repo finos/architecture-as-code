@@ -148,6 +148,40 @@ The MCP tool `getDecoratorHistory` returns the same history.
 
 An update grows a history only when the old or new type is reserved. Then Hub adds a full copy of the decorator, and it does not remove old entries. Other updates change the decorator in place. In MongoDB, all decorators of a namespace are in one document, and MongoDB limits a document to 16 MB. At the limit, each write that makes that document larger fails with `413`, for all decorators in the namespace. To recover, a global admin deletes histories that are no longer necessary with `DELETE .../decorators/{id}`. This deletes the whole history, current decorator included, so the writer must then create the current result again. NitriteDB has no such limit, but its storage also grows.
 
+### Configs
+
+A config is versioned JSON that tools read to decide how to process or show CALM documents. Each config has a type, and each type has a JSON Schema. `GET /api/calm/config-types` lists the types and their schemas. The first type is `c4-mapping`, which maps CALM node types to C4 kinds.
+
+| Request | Effect | Permission |
+|:--------|:-------|:-----------|
+| `GET /api/calm/namespaces/{namespace}/configs/{type}` | Lists the configs of the type | `read` |
+| `POST /api/calm/namespaces/{namespace}/configs/{type}` | Creates a config at version `1.0.0` | `write` |
+| `GET .../configs/{type}/{id}/versions` | Lists the versions | `read` |
+| `GET .../configs/{type}/{id}/versions/{version}` | Returns the config JSON | `read` |
+| `POST .../configs/{type}/{id}/versions/{version}` | Adds a version. Versions are immutable: an existing version gives `409` | `write` |
+| `GET .../configs/{type}/default` | Returns the default that applies to the namespace | `read` |
+| `PUT .../configs/{type}/default` | Names a config version in this namespace as its default. Body: `{"configId": 3, "version": "1.1.0"}` | `admin` |
+| `DELETE .../configs/{type}/default` | Removes the default of this namespace | `admin` |
+
+A write takes `{"name", "description", "configJson": "<config as a JSON string>"}`. Hub checks `configJson` against the schema of the type. If it does not match, Hub returns `400` with the first 20 errors, each with its `location`, as for decorators. An unknown type gives `400`. A config larger than 1 MiB gives `400`.
+
+A child namespace inherits the default of its nearest ancestor. For `org.ab.cd`, Hub uses the default of `org.ab.cd`, else `org.ab`, else `org`. The response tells where the default comes from:
+
+```json
+{
+  "configType": "c4-mapping",
+  "namespace": "org",
+  "configId": 3,
+  "version": "1.1.0",
+  "inherited": true,
+  "config": { "unique-id": "acme-c4-mapping", "node-types": { "aws:lambda": "container" } }
+}
+```
+
+If no namespace in the chain sets a default, Hub returns `404`, and a tool uses its built-in default. A default names a config in the same namespace. A namespace that holds a config or a default cannot be deleted.
+
+In GitHub mode, a config is a JSON file under `configs/<type>/` in the namespace repository, and `configs/<type>/default.json` is the default of that namespace. Versions are commit SHAs. Hub does not check these files against the schema. Writes return `501`.
+
 ### Access Control
 
 Endpoints are protected by **per-namespace permissions**. Access is granted via `UserAccess` records stored in the active backend; each record ties a username to a permission level for a specific namespace or control domain.
@@ -215,6 +249,7 @@ CALM Hub uses the **HTTP Streamable** MCP transport (Quarkiverse `quarkus-mcp-se
 | `StandardTools` | `list_standards` |
 | `TimelineTools` | `get_timeline` |
 | `AdrTools` | `list_adrs`, `get_adr` |
+| `ConfigTools` | `listConfigs`, `getConfig`, `getNamespaceDefaultConfig` |
 
 To retrieve the full tool list from a running instance:
 

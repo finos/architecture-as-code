@@ -4,6 +4,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.ConfigStore;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.InterfaceStore;
@@ -52,6 +53,8 @@ class TestNamespaceContentServiceShould {
     LayoutStore mockLayoutStore;
     @Mock
     PatternLayoutStore mockPatternLayoutStore;
+    @Mock
+    ConfigStore mockConfigStore;
 
     NamespaceContentService service;
 
@@ -60,7 +63,7 @@ class TestNamespaceContentServiceShould {
         service = new NamespaceContentService(
                 mockArchitectureStore, mockPatternStore, mockFlowStore, mockStandardStore,
                 mockAdrStore, mockInterfaceStore, mockTimelineStore, mockDecoratorStore, mockLayoutStore,
-                mockPatternLayoutStore);
+                mockPatternLayoutStore, mockConfigStore);
     }
 
     @Test
@@ -77,6 +80,7 @@ class TestNamespaceContentServiceShould {
         verify(mockDecoratorStore).getDecoratorsForNamespace(NAMESPACE, null, null);
         verify(mockLayoutStore).getArchitectureIdsWithLayoutForNamespace(NAMESPACE);
         verify(mockPatternLayoutStore).getPatternIdsWithLayoutForNamespace(NAMESPACE);
+        verify(mockConfigStore).hasContent(NAMESPACE);
     }
 
     @Test
@@ -161,5 +165,12 @@ class TestNamespaceContentServiceShould {
                 .thenThrow(new RuntimeException("store unavailable"));
 
         assertThrows(RuntimeException.class, () -> service.hasContent(NAMESPACE));
+    }
+
+    @Test
+    void return_true_when_the_namespace_holds_only_configs_or_config_defaults() {
+        when(mockConfigStore.hasContent(NAMESPACE)).thenReturn(true);
+
+        assertThat(service.hasContent(NAMESPACE), is(true));
     }
 }
