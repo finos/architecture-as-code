@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>calm-hub</artifactId>
-    <version>0.7.7</version>
+    <version>0.8.0</version>
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
