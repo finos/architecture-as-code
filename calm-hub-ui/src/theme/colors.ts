@@ -109,6 +109,19 @@ export const colors = {
         backward: '#a855f7', // purple-500
     },
 
+    // The usual C4 palette. Text on each fill is `onFill`, except on a component. `container` is darker than
+    // C4's #438dd5, which gives white text only 3.5:1.
+    c4: {
+        person: '#08427b',
+        softwareSystem: '#1168bd',
+        container: '#2f74c0',
+        component: '#85bbf0',
+        external: '#666666',
+        onFill: '#ffffff',
+        onComponent: '#0b2540',
+        guessed: '#b45309',
+    },
+
     // Group/container colors for visualization
     group: {
         background: 'var(--calm-group-bg)',
