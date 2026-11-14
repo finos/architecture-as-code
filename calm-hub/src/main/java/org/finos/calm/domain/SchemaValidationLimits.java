@@ -13,6 +13,9 @@ public final class SchemaValidationLimits {
      */
     public static final int MAX_DECORATOR_JSON_BYTES = 1024 * 1024;
 
+    /** Hub refuses a convention write larger than this many bytes of UTF-8 JSON, for the same reason. */
+    public static final int MAX_CONVENTION_JSON_BYTES = 1024 * 1024;
+
     private SchemaValidationLimits() {
     }
 }
