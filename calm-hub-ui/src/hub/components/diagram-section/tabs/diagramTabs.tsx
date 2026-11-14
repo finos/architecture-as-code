@@ -1,4 +1,7 @@
-import { IoCodeOutline, IoEyeOutline, IoGitNetworkOutline, IoPricetagsOutline } from 'react-icons/io5';
+import { IoCodeOutline, IoEyeOutline, IoGitNetworkOutline, IoLayersOutline, IoPricetagsOutline } from 'react-icons/io5';
+import { isSlug } from '../../../../model/calm.js';
+import { C4Tab } from '../c4/C4Tab.js';
+import { C4_TAB_PARAMS } from '../c4/c4Display.js';
 import { JsonRenderer } from '../../json-renderer/JsonRenderer.js';
 import { DecoratorsPanel } from '../decorators/DecoratorsPanel.js';
 import { UsedByPanel } from '../used-by/UsedByPanel.js';
@@ -29,6 +32,23 @@ export const DIAGRAM_TABS: readonly DiagramTab[] = [
         label: 'Diagram',
         icon: IoEyeOutline,
         render: ({ diagram }) => <div className="w-full h-full">{diagram}</div>,
+    },
+    {
+        id: 'c4',
+        label: 'C4',
+        title: 'C4 context, container, component and deployment diagrams',
+        icon: IoLayersOutline,
+        isVisible: ({ isArchitecture }) => isArchitecture,
+        searchParams: C4_TAB_PARAMS,
+        render: ({ data, searchParams, setTabParams }) => (
+            <C4Tab
+                architecture={data.calmType === 'Architectures' ? data.data : undefined}
+                namespace={data.name}
+                architectureName={isSlug(data.id) ? data.id : undefined}
+                searchParams={searchParams}
+                setTabParams={setTabParams}
+            />
+        ),
     },
     {
         id: 'json',
