@@ -1,5 +1,5 @@
-// The C4 mapping standard is finos/calm-schema#53 (`standards/c4/1.0`). Load the default from
-// @finos/calm-schema instead of this copy once a release ships it.
+// The C4 mapping standard is published at https://calm.finos.org/standards/c4/1.0/. This copy of the default
+// follows the published calm-default.c4-mapping.json, so that the projection makes no network request.
 
 export const C4_KINDS = [
     'person',
