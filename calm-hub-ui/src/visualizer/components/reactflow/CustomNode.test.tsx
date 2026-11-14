@@ -10,6 +10,8 @@ import { mockOffsetSize } from '../../../test-support/layout-mocks.js';
 import { THEME, getRiskLevelColor, getNodeTypeColor } from './theme.js';
 import { EvaluationOverlayProvider } from '../../../test-support/evaluation-overlay.js';
 import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
+import { DecoratorOverlayContext } from '../../context/DecoratorOverlayContext.js';
+import { fakeElement, fakeView } from '../../../test-support/fake-overlays.js';
 import type { ElementEvaluation, ControlEvaluationDecorator } from '../../contracts/contracts.js';
 
 const { storeNodes } = vi.hoisted(() => ({ storeNodes: new Map<string, object>() }));
@@ -416,7 +418,7 @@ describe('control evaluations', () => {
     it('labels the badge for assistive technology, hides its icon, and has no native tooltip', () => {
         renderWithEvaluation(new Map([['node-1', evaluation('not-met')]]));
         const badge = screen.getByTestId('overlay-badge');
-        expect(badge.getAttribute('aria-label')).toBe('Control evaluations: Not met');
+        expect(badge.getAttribute('aria-label')).toBe('Control evaluations · Built-in: Not met');
         expect(badge.hasAttribute('title')).toBe(false);
         expect(badge.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     });
@@ -593,5 +595,56 @@ describe('decision overlay', () => {
     it('sizes the overlay badge with the diagram text size', () => {
         renderOverlay(true, notMet(), false, '1.5');
         expect(screen.getByTestId('overlay-badge').style.fontSize).toBe('18px');
+    });
+});
+
+describe('extension overlays', () => {
+    it('draws one badge for each extension when two extensions use the same view id', () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const overlays = ['ext-a', 'ext-b'].map((extension) => ({
+            view: fakeView(extension, 'risk'),
+            elements: new Map([['node-1', fakeElement('warn')]]),
+        }));
+        render(
+            <DecoratorOverlayContext.Provider value={{ overlays, hiddenViews: new Set(), toggleView: vi.fn() }}>
+                <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} />
+            </DecoratorOverlayContext.Provider>
+        );
+        expect(screen.getAllByTestId('overlay-badge')).toHaveLength(2);
+        expect(error.mock.calls.flat().join(' ')).not.toMatch(/same key/);
+        error.mockRestore();
+    });
+});
+
+describe('an operator view with the built-in control-evaluation id', () => {
+    const renderWith = (builtIn: boolean) => {
+        const view = { ...fakeView(builtIn ? 'control-evaluation' : 'ops', 'control-evaluation'), source: {
+            id: builtIn ? 'control-evaluation' : 'ops', name: 'Ops', builtIn,
+        } };
+        const decorator = builtIn
+            ? { uniqueId: 'd1', type: 'control-evaluation', target: [], appliesTo: ['node-1'],
+                data: { status: 'met', control: { 'control-id': 'ctl-1', 'unique-id': 'ctl-1' } } }
+            : { uniqueId: 'd1', type: 'control-evaluation', target: [], appliesTo: ['node-1'], data: { status: 'met' } };
+        const overlays = [{
+            view,
+            elements: new Map([['node-1', fakeElement('ok', [{ decorator, value: 'met', status: 'ok' }] as never)]]),
+        }];
+        render(
+            <DecoratorOverlayContext.Provider value={{ overlays, hiddenViews: new Set(), toggleView: vi.fn() }}>
+                <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} />
+            </DecoratorOverlayContext.Provider>
+        );
+        fireEvent.mouseEnter(screen.getByTestId('custom-node'));
+    };
+
+    it('draws its badge but not the control-evaluation details, which read fields it may not have', () => {
+        renderWith(false);
+        expect(screen.getByTestId('overlay-badge')).toBeTruthy();
+        expect(screen.queryByText('Latest control evaluations:')).toBeNull();
+    });
+
+    it('shows the control-evaluation details for the built-in view', () => {
+        renderWith(true);
+        expect(screen.getByText('Latest control evaluations:')).toBeTruthy();
     });
 });

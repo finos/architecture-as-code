@@ -193,8 +193,10 @@ the version every 5 s while the diagram, the Decorators tab or the details drawe
 after three failures in a row it backs off to 30 s, also when the view shows again) and gives the one list to the Decorators tab, the
 details drawer and `Drawer`. Do not add a second request. `Drawer` gives the overlays to the diagram through
 `DecoratorOverlayContext`. Nodes and
-edges read `useElementOverlays(id)`; do not add a type-specific badge. The decision callouts, the hover list and the
-Evaluations panel read control-evaluation fields, so they use only the view with the id `CONTROL_EVALUATION_VIEW_ID`.
+edges read `useElementOverlays(id)`; do not add a type-specific badge. The badge details are a portal, but React still sends their events up to the node, so the details root
+stops a click, a double click and a key (it handles Escape itself). The decision callouts, the hover list and the
+Evaluations panel read control-evaluation fields, so they use `isControlEvaluationView()`: the id and
+`source.builtIn`: when the built-in extension is disabled, an operator view can take its id.
 
 `ExtensionService` uses its own axios instance, not `apiClient`, so a registry or extension call failure does not
 open the global auth or outage page. The exception is a registry `401`: the registry is a Hub call, so it opens
@@ -240,6 +242,12 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   the error boundary takes a `frame`), and the screen page has
   an `h1` in the same region (`SlotFrame`) before the registry loads, so the outline does not change. The heading is
   the contribution title; a reply `title` shows under it.
+- Overlays: `fetchDecoratorViews()` adds `source` (the extension) to each view. Key a view with `viewKey()`, never
+  `view.id` alone. Hub does not start when two enabled extensions declare the same view id, but a disabled one frees
+  its id for another extension, and a stored legend choice must not move to it.
+  `extensionMarkerColour()` gives the marker colour.
+  When there is no stored choice, `useOverlayVisibility` switches on the built-in views and the first 3 extension
+  views in registry order. It takes the registered views, not the views drawn, so a default is the same on each diagram.
 
 ### Operator UI config
 

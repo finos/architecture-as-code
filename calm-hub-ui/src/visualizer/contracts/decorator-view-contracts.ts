@@ -27,12 +27,21 @@ export interface DecoratorOverlay {
     time?: string;
 }
 
+/** The extension that contributes a view. The UI adds it; it is not part of the manifest entry. */
+export interface DecoratorViewSource {
+    id: string;
+    name: string;
+    /** Shipped with CALM Hub, not installed by an operator. */
+    builtIn: boolean;
+}
+
 /** One `decorator-views` entry. */
 export interface DecoratorView {
     id: string;
     match: DecoratorViewMatch;
     label: string;
     overlay?: DecoratorOverlay;
+    source?: DecoratorViewSource;
 }
 
 export type OverlayDecoratorView = DecoratorView & { overlay: DecoratorOverlay };
@@ -44,6 +53,8 @@ export interface OverlayEntry {
     value: string;
     status: OverlayStatus;
     label?: string;
+    /** The raw value at the overlay's `time` pointer. */
+    time?: string;
 }
 
 /** What one view draws on one element: its worst entry first. */

@@ -40,6 +40,8 @@ export interface DrawerProps {
     decorators?: Decorator[];
     /** Opens the full list of a decorator view's decorators, from the overlay legend. */
     onOpenView?: (view: DecoratorView) => void;
+    /** Keeps the overlay legend choices. Injected for tests; see the storage note in calm-hub-ui/AGENTS.md. */
+    storage?: Storage;
     /**
      * Overrides Drawer's own `${data.name}/${data.calmType}/${data.id}` viewport
      * key computation. Used by DiagramSection to key the graph off a slug's

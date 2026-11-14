@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Info, XCircle, type LucideIcon } from 'lucide-react';
 import { THEME } from '../theme.js';
-import type { OverlayStatus } from '../../../contracts/contracts.js';
+import type { DecoratorView, OverlayStatus } from '../../../contracts/contracts.js';
+import { extensionMarkerColour } from '../../../../extensions/extensionIdentity.js';
 
 interface OverlayStyle {
     /** Hex, for borders, strokes and `${accent}20` tints. */
@@ -22,3 +23,8 @@ export const OVERLAY_STYLES: Record<OverlayStatus, OverlayStyle> = {
 /** Only a status that needs attention recolours an element; ok and info show as a badge alone. */
 export const overlayOutline = (status: OverlayStatus | undefined): string | undefined =>
     status === 'error' || status === 'warn' ? OVERLAY_STYLES[status].accent : undefined;
+
+export const STATUS_NAMES: Record<OverlayStatus, string> = { ok: 'OK', warn: 'Warning', error: 'Error', info: 'Info' };
+
+/** A view takes its extension's marker colour; a view with no known extension is hashed by its own id. */
+export const viewMarkerColour = (view: DecoratorView): string => extensionMarkerColour(view.source?.id ?? view.id);
