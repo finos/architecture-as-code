@@ -236,7 +236,7 @@ describe('useCurrentUserAccess', () => {
             ['write', true],
             ['admin', true],
             ['read', false],
-        ] as const)('returns %s grant → %s', async (permission, expected) => {
+        ] as const)('a %s grant on the domain gives write: %s', async (permission, expected) => {
             const svc = mockService([domainGrant('security', permission)]);
             const { result } = renderHook(() => useCurrentUserAccess(svc));
             await waitFor(() => expect(result.current.loading).toBe(false));

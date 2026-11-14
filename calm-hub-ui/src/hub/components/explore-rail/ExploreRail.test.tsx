@@ -314,9 +314,10 @@ describe('ExploreRail edit scope', () => {
         expect(screen.getByRole('link', { name: 'a' })).toHaveStyle({ color: colors.redesign.bodyAlt });
     });
 
-    it('shows every namespace to a global admin', async () => {
+    it('hides the scope control from a global admin, who can edit everything', async () => {
         renderWithAccess([grant('GLOBAL', 'admin')]);
-        await selectCanEdit();
+        await screen.findByRole('link', { name: 'a.c' });
+        await waitFor(() => expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument());
         expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
     });
 
@@ -366,12 +367,5 @@ describe('ExploreRail edit scope', () => {
         renderWithAccess([grant('a', 'admin')]);
         await selectCanEdit();
         expect(screen.getByText('You cannot edit any control domains')).toBeInTheDocument();
-    });
-
-    it('shows every control domain to a global admin', async () => {
-        renderWithAccess([grant('GLOBAL', 'admin')]);
-        await selectCanEdit();
-        expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /compliance/ })).toBeInTheDocument();
     });
 });

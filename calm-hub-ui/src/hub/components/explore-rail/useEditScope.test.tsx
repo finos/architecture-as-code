@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { useEditScope } from './useEditScope.js';
-import { UserAccessProvider } from '../../../admin/context/UserAccessContext.js';
+import { UserAccessProvider, useUserAccess } from '../../../admin/context/UserAccessContext.js';
 import type { UserAccess } from '../../../model/user-access.js';
 import type { UserAccessService } from '../../../service/user-access-service.js';
 
@@ -23,6 +23,17 @@ describe('useEditScope', () => {
     it('hides the toggle for a user with no grants', async () => {
         const { result } = renderHook(() => useEditScope(), { wrapper: wrapperFor([]) });
         await waitFor(() => expect(result.current.showScopeToggle).toBe(false));
+    });
+
+    it('hides the toggle for a global admin, as with auth off', async () => {
+        const globalAdmin: UserAccess = { userAccessId: 0, username: 'alice', permission: 'admin', namespace: 'GLOBAL' };
+        const { result } = renderHook(() => ({ scope: useEditScope(), access: useUserAccess() }), {
+            wrapper: wrapperFor([globalAdmin, write('a.c')]),
+        });
+        await waitFor(() => expect(result.current.access.loading).toBe(false));
+        expect(result.current.scope.showScopeToggle).toBe(false);
+        act(() => result.current.scope.setScope('editable'));
+        expect(result.current.scope.editableOnly).toBe(false);
     });
 
     it('filters only after the user selects Can edit', async () => {

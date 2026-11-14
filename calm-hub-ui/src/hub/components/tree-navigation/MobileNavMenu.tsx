@@ -69,20 +69,6 @@ interface LeafItem {
     name: string;
 }
 
-/**
- * Mobile navigation as an iOS-style drill-down: each tap pushes the next level
- * as a flat list rather than expanding an inline tree — except the `namespaces`
- * level, which nests the dot-prefix namespace tree in place ({@link MobileNamespaceRow}),
- * since that hierarchy is already latent in the dotted names. Leaf taps navigate
- * to the resource URL; deep-link loading is owned by {@link Hub}'s
- * `useResourceFromRoute` (a single shared owner), so this panel only drives
- * navigation and its own drill-down list state.
- *
- * Phase 1 adds a mono count badge per namespace/domain row and a brand-tint
- * active treatment for the row matching the current URL. Counts are owned by
- * {@link Hub} (fetched once and shared) and passed in as props rather than
- * re-fetched here.
- */
 interface EmptyMessageContext {
     namespacesFailed?: boolean;
     domainsFailed?: boolean;
@@ -99,6 +85,20 @@ function emptyMessageFor(level: View['level'], ctx: EmptyMessageContext): string
     return 'Nothing here';
 }
 
+/**
+ * Mobile navigation as an iOS-style drill-down: each tap pushes the next level
+ * as a flat list rather than expanding an inline tree — except the `namespaces`
+ * level, which nests the dot-prefix namespace tree in place ({@link MobileNamespaceRow}),
+ * since that hierarchy is already latent in the dotted names. Leaf taps navigate
+ * to the resource URL; deep-link loading is owned by {@link Hub}'s
+ * `useResourceFromRoute` (a single shared owner), so this panel only drives
+ * navigation and its own drill-down list state.
+ *
+ * Phase 1 adds a mono count badge per namespace/domain row and a brand-tint
+ * active treatment for the row matching the current URL. Counts are owned by
+ * {@link Hub} (fetched once and shared) and passed in as props rather than
+ * re-fetched here.
+ */
 export function MobileNavMenu({
     namespaceCounts,
     domainCounts,
@@ -347,14 +347,13 @@ export function MobileNavMenu({
     // failed counts fetch is unknown, not zero (mirrors Hub's own namespaceCountsFailed).
     // No retry action exists here (Hub fetches counts once on mount), so the copy
     // must not promise one — matches ExploreRail's equivalent desktop wording.
-    const emptyMessage =
-        emptyMessageFor(view.level, {
-            namespacesFailed,
-            domainsFailed,
-            editableOnly,
-            hasNamespaces: namespaceCounts.length > 0,
-            hasDomains: allDomains.length > 0,
-        });
+    const emptyMessage = emptyMessageFor(view.level, {
+        namespacesFailed,
+        domainsFailed,
+        editableOnly,
+        hasNamespaces: namespaceCounts.length > 0,
+        hasDomains: allDomains.length > 0,
+    });
 
     return (
         <div className="h-full w-full flex flex-col">

@@ -49,6 +49,10 @@ function emptyNamespacesMessage(hasNamespaces: boolean, needle: string, editable
     return 'Nothing here';
 }
 
+function emptyDomainsMessage(hasDomains: boolean, editableOnly: boolean): string {
+    return hasDomains && editableOnly ? 'You cannot edit any control domains' : 'Nothing here';
+}
+
 type RailRouteParams = { ns?: string; domain?: string; namespace?: string };
 
 /**
@@ -167,9 +171,7 @@ export function ExploreRail({
                     ) : domainsFailed ? (
                         <RailEmpty>Couldn&apos;t load control domains</RailEmpty>
                     ) : visibleDomains.length === 0 ? (
-                        <RailEmpty>
-                            {editableOnly && domainCounts.length > 0 ? 'You cannot edit any control domains' : 'Nothing here'}
-                        </RailEmpty>
+                        <RailEmpty>{emptyDomainsMessage(domainCounts.length > 0, editableOnly)}</RailEmpty>
                     ) : (
                         visibleDomains.map((dc) => (
                             <RailItem
