@@ -111,20 +111,32 @@ describe('C4Tab', () => {
         expect(mappingService.fetchDefaultMapping).toHaveBeenCalledWith('shop');
     });
 
-    it('uses the default mapping and says why when the namespace mapping does not load', async () => {
+    it('shows the error and no diagram, not the default mapping, when the namespace mapping does not load', async () => {
         renderTab({ level: 'container', scope: 'shop' }, undefined, shop, mappingServiceReturning(new Error('Error fetching the C4 mapping of namespace shop:')));
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('The diagram uses the default C4 mapping.');
-        expect(screen.getByText('calm-default-c4-mapping')).toBeInTheDocument();
-        expect(screen.getByTestId('c4-element-worker')).toBeInTheDocument();
+        expect(await screen.findByRole('alert')).toHaveTextContent('Error fetching the C4 mapping of namespace shop:');
+        expect(screen.queryByText('calm-default-c4-mapping')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('c4-element-worker')).not.toBeInTheDocument();
     });
 
-    it('uses the default mapping when the namespace mapping is not a valid mapping', async () => {
+    it('shows the error and no diagram when the namespace mapping is not a valid mapping', async () => {
         const invalid = { namespace: 'shop', configId: 1, version: '1.0.0', inherited: false, config: { 'node-types': {} } };
 
         renderTab({}, undefined, shop, mappingServiceReturning(invalid));
 
         expect(await screen.findByRole('alert')).toHaveTextContent('The C4 mapping is not a valid C4 mapping: "unique-id" must be a non-empty string');
+        expect(screen.queryByTestId('c4-tab')).not.toBeInTheDocument();
+    });
+
+    it('shows the error and no diagram when a mapping that the namespace mapping extends does not load', async () => {
+        const config = { 'unique-id': 'team', extends: 'https://example.com/org.json' };
+        const mappingService = mappingServiceReturning({ namespace: 'shop', configId: 1, version: '1.0.0', inherited: false, config });
+        vi.mocked(mappingService.fetchMappingAt).mockRejectedValue(new Error('Network Error'));
+
+        renderTab({}, undefined, shop, mappingService);
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Cannot load https://example.com/org.json, which the C4 mapping team extends: Network Error');
+        expect(screen.queryByTestId('c4-tab')).not.toBeInTheDocument();
     });
 
     it('shows the containers of a system inside its boundary', async () => {

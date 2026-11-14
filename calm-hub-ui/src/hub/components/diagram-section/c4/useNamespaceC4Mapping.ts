@@ -3,10 +3,11 @@ import { defaultC4Mapping, resolveC4Mapping, type ResolvedC4Mapping } from '@fin
 import { C4MappingService, type NamespaceC4Mapping } from '../../../../service/c4-mapping-service.js';
 
 export interface NamespaceC4MappingState {
-    mapping: ResolvedC4Mapping;
+    /** Undefined when the namespace's mapping did not resolve. The C4 standard forbids the default in its place. */
+    mapping?: ResolvedC4Mapping;
     /** Where the mapping comes from. Undefined while it loads and when the built-in default applies. */
     source?: Omit<NamespaceC4Mapping, 'config'>;
-    /** Set when the namespace's mapping did not load or is not valid. The built-in default applies then. */
+    /** Set when the namespace's mapping, or a mapping that it extends, did not load or is not valid. */
     error?: string;
     loading: boolean;
 }
@@ -31,7 +32,7 @@ export function useNamespaceC4Mapping(namespace: string, service?: C4MappingServ
                 const mapping = await resolveC4Mapping(config, (url) => mappingService.fetchMappingAt(url));
                 done({ mapping, source });
             })
-            .catch((error: Error) => done({ mapping: DEFAULT_MAPPING, error: error.message }));
+            .catch((error: Error) => done({ error: error.message }));
         return () => {
             cancelled = true;
         };
