@@ -339,7 +339,15 @@ CALM Hub includes an experimental [Model Context Protocol](https://modelcontextp
 
 Tool providers are in `src/main/java/org/finos/calm/mcp/tools/`:  
 `ArchitectureTools`, `PatternTools`, `ControlTools`, `DomainTools`, `InterfaceTools`,  
-`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`, `ConventionTools`.
+`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`, `ConventionTools`.  
+`ExtensionTools` registers one `ext_<id>_<command>` tool for each extension command at start-up, with `ToolManager`, only when MCP is on. The Javadoc and `docs/docs/calm-hub/mcp-and-api.md` have the detail. Rules for changes:
+- Command schemas must use the 2020-12 subset that `schemaError` accepts: one schema that the MCP TypeScript SDK cannot compile makes `listTools()` throw. Do not add support for schema identifiers (`$id`, anchors): each review found another case that the SDK refuses.
+- A command that Hub cannot check or register is skipped with a warning, also on a `StackOverflowError`, so a manifest never stops Hub. Rethrow other `VirtualMachineError`s.
+- Order at call time: argument size and depth, request mapping, scope (`ExtensionProxyService.checkAccess`), input schema. Keep the scope check before the input check, which can be slow.
+- vertx must never run java.util.regex on caller input. `InputSchema` moves input patterns into Hub formats that `LinearPatterns` matches with RE2J, within one `EcmaRegex.Budget` per call. Input formats are limited to `LINEAR_FORMATS`.
+- A 2xx reply must match the output schema (`outputValidator`), because SDK clients check `structuredContent` and throw on a mismatch.
+- Trust model: manifests, their schemas and the extension backends are trusted operator configuration. Do not add checks against schemas made to be pathological. Do bound what a caller controls: argument size and depth, linear-time input patterns, scope before the input check.
+`ToolManager` adds a tool before its `ToolAdded` observers run, so a failed tool is removed again. It never registers over, or removes, a tool that has the same name.
 
 Enable for development:
 ```bash
@@ -453,6 +461,9 @@ from; it fails if there is none.
 - `ExtensionProxyService` holds every rule of a proxied call: route match, path checks, scope, read-only,
   identity assertion, header allow-lists, limits and audit. `ExtensionProxyResource` and the MCP tools
   must both call it, because MCP does not pass through the JAX-RS filters (ADR 0011)
+- `mcp/tools/ExtensionTools` registers the command tools after `ExtensionRegistry` loads (observer priority).
+  `ToolManager` lists them after the `@Tool` methods, in registration order, so it registers them sorted.
+  The MCP server does not check arguments against `inputSchema`, so the handler does
 - `ReadOnlyRequestFilter` exempts only `^/api/calm/extensions/[^/]+/api(/|$)`, in normal form. The proxy
   then allows a non-GET method only on a `readOnly` route
 - `ExtensionIdentitySigner` signs with the JDK, not a JWT library. `ExtensionAssertionRejectingMechanism`
