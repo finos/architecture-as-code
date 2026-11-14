@@ -22,6 +22,7 @@ The framework ships with a set of built-in widgets covering the most common docu
 - **flow-sequence**: Converts a CALM flow (a sequence of ordered transitions) into a Mermaid sequence diagram, making it easy to visualise how nodes interact over time.
 - **related-nodes**: Renders a Mermaid graph diagram showing all relationships involving a specific node, or the detail of a single relationship. Supports `connects`, `interacts`, `composed-of`, and `deployed-in` relationship types.
 - **block-architecture**: Renders a full system architecture as a Mermaid flowchart, with support for containers (systems), interfaces, flow-focused slices, node-type shapes, themes, and clickable links.
+- **c4-diagram**: Renders an architecture as a Mermaid C4 context, container, component or deployment diagram. A C4 mapping sets the C4 kind of each node type. Set it with `calm docify --c4-mapping`.
 
 ### Example of Widget Usage
 

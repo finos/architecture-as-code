@@ -1,0 +1,18 @@
+{
+    "title": "Shop",
+    "nodes": [
+        { "unique-id": "buyer", "node-type": "actor", "name": "Buyer", "description": "Buys things" },
+        { "unique-id": "shop", "node-type": "system", "name": "Shop System", "description": "Sells things" },
+        { "unique-id": "web", "node-type": "webclient", "name": "Web", "description": "Shop front" },
+        { "unique-id": "orders", "node-type": "service", "name": "Orders", "description": "Takes orders" },
+        { "unique-id": "orders-db", "node-type": "database", "name": "Orders DB", "description": "Stores orders" },
+        { "unique-id": "payments", "node-type": "system", "name": "Payments", "description": "Takes payment" }
+    ],
+    "relationships": [
+        { "unique-id": "shop-composed-of", "relationship-type": { "composed-of": { "container": "shop", "nodes": ["web", "orders", "orders-db"] } } },
+        { "unique-id": "buyer-web", "description": "Browses the shop", "relationship-type": { "interacts": { "actor": "buyer", "nodes": ["web"] } } },
+        { "unique-id": "web-orders", "description": "Places orders", "protocol": "HTTPS", "relationship-type": { "connects": { "source": { "node": "web" }, "destination": { "node": "orders" } } } },
+        { "unique-id": "orders-db", "description": "Stores orders", "protocol": "JDBC", "relationship-type": { "connects": { "source": { "node": "orders" }, "destination": { "node": "orders-db" } } } },
+        { "unique-id": "orders-payments", "description": "Takes payment", "protocol": "HTTPS", "relationship-type": { "connects": { "source": { "node": "orders" }, "destination": { "node": "payments" } } } }
+    ]
+}
