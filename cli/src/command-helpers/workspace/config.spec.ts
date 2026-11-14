@@ -42,19 +42,23 @@ describe('workspace config', () => {
         await writeConfig(JSON.stringify({
             push: { failIfModified: true },
             bump: { defaultIncrement: 'PATCH' },
+            c4: { mapping: 'architecture/acme.c4-mapping.json' },
         }));
         const config = await loadWorkspaceConfig(gitRoot);
         expect(config.push.failIfModified).toBe(true);
         expect(config.bump.defaultIncrement).toBe('PATCH');
+        expect(config.c4.mapping).toBe('architecture/acme.c4-mapping.json');
     });
 
     it('falls back to defaults for individually missing or invalid fields', async () => {
         await writeConfig(JSON.stringify({
             push: { failIfModified: 'nonsense' },
             bump: {},
+            c4: { mapping: 42 },
         }));
         const config = await loadWorkspaceConfig(gitRoot);
         expect(config.push.failIfModified).toBe(false);
         expect(config.bump.defaultIncrement).toBe('MINOR');
+        expect(config.c4).toEqual({});
     });
 });
