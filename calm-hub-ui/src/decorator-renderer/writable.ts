@@ -9,7 +9,7 @@ const WRITE_FIELDS: readonly [string, string][] = [
     ['data', 'data'],
 ];
 
-/** Hub owns these times, so a write leaves them out. */
+/** Hub sets these, and refuses a write that has them. */
 const HUB_OWNED_FIELDS: ReadonlySet<string> = new Set(['creationDateTime', 'updateDateTime']);
 
 /**

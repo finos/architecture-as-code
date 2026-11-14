@@ -27,7 +27,9 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.any;
@@ -991,6 +993,89 @@ public class TestDecoratorResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString("ID must be a positive integer"));
+    }
+
+    // ---- Hub-owned times ----
+
+    @Test
+    void return_the_hub_owned_times_on_every_read() throws Exception {
+        Decorator current = new Decorator.DecoratorBuilder().setUniqueId("eval-2").setType("control-evaluation")
+                .setCreationDateTime("2026-11-03T11:45:00.000Z").setUpdateDateTime("2026-11-03T11:45:00.000Z").build();
+        Decorator old = new Decorator.DecoratorBuilder().setUniqueId("eval-1").setType("control-evaluation")
+                .setCreationDateTime("2026-11-01T09:00:00.000Z").setUpdateDateTime("2026-11-02T10:30:00.000Z").build();
+        when(decoratorStore.getDecoratorById("finos", 2)).thenReturn(Optional.of(current));
+        when(decoratorStore.getDecoratorValuesForNamespace("finos", null, null)).thenReturn(List.of(current));
+        when(decoratorStore.getDecoratorHistory("finos", 2)).thenReturn(List.of(
+                new DecoratorHistoryEntry(2, 1, null, null, current),
+                new DecoratorHistoryEntry(1, null, 2, "2026-11-03T11:45:00.000Z", old)));
+
+        given().when().get("/api/calm/namespaces/finos/decorators/2")
+                .then().statusCode(200)
+                .body("creationDateTime", equalTo("2026-11-03T11:45:00.000Z"))
+                .body("updateDateTime", equalTo("2026-11-03T11:45:00.000Z"));
+        given().when().get("/api/calm/namespaces/finos/decorators/values")
+                .then().statusCode(200)
+                .body("values[0].creationDateTime", equalTo("2026-11-03T11:45:00.000Z"));
+        given().when().get("/api/calm/namespaces/finos/decorators/2/history")
+                .then().statusCode(200)
+                .body("values[0].supersededDateTime", nullValue())
+                .body("values[1].supersededDateTime", equalTo("2026-11-03T11:45:00.000Z"))
+                .body("values[1].decorator.creationDateTime", equalTo("2026-11-01T09:00:00.000Z"))
+                .body("values[1].decorator.updateDateTime", equalTo("2026-11-02T10:30:00.000Z"));
+    }
+
+    @Test
+    void leave_out_the_times_of_a_decorator_stored_before_hub_recorded_them() throws Exception {
+        Decorator legacy = new Decorator.DecoratorBuilder().setUniqueId("legacy").setType("deployment").build();
+        when(decoratorStore.getDecoratorById("finos", 1)).thenReturn(Optional.of(legacy));
+
+        given().when().get("/api/calm/namespaces/finos/decorators/1")
+                .then().statusCode(200)
+                .body("$", not(hasKey("creationDateTime")))
+                .body("$", not(hasKey("updateDateTime")));
+    }
+
+    @Test
+    void return_400_when_a_create_sends_a_hub_owned_time() throws Exception {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"type\": \"deployment\", \"creationDateTime\": \"2026-01-01T00:00:00.000Z\"}")
+                .when()
+                .post("/api/calm/namespaces/finos/decorators")
+                .then()
+                .statusCode(400)
+                .body(equalTo("Decorator field is set by Hub and may not be sent: creationDateTime"));
+
+        verify(decoratorStore, never()).createDecorator(anyString(), anyString());
+    }
+
+    @Test
+    void return_400_when_an_update_sends_a_hub_owned_time() throws Exception {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"type\": \"deployment\", \"updateDateTime\": \"2026-01-01T00:00:00.000Z\"}")
+                .when()
+                .put("/api/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(400)
+                .body(equalTo("Decorator field is set by Hub and may not be sent: updateDateTime"));
+
+        verify(decoratorStore, never()).updateDecorator(anyString(), anyInt(), anyString());
+    }
+
+    @Test
+    void return_400_when_an_update_sends_a_hub_owned_history_link() throws Exception {
+        given()
+                .contentType(ContentType.JSON)
+                .body("{\"type\": \"deployment\", \"supersedes\": 3}")
+                .when()
+                .put("/api/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(400)
+                .body(equalTo("Decorator field is set by Hub and may not be sent: supersedes"));
+
+        verify(decoratorStore, never()).updateDecorator(anyString(), anyInt(), anyString());
+        verify(decoratorStore, never()).supersedeDecorator(anyString(), anyInt(), anyString());
     }
 
     // -Pserver-only and -Dskip.npm do not copy the meta-schemas that the decorator Standards reference.

@@ -17,9 +17,11 @@ import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.DecoratorSchemaValidationException;
 import org.finos.calm.domain.exception.DecoratorSupersededException;
 import org.finos.calm.domain.exception.DecoratorTooLargeException;
+import org.finos.calm.domain.exception.HubOwnedDecoratorFieldException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.ReservedDecoratorTypeException;
 import org.finos.calm.store.DecoratorStore;
+import org.finos.calm.store.util.DecoratorTimestamps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,12 +34,15 @@ import java.util.stream.Collectors;
 /**
  * The write rules for decorators, shared by REST and MCP. A reserved type can only be written by
  * its configured principals, a decorator whose {@code $schema} Hub knows must match it, and a reserved
- * type is append-only.
+ * type is append-only. A client may not send the Hub-owned times or history links.
  */
 @ApplicationScoped
 public class DecoratorWriteService {
 
     private static final Logger LOG = LoggerFactory.getLogger(DecoratorWriteService.class);
+    // Hub keeps these beside the decorator, so a client copy would be stored and never returned.
+    private static final List<String> HUB_OWNED_FIELDS = List.of(DecoratorTimestamps.CREATION_DATE_TIME_FIELD,
+            DecoratorTimestamps.UPDATE_DATE_TIME_FIELD, DecoratorTimestamps.SUPERSEDED_DATE_TIME_FIELD, "supersedes", "supersededBy");
 
     private final DecoratorStore decoratorStore;
     private final DecoratorConfig config;
@@ -72,11 +77,12 @@ public class DecoratorWriteService {
 
     public int createDecorator(String principal, String namespace, String decoratorJson)
             throws NamespaceNotFoundException, ReservedDecoratorTypeException, DecoratorSchemaValidationException,
-            DecoratorTooLargeException {
+            HubOwnedDecoratorFieldException, DecoratorTooLargeException {
         // In GitHub mode the checks below would ask the caller to fix a decorator that Hub can never store.
         decoratorStore.requireWritable();
         requireSize(decoratorJson);
         JsonObject decorator = parse(decoratorJson);
+        rejectHubOwnedFields(decorator);
         requireFieldTypes(decorator);
         requireWriter(principal, typeOf(decorator));
         requireValid(decorator);
@@ -91,11 +97,12 @@ public class DecoratorWriteService {
      */
     public int updateDecorator(String principal, String namespace, int id, String decoratorJson)
             throws NamespaceNotFoundException, DecoratorNotFoundException, DecoratorSupersededException,
-            ReservedDecoratorTypeException, DecoratorSchemaValidationException,
+            ReservedDecoratorTypeException, DecoratorSchemaValidationException, HubOwnedDecoratorFieldException,
             DecoratorTooLargeException {
         decoratorStore.requireWritable();
         requireSize(decoratorJson);
         JsonObject decorator = parse(decoratorJson);
+        rejectHubOwnedFields(decorator);
         requireFieldTypes(decorator);
         Optional<Decorator> existing = decoratorStore.getDecoratorById(namespace, id);
         if (existing.isPresent()) {
@@ -134,6 +141,14 @@ public class DecoratorWriteService {
         if (decoratorJson != null && (decoratorJson.length() > SchemaValidationLimits.MAX_DECORATOR_JSON_BYTES
                 || decoratorJson.getBytes(StandardCharsets.UTF_8).length > SchemaValidationLimits.MAX_DECORATOR_JSON_BYTES)) {
             throw new DecoratorTooLargeException();
+        }
+    }
+
+    private static void rejectHubOwnedFields(JsonObject decorator) throws HubOwnedDecoratorFieldException {
+        for (String field : HUB_OWNED_FIELDS) {
+            if (decorator.containsKey(field)) {
+                throw new HubOwnedDecoratorFieldException(field);
+            }
         }
     }
 

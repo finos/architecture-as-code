@@ -9,7 +9,7 @@ export interface Decorator {
     targetType?: string[];
     appliesTo: string[];
     data: DecoratorData;
-    /** Hub-owned timestamps. The API does not return them yet, so each is optional. */
+    /** Hub-owned UTC ISO-8601 times. A decorator stored before Hub recorded them has none. */
     creationDateTime?: string;
     updateDateTime?: string;
 }

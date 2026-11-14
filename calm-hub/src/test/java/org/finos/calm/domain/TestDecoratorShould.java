@@ -150,6 +150,17 @@ public class TestDecoratorShould {
         assertThat(a, equalTo(b));
     }
 
+    @Test
+    void copy_every_field_and_add_the_hub_owned_times() {
+        Decorator timed = buildFullDecorator().withTimestamps("2026-11-01T09:00:00.000Z", "2026-11-02T10:30:00.000Z");
+
+        assertThat(timed.getCreationDateTime(), equalTo("2026-11-01T09:00:00.000Z"));
+        assertThat(timed.getUpdateDateTime(), equalTo("2026-11-02T10:30:00.000Z"));
+        assertThat(timed.withTimestamps(null, null), equalTo(buildFullDecorator()));
+        assertThat(timed, not(equalTo(buildFullDecorator())));
+        assertThat(timed.toString(), containsString("updateDateTime='2026-11-02T10:30:00.000Z'"));
+    }
+
     private Decorator buildFullDecorator() {
         return new Decorator.DecoratorBuilder()
                 .setSchema("https://calm.finos.org/schemas/2024-01/decorator.json")
