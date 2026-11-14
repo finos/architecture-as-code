@@ -1,0 +1,235 @@
+{
+  "id": "mcp-test",
+  "version": "1.0.0",
+  "hubApi": 0,
+  "name": "MCP test",
+  "description": "Commands for the extension MCP tool tests",
+  "provider": "CALM Hub tests",
+  "routes": [
+    { "id": "services", "method": "GET", "path": "/namespaces/{namespace}/services", "scope": "read" },
+    { "id": "add-service", "method": "POST", "path": "/namespaces/{namespace}/services", "scope": "write" },
+    { "id": "remove-service", "method": "DELETE", "path": "/namespaces/{namespace}/services/{name}", "scope": "write" },
+    { "id": "service", "method": "GET", "path": "/services/{service}", "scope": "authenticated" },
+    { "id": "service-admin", "method": "GET", "path": "/services/admin", "scope": "global_admin" },
+    { "id": "search", "method": "POST", "path": "/search", "scope": "authenticated", "readOnly": true },
+    { "id": "slow-search", "method": "POST", "path": "/namespaces/{namespace}/slow-search", "scope": "read", "readOnly": true }
+  ],
+  "commands": {
+    "get-service": {
+      "route": "service",
+      "description": "Get one service",
+      "input": {
+        "type": "object",
+        "properties": { "service": { "type": "string" } },
+        "required": ["service"]
+      }
+    },
+    "annotate": {
+      "route": "search",
+      "description": "Annotate with schemas that have boolean subschemas",
+      "input": {
+        "type": "object",
+        "properties": { "text": { "type": "string", "x-example": { "$ref": "https://example.com/a.json" } }, "note": true, "never": false },
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "hits": true, "tags": { "type": "array", "items": true, "uniqueItems": true } }
+      }
+    },
+    "search": {
+      "route": "search",
+      "description": "Search the services",
+      "input": {
+        "type": "object",
+        "properties": { "text": { "type": "string" }, "code": { "$ref": "#/$defs/code" } },
+        "required": ["text"],
+        "$defs": { "code": { "type": "string", "pattern": "^(?<area>[A-Z]{2})-\\d+$" } }
+      }
+    },
+    "list-services": {
+      "route": "services",
+      "description": "List the services that a namespace owns",
+      "input": {
+        "type": "object",
+        "properties": {
+          "namespace": { "type": "string" },
+          "limit": { "type": "integer", "minimum": 1 },
+          "tag": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["namespace"],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": { "services": { "type": "array", "items": { "type": "string" } } }
+      },
+      "destructive": false,
+      "idempotent": true
+    },
+    "add-service": {
+      "route": "add-service",
+      "description": "Record a service that a namespace owns",
+      "input": {
+        "type": "object",
+        "properties": { "namespace": { "type": "string" }, "service": { "$ref": "#/$defs/service" } },
+        "required": ["namespace", "service"],
+        "$defs": {
+          "service": {
+            "type": "object",
+            "properties": { "name": { "type": "string", "minLength": 1 } },
+            "required": ["name"]
+          }
+        }
+      },
+      "destructive": false
+    },
+    "service-names": {
+      "route": "services",
+      "description": "List the names of the services that a namespace owns",
+      "input": {
+        "type": "object",
+        "properties": { "namespace": { "type": "string" } },
+        "required": ["namespace"]
+      },
+      "output": {
+        "$ref": "#/$defs/names",
+        "$defs": {
+          "names": { "type": "array", "items": { "$ref": "#/$defs/name" } },
+          "name": { "type": "string" }
+        }
+      }
+    },
+    "typo-input": {
+      "route": "search",
+      "description": "Search with a property schema that is not a schema",
+      "input": { "type": "object", "properties": { "limit": "integer" } }
+    },
+    "typo-output": {
+      "route": "search",
+      "description": "Search with an output property schema that is not a schema",
+      "input": { "type": "object" },
+      "output": { "type": "object", "properties": { "count": "integer" } }
+    },
+    "bad-keyword": {
+      "route": "search",
+      "description": "Search with a keyword value that is not valid JSON Schema",
+      "input": { "type": "object", "properties": { "limit": { "type": "integer", "minimum": "1" } } }
+    },
+    "dangling-input": {
+      "route": "search",
+      "description": "Search with a filter from a definition that does not exist",
+      "input": { "type": "object", "properties": { "filter": { "$ref": "#/$defs/missing" } }, "$defs": { "filter": {} } }
+    },
+    "dangling-output": {
+      "route": "search",
+      "description": "Search with a result from a definition that does not exist",
+      "input": { "type": "object" },
+      "output": { "type": "object", "properties": { "hits": { "$ref": "#/$defs/hits" } } }
+    },
+    "ref-loop-output": {
+      "route": "search",
+      "description": "Search with a result whose $ref points to itself",
+      "input": { "type": "object" },
+      "output": { "type": "object", "properties": { "hits": { "$ref": "#/properties/hits" } } }
+    },
+    "java-pattern-input": {
+      "route": "search",
+      "description": "Search with a pattern that only Java accepts",
+      "input": { "type": "object", "properties": { "text": { "type": "string", "pattern": "(?i)abc" } } }
+    },
+    "java-pattern-output": {
+      "route": "search",
+      "description": "Search with a result pattern that only Java accepts",
+      "input": { "type": "object" },
+      "output": { "type": "object", "patternProperties": { "\\Ahit": { "type": "string", "pattern": "a++" } } }
+    },
+    "id-input": {
+      "route": "search",
+      "description": "Search with an input schema that has a urn $id with no NID",
+      "input": { "$id": "urn:root", "type": "object" }
+    },
+    "id-output": {
+      "route": "search",
+      "description": "Search with a result whose definitions have the same $id",
+      "input": { "type": "object" },
+      "output": {
+        "type": "object",
+        "properties": { "a": { "$ref": "#/$defs/a" } },
+        "$defs": { "a": { "$id": "urn:example:dup" }, "b": { "$id": "urn:example:dup" } }
+      }
+    },
+    "anchor-input": {
+      "route": "search",
+      "description": "Search with an input schema that declares the same anchor twice",
+      "input": { "type": "object", "$defs": { "a": { "$anchor": "d" }, "b": { "$dynamicAnchor": "d" } } }
+    },
+    "deep-pattern-input": {
+      "route": "search",
+      "description": "Search with a pattern whose groups are nested too deep",
+      "input": { "type": "object", "properties": { "text": { "type": "string", "pattern": "(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((a)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))" } } }
+    },
+    "deep-output": {
+      "route": "search",
+      "description": "Search with a result schema nested too deep",
+      "input": { "type": "object" },
+      "output": { "type": "object", "properties": { "x": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "items": { "type": "string" } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } } }
+    },
+    "hidden-id-output": {
+      "route": "search",
+      "description": "Search with a result that has the same $id under two unknown keywords",
+      "input": { "type": "object" },
+      "output": { "type": "object", "x-a": { "$id": "urn:x:y" }, "x-b": { "$id": "urn:x:y" } }
+    },
+    "encoded-ref-output": {
+      "route": "search",
+      "description": "Search with a result whose $ref has a percent-encoded slash",
+      "input": { "type": "object" },
+      "output": { "type": "object", "properties": { "a": { "$ref": "#/$defs/a%2Fnot" } }, "$defs": { "a": { "not": {} } } }
+    },
+    "slow-pattern": {
+      "route": "slow-search",
+      "description": "Search with patterns that java.util.regex matches slowly",
+      "input": {
+        "type": "object",
+        "properties": {
+          "namespace": { "type": "string" },
+          "text": { "type": "string", "pattern": "^(.*a){12}$" },
+          "empty": { "type": "string", "pattern": "(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)(?:|)\\b\\B" },
+          "choice": { "type": "string", "pattern": "(a|a)*b" }
+        },
+        "required": ["namespace"]
+      }
+    },
+    "draft-07": {
+      "route": "search",
+      "description": "Search with a draft-07 input schema",
+      "input": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object" }
+    },
+    "remote-output": {
+      "route": "search",
+      "description": "Search with a result from a remote schema",
+      "input": { "type": "object" },
+      "output": { "type": "object", "properties": { "hits": { "$ref": "https://example.com/hits.json" } } }
+    },
+    "remote-search": {
+      "route": "search",
+      "description": "Search with a filter from a remote schema",
+      "input": {
+        "type": "object",
+        "properties": { "filter": { "$ref": "https://example.com/filter.json" } }
+      }
+    },
+    "remove-service": {
+      "route": "remove-service",
+      "description": "Remove a service from a namespace",
+      "input": {
+        "type": "object",
+        "properties": { "namespace": { "type": "string" }, "name": { "type": "string" } },
+        "required": ["namespace", "name"]
+      },
+      "destructive": true,
+      "idempotent": true
+    }
+  }
+}

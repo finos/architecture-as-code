@@ -75,7 +75,7 @@ When `CALM_READONLY=true` is set:
 1. **`ReadOnlyRequestFilter`** intercepts every inbound request before routing. Any HTTP method that mutates state (`POST`, `PUT`, `DELETE`, `PATCH`) is rejected immediately with `HTTP 405 Method Not Allowed` and a `Allow: GET, HEAD, OPTIONS` response header.
 2. **NitriteDB** is opened with `.readOnly(true).autoCommit(false)`, preventing any accidental writes to the embedded database file.
 
-The MCP endpoint (`/mcp`) does not go through that filter. Each MCP tool that changes data returns a tool error on a read-only Hub. Hub does this check before the permission check, so a caller without the scope also gets the read-only error. A tool that needs only a read scope still runs. `tools/list` does not show the tools that change data. This applies to all users of a read-only Hub. It is not a filter by user or scope, which Hub does not do (see ADR 0014).
+The MCP endpoint (`/mcp`) does not go through that filter. Each MCP tool that changes data returns a tool error on a read-only Hub. Hub does this check before the permission check, so a caller without the scope also gets the read-only error. A tool that needs only a read scope still runs, and so do the extension commands that a read-only Hub can run. `tools/list` does not show the tools that change data, and a read-only Hub registers no extension command for a write route. This applies to all users of a read-only Hub. It is not a filter by user or scope, which Hub does not do (see ADR 0014).
 
 ```bash
 # Run the read-only JVM image — no external dependencies needed
@@ -148,6 +148,8 @@ CALM_UI_ITEMS_1__VALUE=2026.10.1
 ## Extensions
 
 An extension adds features to CALM Hub without a fork. It is an HTTP service that CALM Hub calls. The operator installs it with a manifest. CALM Hub reads the manifests at start up. No API adds an extension.
+
+The Hub UI shows the contributions of an extension, the CLI runs its commands (see [Running extension commands](../calm-cli/hub.md#running-extension-commands)), and MCP makes a tool for each command (see [Extension tools](mcp-and-api.md#extension-tools)).
 
 Put one folder for each extension in `calm.extensions.dir`, with an `extension.json` in it. The folder name must equal the manifest `id`. Hub skips hidden folders and warns about folders without a manifest. A per-id setting for an unknown extension id gives a warning at start up, as a property or as an environment variable.
 

@@ -97,6 +97,14 @@ public class ExtensionProxyService {
         return proxyAuthentication ? "proxy" : "oidc";
     }
 
+    /**
+     * Throws {@link ExtensionProxyException} when Hub refuses the call. A caller that does costly work on
+     * the request before {@link #call} uses this first, so that a caller with no scope cannot cause the work.
+     */
+    public void checkAccess(SecurityIdentity identity, ExtensionProxyRequest request) {
+        authorise(identity, request);
+    }
+
     /** Throws {@link ExtensionProxyException} when Hub refuses the call or the backend fails. */
     public ExtensionProxyResponse call(SecurityIdentity identity, ExtensionProxyRequest request) {
         Access access = authorise(identity, request);
