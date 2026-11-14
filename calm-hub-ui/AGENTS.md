@@ -208,6 +208,12 @@ tries again with a backoff (5 s, doubled, up to 60 s; a new service starts it ag
 `useExtensionsStatus()` gives `loading`, `loaded`, `failed` or `signed-out`. Use it where an empty list must not
 mean "no extension", for example `ExtensionScreenPage` on a deep link, or an extension tab in a link.
 
+### Namespace configs
+
+`NamespaceConfigs` (`namespace-page/`) lists the namespace's configs (such as `c4-mapping`) under the type
+tabs, one group per type from `GET /api/calm/config-types`, with the default that applies to the namespace.
+Configs are not a `TypeInUI`: they have no tab, no count and no detail route. The list is read-only.
+
 ### Operator UI config
 
 `UiConfigProvider` (`components/ui-config/`) loads `GET /api/calm/ui/config` one time.
