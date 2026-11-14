@@ -162,8 +162,8 @@ export function projectC4(
         } else if (LEVEL[entry.kind] !== undefined && parent && LEVEL[entry.kind]! <= parentLevel) {
             if (mapping.nesting === 'strict') {
                 conflict(element, 'strict-nesting', `Mapped as ${entry.kind}, but it is inside ${inside}`);
-            } else if (parentLevel < 3) {
-                element.kind = KIND_AT_LEVEL[parentLevel + 1];
+            } else {
+                element.kind = KIND_AT_LEVEL[Math.min(parentLevel + 1, 3)];
                 element.notes.push(`Mapped as ${entry.kind}, shown as ${element.kind} because it is inside ${inside}`);
             }
         }

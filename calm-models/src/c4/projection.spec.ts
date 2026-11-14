@@ -116,7 +116,8 @@ describe('projectC4', () => {
 
             expect(kinds(model)).toMatchObject({ sys: 'software-system', 'inner-sys': 'container', api: 'container', module: 'component' });
             expect(element(model, 'inner-sys').notes).toEqual(['Mapped as software-system, shown as container because it is inside software-system "sys"']);
-            expect(element(model, 'deep').kind).toBe('container');
+            expect(element(model, 'deep').kind).toBe('component');
+            expect(element(model, 'deep').notes).toEqual(['Mapped as container, shown as component because it is inside component "module"']);
             expect(rules(model)).toEqual([['deep', 'inside-component']]);
         });
 
