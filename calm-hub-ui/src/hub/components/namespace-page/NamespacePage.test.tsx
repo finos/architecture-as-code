@@ -40,9 +40,9 @@ vi.mock('../../../service/adr-service/adr-service.js', () => ({
     }),
 }));
 
-vi.mock('../../../service/config-service.js', () => ({
-    ConfigService: vi.fn().mockImplementation(function () {
-        return { fetchConfigTypes: vi.fn().mockResolvedValue([]) };
+vi.mock('../../../service/convention-service.js', () => ({
+    ConventionService: vi.fn().mockImplementation(function () {
+        return { fetchConventionTypes: vi.fn().mockResolvedValue([]) };
     }),
 }));
 

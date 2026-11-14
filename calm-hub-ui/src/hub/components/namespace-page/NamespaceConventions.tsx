@@ -1,63 +1,63 @@
 import { colors } from '../../../theme/colors.js';
-import { ConfigService } from '../../../service/config-service.js';
-import { NamespaceDefaultConfig } from '../../../model/config.js';
-import { useNamespaceConfigs } from './useNamespaceConfigs.js';
+import { ConventionService } from '../../../service/convention-service.js';
+import { NamespaceDefaultConvention } from '../../../model/convention.js';
+import { useNamespaceConventions } from './useNamespaceConventions.js';
 
-interface NamespaceConfigsProps {
+interface NamespaceConventionsProps {
     namespace: string;
-    service?: ConfigService;
+    service?: ConventionService;
 }
 
-function DefaultLine({ namespace, defaultConfig }: { namespace: string; defaultConfig?: NamespaceDefaultConfig }) {
-    if (!defaultConfig) {
+function DefaultLine({ namespace, defaultConvention }: { namespace: string; defaultConvention?: NamespaceDefaultConvention }) {
+    if (!defaultConvention) {
         return <span>No default. Tools use their built-in default.</span>;
     }
-    const target = `config ${defaultConfig.configId}, version ${defaultConfig.version}`;
-    return defaultConfig.namespace === namespace ? (
+    const target = `convention ${defaultConvention.conventionId}, version ${defaultConvention.version}`;
+    return defaultConvention.namespace === namespace ? (
         <span>Default: {target}</span>
     ) : (
         <span>
-            Default inherited from <span className="font-semibold">{defaultConfig.namespace}</span>: {target}
+            Default inherited from <span className="font-semibold">{defaultConvention.namespace}</span>: {target}
         </span>
     );
 }
 
 /**
- * Read-only list of the namespace's configs, one group per config type, with the default that
- * applies to the namespace. Renders nothing when no type has a config or a default.
+ * Read-only list of the namespace's conventions, one group per convention type, with the default that
+ * applies to the namespace. Renders nothing when no type has a convention or a default.
  */
-export function NamespaceConfigs({ namespace, service }: NamespaceConfigsProps) {
-    const groups = useNamespaceConfigs(namespace, service);
+export function NamespaceConventions({ namespace, service }: NamespaceConventionsProps) {
+    const groups = useNamespaceConventions(namespace, service);
     if (groups.length === 0) {
         return null;
     }
 
     return (
-        <section className="mt-10" aria-labelledby="namespace-configs-heading" data-testid="namespace-configs">
-            <h2 id="namespace-configs-heading" className="text-[17px] font-bold" style={{ color: colors.redesign.ink }}>
-                Configs
+        <section className="mt-10" aria-labelledby="namespace-conventions-heading" data-testid="namespace-conventions">
+            <h2 id="namespace-conventions-heading" className="text-[17px] font-bold" style={{ color: colors.redesign.ink }}>
+                Conventions
             </h2>
-            {groups.map(({ configType, configs, defaultConfig }) => (
-                <div key={configType} className="mt-4" data-testid={`config-group-${configType}`}>
+            {groups.map(({ conventionType, conventions, defaultConvention }) => (
+                <div key={conventionType} className="mt-4" data-testid={`convention-group-${conventionType}`}>
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                         <h3 className="font-mono-jb text-[13px] font-semibold" style={{ color: colors.redesign.bodyStrong }}>
-                            {configType}
+                            {conventionType}
                         </h3>
                         <span className="text-[13px]" style={{ color: colors.redesign.muted }}>
-                            <DefaultLine namespace={namespace} defaultConfig={defaultConfig} />
+                            <DefaultLine namespace={namespace} defaultConvention={defaultConvention} />
                         </span>
                     </div>
-                    {configs.length > 0 && (
+                    {conventions.length > 0 && (
                         <ul
                             className="mt-2 rounded-[10px] border divide-y"
                             style={{ borderColor: colors.redesign.border }}
                         >
-                            {configs.map((config) => {
+                            {conventions.map((convention) => {
                                 const isDefault =
-                                    defaultConfig?.namespace === namespace && defaultConfig.configId === config.id;
+                                    defaultConvention?.namespace === namespace && defaultConvention.conventionId === convention.id;
                                 return (
                                     <li
-                                        key={config.id}
+                                        key={convention.id}
                                         className="flex items-center gap-3 px-4 py-3"
                                         style={{ borderColor: colors.redesign.border }}
                                     >
@@ -67,7 +67,7 @@ export function NamespaceConfigs({ namespace, service }: NamespaceConfigsProps) 
                                                     className="text-[14px] font-semibold truncate"
                                                     style={{ color: colors.redesign.ink }}
                                                 >
-                                                    {config.name}
+                                                    {convention.name}
                                                 </span>
                                                 {isDefault && (
                                                     <span
@@ -81,9 +81,9 @@ export function NamespaceConfigs({ namespace, service }: NamespaceConfigsProps) 
                                                     </span>
                                                 )}
                                             </div>
-                                            {config.description && (
+                                            {convention.description && (
                                                 <p className="text-[13px] truncate" style={{ color: colors.redesign.muted }}>
-                                                    {config.description}
+                                                    {convention.description}
                                                 </p>
                                             )}
                                         </div>
@@ -91,8 +91,8 @@ export function NamespaceConfigs({ namespace, service }: NamespaceConfigsProps) 
                                             className="font-mono-jb text-[11px] whitespace-nowrap"
                                             style={{ color: colors.redesign.mutedAlt }}
                                         >
-                                            #{config.id} · {config.versionCount}{' '}
-                                            {config.versionCount === 1 ? 'version' : 'versions'}
+                                            #{convention.id} · {convention.versionCount}{' '}
+                                            {convention.versionCount === 1 ? 'version' : 'versions'}
                                         </span>
                                     </li>
                                 );
