@@ -1,12 +1,11 @@
 package integration;
 
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTestProfile;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@QuarkusTestResource(EndToEndResource.class)
 public class IntegrationTestProxyAuthProfile implements QuarkusTestProfile {
 
     @Override
@@ -22,5 +21,10 @@ public class IntegrationTestProxyAuthProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.of("allow.put.operations", "true");
+    }
+
+    @Override
+    public List<TestResourceEntry> testResources() {
+        return List.of(new TestResourceEntry(EndToEndResource.class));
     }
 }
