@@ -12,6 +12,8 @@ on:
             - '!calm-hub/ec2/**'
             - 'calm-hub-ui/**'
             - 'package.json'
+            - 'package-lock.json'
+            - 'calm-models/**'
             - 'scripts/copy-calm-schemas.mjs'
             - '.github/workflows/docker-publish-calm-hub.yml'
     # Rebuilds the main tags. Version tags come only from automated-release-calm-hub.yml.
@@ -35,6 +37,8 @@ concurrency:
 jobs:
     build-and-push:
         name: Build and Push Multi-Arch Docker Image
+        # A manual run from another branch must not push the main tags.
+        if: inputs.version != '' || github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
 
         steps:

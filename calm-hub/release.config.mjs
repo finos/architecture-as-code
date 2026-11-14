@@ -11,6 +11,8 @@ export default releaseConfig({
         ':(top,exclude)calm-hub/ec2',
         ':(top)calm-hub-ui',
         ':(top)package.json',
+        ':(top)package-lock.json',
+        ':(top)calm-models',
         ':(top)scripts/copy-calm-schemas.mjs',
     ],
     npmPackage: false,

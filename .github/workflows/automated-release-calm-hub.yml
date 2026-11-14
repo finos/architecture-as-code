@@ -34,9 +34,10 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     permissions:
-      contents: read
+      # semantic-release checks that it can push, also with --dry-run.
+      contents: write
       pull-requests: read
       actions: read
     outputs:
@@ -113,7 +114,12 @@ jobs:
             esac
           else
             cd calm-hub
-            npx semantic-release --dry-run > analysis.txt 2>&1 || true
+            # A failed analysis must not look like "no release needed".
+            if ! npx semantic-release --dry-run > analysis.txt 2>&1; then
+              cat analysis.txt
+              echo "::error::semantic-release failed. See the output above."
+              exit 1
+            fi
             cat analysis.txt
 
             NEXT_VERSION=$(sed -n 's/.*The next release version is \([^[:space:]]*\).*/\1/p' analysis.txt)

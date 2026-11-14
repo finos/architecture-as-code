@@ -370,7 +370,7 @@ Each workflow pushes different tags for a merge and for a release:
 
 | Run | Tags |
 |:----|:-----|
-| Push to `main` (path filter: `calm-hub/**` excl. `calm-hub/ec2/**`, `calm-hub-ui/**`, `package.json`, `scripts/copy-calm-schemas.mjs`), or `workflow_dispatch` | `main<suffix>`, `sha-<short><suffix>` |
+| Push to `main` (path filter: `calm-hub/**` excl. `calm-hub/ec2/**`, `calm-hub-ui/**`, `calm-models/**`, `package.json`, `package-lock.json`, `scripts/copy-calm-schemas.mjs`), or `workflow_dispatch` from `main` | `main<suffix>`, `sha-<short><suffix>` |
 | `workflow_call` from `automated-release-calm-hub.yml` | `<version><suffix>`, `<major.minor><suffix>`, `latest<suffix>` |
 
 A version tag is pushed once. `scripts/check-calm-hub-release.sh` fails the release if the tag is
@@ -394,7 +394,8 @@ The EC2 demo (`ec2/`) runs `main-read-only-native`, so it changes on every merge
    `calm-hub-v*` tag. It releases on the `calm-hub`, `calm-hub-ui` and `deps` scopes, and on unscoped
    `feat`/`fix`/`perf`/`revert`, but only for commits that changed the paths the image is built from.
 2. It opens a `release/calm-hub-v<version>` PR that sets the `pom.xml` version and adds to
-   `CHANGELOG.md`. Merging the PR approves the release, major releases included.
+   `CHANGELOG.md`. Merging the PR approves the release. The shared rules give a breaking change a
+   minor release, so a major release needs `force-release` with `release-type: major`.
 3. On merge, it tags the merge commit `calm-hub-v<version>`, calls the four Docker workflows for
    that commit, then creates the GitHub release.
 
