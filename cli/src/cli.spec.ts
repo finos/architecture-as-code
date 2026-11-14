@@ -1851,4 +1851,80 @@ describe('CLI Commands', () => {
         });
     });
 
+    describe('hub extensions commands', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runListExtensions').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runDescribeExtension').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runExtensionCommand').mockResolvedValue(undefined);
+        });
+
+        it('calls runListExtensions with the hub url and format', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'extensions', 'list', '-c', 'http://hub', '-f', 'pretty']);
+
+            expect(hubCommandsModule.runListExtensions).toHaveBeenCalledWith({
+                calmHubOptions: { calmHubUrl: 'http://hub' }, format: 'pretty',
+            });
+        });
+
+        it('calls runDescribeExtension without a command', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'extensions', 'describe', 'example']);
+
+            expect(hubCommandsModule.runDescribeExtension).toHaveBeenCalledWith({
+                calmHubOptions: { calmHubUrl: undefined }, id: 'example', command: undefined, format: 'json',
+            });
+        });
+
+        it('calls runDescribeExtension with a command', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'extensions', 'describe', 'example', 'list-services']);
+
+            expect(hubCommandsModule.runDescribeExtension).toHaveBeenCalledWith(expect.objectContaining({
+                id: 'example', command: 'list-services',
+            }));
+        });
+
+        it('calls runExtensionCommand with the input and every --arg', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'ext', 'example', 'add-service',
+                '--input', '-', '--arg', 'namespace=finos', '--arg', 'name=a=b', '--timeout', '90', '-c', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runExtensionCommand).toHaveBeenCalledWith({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                id: 'example',
+                command: 'add-service',
+                input: '-',
+                args: ['namespace=finos', 'name=a=b'],
+                timeout: '90',
+                format: 'json',
+            });
+        });
+
+        it('passes no args when --arg is not given', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'ext', 'example', 'list-services']);
+
+            expect(hubCommandsModule.runExtensionCommand).toHaveBeenCalledWith(expect.objectContaining({ input: undefined, args: undefined }));
+        });
+
+        it('prints help for ext without a CALM Hub', async () => {
+            let help = '';
+            const ext = program.commands.find(c => c.name() === 'hub')!.commands.find(c => c.name() === 'ext')!;
+            ext.exitOverride().configureOutput({ writeOut: (text) => { help += text; } });
+
+            await expect(program.parseAsync(['node', 'cli.js', 'hub', 'ext', '--help'])).rejects.toMatchObject({ code: 'commander.helpDisplayed' });
+
+            expect(help).toContain('--input <file>');
+            expect(help).toContain('--arg <key=value>');
+            expect(help).toContain('--timeout <seconds>');
+            expect(cliConfigModule.loadCliConfig).not.toHaveBeenCalled();
+            expect(hubCommandsModule.runExtensionCommand).not.toHaveBeenCalled();
+        });
+
+        it('keeps extension commands out of the built-in hub command names', () => {
+            const hub = program.commands.find(c => c.name() === 'hub')!;
+
+            expect(hub.commands.map(c => c.name()).sort()).toEqual(['create', 'ext', 'extensions', 'list', 'pull', 'push', 'whoami']);
+        });
+    });
+
 });

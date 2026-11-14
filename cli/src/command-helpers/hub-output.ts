@@ -47,18 +47,23 @@ export function printTableSuccess(
 
 /**
  * Prints an error to stderr.
- * JSON mode: `{ "status": N, "error": "...", "request": "..." }`
- * Pretty mode: plain text.
+ * JSON mode: `{ "status": N, "error": "...", "request": "..." }`, plus `"body"` when given.
+ * Pretty mode: plain text, followed by an object body as JSON.
+ * @param body The reply body as CALM Hub sent it, for errors that must be shown as is.
  */
 export function printError(
     status: number,
     error: string,
     request: string,
-    format: OutputFormat
+    format: OutputFormat,
+    body?: unknown
 ): void {
     if (format === 'pretty') {
         process.stderr.write(`Error ${status} [${request}]: ${error}\n`);
+        if (body !== null && typeof body === 'object') {
+            process.stderr.write(JSON.stringify(body, null, 2) + '\n');
+        }
     } else {
-        process.stderr.write(JSON.stringify({ status, error, request }) + '\n');
+        process.stderr.write(JSON.stringify(body === undefined ? { status, error, request } : { status, error, request, body }) + '\n');
     }
 }

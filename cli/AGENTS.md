@@ -58,6 +58,7 @@ npm run copy-workspace-templates # Copy `workspace new` templates from src/comma
 8. **init-config** - Create or update the CLI configuration file (`~/.calm.json`), e.g. allowed remote hosts and CALM Hub URL.
 9. **hub** - Command **group** for interacting with CALM Hub. Subcommands:
    - `hub push <resource> <file>` / `hub pull <resource>` / `hub list <resources>` / `hub create <resource>`
+   - `hub extensions list|describe` and `hub ext <id> <command>` — list the extensions that CALM Hub enabled, and run an extension command through the Hub proxy. The commands are fixed, so an extension cannot add or replace a CLI command, and `--help` works with no CALM Hub (ADR 0014).
    - Resources span architectures, patterns, standards, interfaces, flows, control-requirements, control-configurations, namespaces, and domains (which subcommands exist varies per verb).
    - `hub push` auto-bumps by default (creates a new version off the latest). The `--fail-if-modified` flag (supported on `architecture`, `pattern`, `standard`, `interface`, `flow`, `control-requirement` and `control-configuration`) switches to a strict, non-bumping mode: a brand-new mapping is still created at `1.0.0`, an unchanged document is skipped, and a document that differs from the latest published version fails the push. The local document is normalised the same way Hub stores it (via `updateDocumentMetadata`/`updateControlDocumentMetadata`) before comparing with `canonicalEqual` from `@finos/calm-shared`, so a version-only or defaulted-field difference is not mistaken for a content change. A document whose `$id` is at a `-SNAPSHOT` version is never bumped: it is pushed at that version (overwritten in place, or skipped if unchanged), and `--fail-if-modified` does not apply.
 10. **workspace** - Command **group** for a local, git-rooted bundle of CALM documents (`.calm-workspace/`). Subcommands include `init`, `add`, `rm`, `new`, `tree`, `list`, `show`, `switch`, `clean`, and the CalmHub sync trio:
@@ -83,7 +84,7 @@ The `command-helpers/` directory now holds the substantial per-command logic tha
 `cli.ts` dynamically imports:
 - `diff.ts` - document and timeline diffing
 - `timeline.ts` - timeline synthesis
-- `hub-commands.ts` - CALM Hub push/pull/list/create implementations
+- `hub-commands.ts` - CALM Hub push/pull/list/create, `extensions` and `ext` implementations
 - `hub-output.ts` - formatting of Hub command output
 - `template.ts` - template processing helpers (e.g. URL-to-local-file mapping)
 - `validate.ts` - validation option checks and execution

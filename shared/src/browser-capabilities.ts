@@ -93,6 +93,8 @@ export const BROWSER_COMMAND_SUPPORT: readonly BrowserCommandSupport[] = [
     { command: 'hub push', status: 'unsupported', reason: 'writes to a CALM Hub; browser consumers simulate publishing instead' },
     { command: 'hub create', status: 'unsupported', reason: 'writes to a CALM Hub; browser consumers simulate publishing instead' },
     { command: 'hub whoami', status: 'unsupported', reason: 'reads the caller\'s identity from a CALM Hub over HTTP, which needs CORS headers on the target Hub' },
+    { command: 'hub extensions', status: 'unsupported', reason: 'reads from a CALM Hub over HTTP, which needs CORS headers on the target Hub' },
+    { command: 'hub ext', status: 'unsupported', reason: 'calls an extension through a CALM Hub over HTTP, which needs CORS headers on the target Hub' },
     { command: 'workspace', status: 'unsupported', reason: 'operates on a git-rooted workspace bundle on the local filesystem' },
 ];
 
