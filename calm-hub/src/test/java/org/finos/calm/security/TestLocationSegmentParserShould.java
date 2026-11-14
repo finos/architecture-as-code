@@ -6,6 +6,8 @@ import static org.hamcrest.Matchers.nullValue;
 
 import org.finos.calm.domain.audit.AuditEntityType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class TestLocationSegmentParserShould {
 
@@ -129,5 +131,15 @@ class TestLocationSegmentParserShould {
                                 "/api/calm/namespaces/finos/decorators/4")
                         .entityId(),
                 is("4"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = AuditEntityType.class, names = {"LAYOUT", "PATTERN_LAYOUT", "EXTENSION", "CONFIG_DEFAULT"})
+    void take_no_ids_from_a_location_for_types_whose_writes_return_none(AuditEntityType type) {
+        LocationSegmentParser.LocationIds ids =
+                LocationSegmentParser.parse(type, "/api/calm/namespaces/finos/configs/c4-mapping/default");
+
+        assertThat(ids.entityId(), is(nullValue()));
+        assertThat(ids.version(), is(nullValue()));
     }
 }

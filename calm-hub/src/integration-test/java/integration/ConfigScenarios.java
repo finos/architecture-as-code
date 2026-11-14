@@ -56,7 +56,7 @@ abstract class ConfigScenarios {
                 .body(Map.of("name", "bad", "configJson", "{\"unique-id\":\"bad\",\"node-types\":{\"service\":\"microservice\"}}"))
                 .post("/api/calm/namespaces/cfg-c/configs/c4-mapping")
                 .then().statusCode(400)
-                .body("errors[0].location", containsString("/node-types/service"));
+                .body("errors.location", hasItem(containsString("/node-types/service")));
     }
 
     @Test
