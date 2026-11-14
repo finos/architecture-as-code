@@ -6,7 +6,7 @@ import { BUILTIN_DECORATOR_VIEWS } from './builtinDecoratorViews.js';
 
 it('is the same as the built-in manifests on the Hub classpath', () => {
     const manifests = [evaluation, deployment];
-    const ids = index.split('\n').map((line) => line.trim()).filter(Boolean);
+    const ids = index.split('\n').map((line) => line.trim()).filter((line) => line && !line.startsWith('#'));
     expect(ids).toEqual(manifests.map((manifest) => manifest.id));
     const fromManifests = manifests.flatMap((manifest) => manifest.contributes['decorator-views']);
     expect(BUILTIN_DECORATOR_VIEWS).toEqual(fromManifests);

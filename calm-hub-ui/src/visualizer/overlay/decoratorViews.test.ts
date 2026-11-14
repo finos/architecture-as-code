@@ -59,12 +59,25 @@ it('shows only the registered views when the registry loads, even with no built-
     expect(result.current).toEqual([]);
 });
 
-it('ignores a registry response after unmount', async () => {
-    let resolve!: (views: never[]) => void;
-    fetchViews.mockReturnValue(new Promise((done) => { resolve = done; }));
-    const { unmount } = renderHook(useDecoratorViews);
-    unmount();
-    resolve([]);
+it('ignores a late response for the previous service', async () => {
+    let resolveFirst!: (views: OverlayDecoratorView[]) => void;
+    fetchViews
+        .mockReturnValueOnce(new Promise((done) => { resolveFirst = done; }))
+        .mockResolvedValueOnce([{ id: 'current', match: { type: 'current' }, label: 'Current' }]);
+    const pendingService = () => {
+        const service = new ExtensionService();
+        vi.spyOn(service, 'fetchExtensions').mockReturnValue(new Promise(() => {}));
+        return service;
+    };
+    let service = pendingService();
+    const wrapper = ({ children }: { children: ReactNode }) => createElement(ExtensionsProvider, { service, children });
+    const { result, rerender } = renderHook(useDecoratorViews, { wrapper });
+
+    service = pendingService();
+    rerender();
+    await waitFor(() => expect(result.current.map((view) => view.id)).toEqual(['current']));
+    await act(async () => resolveFirst([{ id: 'stale', match: { type: 'stale' }, label: 'Stale' }]));
+    expect(result.current.map((view) => view.id)).toEqual(['current']);
 });
 
 it('shows the extension views when the provider loads the registry after a failure', async () => {
