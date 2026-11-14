@@ -49,6 +49,12 @@ import {
     runListControls,
     runListControlConfigurations,
     ListOptions,
+    PushConfigOptions,
+    PullConfigOptions,
+    ListConfigsOptions,
+    runPushConfig,
+    runPullConfig,
+    runListConfigs,
 } from './command-helpers/hub-commands';
 import type { ResourceChangeType } from '@finos/calm-shared';
 
@@ -678,6 +684,31 @@ Example:
             await runPushControlConfiguration(pushOptions);
         });
 
+    hubPushCmd
+        .command('config <config-type> <config-file>')
+        .description('Push a config, such as a c4-mapping, to CALM Hub. A config with the same name in the namespace gets a new version, unless its content is unchanged.')
+        .requiredOption(NAMESPACE_OPTION, 'Target namespace')
+        .option(NAME_OPTION, 'Name of the config in CALM Hub. Defaults to the unique-id of the config.')
+        .option(DESCRIPTION_OPTION, 'Description of the config')
+        .option('--set-default', 'Also make the pushed version the default for the namespace. Child namespaces inherit it. Needs namespace admin.', false)
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .action(async (configType, configFile, options) => {
+            const pushOptions: PushConfigOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                configType,
+                file: configFile,
+                namespace: options.namespace,
+                name: options.name,
+                description: options.description,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                setDefault: options.setDefault,
+                format: options.format
+            };
+            await runPushConfig(pushOptions);
+        });
+
     // hub pull
     const hubPullCmd = hubCmd.command('pull').description('Pull a CALM document from CALM Hub');
 
@@ -835,6 +866,26 @@ Example:
             await runPullControlConfiguration(pullOptions);
         });
 
+    hubPullCmd
+        .command('config <config-type>')
+        .description('Pull a config from CALM Hub. Without --id, pull the default config that applies to the namespace, which can come from a parent namespace.')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .option('--id <id>', 'ID of the config to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve (defaults to the latest). Needs --id.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (configType, options) => {
+            const pullOptions: PullConfigOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                configType,
+                namespace: options.namespace,
+                id: options.id,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullConfig(pullOptions);
+        });
+
     // hub list
     const hubListCmd = hubCmd.command('list').description('List CALM Hub resources');
 
@@ -984,6 +1035,22 @@ Example:
                 format: options.format
             };
             await runListControlConfigurations(listOptions);
+        });
+
+    hubListCmd
+        .command('configs <config-type>')
+        .description('List the configs of one type, such as c4-mapping, in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (configType, options) => {
+            const listOptions: ListConfigsOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                configType,
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListConfigs(listOptions);
         });
 
     // hub create

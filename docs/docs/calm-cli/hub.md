@@ -505,6 +505,53 @@ calm hub pull control-configuration \
 - **`-o, --output <file>`**: Write the configuration JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
+## Managing Configs
+
+A config is versioned JSON that tools read, such as a `c4-mapping` for C4 diagrams. Each config type has a schema, and CALM Hub rejects a config that does not match it. A namespace can name a default config for each type, and child namespaces inherit it. A config has no `$id`, so these commands take the config type and a namespace.
+
+### Push a config
+
+The CLI finds the config by its name in the namespace. A new name creates the config at `1.0.0`. A known name gets the next version, or is skipped when the content is unchanged.
+
+```shell
+calm hub push config c4-mapping acme-c4-mapping.json --namespace org --set-default -c http://localhost:8080
+```
+
+**Options:**
+
+- **`--namespace <namespace>`**: _(required)_ The target namespace.
+- **`--name <name>`**: Name of the config. Defaults to the `unique-id` of the config.
+- **`--description <description>`**: Description of the config.
+- **`--set-default`**: Also make the pushed version the default for the namespace. This needs namespace admin.
+- **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
+- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
+
+### List configs
+
+```shell
+calm hub list configs c4-mapping --namespace org -c http://localhost:8080
+```
+
+The `pretty` format shows the columns **ID**, **NAME**, **VERSIONS**, and **DESCRIPTION**. `--namespace` defaults to `default`.
+
+### Pull a config
+
+Without `--id`, the CLI pulls the default config that applies to the namespace. It comes from the namespace, or else from its nearest parent namespace that sets one. The config JSON goes to stdout, and a note on stderr says which namespace sets it.
+
+```shell
+calm hub pull config c4-mapping --namespace org.payments -c http://localhost:8080
+calm hub pull config c4-mapping --namespace org --id 1 --ver 1.0.0 -o acme-c4-mapping.json -c http://localhost:8080
+```
+
+**Options:**
+
+- **`--namespace <namespace>`**: _(required)_ The source namespace.
+- **`--id <id>`**: ID of the config to pull. Omit it to pull the namespace default.
+- **`--ver <version>`**: Version to retrieve (defaults to the latest). Needs `--id`.
+- **`-o, --output <file>`**: Write the config JSON to a file instead of stdout.
+- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
+
 ## Output Formats
 
 All `hub` subcommands support a `-f, --format <format>` option with two choices:
