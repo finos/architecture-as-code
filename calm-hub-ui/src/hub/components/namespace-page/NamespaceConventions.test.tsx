@@ -6,12 +6,13 @@ import { ConventionSummary, NamespaceDefaultConvention } from '../../../model/co
 
 function serviceWith(
     conventions: Record<string, ConventionSummary[] | Error>,
-    defaults: Record<string, NamespaceDefaultConvention | undefined>
+    defaults: Record<string, NamespaceDefaultConvention | undefined>,
+    byNamespace: Record<string, Record<string, ConventionSummary[]>> = {}
 ): ConventionService {
     return {
         fetchConventionTypes: vi.fn().mockResolvedValue(Object.keys(conventions).map((type) => ({ type, schema: `${type}.json` }))),
-        fetchConventions: vi.fn((_ns: string, type: string) => {
-            const value = conventions[type];
+        fetchConventions: vi.fn((ns: string, type: string) => {
+            const value = byNamespace[ns]?.[type] ?? conventions[type];
             return value instanceof Error ? Promise.reject(value) : Promise.resolve(value);
         }),
         fetchNamespaceDefault: vi.fn((_ns: string, type: string) => Promise.resolve(defaults[type])),
@@ -64,12 +65,45 @@ describe('NamespaceConventions', () => {
         expect(screen.queryByTestId('convention-group-theme')).not.toBeInTheDocument();
     });
 
-    it('renders nothing when no type has a convention or a default', async () => {
-        const service = serviceWith({ 'c4-mapping': [] }, { 'c4-mapping': undefined });
-        const { container } = render(<NamespaceConventions namespace="org" service={service} />);
+    it('hides the version count when Hub reports 0, as in GitHub mode', async () => {
+        const service = serviceWith({ 'c4-mapping': [{ id: 7, name: 'acme-c4', versionCount: 0 }] }, {});
+        render(<NamespaceConventions namespace="org" service={service} />);
 
-        await vi.waitFor(() => expect(service.fetchNamespaceDefault).toHaveBeenCalled());
-        await Promise.resolve();
-        expect(container).toBeEmptyDOMElement();
+        const row = within(await screen.findByTestId('convention-group-c4-mapping')).getByRole('listitem');
+        expect(row).toHaveTextContent('#7');
+        expect(row).not.toHaveTextContent('version');
+    });
+
+    // A second namespace, loaded through the same steps, shows when the empty one has loaded too.
+    it('renders nothing when no type has a convention or a default', async () => {
+        const service = serviceWith({ 'c4-mapping': [] }, { 'c4-mapping': undefined }, { org: { 'c4-mapping': [acme] } });
+        render(
+            <>
+                <div data-testid="empty">
+                    <NamespaceConventions namespace="org.empty" service={service} />
+                </div>
+                <NamespaceConventions namespace="org" service={service} />
+            </>
+        );
+
+        await screen.findByTestId('convention-group-c4-mapping');
+        expect(screen.getByTestId('empty')).toBeEmptyDOMElement();
+    });
+
+    it('renders nothing when the convention types request fails', async () => {
+        const failing = serviceWith({}, {});
+        vi.mocked(failing.fetchConventionTypes).mockRejectedValue(new Error('down'));
+        render(
+            <>
+                <div data-testid="failed">
+                    <NamespaceConventions namespace="org" service={failing} />
+                </div>
+                <NamespaceConventions namespace="org" service={serviceWith({ 'c4-mapping': [acme] }, {})} />
+            </>
+        );
+
+        await screen.findByTestId('convention-group-c4-mapping');
+        expect(screen.getByTestId('failed')).toBeEmptyDOMElement();
+        expect(failing.fetchConventions).not.toHaveBeenCalled();
     });
 });

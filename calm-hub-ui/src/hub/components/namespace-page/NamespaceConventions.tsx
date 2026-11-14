@@ -91,8 +91,9 @@ export function NamespaceConventions({ namespace, service }: NamespaceConvention
                                             className="font-mono-jb text-[11px] whitespace-nowrap"
                                             style={{ color: colors.redesign.mutedAlt }}
                                         >
-                                            #{convention.id} · {convention.versionCount}{' '}
-                                            {convention.versionCount === 1 ? 'version' : 'versions'}
+                                            #{convention.id}
+                                            {convention.versionCount > 0 &&
+                                                ` · ${convention.versionCount} ${convention.versionCount === 1 ? 'version' : 'versions'}`}
                                         </span>
                                     </li>
                                 );

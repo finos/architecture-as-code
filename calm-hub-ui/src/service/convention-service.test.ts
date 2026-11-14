@@ -17,6 +17,11 @@ describe('ConventionService', () => {
         await expect(service.fetchConventionTypes()).resolves.toEqual(types);
     });
 
+    it('rejects when the convention types request fails', async () => {
+        mock.onGet('/api/calm/convention-types').reply(500);
+        await expect(service.fetchConventionTypes()).rejects.toThrow('Error fetching convention types');
+    });
+
     it('fetches the conventions of a type in a namespace', async () => {
         const conventions = [{ id: 3, name: 'acme', versionCount: 2 }];
         mock.onGet(base).reply(200, { values: conventions });
