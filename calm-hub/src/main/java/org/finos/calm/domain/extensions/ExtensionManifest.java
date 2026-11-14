@@ -136,11 +136,14 @@ public record ExtensionManifest(
 
     /** {@code status} and {@code label} are JSON Pointers into decorator data. Levels are ok, warn, error and info. */
     @RegisterForReflection
-    @JsonbPropertyOrder({"status", "map", "defaultLevel", "label"})
+    @JsonbPropertyOrder({"status", "map", "defaultLevel", "label", "hide", "key", "time"})
     public record Overlay(
             String status,
             Map<String, String> map,
             @JsonProperty("default") @JsonbProperty("default") String defaultLevel,
-            String label
+            String label,
+            List<String> hide,
+            String key,
+            String time
     ) {}
 }

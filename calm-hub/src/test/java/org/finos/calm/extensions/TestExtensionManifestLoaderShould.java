@@ -177,6 +177,9 @@ class TestExtensionManifestLoaderShould {
                 invalid("an empty match", m -> view(m).put("match", new JsonObject()), "/contributes/decorator-views/0/match"),
                 invalid("an overlay level off the scale", m -> view(m).getJsonObject("overlay").getJsonObject("map").put("met", "green"), "/contributes/decorator-views/0/overlay/map/met"),
                 invalid("an overlay status that is not a JSON Pointer", m -> view(m).getJsonObject("overlay").put("status", "status"), "/contributes/decorator-views/0/overlay/status"),
+                invalid("an overlay time that is not a JSON Pointer", m -> view(m).getJsonObject("overlay").put("time", "time"), "/contributes/decorator-views/0/overlay/time"),
+                invalid("an overlay key that is not a JSON Pointer", m -> view(m).getJsonObject("overlay").put("key", "key"), "/contributes/decorator-views/0/overlay/key"),
+                invalid("a hide list with a non-string status", m -> view(m).getJsonObject("overlay").put("hide", new JsonArray().add(1)), "/contributes/decorator-views/0/overlay/hide/0"),
                 invalid("a command input that is not an object schema", m -> command(m).getJsonObject("input").put("type", "string"), "/commands/list-services/input/type"),
                 invalid("a command name with an underscore", m -> m.getJsonObject("commands").put("list_all", command(m).copy()), "/commands/list_all: "),
                 // Java checks
@@ -352,8 +355,10 @@ class TestExtensionManifestLoaderShould {
     }
 
     @Test
-    void ship_no_built_in_manifests_yet() {
-        assertThat(loader.loadClasspath(getClass().getClassLoader(), ExtensionManifestLoader.BUILTIN_BASE), empty());
+    void ship_the_standard_decorator_views() {
+        var manifests = loader.loadClasspath(getClass().getClassLoader(), ExtensionManifestLoader.BUILTIN_BASE);
+        assertThat(manifests.stream().map(ExtensionManifest::id).toList(), contains("control-evaluation", "deployment"));
+        assertThat(manifests.getFirst().contributes().decoratorViews().getFirst().overlay().hide(), contains("not-applicable"));
     }
 
     @Test

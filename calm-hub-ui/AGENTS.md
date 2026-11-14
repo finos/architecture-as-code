@@ -184,8 +184,11 @@ a `PUT`.
 
 One engine (`visualizer/overlay/`) draws decorators on the diagram from `decorator-views` entries that have an
 `overlay` (types in `visualizer/contracts/decorator-view-contracts.ts`). Status values map to the fixed scale
-`ok`, `warn`, `error`, `info`. The built-in views for `control-evaluation` and `deployment` are in
-`builtinDecoratorViews.ts`, and `useDecoratorViews()` returns them. `DiagramSection` polls all decorators of
+`ok`, `warn`, `error`, `info`. The built-in views for `control-evaluation` and `deployment` come from classpath manifests through
+`GET /api/calm/extensions`. If the registry is unavailable, `useDecoratorViews()` returns the bundled copy in
+`builtinDecoratorViews.ts`; its test keeps it the same as the manifests. It reads the views again when `useExtensionsStatus()`
+becomes `loaded`, so a retry that succeeds brings back the extension views. Only the registry says that an operator turned a
+built-in off (`calm.extensions."<id>".enabled=false`), so the fallback draws both built-ins. `DiagramSection` polls all decorators of
 the version every 5 s while the diagram, the Decorators tab or the details drawer shows (`useArchitectureDecorators`, one request;
 after three failures in a row it backs off to 30 s, also when the view shows again) and gives the one list to the Decorators tab, the
 details drawer and `Drawer`. Do not add a second request. `Drawer` gives the overlays to the diagram through
@@ -196,10 +199,11 @@ Evaluations panel read control-evaluation fields, so they use only the view with
 `ExtensionService` uses its own axios instance, not `apiClient`, so a registry or extension call failure does not
 open the global auth or outage page. The exception is a registry `401`: the registry is a Hub call, so it opens
 the sign-in prompt. `ExtensionsProvider` (`extensions/ExtensionsContext.tsx`) owns the one `ExtensionService`.
-Get it with `useExtensionService()`, not `new ExtensionService()` or a module singleton: the registry and the
-slots then share one registry request, and a test can inject a service. The service
+Get it with `useExtensionService()`, not `new ExtensionService()` or a module singleton: the registry, the
+decorator views and the slots then share one registry request, and a test can inject a service. The service
 drops registry entries whose `hubApi` the UI does not support, and malformed entries (no string `id`, no list of routes, no
-`contributes` object, or a UI extension point that is not a list of entries). After a failed load the provider
+`contributes` object, or a UI extension point that is not a list of entries), for both paths. A `decorator-views` value
+that is not a list gives no views, and the other views stay. After a failed load the provider
 tries again with a backoff (5 s, doubled, up to 60 s; a new service starts it again), but not after a `401`.
 `useExtensionsStatus()` gives `loading`, `loaded`, `failed` or `signed-out`. Use it where an empty list must not
 mean "no extension", for example `ExtensionScreenPage` on a deep link, or an extension tab in a link.

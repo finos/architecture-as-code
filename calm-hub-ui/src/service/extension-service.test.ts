@@ -26,15 +26,29 @@ describe('ExtensionService', () => {
         mock.onGet('/api/calm/extensions').reply(200, {});
         const service = new ExtensionService(ax);
         expect(await service.fetchExtensions()).toEqual([]);
+        expect(await service.fetchDecoratorViews()).toEqual([]);
     });
     it('rejects registry failures', async () => {
         mock.onGet('/api/calm/extensions').reply(500);
         await expect(new ExtensionService(ax).fetchExtensions()).rejects.toThrow('Error fetching extensions');
     });
-    it('shares one registry request between callers', async () => {
+    it('keeps registry and contribution order, including views without routes', async () => {
+        const first = { id: 'scanner', match: { type: 'scan' }, label: 'Scan' };
+        const second = { id: 'audit', match: { schema: 'https://example.org/audit' }, label: 'Audit' };
+        mock.onGet('/api/calm/extensions').reply(200, { values: [
+            entry('a', views(first, second)), entry('b'), entry('c', views(second)),
+        ] });
+        expect(await new ExtensionService(ax).fetchDecoratorViews()).toMatchObject([first, second, second]);
+        expect(mock.history.get[0].headers?.Authorization).toBe('test');
+    });
+    it('rejects a failed decorator view request', async () => {
+        mock.onGet('/api/calm/extensions').reply(503);
+        await expect(new ExtensionService(ax).fetchDecoratorViews()).rejects.toThrow('Error fetching decorator views:');
+    });
+    it('shares one registry request between extensions and decorator views', async () => {
         mock.onGet('/api/calm/extensions').reply(200, { values: [entry('test')] });
         const service = new ExtensionService(ax);
-        await Promise.all([service.fetchExtensions(), service.fetchExtensions()]);
+        await Promise.all([service.fetchExtensions(), service.fetchDecoratorViews(), service.fetchExtensions()]);
         expect(mock.history.get).toHaveLength(1);
     });
     it('retries the registry after a failure', async () => {
@@ -70,6 +84,7 @@ describe('ExtensionService', () => {
         mock.onGet('/api/calm/extensions').reply(503);
         mock.onGet().reply(401);
         const service = new ExtensionService();
+        await expect(service.fetchDecoratorViews()).rejects.toThrow();
         await expect(service.fetchExtensions()).rejects.toThrow();
         await expect(service.call('test', route, { namespace: 'ns' })).rejects.toThrow();
         shared.restore();
@@ -87,7 +102,7 @@ describe('ExtensionService', () => {
         await expect(new ExtensionService(ax).fetchExtensions()).rejects.toMatchObject({ signedOut: false });
         expect(authStore.getAuthError()).toBeNull();
     });
-    it('drops registry entries of an unsupported contract', async () => {
+    it('drops registry entries of an unsupported contract from extensions and decorator views alike', async () => {
         const view = { id: 'risk', match: { type: 'risk' }, label: 'Risk' };
         mock.onGet('/api/calm/extensions').reply(200, { values: [
             entry('now', views(view)),
@@ -96,6 +111,7 @@ describe('ExtensionService', () => {
         ] });
         const service = new ExtensionService(ax);
         expect((await service.fetchExtensions()).map((e) => e.id)).toEqual(['now']);
+        expect((await service.fetchDecoratorViews()).map((v) => v.id)).toEqual(['risk']);
     });
     it('drops a malformed registry entry, so a page does not read a missing field', async () => {
         const route = { id: 'r', method: 'GET', path: '/x', scope: 'read', readOnly: true };
@@ -113,6 +129,7 @@ describe('ExtensionService', () => {
         ] });
         const service = new ExtensionService(ax);
         expect((await service.fetchExtensions()).map((e) => e.id)).toEqual(['good', 'good-views', 'good-screen']);
+        expect((await service.fetchDecoratorViews()).map((v) => v.id)).toEqual(['risk']);
     });
     it('logs one warning for each dropped registry entry, with its id if it has one', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -123,6 +140,15 @@ describe('ExtensionService', () => {
             ['%s', 'Dropped an extension registry entry with no id'],
         ]);
         warn.mockRestore();
+    });
+    it('skips a decorator-views value that is not a list, and keeps the other views', async () => {
+        mock.onGet('/api/calm/extensions').reply(200, { values: [
+            entry('object', { contributes: { 'decorator-views': { id: 'risk' } } }),
+            entry('text', { contributes: { 'decorator-views': 'risk' } }),
+            entry('null', { contributes: { 'decorator-views': null } }),
+            entry('good', views({ id: 'audit' })),
+        ] });
+        expect((await new ExtensionService(ax).fetchDecoratorViews()).map((v) => v.id)).toEqual(['audit']);
     });
     it('rejects missing route context', () => {
         expect(() => extensionRequest('test', route, {})).toThrow('Missing extension context');

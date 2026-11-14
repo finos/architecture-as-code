@@ -1,0 +1,30 @@
+{
+  "id": "control-evaluation",
+  "version": "0.1.0",
+  "hubApi": 0,
+  "name": "Control evaluations",
+  "contributes": {
+    "decorator-views": [
+      {
+        "id": "control-evaluation",
+        "match": {
+          "type": "control-evaluation"
+        },
+        "label": "Control evaluations",
+        "overlay": {
+          "status": "/status",
+          "map": {
+            "met": "ok",
+            "not-met": "error"
+          },
+          "hide": [
+            "not-applicable"
+          ],
+          "label": "/control/unique-id",
+          "key": "/control/unique-id",
+          "time": "/evaluated-at"
+        }
+      }
+    ]
+  }
+}

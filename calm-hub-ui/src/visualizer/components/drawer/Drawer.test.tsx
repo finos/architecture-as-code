@@ -1,3 +1,4 @@
+import { BUILTIN_DECORATOR_VIEWS } from '../../../test-support/decorator-views.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { Drawer } from './Drawer.js';
@@ -5,6 +6,8 @@ import { Data } from '../../../model/calm.js';
 import type { Decorator, ReactFlowVisualizerProps } from '../../contracts/contracts.js';
 import type { PatternVisualizerProps } from '../reactflow/PatternVisualizer.js';
 import { DropzoneOptions } from 'react-dropzone';
+
+vi.mock('../../overlay/decoratorViews.js', () => ({ useDecoratorViews: () => BUILTIN_DECORATOR_VIEWS }));
 
 // Captures the `onDrop` the Drawer hands to react-dropzone so tests can invoke
 // it directly with a fake File. Hoisted so the (hoisted) vi.mock factory below

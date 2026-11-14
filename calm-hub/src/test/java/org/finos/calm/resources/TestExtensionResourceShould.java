@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.contains;
 
 @QuarkusTest
 class TestExtensionResourceShould {
@@ -21,13 +22,17 @@ class TestExtensionResourceShould {
 
     @Test
     @TestSecurity(user = "alice")
-    void return_an_empty_list_when_no_extensions_are_configured() {
+    void return_route_less_builtin_views_when_no_extensions_are_configured() {
         given()
                 .when()
                 .get("/api/calm/extensions")
                 .then()
                 .statusCode(200)
-                .body(equalTo("{\"values\":[]}"));
+                .body("values.id", contains("control-evaluation", "deployment"))
+                .body("values[0].routes.size()", equalTo(0))
+                .body("values[0].contributes.decorator-views[0].overlay.hide", contains("not-applicable"))
+                .body("values[0].contributes.decorator-views[0].overlay.key", equalTo("/control/unique-id"))
+                .body("values[1].contributes.decorator-views[0].overlay.time", equalTo("/start-time"));
     }
     @Test
     @TestSecurity(user = "alice")

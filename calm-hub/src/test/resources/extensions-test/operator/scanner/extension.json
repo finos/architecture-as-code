@@ -1,0 +1,14 @@
+{
+  "id": "scanner",
+  "version": "1.0.0",
+  "hubApi": 0,
+  "name": "Security scan",
+  "contributes": {
+    "decorator-views": [{
+      "id": "security-scan",
+      "match": { "type": "security-scan" },
+      "label": "Security scan",
+      "overlay": { "status": "/result", "map": { "unsafe": "error", "safe": "ok" } }
+    }]
+  }
+}
