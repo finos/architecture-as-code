@@ -167,6 +167,8 @@ class TestExtensionManifestLoaderShould {
                 invalid("a path with an @", m -> routes(m).put("path", "/@evil/x"), "/routes/0/path"),
                 invalid("a path with a double slash", m -> routes(m).put("path", "//screen"), "/routes/0/path"),
                 invalid("a path with an encoded character", m -> routes(m).put("path", "/a%2fb"), "/routes/0/path"),
+                invalid("a parameter inside a segment", m -> routes(m).put("path", "/files/{name}.json"), "/routes/0/path"),
+                invalid("a parameter after a literal in a segment", m -> routes(m).put("path", "/files/v{version}"), "/routes/0/path"),
                 invalid("an upper-case id", m -> m.put("id", "Team"), "/id"),
                 invalid("a version that is not semantic", m -> m.put("version", "1.0"), "/version"),
                 invalid("an unknown extension point", m -> m.getJsonObject("contributes").put("toolbar", new JsonArray()), "/contributes/toolbar: "),
@@ -234,12 +236,12 @@ class TestExtensionManifestLoaderShould {
 
     @Test
     void reject_a_reserved_id() {
-        JsonObject manifest = valid().put("id", "dir");
+        JsonObject manifest = valid().put("id", "http");
 
         IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> loader.parse(manifest.encode(), "dir", "test"));
+                () -> loader.parse(manifest.encode(), "http", "test"));
 
-        assertThat(e.getMessage(), containsString("id 'dir' is reserved for calm.extensions.dir"));
+        assertThat(e.getMessage(), containsString("id 'http' is reserved for calm.extensions.http"));
     }
 
     @Test

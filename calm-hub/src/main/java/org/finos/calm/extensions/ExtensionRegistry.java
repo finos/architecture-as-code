@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -34,7 +35,9 @@ import java.util.regex.Pattern;
 public class ExtensionRegistry {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExtensionRegistry.class);
-    private static final List<String> PER_ID_KEYS = List.of("enabled", "order", "backend-url");
+    private static final List<String> PER_ID_KEYS = List.of("enabled", "order", "backend-url", "allow-http",
+            "connect-timeout-seconds", "request-timeout-seconds", "max-request-bytes", "max-response-bytes",
+            "max-concurrent-calls");
     private static final Pattern PER_ID_SETTING = Pattern.compile(
             "^calm\\.extensions\\.(?:\"([a-z][a-z0-9-]*)\"|([a-z][a-z0-9-]*))\\.(?:" + String.join("|", PER_ID_KEYS) + ")$");
     /** The same settings as environment variables, such as {@code CALM_EXTENSIONS__TEAM_SERVICES__ENABLED}. */
@@ -88,6 +91,8 @@ public class ExtensionRegistry {
             Optional<Boolean> isEnabled = booleanSetting(id, "enabled", errors);
             Optional<Integer> order = intSetting(id, "order", errors);
             Optional<URI> backendUrl = urlSetting(id, "backend-url", errors);
+            boolean allowHttp = booleanSetting(id, "allow-http", errors).orElse(false);
+            ExtensionLimits limits = limits(id, errors);
             if (!isEnabled.orElse(true)) {
                 LOG.info("Extension {} is disabled", id);
                 continue;
@@ -104,7 +109,16 @@ public class ExtensionRegistry {
             if (!manifest.routes().isEmpty() && backendUrl.isEmpty()) {
                 errors.add(key(id, "backend-url") + " must be set, because extension '" + id + "' is enabled and has routes");
             }
-            enabled.add(new RegisteredExtension(manifest, order.orElse(0), backendUrl));
+            backendUrl.filter(url -> "http".equalsIgnoreCase(url.getScheme()) && !allowHttp && !isLoopback(url.getHost()))
+                    .ifPresent(url -> errors.add(key(id, "backend-url") + " must use https. Plain http is allowed only "
+                            + "for a loopback host, or with " + key(id, "allow-http") + "=true"));
+            enabled.add(new RegisteredExtension(manifest, order.orElse(0), backendUrl, limits));
+        }
+        // With auth off every caller is a global admin, so every route would be open (ADR 0011).
+        boolean authEnabled = properties.getOptionalValue("calm.auth.enabled", Boolean.class).orElse(false);
+        if (!authEnabled && !config.allowWithoutAuth() && enabled.stream().anyMatch(e -> !e.manifest().routes().isEmpty())) {
+            errors.add("an enabled extension has routes, but calm.auth.enabled is false. Every caller would be a global "
+                    + "admin. Turn auth on, or set calm.extensions.allow-without-auth=true for local development");
         }
         warnAboutUnknownIds(ids);
         if (!errors.isEmpty()) {
@@ -139,6 +153,11 @@ public class ExtensionRegistry {
             return Optional.of(id.toLowerCase(Locale.ROOT).replace('_', '-'));
         }
         return Optional.empty();
+    }
+
+    /** True on a read-only Hub, where the proxy allows a non-GET method only on a {@code readOnly} route. */
+    public boolean isReadOnly() {
+        return readOnly;
     }
 
     /** The enabled extensions in order, with the settings that only Hub may see. */
@@ -204,6 +223,30 @@ public class ExtensionRegistry {
             errors.add(key(id, name) + " must be an absolute http or https URL with no user info, query or fragment");
             return Optional.empty();
         });
+    }
+
+    private ExtensionLimits limits(String id, List<String> errors) {
+        ExtensionsConfig.Http defaults = config.http();
+        return new ExtensionLimits(
+                Duration.ofSeconds(positiveSetting(id, "connect-timeout-seconds", defaults.connectTimeoutSeconds(), errors)),
+                Duration.ofSeconds(positiveSetting(id, "request-timeout-seconds", defaults.requestTimeoutSeconds(), errors)),
+                positiveSetting(id, "max-request-bytes", defaults.maxRequestBytes(), errors),
+                positiveSetting(id, "max-response-bytes", defaults.maxResponseBytes(), errors),
+                positiveSetting(id, "max-concurrent-calls", defaults.maxConcurrentCalls(), errors));
+    }
+
+    private int positiveSetting(String id, String name, int fallback, List<String> errors) {
+        int value = intSetting(id, name, errors).orElse(fallback);
+        if (value < 1) {
+            errors.add(key(id, name) + " must be at least 1, but was " + value);
+        }
+        return value;
+    }
+
+    /** Only literal loopback names, so that no DNS answer can make a host count as loopback. */
+    private static boolean isLoopback(String host) {
+        String name = host.toLowerCase(Locale.ROOT);
+        return name.equals("localhost") || name.equals("[::1]") || name.matches("127(\\.\\d{1,3}){3}");
     }
 
     private static String key(String id, String name) {

@@ -123,6 +123,7 @@
           ]
         },
         "path": {
+          "description": "The route path. A {name} segment takes one value, which must not contain a slash, because CALM Hub refuses %2F. For a CALM Hub resource, use {resourceType}/{resourceId}. Use {resource} (type/id) only in a query or a body.",
           "type": "string",
           "pattern": "^/(?:[A-Za-z0-9._~-]+|\\{[A-Za-z][A-Za-z0-9_-]*\\})(?:/(?:[A-Za-z0-9._~-]+|\\{[A-Za-z][A-Za-z0-9_-]*\\}))*$|^/$"
         },

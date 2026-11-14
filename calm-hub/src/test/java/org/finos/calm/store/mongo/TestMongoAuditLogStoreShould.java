@@ -14,6 +14,7 @@ import org.finos.calm.domain.audit.AuditLogQuery;
 import org.finos.calm.domain.audit.AuditOutcome;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.time.LocalDateTime;
@@ -74,6 +75,39 @@ public class TestMongoAuditLogStoreShould {
                 .append("sourceIp", "10.0.0.1");
 
         verify(auditLogCollection).insertOne(expected);
+    }
+
+    @Test
+    void store_and_read_back_the_route_and_jti_of_an_extension_entry() {
+        LocalDateTime timestamp = LocalDateTime.of(2026, 1, 1, 10, 30);
+        AuditLogEntry entry = new AuditLogEntry.AuditLogEntryBuilder()
+                .setTimestamp(timestamp)
+                .setActor("alice")
+                .setAction(AuditAction.CREATE)
+                .setEntityType(AuditEntityType.EXTENSION)
+                .setNamespace("finos")
+                .setEntityId("team-services")
+                .setOutcome(AuditOutcome.SUCCESS)
+                .setRoute("add-service")
+                .setJti("jti-1")
+                .build();
+
+        store.record(entry);
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(auditLogCollection).insertOne(captor.capture());
+        assertThat(captor.getValue().getString("route"), is("add-service"));
+        assertThat(captor.getValue().getString("jti"), is("jti-1"));
+
+        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
+        DocumentMongoCursor cursor = Mockito.mock(DocumentMongoCursor.class);
+        when(cursor.hasNext()).thenReturn(true, false);
+        when(cursor.next()).thenReturn(captor.getValue());
+        when(findIterable.iterator()).thenReturn(cursor);
+        when(findIterable.sort(any(Document.class))).thenReturn(findIterable);
+        when(auditLogCollection.find(any(Document.class))).thenReturn(findIterable);
+
+        assertThat(store.query(new AuditLogQuery()).get(0), is(entry));
     }
 
     @Test

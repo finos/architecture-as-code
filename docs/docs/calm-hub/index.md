@@ -149,8 +149,6 @@ CALM_UI_ITEMS_1__VALUE=2026.10.1
 
 An extension adds features to CALM Hub without a fork. It is an HTTP service that CALM Hub calls. The operator installs it with a manifest. CALM Hub reads the manifests at start up. No API adds an extension.
 
-> Work in progress: CALM Hub reads, checks and lists manifests. It does not call extension services yet.
-
 Put one folder for each extension in `calm.extensions.dir`, with an `extension.json` in it. The folder name must equal the manifest `id`. Hub skips hidden folders and warns about folders without a manifest. A per-id setting for an unknown extension id gives a warning at start up, as a property or as an environment variable.
 
 ```text
@@ -165,9 +163,16 @@ Put one folder for each extension in `calm.extensions.dir`, with an `extension.j
 | `calm.extensions."<id>".enabled` | `true` | Set `false` to turn off an extension |
 | `calm.extensions."<id>".order` | `0` | Lower values come first in the list. Equal values sort by id |
 | `calm.extensions."<id>".backend-url` | not set | The base URL of the extension service. Required for an enabled extension with routes |
+| `calm.extensions."<id>".allow-http` | `false` | Allows a plain `http` backend that is not on loopback, such as a cluster-internal host. Otherwise the backend must use `https`, or `http` on `localhost`, `127.x.x.x` or `[::1]` |
+| `calm.extensions."<id>".connect-timeout-seconds` | `calm.extensions.http.connect-timeout-seconds` (`5`) | The connect timeout for each call. A value below 1 stops start-up |
+| `calm.extensions."<id>".request-timeout-seconds` | `calm.extensions.http.request-timeout-seconds` (`10`) | The limit for the whole call. A slow backend gets `504`. A value below 1 stops start-up |
+| `calm.extensions."<id>".max-request-bytes` | `calm.extensions.http.max-request-bytes` (`1048576`) | A larger request body gets `413`. A value below 1 stops start-up |
+| `calm.extensions."<id>".max-response-bytes` | `calm.extensions.http.max-response-bytes` (`1048576`) | A larger reply gets `502`. A value below 1 stops start-up |
+| `calm.extensions."<id>".max-concurrent-calls` | `calm.extensions.http.max-concurrent-calls` (`32`) | The calls to the extension at the same time. One more call gets `503` with `Retry-After: 1`, so that a slow backend cannot hold every worker thread. A value below 1 stops start-up |
 | `calm.extensions.identity.private-key-location` | not set | The PKCS#8 PEM key that signs the identity assertion: RSA (2048 bits or more, RS256) or P-256 (ES256). Required when an enabled extension has routes. A shared secret (HS256) is refused |
 | `calm.extensions.identity.public-key-locations` | not set | Comma-separated PEM public keys for the JWKS. The first is the public key of the signing key. Required when `private-key-location` is set, and not allowed without it |
 | `calm.extensions.identity.ttl-seconds` | `60` | The lifetime of an assertion, at most `300` |
+| `calm.extensions.allow-without-auth` | `false` | Allows enabled extensions with routes when `calm.auth.enabled=false`. Only for local development: every caller is then a global admin |
 
 ```bash
 CALM_EXTENSIONS_DIR=/etc/calm-hub/extensions
@@ -178,7 +183,7 @@ CALM_EXTENSIONS__TEAM_SERVICES__ORDER=10
 The manifest declares:
 
 - `id`, `version`, `hubApi` (now `0`), `name`, and optional `description` and `provider`.
-- `routes`: every call that the extension can receive, each with an `id`, `method`, `path`, `scope` and optional `readOnly`. A `read`, `write` or `admin` scope needs a `{namespace}` in the path. A `domain_*` scope needs a `{domain}`. When two routes with the same method match a path, the route with more literal segments wins. CALM Hub does not start if two such routes have the same number, for example `GET /{namespace}/report` and `GET /public/{id}`.
+- `routes`: every call that the extension can receive, each with an `id`, `method`, `path`, `scope` and optional `readOnly`. A `read`, `write` or `admin` scope needs a `{namespace}` in the path. A `domain_*` scope needs a `{domain}`. A path parameter cannot contain a slash, so a route for a CALM Hub resource uses `{resourceType}/{resourceId}`, not `{resource}`. When two routes with the same method match a path, the route with more literal segments wins. CALM Hub does not start if two such routes have the same number, for example `GET /{namespace}/report` and `GET /public/{id}`.
 - `commands`: CLI and MCP commands, keyed by name. Each names a route by `id`.
 - `contributes`: the UI extension points `screen`, `designer-tab`, `landing-card`, `detail-panel`, `action`, `search-provider` and `chat`, which name a route by `id`, and `decorator-views`, which CALM Hub draws from decorators with no route. A decorator view `id` must be unique in all enabled extensions.
 
@@ -186,6 +191,30 @@ The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in 
 
 - CALM Hub does not start if a manifest or a setting is not valid. The error names the file or the setting.
 - `GET /api/calm/extensions` lists the enabled extensions, for any signed-in user. It never shows the backend URL. On a read-only CALM Hub it leaves out write routes that are not `readOnly`, and the commands and contributions that use them.
+
+### Calling an extension
+
+CALM Hub proxies each declared route at `/api/calm/extensions/<id>/api/<route path>`. A route with the path `/` is at `/api/calm/extensions/<id>/api/`, with the trailing slash. Without it, CALM Hub gives `404`, also on a CALM Hub that is not read-only. For each call, CALM Hub:
+
+- refuses an encoded slash (`%2F`, in any case, or double-encoded) with `400`, and does not call the backend. A backend that decodes `%2F` before routing would see a path other than the one CALM Hub checked. For the same reason, it refuses an encoded look-alike of `/` or `\` (U+2044, U+2215, U+2216, U+29F5 and U+29F8), each code point whose NFKC form contains `/` or `\` (U+2100, U+2101, U+2105, U+2106, U+FE68, U+FF0F and U+FF3C), and each code point whose NFKC form is only `.`, `%`, `@` or `;` (U+037E, U+2024 to U+2026, U+FE14, U+FE19, U+FE30, U+FE52, U+FE54, U+FE6A, U+FE6B, U+FF05, U+FF0E, U+FF1B and U+FF20). For example, NFKC makes U+2025 `..` and U+2100 `a/c`
+- refuses a matrix parameter (`;name=value`) with `400`, and does not drop it
+- decodes percent-encoded unreserved characters and uppercases other escapes before matching and forwarding. Percent-encoding in a matched literal segment gets `400`
+- on a read-only CALM Hub, gives `405`, not `400`, to a `POST`, `PUT`, `PATCH` or `DELETE` with `%2F`, `%2E`, `%5C`, `%25`, `%40`, `..`, `\`, `//`, `@`, `;` or an encoded look-alike of `/`, `\`, `.`, `%`, `@` or `;` in the path. CALM Hub refuses such a path before it finds the route
+- gives `415`, before it signs the assertion, to a `POST` that has no `application/json` or other `+json` `Content-Type`, also when it has no body. A `PUT`, `PATCH` or `DELETE` gets `415` only for a body of another type. Thus a cross-site form or fetch cannot call a route as the user. Those three methods need a CORS preflight, which CALM Hub does not allow cross-site
+- matches the path against the declared routes only, and refuses `..`, `%2e`, `\`, `//`, `@` and their encoded forms
+- checks the route `scope` with the same rules as the rest of CALM Hub. The namespace or domain comes only from the path
+- on a read-only CALM Hub, allows a method other than `GET` only on a `readOnly` route. Its `405`, and the `405` for a method that the route does not declare, has an `Allow` header. It lists only the methods that CALM Hub accepts on that path now, and `HEAD` with `GET`, because CALM Hub answers `HEAD` with the `GET` route
+- sends only `Content-Type`, `Accept`, `Accept-Language`, `If-Match`, `If-None-Match` and its own `X-Calm-Hub-Identity` assertion. A header value with a line break gets `400`. The caller's token and cookies never go to the extension
+- returns only `Content-Type` (`application/json`, `text/plain` or `text/event-stream`, and for a `4xx` reply also `application/problem+json` and other `+json` types), `Cache-Control`, `ETag`, `Retry-After` and `Vary`, and adds `Content-Security-Policy: sandbox; default-src 'none'`. It returns them only on a reply that it passes on: a backend `503` becomes `502` without `Retry-After`. It passes on a `304`. It does not follow redirects, and does not return `Location`, because that would name the private backend
+- marks each reply `Cache-Control: private`, because the reply is for one user. It removes `public`, and keeps the other directives of the backend. Its own error replies are also `private`
+- returns `502` or `504`, with a generic body, when the backend fails, is slow, replies with `5xx`, `401`, `407` or a `3xx` other than `304`, or sends another content type
+- audits every non-`readOnly` call, including `GET`, as entity type `EXTENSION` with the extension id, route id and assertion `jti`. The entry has the namespace only for a `read`, `write` or `admin` route, and the domain only for a `domain_*` route. Outcomes are `SUCCESS`, `DENIED`, `FAILURE` (a refusal after the scope check, such as `400`, `413`, `415` or `503`, or a returned client error), or `UNKNOWN` (an upstream failure or unusable reply; the backend may have completed the call). The entry has the `jti` only when CALM Hub sent the call, and the source IP (the `X-Forwarded-For` header of the REST or MCP request) when `calm.audit.capture-source-ip=true`
+
+Replies are buffered. Streaming is not supported yet.
+
+CALM Hub does not audit a call that it refuses before the scope check: a `404`, a `400` for the path, the namespace or the domain, or a `405`.
+
+CALM Hub does not start with an enabled extension that has routes when `calm.auth.enabled=false`, because every caller is then a global admin. Set `calm.extensions.allow-without-auth=true` only for local development.
 
 ### Identity keys
 

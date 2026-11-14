@@ -4,6 +4,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
+import org.finos.calm.extensions.ExtensionPaths;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -11,7 +12,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.net.URI;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @QuarkusTest
@@ -153,5 +157,57 @@ public class TestReadOnlyRequestFilterShould {
         filter.filter(requestContext);
 
         verify(requestContext, never()).abortWith(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/calm/extensions/team-services/api/search", "api/calm/extensions/team-services/api/x/y",
+            "/api/calm/extensions/team-services/api"})
+    void leave_the_extension_proxy_to_enforce_read_only_mode(String path) {
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn("POST");
+        when(uriInfo.getPath()).thenReturn(path);
+        when(uriInfo.getRequestUri()).thenReturn(URI.create("http://hub/" + path.replaceFirst("^/", "")));
+
+        filter.filter(requestContext);
+
+        verify(requestContext, never()).abortWith(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/api/calm/extensions/api/namespaces",
+            "/api/calm/extensions/a/b/api/x",
+            "/api/calm/extensions/x/api/../../../namespaces",
+            "/api/calm/extensions/x/api/%2e%2e/namespaces",
+            "/api/calm/extensions/x/api//namespaces",
+            "/api/calm/extensionsx/x/api/y",
+            "/api/calm/extensions/x/apix",
+            "/api/calm/namespaces/api/calm/extensions/x/api/y"
+    })
+    void reject_a_write_that_only_looks_like_the_extension_proxy(String path) {
+        filter.readOnly = true;
+        when(requestContext.getMethod()).thenReturn("POST");
+        when(uriInfo.getPath()).thenReturn(path);
+        when(uriInfo.getRequestUri()).thenReturn(URI.create("http://hub" + path));
+
+        filter.filter(requestContext);
+
+        verify(requestContext).abortWith(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"team%2Fservice", "team%2fservice", "team%252Fservice", "team%40x", "team@x", "team%5Cx",
+            "team;v=1", "team%EF%BC%8Fservice"})
+    void reject_a_write_whose_path_the_extension_proxy_refuses(String parameter) {
+        filter.readOnly = true;
+        String path = "/api/calm/extensions/team-services/api/services/" + parameter;
+        when(requestContext.getMethod()).thenReturn("POST");
+        when(uriInfo.getPath()).thenReturn(path);
+        when(uriInfo.getRequestUri()).thenReturn(URI.create("http://hub" + path));
+
+        filter.filter(requestContext);
+
+        assertTrue(ExtensionPaths.hasForbiddenPart(path));
+        verify(requestContext).abortWith(any());
     }
 }

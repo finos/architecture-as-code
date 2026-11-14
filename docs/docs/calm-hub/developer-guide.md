@@ -192,6 +192,12 @@ This is how the published `latest-read-only-static` and `latest-read-only-native
 
 ---
 
+## Upgrade and Rollback Notes
+
+- **Audit log values:** the audit log stores each enum value by name. The extensions release ([#3396](https://github.com/finos/architecture-as-code/issues/3396)) adds the action `READ`, the entity type `EXTENSION` and the outcomes `FAILURE` and `UNKNOWN`. An older CALM Hub fails when it reads an entry that has one of these values. Before you roll back, delete or archive these entries in the `auditLogs` collection (MongoDB) or store (NitriteDB).
+
+---
+
 ## Coverage and CI Requirements
 
 - **JaCoCo**: 90% line coverage per class, enforced by `mvn verify`. Exclusions: `domain/**`, `*Constants`, `CalmHubScopes`, `LogSanitizationPolicy`.

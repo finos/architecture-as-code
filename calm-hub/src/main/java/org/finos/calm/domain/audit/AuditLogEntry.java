@@ -16,6 +16,9 @@ import java.util.Objects;
  * user access) populate {@code domain}, and global entities (namespace/domain/schema
  * creation) populate neither. {@code version} is {@code null} for unversioned entities
  * (e.g. user access grants).</p>
+ *
+ * <p>{@code route} and {@code jti} are set only for {@code EXTENSION} entries: the route id, and the
+ * id of the identity assertion that Hub sent to the extension. {@code entityId} is then the extension id.</p>
  */
 public class AuditLogEntry {
 
@@ -32,6 +35,8 @@ public class AuditLogEntry {
     private String version;
     private AuditOutcome outcome;
     private String sourceIp;
+    private String route;
+    private String jti;
 
     public AuditLogEntry() {
     }
@@ -116,6 +121,22 @@ public class AuditLogEntry {
         this.sourceIp = sourceIp;
     }
 
+    public String getRoute() {
+        return route;
+    }
+
+    public void setRoute(String route) {
+        this.route = route;
+    }
+
+    public String getJti() {
+        return jti;
+    }
+
+    public void setJti(String jti) {
+        this.jti = jti;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -130,12 +151,14 @@ public class AuditLogEntry {
                 && Objects.equals(entityId, that.entityId)
                 && Objects.equals(version, that.version)
                 && outcome == that.outcome
-                && Objects.equals(sourceIp, that.sourceIp);
+                && Objects.equals(sourceIp, that.sourceIp)
+                && Objects.equals(route, that.route)
+                && Objects.equals(jti, that.jti);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, actor, action, entityType, namespace, domain, entityId, version, outcome, sourceIp);
+        return Objects.hash(timestamp, actor, action, entityType, namespace, domain, entityId, version, outcome, sourceIp, route, jti);
     }
 
     @Override
@@ -151,6 +174,8 @@ public class AuditLogEntry {
                 ", version='" + version + '\'' +
                 ", outcome=" + outcome +
                 ", sourceIp='" + sourceIp + '\'' +
+                ", route='" + route + '\'' +
+                ", jti='" + jti + '\'' +
                 '}';
     }
 
@@ -166,6 +191,8 @@ public class AuditLogEntry {
         private String version;
         private AuditOutcome outcome;
         private String sourceIp;
+        private String route;
+        private String jti;
 
         public AuditLogEntryBuilder setTimestamp(LocalDateTime timestamp) {
             this.timestamp = timestamp;
@@ -217,6 +244,16 @@ public class AuditLogEntry {
             return this;
         }
 
+        public AuditLogEntryBuilder setRoute(String route) {
+            this.route = route;
+            return this;
+        }
+
+        public AuditLogEntryBuilder setJti(String jti) {
+            this.jti = jti;
+            return this;
+        }
+
         public AuditLogEntry build() {
             AuditLogEntry entry = new AuditLogEntry();
             entry.timestamp = this.timestamp;
@@ -229,6 +266,8 @@ public class AuditLogEntry {
             entry.version = this.version;
             entry.outcome = this.outcome;
             entry.sourceIp = this.sourceIp;
+            entry.route = this.route;
+            entry.jti = this.jti;
             return entry;
         }
     }

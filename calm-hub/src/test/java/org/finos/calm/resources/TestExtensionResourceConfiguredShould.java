@@ -31,7 +31,8 @@ class TestExtensionResourceConfiguredShould {
                     "calm.extensions.\"example-services\".backend-url", BACKEND_URL,
                     // The static settings must not clash with the settings of each extension.
                     "calm.extensions.identity.private-key-location", KEYS.privateKey().toString(),
-                    "calm.extensions.identity.public-key-locations", KEYS.publicKey().toString());
+                    "calm.extensions.identity.public-key-locations", KEYS.publicKey().toString(),
+                    "calm.extensions.http.connect-timeout-seconds", "3");
         }
     }
 
