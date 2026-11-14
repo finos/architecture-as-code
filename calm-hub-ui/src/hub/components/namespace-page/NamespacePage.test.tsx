@@ -40,6 +40,12 @@ vi.mock('../../../service/adr-service/adr-service.js', () => ({
     }),
 }));
 
+vi.mock('../../../service/config-service.js', () => ({
+    ConfigService: vi.fn().mockImplementation(function () {
+        return { fetchConfigTypes: vi.fn().mockResolvedValue([]) };
+    }),
+}));
+
 // Stub version resolution so item clicks navigate deterministically.
 vi.mock('../tree-navigation/navigation-loaders.js', async () => {
     const actual = await vi.importActual<typeof import('../tree-navigation/navigation-loaders.js')>(
