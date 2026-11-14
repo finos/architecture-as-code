@@ -1,12 +1,11 @@
 package integration;
 
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTestProfile;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@QuarkusTestResource(EndToEndResource.class)
 public class IntegrationTestProfile implements QuarkusTestProfile {
 
     @Override
@@ -44,5 +43,9 @@ public class IntegrationTestProfile implements QuarkusTestProfile {
                 "calm.decorators.reserved.\"integration-evaluation\".writers", "no-auth"
         );
     }
-}
 
+    @Override
+    public List<TestResourceEntry> testResources() {
+        return List.of(new TestResourceEntry(EndToEndResource.class));
+    }
+}
