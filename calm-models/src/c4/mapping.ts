@@ -79,8 +79,16 @@ export async function resolveC4Mapping(mapping?: unknown, load?: C4MappingLoader
             chain.push(CALM_DEFAULT_C4_MAPPING);
             break;
         }
-        if (!load) throw new Error(`Cannot load ${parent}, which the C4 mapping ${chain[chain.length - 1]['unique-id']} extends`);
-        chain.push(checkC4Mapping(await load(parent), parent));
+        const cannotLoad = `Cannot load ${parent}, which the C4 mapping ${chain[chain.length - 1]['unique-id']} extends`;
+        if (!load) throw new Error(cannotLoad);
+        // The standard forbids using the default mapping in place of a mapping that does not load.
+        let loaded: unknown;
+        try {
+            loaded = await load(parent);
+        } catch (error) {
+            throw new Error(`${cannotLoad}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        chain.push(checkC4Mapping(loaded, parent));
     }
     return mergeC4Mappings(chain);
 }
@@ -104,6 +112,8 @@ function mergeC4Mappings(chain: C4MappingDocument[]): ResolvedC4Mapping {
     }
     return { 'unique-id': chain[0]['unique-id'], 'node-types': nodeTypes, nesting };
 }
+
+const EXTERNAL_KINDS: ReadonlySet<C4Kind> = new Set(['person', 'software-system', 'container', 'component']);
 
 const DOCUMENT_FIELDS = new Set(['$schema', '$id', 'unique-id', 'description', 'extends', 'node-types', 'nesting']);
 
@@ -138,6 +148,9 @@ export function checkC4Mapping(value: unknown, label = 'The C4 mapping'): C4Mapp
             }
             const kind = isObject(entry) ? entry.kind : entry;
             if (!C4_KINDS.includes(kind as C4Kind)) fail(`"${nodeType}" must map to one of ${C4_KINDS.join(', ')}`);
+            if (isObject(entry) && entry.external === true && !EXTERNAL_KINDS.has(kind as C4Kind)) {
+                fail(`"${nodeType}" can be external only with the kinds ${[...EXTERNAL_KINDS].join(', ')}`);
+            }
         }
     }
     return value as unknown as C4MappingDocument;

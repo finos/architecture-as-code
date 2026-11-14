@@ -34,11 +34,12 @@ describe('projectC4', () => {
     describe('structural rules', () => {
         it('gives unmapped types their kind from the composed-of hierarchy', () => {
             const model = projectC4({
-                nodes: [node('platform', 'x:platform'), node('engine', 'x:engine'), node('module', 'x:module'), node('lone', 'x:lone')],
-                relationships: [composed('platform', 'engine'), composed('engine', 'module')],
+                nodes: [node('platform', 'x:platform'), node('engine', 'x:engine'), node('module', 'x:module'), node('part', 'x:part'), node('lone', 'x:lone')],
+                relationships: [composed('platform', 'engine'), composed('engine', 'module'), composed('module', 'part')],
             });
 
-            expect(kinds(model)).toEqual({ platform: 'software-system', engine: 'container', module: 'component', lone: 'software-system' });
+            expect(kinds(model)).toEqual({ platform: 'software-system', engine: 'container', module: 'component', part: 'component', lone: 'software-system' });
+            expect(rules(model)).toEqual([['part', 'inside-component']]);
             expect(element(model, 'engine').source).toBe('structure');
             expect(element(model, 'engine').parent).toBe('platform');
         });
@@ -64,6 +65,20 @@ describe('projectC4', () => {
             expect(element(model, 'platform')).toMatchObject({ kind: 'software-system', parent: undefined });
             expect(element(model, 'engine')).toMatchObject({ kind: 'container', parent: 'platform' });
             expect(element(model, 'box')).toMatchObject({ kind: 'software-system', parent: undefined });
+        });
+
+        it('does not count a person as a parent, and reports a node inside a person', () => {
+            const model = projectC4({
+                nodes: [node('sys', 'system'), node('clerk', 'actor'), node('desk', 'x:desk'), node('pad', 'x:pad')],
+                relationships: [composed('sys', 'clerk'), composed('clerk', 'desk'), composed('desk', 'pad')],
+            });
+
+            expect(element(model, 'desk')).toMatchObject({ kind: 'container', parent: 'sys' });
+            expect(element(model, 'pad')).toMatchObject({ kind: 'component', parent: 'desk' });
+            expect(rules(model)).toEqual([
+                ['clerk', 'person-inside'],
+                ['desk', 'inside-person'],
+            ]);
         });
 
         it('does not take a C4 level from deployed-in', () => {
@@ -189,7 +204,7 @@ describe('projectC4', () => {
         });
     });
 
-    it('labels relationships, merges duplicates and drops those of hidden nodes', async () => {
+    it('labels relationships, merges duplicates, and drops and reports those of hidden nodes', async () => {
         const mapping = await resolveC4Mapping({ 'unique-id': 'm', extends: CALM_DEFAULT_C4_MAPPING_URL, 'node-types': { 'x:sidecar': 'hidden' } });
 
         const model = projectC4(
@@ -200,15 +215,21 @@ describe('projectC4', () => {
                     connects('api', 'db', 'Reads orders', 'JDBC'),
                     connects('api', 'db', 'Writes orders', 'JDBC'),
                     connects('api', 'sidecar', 'Sends logs'),
+                    { 'unique-id': 'audit', 'relationship-type': { interacts: { actor: 'user', nodes: ['sidecar', 'db'] } } },
                     connects('api', 'missing', 'Dangling'),
                 ],
             },
             mapping
         );
 
+        expect(model.conflicts).toEqual([
+            { element: 'sidecar', rule: 'hidden-relationship', message: 'Hidden, so its connects relationship "api-sidecar-Sends logs" is not drawn' },
+            { element: 'sidecar', rule: 'hidden-relationship', message: 'Hidden, so its interacts relationship "audit" is not drawn' },
+        ]);
         expect(model.relationships).toEqual([
             { source: 'user', target: 'api', label: 'Uses', technology: undefined, count: 1 },
             { source: 'api', target: 'db', label: 'Reads orders', technology: 'JDBC', count: 2 },
+            { source: 'user', target: 'db', label: 'Uses', technology: undefined, count: 1 },
         ]);
     });
 });

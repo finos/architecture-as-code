@@ -5,7 +5,13 @@ export type C4KindSource = 'mapping' | 'default' | 'structure' | 'implicit';
 
 export type C4ExternalReason = 'outside-enterprise' | 'mapped-external' | 'other-team';
 
-export type C4ConflictRule = 'person-inside' | 'component-without-container' | 'inside-component' | 'strict-nesting';
+export type C4ConflictRule =
+    | 'person-inside'
+    | 'inside-person'
+    | 'component-without-container'
+    | 'inside-component'
+    | 'strict-nesting'
+    | 'hidden-relationship';
 
 export interface C4Conflict {
     element: string;
@@ -20,7 +26,7 @@ export interface C4Element {
     nodeType: string;
     kind: C4Kind;
     source: C4KindSource;
-    /** The nearest `composed-of` ancestor that is not an enterprise boundary, deployment node or hidden. */
+    /** The nearest `composed-of` ancestor that is not an enterprise boundary, deployment node, hidden node or person. */
     parent?: string;
     external: C4ExternalReason[];
     detailedArchitecture?: string;
@@ -79,7 +85,7 @@ export const C4_IMPLICIT_SYSTEM_ID = '__c4-implicit-system__';
 
 const LEVEL: Partial<Record<C4Kind, number>> = { 'software-system': 1, container: 2, component: 3 };
 const KIND_AT_LEVEL: Record<number, C4Kind> = { 1: 'software-system', 2: 'container', 3: 'component' };
-const NOT_A_PARENT: ReadonlySet<C4Kind> = new Set(['enterprise-boundary', 'deployment-node', 'hidden']);
+const NOT_A_PARENT: ReadonlySet<C4Kind> = new Set(['enterprise-boundary', 'deployment-node', 'hidden', 'person']);
 
 /** Applies a resolved mapping and the structural and external rules of the C4 standard to an architecture. */
 export function projectC4(
@@ -129,7 +135,10 @@ export function projectC4(
         const existing = elements.get(id);
         if (existing) return existing;
         const node = nodes.get(id)!;
-        const parentId = ancestors(id).find((ancestor) => !NOT_A_PARENT.has(mapped(ancestor)?.kind as C4Kind));
+        const chain = ancestors(id);
+        const parentIndex = chain.findIndex((ancestor) => !NOT_A_PARENT.has(mapped(ancestor)?.kind as C4Kind));
+        const parentId = parentIndex < 0 ? undefined : chain[parentIndex];
+        const person = (parentIndex < 0 ? chain : chain.slice(0, parentIndex)).find((ancestor) => mapped(ancestor)?.kind === 'person');
         const parent = parentId ? resolve(parentId) : undefined;
         const entry = mapped(id);
         const element: C4Element = {
@@ -158,6 +167,7 @@ export function projectC4(
                 element.notes.push(`Mapped as ${entry.kind}, shown as ${element.kind} because it is inside ${inside}`);
             }
         }
+        if (person) conflict(element, 'inside-person', `Inside the person "${nodes.get(person)!.name ?? person}"`);
         if (element.kind === 'person' && parentLevel > 0) {
             conflict(element, 'person-inside', `A person inside ${inside}`);
         }
@@ -219,8 +229,16 @@ export function projectC4(
         if (existing) existing.count++;
         else merged.set(key, { source, target, label, technology, count: 1 });
     };
+    const isHidden = (id: string) => elements.get(id)?.kind === 'hidden';
     for (const relationship of relationships) {
         const type = relationship['relationship-type'];
+        let ends: string[] = [];
+        if (type.connects) ends = [type.connects.source.node, type.connects.destination.node];
+        else if (type.interacts) ends = [type.interacts.actor, ...type.interacts.nodes];
+        for (const id of new Set(ends.filter(isHidden))) {
+            const name = type.connects ? 'connects' : 'interacts';
+            conflict(elements.get(id)!, 'hidden-relationship', `Hidden, so its ${name} relationship "${relationship['unique-id']}" is not drawn`);
+        }
         const label = relationship.description ?? 'Uses';
         if (type.connects) add(type.connects.source.node, type.connects.destination.node, label, relationship.protocol);
         if (type.interacts) for (const target of type.interacts.nodes) add(type.interacts.actor, target, label, relationship.protocol);
