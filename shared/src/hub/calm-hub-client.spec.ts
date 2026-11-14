@@ -148,89 +148,89 @@ describe('CalmHubClient', () => {
         });
     });
 
-    describe('configs', () => {
-        const base = '/api/calm/namespaces/org.team/configs/c4-mapping';
-        const request = { name: 'acme', description: 'Acme mapping', configJson: '{"unique-id":"acme"}' };
+    describe('conventions', () => {
+        const base = '/api/calm/namespaces/org.team/conventions/c4-mapping';
+        const request = { name: 'acme', description: 'Acme mapping', conventionJson: '{"unique-id":"acme"}' };
 
-        it('lists the configs of a type in a namespace', async () => {
+        it('lists the conventions of a type in a namespace', async () => {
             const summary = { id: 3, name: 'acme', description: 'Acme mapping', versionCount: 2 };
             mock.onGet(base).reply(200, { values: [summary] });
-            await expect(client.listConfigs('org.team', 'c4-mapping')).resolves.toEqual([summary]);
+            await expect(client.listConventions('org.team', 'c4-mapping')).resolves.toEqual([summary]);
         });
 
-        it('creates a config and a later version, and returns each Location', async () => {
+        it('creates a convention and a later version, and returns each Location', async () => {
             mock.onPost(base).reply(201, null, { location: `${base}/3/versions/1.0.0` });
             mock.onPost(`${base}/3/versions/1.1.0`).reply(201, null, { location: `${base}/3/versions/1.1.0` });
 
-            await expect(client.createConfig('org.team', 'c4-mapping', request)).resolves.toBe(`${base}/3/versions/1.0.0`);
-            await expect(client.createConfigVersion('org.team', 'c4-mapping', 3, '1.1.0', request)).resolves.toBe(`${base}/3/versions/1.1.0`);
+            await expect(client.createConvention('org.team', 'c4-mapping', request)).resolves.toBe(`${base}/3/versions/1.0.0`);
+            await expect(client.createConventionVersion('org.team', 'c4-mapping', 3, '1.1.0', request)).resolves.toBe(`${base}/3/versions/1.1.0`);
             expect(mock.history.post.map(p => JSON.parse(p.data))).toEqual([request, request]);
         });
 
         it('rejects a create response without Location', async () => {
             mock.onPost(base).reply(201, null, {});
-            await expect(client.createConfig('org.team', 'c4-mapping', request)).rejects.toBeInstanceOf(HubClientError);
+            await expect(client.createConvention('org.team', 'c4-mapping', request)).rejects.toBeInstanceOf(HubClientError);
         });
 
-        it('adds the field errors to the message of a rejected config', async () => {
+        it('adds the field errors to the message of a rejected convention', async () => {
             mock.onPost(`${base}/3/versions/1.1.0`).reply(400, {
-                error: 'Config does not match the schema of its type',
+                error: 'Convention does not match the schema of its type',
                 errors: [{ location: '/nesting', error: 'Instance does not match any of the enum values' }, { location: '', error: 'Property unique-id is required' }],
             });
-            await expect(client.createConfigVersion('org.team', 'c4-mapping', 3, '1.1.0', request)).rejects.toMatchObject({
+            await expect(client.createConventionVersion('org.team', 'c4-mapping', 3, '1.1.0', request)).rejects.toMatchObject({
                 status: 400,
-                error: 'Config does not match the schema of its type: /nesting: Instance does not match any of the enum values; /: Property unique-id is required',
+                error: 'Convention does not match the schema of its type: /nesting: Instance does not match any of the enum values; /: Property unique-id is required',
                 request: `POST ${base}/3/versions/1.1.0`,
             });
         });
 
         it('keeps the Hub error of a create that fails for another reason', async () => {
             mock.onPost(base).reply(404, { error: 'Invalid namespace provided: org.team' });
-            await expect(client.createConfig('org.team', 'c4-mapping', request)).rejects.toMatchObject({
+            await expect(client.createConvention('org.team', 'c4-mapping', request)).rejects.toMatchObject({
                 status: 404,
                 error: 'Invalid namespace provided: org.team',
             });
         });
 
-        it('reads the versions and one version of a config', async () => {
+        it('reads the versions and one version of a convention', async () => {
             mock.onGet(`${base}/3/versions`).reply(200, { values: ['1.0.0', '1.1.0'] });
             mock.onGet(`${base}/3/versions/1.1.0`).reply(200, { 'unique-id': 'acme' });
 
-            await expect(client.getConfigVersions('org.team', 'c4-mapping', 3)).resolves.toEqual(['1.0.0', '1.1.0']);
-            await expect(client.getConfigVersion('org.team', 'c4-mapping', 3, '1.1.0')).resolves.toEqual({ 'unique-id': 'acme' });
+            await expect(client.getConventionVersions('org.team', 'c4-mapping', 3)).resolves.toEqual(['1.0.0', '1.1.0']);
+            await expect(client.getConventionVersion('org.team', 'c4-mapping', 3, '1.1.0')).resolves.toEqual({ 'unique-id': 'acme' });
         });
 
-        it('rejects a config version body that is not an object', async () => {
+        it('rejects a convention version body that is not an object', async () => {
             mock.onGet(`${base}/3/versions/1.0.0`).reply(200, '<html>login</html>');
-            await expect(client.getConfigVersion('org.team', 'c4-mapping', 3, '1.0.0')).rejects.toBeInstanceOf(HubClientError);
+            await expect(client.getConventionVersion('org.team', 'c4-mapping', 3, '1.0.0')).rejects.toBeInstanceOf(HubClientError);
         });
 
         it('returns the inherited namespace default', async () => {
-            const resolved = { configType: 'c4-mapping', namespace: 'org', configId: 1, version: '1.0.0', inherited: true, config: { 'unique-id': 'org' } };
+            const resolved = { conventionType: 'c4-mapping', namespace: 'org', conventionId: 1, version: '1.0.0', inherited: true, convention: { 'unique-id': 'org' } };
             mock.onGet(`${base}/default`).reply(200, resolved);
-            await expect(client.getNamespaceDefaultConfig('org.team', 'c4-mapping')).resolves.toEqual(resolved);
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).resolves.toEqual(resolved);
         });
 
         it('returns undefined when no namespace default applies, but throws on other failures', async () => {
             mock.onGet(`${base}/default`).replyOnce(404, { error: 'No default' });
-            await expect(client.getNamespaceDefaultConfig('org.team', 'c4-mapping')).resolves.toBeUndefined();
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).resolves.toBeUndefined();
 
             mock.onGet(`${base}/default`).replyOnce(500, { error: 'unavailable' });
-            await expect(client.getNamespaceDefaultConfig('org.team', 'c4-mapping')).rejects.toMatchObject({ status: 500 });
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).rejects.toMatchObject({ status: 500 });
 
-            mock.onGet(`${base}/default`).replyOnce(200, { configId: 1 });
-            await expect(client.getNamespaceDefaultConfig('org.team', 'c4-mapping')).rejects.toBeInstanceOf(HubClientError);
+            mock.onGet(`${base}/default`).replyOnce(200, { conventionId: 1 });
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).rejects.toBeInstanceOf(HubClientError);
         });
 
-        it('sets the namespace default with the config id and version', async () => {
+        it('sets the namespace default with the convention id and version', async () => {
             mock.onPut(`${base}/default`).reply(200, {});
-            await client.setNamespaceDefaultConfig('org.team', 'c4-mapping', 3, '1.1.0');
-            expect(JSON.parse(mock.history.put[0].data)).toEqual({ configId: 3, version: '1.1.0' });
+            await client.setNamespaceDefaultConvention('org.team', 'c4-mapping', 3, '1.1.0');
+            expect(JSON.parse(mock.history.put[0].data)).toEqual({ conventionId: 3, version: '1.1.0' });
         });
 
         it('throws when setting the default is forbidden', async () => {
             mock.onPut(`${base}/default`).reply(403, { error: 'Forbidden' });
-            await expect(client.setNamespaceDefaultConfig('org.team', 'c4-mapping', 3, '1.1.0')).rejects.toMatchObject({
+            await expect(client.setNamespaceDefaultConvention('org.team', 'c4-mapping', 3, '1.1.0')).rejects.toMatchObject({
                 status: 403,
                 request: `PUT ${base}/default`,
             });

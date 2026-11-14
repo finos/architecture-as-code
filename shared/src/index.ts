@@ -103,9 +103,9 @@ export {
     buildExtensionRequest,
     extensionProxyPath,
     numberText,
-    type HubConfigSummary,
-    type HubConfigRequest,
-    type HubNamespaceDefaultConfig,
+    type HubConventionSummary,
+    type HubConventionRequest,
+    type HubNamespaceDefaultConvention,
     type ResourceType,
     type ResourceChangeType,
     isValidResourceType

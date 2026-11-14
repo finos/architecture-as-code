@@ -84,30 +84,30 @@ export interface NarrativeDocumentVersion {
     documentMarkdown: string;
 }
 
-export interface HubConfigSummary {
+export interface HubConventionSummary {
     id: number;
     name: string;
     description?: string;
     versionCount: number;
 }
 
-export interface HubConfigRequest {
+export interface HubConventionRequest {
     name: string;
     description?: string;
-    /** The config JSON, as a string. Hub validates it against the schema of its type. */
-    configJson: string;
+    /** The convention JSON, as a string. Hub validates it against the schema of its type. */
+    conventionJson: string;
 }
 
-/** The default config that applies to a namespace: its own, or that of its nearest ancestor. */
-export interface HubNamespaceDefaultConfig {
-    configType: string;
+/** The default convention that applies to a namespace: its own, or that of its nearest ancestor. */
+export interface HubNamespaceDefaultConvention {
+    conventionType: string;
     /** The namespace that sets the default. */
     namespace: string;
-    configId: number;
+    conventionId: number;
     version: string;
     /** True when an ancestor of the requested namespace sets the default. */
     inherited: boolean;
-    config: object;
+    convention: object;
 }
 
 export class HubClientError extends Error {
@@ -302,35 +302,35 @@ export class CalmHubClient {
         }
     }
 
-    // ── Configs ──────────────────────────────────────────────────────────────
+    // ── Conventions ──────────────────────────────────────────────────────────────
 
-    async listConfigs(namespace: string, configType: string): Promise<HubConfigSummary[]> {
-        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}`;
+    async listConventions(namespace: string, conventionType: string): Promise<HubConventionSummary[]> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}`;
         try {
             const response = await this.ax.get(endpoint);
-            return this.extractValues<HubConfigSummary>(response.data, `GET ${endpoint}`);
+            return this.extractValues<HubConventionSummary>(response.data, `GET ${endpoint}`);
         } catch (err) {
             throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
 
     /**
-     * Creates a config at version 1.0.0.
+     * Creates a convention at version 1.0.0.
      * @returns The location of the new version.
      */
-    async createConfig(namespace: string, configType: string, request: HubConfigRequest): Promise<string> {
-        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}`;
-        return this.postConfig(endpoint, request);
+    async createConvention(namespace: string, conventionType: string, request: HubConventionRequest): Promise<string> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}`;
+        return this.postConvention(endpoint, request);
     }
 
-    async createConfigVersion(namespace: string, configType: string, id: number, version: string, request: HubConfigRequest): Promise<string> {
-        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/${id}/versions/${version}`;
-        return this.postConfig(endpoint, request);
+    async createConventionVersion(namespace: string, conventionType: string, id: number, version: string, request: HubConventionRequest): Promise<string> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions/${version}`;
+        return this.postConvention(endpoint, request);
     }
 
-    /** Returns the versions of a config, oldest first. */
-    async getConfigVersions(namespace: string, configType: string, id: number): Promise<string[]> {
-        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/${id}/versions`;
+    /** Returns the versions of a convention, oldest first. */
+    async getConventionVersions(namespace: string, conventionType: string, id: number): Promise<string[]> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions`;
         try {
             const response = await this.ax.get(endpoint);
             return this.extractValues<string>(response.data, `GET ${endpoint}`);
@@ -339,8 +339,8 @@ export class CalmHubClient {
         }
     }
 
-    async getConfigVersion(namespace: string, configType: string, id: number, version: string): Promise<object> {
-        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/${id}/versions/${version}`;
+    async getConventionVersion(namespace: string, conventionType: string, id: number, version: string): Promise<object> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions/${version}`;
         try {
             const response = await this.ax.get(endpoint);
             return this.requireObject(response.data, `GET ${endpoint}`);
@@ -350,16 +350,16 @@ export class CalmHubClient {
     }
 
     /**
-     * Returns the default config that applies to a namespace, which it can inherit from an ancestor.
+     * Returns the default convention that applies to a namespace, which it can inherit from an ancestor.
      * @returns The default, or undefined when Hub returns 404: no namespace in the chain sets one, or the namespace does not exist.
      */
-    async getNamespaceDefaultConfig(namespace: string, configType: string): Promise<HubNamespaceDefaultConfig | undefined> {
-        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/default`;
+    async getNamespaceDefaultConvention(namespace: string, conventionType: string): Promise<HubNamespaceDefaultConvention | undefined> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/default`;
         try {
             const response = await this.ax.get(endpoint);
-            const body = this.requireObject(response.data, `GET ${endpoint}`) as HubNamespaceDefaultConfig;
-            if (typeof body.configId !== 'number' || typeof body.version !== 'string' || !body.config || typeof body.config !== 'object') {
-                throw new HubClientError(0, 'Response does not contain configId, version and config', `GET ${endpoint}`);
+            const body = this.requireObject(response.data, `GET ${endpoint}`) as HubNamespaceDefaultConvention;
+            if (typeof body.conventionId !== 'number' || typeof body.version !== 'string' || !body.convention || typeof body.convention !== 'object') {
+                throw new HubClientError(0, 'Response does not contain conventionId, version and convention', `GET ${endpoint}`);
             }
             return body;
         } catch (err) {
@@ -370,17 +370,17 @@ export class CalmHubClient {
         }
     }
 
-    /** Names a config version in the namespace as its default for the type. Needs ADMIN on the namespace. */
-    async setNamespaceDefaultConfig(namespace: string, configType: string, configId: number, version: string): Promise<void> {
-        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/default`;
+    /** Names a convention version in the namespace as its default for the type. Needs ADMIN on the namespace. */
+    async setNamespaceDefaultConvention(namespace: string, conventionType: string, conventionId: number, version: string): Promise<void> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/default`;
         try {
-            await this.ax.put(endpoint, { configId, version });
+            await this.ax.put(endpoint, { conventionId, version });
         } catch (err) {
             throw this.wrapError(err, `PUT ${endpoint}`);
         }
     }
 
-    private async postConfig(endpoint: string, request: HubConfigRequest): Promise<string> {
+    private async postConvention(endpoint: string, request: HubConventionRequest): Promise<string> {
         try {
             const response = await this.ax.post(endpoint, request);
             const location = response.headers.location as string | undefined;
