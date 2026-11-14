@@ -178,7 +178,7 @@ A child namespace inherits the default of its nearest ancestor. For `org.ab.cd`,
 }
 ```
 
-If no namespace in the chain sets a default, Hub returns `404`, and a tool uses its built-in default. A default names a convention in the same namespace. A namespace that holds a convention or a default cannot be deleted.
+If no namespace in the chain sets a default, Hub returns `204 No Content`, and a tool uses its built-in default. An unknown namespace returns `404`. A default names a convention in the same namespace. A namespace that holds a convention or a default cannot be deleted.
 
 In GitHub mode, a convention is a JSON file under `conventions/<type>/` in the namespace repository, and `conventions/<type>/default.json` is the default of that namespace. Versions are commit SHAs. Hub does not check these files against the schema. Writes return `501`.
 

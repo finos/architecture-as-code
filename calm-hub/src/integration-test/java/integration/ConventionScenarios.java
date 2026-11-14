@@ -84,8 +84,8 @@ abstract class ConventionScenarios {
     }
 
     @Test
-    void return_404_when_no_namespace_in_the_chain_sets_a_default() {
-        given().get("/api/calm/namespaces/cfg-b.ab/conventions/c4-mapping/default").then().statusCode(404);
+    void return_204_when_no_namespace_in_the_chain_sets_a_default() {
+        given().get("/api/calm/namespaces/cfg-b.ab/conventions/c4-mapping/default").then().statusCode(204);
         given().get("/api/calm/namespaces/cfg-missing/conventions/c4-mapping/default").then().statusCode(404);
     }
 

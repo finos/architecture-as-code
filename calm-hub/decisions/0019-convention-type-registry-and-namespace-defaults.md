@@ -60,7 +60,7 @@ cannot see.
 A read of `.../conventions/{type}/default` walks the namespace chain (`org.ab.cd`, then `org.ab`, then `org`) and
 returns the first default it finds, with the namespace that set it and `inherited`. If a default names a
 version that cannot be read, Hub logs a warning and goes on to the parent. If no namespace sets a default,
-Hub returns `404`, and the tool uses its built-in default.
+Hub returns `204 No Content`, and the tool uses its built-in default. An unknown namespace returns `404`.
 
 Setting or removing a default needs namespace `admin`. A namespace that holds a convention or a default cannot be
 deleted, because its children inherit the default.
