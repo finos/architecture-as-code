@@ -189,6 +189,15 @@ describe('Widgets E2E - Handlebars Integration', () => {
         });
     });
 
+    describe('C4 Diagram Widget', () => {
+        it('renders a container view with the system boundary and lifted relationships', () => {
+            const { context, template, expected } = fixtures.loadFixture('c4-diagram-widget', 'container-view');
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
+    });
+
     describe('Flow Sequence Widget', () => {
         it('renders a bidirectional flow', () => {
             const { context, template, expected } = fixtures.loadFixture('flow-sequence-widget', 'bidirectional-flow');
