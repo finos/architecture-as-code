@@ -367,6 +367,7 @@ Options:
   -t, --template <path>                   Path to a single .hbs or .md template file
   -d, --template-dir <path>               Path to a directory of .hbs/.md templates
   -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths.
+      --c4-mapping <file|url>             C4 mapping for c4-diagram widgets. Defaults to c4.mapping in .calm-workspace/config.json, then the CALM Hub namespace default, then the default mapping
       --export-diagrams <svg|png>         Render mermaid diagrams to image files using a local Chromium-based browser (adds roughly 10-40s depending on diagram count).
       --browser-path <path>               Path to a Chromium-based browser executable, only needed if automatic detection fails.
       --diagram-render-timeout <ms>       Per-diagram render timeout in milliseconds, only used with --export-diagrams (default: 30000).

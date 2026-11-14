@@ -64,7 +64,7 @@ export { Docifier, DocifyMode, DiagramExportFormat } from './docify/docifier.js'
 export { C4Model } from './docify/graphing/c4.js';
 export { CalmRelationshipGraph } from './docify/graphing/relationship-graph.js';
 export { ValidationOutcome } from './commands/validate/validation.output.js';
-export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
+export { setWidgetLogger, setC4Mapping, type WidgetLogger } from '@finos/calm-widgets';
 export { DocumentLoader, DocumentLoaderOptions, DocumentLoadError, assertJsonObject, CALM_HUB_PROTOS } from './document-loader/document-loader.js';
 export { buildDocumentLoader } from './document-loader/node-document-loader.js';
 export { FileSystemDocumentLoader, isLocalPath, isRelativePath } from './document-loader/file-system-document-loader.js';

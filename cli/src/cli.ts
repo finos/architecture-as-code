@@ -3,6 +3,7 @@ import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions, loadChoicesFromInput } from './command-helpers/generate-options';
 import path from 'path';
+import { readFile } from 'fs/promises';
 import { parseDocumentLoaderConfig } from './document-loader-config';
 import { setupWorkspaceCommands } from './command-helpers/workspace/commands';
 import * as cliConfig from './cli-config';
@@ -236,6 +237,7 @@ Validation requires:
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option('--scaffold', 'Copy template files without processing (for customization/live docify)', false)
+        .option('--c4-mapping <file|url>', 'C4 mapping for c4-diagram widgets. Defaults to c4.mapping in .calm-workspace/config.json, then the CALM Hub namespace default, then the default mapping')
         .addOption(new Option('--export-diagrams <format>',
             'Render mermaid diagrams to image files using a local Chromium-based browser ' +
             '(adds roughly 10-40s depending on diagram count)').choices(['svg', 'png']))
@@ -246,7 +248,7 @@ Validation requires:
             'Increase this for large/complex diagrams that time out during rendering.')
         .option(VERBOSE_OPTION, 'Enable verbose logging.', false)
         .action(async (options) => {
-            const { Docifier } = await import('@finos/calm-shared');
+            const { Docifier, setC4Mapping } = await import('@finos/calm-shared');
 
             if (options.verbose) {
                 process.env.DEBUG = 'true';
@@ -297,6 +299,27 @@ Validation requires:
                 templatePath = options.templateDir;
             }
 
+            const documentLoaderOptions = await parseDocumentLoaderConfig({ verbose: options.verbose });
+            const documentLoader = buildDocumentLoader(documentLoaderOptions);
+            try {
+                const { loadDocifyC4Mapping } = await import('./command-helpers/c4-mapping');
+                const { loadWorkspaceConfig } = await import('./command-helpers/workspace/config');
+                const { findProjectRoot } = await import('./workspace-resolver');
+                const workspaceRoot = findProjectRoot(process.cwd());
+                const c4 = await loadDocifyC4Mapping({
+                    flag: options.c4Mapping,
+                    workspaceMapping: (await loadWorkspaceConfig(workspaceRoot)).c4.mapping,
+                    workspaceRoot,
+                    readArchitecture: async () => JSON.parse(await readFile(options.architecture, 'utf8')),
+                    hub: { calmHubUrl: documentLoaderOptions.calmHubUrl, authPlugin: documentLoaderOptions.authPlugin },
+                }, documentLoader);
+                if (c4) console.log(`ℹ️ C4 mapping ${c4.mapping['unique-id']} from ${c4.from}`);
+                setC4Mapping(c4?.mapping);
+            } catch (err) {
+                console.error(`❌ Cannot load the C4 mapping: ${err instanceof Error ? err.message : String(err)}`);
+                process.exit(1);
+            }
+
             const docifier = new Docifier(
                 docifyMode,
                 options.architecture,
@@ -309,7 +332,7 @@ Validation requires:
                 options.exportDiagrams as DiagramExportFormat | undefined,
                 options.browserPath,
                 diagramRenderTimeoutMs,
-                buildDocumentLoader(await parseDocumentLoaderConfig({ verbose: options.verbose }))
+                documentLoader
             );
 
             await docifier.docify();

@@ -47,6 +47,7 @@ calm docify -a architecture.json -o reports/ -d my-templates/
 - **`-t, --template <path>`**: Path to a single `.hbs` or `.md` template file to use instead of the built-in bundle.
 - **`-d, --template-dir <path>`**: Path to a directory of `.hbs`/`.md` templates to use instead of the built-in bundle.
 - **`-u, --url-to-local-file-mapping <path>`**: Path to a JSON file that maps URLs to local file paths.
+- **`--c4-mapping <file|url>`**: The C4 mapping for the `c4-diagram` widget. When you do not set it, docify uses `c4.mapping` from `.calm-workspace/config.json`. Then, if the architecture `$id` is in the CALM Hub that the CLI config sets, docify uses the namespace default from that CALM Hub. Then it uses the [default C4 mapping](https://calm.finos.org/standards/c4/1.0/calm-default.c4-mapping.json).
 - **`--scaffold`**: Copy the built-in template files into the output directory without processing them. Use this to obtain a starting point for customisation or for live-reload workflows.
 - **`--export-diagrams <svg|png>`**: Render Mermaid diagrams in the generated documentation to image files using a local Chromium-based browser, replacing each diagram's code block with an image reference. Adds roughly 10-40 seconds depending on the number of diagrams.
 - **`--browser-path <path>`**: Path to a Chromium-based browser executable. Only needed if automatic detection (Chrome, then Edge) fails when using `--export-diagrams`.

@@ -445,6 +445,46 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ```
 
+### C4 Diagram Widget
+
+Renders an architecture as a Mermaid C4 diagram. The [CALM C4 standard](https://calm.finos.org/standards/c4/1.0/c4-mapping.json) sets how node types become C4 elements. The projection is `projectC4` in `@finos/calm-models/c4`.
+
+```handlebars
+{{!-- System context diagram of the first software system --}}
+{{c4-diagram this}}
+
+{{!-- Container diagram of one system, by its unique-id --}}
+{{c4-diagram this level="container" scope="shop"}}
+
+{{!-- Component diagram of one container, and a deployment diagram --}}
+{{c4-diagram this level="component" scope="orders"}}
+{{c4-diagram this level="deployment" title="Production"}}
+```
+
+**Options:**
+- `level`: `context` (default), `container`, `component` or `deployment`
+- `scope`: the unique-id of the system or container that the diagram shows. Default: the first one at that level
+- `title`: the diagram title
+
+The widget uses the default C4 mapping. To use a different mapping, call `setC4Mapping` with a resolved mapping before you render. `calm docify --c4-mapping` does this.
+
+Output of `{{c4-diagram this level="container" scope="shop"}}`:
+
+```mermaid
+C4Container
+    System_Boundary(shop, "Shop System") {
+        Container(web, "Web", "webclient", "Shop front")
+        Container(orders, "Orders", "service", "Takes orders")
+        ContainerDb(orders_db, "Orders DB", "database", "Stores orders")
+    }
+    Person(buyer, "Buyer", "Buys things")
+    System(payments, "Payments", "Takes payment")
+    Rel(buyer, web, "Browses the shop")
+    Rel(web, orders, "Places orders", "HTTPS")
+    Rel(orders, orders_db, "Stores orders", "JDBC")
+    Rel(orders, payments, "Takes payment", "HTTPS")
+```
+
 ## 🛠️ Creating Custom Widgets
 
 ### 1. Widget Definition
