@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { ConventionSummary, ConventionTypeSummary, NamespaceDefaultConvention } from '../model/convention.js';
 import { apiClient } from './utils/api-client.js';
@@ -34,16 +34,13 @@ export class ConventionService {
             });
     }
 
-    /** Resolves to undefined when no namespace in the chain sets a default (Hub returns 404). */
+    /** Resolves to undefined when no namespace in the chain sets a default (Hub returns 204). */
     public async fetchNamespaceDefault(namespace: string, conventionType: string): Promise<NamespaceDefaultConvention | undefined> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/conventions/${encodeURIComponent(conventionType)}/default`, { headers })
-            .then((res) => res.data as NamespaceDefaultConvention)
+            .then((res) => (res.status === 204 ? undefined : (res.data as NamespaceDefaultConvention)))
             .catch((error) => {
-                if (axios.isAxiosError(error) && error.response?.status === 404) {
-                    return undefined;
-                }
                 const errorMessage = `Error fetching the ${conventionType} default for namespace ${namespace}:`;
                 console.error('%s', errorMessage, error);
                 return Promise.reject(new Error(errorMessage));

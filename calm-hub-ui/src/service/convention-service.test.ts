@@ -28,13 +28,16 @@ describe('ConventionService', () => {
         await expect(service.fetchConventions('org.team', 'c4-mapping')).rejects.toThrow('Error fetching c4-mapping conventions');
     });
 
-    it('returns the namespace default, or undefined on 404, and rejects on other failures', async () => {
+    it('returns the namespace default, or undefined on 204, and rejects on other failures', async () => {
         const resolved = { conventionType: 'c4-mapping', namespace: 'org', conventionId: 1, version: '1.0.0', inherited: true, convention: {} };
         mock.onGet(`${base}/default`).replyOnce(200, resolved);
         await expect(service.fetchNamespaceDefault('org.team', 'c4-mapping')).resolves.toEqual(resolved);
 
-        mock.onGet(`${base}/default`).replyOnce(404);
+        mock.onGet(`${base}/default`).replyOnce(204);
         await expect(service.fetchNamespaceDefault('org.team', 'c4-mapping')).resolves.toBeUndefined();
+
+        mock.onGet(`${base}/default`).replyOnce(404);
+        await expect(service.fetchNamespaceDefault('org.team', 'c4-mapping')).rejects.toThrow('Error fetching the c4-mapping default');
 
         mock.onGet(`${base}/default`).replyOnce(500);
         await expect(service.fetchNamespaceDefault('org.team', 'c4-mapping')).rejects.toThrow('Error fetching the c4-mapping default');
