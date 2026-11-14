@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -332,6 +333,28 @@ class TestExtensionManifestLoaderShould {
         List<ExtensionManifest> manifests = loader.loadDirectory(Path.of("local-dev/extensions"));
 
         assertThat(manifests.stream().map(ExtensionManifest::id).toList(), contains("example-services"));
+    }
+
+    @Test
+    void load_the_demo_manifest_with_a_resource_route() {
+        List<ExtensionManifest> manifests = loader.loadDirectory(Path.of("local-dev/demo-extensions"));
+
+        assertThat(manifests.stream().map(ExtensionManifest::id).toList(), hasItem("release-tracker"));
+        ExtensionManifest releases = manifests.stream().filter(m -> m.id().equals("release-tracker")).findFirst().orElseThrow();
+        assertThat(releases.routes().stream().filter(r -> r.id().equals("tab")).findFirst().orElseThrow().path(),
+                is("/tab/{resourceType}/{resourceId}"));
+    }
+
+    @Test
+    void load_the_demo_manifest_with_every_ui_extension_point() {
+        List<ExtensionManifest> manifests = loader.loadDirectory(Path.of("local-dev/demo-extensions"));
+
+        assertThat(manifests.stream().map(ExtensionManifest::id).toList(), contains("release-tracker"));
+        ExtensionManifest releases = manifests.get(0);
+        assertThat(releases.contributes().byRoutePoint().keySet(),
+                contains("action", "designer-tab", "detail-panel", "landing-card", "screen"));
+        assertThat(releases.contributes().decoratorViews(), hasSize(1));
+        assertThat(releases.contributes().decoratorViews().get(0).match().type(), equalTo("release-risk"));
     }
 
     @Test
