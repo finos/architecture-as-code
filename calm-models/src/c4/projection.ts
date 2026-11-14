@@ -11,7 +11,8 @@ export type C4ConflictRule =
     | 'component-without-container'
     | 'inside-component'
     | 'strict-nesting'
-    | 'hidden-relationship';
+    | 'hidden-relationship'
+    | 'composed-of-cycle';
 
 export interface C4Conflict {
     element: string;
@@ -98,13 +99,19 @@ export function projectC4(
 
     const composedParent = new Map<string, string>();
     const deployedIn = new Map<string, string>();
+    // The CALM schema permits a composed-of cycle. The composed-of that would close one is ignored and reported.
+    const cycles = new Map<string, string>();
+    const isAncestorOrSelf = (id: string, of: string) => {
+        for (let current: string | undefined = of; current; current = composedParent.get(current)) if (current === id) return true;
+        return false;
+    };
     for (const relationship of relationships) {
         const composed = relationship['relationship-type']['composed-of'];
         if (composed && nodes.has(composed.container)) {
             for (const child of composed.nodes) {
-                if (nodes.has(child) && child !== composed.container && !composedParent.has(child)) {
-                    composedParent.set(child, composed.container);
-                }
+                if (!nodes.has(child) || child === composed.container || composedParent.has(child)) continue;
+                if (isAncestorOrSelf(child, composed.container)) cycles.set(child, composed.container);
+                else composedParent.set(child, composed.container);
             }
         }
         const deployed = relationship['relationship-type']['deployed-in'];
@@ -179,6 +186,9 @@ export function projectC4(
         return element;
     };
     for (const id of nodes.keys()) resolve(id);
+    for (const [child, container] of cycles) {
+        conflict(elements.get(child)!, 'composed-of-cycle', `Composed into "${nodes.get(container)!.name ?? container}", which it already holds`);
+    }
 
     // Rule 6.
     const orphans = [...elements.values()].filter((element) => !element.parent && element.kind === 'container');

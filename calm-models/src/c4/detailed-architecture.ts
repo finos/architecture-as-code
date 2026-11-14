@@ -18,10 +18,17 @@ export function withDetailedArchitectures(
         if (!known.has(parent)) continue;
         const prefix = (id: string) => `${parent}/${id}`;
         const childNodes = child.nodes ?? [];
+        // Only the top of the child's own hierarchy goes under the parent, so its composed-of levels stay.
+        const composedInChild = new Set(
+            (child.relationships ?? []).flatMap(({ 'relationship-type': type }) =>
+                (type['composed-of']?.nodes ?? []).filter((id) => id !== type['composed-of']!.container)
+            )
+        );
+        const roots = childNodes.filter((node) => !composedInChild.has(node['unique-id']));
         nodes.push(...childNodes.map((node) => ({ ...node, 'unique-id': prefix(node['unique-id']) })));
         relationships.push({
             'unique-id': prefix('__detailed-architecture'),
-            'relationship-type': { 'composed-of': { container: parent, nodes: childNodes.map((node) => prefix(node['unique-id'])) } },
+            'relationship-type': { 'composed-of': { container: parent, nodes: roots.map((node) => prefix(node['unique-id'])) } },
         });
         for (const relationship of child.relationships ?? []) {
             relationships.push(prefixRelationship(relationship, prefix));

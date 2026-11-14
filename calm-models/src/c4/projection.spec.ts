@@ -81,6 +81,18 @@ describe('projectC4', () => {
             ]);
         });
 
+        it('ignores the composed-of that closes a cycle and reports it', () => {
+            const model = projectC4({
+                nodes: [node('a', 'x:a'), node('b', 'x:b'), node('c', 'x:c')],
+                relationships: [composed('a', 'b'), composed('b', 'c'), composed('c', 'a')],
+            });
+
+            expect(element(model, 'a')).toMatchObject({ kind: 'software-system', parent: undefined });
+            expect(element(model, 'b')).toMatchObject({ kind: 'container', parent: 'a' });
+            expect(element(model, 'c')).toMatchObject({ kind: 'component', parent: 'b' });
+            expect(rules(model)).toEqual([['a', 'composed-of-cycle']]);
+        });
+
         it('does not take a C4 level from deployed-in', () => {
             const model = projectC4({
                 nodes: [node('host', 'x:host'), node('app', 'x:app')],
@@ -345,6 +357,20 @@ describe('withDetailedArchitectures', () => {
             { 'deployed-in': { container: 'api/host', nodes: ['api/api'] } },
             { connects: { source: { node: 'api/user' }, destination: { node: 'api/api' } } },
         ]);
+    });
+
+    it('keeps the composed-of levels of the detailed architecture', () => {
+        const detail: C4ArchitectureInput = {
+            nodes: [node('svc', 'service'), node('mod', 'x:module'), node('db', 'database')],
+            relationships: [composed('svc', 'mod')],
+        };
+
+        const model = projectC4(withDetailedArchitectures({ nodes: [node('api', 'system')] }, { api: detail }));
+
+        expect(element(model, 'api/svc')).toMatchObject({ kind: 'container', parent: 'api' });
+        expect(element(model, 'api/mod')).toMatchObject({ kind: 'component', parent: 'api/svc' });
+        expect(element(model, 'api/db')).toMatchObject({ kind: 'container', parent: 'api' });
+        expect(model.conflicts).toEqual([]);
     });
 });
 
