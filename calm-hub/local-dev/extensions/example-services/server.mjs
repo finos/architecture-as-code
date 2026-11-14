@@ -71,10 +71,11 @@ function handle(req, claims, url, body) {
         (services[claims.ns] ??= []).push({ name, owner: claims.sub });
         return [201, { name }];
     }
+    // An authenticated route has no ns, so Hub checked no namespace: search only the caller's own services.
     if (req.method === 'POST' && url.pathname === '/search') {
         const { q = '' } = json();
         const hits = Object.entries(services).flatMap(([ns, list]) =>
-            list.filter((s) => s.name.includes(q)).map((s) => ({ namespace: ns, name: s.name })));
+            list.filter((s) => s.owner === claims.sub && s.name.includes(q)).map((s) => ({ namespace: ns, name: s.name })));
         return [200, { results: hits }];
     }
     return [404, { error: 'not found' }];

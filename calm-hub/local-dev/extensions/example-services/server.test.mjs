@@ -23,6 +23,17 @@ test('refuses a POST that is not JSON, also with no body or no Content-Type', as
     assert.deepEqual(await json.json(), { results: [{ namespace: 'finos', name: 'settlement-engine' }] });
 });
 
+test('search returns only the services that the caller owns', async (t) => {
+    const backend = await startBackend(new URL('./server.mjs', import.meta.url), 'example-services');
+    t.after(backend.stop);
+
+    const all = await backend.request('POST', '/search', '{"q":""}');
+    assert.equal(all.status, 200);
+    assert.deepEqual(await all.json(), { results: [{ namespace: 'finos', name: 'settlement-engine' }] });
+    const other = await backend.request('POST', '/search', '{"q":"refunds"}');
+    assert.deepEqual(await other.json(), { results: [] });
+});
+
 test('every GET route that returns blocks is readOnly', () => {
     const routes = new Map(manifest.routes.map((r) => [r.id, r]));
     for (const { route } of manifest.contributes.screen) {
