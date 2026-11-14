@@ -184,6 +184,17 @@ describe('CalmHubClient', () => {
             });
         });
 
+        it('says how many more field errors Hub left out', async () => {
+            mock.onPost(base).reply(400, {
+                error: 'Convention does not match the schema of its type',
+                errors: [{ location: '/nesting', error: 'Instance does not match any of the enum values' }],
+                moreErrors: 4,
+            });
+            await expect(client.createConvention('org.team', 'c4-mapping', request)).rejects.toMatchObject({
+                error: 'Convention does not match the schema of its type: /nesting: Instance does not match any of the enum values; and 4 more',
+            });
+        });
+
         it('keeps the Hub error of a create that fails for another reason', async () => {
             mock.onPost(base).reply(404, { error: 'Invalid namespace provided: org.team' });
             await expect(client.createConvention('org.team', 'c4-mapping', request)).rejects.toMatchObject({
@@ -212,13 +223,23 @@ describe('CalmHubClient', () => {
         });
 
         it('returns undefined when no namespace default applies, but throws on other failures', async () => {
-            mock.onGet(`${base}/default`).replyOnce(404, { error: 'No default' });
+            mock.onGet(`${base}/default`).replyOnce(204);
             await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).resolves.toBeUndefined();
+
+            mock.onGet(`${base}/default`).replyOnce(404, 'Invalid namespace provided: org.team');
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).rejects.toMatchObject({ status: 404 });
 
             mock.onGet(`${base}/default`).replyOnce(500, { error: 'unavailable' });
             await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).rejects.toMatchObject({ status: 500 });
 
-            mock.onGet(`${base}/default`).replyOnce(200, { conventionId: 1 });
+        });
+
+        it.each([
+            [{ version: '1.0.0', convention: {} }],
+            [{ conventionId: 1, convention: {} }],
+            [{ conventionId: 1, version: '1.0.0' }],
+        ])('throws on a default body without conventionId, version or convention: %o', async (body) => {
+            mock.onGet(`${base}/default`).replyOnce(200, body);
             await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).rejects.toBeInstanceOf(HubClientError);
         });
 

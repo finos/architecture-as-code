@@ -2936,6 +2936,31 @@ describe('hub-commands', () => {
                 }));
             });
 
+            it('adds the next version when only the description changed', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', description: 'Old', versionCount: 1 }]);
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue(mapping);
+                vi.mocked(mockClient.createConventionVersion).mockResolvedValue(`${base}/3/versions/1.0.1`);
+
+                await runPushConvention({ ...pushOptions, description: 'New' });
+
+                expect(mockClient.createConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.0.1', expect.objectContaining({ description: 'New' }));
+            });
+
+            it('names the created version when only setting the default fails', async () => {
+                const { mockClient, shared } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 1 }]);
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.2']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue({ ...mapping, nesting: 'strict' });
+                vi.mocked(mockClient.createConventionVersion).mockResolvedValue(`${base}/3/versions/1.0.3`);
+                vi.mocked(mockClient.setNamespaceDefaultConvention).mockRejectedValue(new shared.HubClientError(403, 'Forbidden', `PUT ${base}/default`));
+
+                await expect(runPushConvention({ ...pushOptions, setDefault: true })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(403,
+                    'Created convention 3 version 1.0.3, but could not set it as the default: Forbidden', `PUT ${base}/default`, 'json');
+            });
+
             it('uses --name over the unique-id to find the convention', async () => {
                 const { mockClient } = await getSharedMocks();
                 vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 4, name: 'acme', versionCount: 1 }]);
@@ -3000,12 +3025,21 @@ describe('hub-commands', () => {
                 expect(stderr).toHaveBeenCalledWith(expect.stringContaining('namespace org (inherited)'));
             });
 
-            it('exits with 404 when no default applies', async () => {
+            it('exits when no default applies', async () => {
                 const { mockClient } = await getSharedMocks();
                 vi.mocked(mockClient.getNamespaceDefaultConvention).mockResolvedValue(undefined);
 
                 await expect(runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team' })).rejects.toThrow('process.exit');
-                expect(hubOutput.printError).toHaveBeenCalledWith(404, 'No c4-mapping default applies to namespace \'org.team\'', expect.any(String), 'json');
+                expect(hubOutput.printError).toHaveBeenCalledWith(0, 'No c4-mapping default applies to namespace \'org.team\'', expect.any(String), 'json');
+            });
+
+            it('exits with the Hub 404 when the namespace does not exist', async () => {
+                const { mockClient, shared } = await getSharedMocks();
+                vi.mocked(mockClient.getNamespaceDefaultConvention).mockRejectedValue(
+                    new shared.HubClientError(404, 'Invalid namespace provided: org.paymnts', `GET ${base}/default`));
+
+                await expect(runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.paymnts' })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Invalid namespace provided: org.paymnts', `GET ${base}/default`, 'json');
             });
 
             it('pulls the latest version of a convention by ID and writes it to a file', async () => {

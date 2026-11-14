@@ -1548,7 +1548,8 @@ export async function runPushConvention(options: PushConventionOptions): Promise
             const versions = await client.getConventionVersions(namespace, conventionType, id);
             const latestVersion = versions[versions.length - 1];
             const latest = await client.getConventionVersion(namespace, conventionType, id, latestVersion);
-            if (canonicalEqual(convention, latest)) {
+            const descriptionChanged = options.description !== undefined && options.description !== matches[0].description;
+            if (canonicalEqual(convention, latest) && !descriptionChanged) {
                 result = { status: 'skipped', namespace, conventionType, id, name, version: latestVersion, location: conventionVersionLocation(calmHubOptions.calmHubUrl!, namespace, conventionType, id, latestVersion) };
             } else {
                 const version = computeSemVerBump(latestVersion, options.changeType ?? 'PATCH');
@@ -1558,7 +1559,15 @@ export async function runPushConvention(options: PushConventionOptions): Promise
         }
 
         if (options.setDefault) {
-            await client.setNamespaceDefaultConvention(namespace, conventionType, result.id, result.version);
+            try {
+                await client.setNamespaceDefaultConvention(namespace, conventionType, result.id, result.version);
+            } catch (err) {
+                if (result.status !== 'created' || !(err instanceof HubClientError)) {
+                    throw err;
+                }
+                throw new HubClientError(err.status,
+                    `Created convention ${result.id} version ${result.version}, but could not set it as the default: ${err.error}`, err.request);
+            }
         }
         printConventionPushResult({ ...result, default: !!options.setDefault }, format);
     } catch (err) {
@@ -1618,7 +1627,7 @@ export async function runPullConvention(options: PullConventionOptions): Promise
         if (id === undefined) {
             const resolved = await client.getNamespaceDefaultConvention(namespace, conventionType);
             if (!resolved) {
-                throw new HubCommandError(404, `No ${conventionType} default applies to namespace '${namespace}'`, requestedCommand);
+                throw new HubCommandError(0, `No ${conventionType} default applies to namespace '${namespace}'`, requestedCommand);
             }
             console.error(`Using ${conventionType} convention ${resolved.conventionId} version ${resolved.version}, the default of namespace ${resolved.namespace}${resolved.inherited ? ' (inherited)' : ''}`);
             convention = resolved.convention;

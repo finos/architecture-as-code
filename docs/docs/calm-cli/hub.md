@@ -557,7 +557,7 @@ A convention is versioned JSON that tools read, such as a `c4-mapping` for C4 di
 
 ### Push a convention
 
-The CLI finds the convention by its name in the namespace. A new name creates the convention at `1.0.0`. A known name gets the next version, or is skipped when the content is unchanged.
+The CLI finds the convention by its name in the namespace. A new name creates the convention at `1.0.0`. A known name gets the next version, or is skipped when the content and the description are unchanged.
 
 ```shell
 calm hub push convention c4-mapping acme-c4-mapping.json --namespace org --set-default -c http://localhost:8080
@@ -568,7 +568,7 @@ calm hub push convention c4-mapping acme-c4-mapping.json --namespace org --set-d
 - **`--namespace <namespace>`**: _(required)_ The target namespace.
 - **`--name <name>`**: Name of the convention. Defaults to the `unique-id` of the convention.
 - **`--description <description>`**: Description of the convention.
-- **`--set-default`**: Also make the pushed version the default for the namespace. This needs namespace admin.
+- **`--set-default`**: Also make the pushed version the default for the namespace. This needs namespace admin. If only this step fails, the error names the version that the push created.
 - **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.

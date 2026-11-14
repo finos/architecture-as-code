@@ -351,21 +351,22 @@ export class CalmHubClient {
 
     /**
      * Returns the default convention that applies to a namespace, which it can inherit from an ancestor.
-     * @returns The default, or undefined when Hub returns 404: no namespace in the chain sets one, or the namespace does not exist.
+     * @returns The default, or undefined when Hub returns 204 because no namespace in the chain sets one.
+     * @throws HubClientError with status 404 when the namespace does not exist.
      */
     async getNamespaceDefaultConvention(namespace: string, conventionType: string): Promise<HubNamespaceDefaultConvention | undefined> {
         const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/default`;
         try {
             const response = await this.ax.get(endpoint);
+            if (response.status === 204) {
+                return undefined;
+            }
             const body = this.requireObject(response.data, `GET ${endpoint}`) as HubNamespaceDefaultConvention;
             if (typeof body.conventionId !== 'number' || typeof body.version !== 'string' || !body.convention || typeof body.convention !== 'object') {
                 throw new HubClientError(0, 'Response does not contain conventionId, version and convention', `GET ${endpoint}`);
             }
             return body;
         } catch (err) {
-            if (axios.isAxiosError(err) && err.response?.status === 404) {
-                return undefined;
-            }
             throw this.wrapError(err, `GET ${endpoint}`);
         }
     }
@@ -395,7 +396,9 @@ export class CalmHubClient {
                 throw error;
             }
             const details = fieldErrors.map((e: { location?: string; error?: string }) => `${e.location || '/'}: ${e.error}`).join('; ');
-            throw new HubClientError(error.status, `${error.error}: ${details}`, error.request);
+            const moreErrors = axios.isAxiosError(err) ? err.response?.data?.moreErrors : undefined;
+            const more = typeof moreErrors === 'number' && moreErrors > 0 ? `; and ${moreErrors} more` : '';
+            throw new HubClientError(error.status, `${error.error}: ${details}${more}`, error.request);
         }
     }
 
