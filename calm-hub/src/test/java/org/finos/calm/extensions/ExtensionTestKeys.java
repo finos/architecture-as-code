@@ -61,10 +61,16 @@ public final class ExtensionTestKeys {
         return write(dir, name, generate("EC", new ECGenParameterSpec(curve)));
     }
 
-    /** RSA key files in a new temporary folder, for a Quarkus test profile. */
+    /** RSA key files in a new temporary folder, for a Quarkus test profile. The JVM deletes them on exit. */
     public static KeyFiles rsaInTempDir() {
         try {
-            return rsa(Files.createTempDirectory("calm-hub-keys"), "hub");
+            Path dir = Files.createTempDirectory("calm-hub-keys");
+            // deleteOnExit runs in reverse order, so the files go before their folder.
+            dir.toFile().deleteOnExit();
+            KeyFiles keys = rsa(dir, "hub");
+            keys.privateKey().toFile().deleteOnExit();
+            keys.publicKey().toFile().deleteOnExit();
+            return keys;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
