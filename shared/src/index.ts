@@ -103,6 +103,9 @@ export {
     buildExtensionRequest,
     extensionProxyPath,
     numberText,
+    type HubConfigSummary,
+    type HubConfigRequest,
+    type HubNamespaceDefaultConfig,
     type ResourceType,
     type ResourceChangeType,
     isValidResourceType
