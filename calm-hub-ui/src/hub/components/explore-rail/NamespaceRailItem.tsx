@@ -16,10 +16,12 @@ interface NamespaceRailItemProps {
     collapsed: boolean;
     descendantTotal: number;
     active: boolean;
-    /** Filter mode swaps the label to the full path and suppresses the ghost pill. */
+    /** Filter mode hides the chevron and suppresses the ghost pill. */
     filtering: boolean;
-    /** Lower-cased filter text, used to highlight the match in the label. */
+    /** Lower-cased filter text. When set, the label shows the full path with the match highlighted. */
     needle: string;
+    /** Shown only as the parent of a match, so the label is muted. */
+    contextOnly?: boolean;
     onToggleCollapsed: (path: string) => void;
 }
 
@@ -54,11 +56,13 @@ export function NamespaceRailItem({
     active,
     filtering,
     needle,
+    contextOnly = false,
     onToggleCollapsed,
 }: NamespaceRailItemProps) {
     const namespaceRow = isNamespace(node);
-    const label = filtering ? node.path : node.segment;
-    const labelContent = filtering ? highlight(label, needle) : label;
+    const showPath = filtering && needle !== '';
+    const label = showPath ? node.path : node.segment;
+    const labelContent = showPath ? highlight(label, needle) : label;
 
     // A grouping-only ancestor is not a destination, so it never reads as the current page even
     // when its path matches the route. Only a real namespace takes the accent.
@@ -68,7 +72,7 @@ export function NamespaceRailItem({
         ? { backgroundColor: colors.redesign.tintBg, boxShadow: redesignTokens.shadow.railAccent, transition: redesignTokens.transition }
         : { transition: redesignTokens.transition };
 
-    const labelStyle = showAsActive ? { color: colors.redesign.activeText } : { color: colors.redesign.bodyAlt };
+    const labelColor = showAsActive ? colors.redesign.activeText : contextOnly ? colors.redesign.faintAlt : colors.redesign.bodyAlt;
 
     return (
         <div className={`flex items-center gap-1 pr-1.5 py-1 rounded-[7px] text-[13px] ${showAsActive ? 'font-semibold' : ''}`} style={rowStyle}>
@@ -107,7 +111,7 @@ export function NamespaceRailItem({
                     aria-label={node.path}
                     title={description ? `${node.path}\n${description}` : node.path}
                     className="min-w-0 flex-1 truncate no-underline hover:bg-base-200 rounded-[7px] px-1"
-                    style={labelStyle}
+                    style={{ color: labelColor }}
                 >
                     {labelContent}
                 </Link>

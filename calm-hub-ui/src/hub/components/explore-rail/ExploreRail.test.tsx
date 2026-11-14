@@ -1,9 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExploreRail } from './ExploreRail.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import type { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
+import type { UserAccess, UserAccessPermission } from '../../../model/user-access.js';
+import type { UserAccessService } from '../../../service/user-access-service.js';
+import { UserAccessProvider } from '../../../admin/context/UserAccessContext.js';
+import { colors } from '../../../theme/colors.js';
 
 // Counts are owned by Hub and passed in as props; the rail no longer fetches them.
 const namespaceCounts = [
@@ -240,5 +244,134 @@ describe('ExploreRail — namespace hierarchy', () => {
         expect(screen.queryByTestId('nested-count-badge')).not.toBeInTheDocument();
         // Domain rows never gain a disclosure chevron — only namespace rows with children do.
         expect(screen.queryByRole('button', { name: /security/ })).not.toBeInTheDocument();
+    });
+});
+
+describe('ExploreRail edit scope', () => {
+    const abc = [
+        { namespace: 'a', total: 1 },
+        { namespace: 'a.b', total: 2 },
+        { namespace: 'a.c', total: 3 },
+    ] as NamespaceCounts[];
+
+    function grant(namespace: string, permission: UserAccessPermission): UserAccess {
+        return { userAccessId: 0, username: 'alice', permission, namespace };
+    }
+
+    const renderWithAccess = (grants: UserAccess[], storage: Storage = createMemoryStorage()) => {
+        const service = { getCurrentUserAccess: () => Promise.resolve(grants) } as unknown as UserAccessService;
+        return render(
+            <UserAccessProvider service={service}>
+                <MemoryRouter initialEntries={['/']}>
+                    <ExploreRail namespaceCounts={abc} domainCounts={domainCounts} storage={storage} />
+                </MemoryRouter>
+            </UserAccessProvider>
+        );
+    };
+
+    const selectCanEdit = async () => fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+    const visiblePaths = () =>
+        screen.queryAllByRole('link').map((l) => l.getAttribute('aria-label')).filter((p) => p?.startsWith('a'));
+
+    it('hides the scope control when the user has no grants', async () => {
+        renderWithAccess([]);
+        await screen.findByRole('link', { name: 'a.c' });
+        await waitFor(() => expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument());
+    });
+
+    it('hides the scope control when there is no access provider', async () => {
+        renderRail();
+        await screen.findByRole('link', { name: /finos/ });
+        expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument();
+    });
+
+    it('starts on All and shows every namespace', async () => {
+        renderWithAccess([grant('a.c', 'write')]);
+        expect(await screen.findByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+        expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
+    });
+
+    it('shows editable namespaces and their parents, and hides read-only ones', async () => {
+        renderWithAccess([grant('a.c', 'write'), grant('a.b', 'read')]);
+        await selectCanEdit();
+
+        expect(screen.getByRole('button', { name: 'Can edit' })).toHaveAttribute('aria-pressed', 'true');
+        expect(visiblePaths()).toEqual(['a', 'a.c']);
+        expect(screen.getByRole('link', { name: 'a' })).toHaveStyle({ color: colors.redesign.faintAlt });
+        expect(screen.getByRole('link', { name: 'a.c' })).toHaveStyle({ color: colors.redesign.bodyAlt });
+    });
+
+    it('counts an admin grant as editable', async () => {
+        renderWithAccess([grant('a.b', 'admin')]);
+        await selectCanEdit();
+        expect(visiblePaths()).toEqual(['a', 'a.b']);
+    });
+
+    it('treats a grant on a parent as covering its children', async () => {
+        renderWithAccess([grant('a', 'write')]);
+        await selectCanEdit();
+        expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
+        expect(screen.getByRole('link', { name: 'a' })).toHaveStyle({ color: colors.redesign.bodyAlt });
+    });
+
+    it('shows every namespace to a global admin', async () => {
+        renderWithAccess([grant('GLOBAL', 'admin')]);
+        await selectCanEdit();
+        expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
+    });
+
+    it('combines with the text filter', async () => {
+        renderWithAccess([grant('a.b', 'write'), grant('a.c', 'write')]);
+        await selectCanEdit();
+        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'c' } });
+        expect(visiblePaths()).toEqual(['a', 'a.c']);
+    });
+
+    it('shows editable children of a collapsed parent', async () => {
+        const storage = createMemoryStorage();
+        storage.setItem('calmHub.railCollapsedNamespaces', JSON.stringify(['a']));
+        renderWithAccess([grant('a.c', 'write')], storage);
+        await selectCanEdit();
+        expect(visiblePaths()).toEqual(['a', 'a.c']);
+    });
+
+    it('says so when the user cannot edit any namespace', async () => {
+        renderWithAccess([grant('a', 'read')]);
+        await selectCanEdit();
+        expect(screen.getByText('You cannot edit any namespaces')).toBeInTheDocument();
+    });
+
+    it('returns to every namespace when All is selected again', async () => {
+        renderWithAccess([grant('a.c', 'write')]);
+        await selectCanEdit();
+        fireEvent.click(screen.getByRole('button', { name: 'All' }));
+        expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
+    });
+
+    const domainGrant = (domain: string, permission: UserAccessPermission): UserAccess => ({
+        userAccessId: 0,
+        username: 'alice',
+        permission,
+        domain,
+    });
+
+    it('shows only the control domains the user can edit', async () => {
+        renderWithAccess([domainGrant('security', 'write'), domainGrant('compliance', 'read')]);
+        await selectCanEdit();
+        expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /compliance/ })).not.toBeInTheDocument();
+    });
+
+    it('does not count a namespace grant as access to a domain', async () => {
+        renderWithAccess([grant('a', 'admin')]);
+        await selectCanEdit();
+        expect(screen.getByText('You cannot edit any control domains')).toBeInTheDocument();
+    });
+
+    it('shows every control domain to a global admin', async () => {
+        renderWithAccess([grant('GLOBAL', 'admin')]);
+        await selectCanEdit();
+        expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /compliance/ })).toBeInTheDocument();
     });
 });

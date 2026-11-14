@@ -5,6 +5,9 @@ import { MobileNavMenu } from './MobileNavMenu.js';
 import type { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
 import { colors } from '../../../theme/colors.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { UserAccessProvider } from '../../../admin/context/UserAccessContext.js';
+import type { UserAccess } from '../../../model/user-access.js';
+import type { UserAccessService } from '../../../service/user-access-service.js';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -335,5 +338,83 @@ describe('MobileNavMenu', () => {
             expect(await screen.findByText('platform')).toBeInTheDocument();
             expect(screen.queryByText('payments')).not.toBeInTheDocument();
         });
+    });
+});
+
+describe('MobileNavMenu edit scope', () => {
+    const abc = [
+        { namespace: 'a', total: 1 },
+        { namespace: 'a.b', total: 2 },
+        { namespace: 'a.c', total: 3 },
+    ] as NamespaceCounts[];
+
+    const renderWithAccess = (grants: UserAccess[]) => {
+        const service = { getCurrentUserAccess: () => Promise.resolve(grants) } as unknown as UserAccessService;
+        return render(
+            <UserAccessProvider service={service}>
+                <MemoryRouter>
+                    <MobileNavMenu {...props} namespaceCounts={abc} storage={createMemoryStorage()} />
+                </MemoryRouter>
+            </UserAccessProvider>
+        );
+    };
+    const grant = (namespace: string, permission: UserAccess['permission']): UserAccess => ({
+        userAccessId: 0,
+        username: 'alice',
+        permission,
+        namespace,
+    });
+    const rowLabels = () => screen.getAllByRole('listitem').map((li) => li.textContent);
+
+    it('shows the scope control at the namespaces and domains levels, not the root', async () => {
+        renderWithAccess([grant('a.c', 'write')]);
+        await waitFor(() => expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument());
+        fireEvent.click(screen.getByText('Namespaces'));
+        expect(await screen.findByRole('group', { name: 'Scope' })).toBeInTheDocument();
+        fireEvent.click(screen.getByLabelText('Back'));
+        fireEvent.click(screen.getByText('Control Domains'));
+        expect(screen.getByRole('group', { name: 'Scope' })).toBeInTheDocument();
+    });
+
+    it('keeps the scope when moving between levels', async () => {
+        renderWithAccess([grant('a.c', 'write')]);
+        fireEvent.click(screen.getByText('Namespaces'));
+        fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+        fireEvent.click(screen.getByLabelText('Back'));
+        fireEvent.click(screen.getByText('Control Domains'));
+        expect(screen.getByRole('button', { name: 'Can edit' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByText('You cannot edit any control domains')).toBeInTheDocument();
+    });
+
+    it('shows only the control domains the user can edit', async () => {
+        const domainGrant: UserAccess = { userAccessId: 0, username: 'alice', permission: 'admin', domain: 'security' };
+        renderWithAccess([domainGrant]);
+        fireEvent.click(screen.getByText('Control Domains'));
+        fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+        expect(screen.getByText('security')).toBeInTheDocument();
+    });
+
+    it('hides the scope control when the user has no grants', async () => {
+        renderMenu();
+        fireEvent.click(screen.getByText('Namespaces'));
+        await screen.findByText('finos');
+        expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument();
+    });
+
+    it('shows editable namespaces with muted parents and no collapse chevrons', async () => {
+        renderWithAccess([grant('a.c', 'write')]);
+        fireEvent.click(screen.getByText('Namespaces'));
+        fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+
+        expect(rowLabels()).toEqual([expect.stringMatching(/^a/), expect.stringMatching(/^c/)]);
+        expect(screen.getByText('a')).toHaveStyle({ color: colors.redesign.faintAlt });
+        expect(screen.queryByRole('button', { name: /Collapse a/ })).not.toBeInTheDocument();
+    });
+
+    it('says so when the user cannot edit any namespace', async () => {
+        renderWithAccess([grant('a', 'read')]);
+        fireEvent.click(screen.getByText('Namespaces'));
+        fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+        expect(screen.getByText('You cannot edit any namespaces')).toBeInTheDocument();
     });
 });

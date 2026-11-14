@@ -22,6 +22,8 @@ import { ExplorerSearch } from '../../../components/navbar/ExplorerSearch.js';
 import { LoadingSpinner } from '../LoadingSpinner.js';
 import { useNamespaceTree } from '../explore-rail/useNamespaceTree.js';
 import { MobileNamespaceRow } from './MobileNamespaceRow.js';
+import { EditScopeToggle } from '../explore-rail/EditScopeToggle.js';
+import { useEditScope } from '../explore-rail/useEditScope.js';
 
 const RESOURCE_TYPES: TypeInUI[] = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
 
@@ -81,6 +83,22 @@ interface LeafItem {
  * {@link Hub} (fetched once and shared) and passed in as props rather than
  * re-fetched here.
  */
+interface EmptyMessageContext {
+    namespacesFailed?: boolean;
+    domainsFailed?: boolean;
+    editableOnly: boolean;
+    hasNamespaces: boolean;
+    hasDomains: boolean;
+}
+
+function emptyMessageFor(level: View['level'], ctx: EmptyMessageContext): string {
+    if (level === 'namespaces' && ctx.namespacesFailed) return "Couldn't load namespaces";
+    if (level === 'domains' && ctx.domainsFailed) return "Couldn't load control domains";
+    if (level === 'namespaces' && ctx.editableOnly && ctx.hasNamespaces) return 'You cannot edit any namespaces';
+    if (level === 'domains' && ctx.editableOnly && ctx.hasDomains) return 'You cannot edit any control domains';
+    return 'Nothing here';
+}
+
 export function MobileNavMenu({
     namespaceCounts,
     domainCounts,
@@ -107,11 +125,14 @@ export function MobileNavMenu({
     // Derive the namespace/domain lists from the counts Hub already fetched, rather than
     // re-fetching them here. Avoids two redundant requests and keeps the row labels in the
     // same snapshot as the count badges.
-    const domains = useMemo(() => domainCounts.map((c) => c.domain), [domainCounts]);
+    const { scope, setScope, showScopeToggle, editableOnly, canEditNamespace, isContextOnly, filterDomains } = useEditScope();
+    const allDomains = useMemo(() => domainCounts.map((c) => c.domain), [domainCounts]);
+    const domains = filterDomains(allDomains, (d) => d);
 
-    const { rows: namespaceRows, toggleCollapsed } = useNamespaceTree({
+    const { rows: namespaceRows, filtering, toggleCollapsed } = useNamespaceTree({
         namespaceCounts,
         needle: '',
+        canEdit: canEditNamespace,
         activeNamespace: params.ns ?? params.namespace,
         storage,
     });
@@ -327,11 +348,13 @@ export function MobileNavMenu({
     // No retry action exists here (Hub fetches counts once on mount), so the copy
     // must not promise one — matches ExploreRail's equivalent desktop wording.
     const emptyMessage =
-        view.level === 'namespaces' && namespacesFailed
-            ? "Couldn't load namespaces"
-            : view.level === 'domains' && domainsFailed
-              ? "Couldn't load control domains"
-              : 'Nothing here';
+        emptyMessageFor(view.level, {
+            namespacesFailed,
+            domainsFailed,
+            editableOnly,
+            hasNamespaces: namespaceCounts.length > 0,
+            hasDomains: allDomains.length > 0,
+        });
 
     return (
         <div className="h-full w-full flex flex-col">
@@ -351,6 +374,12 @@ export function MobileNavMenu({
 
             <ExplorerSearch onSearchingChange={setSearching} />
 
+            {!searching && (view.level === 'namespaces' || view.level === 'domains') && showScopeToggle && (
+                <div className="px-3 py-2 border-b border-base-200">
+                    <EditScopeToggle scope={scope} onChange={setScope} />
+                </div>
+            )}
+
             {!searching && (
                 <ul className="flex-1 overflow-auto divide-y divide-base-200">
                     {showLoading && (
@@ -368,6 +397,8 @@ export function MobileNavMenu({
                                     row={nr}
                                     description={descriptions.get(nr.node.path)}
                                     active={nr.node.path === params.ns || nr.node.path === params.namespace}
+                                    filtering={filtering}
+                                    contextOnly={isContextOnly(nr.node.path)}
                                     onToggleCollapsed={toggleCollapsed}
                                     onOpen={(namespace) => setView({ level: 'types', namespace })}
                                 />
