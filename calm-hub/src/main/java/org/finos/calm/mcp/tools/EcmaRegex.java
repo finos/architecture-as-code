@@ -2,6 +2,7 @@ package org.finos.calm.mcp.tools;
 
 import com.google.re2j.PatternSyntaxException;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,9 +23,12 @@ final class EcmaRegex {
 
     static final int MAX_LENGTH = 1000;
     static final int MAX_DEPTH = 64;
-    // RE2J's time is the input length times the size of the compiled program, and nested repeats multiply
-    // that size. Hub limits it before RE2J compiles, as RE2 C++ limits nested repeats.
-    static final int MAX_EXPANDED_SIZE = 100;
+    // The size of the compiled program, with each repeat expanded. Hub limits it before RE2J compiles, so nested
+    // repeats cannot make a large program. RE2 C++ has the same limit on nested repeats.
+    static final int MAX_EXPANDED_SIZE = 1000;
+    // RE2J's time is the text length times the program size. A Budget limits that work for each call, so a long
+    // text cannot use a large pattern for long. 10 million is about 0.4 s of the worst case.
+    static final long MAX_WORK = 10_000_000;
 
     private static final String SYNTAX_CHARACTERS = "^$\\.*+?()[]{}|";
     private static final Set<String> GENERAL_CATEGORIES = Set.of("C", "Other", "Cc", "Control", "cntrl", "Cf", "Format",
@@ -111,10 +115,37 @@ final class EcmaRegex {
     }
 
     /** The pattern compiled for RE2J. Call only if {@link #linearError} is null. */
-    static com.google.re2j.Pattern linear(String pattern) {
+    static Linear linear(String pattern) {
         EcmaRegex regex = new EcmaRegex(pattern);
         regex.parse();
-        return com.google.re2j.Pattern.compile(regex.re2.toString());
+        return new Linear(pattern, com.google.re2j.Pattern.compile(regex.re2.toString()), regex.expandedSize);
+    }
+
+    /** A pattern compiled for RE2J, with its size, so that each match can charge its work to a {@link Budget}. */
+    record Linear(String source, com.google.re2j.Pattern re2, long size) {
+        boolean find(String text, Budget budget) {
+            budget.charge((long) text.length() * size);
+            return re2.matcher(text).find();
+        }
+    }
+
+    /** The work of the matches of one call, at most {@link #MAX_WORK}. */
+    static final class Budget {
+        private long left = MAX_WORK;
+
+        void charge(long work) {
+            left -= work;
+            if (left < 0) {
+                throw new BudgetExceededException();
+            }
+        }
+    }
+
+    static final class BudgetExceededException extends RuntimeException {
+        BudgetExceededException() {
+            super("the input is too large to check against its patterns: the text length times the pattern size is more than "
+                    + MAX_WORK + " in total", null, false, false);
+        }
     }
 
     private void notLinear(String reason) {
@@ -262,33 +293,43 @@ final class EcmaRegex {
     // The number of copies of the term that RE2 compiles.
     private long braces() {
         int start = pos++;
-        long min = digits();
-        long max = min;
+        BigInteger min = digitValue();
+        // RE2 compiles {n,} as n copies and a star.
+        BigInteger max = min;
         if (peek() == ',') {
             pos++;
-            max = peek() == '}' ? Long.MAX_VALUE : digits();
+            max = peek() == '}' ? min : digitValue();
         }
         if (peek() != '}') {
             pos = start;
             throw fail("incomplete quantifier");
         }
         pos++;
-        if (min > max) {
+        // Compared before they are capped, as the clients compare them.
+        if (min.compareTo(max) > 0) {
             pos = start;
             throw fail("the numbers of the quantifier are out of order");
         }
-        return max == Long.MAX_VALUE ? min : max;
+        return bounded(max);
     }
 
     private long digits() {
+        return bounded(digitValue());
+    }
+
+    private static long bounded(BigInteger value) {
+        return value.min(BigInteger.valueOf(Integer.MAX_VALUE)).longValue();
+    }
+
+    private BigInteger digitValue() {
         if (!isDigit(peek())) {
             throw fail("incomplete quantifier");
         }
-        long value = 0;
+        int start = pos;
         while (isDigit(peek())) {
-            value = Math.min(value * 10 + (next() - '0'), Integer.MAX_VALUE);
+            pos++;
         }
-        return value;
+        return new BigInteger(new String(chars, start, pos - start));
     }
 
     private void noQuantifier() {

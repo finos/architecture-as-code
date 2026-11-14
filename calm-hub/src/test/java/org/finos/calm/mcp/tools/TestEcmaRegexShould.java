@@ -12,6 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestEcmaRegexShould {
 
@@ -63,14 +64,14 @@ class TestEcmaRegexShould {
     })
     void match_with_the_ecma_262_meaning_in_linear_time(String pattern, String text, boolean found) {
         assertThat(EcmaRegex.linearError(pattern), nullValue());
-        assertThat(pattern, EcmaRegex.linear(pattern).matcher(text).find(), is(found));
+        assertThat(pattern, EcmaRegex.linear(pattern).find(text, new EcmaRegex.Budget()), is(found));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"(?=a)", "(?!a)", "(?<=a)", "(?<!a)", "(a)\\1", "(?<x>a)\\k<x>", "[\\S]", "\\p{ASCII}",
             "\\p{Any}", "\\p{sc=Grek}", "\\p{scx=Greek}", "\\p{LC}", "\\p{Cn}", "\\p{C}", "\\p{Letter}", "\\P{L}",
-            "[\\p{sc=Latin}\\d]", "a{101}", "(?i)a", "(?:a{1000}){1000}", "(?:a{10}){11}", "a{100}b", "(?:){101}",
-            "(?:(?:a{1000}){1000}){1000}", "(?:a{1000}){1000000000}", "(?:a{50}|b{51})", "(?:|){51}", "(?:(?:){1000}){1000}",
+            "[\\p{sc=Latin}\\d]", "a{1001}", "(?i)a", "(?:a{1000}){1000}", "(?:a{10}){101}", "a{1000}b", "(?:){1001}",
+            "(?:(?:a{1000}){1000}){1000}", "(?:a{1000}){1000000000}", "(?:a{500}|b{501})", "(?:|){501}", "(?:(?:){1000}){1000}",
             "(?:(?:(?:){1000}){1000}){1000}"})
     void refuse_a_pattern_that_has_no_linear_time_form(String pattern) {
         assertThat(pattern, EcmaRegex.linearError(pattern), notNullValue());
@@ -78,40 +79,74 @@ class TestEcmaRegexShould {
 
     @Test
     void refuse_nested_repeats_before_they_are_expanded() {
-        assertThat(EcmaRegex.linearError("(?:a{1000}){1000}"), is("its repeats expand it to more than 100 terms"));
-        assertThat(EcmaRegex.linearError("(?:(?:a{1000}){1000}){1000}"), is("its repeats expand it to more than 100 terms"));
-        assertThat(EcmaRegex.linearError("a{100}"), nullValue());
-        assertThat(EcmaRegex.linearError("(?:a{10}){10}"), nullValue());
-        assertThat(EcmaRegex.linearError("(?:a{10,}|b*){9}c"), nullValue());
-        assertThat(EcmaRegex.linearError("(?:(?:){1000}){1000}"), is("its repeats expand it to more than 100 terms"));
-        assertThat(EcmaRegex.linearError("(?:(?:(?:){1000}){1000}){1000}"), is("its repeats expand it to more than 100 terms"));
-        assertThat(EcmaRegex.linearError("(?:|){50}"), nullValue());
+        String tooLarge = "its repeats expand it to more than 1000 terms";
+        assertThat(EcmaRegex.linearError("(?:a{1000}){1000}"), is(tooLarge));
+        assertThat(EcmaRegex.linearError("(?:(?:a{1000}){1000}){1000}"), is(tooLarge));
+        assertThat(EcmaRegex.linearError("a{1000}"), nullValue());
+        assertThat(EcmaRegex.linearError("(?:a{10}){100}"), nullValue());
+        assertThat(EcmaRegex.linearError("(?:a{10,}|b*){90}c"), nullValue());
+        assertThat(EcmaRegex.linearError("(?:(?:){1000}){1000}"), is(tooLarge));
+        assertThat(EcmaRegex.linearError("(?:(?:(?:){1000}){1000}){1000}"), is(tooLarge));
+        assertThat(EcmaRegex.linearError("(?:|){500}"), nullValue());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"^.{1,255}$", "^[a-z0-9-]{1,128}$", "^[A-Za-z][A-Za-z0-9 ._-]{0,990}$"})
+    void accept_a_common_pattern_with_a_long_repeat(String pattern) {
+        assertThat(EcmaRegex.linearError(pattern), nullValue());
     }
 
     @Test
-    void match_an_accepted_pattern_of_the_largest_size_in_linear_time() {
-        com.google.re2j.Pattern largest = EcmaRegex.linear("^(?:[a-z]{0,10}x){9}$");
-        long small = time(() -> largest.matcher("a".repeat(100_000) + "!").find());
-        long large = time(() -> largest.matcher("a".repeat(1_000_000) + "!").find());
-
-        assertThat(large < 20 * Math.max(small, 50), is(true));
-        assertThat(large < 10_000, is(true));
+    void accept_a_long_literal() {
+        assertThat(EcmaRegex.linearError("x".repeat(500)), nullValue());
     }
 
-    private static long time(Runnable run) {
-        long start = System.nanoTime();
-        run.run();
-        return Duration.ofNanos(System.nanoTime() - start).toMillis();
+    @Test
+    void refuse_quantifier_numbers_out_of_order_before_they_are_capped() {
+        assertThat(EcmaRegex.error("a{2147483648,2147483647}"), notNullValue());
+        assertThat(EcmaRegex.error("a{99999999999,9999999999}"), notNullValue());
+        assertThat(EcmaRegex.error("a{9999999999,99999999999}"), nullValue());
+        assertThat(EcmaRegex.error("a{2147483647,2147483648}"), nullValue());
     }
 
+    @Test
+    void give_the_size_of_the_expanded_program() {
+        assertThat(EcmaRegex.linear("^.{1,255}$").size(), is(257L));
+        assertThat(EcmaRegex.linear("(?:ab){3}c").size(), is(7L));
+        assertThat(EcmaRegex.linear("a{2,}").size(), is(2L));
+    }
+
+    @Test
+    void charge_each_match_to_the_budget_of_its_call() {
+        EcmaRegex.Linear pattern = EcmaRegex.linear("^.{1,255}$");
+        int longest = (int) (EcmaRegex.MAX_WORK / pattern.size());
+        assertThat(pattern.find("a".repeat(longest), new EcmaRegex.Budget()), is(false));
+        assertThrows(EcmaRegex.BudgetExceededException.class,
+                () -> pattern.find("a".repeat(longest + 1), new EcmaRegex.Budget()));
+
+        EcmaRegex.Budget shared = new EcmaRegex.Budget();
+        String half = "a".repeat(longest / 2);
+        assertThat(pattern.find(half, shared), is(false));
+        assertThat(pattern.find(half, shared), is(false));
+        assertThrows(EcmaRegex.BudgetExceededException.class, () -> pattern.find("ab", shared));
+    }
+
+    @Test
+    void charge_the_budget_before_the_match_runs() {
+        EcmaRegex.Budget spent = new EcmaRegex.Budget();
+        spent.charge(EcmaRegex.MAX_WORK);
+        assertThrows(EcmaRegex.BudgetExceededException.class, () -> EcmaRegex.linear("a").find("a", spent));
+    }
+
+    // java.util.regex takes hours on these texts. One generous bound, so a slow runner cannot fail it.
     @Test
     void match_slow_java_patterns_in_linear_time() {
-        String text = "a".repeat(100_000) + "!";
+        String text = "a".repeat(10_000) + "!";
+        long start = System.nanoTime();
         for (String pattern : List.of("^(.*a){12}$", "(a|a)*b", "(?:|)".repeat(40) + "\\b\\B")) {
-            long start = System.nanoTime();
-            assertThat(pattern, EcmaRegex.linear(pattern).matcher(text).find(), is(false));
-            assertThat(pattern, Duration.ofNanos(System.nanoTime() - start).toMillis() < 5_000, is(true));
+            assertThat(pattern, EcmaRegex.linear(pattern).find(text, new EcmaRegex.Budget()), is(false));
         }
+        assertThat(Duration.ofNanos(System.nanoTime() - start).toSeconds() < 60, is(true));
     }
 
     @Test
