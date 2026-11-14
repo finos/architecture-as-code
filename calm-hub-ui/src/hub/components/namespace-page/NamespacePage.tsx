@@ -8,6 +8,7 @@ import { NamespacePageHeader } from './NamespacePageHeader.js';
 import { SegmentedTypeTabs } from './SegmentedTypeTabs.js';
 import { ItemCard } from './ItemCard.js';
 import { EmptyState } from './EmptyState.js';
+import { NamespaceConventions } from './NamespaceConventions.js';
 import { useNamespaceItems } from './useNamespaceItems.js';
 import { useActiveType } from './useActiveType.js';
 import {
@@ -104,6 +105,8 @@ export function NamespacePage({ namespace, counts }: NamespacePageProps) {
                     </div>
                 )}
             </div>
+
+            <NamespaceConventions namespace={namespace} />
         </div>
     );
 }
