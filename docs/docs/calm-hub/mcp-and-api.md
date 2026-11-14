@@ -293,6 +293,7 @@ CALM Hub makes one tool for each command of an enabled [extension](index.md#exte
 - The rest go to the query for `GET` and `DELETE`, and to the JSON body for other methods. A query name or value must not contain a control character or a lone surrogate. A number fills the path or the query in plain notation, as in the CLI: `1.0` gives `1`, and `1e21` gives `1000000000000000000000`.
 - The request line of the same REST call (the method, `/api/calm/extensions/<id>/api`, the path, the query and `HTTP/1.1`) must be at most 4096 characters, the Vert.x limit, or the call is a tool error.
 - A `2xx` reply is the result: structured content and the same JSON as text if the command has an output schema, otherwise text. Any other reply is a tool error.
+- With an output schema, CALM Hub checks the reply against it, because MCP clients refuse structured content that does not match. A reply that does not match is a tool error that lists the errors, and CALM Hub logs a warning. A reply with no content, such as `204 No Content`, is `{}` when the output schema allows it. Otherwise it is a tool error that says the call succeeded.
 
 ### Example Tool Call
 

@@ -27,6 +27,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.SchemaValidationLimits;
 import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.finos.calm.extensions.ExtensionManifestLoader;
+import org.finos.calm.extensions.ExtensionPaths;
 import org.finos.calm.extensions.ExtensionProxyException;
 import org.finos.calm.extensions.ExtensionProxyRequest;
 import org.finos.calm.extensions.ExtensionProxyResponse;
@@ -95,11 +96,6 @@ public class ExtensionTools {
     // HTTP/1.1), so that an MCP call cannot send a path and query that the same REST call cannot.
     static final int MAX_REQUEST_LINE_LENGTH = 4096;
     private static final String HTTP_VERSION = "HTTP/1.1";
-    // Hub refuses these parts of a path, also a look-alike of /, \, ., %, @ or ; (ExtensionPaths.FORBIDDEN). The same
-    // rule as @finos/calm-shared buildExtensionRequest. The test resource extensions-test/path-values.json ties them together.
-    private static final Pattern REFUSED_PATH_VALUE = Pattern.compile("\\.\\.|[/\\\\%@\\x00-\\x1f\\x7f"
-            + "\\u037e\\u2024-\\u2026\\u2044\\u2100\\u2101\\u2105\\u2106\\u2215\\u2216\\u29f5\\u29f8"
-            + "\\ufe14\\ufe19\\ufe30\\ufe52\\ufe54\\ufe68\\ufe6a\\ufe6b\\uff05\\uff0e\\uff0f\\uff1b\\uff20\\uff3c]");
     private static final Pattern CONTROL_CHARACTER = Pattern.compile("[\\x00-\\x1f\\x7f]");
     private static final String PATH_VALUE_RULE = "must not be empty or ., or contain .., /, \\, %, @, a look-alike of /, "
             + "\\, ., %, @ or ;, a control character or a lone surrogate";
@@ -119,7 +115,7 @@ public class ExtensionTools {
     /** One command with what its handler needs. {@code routes} are all the routes of the extension. */
     record ExtensionTool(String name, String extensionId, String extensionName, String commandName,
                          ExtensionManifest.Command command, ExtensionManifest.Route route, InputSchema inputValidator,
-                         List<ExtensionManifest.Route> routes) {
+                         Validator outputValidator, List<ExtensionManifest.Route> routes) {
 
         boolean readOnly() {
             return "GET".equals(route.method()) || route.readOnly();
@@ -271,7 +267,9 @@ public class ExtensionTools {
                     }
                     tools.add(new ExtensionTool(ExtensionManifestLoader.toolName(manifest.id(), name), manifest.id(),
                             manifest.name(), name, command, route,
-                            InputSchema.of(manifest.id(), name, published(command.input())), manifest.routes()));
+                            InputSchema.of(manifest.id(), name, published(command.input())),
+                            command.output() == null ? null : outputValidator(manifest.id(), name, published(command.output())),
+                            manifest.routes()));
                 } catch (RuntimeException e) {
                     logger.warn("Extension {} command '{}' has no MCP tool: {}", manifest.id(), name, e.getMessage());
                 } catch (Error e) {
@@ -757,11 +755,13 @@ public class ExtensionTools {
             logger.warn("Cannot check the input of MCP tool {}: {}", tool.name(), e.toString());
             return "Error: CALM Hub cannot check the input against the schema of this command.";
         }
-        if (Boolean.TRUE.equals(result.getValid())) {
-            return null;
-        }
+        return Boolean.TRUE.equals(result.getValid()) ? null
+                : errorList("Error: The input does not match the schema of this command:", result);
+    }
+
+    private static String errorList(String heading, OutputUnit result) {
         List<OutputUnit> errors = result.getErrors() == null || result.getErrors().isEmpty() ? List.of(result) : result.getErrors();
-        StringBuilder sb = new StringBuilder("Error: The input does not match the schema of this command:");
+        StringBuilder sb = new StringBuilder(heading);
         for (OutputUnit error : errors.subList(0, Math.min(errors.size(), SchemaValidationLimits.MAX_ERRORS))) {
             String location = error.getInstanceLocation() == null ? "" : error.getInstanceLocation().replaceFirst("^#", "");
             sb.append("\n- ").append(location.isEmpty() ? "/" : location).append(": ").append(error.getError());
@@ -798,7 +798,9 @@ public class ExtensionTools {
                         + "because it fills the path " + route.path());
             }
             String text = scalarText(value);
-            if (text.isEmpty() || text.equals(".") || REFUSED_PATH_VALUE.matcher(text).find() || !wellFormed(text)) {
+            // The same rule as @finos/calm-shared buildExtensionRequest (test resource extensions-test/path-values.json).
+            if (text.isEmpty() || text.equals(".") || CONTROL_CHARACTER.matcher(text).find()
+                    || ExtensionPaths.hasForbiddenPart(encodePathValue(text)) || !wellFormed(text)) {
                 throw new IllegalArgumentException("Input property '" + name + "' " + PATH_VALUE_RULE
                         + ", because it fills the path " + route.path());
             }
@@ -839,8 +841,9 @@ public class ExtensionTools {
     }
 
     /**
-     * A 2xx reply is the tool result. A command with an object output schema must reply with a JSON
-     * object. Any other output schema is wrapped, so the reply can be any JSON value.
+     * A 2xx reply is the tool result. With an output schema, the reply must match it: the MCP SDK clients check
+     * {@code structuredContent} against the schema, and a mismatch there looks like a broken connection. An object
+     * output schema needs a JSON object, and no content counts as {@code {}}. Any other output schema is wrapped.
      */
     static ToolResponse response(ExtensionTool tool, ExtensionProxyResponse reply) {
         String body = new String(reply.body(), StandardCharsets.UTF_8);
@@ -851,27 +854,55 @@ public class ExtensionTools {
         if (tool.command().output() == null) {
             return ToolResponse.success(body);
         }
-        if (tool.wrapsOutput()) {
+        // Such as 204 No Content after a delete. The agent must not think that the call failed.
+        String noContent = "Error: The call succeeded with status " + reply.status() + ", but the extension reply "
+                + "has no content, and this command declares an output.";
+        boolean empty = body.isBlank();
+        Object value;
+        if (empty) {
+            if (tool.wrapsOutput()) {
+                return replyError(tool, "replied with no content, but declares an output schema", noContent);
+            }
+            value = new JsonObject();
+        } else {
             try {
-                Object value = Json.decodeValue(body);
-                Map<String, Object> structured = new LinkedHashMap<>();
-                structured.put(RESULT, value instanceof JsonObject object ? object.getMap()
-                        : value instanceof JsonArray array ? array.getList() : value);
-                return new ToolResponse(false, List.of(new TextContent(Json.encode(structured))), structured, null);
+                value = Json.decodeValue(body);
             } catch (DecodeException e) {
-                logger.warn("Extension {} command {} replied with no JSON, but declares an output schema",
-                        tool.extensionId(), tool.commandName());
-                return ToolResponse.error("Error: The extension reply is not the JSON that this command declares.");
+                return replyError(tool, "replied with no JSON, but declares an output schema",
+                        "Error: The extension reply is not the JSON that this command declares.");
+            }
+            if (!tool.wrapsOutput() && !(value instanceof JsonObject)) {
+                return replyError(tool, "replied with no JSON object, but declares an output schema",
+                        "Error: The extension reply is not the JSON object that this command declares.");
             }
         }
+        OutputUnit result;
         try {
-            // Clients that do not read structuredContent get the same JSON as text.
-            return new ToolResponse(false, List.of(new TextContent(body)), new JsonObject(body).getMap(), null);
-        } catch (DecodeException | ClassCastException e) {
-            logger.warn("Extension {} command {} replied with no JSON object, but declares an output schema",
-                    tool.extensionId(), tool.commandName());
-            return ToolResponse.error("Error: The extension reply is not the JSON object that this command declares.");
+            result = tool.outputValidator().validate(value);
+        } catch (RuntimeException | StackOverflowError e) {
+            logger.warn("Cannot check the reply of MCP tool {}: {}", tool.name(), e.toString());
+            return ToolResponse.error("Error: CALM Hub cannot check the extension reply against the output schema of this command.");
         }
+        if (!Boolean.TRUE.equals(result.getValid())) {
+            if (empty) {
+                return replyError(tool, "replied with no content, but declares an output schema", noContent);
+            }
+            return replyError(tool, "replied with JSON that does not match its output schema",
+                    errorList("Error: The extension reply does not match the output schema of this command:", result));
+        }
+        if (!tool.wrapsOutput()) {
+            // Clients that do not read structuredContent get the same JSON as text.
+            return new ToolResponse(false, List.of(new TextContent(empty ? "{}" : body)), ((JsonObject) value).getMap(), null);
+        }
+        Map<String, Object> structured = new LinkedHashMap<>();
+        structured.put(RESULT, value instanceof JsonObject object ? object.getMap()
+                : value instanceof JsonArray array ? array.getList() : value);
+        return new ToolResponse(false, List.of(new TextContent(Json.encode(structured))), structured, null);
+    }
+
+    private static ToolResponse replyError(ExtensionTool tool, String problem, String error) {
+        logger.warn("Extension {} command {} {}", tool.extensionId(), tool.commandName(), problem);
+        return ToolResponse.error(error);
     }
 
     /**
@@ -1030,7 +1061,22 @@ public class ExtensionTools {
      * {@code additionalProperties} next to it, becomes such a format on the object.
      * {@link #linearPatternError} refuses the schemas for which this changes the meaning.
      */
-    record InputSchema(SchemaRepository repository, String id, JsonSchemaOptions options, LinearPatterns patterns) {
+    /**
+     * The output schema checks a reply of the extension backend, which the operator trusts, so vertx can match
+     * its patterns and formats as they are.
+     */
+    static Validator outputValidator(String extensionId, String commandName, Map<String, Object> output) {
+        String id = outputSchemaId(extensionId, commandName);
+        JsonSchemaOptions options = new JsonSchemaOptions()
+                .setDraft(Draft.DRAFT202012)
+                .setBaseUri(id)
+                .setOutputFormat(OutputFormat.Basic);
+        SchemaRepository repository = SchemaRepository.create(options);
+        repository.dereference(id, JsonSchema.of(new JsonObject(new LinkedHashMap<>(output)).copy()));
+        return repository.validator(id, options);
+    }
+
+    record InputSchema(Validator validator, LinearPatterns patterns) {
 
         static InputSchema of(String extensionId, String commandName, Map<String, Object> input) {
             try {
@@ -1045,7 +1091,7 @@ public class ExtensionTools {
                 SchemaRepository repository = SchemaRepository.create(options, patterns::error);
                 repository.dereference(id, JsonSchema.of(new JsonObject(copy).copy()));
                 patterns.compile(repository);
-                return new InputSchema(repository, id, options, patterns);
+                return new InputSchema(repository.validator(id, options), patterns);
             } catch (RuntimeException e) {
                 throw new IllegalStateException("CALM Hub cannot read its input schema: " + e.getMessage(), e);
             }
@@ -1053,7 +1099,7 @@ public class ExtensionTools {
 
         /** Throws {@link EcmaRegex.BudgetExceededException} if the pattern matches of this call do too much work. */
         OutputUnit validate(JsonObject instance) {
-            return patterns.withBudget(() -> repository.validator(id, options).validate(instance));
+            return patterns.withBudget(() -> validator.validate(instance));
         }
     }
 

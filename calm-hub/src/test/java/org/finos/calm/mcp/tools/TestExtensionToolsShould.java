@@ -1300,7 +1300,7 @@ class TestExtensionToolsShould {
     void return_a_null_reply_in_result() {
         when(proxyService.call(any(), any())).thenReturn(reply(200, "null"));
 
-        ToolResponse response = extensionTools.call(tool("service-names"), Map.of("namespace", "finos"));
+        ToolResponse response = extensionTools.call(toolWithOutput(Map.of("type", List.of("array", "null"))), Map.of());
 
         assertThat(response.isError(), is(false));
         assertThat(text(response), is("{\"result\":null}"));
@@ -1334,6 +1334,66 @@ class TestExtensionToolsShould {
 
         assertThat(response.isError(), is(true));
         assertThat(text(response), containsString("not the JSON object"));
+    }
+
+    private static ExtensionTools.ExtensionTool toolWithOutput(Map<String, Object> output) {
+        ExtensionManifest.Route route = new ExtensionManifest.Route("r", "DELETE", "/r", "authenticated", false);
+        ExtensionManifest manifest = new ExtensionManifest("x", "1.0.0", 0, "X", "X", "X", List.of(route),
+                Map.of("c", new ExtensionManifest.Command("r", "C", Map.of("type", "object"), output, null, null)), null);
+        return ExtensionTools.tools(List.of(manifest)).getFirst();
+    }
+
+    @Test
+    void return_an_error_when_the_reply_does_not_match_the_output_schema() {
+        when(proxyService.call(any(), any())).thenReturn(reply(200, "{\"count\":\"3\"}"));
+
+        ToolResponse response = extensionTools.call(toolWithOutput(Map.of("type", "object",
+                "properties", Map.of("count", Map.of("type", "integer")))), Map.of());
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("The extension reply does not match the output schema of this command"));
+        assertThat(text(response), containsString("/count"));
+    }
+
+    @Test
+    void return_an_error_when_a_wrapped_reply_does_not_match_the_output_schema() {
+        when(proxyService.call(any(), any())).thenReturn(reply(200, "[\"a\",2]"));
+
+        ToolResponse response = extensionTools.call(tool("service-names"), Map.of("namespace", "finos"));
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("/1"));
+    }
+
+    @Test
+    void return_an_empty_object_for_no_content_when_the_output_schema_allows_it() {
+        when(proxyService.call(any(), any())).thenReturn(reply(204, ""));
+
+        ToolResponse response = extensionTools.call(tool("list-services"), Map.of("namespace", "finos"));
+
+        assertThat(response.isError(), is(false));
+        assertThat(response.structuredContent(), is(Map.of()));
+        assertThat(text(response), is("{}"));
+    }
+
+    @Test
+    void say_that_the_call_succeeded_when_there_is_no_content_and_the_output_schema_needs_some() {
+        when(proxyService.call(any(), any())).thenReturn(reply(204, ""));
+
+        ToolResponse response = extensionTools.call(toolWithOutput(Map.of("type", "object", "required", List.of("id"))), Map.of());
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("The call succeeded with status 204"));
+    }
+
+    @Test
+    void say_that_the_call_succeeded_when_there_is_no_content_for_a_wrapped_output_schema() {
+        when(proxyService.call(any(), any())).thenReturn(reply(204, ""));
+
+        ToolResponse response = extensionTools.call(tool("service-names"), Map.of("namespace", "finos"));
+
+        assertThat(response.isError(), is(true));
+        assertThat(text(response), containsString("The call succeeded with status 204"));
     }
 
     @Test

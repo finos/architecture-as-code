@@ -385,7 +385,7 @@ class TestExtensionToolsMcpShould {
                 Map.of("type", "object", "properties", Map.of("limit", "integer")), null, null, null);
 
         extensionTools.register(List.of(new ExtensionTools.ExtensionTool("ext_mcp-test_refused", "mcp-test", "MCP test",
-                "refused", command, route, null, List.of(route))));
+                "refused", command, route, null, null, List.of(route))));
 
         assertThat(toolManager.getTool("ext_mcp-test_refused"), nullValue());
         assertThat(listTools().stream().map(t -> ((JsonObject) t).getString("name")).toList()
