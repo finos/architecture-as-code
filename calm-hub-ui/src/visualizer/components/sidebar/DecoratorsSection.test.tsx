@@ -12,24 +12,44 @@ const decorator = (uniqueId: string, appliesTo: string[]): Decorator => ({
     data: { owner: uniqueId },
 });
 
-const section = (elementId: string, decorators: Decorator[]) => (
-    <DecoratorsContext.Provider value={decorators}>
+const section = (elementId: string, decorators: Decorator[], drawnAs: ReadonlyMap<string, string> = new Map()) => (
+    <DecoratorsContext.Provider value={{ decorators, drawnAs }}>
         <DecoratorsSection elementId={elementId} />
     </DecoratorsContext.Provider>
 );
 
-function renderSection(elementId: string, decorators: Decorator[]) {
-    return render(section(elementId, decorators));
+function renderSection(elementId: string, decorators: Decorator[], drawnAs: ReadonlyMap<string, string> = new Map()) {
+    return render(section(elementId, decorators, drawnAs));
 }
 
 describe('DecoratorsSection', () => {
     it('lists only the decorators that apply to the element', () => {
         renderSection('api', [decorator('d1', ['api', 'db']), decorator('d2', ['db']), decorator('d3', ['api'])]);
-        expect(screen.getByRole('heading', { name: 'Decorators' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'All decorators' })).toBeInTheDocument();
         expect(screen.getAllByRole('article').map((card) => card.getAttribute('aria-label'))).toEqual([
             'observability decorator d1',
             'observability decorator d3',
         ]);
+    });
+
+    it('lists, for a container, the decorators of the containment relationships that its badges count', () => {
+        const drawnAs = new Map([['api-in-cluster', 'cluster']]);
+        renderSection('cluster', [decorator('d1', ['api-in-cluster']), decorator('d2', ['cluster']), decorator('d3', ['other-rel'])], drawnAs);
+        expect(screen.getAllByRole('article').map((card) => card.getAttribute('aria-label'))).toEqual([
+            'observability decorator d1',
+            'observability decorator d2',
+        ]);
+    });
+
+    it('does not list the decorators of a containment relationship on a node that the container holds', () => {
+        const { container } = renderSection('trade-api', [decorator('d1', ['api-in-cluster'])], new Map([['api-in-cluster', 'cluster']]));
+        expect(container).toBeEmptyDOMElement();
+    });
+
+    it('says that it lists all the decorators, not only the ones that a badge counts', () => {
+        renderSection('api', [decorator('d1', ['api'])]);
+        expect(screen.getByRole('heading', { name: 'All decorators' })).toBeInTheDocument();
+        expect(screen.getByText(/older ones that a badge does not count/)).toBeInTheDocument();
     });
 
     it('keeps a card and its view when a decorator arrives earlier in the list', () => {

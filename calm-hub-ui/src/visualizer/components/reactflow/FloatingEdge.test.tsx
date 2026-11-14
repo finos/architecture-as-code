@@ -8,9 +8,11 @@ import { createPresentationModeStore } from '../../../theme/usePresentationMode.
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
 import { mockOffsetSize } from '../../../test-support/layout-mocks.js';
-import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import { EvaluationOverlayProvider } from '../../../test-support/evaluation-overlay.js';
 import { DecisionOverlayContext, type CalloutSize } from '../../context/DecisionOverlayContext.js';
-import type { ElementEvaluation } from '../../contracts/contracts.js';
+import type { ElementEvaluation, OverlayDecoratorView } from '../../contracts/contracts.js';
+import { DecoratorOverlayContext } from '../../context/DecoratorOverlayContext.js';
+import { BUILTIN_DECORATOR_VIEWS } from '../../../test-support/decorator-views.js';
 
 const { bezier, smoothStep, straight, edgeParams, storeNodes } = vi.hoisted(() => ({
     storeNodes: new Map<string, object>(),
@@ -83,11 +85,11 @@ function evaluationFor(status: 'met' | 'not-met'): ElementEvaluation {
 
 function renderEdgeWithEvaluation(status: 'met' | 'not-met', style: Record<string, unknown>, extra: Record<string, unknown> = {}) {
     return render(
-        <ControlEvaluationContext.Provider value={new Map([['rel-1', evaluationFor(status)]])}>
+        <EvaluationOverlayProvider value={new Map([['rel-1', evaluationFor(status)]])}>
             <svg>
                 <FloatingEdge {...edgeProps({ style, data: { 'unique-id': 'rel-1', description: 'writes' }, ...extra })} />
             </svg>
-        </ControlEvaluationContext.Provider>
+        </EvaluationOverlayProvider>
     );
 }
 
@@ -214,7 +216,7 @@ describe('FloatingEdge', () => {
             const path = container.querySelector('path.react-flow__edge-path') as SVGPathElement;
 
             expect(path.style.stroke).toBe(css(THEME.colors.error));
-            expect(screen.getByTestId('edge-evaluation-badge').textContent).toContain('Not met');
+            expect(screen.getByTestId('edge-overlay-badge').textContent).toContain('Not met');
         });
 
         it('leaves a met relationship as it was', () => {
@@ -222,12 +224,12 @@ describe('FloatingEdge', () => {
             const path = container.querySelector('path.react-flow__edge-path') as SVGPathElement;
 
             expect(path.style.stroke).toBe(css(STROKE));
-            expect(screen.queryByTestId('edge-evaluation-badge')).toBeNull();
+            expect(screen.queryByTestId('edge-overlay-badge')).toBeNull();
         });
 
         it('labels a not-met relationship at 11px, with the glyph hidden from assistive technology', () => {
             renderEdgeWithEvaluation('not-met', { stroke: STROKE });
-            const badge = screen.getByTestId('edge-evaluation-badge');
+            const badge = screen.getByTestId('edge-overlay-badge');
 
             expect(badge.style.fontSize).toBe('11px');
             expect(badge.style.color).toBe(THEME.colors.errorText);
@@ -237,12 +239,12 @@ describe('FloatingEdge', () => {
         it('points a not-met relationship\'s arrowheads at its own red marker', () => {
             const { container } = renderEdgeWithEvaluation('not-met', { stroke: STROKE }, { markerEnd: 'url(#default-end)', markerStart: 'url(#default-start)' });
             const path = container.querySelector('path.react-flow__edge-path') as SVGPathElement;
-            const marker = container.querySelector('marker#control-evaluation-arrow-e1') as SVGMarkerElement;
+            const marker = container.querySelector('marker#overlay-arrow-e1') as SVGMarkerElement;
 
             expect(marker).not.toBeNull();
             expect(marker.querySelector('polyline')?.getAttribute('fill')).toBe(THEME.colors.error);
-            expect(path.getAttribute('marker-end')).toBe('url(#control-evaluation-arrow-e1)');
-            expect(path.getAttribute('marker-start')).toBe('url(#control-evaluation-arrow-e1)');
+            expect(path.getAttribute('marker-end')).toBe('url(#overlay-arrow-e1)');
+            expect(path.getAttribute('marker-start')).toBe('url(#overlay-arrow-e1)');
         });
 
         it('keeps a met relationship\'s arrowheads, and adds no marker', () => {
@@ -264,7 +266,7 @@ describe('FloatingEdge', () => {
 
         it('gives a not-met relationship with only an end arrowhead no start arrowhead, as ReactFlow passes an unset start as url(\'#\')', () => {
             const { container } = render(
-                <ControlEvaluationContext.Provider value={new Map([['rel-1', evaluationFor('not-met')]])}>
+                <EvaluationOverlayProvider value={new Map([['rel-1', evaluationFor('not-met')]])}>
                     <svg>
                         <FloatingEdge {...edgeProps({
                             style: { stroke: STROKE },
@@ -273,10 +275,10 @@ describe('FloatingEdge', () => {
                             data: { 'unique-id': 'rel-1', description: 'writes', flowActive: true },
                         })} />
                     </svg>
-                </ControlEvaluationContext.Provider>
+                </EvaluationOverlayProvider>
             );
             const paths = Array.from(container.querySelectorAll('path'));
-            const redMarker = 'url(#control-evaluation-arrow-e1)';
+            const redMarker = 'url(#overlay-arrow-e1)';
 
             expect(paths.length).toBe(2);
             expect(paths.some((p) => p.getAttribute('marker-end') === redMarker)).toBe(true);
@@ -316,13 +318,13 @@ describe('FloatingEdge in presentation mode', () => {
         const store = createPresentationModeStore(createMemoryStorage());
         store.set(true);
         render(
-            <ControlEvaluationContext.Provider value={new Map([['rel-1', evaluationFor('not-met')]])}>
+            <EvaluationOverlayProvider value={new Map([['rel-1', evaluationFor('not-met')]])}>
                 <svg>
                     <FloatingEdge {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })} presentationStore={store} />
                 </svg>
-            </ControlEvaluationContext.Provider>
+            </EvaluationOverlayProvider>
         );
-        expect(screen.getByTestId('edge-evaluation-badge').style.fontSize).toBe('18px');
+        expect(screen.getByTestId('edge-overlay-badge').style.fontSize).toBe('18px');
     });
 
     it('moves the label above a node it would cover, only in presentation mode', () => {
@@ -363,11 +365,11 @@ describe('FloatingEdge with the decision overlay', () => {
         store.set(presenting);
         return render(
             <DecisionOverlayContext.Provider value={{ showDecisions, subjectLabels: new Map(), calloutSizes: new Map(), reportCalloutSize: () => {} }}>
-                <ControlEvaluationContext.Provider value={new Map([['rel-1', evaluation]])}>
+                <EvaluationOverlayProvider value={new Map([['rel-1', evaluation]])}>
                     <svg>
                         <FloatingEdge {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })} presentationStore={store} />
                     </svg>
-                </ControlEvaluationContext.Provider>
+                </EvaluationOverlayProvider>
             </DecisionOverlayContext.Provider>
         );
     }
@@ -473,5 +475,25 @@ describe('FloatingEdge diagram text size', () => {
         );
         expect(screen.getByText('writes').style.fontSize).toBe('15px');
         expect(screen.getByText('writes').style.maxWidth).toBe('240px');
+    });
+
+    it('scales the overlay badges', () => {
+        edgeParams.mockReturnValue(FLOATING);
+        const storage = createMemoryStorage();
+        storage.setItem(DIAGRAM_TEXT_SCALE_KEY, '2');
+        const view = BUILTIN_DECORATOR_VIEWS.find((v) => v.id === 'deployment') as OverlayDecoratorView;
+        const overlays = [{ view, elements: new Map([['rel-1', { status: 'error' as const, value: 'failed', entries: [] }]]) }];
+        render(
+            <DecoratorOverlayContext.Provider value={{ overlays, hiddenViews: new Set(), toggleView: vi.fn() }}>
+                <svg>
+                    <FloatingEdge
+                        {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })}
+                        presentationStore={createPresentationModeStore(createMemoryStorage())}
+                        textScaleStore={createDiagramTextScaleStore(storage)}
+                    />
+                </svg>
+            </DecoratorOverlayContext.Provider>
+        );
+        expect(screen.getByTestId('edge-overlay-badge').style.fontSize).toBe('22px');
     });
 });

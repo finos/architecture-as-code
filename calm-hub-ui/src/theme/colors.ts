@@ -85,6 +85,10 @@ export const colors = {
         errorText: 'var(--calm-status-error-text)',
         /** `success` in a text or icon role. See the header note on contrast. */
         successText: 'var(--calm-status-success-text)',
+        /** `warning` in a text or icon role. See the header note on contrast. */
+        warningText: 'var(--calm-status-warning-text)',
+        /** `info` in a text or icon role. See the header note on contrast. */
+        infoText: 'var(--calm-status-info-text)',
     },
 
     // ADR (Architecture Decision Record) status colors

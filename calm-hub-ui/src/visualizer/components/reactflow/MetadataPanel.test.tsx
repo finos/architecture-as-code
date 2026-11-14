@@ -11,12 +11,6 @@ vi.mock('./ControlsPanel', () => ({
     ),
 }));
 
-vi.mock('./DeploymentPanel', () => ({
-    DeploymentPanel: ({ decorators }: { decorators: unknown[] }) => (
-        <div data-testid="deployment-panel">Deployments: {decorators.length}</div>
-    ),
-}));
-
 vi.mock('./AdrsPanel', () => ({
     AdrsPanel: ({ adrs }: { adrs: string[] }) => (
         <div data-testid="adrs-panel">ADRs: {adrs.length}</div>
@@ -32,24 +26,8 @@ describe('MetadataPanel', () => {
         },
     };
 
-    const mockDecorators = [
-        {
-            schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
-            uniqueId: 'dec-1',
-            type: 'deployment',
-            target: ['/api/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
-            appliesTo: ['node-a'],
-            data: {
-                status: 'completed',
-                'start-time': '2024-01-15T10:00:00Z',
-                'end-time': '2024-01-15T10:05:00Z',
-            },
-        },
-    ];
-
     const defaultProps = {
         controls: mockControls,
-        decorators: [] as typeof mockDecorators,
         adrs: [] as string[],
         isCollapsed: false,
         onToggleCollapse: vi.fn(),
@@ -57,9 +35,9 @@ describe('MetadataPanel', () => {
         onHeightChange: vi.fn(),
     };
 
-    it('renders nothing when there are no controls, decorators or adrs', () => {
+    it('renders nothing when there are no controls, evaluations or adrs', () => {
         const { container } = render(
-            <MetadataPanel {...defaultProps} controls={{}} decorators={[]} adrs={[]} />
+            <MetadataPanel {...defaultProps} controls={{}} adrs={[]} />
         );
         expect(container.firstChild).toBeNull();
     });
@@ -69,12 +47,6 @@ describe('MetadataPanel', () => {
 
         expect(screen.getByText('Controls (1)')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Expand metadata panel' })).toBeInTheDocument();
-    });
-
-    it('renders deployment count in collapsed view when decorators exist', () => {
-        render(<MetadataPanel {...defaultProps} decorators={mockDecorators} isCollapsed={true} />);
-
-        expect(screen.getByText('Deployment (1)')).toBeInTheDocument();
     });
 
     it('renders expanded view with Metadata header when not collapsed', () => {
@@ -130,10 +102,10 @@ describe('MetadataPanel', () => {
     });
 
     it('hides the controls tab when there are no controls', () => {
-        render(<MetadataPanel {...defaultProps} decorators={mockDecorators} controls={{}} />);
+        render(<MetadataPanel {...defaultProps} controls={{}} adrs={['https://example.com/adr/0001.md']} />);
 
         expect(screen.queryByRole('button', { name: /Controls/ })).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Deployment' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /ADRs/ })).toBeInTheDocument();
     });
 
     it('defaults to the controls tab when controls exist', () => {
@@ -146,32 +118,6 @@ describe('MetadataPanel', () => {
         render(<MetadataPanel {...defaultProps} />);
 
         expect(screen.getByTitle('Drag to resize')).toBeInTheDocument();
-    });
-
-    it('shows Deployment tab button when decorators exist', () => {
-        render(<MetadataPanel {...defaultProps} decorators={mockDecorators} />);
-
-        expect(screen.getByRole('button', { name: 'Deployment' })).toBeInTheDocument();
-    });
-
-    it('does not show Deployment tab when decorators is empty', () => {
-        render(<MetadataPanel {...defaultProps} decorators={[]} />);
-
-        expect(screen.queryByRole('button', { name: /Deployment/ })).not.toBeInTheDocument();
-    });
-
-    it('switches to DeploymentPanel when clicking Deployment tab', () => {
-        render(<MetadataPanel {...defaultProps} decorators={mockDecorators} />);
-
-        fireEvent.click(screen.getByRole('button', { name: 'Deployment' }));
-
-        expect(screen.getByTestId('deployment-panel')).toBeInTheDocument();
-    });
-
-    it('defaults to deployment tab when only decorators exist', () => {
-        render(<MetadataPanel {...defaultProps} flows={[]} controls={{}} decorators={mockDecorators} />);
-
-        expect(screen.getByTestId('deployment-panel')).toBeInTheDocument();
     });
 
     it('shows ADRs tab button when adrs exist', () => {
@@ -195,7 +141,7 @@ describe('MetadataPanel', () => {
     });
 
     it('defaults to adrs tab when only adrs exist', () => {
-        render(<MetadataPanel {...defaultProps} controls={{}} decorators={[]} adrs={['https://example.com/adr/0001.md']} />);
+        render(<MetadataPanel {...defaultProps} controls={{}} adrs={['https://example.com/adr/0001.md']} />);
 
         expect(screen.getByTestId('adrs-panel')).toBeInTheDocument();
     });
@@ -211,7 +157,7 @@ describe('MetadataPanel', () => {
             <MetadataPanel
                 {...defaultProps}
                 controls={{}}
-                decorators={[]}
+
                 adrs={['https://example.com/adr/0001.md']}
             />
         );
@@ -222,7 +168,7 @@ describe('MetadataPanel', () => {
         const { rerender } = render(
             <MetadataPanel
                 {...defaultProps}
-                decorators={[]}
+
                 adrs={['https://example.com/adr/0001.md']}
             />
         );
@@ -235,7 +181,7 @@ describe('MetadataPanel', () => {
         expect(screen.getByTestId('adrs-panel')).toBeInTheDocument();
 
         // Re-render with no ADRs. activeTab must fall back to controls.
-        rerender(<MetadataPanel {...defaultProps} decorators={[]} adrs={[]} />);
+        rerender(<MetadataPanel {...defaultProps} adrs={[]} />);
 
         expect(screen.getByTestId('controls-panel')).toBeInTheDocument();
         expect(screen.queryByTestId('adrs-panel')).not.toBeInTheDocument();
@@ -256,7 +202,16 @@ describe('MetadataPanel', () => {
                 },
             },
         ];
-        const onlyEvaluations = { ...defaultProps, controls: {}, decorators: [], adrs: [], evaluations };
+        const onlyEvaluations = { ...defaultProps, controls: {}, adrs: [], evaluations };
+
+        it('gives the evaluations panel the overlay that colours its chips', () => {
+            const { unmount } = render(<MetadataPanel {...onlyEvaluations} />);
+            expect(screen.getByTestId('control-evaluation-chip').textContent).toBe('met');
+            unmount();
+
+            render(<MetadataPanel {...onlyEvaluations} evaluationOverlay={{ status: '/status', map: { met: 'ok' } }} />);
+            expect(screen.getByTestId('control-evaluation-chip').textContent).toBe('Met');
+        });
 
         it('counts evaluations in the collapsed bar', () => {
             render(<MetadataPanel {...onlyEvaluations} isCollapsed={true} />);

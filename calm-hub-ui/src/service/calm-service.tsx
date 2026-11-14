@@ -472,18 +472,6 @@ export class CalmService {
     }
 
     /**
-     * Fetches the deployment decorators recorded against one architecture version.
-     *
-     * Resolves a slug id to its numeric id first. Returns an empty array when the slug cannot be resolved or the
-     * fetch fails.
-     */
-    public async fetchDeploymentDecoratorsForArchitecture(namespace: string, id: string, version: string): Promise<Decorator[]> {
-        const target = await this.resolveArchitectureVersionTarget(namespace, id, version).catch(() => undefined);
-        if (!target) return []; // cannot resolve slug — skip decorator fetch
-        return this.fetchDecoratorValues(namespace, target, 'deployment');
-    }
-
-    /**
      * Fetches the decorators recorded against one architecture version, of one type or of all types, given the target
      * from `resolveArchitectureVersionTarget`.
      *

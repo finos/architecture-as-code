@@ -8,7 +8,7 @@ import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
 import { mockOffsetSize } from '../../../test-support/layout-mocks.js';
 import { THEME, getRiskLevelColor, getNodeTypeColor } from './theme.js';
-import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import { EvaluationOverlayProvider } from '../../../test-support/evaluation-overlay.js';
 import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
 import type { ElementEvaluation, ControlEvaluationDecorator } from '../../contracts/contracts.js';
 
@@ -373,9 +373,9 @@ const evaluation = (status: 'met' | 'not-met', extra: Partial<ControlEvaluationD
 
 function renderWithEvaluation(map: Map<string, ElementEvaluation>) {
     return render(
-        <ControlEvaluationContext.Provider value={map}>
+        <EvaluationOverlayProvider value={map}>
             <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} />
-        </ControlEvaluationContext.Provider>
+        </EvaluationOverlayProvider>
     );
 }
 
@@ -384,7 +384,7 @@ describe('control evaluations', () => {
 
     it('shows no badge without an evaluation', () => {
         renderWithEvaluation(new Map());
-        expect(screen.queryByTestId('control-evaluation-badge')).toBeNull();
+        expect(screen.queryByTestId('overlay-badge')).toBeNull();
     });
 
     it('keeps its normal border without an evaluation', () => {
@@ -394,13 +394,13 @@ describe('control evaluations', () => {
 
     it('shows no badge when the evaluations name other elements only', () => {
         const { container } = renderWithEvaluation(new Map([['other-node', evaluation('not-met')]]));
-        expect(screen.queryByTestId('control-evaluation-badge')).toBeNull();
+        expect(screen.queryByTestId('overlay-badge')).toBeNull();
         expect(nodeBorder(container)).toBe(`2px solid ${toRgb(getNodeTypeColor('service'))}`);
     });
 
     it('shows Not met in the error text colour, with a red border', () => {
         const { container } = renderWithEvaluation(new Map([['node-1', evaluation('not-met')]]));
-        const badge = screen.getByTestId('control-evaluation-badge');
+        const badge = screen.getByTestId('overlay-badge');
         expect(badge.textContent).toContain('Not met');
         expect(badge.style.color).toBe(THEME.colors.errorText);
         expect(nodeBorder(container)).toBe(`3px solid ${toRgb(THEME.colors.error)}`);
@@ -408,15 +408,15 @@ describe('control evaluations', () => {
 
     it('shows Met in the success text colour', () => {
         renderWithEvaluation(new Map([['node-1', evaluation('met')]]));
-        const badge = screen.getByTestId('control-evaluation-badge');
+        const badge = screen.getByTestId('overlay-badge');
         expect(badge.textContent).toContain('Met');
         expect(badge.style.color).toBe(THEME.colors.successText);
     });
 
     it('labels the badge for assistive technology, hides its icon, and has no native tooltip', () => {
         renderWithEvaluation(new Map([['node-1', evaluation('not-met')]]));
-        const badge = screen.getByTestId('control-evaluation-badge');
-        expect(badge.getAttribute('aria-label')).toBe('Control evaluation: Not met');
+        const badge = screen.getByTestId('overlay-badge');
+        expect(badge.getAttribute('aria-label')).toBe('Control evaluations: Not met');
         expect(badge.hasAttribute('title')).toBe(false);
         expect(badge.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     });
@@ -447,16 +447,16 @@ describe('control evaluations', () => {
         const store = createPresentationModeStore(createMemoryStorage());
         store.set(true);
         render(
-            <ControlEvaluationContext.Provider value={new Map([['node-1', evaluation('met')]])}>
+            <EvaluationOverlayProvider value={new Map([['node-1', evaluation('met')]])}>
                 <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} presentationStore={store} />
-            </ControlEvaluationContext.Provider>
+            </EvaluationOverlayProvider>
         );
-        expect(screen.getByTestId('control-evaluation-badge').style.fontSize).toBe('18px');
+        expect(screen.getByTestId('overlay-badge').style.fontSize).toBe('18px');
     });
 
     it('shows Met and the approver on hover', () => {
         renderWithEvaluation(new Map([['node-1', evaluation('met', { actors: { approver: 'alice' } })]]));
-        expect(screen.getByTestId('control-evaluation-badge').textContent).toContain('Met');
+        expect(screen.getByTestId('overlay-badge').textContent).toContain('Met');
         fireEvent.mouseEnter(screen.getByTestId('custom-node'));
         expect(screen.getByText(/approved by alice/)).toBeTruthy();
     });
@@ -494,13 +494,13 @@ describe('decision overlay', () => {
                     reportCalloutSize,
                 }}
             >
-                <ControlEvaluationContext.Provider value={map}>
+                <EvaluationOverlayProvider value={map}>
                     <CustomNode
                         {...makeNodeProps(undefined, { 'unique-id': 'node-1' })}
                         presentationStore={store}
                         textScaleStore={createDiagramTextScaleStore(textStorage)}
                     />
-                </ControlEvaluationContext.Provider>
+                </EvaluationOverlayProvider>
             </DecisionOverlayContext.Provider>
         );
     }
@@ -588,5 +588,10 @@ describe('decision overlay', () => {
     it('sizes the callout text with the diagram text size', () => {
         renderOverlay(true, notMet(), false, '1.5');
         expect(screen.getByTestId('decision-callout').style.fontSize).toBe('18px');
+    });
+
+    it('sizes the overlay badge with the diagram text size', () => {
+        renderOverlay(true, notMet(), false, '1.5');
+        expect(screen.getByTestId('overlay-badge').style.fontSize).toBe('18px');
     });
 });

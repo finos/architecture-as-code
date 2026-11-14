@@ -3,6 +3,7 @@ import { IoEyeOutline } from 'react-icons/io5';
 import {
     diagramTabLabel,
     diagramTabQuery,
+    redirectedTabQuery,
     resolveDiagramTab,
     visibleDiagramTabs,
     type DiagramTab,
@@ -71,5 +72,20 @@ describe('diagramTabQuery', () => {
             '?tab=arch-only&type=deployment'
         );
         expect(diagramTabQuery(archOnly, new URLSearchParams('tab=arch-only'))).toBe('?tab=arch-only');
+    });
+});
+
+describe('redirectedTabQuery', () => {
+    const redirects = { deployments: { tab: 'decorators', type: 'deployment' } };
+
+    it('replaces an old tab and keeps the other parameters', () => {
+        const query = redirectedTabQuery(redirects, new URLSearchParams('tab=deployments&node=api'));
+        expect(query?.toString()).toBe('tab=decorators&node=api&type=deployment');
+    });
+
+    it('needs no redirect for a current tab, no tab, or an inherited key', () => {
+        expect(redirectedTabQuery(redirects, new URLSearchParams('tab=decorators'))).toBeUndefined();
+        expect(redirectedTabQuery(redirects, new URLSearchParams(''))).toBeUndefined();
+        expect(redirectedTabQuery(redirects, new URLSearchParams('tab=toString'))).toBeUndefined();
     });
 });

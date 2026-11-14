@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import type { IconType } from 'react-icons';
 import type { Data } from '../../../../model/calm.js';
-import type { DeploymentDecorator } from '../../../../visualizer/contracts/contracts.js';
 import type { ImplementationsState } from '../used-by/usePatternImplementations.js';
 import type { ArchitectureDecoratorsState } from '../decorators/useArchitectureDecorators.js';
 
@@ -20,8 +19,11 @@ export interface DiagramTabContext extends DiagramTabScope {
     /** The diagram, built by the section because it owns the layout state. */
     diagram: ReactNode;
     decorators: ArchitectureDecoratorsState;
-    deploymentDecorators: DeploymentDecorator[];
     usedBy: ImplementationsState;
+    /** The tab opened from a control that it replaces, such as "View all", so its content takes focus. */
+    focusPanel?: boolean;
+    /** Called once the content took that focus, so a later visit to the tab does not take it again. */
+    onPanelFocused?: () => void;
 }
 
 export interface DiagramTab {
@@ -53,6 +55,19 @@ export function resolveDiagramTab(tabs: readonly DiagramTab[], id: string | null
 
 export function diagramTabLabel(tab: DiagramTab, context: DiagramTabContext): string {
     return typeof tab.label === 'function' ? tab.label(context) : tab.label;
+}
+
+/** The query an old `?tab=` value redirects to, keeping its other parameters. Undefined when it needs none. */
+export function redirectedTabQuery(
+    redirects: Readonly<Record<string, Record<string, string>>>,
+    searchParams: URLSearchParams,
+): URLSearchParams | undefined {
+    const tab = searchParams.get('tab');
+    const redirect = tab !== null && Object.hasOwn(redirects, tab) ? redirects[tab] : undefined;
+    if (!redirect) return undefined;
+    const query = new URLSearchParams(searchParams);
+    for (const [name, value] of Object.entries(redirect)) query.set(name, value);
+    return query;
 }
 
 /** The query that keeps the tab, and its own parameters, on navigation to another version. */

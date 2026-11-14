@@ -5,21 +5,15 @@ import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
 import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
-import { CalmService } from '../../../service/calm-service.js';
 import { buildViewportKey } from '../../services/node-position-service.js';
 import { DropzoneEmptyState } from './DropzoneEmptyState.js';
 import { colors } from '../../../theme/colors.js';
-import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
-import { containersOfContainment, evaluationsByElement } from '../reactflow/utils/controlEvaluations.js';
-import type { DrawerProps, Control, Decorator, ControlEvaluationDecorator } from '../../contracts/contracts.js';
-import type { Data } from '../../../model/calm.js';
+import { CONTROL_EVALUATION_VIEW_ID, DecoratorOverlayContext, type DecoratorOverlayState } from '../../context/DecoratorOverlayContext.js';
+import { containersOfContainment, hasOverlay, matchesView, overlayByElement } from '../../overlay/overlayEngine.js';
+import { useDecoratorViews } from '../../overlay/decoratorViews.js';
+import type { DrawerProps, Control, ControlEvaluationDecorator, Decorator, ViewOverlay } from '../../contracts/contracts.js';
 
-const EVALUATION_REFRESH_MS = 5000;
-/** After this many failed refreshes in a row, refresh every EVALUATION_BACKOFF_MS until one succeeds. */
-const EVALUATION_FAILURES_BEFORE_BACKOFF = 3;
-const EVALUATION_BACKOFF_MS = 30000;
 const NO_DECORATORS: Decorator[] = [];
-const NO_EVALUATIONS: ControlEvaluationDecorator[] = [];
 
 /**
  * A pattern declares its nodes under `properties.nodes`, as `prefixItems` or `items`.
@@ -40,18 +34,17 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
 export function Drawer({
     data,
     onItemSelect,
-    decorators: decoratorsProp,
     viewportKeyOverride,
     defaultLayout,
     layoutEpoch,
     onPositionsChange,
     onDroppedFileChange,
+    decorators = NO_DECORATORS,
+    onOpenView,
 }: DrawerProps) {
-    const calmService = useMemo(() => new CalmService(), []);
     const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [dropError, setDropError] = useState<string | undefined>(undefined);
-    // Fetched lists are kept with the `data` they belong to, so another resource never shows them.
-    const [loadedDecorators, setLoadedDecorators] = useState<{ source: Data; values: Decorator[] } | null>(null);
+    const [hiddenViews, setHiddenViews] = useState<ReadonlySet<string>>(() => new Set());
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
     const [metadataPanelHeight, setMetadataPanelHeight] = useState(250);
 
@@ -105,121 +98,38 @@ export function Drawer({
     // Decorators and evaluations exist only for a loaded architecture, never for a dropped file.
     const architectureData = data && data.calmType === 'Architectures' && !fileInstance ? data : undefined;
 
-    useEffect(() => {
-        if (decoratorsProp !== undefined || !architectureData) return; // controlled externally — skip fetch
-        let cancelled = false;
-
-        calmService
-            .fetchDeploymentDecoratorsForArchitecture(architectureData.name, architectureData.id, architectureData.version)
-            .catch((): Decorator[] => [])
-            .then((values) => { if (!cancelled) setLoadedDecorators({ source: architectureData, values }); });
-
-        return () => { cancelled = true; };
-    }, [architectureData, decoratorsProp, calmService]);
-
-    const decorators = !architectureData
-        ? NO_DECORATORS
-        : (decoratorsProp ?? (loadedDecorators?.source === architectureData ? loadedDecorators.values : NO_DECORATORS));
-
     const showsDroppedFile = !!fileInstance;
     useEffect(() => {
         onDroppedFileChange?.(showsDroppedFile);
     }, [showsDroppedFile, onDroppedFileChange]);
     useEffect(() => () => onDroppedFileChange?.(false), [onDroppedFileChange]);
 
-    const [loadedEvaluations, setLoadedEvaluations] = useState<{
-        source: Data;
-        values: ControlEvaluationDecorator[];
-    } | null>(null);
-    // Another version's evaluations must not show on this one while its first fetch is in flight.
-    const evaluations =
-        architectureData && loadedEvaluations?.source === architectureData ? loadedEvaluations.values : NO_EVALUATIONS;
-
-    // Control evaluations change while the diagram is open (a merge gateway records each decision), so they are
-    // re-read every few seconds rather than once. State changes only when the list does, so an unchanged refresh
-    // does not re-render the diagram. A failed refresh keeps what was last shown; a hidden tab is not polled.
-    useEffect(() => {
-        if (!architectureData) return;
-        const { name, id, version } = architectureData;
-        let cancelled = false;
-        // Polls can overlap on a slow network; a response older than one already applied is dropped.
-        let requested = 0;
-        let applied = 0;
-        // A slug is resolved to the version's target once, not on every poll. An unresolved one is retried.
-        let target: Promise<string | undefined> | undefined;
-        let failures = 0;
-        let ticksToSkip = 0;
-
-        const update = (seq: number, next: ControlEvaluationDecorator[]) => {
-            if (cancelled || seq < applied) return;
-            applied = seq;
-            failures = 0;
-            ticksToSkip = 0;
-            setLoadedEvaluations((prev) =>
-                prev?.source === architectureData && JSON.stringify(prev.values) === JSON.stringify(next)
-                    ? prev
-                    : { source: architectureData, values: next }
-            );
-        };
-        const fail = (seq: number, error: unknown) => {
-            if (cancelled || seq < applied) return;
-            failures += 1;
-            if (failures === 1) {
-                console.error('%s', `Could not refresh control evaluations for ${name}/${id}/${version}:`, error);
-            }
-            if (failures >= EVALUATION_FAILURES_BEFORE_BACKOFF) {
-                ticksToSkip = EVALUATION_BACKOFF_MS / EVALUATION_REFRESH_MS - 1;
-            }
-        };
-        const resolveTarget = async () => {
-            const lookup = (target ??= calmService.resolveArchitectureVersionTarget(name, id, version));
-            const forget = () => {
-                if (target === lookup) target = undefined;
-            };
-            const resolved = await lookup.catch((error: unknown) => {
-                forget();
-                throw error;
-            });
-            if (!resolved) {
-                forget();
-                throw new Error(`Could not resolve architecture ${id}`);
-            }
-            return resolved;
-        };
-        const load = () => {
-            if (document.visibilityState === 'hidden') return;
-            const seq = ++requested;
-            resolveTarget()
-                .then((resolved) => calmService.fetchDecoratorsForTarget(name, resolved, 'control-evaluation'))
-                .then((values) => update(seq, values as ControlEvaluationDecorator[]))
-                .catch((error) => fail(seq, error));
-        };
-        const tick = () => {
-            if (ticksToSkip > 0) {
-                ticksToSkip -= 1;
-                return;
-            }
-            load();
-        };
-        const onVisibilityChange = () => {
-            if (document.visibilityState === 'visible') load();
-        };
-
-        load();
-        const timer = setInterval(tick, EVALUATION_REFRESH_MS);
-        document.addEventListener('visibilitychange', onVisibilityChange);
-        return () => {
-            cancelled = true;
-            clearInterval(timer);
-            document.removeEventListener('visibilitychange', onVisibilityChange);
-        };
-    }, [architectureData, calmService]);
-
-    const evaluationMap = useMemo(
-        () => evaluationsByElement(evaluations, containersOfContainment(calmInstance?.relationships)),
-        [evaluations, calmInstance],
+    const views = useDecoratorViews();
+    const overlayDecorators = architectureData ? decorators : NO_DECORATORS;
+    const overlays = useMemo((): ViewOverlay[] => {
+        const drawnAs = containersOfContainment(calmInstance?.relationships);
+        return views
+            .filter(hasOverlay)
+            .map((view) => ({ view, elements: overlayByElement(view, overlayDecorators, drawnAs) }))
+            .filter(({ elements }) => elements.size > 0);
+    }, [views, overlayDecorators, calmInstance]);
+    const toggleView = useCallback((viewId: string) => {
+        setHiddenViews((prev) => {
+            const next = new Set(prev);
+            if (!next.delete(viewId)) next.add(viewId);
+            return next;
+        });
+    }, []);
+    const overlayState = useMemo(
+        (): DecoratorOverlayState => ({ overlays, hiddenViews, toggleView, onOpenView }),
+        [overlays, hiddenViews, toggleView, onOpenView],
     );
-
+    // The evaluation history for the panel under the diagram, which lists every evaluation, not only the newest.
+    const evaluationView = useMemo(() => views.find((view) => view.id === CONTROL_EVALUATION_VIEW_ID), [views]);
+    const evaluations = useMemo(
+        () => (evaluationView ? overlayDecorators.filter((d) => matchesView(evaluationView, d)) as ControlEvaluationDecorator[] : []),
+        [evaluationView, overlayDecorators],
+    );
 
     const adrs = useMemo((): string[] => {
         const calmData = calmInstance as CalmArchitectureSchema & { adrs?: unknown };
@@ -279,7 +189,7 @@ export function Drawer({
     }, [calmInstance]);
 
     const hasMetadata =
-        Object.keys(controls).length > 0 || decorators.length > 0 || adrs.length > 0 || evaluations.length > 0;
+        Object.keys(controls).length > 0 || adrs.length > 0 || evaluations.length > 0;
 
     const hasContent = !!(calmInstance || patternInstance);
 
@@ -334,7 +244,7 @@ export function Drawer({
                             {dropError}
                         </div>
                     )}
-                    <ControlEvaluationContext.Provider value={evaluationMap}>
+                    <DecoratorOverlayContext.Provider value={overlayState}>
                         <div
                             style={{
                                 flex: 1,
@@ -370,7 +280,7 @@ export function Drawer({
                                 />
                             ) : null}
                         </div>
-                    </ControlEvaluationContext.Provider>
+                    </DecoratorOverlayContext.Provider>
                     {hasMetadata && !patternInstance && (
                         <div
                             style={{
@@ -380,9 +290,9 @@ export function Drawer({
                         >
                             <MetadataPanel
                                 controls={controls}
-                                decorators={decorators}
                                 adrs={adrs}
                                 evaluations={evaluations}
+                                evaluationOverlay={evaluationView?.overlay}
                                 onNodeClick={handleControlNodeClick}
                                 isCollapsed={isMetadataCollapsed}
                                 onToggleCollapse={() => setIsMetadataCollapsed(!isMetadataCollapsed)}

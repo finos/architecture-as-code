@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import type { NodeProps } from '@xyflow/react';
 import { SystemGroupNode } from './SystemGroupNode.js';
 import { THEME } from './theme.js';
-import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import { EvaluationOverlayProvider } from '../../../test-support/evaluation-overlay.js';
 import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
 import type { ElementEvaluation } from '../../contracts/contracts.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
@@ -42,9 +42,9 @@ function renderGroup(map: Map<string, ElementEvaluation>, showDecisions = false)
     const props = { id: 'cluster', data: { label: 'Cluster', 'unique-id': 'cluster' } } as unknown as NodeProps;
     const { container } = render(
         <DecisionOverlayContext.Provider value={{ showDecisions, subjectLabels: new Map(), calloutSizes: new Map(), reportCalloutSize: () => {} }}>
-            <ControlEvaluationContext.Provider value={map}>
+            <EvaluationOverlayProvider value={map}>
                 <SystemGroupNode {...props} />
-            </ControlEvaluationContext.Provider>
+            </EvaluationOverlayProvider>
         </DecisionOverlayContext.Provider>
     );
     return container.firstElementChild as HTMLElement;
@@ -53,7 +53,7 @@ function renderGroup(map: Map<string, ElementEvaluation>, showDecisions = false)
 describe('SystemGroupNode control evaluations', () => {
     it('shows no badge and keeps the dashed border without an evaluation', () => {
         const box = renderGroup(new Map());
-        expect(screen.queryByTestId('control-evaluation-badge')).toBeNull();
+        expect(screen.queryByTestId('overlay-badge')).toBeNull();
         expect(borderOf(box)).toContain('2px dashed');
     });
 
@@ -61,12 +61,12 @@ describe('SystemGroupNode control evaluations', () => {
         const box = renderGroup(new Map([['cluster', evaluation('not-met')]]));
         expect(box.style.borderStyle).toBe('solid');
         expect(box.style.borderColor).toBe(css(THEME.colors.error));
-        expect(screen.getByTestId('control-evaluation-badge').textContent).toBe('Not met');
+        expect(screen.getByTestId('overlay-badge').textContent).toBe('Not met');
     });
 
     it('gives a met container a Met badge and keeps its dashed border', () => {
         const box = renderGroup(new Map([['cluster', evaluation('met')]]));
-        expect(screen.getByTestId('control-evaluation-badge').textContent).toBe('Met');
+        expect(screen.getByTestId('overlay-badge').textContent).toBe('Met');
         expect(borderOf(box)).toContain('2px dashed');
     });
 });
@@ -95,13 +95,13 @@ describe('SystemGroupNode diagram text size', () => {
         presentationStore.set(presenting);
         const props = { id: 'cluster', data: { label: 'Cluster', 'unique-id': 'cluster' } } as unknown as NodeProps;
         render(
-            <ControlEvaluationContext.Provider value={evaluations}>
+            <EvaluationOverlayProvider value={evaluations}>
                 <SystemGroupNode
                     {...props}
                     textScaleStore={createDiagramTextScaleStore(storage)}
                     presentationStore={presentationStore}
                 />
-            </ControlEvaluationContext.Provider>
+            </EvaluationOverlayProvider>
         );
     }
 
@@ -118,7 +118,7 @@ describe('SystemGroupNode diagram text size', () => {
 
     it('sizes the badge with the label', () => {
         renderSized('2', true, new Map([['cluster', evaluation('not-met')]]));
-        expect(screen.getByTestId('control-evaluation-badge').style.fontSize).toBe('27px');
+        expect(screen.getByTestId('overlay-badge').style.fontSize).toBe('27px');
     });
 
     it('keeps a larger label on one line, with the full name in its tooltip, so it stays above the children', () => {

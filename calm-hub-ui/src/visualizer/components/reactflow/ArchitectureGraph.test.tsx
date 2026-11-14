@@ -8,6 +8,7 @@ import { saveNodePositions, clearStoredNodePositions } from '../../services/node
 import { createPresentationModeStore, PRESENTATION_MODE_KEY, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { useDecisionOverlay, type DecisionOverlay } from '../../context/DecisionOverlayContext.js';
+import { EvaluationOverlayProvider } from '../../../test-support/evaluation-overlay.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -154,6 +155,23 @@ describe('ArchitectureGraph', () => {
     it('wires onInit on desktop too, so a later desktop→mobile crossing can re-fit', () => {
         render(<ArchitectureGraph jsonData={mockCalmData} />);
         expect(typeof reactFlowProps()?.onInit).toBe('function');
+    });
+
+    it('shows the overlay legend only when a decorator view draws on the diagram', () => {
+        const { unmount } = render(<ArchitectureGraph jsonData={mockCalmData} />);
+        expect(screen.queryByTestId('overlay-legend')).not.toBeInTheDocument();
+        unmount();
+
+        const latest = [{
+            uniqueId: 'e1', type: 'control-evaluation', target: [], appliesTo: ['node-1'],
+            data: { control: { 'unique-id': 'c1', 'requirement-url': 'https://example.org/r' }, status: 'met' as const, 'evaluated-at': '2026-11-04T15:00:00Z' },
+        }];
+        render(
+            <EvaluationOverlayProvider value={new Map([['node-1', { status: 'met', latest }]])}>
+                <ArchitectureGraph jsonData={mockCalmData} />
+            </EvaluationOverlayProvider>
+        );
+        expect(screen.getByTestId('overlay-legend')).toHaveTextContent('Control evaluations');
     });
 
     it('tells the viewer when each node is drawn in one container only', () => {

@@ -73,9 +73,11 @@ const PAIRS: readonly [string, string][] = [
     ['calm-redesign-body-alt', 'calm-bg-base'],
     ['calm-redesign-ink', 'calm-bg-base'],
     ['calm-redesign-ink', 'calm-redesign-canvas'],
-    // Control-evaluation status text: badges, hover card and evaluations panel.
+    // Overlay status text: badges, legend, hover card and evaluations panel.
     ['calm-status-error-text', 'calm-bg-card'],
     ['calm-status-success-text', 'calm-bg-card'],
+    ['calm-status-warning-text', 'calm-bg-card'],
+    ['calm-status-info-text', 'calm-bg-card'],
 ];
 
 /**

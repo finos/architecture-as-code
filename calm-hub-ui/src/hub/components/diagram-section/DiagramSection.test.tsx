@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -55,11 +55,13 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
         decorators,
         onPositionsChange,
         onDroppedFileChange,
+        onOpenView,
     }: {
         data: Data;
         decorators?: { uniqueId: string }[];
         onPositionsChange?: (positions: { id: string; position: { x: number; y: number } }[]) => void;
         onDroppedFileChange?: (dropped: boolean) => void;
+        onOpenView?: (view: { id: string; label: string; match: { type?: string; schema?: string } }) => void;
     }) => (
         <div data-testid="drawer">
             Drawer for {data.id}
@@ -70,6 +72,17 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
                 simulate-drag-report
             </button>
             <button onClick={() => onDroppedFileChange?.(true)}>simulate-file-drop</button>
+            <button onClick={() => onOpenView?.({ id: 'deployment', label: 'Deployments', match: { type: 'deployment' } })}>
+                simulate-open-view
+            </button>
+            <button onClick={() => onOpenView?.({ id: 'scan', label: 'Scans', match: { schema: 'https://example.org/scan.json' } })}>
+                simulate-open-schema-view
+            </button>
+            <button
+                onClick={() => onOpenView?.({ id: 'scan', label: 'Scans', match: { type: 'observability', schema: 'https://example.org/scan.json' } })}
+            >
+                simulate-open-type-and-schema-view
+            </button>
         </div>
     ),
 }));
@@ -395,6 +408,14 @@ describe('DiagramSection', () => {
             appliesTo: ['api', 'db'],
             data: { dashboard: 'https://grafana.example.com/d/abc' },
         };
+        const scan = {
+            uniqueId: 'scan-1',
+            type: 'observability',
+            schema: 'https://example.org/scan.json',
+            target: ['/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0'],
+            appliesTo: ['api'],
+            data: { result: 'clean' },
+        };
 
         function LocationProbe() {
             const location = useLocation();
@@ -489,11 +510,99 @@ describe('DiagramSection', () => {
             expect(await screen.findByText(/^Could not load decorators\./)).toBeInTheDocument();
         });
 
-        it('shows only deployment decorators on the Deployments tab', async () => {
+        it('redirects the old Deployments tab to the Decorators tab filtered to deployment', async () => {
             renderArchitecture('/?tab=deployments');
 
+            expect(screen.getByRole('tab', { name: 'Decorators' }).className).toContain('tab-active');
+            await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators&type=deployment'));
             expect(await screen.findByText(/dep-1/)).toBeInTheDocument();
             expect(screen.queryByText(/obs-1/)).not.toBeInTheDocument();
+        });
+
+        it('opens the Decorators tab filtered to a view from the overlay legend', async () => {
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-view'));
+            expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators&type=deployment');
+            expect(await screen.findByText(/dep-1/)).toBeInTheDocument();
+        });
+
+        it('opens the Decorators tab filtered to the $schema of a view that matches on $schema', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability, scan]);
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-schema-view'));
+            expect(new URLSearchParams(screen.getByTestId('location').textContent ?? '').get('schema')).toBe('https://example.org/scan.json');
+            expect(await screen.findByRole('article', { name: 'observability decorator scan-1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-1' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'deployment decorator dep-1' })).not.toBeInTheDocument();
+        });
+
+        it('moves focus to the Decorators tab content after View all, but not after a tab click', async () => {
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-view'));
+            expect(await screen.findByRole('region', { name: 'Decorators' })).toHaveFocus();
+
+            await user.click(screen.getByRole('tab', { name: 'Diagram' }));
+            await user.click(screen.getByRole('tab', { name: 'Decorators' }));
+            expect(screen.getByRole('region', { name: 'Decorators' })).not.toHaveFocus();
+        });
+
+        it('does not move focus again when the Decorators tab is reached some other way after View all', async () => {
+            function QueryLinks() {
+                const [, setSearchParams] = useSearchParams();
+                return (
+                    <>
+                        <button onClick={() => setSearchParams({ tab: 'diagram' })}>link-diagram</button>
+                        <button onClick={() => setSearchParams({ tab: 'decorators' })}>link-decorators</button>
+                    </>
+                );
+            }
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                    <QueryLinks />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByText('simulate-open-view'));
+            expect(await screen.findByRole('region', { name: 'Decorators' })).toHaveFocus();
+
+            await user.click(screen.getByText('link-diagram'));
+            await user.click(screen.getByText('link-decorators'));
+            expect(await screen.findByRole('region', { name: 'Decorators' })).not.toHaveFocus();
+        });
+
+        it('filters on both the type and the $schema of a view that matches on both', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability, scan]);
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-type-and-schema-view'));
+            const query = new URLSearchParams(screen.getByTestId('location').textContent ?? '');
+            expect([query.get('type'), query.get('schema')]).toEqual(['observability', 'https://example.org/scan.json']);
+            expect(await screen.findByRole('article', { name: 'observability decorator scan-1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-1' })).not.toBeInTheDocument();
+        });
+
+        it('keeps the $schema filter when the type changes, and drops it on "Show all schemas"', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability, scan]);
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators&schema=https%3A%2F%2Fexample.org%2Fscan.json');
+
+            await user.selectOptions(await screen.findByRole('combobox'), 'observability');
+            let query = new URLSearchParams(screen.getByTestId('location').textContent ?? '');
+            expect([query.get('type'), query.get('schema')]).toEqual(['observability', 'https://example.org/scan.json']);
+
+            await user.click(screen.getByRole('button', { name: 'Show all schemas' }));
+            query = new URLSearchParams(screen.getByTestId('location').textContent ?? '');
+            expect([query.get('type'), query.get('schema')]).toEqual(['observability', null]);
+            expect(await screen.findByRole('article', { name: 'observability decorator obs-1' })).toBeInTheDocument();
         });
 
         it('offers the tab in the mobile view menu, selected when active', async () => {
@@ -527,13 +636,13 @@ describe('DiagramSection', () => {
             expect(onDecoratorsChange).toHaveBeenLastCalledWith([]);
         });
 
-        it('polls one list, with one request per refresh, and gives the diagram its deployments', async () => {
+        it('gives the diagram, the tab and the details drawer one polled list, with one request per refresh', async () => {
             vi.useFakeTimers({ shouldAdvanceTime: true });
             try {
                 const onDecoratorsChange = vi.fn();
                 renderArchitecture('/', { onDecoratorsChange });
-                await waitFor(() => expect(screen.getByTestId('drawer-decorators')).toHaveTextContent(/^dep-1$/));
-                // The callback runs in an effect after the render that shows the list.
+                await waitFor(() => expect(screen.getByTestId('drawer-decorators')).toHaveTextContent('dep-1 obs-1'));
+                // The report is a passive effect, which can run after the commit that waitFor saw.
                 await waitFor(() => expect(onDecoratorsChange).toHaveBeenLastCalledWith([deployment, observability]));
                 expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
 
@@ -553,7 +662,6 @@ describe('DiagramSection', () => {
             ['the JSON tab', '/?tab=json', false, 0],
             ['the JSON tab with the details drawer open', '/?tab=json', true, 2],
             ['the Decorators tab', '/?tab=decorators', false, 2],
-            ['the Deployments tab', '/?tab=deployments', false, 2],
             ['the diagram', '/', false, 2],
         ])('polls the decorators on %s only if something there shows them', async (_name, entry, hasDetailsPanel, calls) => {
             vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -573,7 +681,7 @@ describe('DiagramSection', () => {
             expect(calmServiceMock.fetchDecoratorsForTarget).not.toHaveBeenCalled();
 
             await user.click(screen.getByRole('tab', { name: 'Diagram' }));
-            await waitFor(() => expect(screen.getByTestId('drawer-decorators')).toHaveTextContent(/^dep-1$/));
+            await waitFor(() => expect(screen.getByTestId('drawer-decorators')).toHaveTextContent('dep-1 obs-1'));
             expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
         });
 
@@ -650,13 +758,13 @@ describe('DiagramSection', () => {
                 return <div data-testid="search">{useLocation().search}</div>;
             }
             render(
-                <MemoryRouter initialEntries={['/?tab=deployments']}>
+                <MemoryRouter initialEntries={['/?tab=decorators']}>
                     <DiagramSection data={patternData} />
                     <SearchProbe />
                 </MemoryRouter>
             );
 
-            expect(screen.getByTestId('search').textContent).toBe('?tab=deployments');
+            expect(screen.getByTestId('search').textContent).toBe('?tab=decorators');
         });
     });
 
@@ -740,7 +848,8 @@ describe('DiagramSection', () => {
 
             expect(screen.getByRole('tab', { name: /diagram/i })).toBeInTheDocument();
             expect(screen.getByRole('tab', { name: /json/i })).toBeInTheDocument();
-            expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Decorators' })).toBeInTheDocument();
+            expect(screen.queryByRole('tab', { name: /deployments/i })).not.toBeInTheDocument();
         });
 
         it('paints the active view tab with the redesign brand blue, not the old accent (#8)', () => {
@@ -756,36 +865,6 @@ describe('DiagramSection', () => {
             const activeTab = screen.getByRole('tab', { name: /diagram/i });
             expect(activeTab).toHaveClass('!bg-[var(--color-interaction)]');
             expect(activeTab.className).not.toContain('bg-accent');
-        });
-
-        it('renders Deployments tab only for architectures, not patterns', () => {
-            const { rerender } = render(
-                <MemoryRouter>
-                    <DiagramSection data={architectureData} />
-                </MemoryRouter>
-            );
-            expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
-
-            rerender(
-                <MemoryRouter>
-                    <DiagramSection data={patternData} />
-                </MemoryRouter>
-            );
-            expect(screen.queryByRole('tab', { name: /deployments/i })).not.toBeInTheDocument();
-        });
-
-        it('switches to Deployments tab when clicked', async () => {
-            const user = userEvent.setup();
-            render(
-                <MemoryRouter>
-                    <DiagramSection data={architectureData} />
-                </MemoryRouter>
-            );
-
-            await user.click(screen.getByRole('tab', { name: /deployments/i }));
-
-            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
-            expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
         });
 
         it('shows diagram tab by default', () => {
@@ -1024,7 +1103,7 @@ describe('DiagramSection', () => {
             );
 
             await user.click(screen.getByRole('button', { name: /view options/i }));
-            // Opening reveals the view-mode list (Diagram / JSON / Deployments rows).
+            // Opening reveals the view-mode list (Diagram / JSON / Decorators rows).
             expect(screen.getByRole('button', { name: /close view options/i })).toBeInTheDocument();
             restore();
         });
