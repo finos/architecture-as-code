@@ -13,6 +13,7 @@ export function fakeExtension(index: number, points: ExtensionPoint[] = ['screen
     return {
         id: `ext-${index}`,
         name: `Extension ${index}`,
+        provider: `Provider ${index}`,
         hubApi: 0,
         routes: [
             { id: 'data', method: 'GET', path: '/data', scope: 'authenticated', readOnly: true },

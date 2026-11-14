@@ -14,6 +14,8 @@ export type ExtensionPoint = 'screen' | 'designer-tab' | 'landing-card' | 'detai
 export interface ExtensionSummary {
     id: string;
     name: string;
+    description?: string;
+    provider?: string;
     hubApi: number;
     routes: ExtensionRoute[];
     contributes: Partial<Record<ExtensionPoint, ExtensionContribution[]>>;

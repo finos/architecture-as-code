@@ -206,7 +206,40 @@ drops registry entries whose `hubApi` the UI does not support, and malformed ent
 that is not a list gives no views, and the other views stay. After a failed load the provider
 tries again with a backoff (5 s, doubled, up to 60 s; a new service starts it again), but not after a `401`.
 `useExtensionsStatus()` gives `loading`, `loaded`, `failed` or `signed-out`. Use it where an empty list must not
-mean "no extension", for example `ExtensionScreenPage` on a deep link, or an extension tab in a link.
+mean "no extension", for example `ExtensionScreenPage` on a deep link.
+
+### Extension UI layout
+
+Each contribution kind has one place. Do not add a
+per-extension toolbar button or tab: it does not scale to many extensions.
+
+- Home: `IntroBrowse` shows an `ExtensionCard` per extension with a `landing-card` or a `screen`.
+  `cardHeadline()` (`extensions/landingCard.ts`) picks what the card shows.
+- Menu: `ExtensionMenuGroup` in the navbar drawer.
+- Architecture: one `extensions` tab in `DIAGRAM_TABS`, hidden (not unknown) until the registry loads, so a link
+  to it keeps the tab. `resourceExtensions()` decides if it shows.
+- Actions: `ExtensionActionButton`. A route that is not `readOnly` asks in `ConfirmActionDialog`, not
+  `window.confirm`. The dialog opens with `showModal()`, gives Cancel the focus, and names the target context. Do not abort a confirmed
+  write: the backend can still finish it, so a retry can write twice. The busy state and the last result live in
+  the provider's `ActionRuns` (`extensions/actionRuns.ts`), not in the button, so a remount cannot enable a write
+  in flight or lose its result. A call in flight disables each button of the action (key: extension and
+  contribution); a result shows only on the button that ran it (key: also the `placement` prop, which must be
+  stable across a remount). An action slot must name its `placement`: there is no default that two places could share.
+  The button says `<title>: running…` in a live region that is always in the page. An action slot key leaves out the context, so a change of selection does not remount
+  it. A change of context clears the result. The button uses `aria-disabled`, not `disabled`, so focus can go back to it after the
+  dialog. While the dialog is modal the page is inert and `focus()` outside it does nothing: the dialog calls
+  `close()` before its callback, and the button takes focus in an effect after the dialog unmounts. jsdom has no
+  modal dialogs, so a test that checks focus must model inertness (see `ExtensionSlot.test.tsx`).
+- Node details: `ExtensionDetailPanels`.
+- Both use `ExtensionSections`: the first section is open, a choice is kept in `localStorage` per extension, and a
+  closed section renders nothing, so it sends no request.
+  Give `ExtensionSections` and `ExtensionSlot` a `headingLevel` one below the heading of the place that holds
+  them: `h3`/`h4` in the Extensions tab, `h5`/`h6` in the node details, `h1` on a screen page (nothing else
+  there is an `h1`).
+  A block slot shows its title and its named region in every state (loading, failed, a reply it cannot show:
+  the error boundary takes a `frame`), and the screen page has
+  an `h1` in the same region (`SlotFrame`) before the registry loads, so the outline does not change. The heading is
+  the contribution title; a reply `title` shows under it.
 
 ### Operator UI config
 
