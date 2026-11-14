@@ -59,6 +59,24 @@ describe('resolveC4Mapping', () => {
         await expect(resolveC4Mapping(a, load)).rejects.toThrow(/extends itself/);
     });
 
+    it('stops when a mapping that it extends does not load, and does not use the default mapping instead', async () => {
+        const load = async () => {
+            throw new Error('404 Not Found');
+        };
+
+        await expect(resolveC4Mapping({ 'unique-id': 'a', extends: 'https://example.com/b.json' }, load)).rejects.toThrow(
+            'Cannot load https://example.com/b.json, which the C4 mapping a extends: 404 Not Found'
+        );
+    });
+
+    it('uses demote when no mapping in the chain sets nesting', async () => {
+        const org = { 'unique-id': 'org', 'node-types': { 'acme:app': 'container' } };
+
+        const mapping = await resolveC4Mapping({ 'unique-id': 'team', extends: 'https://example.com/org.json' }, async () => org);
+
+        expect(mapping.nesting).toBe('demote');
+    });
+
     it('needs a loader for an extends URL other than the default', async () => {
         await expect(resolveC4Mapping({ 'unique-id': 'a', extends: 'https://example.com/b.json' })).rejects.toThrow(
             'Cannot load https://example.com/b.json, which the C4 mapping a extends'
@@ -80,6 +98,8 @@ describe('checkC4Mapping', () => {
         ['an entry with no kind', { 'unique-id': 'a', 'node-types': { service: { external: true } } }, /"service" must map/],
         ['an unknown entry field', { 'unique-id': 'a', 'node-types': { service: { kind: 'container', tech: 'Java' } } }, /"tech"/],
         ['a non-boolean external', { 'unique-id': 'a', 'node-types': { service: { kind: 'container', external: 'yes' } } }, /"external"/],
+        ['an external hidden type', { 'unique-id': 'a', 'node-types': { x: { kind: 'hidden', external: true } } }, /"x" can be external only/],
+        ['an external deployment node', { 'unique-id': 'a', 'node-types': { x: { kind: 'deployment-node', external: true } } }, /"x" can be external only/],
     ])('rejects %s', (_, value, message) => {
         expect(() => checkC4Mapping(value)).toThrow(message);
     });
