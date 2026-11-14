@@ -84,6 +84,32 @@ export interface NarrativeDocumentVersion {
     documentMarkdown: string;
 }
 
+export interface HubConventionSummary {
+    id: number;
+    name: string;
+    description?: string;
+    versionCount: number;
+}
+
+export interface HubConventionRequest {
+    name: string;
+    description?: string;
+    /** The convention JSON, as a string. Hub validates it against the schema of its type. */
+    conventionJson: string;
+}
+
+/** The default convention that applies to a namespace: its own, or that of its nearest ancestor. */
+export interface HubNamespaceDefaultConvention {
+    conventionType: string;
+    /** The namespace that sets the default. */
+    namespace: string;
+    conventionId: number;
+    version: string;
+    /** True when an ancestor of the requested namespace sets the default. */
+    inherited: boolean;
+    convention: object;
+}
+
 export class HubClientError extends Error {
     /**
      * Creates a normalized Hub client error.
@@ -274,6 +300,113 @@ export class CalmHubClient {
             if (err instanceof HubClientError) throw err;
             throw this.wrapError(err, requestLabel);
         }
+    }
+
+    // ── Conventions ──────────────────────────────────────────────────────────────
+
+    async listConventions(namespace: string, conventionType: string): Promise<HubConventionSummary[]> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return this.extractValues<HubConventionSummary>(response.data, `GET ${endpoint}`);
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /**
+     * Creates a convention at version 1.0.0.
+     * @returns The location of the new version.
+     */
+    async createConvention(namespace: string, conventionType: string, request: HubConventionRequest): Promise<string> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}`;
+        return this.postConvention(endpoint, request);
+    }
+
+    async createConventionVersion(namespace: string, conventionType: string, id: number, version: string, request: HubConventionRequest): Promise<string> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions/${version}`;
+        return this.postConvention(endpoint, request);
+    }
+
+    /** Returns the versions of a convention, oldest first. */
+    async getConventionVersions(namespace: string, conventionType: string, id: number): Promise<string[]> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return this.extractValues<string>(response.data, `GET ${endpoint}`);
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    async getConventionVersion(namespace: string, conventionType: string, id: number, version: string): Promise<object> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions/${version}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return this.requireObject(response.data, `GET ${endpoint}`);
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /**
+     * Returns the default convention that applies to a namespace, which it can inherit from an ancestor.
+     * @returns The default, or undefined when Hub returns 204 because no namespace in the chain sets one.
+     * @throws HubClientError with status 404 when the namespace does not exist.
+     */
+    async getNamespaceDefaultConvention(namespace: string, conventionType: string): Promise<HubNamespaceDefaultConvention | undefined> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/default`;
+        try {
+            const response = await this.ax.get(endpoint);
+            if (response.status === 204) {
+                return undefined;
+            }
+            const body = this.requireObject(response.data, `GET ${endpoint}`) as HubNamespaceDefaultConvention;
+            if (typeof body.conventionId !== 'number' || typeof body.version !== 'string' || !body.convention || typeof body.convention !== 'object') {
+                throw new HubClientError(0, 'Response does not contain conventionId, version and convention', `GET ${endpoint}`);
+            }
+            return body;
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /** Names a convention version in the namespace as its default for the type. Needs ADMIN on the namespace. */
+    async setNamespaceDefaultConvention(namespace: string, conventionType: string, conventionId: number, version: string): Promise<void> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/default`;
+        try {
+            await this.ax.put(endpoint, { conventionId, version });
+        } catch (err) {
+            throw this.wrapError(err, `PUT ${endpoint}`);
+        }
+    }
+
+    private async postConvention(endpoint: string, request: HubConventionRequest): Promise<string> {
+        try {
+            const response = await this.ax.post(endpoint, request);
+            const location = response.headers.location as string | undefined;
+            if (!location) {
+                throw new HubClientError(0, 'Response does not include Location header', `POST ${endpoint}`);
+            }
+            return location;
+        } catch (err) {
+            const error = this.wrapError(err, `POST ${endpoint}`);
+            const fieldErrors = axios.isAxiosError(err) ? err.response?.data?.errors : undefined;
+            if (!Array.isArray(fieldErrors) || fieldErrors.length === 0) {
+                throw error;
+            }
+            const details = fieldErrors.map((e: { location?: string; error?: string }) => `${e.location || '/'}: ${e.error}`).join('; ');
+            const moreErrors = axios.isAxiosError(err) ? err.response?.data?.moreErrors : undefined;
+            const more = typeof moreErrors === 'number' && moreErrors > 0 ? `; and ${moreErrors} more` : '';
+            throw new HubClientError(error.status, `${error.error}: ${details}${more}`, error.request);
+        }
+    }
+
+    private requireObject(data: unknown, endpoint: string): object {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+            throw new HubClientError(0, 'Unexpected response body from CALM Hub: expected a JSON object', endpoint);
+        }
+        return data;
     }
 
     /**

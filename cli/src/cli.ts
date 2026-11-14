@@ -52,6 +52,12 @@ import {
     runListExtensions,
     runDescribeExtension,
     runExtensionCommand,
+    PushConventionOptions,
+    PullConventionOptions,
+    ListConventionsOptions,
+    runPushConvention,
+    runPullConvention,
+    runListConventions,
 } from './command-helpers/hub-commands';
 import type { ResourceChangeType } from '@finos/calm-shared';
 
@@ -681,6 +687,31 @@ Example:
             await runPushControlConfiguration(pushOptions);
         });
 
+    hubPushCmd
+        .command('convention <convention-type> <convention-file>')
+        .description('Push a convention, such as a c4-mapping, to CALM Hub. A convention with the same name in the namespace gets a new version, unless its content is unchanged.')
+        .requiredOption(NAMESPACE_OPTION, 'Target namespace')
+        .option(NAME_OPTION, 'Name of the convention in CALM Hub. Defaults to the unique-id of the convention.')
+        .option(DESCRIPTION_OPTION, 'Description of the convention')
+        .option('--set-default', 'Also make the pushed version the default for the namespace. Child namespaces inherit it. Needs namespace admin.', false)
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .action(async (conventionType, conventionFile, options) => {
+            const pushOptions: PushConventionOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                conventionType,
+                file: conventionFile,
+                namespace: options.namespace,
+                name: options.name,
+                description: options.description,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                setDefault: options.setDefault,
+                format: options.format
+            };
+            await runPushConvention(pushOptions);
+        });
+
     // hub pull
     const hubPullCmd = hubCmd.command('pull').description('Pull a CALM document from CALM Hub');
 
@@ -838,6 +869,26 @@ Example:
             await runPullControlConfiguration(pullOptions);
         });
 
+    hubPullCmd
+        .command('convention <convention-type>')
+        .description('Pull a convention from CALM Hub. Without --id, pull the default convention that applies to the namespace, which can come from a parent namespace.')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .option('--id <id>', 'ID of the convention to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve (defaults to the latest). Needs --id.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (conventionType, options) => {
+            const pullOptions: PullConventionOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                conventionType,
+                namespace: options.namespace,
+                id: options.id,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullConvention(pullOptions);
+        });
+
     // hub list
     const hubListCmd = hubCmd.command('list').description('List CALM Hub resources');
 
@@ -987,6 +1038,22 @@ Example:
                 format: options.format
             };
             await runListControlConfigurations(listOptions);
+        });
+
+    hubListCmd
+        .command('conventions <convention-type>')
+        .description('List the conventions of one type, such as c4-mapping, in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (conventionType, options) => {
+            const listOptions: ListConventionsOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                conventionType,
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListConventions(listOptions);
         });
 
     // hub create

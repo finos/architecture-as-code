@@ -1477,6 +1477,207 @@ function coerceArg(value: string, properties: unknown, key: string): unknown {
     return value;
 }
 
+// ── conventions ───────────────────────────────────────────────────────────────────
+
+export interface PushConventionOptions {
+    calmHubOptions: CalmHubOptions;
+    conventionType: string;
+    file: string;
+    namespace: string;
+    /** Defaults to the `unique-id` of the convention. */
+    name?: string;
+    description?: string;
+    changeType?: ResourceChangeType;
+    /** Also name the pushed version as the namespace default for the type. */
+    setDefault?: boolean;
+    format?: string;
+}
+
+export interface ConventionPushResult {
+    status: PushAction;
+    namespace: string;
+    conventionType: string;
+    id: number;
+    name: string;
+    version: string;
+    location: string;
+    default: boolean;
+}
+
+// Matches the absolute Location header that Hub returns for a created version.
+function conventionVersionLocation(calmHubUrl: string, namespace: string, conventionType: string, id: number, version: string): string {
+    return `${calmHubUrl.replace(/\/+$/, '')}/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions/${version}`;
+}
+
+/**
+ * Pushes a convention to CALM Hub. Conventions have no `$id`, so the name finds the convention in the namespace:
+ * a new name creates the convention at 1.0.0, and a known name adds the next version unless the content is unchanged.
+ */
+export async function runPushConvention(options: PushConventionOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+    const { namespace, conventionType } = options;
+    const requestedCommand = `push convention ${conventionType} ${options.file}`;
+
+    const conventionJson = validateAndMinifyJSON(await loadFileContent(options.file, requestedCommand, format), options.file, requestedCommand, format);
+    const convention = JSON.parse(conventionJson);
+    const name = options.name ?? (typeof convention?.['unique-id'] === 'string' ? convention['unique-id'] : undefined);
+    if (!name) {
+        printError(0, 'The convention has no unique-id. Give a name with --name.', requestedCommand, format);
+        process.exit(1);
+    }
+    const request = { name, description: options.description, conventionJson };
+
+    try {
+        const matches = (await client.listConventions(namespace, conventionType)).filter(c => c.name === name);
+        if (matches.length > 1) {
+            throw new HubCommandError(0, `Namespace '${namespace}' has ${matches.length} ${conventionType} conventions named '${name}'`, requestedCommand);
+        }
+
+        let result: Omit<ConventionPushResult, 'default'>;
+        if (matches.length === 0) {
+            const location = await client.createConvention(namespace, conventionType, request);
+            const id = Number(/\/conventions\/[^/]+\/(\d+)\/versions\//.exec(location)?.[1]);
+            if (!id) {
+                throw new HubCommandError(0, `Cannot read the convention ID from the Location ${location}`, requestedCommand);
+            }
+            result = { status: 'created', namespace, conventionType, id, name, version: '1.0.0', location };
+        } else {
+            const id = matches[0].id;
+            const versions = await client.getConventionVersions(namespace, conventionType, id);
+            const latestVersion = versions[versions.length - 1];
+            const latest = await client.getConventionVersion(namespace, conventionType, id, latestVersion);
+            const descriptionChanged = options.description !== undefined && options.description !== matches[0].description;
+            if (canonicalEqual(convention, latest) && !descriptionChanged) {
+                result = { status: 'skipped', namespace, conventionType, id, name, version: latestVersion, location: conventionVersionLocation(calmHubOptions.calmHubUrl!, namespace, conventionType, id, latestVersion) };
+            } else {
+                const version = computeSemVerBump(latestVersion, options.changeType ?? 'PATCH');
+                const location = await client.createConventionVersion(namespace, conventionType, id, version, request);
+                result = { status: 'created', namespace, conventionType, id, name, version, location };
+            }
+        }
+
+        if (options.setDefault) {
+            try {
+                await client.setNamespaceDefaultConvention(namespace, conventionType, result.id, result.version);
+            } catch (err) {
+                if (result.status !== 'created' || !(err instanceof HubClientError)) {
+                    throw err;
+                }
+                throw new HubClientError(err.status,
+                    `Created convention ${result.id} version ${result.version}, but could not set it as the default: ${err.error}`, err.request);
+            }
+        }
+        printConventionPushResult({ ...result, default: !!options.setDefault }, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+function printConventionPushResult(result: ConventionPushResult, format: OutputFormat): void {
+    if (format === 'pretty') {
+        printTableSuccess(
+            [{
+                STATUS: result.status === 'created' ? 'Created' : 'Unchanged',
+                ID: result.id,
+                NAME: result.name,
+                VERSION: result.version,
+                DEFAULT: result.default ? 'yes' : '',
+                LOCATION: result.location
+            }],
+            ['STATUS', 'ID', 'NAME', 'VERSION', 'DEFAULT', 'LOCATION'].map(key => ({ key, header: key }))
+        );
+    } else {
+        printJsonSuccess(result);
+    }
+}
+
+export interface PullConventionOptions {
+    calmHubOptions: CalmHubOptions;
+    conventionType: string;
+    namespace: string;
+    /** Without an ID, pull the namespace default, which can come from an ancestor namespace. */
+    id?: string;
+    version?: string;
+    output?: string;
+}
+
+/**
+ * Pulls a convention version, or the default convention that applies to the namespace, and writes its JSON to stdout or a file.
+ */
+export async function runPullConvention(options: PullConventionOptions): Promise<void> {
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions);
+    const client = new CalmHubClient(calmHubOptions);
+    const { namespace, conventionType, version } = options;
+    const requestedCommand = `pull convention ${conventionType}`;
+
+    const id = options.id === undefined ? undefined : Number(options.id);
+    if (id !== undefined && !(Number.isInteger(id) && id > 0)) {
+        printError(0, `The convention ID must be a positive integer: ${options.id}`, requestedCommand, 'json');
+        process.exit(1);
+    }
+    if (version && id === undefined) {
+        printError(0, '--ver needs --id. Without --id, pull reads the namespace default.', requestedCommand, 'json');
+        process.exit(1);
+    }
+
+    try {
+        let convention: object;
+        if (id === undefined) {
+            const resolved = await client.getNamespaceDefaultConvention(namespace, conventionType);
+            if (!resolved) {
+                throw new HubCommandError(0, `No ${conventionType} default applies to namespace '${namespace}'`, requestedCommand);
+            }
+            console.error(`Using ${conventionType} convention ${resolved.conventionId} version ${resolved.version}, the default of namespace ${resolved.namespace}${resolved.inherited ? ' (inherited)' : ''}`);
+            convention = resolved.convention;
+        } else {
+            let resolvedVersion = version;
+            if (!resolvedVersion) {
+                const versions = await client.getConventionVersions(namespace, conventionType, id);
+                resolvedVersion = versions[versions.length - 1];
+            }
+            convention = await client.getConventionVersion(namespace, conventionType, id, resolvedVersion);
+        }
+
+        const pretty = JSON.stringify(convention, null, 2);
+        if (options.output) {
+            await writeFile(options.output, pretty, 'utf-8');
+        } else {
+            console.log(pretty);
+        }
+    } catch (err) {
+        handleHubError(err, 'json');
+    }
+}
+
+export interface ListConventionsOptions {
+    calmHubOptions: CalmHubOptions;
+    conventionType: string;
+    namespace: string;
+    format?: string;
+}
+
+export async function runListConventions(options: ListConventionsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const conventions = await client.listConventions(options.namespace, options.conventionType);
+        if (format === 'pretty') {
+            printTableSuccess(
+                conventions.map(c => ({ ID: c.id, NAME: c.name, VERSIONS: c.versionCount, DESCRIPTION: c.description ?? '' })),
+                ['ID', 'NAME', 'VERSIONS', 'DESCRIPTION'].map(key => ({ key, header: key }))
+            );
+        } else {
+            printJsonSuccess(conventions);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
 // ── shared error handler ──────────────────────────────────────────────────────
 
 /**

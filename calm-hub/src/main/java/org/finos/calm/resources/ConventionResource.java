@@ -224,8 +224,9 @@ public class ConventionResource {
             description = "Returns the default that the namespace sets, else that of its nearest ancestor (org.ab.cd, then org.ab, then org), with its JSON.")
     @APIResponses({
             @APIResponse(responseCode = "200", description = "Default returned. inherited is true when an ancestor sets it"),
+            @APIResponse(responseCode = "204", description = "No namespace in the chain sets a default"),
             @APIResponse(responseCode = "400", description = "Unknown convention type"),
-            @APIResponse(responseCode = "404", description = "The namespace does not exist, or no namespace in its chain sets a default")
+            @APIResponse(responseCode = "404", description = "The namespace does not exist")
     })
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getDefault(
@@ -238,7 +239,7 @@ public class ConventionResource {
         try {
             return conventionService.resolveDefault(namespace, type.get())
                     .map(resolved -> Response.ok(resolved).build())
-                    .orElseGet(() -> CalmResourceErrorResponses.noConventionDefaultResponse(namespace, type.get()));
+                    .orElseGet(() -> Response.noContent().build());
         } catch (NamespaceNotFoundException e) {
             LOG.error("Invalid namespace [{}] when resolving a convention default", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

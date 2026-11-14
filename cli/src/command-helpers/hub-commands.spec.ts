@@ -12,7 +12,8 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces, runWhoami,
     runPushInterface, runPullInterface, runListInterfaces,
     runPushFlow, runPullFlow, runListFlows,
     runPushTimeline, runPullTimeline, runListTimelines,
-    runListExtensions, runDescribeExtension, runExtensionCommand } from './hub-commands';
+    runListExtensions, runDescribeExtension, runExtensionCommand,
+    runPushConvention, runPullConvention, runListConventions } from './hub-commands';
 import { Readable } from 'stream';
 
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
@@ -42,7 +43,14 @@ vi.mock('@finos/calm-shared', async () => {
         getControlConfigurationVersion: vi.fn(),
         createControlConfigurationVersion: vi.fn(),
         listExtensions: vi.fn(),
-        callExtension: vi.fn()
+        callExtension: vi.fn(),
+        listConventions: vi.fn(),
+        createConvention: vi.fn(),
+        createConventionVersion: vi.fn(),
+        getConventionVersions: vi.fn(),
+        getConventionVersion: vi.fn(),
+        getNamespaceDefaultConvention: vi.fn(),
+        setNamespaceDefaultConvention: vi.fn()
     };
     return {
         // Keep all the real (pure) helpers — document-id-utils, semver and canonical — that
@@ -2871,4 +2879,226 @@ describe('hub-commands', () => {
             });
         });
     });
+    // ── conventions ────────────────────────────────────────────────────────────────
+
+    describe('conventions', () => {
+        const hub = { calmHubUrl: 'http://hub' };
+        const base = '/api/calm/namespaces/org.team/conventions/c4-mapping';
+        const mapping = { 'unique-id': 'acme', 'node-types': { 'aws:lambda': 'container' }, nesting: 'demote' };
+        const pushOptions = { calmHubOptions: hub, conventionType: 'c4-mapping', file: 'acme.json', namespace: 'org.team' };
+
+        beforeEach(() => {
+            vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mapping, null, 2) as unknown as Uint8Array);
+        });
+
+        describe('runPushConvention', () => {
+            it('creates a convention named by its unique-id and reads its ID from the Location', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 2, name: 'other', versionCount: 1 }]);
+                vi.mocked(mockClient.createConvention).mockResolvedValue(`${base}/17/versions/1.0.0`);
+
+                await runPushConvention({ ...pushOptions, description: 'Acme mapping' });
+
+                expect(mockClient.createConvention).toHaveBeenCalledWith('org.team', 'c4-mapping',
+                    { name: 'acme', description: 'Acme mapping', conventionJson: JSON.stringify(mapping) });
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith({
+                    status: 'created', namespace: 'org.team', conventionType: 'c4-mapping', id: 17, name: 'acme',
+                    version: '1.0.0', location: `${base}/17/versions/1.0.0`, default: false
+                });
+            });
+
+            it('adds the next version after the latest one when the content changed', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 2 }]);
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.0', '1.2.0']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue({ ...mapping, nesting: 'strict' });
+                vi.mocked(mockClient.createConventionVersion).mockResolvedValue(`${base}/3/versions/1.3.0`);
+
+                await runPushConvention({ ...pushOptions, changeType: 'MINOR' });
+
+                expect(mockClient.getConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.2.0');
+                expect(mockClient.createConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.3.0', expect.objectContaining({ name: 'acme' }));
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ status: 'created', id: 3, version: '1.3.0' }));
+            });
+
+            it('skips an unchanged convention, whatever its key order, and can still set it as the default', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 1 }]);
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue({ nesting: 'demote', 'node-types': { 'aws:lambda': 'container' }, 'unique-id': 'acme' });
+
+                await runPushConvention({ ...pushOptions, calmHubOptions: { calmHubUrl: 'http://hub/' }, setDefault: true });
+
+                expect(mockClient.createConventionVersion).not.toHaveBeenCalled();
+                expect(mockClient.setNamespaceDefaultConvention).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.0.0');
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({
+                    status: 'skipped', version: '1.0.0', location: `http://hub${base}/3/versions/1.0.0`, default: true
+                }));
+            });
+
+            it('adds the next version when only the description changed', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', description: 'Old', versionCount: 1 }]);
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue(mapping);
+                vi.mocked(mockClient.createConventionVersion).mockResolvedValue(`${base}/3/versions/1.0.1`);
+
+                await runPushConvention({ ...pushOptions, description: 'New' });
+
+                expect(mockClient.createConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.0.1', expect.objectContaining({ description: 'New' }));
+            });
+
+            it('names the created version when only setting the default fails', async () => {
+                const { mockClient, shared } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 1 }]);
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.2']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue({ ...mapping, nesting: 'strict' });
+                vi.mocked(mockClient.createConventionVersion).mockResolvedValue(`${base}/3/versions/1.0.3`);
+                vi.mocked(mockClient.setNamespaceDefaultConvention).mockRejectedValue(new shared.HubClientError(403, 'Forbidden', `PUT ${base}/default`));
+
+                await expect(runPushConvention({ ...pushOptions, setDefault: true })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(403,
+                    'Created convention 3 version 1.0.3, but could not set it as the default: Forbidden', `PUT ${base}/default`, 'json');
+            });
+
+            it('uses --name over the unique-id to find the convention', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 4, name: 'acme', versionCount: 1 }]);
+                vi.mocked(mockClient.createConvention).mockResolvedValue(`${base}/5/versions/1.0.0`);
+
+                await runPushConvention({ ...pushOptions, name: 'acme-v2' });
+
+                expect(mockClient.createConvention).toHaveBeenCalledWith('org.team', 'c4-mapping', expect.objectContaining({ name: 'acme-v2' }));
+            });
+
+            it('exits when the convention has no unique-id and no --name is given', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue('{"theme":"dark"}' as unknown as Uint8Array);
+
+                await expect(runPushConvention({ ...pushOptions, conventionType: 'theme' })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(0, expect.stringContaining('--name'), expect.any(String), 'json');
+                expect(mockClient.listConventions).not.toHaveBeenCalled();
+            });
+
+            it('exits when several conventions in the namespace have the name', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 1 }, { id: 8, name: 'acme', versionCount: 1 }]);
+
+                await expect(runPushConvention(pushOptions)).rejects.toThrow('process.exit');
+                expect(mockClient.createConvention).not.toHaveBeenCalled();
+                expect(mockClient.createConventionVersion).not.toHaveBeenCalled();
+            });
+
+            it('exits with the Hub error when Hub rejects the convention', async () => {
+                const { mockClient, shared } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([]);
+                vi.mocked(mockClient.createConvention).mockRejectedValue(new shared.HubClientError(400, 'The convention does not match the schema', `POST ${base}`));
+
+                await expect(runPushConvention(pushOptions)).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(400, 'The convention does not match the schema', `POST ${base}`, 'json');
+            });
+        });
+
+        describe('runPullConvention', () => {
+            let log: ReturnType<typeof vi.spyOn>;
+            let stderr: ReturnType<typeof vi.spyOn>;
+
+            beforeEach(() => {
+                log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+                stderr = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+            });
+
+            afterEach(() => {
+                log.mockRestore();
+                stderr.mockRestore();
+            });
+
+            it('prints only the convention JSON of the inherited namespace default on stdout', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getNamespaceDefaultConvention).mockResolvedValue({
+                    conventionType: 'c4-mapping', namespace: 'org', conventionId: 1, version: '1.1.0', inherited: true, convention: mapping
+                });
+
+                await runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team' });
+
+                expect(log).toHaveBeenCalledWith(JSON.stringify(mapping, null, 2));
+                expect(stderr).toHaveBeenCalledWith(expect.stringContaining('namespace org (inherited)'));
+            });
+
+            it('exits when no default applies', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getNamespaceDefaultConvention).mockResolvedValue(undefined);
+
+                await expect(runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team' })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(0, 'No c4-mapping default applies to namespace \'org.team\'', expect.any(String), 'json');
+            });
+
+            it('exits with the Hub 404 when the namespace does not exist', async () => {
+                const { mockClient, shared } = await getSharedMocks();
+                vi.mocked(mockClient.getNamespaceDefaultConvention).mockRejectedValue(
+                    new shared.HubClientError(404, 'Invalid namespace provided: org.paymnts', `GET ${base}/default`));
+
+                await expect(runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.paymnts' })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Invalid namespace provided: org.paymnts', `GET ${base}/default`, 'json');
+            });
+
+            it('pulls the latest version of a convention by ID and writes it to a file', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.0', '1.10.0']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue(mapping);
+
+                await runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team', id: '3', output: 'out.json' });
+
+                expect(mockClient.getConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.10.0');
+                expect(mockClient.getNamespaceDefaultConvention).not.toHaveBeenCalled();
+                expect(fs.writeFile).toHaveBeenCalledWith('out.json', JSON.stringify(mapping, null, 2), 'utf-8');
+            });
+
+            it('pulls a given version without listing the versions', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue(mapping);
+
+                await runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team', id: '3', version: '1.0.0' });
+
+                expect(mockClient.getConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.0.0');
+                expect(mockClient.getConventionVersions).not.toHaveBeenCalled();
+            });
+
+            it.each([
+                [{ version: '1.0.0' }, '--ver needs --id'],
+                [{ id: 'abc' }, 'positive integer'],
+                [{ id: '0' }, 'positive integer'],
+            ])('exits on the options %o', async (extra, message) => {
+                const { mockClient } = await getSharedMocks();
+                await expect(runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team', ...extra })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(0, expect.stringContaining(message), expect.any(String), 'json');
+                expect(mockClient.getConventionVersion).not.toHaveBeenCalled();
+                expect(mockClient.getNamespaceDefaultConvention).not.toHaveBeenCalled();
+            });
+        });
+
+        describe('runListConventions', () => {
+            it('renders an ID/NAME/VERSIONS/DESCRIPTION table when format is pretty', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 2 }]);
+
+                await runListConventions({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team', format: 'pretty' });
+
+                expect(mockClient.listConventions).toHaveBeenCalledWith('org.team', 'c4-mapping');
+                expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                    [{ ID: 3, NAME: 'acme', VERSIONS: 2, DESCRIPTION: '' }],
+                    ['ID', 'NAME', 'VERSIONS', 'DESCRIPTION'].map(key => ({ key, header: key }))
+                );
+            });
+
+            it('exits on HubClientError', async () => {
+                const { mockClient, shared } = await getSharedMocks();
+                vi.mocked(mockClient.listConventions).mockRejectedValue(new shared.HubClientError(400, 'Unknown convention type', `GET ${base}`));
+
+                await expect(runListConventions({ calmHubOptions: hub, conventionType: 'nope', namespace: 'org.team' })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(400, 'Unknown convention type', expect.any(String), 'json');
+            });
+        });
+    });
+
 });

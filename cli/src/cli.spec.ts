@@ -1297,6 +1297,56 @@ describe('CLI Commands', () => {
 
     });
 
+    describe('convention commands', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPushConvention').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runPullConvention').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runListConventions').mockResolvedValue(undefined);
+        });
+
+        it('passes the type, file, namespace, change type and --set-default to runPushConvention', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'convention', 'c4-mapping', 'acme.json',
+                '--namespace', 'org', '--change-type', 'minor', '--set-default', '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushConvention).toHaveBeenCalledWith(expect.objectContaining({
+                conventionType: 'c4-mapping',
+                file: 'acme.json',
+                namespace: 'org',
+                changeType: 'MINOR',
+                setDefault: true,
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+            }));
+        });
+
+        it('passes the type, namespace, ID and version to runPullConvention', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'convention', 'c4-mapping',
+                '--namespace', 'org.team', '--id', '3', '--ver', '1.0.0', '--output', 'out.json',
+            ]);
+
+            expect(hubCommandsModule.runPullConvention).toHaveBeenCalledWith(expect.objectContaining({
+                conventionType: 'c4-mapping',
+                namespace: 'org.team',
+                id: '3',
+                version: '1.0.0',
+                output: 'out.json',
+            }));
+        });
+
+        it('passes the type and namespace to runListConventions', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'list', 'conventions', 'c4-mapping', '--namespace', 'org', '--format', 'pretty']);
+
+            expect(hubCommandsModule.runListConventions).toHaveBeenCalledWith(expect.objectContaining({
+                conventionType: 'c4-mapping',
+                namespace: 'org',
+                format: 'pretty',
+            }));
+        });
+    });
+
     describe('push pattern command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');

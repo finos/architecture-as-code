@@ -30,6 +30,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MES
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -220,10 +221,10 @@ class TestConventionResourceShould {
     }
 
     @Test
-    void return_404_when_no_default_applies() throws Exception {
+    void return_204_when_no_default_applies() throws Exception {
         when(mockConventionService.resolveDefault("finos", ConventionType.C4_MAPPING)).thenReturn(Optional.empty());
 
-        given().get(BASE + "/default").then().statusCode(404).body(containsString("No c4-mapping default"));
+        given().get(BASE + "/default").then().statusCode(204).body(emptyString());
     }
 
     @Test
