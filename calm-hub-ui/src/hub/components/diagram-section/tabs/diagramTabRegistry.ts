@@ -9,6 +9,8 @@ export interface DiagramTabScope {
     isArchitecture: boolean;
     /** The pattern's name on the name-based API. Undefined for architectures, and until the summary loads. */
     patternName?: string;
+    /** Some extension contributes an action or a designer tab for this resource. */
+    hasExtensions?: boolean;
 }
 
 export interface DiagramTabContext extends DiagramTabScope {

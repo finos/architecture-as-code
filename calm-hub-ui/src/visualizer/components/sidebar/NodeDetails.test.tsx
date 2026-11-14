@@ -1,6 +1,8 @@
 import { ExtensionsContext } from '../../../extensions/ExtensionsContext.js';
 import { ExtensionResourceContext } from '../../../extensions/ExtensionResourceContext.js';
 import { ExtensionService } from '../../../service/extension-service.js';
+import { fakeExtensions } from '../../../test-support/fake-extensions.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -215,6 +217,16 @@ describe('node extension detail panels', () => {
         </ExtensionResourceContext.Provider></ExtensionsContext.Provider>);
         expect(await screen.findByRole('heading', { name: 'Panel' })).toBeInTheDocument();
         expect(call.mock.calls[0][2]).toEqual({ namespace: 'test', resource: 'architectures/1', version: '1.0.0', selectedElement: 'node-001' });
+    });
+    it('groups ten detail panels in one Extensions section, with only the first open', async () => {
+        const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+        render(<ExtensionsContext.Provider value={fakeExtensions(10, ['detail-panel'])}><ExtensionResourceContext.Provider value={{ namespace: 'test', resource: 'architectures/1', version: '1.0.0' }}>
+            <NodeDetails data={baseNode} storage={createMemoryStorage()} />
+        </ExtensionResourceContext.Provider></ExtensionsContext.Provider>);
+        expect(screen.getAllByText('Extensions')).toHaveLength(1);
+        expect(screen.getAllByTestId('extension-section')).toHaveLength(10);
+        expect(await screen.findByRole('heading', { name: 'detail-panel 1' })).toBeInTheDocument();
+        expect(call).toHaveBeenCalledTimes(1);
     });
     it('does not call a resource extension for a local file', () => {
         const call = vi.spyOn(ExtensionService.prototype, 'call');

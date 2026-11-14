@@ -58,7 +58,7 @@ public class ExtensionManifestLoader {
                     + "|Property name \".*\" does not match schema");
     private static final Pattern ADDITIONAL_PROPERTY = Pattern.compile("Property \".*\" does not match additional properties schema");
     private static final Set<String> GET_ONLY_POINTS = Set.of("screen", "designer-tab", "landing-card", "detail-panel");
-    /** The path parameters that the UI can fill for a designer tab (calm-hub-ui contributions.ts). */
+    /** The path parameters that the UI can fill for a designer tab (test resource extensions-test/designer-tab-params.json). */
     static final List<String> DESIGNER_TAB_PARAMS = List.of("namespace", "resourceType", "resourceId", "version",
             "selectedElement");
 

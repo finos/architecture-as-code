@@ -104,6 +104,12 @@ class TestExtensionManifestLoaderShould {
     }
 
     @Test
+    void accept_the_designer_tab_parameters_that_the_ui_fills() throws IOException {
+        JsonArray shared = new JsonArray(Files.readString(Path.of("src/test/resources/extensions-test/designer-tab-params.json")));
+        assertThat(ExtensionManifestLoader.DESIGNER_TAB_PARAMS, equalTo(shared.getList()));
+    }
+
+    @Test
     void read_a_valid_manifest_into_records() {
         ExtensionManifest manifest = loader.parse(valid().encode(), ID, "test");
 
