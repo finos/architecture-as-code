@@ -1,8 +1,10 @@
 # ADR 0010: Extension identity is a Hub-signed, request-bound assertion
 
-**Status**: Proposed. The proof of concept signs a 60-second RS256 token with
-`iss`, `sub`, `aud`, `iat` and `exp`, and publishes one key. The claims, key
-rotation and request binding below are not built.
+**Status**: Accepted. `ExtensionIdentitySigner` signs the assertion with all the
+claims below, including the `htm`, `htp` and `bdh` binding claims. It rotates keys
+through `calm.extensions.identity.public-key-locations` and publishes them at
+`GET /api/calm/auth/jwks`. The proxy that sends the assertion, and the audit entry
+for `jti`, come with [ADR 0011](0011-extension-proxy-request-handling.md).
 
 ## Context
 
@@ -74,5 +76,7 @@ token endpoint. It can come later, for the OIDC profiles only.
   extension this.
 - The `oidc` profile replaces `public.paths`, so each profile that sets
   `public.paths` must also list the JWKS path.
-- `smallrye-jwt-build` becomes a declared dependency. Signing in a native image
-  is not yet tested. The step-0 spike tests it.
+- Hub signs with the JDK (`java.security.Signature`), not with a JWT library such
+  as `smallrye-jwt-build`. A JWT library would have to work in a native image; the
+  JDK signature classes already do. The signer writes only the fixed header and
+  claims above, so a library adds little.
