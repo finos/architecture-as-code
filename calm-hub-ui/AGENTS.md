@@ -193,6 +193,12 @@ details drawer and `Drawer`. Do not add a second request. `Drawer` gives the ove
 edges read `useElementOverlays(id)`; do not add a type-specific badge. The decision callouts, the hover list and the
 Evaluations panel read control-evaluation fields, so they use only the view with the id `CONTROL_EVALUATION_VIEW_ID`.
 
+### Namespace configs
+
+`NamespaceConfigs` (`namespace-page/`) lists the namespace's configs (such as `c4-mapping`) under the type
+tabs, one group per type from `GET /api/calm/config-types`, with the default that applies to the namespace.
+Configs are not a `TypeInUI`: they have no tab, no count and no detail route. The list is read-only.
+
 ### Operator UI config
 
 `UiConfigProvider` (`components/ui-config/`) loads `GET /api/calm/ui/config` one time.
