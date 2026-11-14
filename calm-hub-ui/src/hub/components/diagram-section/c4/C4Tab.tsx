@@ -31,7 +31,7 @@ export function C4Tab({ architecture, namespace, architectureName, searchParams,
     const { mapping, source, error, loading } = useNamespaceC4Mapping(namespace, mappingService);
     const expanded = useDetailedArchitectures(architecture, service);
     const model = useMemo(
-        () => expanded && projectC4(expanded, mapping, { namespace, architectureName }),
+        () => expanded && mapping && projectC4(expanded, mapping, { namespace, architectureName }),
         [expanded, mapping, namespace, architectureName],
     );
     const requestedLevel = searchParams.get(C4_LEVEL_PARAM);
@@ -53,7 +53,15 @@ export function C4Tab({ architecture, namespace, architectureName, searchParams,
         [model, setTabParams],
     );
 
-    if (!model || !view) return <div className="p-6 text-sm">This tab shows architectures only.</div>;
+    if (error) {
+        return (
+            <div role="alert" className="m-6 p-4 rounded-lg border border-error bg-error/10 text-sm space-y-2 break-words">
+                <p>{error}</p>
+                <p>The C4 tab shows nothing until the C4 mapping of the namespace is valid.</p>
+            </div>
+        );
+    }
+    if (!model || !view || !mapping) return <div className="p-6 text-sm">This tab shows architectures only.</div>;
     if (loading) return <div className="p-6 text-sm opacity-70">Loading the C4 mapping…</div>;
 
     const guessed = [...model.elements.values()].filter((e) => e.source === 'structure').length;
@@ -74,11 +82,6 @@ export function C4Tab({ architecture, namespace, architectureName, searchParams,
                 onScope={(id) => setTabParams({ [C4_LEVEL_PARAM]: level, [C4_SCOPE_PARAM]: id })}
                 onOpen={open}
             />
-            {error && (
-                <div role="alert" className="alert alert-warning rounded-none py-1 text-xs">
-                    {error} The diagram uses the default C4 mapping.
-                </div>
-            )}
             <div className="flex-1 min-h-0 relative">
                 {empty ? (
                     <div className="p-6 text-sm opacity-70">
