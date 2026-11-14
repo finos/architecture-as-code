@@ -4,7 +4,7 @@ This module contains the TypeScript type definitions and interfaces for the Comm
 
 ## Module Structure
 
-The `calm-models` module is organized into three sub-modules:
+The `calm-models` module is organized into these sub-modules:
 
 ### 1. **types**
 A 1:1 mapping to the CALM schema definitions. These types directly represent the JSON schema structure of CALM documents and provide strict type safety for schema validation and parsing.
@@ -14,6 +14,9 @@ An internal business model built to allow for lazy loading of nested CALM docume
 
 ### 3. **canonical**
 A flattened data model used for templating. This represents CALM data in a simplified, template-friendly format that's optimized for rendering documentation and generating output files.
+
+### 4. **c4**
+The C4 model of an architecture, from the C4 mapping standard (finos/calm-schema#53). `resolveC4Mapping` resolves a mapping and its `extends` chain, `projectC4` gives each node a C4 kind, external reasons and conflicts, and `c4View` builds one diagram with relationships lifted to the elements it shows. It is for the CALM Hub C4 tab and the docify `c4-diagram` widget. The caller loads mappings and detailed architectures, so the module makes no network requests.
 
 ## What Should Be In This Module
 
