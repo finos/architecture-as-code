@@ -10,30 +10,43 @@ on:
         paths:
             - 'calm-hub/**'
             - '!calm-hub/ec2/**'
+            - 'calm-hub-ui/**'
             - 'package.json'
+            - 'package-lock.json'
+            - 'calm-models/**'
             - 'scripts/copy-calm-schemas.mjs'
             - '.github/workflows/docker-publish-calm-hub-readonly.yml'
-    # Manual trigger from GitHub UI (allows custom tag)
+    # Rebuilds the main tags. Version tags come only from automated-release-calm-hub.yml.
     workflow_dispatch:
+    workflow_call:
         inputs:
-            tag:
-                description: 'Image tag (default: latest-read-only-static)'
-                required: false
-                default: 'latest-read-only-static'
+            version:
+                description: 'Release version. Pushes the version and latest tags, never the main tags'
+                required: true
+                type: string
+            ref:
+                description: 'Commit to build'
+                required: true
+                type: string
 
+# A release has its own group, so that a queued main build can never replace it.
 concurrency:
-    group: docker-publish-calm-hub-readonly
+    group: docker-publish-calm-hub-readonly-${{ inputs.version || 'main' }}
     cancel-in-progress: false
 
 jobs:
     build-and-push:
         name: Build and Push Read-Only Static Docker Image
+        # A manual run from another branch must not push the main tags.
+        if: inputs.version != '' || github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
 
         steps:
             # Step 1: Checkout the full repository (calm/ schemas are outside calm-hub/)
             - name: Checkout
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+              with:
+                  ref: ${{ inputs.ref }}
 
             # Step 2: Set up JDK
             - name: Set up JDK
@@ -57,10 +70,6 @@ jobs:
             - name: Build and stage seed content
               run: bash calm-hub/build-readonly-image.sh --no-docker
 
-            - name: Resolve CALM Hub version
-              id: version
-              working-directory: calm-hub
-              run: echo "value=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> "$GITHUB_OUTPUT"
 
             # Step 5: Set up Docker Buildx for multi-architecture builds
             - name: Set up Docker Buildx
@@ -73,17 +82,30 @@ jobs:
                   username: ${{ secrets.DOCKER_USERNAME }}
                   password: ${{ secrets.DOCKER_PASSWORD }}
 
+            # A version tag is pushed once, so that each version is one build of one commit.
+            - name: Check the release version
+              id: release
+              if: inputs.version != ''
+              working-directory: calm-hub
+              env:
+                  VERSION: ${{ inputs.version }}
+                  IMAGE: ${{ secrets.DOCKER_USERNAME }}/calm-hub:${{ inputs.version }}-read-only-static
+              run: bash ../scripts/check-calm-hub-release.sh "$VERSION" "$IMAGE" >> "$GITHUB_OUTPUT"
+
             # Step 7: Extract metadata for Docker
             - name: Extract Docker metadata
               id: meta
               uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
               with:
+                  context: git
                   images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
+                  flavor: latest=false
                   tags: |
-                      type=raw,value=${{ github.event.inputs.tag || 'latest-read-only-static' }}
-                      type=raw,value=${{ steps.version.outputs.value }}-read-only-static
-                      type=sha,format=short,suffix=-read-only-static
-                      type=ref,event=tag,suffix=-read-only-static
+                      type=raw,value=main-read-only-static,enable=${{ inputs.version == '' }}
+                      type=sha,format=short,suffix=-read-only-static,enable=${{ inputs.version == '' }}
+                      type=raw,value=${{ inputs.version }}-read-only-static,enable=${{ inputs.version != '' }}
+                      type=raw,value=${{ steps.release.outputs.minor }}-read-only-static,enable=${{ inputs.version != '' }}
+                      type=raw,value=latest-read-only-static,enable=${{ inputs.version != '' }}
 
             # Step 8: Smoke test — build a local linux/amd64 image and verify the API
             # contract before pushing to the registry.  The image is self-contained

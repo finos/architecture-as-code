@@ -274,7 +274,8 @@ Run `npm run commit` for an interactive prompt. Stage your changes first.
 Type and scope drive the automated release, so neither is cosmetic: `cli/release.config.mjs` releases
 on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule
 also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. `calm-server/release.config.mjs`
-does the same for its own scopes. The VS Code extension releases on the changes that touched
+does the same for its own scopes. `calm-hub/release.config.mjs` releases on `calm-hub`, `calm-hub-ui`
+and `deps`, but only for the commits that changed what goes into the image. The VS Code extension releases on the changes that touched
 `calm-plugins/vscode` or `calm-diagram/src/packs`, whatever their scope (see
 [calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md#releasing)). Check these files before
 assuming a commit is release-neutral. A

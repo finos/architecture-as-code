@@ -189,6 +189,9 @@ The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in 
 ## Docker Hub Images
 
 All images are published to Docker Hub at [finos/calm-hub](https://hub.docker.com/r/finos/calm-hub/tags).
+The `latest` tags point to the most recent release. Each release also has its own tags, for example
+`0.8.0` and `0.8.0-native`, which never change. The changes in each release are in the
+[CALM Hub changelog](https://github.com/finos/architecture-as-code/blob/main/calm-hub/CHANGELOG.md).
 
 ```bash
 docker pull finos/calm-hub:latest

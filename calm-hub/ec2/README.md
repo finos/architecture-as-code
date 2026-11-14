@@ -1,6 +1,6 @@
 # CALM Hub — EC2 deployment
 
-Runs [`finos/calm-hub:latest-read-only-native`](https://hub.docker.com/r/finos/calm-hub) — the
+Runs [`finos/calm-hub:main-read-only-native`](https://hub.docker.com/r/finos/calm-hub) — the
 self-contained CALM Hub image (NitriteDB baked in, no external database, no auth) — on a single
 EC2 host, auto-updated by [Watchtower](https://github.com/nicholas-fedor/watchtower) whenever a new
 image is published to Docker Hub.
@@ -92,9 +92,9 @@ as Quarkus finishes booting.
 
 ## Pinning / rolling back a version
 
-Every CI run of
-[`docker-publish-calm-hub-readonly-native.yml`](../../.github/workflows/docker-publish-calm-hub-readonly-native.yml)
-publishes both `latest-read-only-native` and an immutable `sha-<short>-read-only-native` tag. To
+Each merge to `main` publishes `main-read-only-native` and a `sha-<short>-read-only-native` tag,
+from [`docker-publish-calm-hub-readonly-native.yml`](../../.github/workflows/docker-publish-calm-hub-readonly-native.yml).
+Each CALM Hub release publishes `<version>-read-only-native`. A sha or version tag never changes. To
 pin to a specific known-good build (or roll back a bad one):
 
 ```bash
@@ -106,8 +106,8 @@ sudo docker compose up -d
 (Edit the existing `CALM_HUB_IMAGE` line rather than appending a new one — `.env.example` already
 defines it, so `echo ... >> .env` would leave two conflicting lines in the file.)
 
-A pinned sha tag never changes upstream, so Watchtower has nothing new to pull and effectively
-stops auto-updating `calm-hub` until you set `CALM_HUB_IMAGE` back to `latest-read-only-native` in
+Watchtower has nothing new to pull for a pinned tag, so it stops auto-updating `calm-hub` until
+you set `CALM_HUB_IMAGE` back to `main-read-only-native` in
 `.env` (or delete `.env` to use the default).
 
 ## Notifications (optional)
@@ -145,7 +145,7 @@ sudo docker compose down
 
 - TLS is terminated upstream (ALB / CloudFront / Cloudflare, etc.) — this stack serves plain HTTP
   on port 80. There is no TLS termination on the box itself.
-- The `latest-read-only-native` image is self-contained: no external database or auth provider is
+- The `main-read-only-native` image is self-contained: no external database or auth provider is
   required.
 - The public URL of the Hub is `https://hub.calm.finos.org`. The Hub uses `CALM_HUB_BASE_URL` as the
   base of the `$id` of each name-based document that it serves. If the Hub has a different public

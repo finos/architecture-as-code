@@ -12,6 +12,10 @@ The provided `docker-compose` file exposes four profiles, one per published imag
 | `readonly-static` | `finos/calm-hub:latest-read-only-static` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
 | `readonly-native` | `finos/calm-hub:latest-read-only-native` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
 
+The `latest` tags are the most recent release (see [CHANGELOG.md](CHANGELOG.md)). To use a fixed
+release, replace `latest` with its version, for example `0.8.0-native`. To try unreleased changes,
+replace `latest` with `main`.
+
 ```shell
 cd deploy
 
