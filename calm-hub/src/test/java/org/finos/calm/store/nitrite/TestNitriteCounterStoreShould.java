@@ -175,6 +175,17 @@ public class TestNitriteCounterStoreShould {
     }
 
     @Test
+    public void testGetNextConfigSequenceValue() {
+        Document countersDoc = mock(Document.class);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.firstOrNull()).thenReturn(countersDoc);
+        when(countersDoc.get("config_counter", Integer.class)).thenReturn(2);
+
+        assertThat(counterStore.getNextConfigSequenceValue(), is(3));
+        verify(countersDoc).put("config_counter", 3);
+    }
+
+    @Test
     public void testInitializeDocumentCounter() {
         DocumentCursor initializationCursor = mock(DocumentCursor.class);
         Document initializedCounters = mock(Document.class);

@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.ConfigStore;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.InterfaceStore;
@@ -35,6 +36,7 @@ public class NamespaceContentService {
     private final DecoratorStore decoratorStore;
     private final LayoutStore layoutStore;
     private final PatternLayoutStore patternLayoutStore;
+    private final ConfigStore configStore;
 
     @Inject
     @SuppressWarnings("java:S107") // emptiness check legitimately needs every namespace-scoped store
@@ -47,7 +49,8 @@ public class NamespaceContentService {
                                    TimelineStore timelineStore,
                                    DecoratorStore decoratorStore,
                                    LayoutStore layoutStore,
-                                   PatternLayoutStore patternLayoutStore) {
+                                   PatternLayoutStore patternLayoutStore,
+                                   ConfigStore configStore) {
         this.architectureStore = architectureStore;
         this.patternStore = patternStore;
         this.flowStore = flowStore;
@@ -58,12 +61,13 @@ public class NamespaceContentService {
         this.decoratorStore = decoratorStore;
         this.layoutStore = layoutStore;
         this.patternLayoutStore = patternLayoutStore;
+        this.configStore = configStore;
     }
 
     /**
      * @param namespace the namespace to check
      * @return true if the namespace holds any architecture, pattern, flow, standard, adr,
-     *         interface, timeline, decorator, or saved architecture/pattern layout
+     *         interface, timeline, decorator, saved architecture/pattern layout, config or config default
      */
     public boolean hasContent(String namespace) {
         return isNotEmpty(() -> architectureStore.getArchitecturesForNamespace(namespace))
@@ -85,7 +89,9 @@ public class NamespaceContentService {
                 // PatternLayoutResource.saveLayout rejects a PUT against a pattern id that
                 // doesn't exist, so this never fires while the pattern branch above would also
                 // be empty today, but PatternResource exposes no DELETE either.
-                || isNotEmpty(() -> patternLayoutStore.getPatternIdsWithLayoutForNamespace(namespace));
+                || isNotEmpty(() -> patternLayoutStore.getPatternIdsWithLayoutForNamespace(namespace))
+                // A child namespace inherits this namespace's defaults, so they must go before it does.
+                || configStore.hasContent(namespace);
     }
 
     /**

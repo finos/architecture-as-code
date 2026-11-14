@@ -3,6 +3,8 @@ package org.finos.calm.resources;
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.SchemaValidationLimits;
+import org.finos.calm.domain.configs.ConfigType;
+import org.finos.calm.domain.exception.ConfigSchemaValidationException;
 import org.finos.calm.domain.exception.DecoratorKeyRefusedException;
 import org.finos.calm.domain.exception.DecoratorSchemaValidationException;
 
@@ -93,6 +95,49 @@ public class CalmResourceErrorResponses {
             body.put("moreErrors", exception.getMoreErrors());
         }
         return Response.status(Response.Status.BAD_REQUEST).entity(body).build();
+    }
+
+    // The errors can quote config values, so each one is sanitized.
+    public static Response configSchemaValidationResponse(ConfigSchemaValidationException exception) {
+        List<Map<String, String>> errors = exception.getErrors().stream()
+                .map(error -> Map.of(
+                        "location", ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(error.location()),
+                        "error", ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(error.error())))
+                .toList();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("error", "Config does not match the schema of its type");
+        body.put("errors", errors);
+        if (exception.getMoreErrors() > 0) {
+            body.put("moreErrors", exception.getMoreErrors());
+        }
+        return Response.status(Response.Status.BAD_REQUEST).entity(body).build();
+    }
+
+    public static Response unknownConfigTypeResponse() {
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Unknown config type. GET /api/calm/config-types lists the config types")
+                .build();
+    }
+
+    public static Response configNotFoundResponse(String namespace, int id) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Config " + id + " does not exist in namespace: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
+                .build();
+    }
+
+    public static Response configVersionNotFoundResponse(int id, String version) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Config " + id + " has no version "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(version))
+                .build();
+    }
+
+    public static Response noConfigDefaultResponse(String namespace, ConfigType type) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("No " + type.getName() + " default for namespace: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
+                .build();
     }
 
     /**

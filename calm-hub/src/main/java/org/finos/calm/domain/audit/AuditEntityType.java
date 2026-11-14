@@ -14,6 +14,8 @@ public enum AuditEntityType {
     INTERFACE,
     STANDARD,
     DOCUMENT,
+    CONFIG,
+    CONFIG_DEFAULT,
     TIMELINE,
     USER_ACCESS,
     SCHEMA,

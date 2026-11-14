@@ -32,3 +32,4 @@ assuming anything here reflects current behaviour.
 | [0013](0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md) | Extension UI is tiered, with Hub-rendered blocks by default | Proposed |
 | [0014](0014-extension-commands-in-the-cli-and-mcp.md) | Extension commands in the CLI and MCP | Proposed |
 | [0018](0018-personal-namespaces.md) | Personal namespaces | Accepted |
+| [0019](0019-config-type-registry-and-namespace-defaults.md) | Config type registry and namespace defaults | Implemented |

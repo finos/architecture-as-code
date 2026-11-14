@@ -28,6 +28,7 @@ import org.finos.calm.resources.AdrResource;
 import org.finos.calm.resources.ArchitectureResource;
 import org.finos.calm.resources.ControlResource;
 import org.finos.calm.resources.DecoratorResource;
+import org.finos.calm.resources.ConfigResource;
 import org.finos.calm.resources.DocumentResource;
 import org.finos.calm.resources.DomainResource;
 import org.finos.calm.resources.DomainUserAccessResource;
@@ -283,6 +284,44 @@ public class TestAuditRequestFilterShould {
         assertThat(entry.getEntityId(), is("5"));
         assertThat(entry.getVersion(), is("1.0.1"));
         assertThat(entry.getAction(), is(AuditAction.UPDATE));
+    }
+
+    @Test
+    void resolve_config_create_from_location() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) ConfigResource.class);
+        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(ConfigResource.class, "createConfig"));
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        pathParams.putSingle("configType", "c4-mapping");
+        ContainerResponseContext responseContext =
+                mockResponse(201, "/api/calm/namespaces/finos/configs/c4-mapping/4/versions/1.0.0");
+
+        filter.filter(mockRequest("POST", pathParams), responseContext);
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.CONFIG));
+        assertThat(entry.getAction(), is(AuditAction.CREATE));
+        assertThat(entry.getEntityId(), is("4"));
+        assertThat(entry.getVersion(), is("1.0.0"));
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"PUT,setDefault,200,UPDATE", "DELETE,deleteDefault,204,DELETE"})
+    void resolve_a_config_default_write_with_the_config_type_as_its_id(String method, String resourceMethod, int status,
+                                                                       AuditAction action) {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) ConfigResource.class);
+        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(ConfigResource.class, resourceMethod));
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "org.ab");
+        pathParams.putSingle("configType", "c4-mapping");
+
+        filter.filter(mockRequest(method, pathParams), mockResponse(status, null));
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.CONFIG_DEFAULT));
+        assertThat(entry.getAction(), is(action));
+        assertThat(entry.getNamespace(), is("org.ab"));
+        assertThat(entry.getEntityId(), is("c4-mapping"));
     }
 
     @Test
