@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionContributions, resourceExtensions, screenPath, selectionActions } from './contributions.js';
+import { actionContributions, resourceExtensions, screenPath, selectionActions, slotContributions } from './contributions.js';
 import { fakeExtension } from '../test-support/fake-extensions.js';
 
 describe('extension contributions', () => {
@@ -53,6 +53,22 @@ describe('extension contributions', () => {
         const extension = fakeExtension(1, ['action']);
         const scoped = { ...extension, routes: extension.routes.map((r) => (r.id === 'run' ? { ...r, path: '/scan/{version}' } : r)) };
         expect(resourceExtensions([scoped], {})).toEqual([]);
+    });
+
+    it('keeps a detail panel the context can fill and one without its route, and drops one it cannot fill', () => {
+        const extension = {
+            ...fakeExtension(1),
+            routes: [{ id: 'element', method: 'GET' as const, path: '/elements/{selectedElement}', scope: 'authenticated', readOnly: true }],
+            contributes: {
+                'detail-panel': [
+                    { id: 'element', title: 'Element', route: 'element' },
+                    { id: 'missing', title: 'Missing', route: 'gone' },
+                ],
+            },
+        };
+        expect(slotContributions(extension, 'detail-panel', { selectedElement: 'web-app' }).map((c) => c.id)).toEqual(['element', 'missing']);
+        expect(slotContributions(extension, 'detail-panel', {}).map((c) => c.id)).toEqual(['missing']);
+        expect(slotContributions(extension, 'detail-panel', { selectedElement: 'a/b' }).map((c) => c.id)).toEqual(['missing']);
     });
 
     it('builds an encoded screen path', () => {

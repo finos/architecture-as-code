@@ -25,6 +25,20 @@ export function selectionActions(extension: ExtensionSummary, context: Extension
     );
 }
 
+/**
+ * The detail panels or landing cards for this context. One whose path needs a value that the context does not give is
+ * left out. One without its route stays, so that its slot says so.
+ */
+export function slotContributions(
+    extension: ExtensionSummary,
+    point: 'detail-panel' | 'landing-card',
+    context: ExtensionContext
+): ExtensionContribution[] {
+    return (extension.contributes[point] ?? []).filter(
+        (contribution) => !extension.routes.some((route) => route.id === contribution.route) || canFill(extension, contribution, context)
+    );
+}
+
 /** The path parameters that a resource context can give. Keep in step with DESIGNER_TAB_PARAMS in ExtensionManifestLoader. */
 const TAB_PATH_PARAMETERS: ReadonlySet<string> = new Set(['namespace', 'resourceType', 'resourceId', 'version', 'selectedElement']);
 

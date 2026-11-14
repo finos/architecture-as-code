@@ -41,6 +41,21 @@ describe('ExtensionCard', () => {
         expect(screen.queryByText('Not on the card')).not.toBeInTheDocument();
     });
 
+    it('uses the first landing card whose path needs no context value', async () => {
+        const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [{ type: 'alert', text: 'All clear' }] });
+        const extension = fakeExtension(1);
+        renderCard({
+            ...extension,
+            routes: [...extension.routes, { id: 'scoped', method: 'GET', path: '/namespaces/{namespace}/summary', scope: 'authenticated', readOnly: true }],
+            contributes: {
+                ...extension.contributes,
+                'landing-card': [{ id: 'scoped', title: 'Scoped', route: 'scoped' }, ...extension.contributes['landing-card']!],
+            },
+        });
+        expect(await screen.findByText('All clear')).toBeInTheDocument();
+        expect(call.mock.calls.map(([, route]) => route.id)).toEqual(['data']);
+    });
+
     it('shows an alert on one line when there is no stats block', async () => {
         vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [{ type: 'alert', text: 'Rolling out' }] });
         renderCard(fakeExtension(1));

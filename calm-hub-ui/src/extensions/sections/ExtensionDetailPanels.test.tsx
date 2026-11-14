@@ -46,6 +46,17 @@ describe('ExtensionDetailPanels', () => {
         expect(JSON.parse(storage.getItem(DETAIL_PANEL_SECTIONS_KEY)!)).toEqual({ 'ext-4': true });
     });
 
+    it('leaves out an extension whose detail panel needs a value that the context does not give', async () => {
+        const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+        const [first, second] = fakeExtensions(2, ['detail-panel']);
+        const needsService = { ...first, routes: [{ ...first.routes[0], path: '/services/{service}' }] };
+        renderPanels([needsService, second], createMemoryStorage());
+
+        expect(screen.queryByRole('button', { name: /^Extension 1$/ })).not.toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'detail-panel 2' })).toBeInTheDocument();
+        expect(call.mock.calls.map(([id]) => id)).toEqual(['ext-2']);
+    });
+
     it('shows nothing without a detail panel', () => {
         const { container } = renderPanels(fakeExtensions(2, ['screen']), createMemoryStorage());
         expect(container).toBeEmptyDOMElement();
