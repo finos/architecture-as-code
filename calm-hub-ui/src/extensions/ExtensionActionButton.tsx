@@ -16,6 +16,9 @@ interface ExtensionActionButtonProps {
 const contextKey = ({ namespace, resource, resourceType, resourceId, version, selectedElement }: ExtensionContext) =>
     JSON.stringify([namespace, resource, resourceType, resourceId, version, selectedElement]);
 
+const targetName = ({ selectedElement, resource, namespace, version }: ExtensionContext) =>
+    [namespace, resource, version, selectedElement].filter(Boolean).join(' ') || 'previous selection';
+
 export function ExtensionActionButton({ service, extension, contribution, route, context, placement }: ExtensionActionButtonProps) {
     const runs = useActionRuns();
     const runKey = actionRunKey(extension.id, contribution.id);
@@ -29,10 +32,11 @@ export function ExtensionActionButton({ service, extension, contribution, route,
     useEffect(() => () => readRequest.current?.abort(), []);
 
     const key = contextKey(context);
-    // A result is for one context: a change of context clears it, so it cannot show again on a return to that context.
+    // A read's result is for one context: a change of context clears it, so it cannot show again on a return to that
+    // context. A write's result stays until the next run, because the user must know whether the write happened.
     useEffect(() => {
-        if (outcome && outcome.for !== key) runs.clearOutcome(outcomeKey);
-    }, [outcome, key, runs, outcomeKey]);
+        if (route.readOnly && outcome && outcome.for !== key) runs.clearOutcome(outcomeKey);
+    }, [route.readOnly, outcome, key, runs, outcomeKey]);
 
     const run = async (target: ExtensionContext) => {
         if (runs.isRunning(runKey)) return;
@@ -47,7 +51,8 @@ export function ExtensionActionButton({ service, extension, contribution, route,
         } catch {
             ok = false;
         } finally {
-            runs.finish(runKey, outcomeKey, controller?.signal.aborted ? undefined : { for: contextKey(target), ok });
+            const result = { for: contextKey(target), ok, target: route.readOnly ? undefined : targetName(target) };
+            runs.finish(runKey, outcomeKey, controller?.signal.aborted ? undefined : result);
         }
     };
 
@@ -64,7 +69,8 @@ export function ExtensionActionButton({ service, extension, contribution, route,
         setPending(undefined);
     };
 
-    const shown = outcome?.for === key ? outcome : undefined;
+    const shown = outcome?.for === key || outcome?.target ? outcome : undefined;
+    const elsewhere = shown && shown.for !== key ? ` (${shown.target})` : '';
     return (
         <div>
             {/* aria-disabled, not disabled: a disabled button loses focus, and focus goes back to it after the dialog. */}
@@ -91,10 +97,10 @@ export function ExtensionActionButton({ service, extension, contribution, route,
                     onCancel={closeDialog}
                 />
             )}
-            {shown?.ok === false && <p role="alert">Extension request failed.</p>}
+            {shown?.ok === false && <p role="alert">Extension request failed{elsewhere}.</p>}
             {/* Always in the page: a screen reader may not read a live region that is added with its text. */}
             <p role="status" className={`text-xs ${runningHere ? 'text-base-content/60' : 'text-success'}`}>
-                {runningHere ? `${contribution.title}: running…` : shown?.ok ? `${contribution.title}: done.` : ''}
+                {runningHere ? `${contribution.title}: running…` : shown?.ok ? `${contribution.title}: done${elsewhere}.` : ''}
             </p>
         </div>
     );

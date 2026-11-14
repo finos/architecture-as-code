@@ -301,6 +301,43 @@ describe('ExtensionSlot actions', () => {
         expect(other.getByRole('button', { name: 'Summary' })).toHaveAttribute('aria-disabled', 'false');
     });
 
+    it('keeps the failure of a confirmed write when the selection changes while it runs', async () => {
+        let fail: (error: Error) => void = () => {};
+        vi.spyOn(ExtensionService.prototype, 'call').mockReturnValue(new Promise((_, reject) => (fail = reject)));
+        const at = (selectedElement: string) => (
+            <ExtensionSlot action placement="test" extension={writeExtension} contribution={contribution} context={{ ...target, selectedElement }} />
+        );
+        const view = render(at('node-a'));
+        fireEvent.click(screen.getByRole('button', { name: 'Summary' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+
+        view.rerender(at('node-b'));
+        await act(async () => fail(new Error('502')));
+        expect(screen.getByRole('alert')).toHaveTextContent('Extension request failed (finos architecture/trading 1.0.0 node-a).');
+
+        view.rerender(at('node-a'));
+        expect(screen.getByRole('alert')).toHaveTextContent('Extension request failed.');
+    });
+
+    it('clears the result of a write only when it runs again', async () => {
+        const spy = vi.spyOn(ExtensionService.prototype, 'call').mockRejectedValueOnce(new Error()).mockResolvedValue(undefined);
+        const at = (version: string) => (
+            <ExtensionSlot action placement="test" extension={writeExtension} contribution={contribution} context={{ version }} />
+        );
+        const view = render(at('1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Summary' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('failed');
+
+        view.rerender(at('2'));
+        expect(screen.getByRole('alert')).toHaveTextContent('Extension request failed (1).');
+        fireEvent.click(screen.getByRole('button', { name: 'Summary' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Run' }));
+        await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+        expect(await screen.findByRole('status')).toHaveTextContent('Summary: done.');
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
     it('says when an action is done, until the context changes', async () => {
         vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue(undefined);
         const view = render(<ExtensionSlot action placement="test" extension={extension} contribution={contribution} context={{ version: '1' }} />);

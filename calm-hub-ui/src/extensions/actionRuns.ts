@@ -4,6 +4,8 @@ export interface ActionOutcome {
     /** The key of the context the call was for. */
     for: string;
     ok: boolean;
+    /** For a write: what it ran on, so its result can still show, and say so, after the context changes. */
+    target?: string;
 }
 
 /**

@@ -178,12 +178,14 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
         breadcrumbs,
         onDisplayNameChange,
         onDecoratorsChange,
+        onDroppedFileChange,
     }: {
         data: { id?: string };
         onItemSelect?: (item: { data: unknown }) => void;
         breadcrumbs?: unknown[];
         onDisplayNameChange?: (name: string | undefined) => void;
         onDecoratorsChange?: (decorators: unknown[]) => void;
+        onDroppedFileChange?: (dropped: boolean) => void;
     }) => {
         const { onNavigateToDetailedArch } = useDiagramActions();
         resourceContexts.push(useContext(ExtensionResourceContext));
@@ -216,6 +218,12 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
                 nodes loaded by `loadArchitectureWithNodes`, so Hub's index resolution
                 and the displayed node name line up). `select-edge` selects a
                 relationship (no `node-type`) to exercise the node-only degradation. */}
+            <button data-testid="drop-file" onClick={() => onDroppedFileChange?.(true)}>
+                drop file
+            </button>
+            <button data-testid="lose-dropped-file" onClick={() => onDroppedFileChange?.(false)}>
+                lose dropped file
+            </button>
             <button
                 data-testid="select-node"
                 onClick={() =>
@@ -965,6 +973,26 @@ describe('Hub', () => {
             fireEvent.click(screen.getByTestId('select-node'));
             expect(resourceContexts.length).toBeGreaterThan(renders);
             expect(resourceContexts.at(-1)).toBe(before);
+        });
+
+        it('clears a node of a dropped file when the file goes away', () => {
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('drop-file'));
+            expect(resourceContexts.at(-1)).toBeNull();
+            fireEvent.click(screen.getByTestId('select-node'));
+            expect(screen.getByText('Node One')).toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('lose-dropped-file'));
+            expect(resourceContexts.at(-1)).toMatchObject({ namespace: 'test-namespace' });
+            expect(screen.queryByText('Node One')).not.toBeInTheDocument();
+        });
+
+        it('keeps a node of the architecture when no file was dropped', () => {
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('select-node'));
+            fireEvent.click(screen.getByTestId('lose-dropped-file'));
+            expect(screen.getByText('Node One')).toBeInTheDocument();
         });
 
         it('gives a new context when the resource changes', () => {

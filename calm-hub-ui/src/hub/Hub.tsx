@@ -69,6 +69,14 @@ export default function Hub() {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
     const [showsDroppedFile, setShowsDroppedFile] = useState(false);
+    // The selection can be a node of the dropped file, so it goes with the file. Set together, so that no render gives
+    // extensions that node with the loaded architecture's context.
+    const showsDroppedFileRef = useRef(false);
+    const handleDroppedFileChange = useCallback((dropped: boolean) => {
+        if (showsDroppedFileRef.current && !dropped) setSelectedItem(null);
+        showsDroppedFileRef.current = dropped;
+        setShowsDroppedFile(dropped);
+    }, []);
     // Reported by DiagramSection, which fetches them, for the details drawer.
     const [decorators, setDecorators] = useState<Decorator[]>([]);
     // A detail-route load rejected (missing resource, dangling reference). Cleared
@@ -463,7 +471,7 @@ export default function Hub() {
             breadcrumbs={breadcrumbs}
             onDisplayNameChange={handleDisplayNameChange}
             onDecoratorsChange={setDecorators}
-            onDroppedFileChange={setShowsDroppedFile}
+            onDroppedFileChange={handleDroppedFileChange}
         />
     ) : (
         <DocumentDetailSection data={data} />

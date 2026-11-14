@@ -76,6 +76,29 @@ it('shows actions only when their route context is available', () => {
     expect(screen.getByRole('button', { name: 'Summary' })).toBeInTheDocument();
 });
 
+it.each(['landing-card', 'detail-panel'] as const)('leaves out a %s whose route context is not available', (point) => {
+    const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+    const scoped = { ...extension, routes: [{ ...extension.routes[0], path: '/summary/{namespace}' }] };
+    render(
+        <ExtensionsContext.Provider value={[scoped]}>
+            <ExtensionPoints point={point} placement="test" />
+        </ExtensionsContext.Provider>
+    );
+    expect(screen.queryByRole('heading', { name: 'Summary' })).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(call).not.toHaveBeenCalled();
+});
+
+it('still shows a slot whose route is missing, so the failure is visible', () => {
+    const broken = { ...extension, routes: [] };
+    render(
+        <ExtensionsContext.Provider value={[broken]}>
+            <ExtensionPoints point="landing-card" placement="test" />
+        </ExtensionsContext.Provider>
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('route unavailable');
+});
+
 it('passes the resource and selected element from a registered designer tab', async () => {
     const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
     const tab = extensionTabs([extension])[0];

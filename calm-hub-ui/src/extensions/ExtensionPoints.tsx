@@ -11,15 +11,15 @@ interface ExtensionPointsProps {
     placement: string;
 }
 
-/** Each contribution to `point`. An action whose path needs a value the context does not give is left out. */
+/** Each contribution to `point`. A contribution whose path needs a value the context does not give is left out. */
 export function ExtensionPoints({ point, context, placement }: ExtensionPointsProps) {
     const extensions = useExtensions();
     return extensions.flatMap((extension) =>
         (extension.contributes[point] ?? [])
             .filter((contribution) => {
-                if (point !== 'action') return true;
                 const route = extension.routes.find((entry) => entry.id === contribution.route);
-                if (!route) return false;
+                // A slot without its route says so; an action without one is left out.
+                if (!route) return point !== 'action';
                 try {
                     extensionRequest(extension.id, route, context ?? {});
                     return true;
