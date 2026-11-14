@@ -152,7 +152,7 @@ The **C4** tab shows the architecture as a C4 context, container, component or d
 ![The C4 tab at container level](/img/hub-ui/c4-view.png)
 
 * **Level and scope:** select a level. At container and component level, select the system or container in scope. Click an element to open the next level down. The next level is a `composed-of` child, or the detailed architecture of the node. The breadcrumb goes back up.
-* **Mapping:** the badge shows the C4 mapping in use. The tab uses the `c4-mapping` default config of the namespace, or of its nearest parent namespace. When no namespace sets one, it uses the default mapping of the standard.
+* **Mapping:** the badge shows the C4 mapping in use. The tab uses the `c4-mapping` default config of the namespace, or of its nearest parent namespace. When no namespace sets one, it uses the default mapping of the standard. When the mapping, or a mapping that it extends, does not load or is not valid, the tab shows the error and no diagram.
 * **Guessed elements:** an element with a dashed border has a node type that the mapping does not name. Its kind comes from the structure of the architecture. Add the node type to the mapping to fix the kind.
 * **External elements:** a grey element is outside the enterprise or owned by another team. Its chip gives the reason.
 * **Notes:** the panel at the bottom right lists the conflicts with the standard, and why an element shows at a different kind than its mapping.
