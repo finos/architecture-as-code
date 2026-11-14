@@ -139,6 +139,13 @@
             <artifactId>vertx-json-schema</artifactId>
         </dependency>
 
+        <!-- Matches MCP tool input against schema patterns in linear time. -->
+        <dependency>
+            <groupId>com.google.re2j</groupId>
+            <artifactId>re2j</artifactId>
+            <version>1.8</version>
+        </dependency>
+
         <!-- MCP Server -->
         <dependency>
             <groupId>io.quarkiverse.mcp</groupId>
