@@ -2509,12 +2509,12 @@ describe('hub-commands', () => {
                 vi.mocked(mockClient.getConfigVersions).mockResolvedValue(['1.0.0']);
                 vi.mocked(mockClient.getConfigVersion).mockResolvedValue({ nesting: 'demote', 'node-types': { 'aws:lambda': 'container' }, 'unique-id': 'acme' });
 
-                await runPushConfig({ ...pushOptions, setDefault: true });
+                await runPushConfig({ ...pushOptions, calmHubOptions: { calmHubUrl: 'http://hub/' }, setDefault: true });
 
                 expect(mockClient.createConfigVersion).not.toHaveBeenCalled();
                 expect(mockClient.setNamespaceDefaultConfig).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.0.0');
                 expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({
-                    status: 'skipped', version: '1.0.0', location: `${base}/3/versions/1.0.0`, default: true
+                    status: 'skipped', version: '1.0.0', location: `http://hub${base}/3/versions/1.0.0`, default: true
                 }));
             });
 

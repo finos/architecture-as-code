@@ -1193,8 +1193,9 @@ export interface ConfigPushResult {
     default: boolean;
 }
 
-function configVersionLocation(namespace: string, configType: string, id: number, version: string): string {
-    return `/api/calm/namespaces/${namespace}/configs/${configType}/${id}/versions/${version}`;
+// Matches the absolute Location header that Hub returns for a created version.
+function configVersionLocation(calmHubUrl: string, namespace: string, configType: string, id: number, version: string): string {
+    return `${calmHubUrl.replace(/\/+$/, '')}/api/calm/namespaces/${namespace}/configs/${configType}/${id}/versions/${version}`;
 }
 
 /**
@@ -1237,7 +1238,7 @@ export async function runPushConfig(options: PushConfigOptions): Promise<void> {
             const latestVersion = versions[versions.length - 1];
             const latest = await client.getConfigVersion(namespace, configType, id, latestVersion);
             if (canonicalEqual(config, latest)) {
-                result = { status: 'skipped', namespace, configType, id, name, version: latestVersion, location: configVersionLocation(namespace, configType, id, latestVersion) };
+                result = { status: 'skipped', namespace, configType, id, name, version: latestVersion, location: configVersionLocation(calmHubOptions.calmHubUrl!, namespace, configType, id, latestVersion) };
             } else {
                 const version = computeSemVerBump(latestVersion, options.changeType ?? 'PATCH');
                 const location = await client.createConfigVersion(namespace, configType, id, version, request);
