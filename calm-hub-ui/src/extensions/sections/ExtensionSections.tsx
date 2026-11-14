@@ -42,7 +42,7 @@ export function ExtensionSections({ sections, storageKey, storage, compact, head
                                 type="button"
                                 className={`w-full flex items-center gap-2 text-left hover:bg-base-200 ${compact ? 'px-3 py-2 text-sm' : 'px-4 py-3'}`}
                                 aria-expanded={open}
-                                aria-controls={bodyId}
+                                aria-controls={open ? bodyId : undefined}
                                 onClick={() => setSectionOpen(section.id, !open)}
                             >
                                 <Chevron aria-hidden="true" className="shrink-0" />

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { actionContributions, resourceExtensions, screenPath, selectionActions, slotContributions } from './contributions.js';
+import { actionContributions, resourceExtensions, screenPath, selectionActions, slotContributions, TAB_PATH_PARAMETERS } from './contributions.js';
+import DESIGNER_TAB_PARAMS from '../../../calm-hub/src/test/resources/extensions-test/designer-tab-params.json' with { type: 'json' };
 import { fakeExtension } from '../test-support/fake-extensions.js';
 
 describe('extension contributions', () => {
@@ -31,6 +32,21 @@ describe('extension contributions', () => {
         const extension = fakeExtension(1, ['designer-tab']);
         const unfillable = { ...extension, routes: extension.routes.map((r) => (r.id === 'data' ? { ...r, path: '/data/{resource}' } : r)) };
         expect(resourceExtensions([unfillable], { namespace: 'ns' })).toEqual([]);
+    });
+
+    it('gives the designer tab parameters that Hub accepts', () => {
+        expect([...TAB_PATH_PARAMETERS]).toEqual(DESIGNER_TAB_PARAMS);
+    });
+
+    it('keeps a designer tab that needs a selected element waiting until one is selected', () => {
+        const extension = fakeExtension(1, ['designer-tab']);
+        const perNode = { ...extension, routes: extension.routes.map((r) => (r.id === 'data' ? { ...r, path: '/nodes/{selectedElement}/health' } : r)) };
+        const [waiting] = resourceExtensions([perNode], { namespace: 'ns' });
+        expect(waiting.tabs).toEqual([]);
+        expect(waiting.tabsNeedSelection.map((c) => c.id)).toEqual(['designer-tab']);
+        const [selected] = resourceExtensions([perNode], { namespace: 'ns', selectedElement: 'web-app' });
+        expect(selected.tabs.map((c) => c.id)).toEqual(['designer-tab']);
+        expect(selected.tabsNeedSelection).toEqual([]);
     });
 
     it('hides an action when a context value has a control character', () => {

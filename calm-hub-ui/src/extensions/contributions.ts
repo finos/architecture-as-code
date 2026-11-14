@@ -39,8 +39,8 @@ export function slotContributions(
     );
 }
 
-/** The path parameters that a resource context can give. Keep in step with DESIGNER_TAB_PARAMS in ExtensionManifestLoader. */
-const TAB_PATH_PARAMETERS: ReadonlySet<string> = new Set(['namespace', 'resourceType', 'resourceId', 'version', 'selectedElement']);
+/** The path parameters that a resource context can give. extensions-test/designer-tab-params.json ties it to DESIGNER_TAB_PARAMS in ExtensionManifestLoader. */
+export const TAB_PATH_PARAMETERS: ReadonlySet<string> = new Set(['namespace', 'resourceType', 'resourceId', 'version', 'selectedElement']);
 
 /** A designer tab whose path needs a parameter that no context gives, such as {resource}, is hidden, not an error. */
 export function tabContributions(extension: ExtensionSummary): ExtensionContribution[] {
@@ -56,18 +56,31 @@ export interface ResourceExtension {
     /** Actions that wait for a selected element. They keep the extension listed, so a change of selection does not hide the tab. */
     needsSelection: ExtensionContribution[];
     tabs: ExtensionContribution[];
+    /** Designer tabs that wait for a selected element, as `needsSelection` does for actions. */
+    tabsNeedSelection: ExtensionContribution[];
 }
 
 /** The extensions that show in a resource's Extensions tab: each with an action or a designer tab for it. */
 export function resourceExtensions(extensions: readonly ExtensionSummary[], context: ExtensionContext): ResourceExtension[] {
+    const selected = { ...context, selectedElement: 'selected-element' };
     return extensions
-        .map((extension) => ({
-            extension,
-            actions: actionContributions(extension, context),
-            needsSelection: selectionActions(extension, context),
-            tabs: tabContributions(extension),
-        }))
-        .filter(({ actions, needsSelection, tabs }) => actions.length + needsSelection.length + tabs.length > 0);
+        .map((extension) => {
+            const allTabs = tabContributions(extension);
+            const tabsNeedSelection = allTabs.filter(
+                (contribution) => !canFill(extension, contribution, context) && canFill(extension, contribution, selected)
+            );
+            return {
+                extension,
+                actions: actionContributions(extension, context),
+                needsSelection: selectionActions(extension, context),
+                tabs: allTabs.filter((contribution) => !tabsNeedSelection.includes(contribution)),
+                tabsNeedSelection,
+            };
+        })
+        .filter(
+            ({ actions, needsSelection, tabs, tabsNeedSelection }) =>
+                actions.length + needsSelection.length + tabs.length + tabsNeedSelection.length > 0
+        );
 }
 
 export const screenPath = (extension: ExtensionSummary, contribution: ExtensionContribution) =>

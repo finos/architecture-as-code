@@ -250,7 +250,7 @@ An operator can install extensions (see [Extensions](../calm-hub/index.md#extens
 
 * **Home page:** an **Extensions** section under **Namespaces**, with one card per extension. A card shows the extension name, its provider and up to three figures, or one line of text. If the extension has a screen, click the card to open it.
 * **Side menu:** an **Extensions** group with one entry per extension screen.
-* **Architecture and pattern pages:** one **Extensions** tab. Each extension has a collapsible section with its actions and its tab content. With more than five extensions, a filter shows above the sections.
+* **Architecture and pattern pages:** one **Extensions** tab. Each extension has a collapsible section with its actions and its tab content. An action or a tab that needs a selected node shows a hint until a node is selected. With more than five extensions, a filter shows above the sections.
 * **Node details:** one **Extensions** section, with a collapsible part for each extension.
 
 ---

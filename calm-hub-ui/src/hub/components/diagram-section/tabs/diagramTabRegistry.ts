@@ -56,14 +56,6 @@ export function resolveDiagramTab(tabs: readonly DiagramTab[], id: string | null
     return visible.find((tab) => tab.id === id) ?? fallback;
 }
 
-/**
- * The tab to keep on navigation to another version: the requested tab when it is registered, even if it is hidden
- * for now (the Extensions tab before the registry loads), else the active tab.
- */
-export function carriedDiagramTab(tabs: readonly DiagramTab[], id: string | null, active: DiagramTab): DiagramTab {
-    return tabs.find((tab) => tab.id === id) ?? active;
-}
-
 export function diagramTabLabel(tab: DiagramTab, context: DiagramTabContext): string {
     return typeof tab.label === 'function' ? tab.label(context) : tab.label;
 }

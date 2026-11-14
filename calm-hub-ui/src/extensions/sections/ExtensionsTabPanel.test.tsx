@@ -48,6 +48,36 @@ describe('ExtensionsTabPanel', () => {
         expect(screen.getByText('No extension matches the filter.')).toBeInTheDocument();
     });
 
+    it('drops the filter when the input is hidden', async () => {
+        vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+        const storage = createMemoryStorage();
+        const view = renderPanel(fakeExtensions(6), storage);
+        await userEvent.type(screen.getByRole('searchbox', { name: 'Filter extensions' }), 'nothing');
+        expect(screen.getByText('No extension matches the filter.')).toBeInTheDocument();
+
+        view.rerender(
+            <ExtensionsContext.Provider value={fakeExtensions(5)}>
+                <ExtensionsTabPanel context={context} storage={storage} />
+            </ExtensionsContext.Provider>
+        );
+        expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+        expect(screen.getAllByTestId('extension-section')).toHaveLength(5);
+    });
+
+    it('shows a hint, and sends no request, for a designer tab that needs a selected node', () => {
+        const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+        const [extension] = fakeExtensions(1, ['designer-tab']);
+        const perNode = { ...extension, routes: [{ ...extension.routes[0], path: '/nodes/{selectedElement}/health' }] };
+        render(
+            <ExtensionsContext.Provider value={[perNode]}>
+                <ExtensionsTabPanel context={{ namespace: 'demo' }} storage={createMemoryStorage()} />
+            </ExtensionsContext.Provider>
+        );
+        expect(screen.getByRole('heading', { name: 'designer-tab 1', level: 4 })).toBeInTheDocument();
+        expect(screen.getByText(/This tab needs a selected node/)).toBeInTheDocument();
+        expect(call).not.toHaveBeenCalled();
+    });
+
     it('offers no filter for a few extensions', () => {
         vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
         renderPanel(fakeExtensions(2));

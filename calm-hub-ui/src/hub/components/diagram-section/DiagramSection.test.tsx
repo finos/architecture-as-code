@@ -7,7 +7,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { saveNodePositions } from '../../../visualizer/services/node-position-service.js';
 import type { Node } from '@xyflow/react';
-import { ExtensionsContext } from '../../../extensions/ExtensionsContext.js';
+import { ExtensionsContext, ExtensionsStatusContext } from '../../../extensions/ExtensionsContext.js';
 import { ExtensionService } from '../../../service/extension-service.js';
 import type { ExtensionSummary } from '../../../model/extensions.js';
 
@@ -1165,6 +1165,28 @@ describe('DiagramSection', () => {
 
             render(
                 <MemoryRouter initialEntries={['/?tab=extensions']}>
+                    <ExtensionsStatusContext.Provider value="loading">
+                        <ExtensionsContext.Provider value={[]}>
+                            <DiagramSection data={latestArchitectureData} />
+                        </ExtensionsContext.Provider>
+                    </ExtensionsStatusContext.Provider>
+                </MemoryRouter>
+            );
+
+            await waitFor(() => {
+                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/1.0.0?tab=extensions', {
+                    replace: true,
+                    state: null,
+                });
+            });
+        });
+
+        it.each(['/?tab=extensions', '/?tab=used-by'])('does not carry a tab that cannot show for the architecture (%s)', async (entry) => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+
+            render(
+                <MemoryRouter initialEntries={[entry]}>
                     <ExtensionsContext.Provider value={[]}>
                         <DiagramSection data={latestArchitectureData} />
                     </ExtensionsContext.Provider>
@@ -1172,7 +1194,7 @@ describe('DiagramSection', () => {
             );
 
             await waitFor(() => {
-                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/1.0.0?tab=extensions', {
+                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/1.0.0', {
                     replace: true,
                     state: null,
                 });

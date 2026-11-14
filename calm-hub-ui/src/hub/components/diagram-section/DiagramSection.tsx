@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
-import { useExtensions } from '../../../extensions/ExtensionsContext.js';
+import { useExtensions, useExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
 import { resourceExtensions } from '../../../extensions/contributions.js';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
@@ -35,9 +35,8 @@ import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
 import { useArchitectureDecorators } from './decorators/useArchitectureDecorators.js';
-import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS, extensionContext } from './tabs/diagramTabs.js';
+import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS, EXTENSIONS_TAB_ID, extensionContext } from './tabs/diagramTabs.js';
 import {
-    carriedDiagramTab,
     DEFAULT_DIAGRAM_TAB_ID,
     diagramTabLabel,
     diagramTabQuery,
@@ -215,11 +214,17 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
 
     const implementationService = useMemo(() => new PatternImplementationService(), []);
     const extensions = useExtensions();
-    const hasExtensions = !showsDroppedFile && resourceExtensions(extensions, extensionContext(data)).length > 0;
+    const extensionCount = useMemo(() => resourceExtensions(extensions, extensionContext(data)).length, [extensions, data]);
+    const hasExtensions = !showsDroppedFile && extensionCount > 0;
     const tabScope = { isArchitecture, patternName, hasExtensions };
     const visibleTabs = visibleDiagramTabs(DIAGRAM_TABS, tabScope);
     const activeTab = resolveDiagramTab(DIAGRAM_TABS, searchParams.get('tab'), tabScope);
-    const tabQuery = diagramTabQuery(carriedDiagramTab(DIAGRAM_TABS, searchParams.get('tab'), activeTab), searchParams);
+    // The Extensions tab is hidden until the registry loads, so a version change keeps it while the registry loads.
+    const registryLoading = useExtensionsStatus() === 'loading';
+    const carriedTab = registryLoading && searchParams.get('tab') === EXTENSIONS_TAB_ID
+        ? DIAGRAM_TABS.find((tab) => tab.id === EXTENSIONS_TAB_ID) ?? activeTab
+        : activeTab;
+    const tabQuery = diagramTabQuery(carriedTab, searchParams);
     const usedByOpen = activeTab.id === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
     // Polled only while the diagram, the Decorators tab or the details drawer shows them.

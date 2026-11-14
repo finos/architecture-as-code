@@ -18,6 +18,9 @@ describe('ExtensionSections', () => {
         for (let i = 2; i <= 10; i++) expect(toggle(`Extension ${i}`)).toHaveAttribute('aria-expanded', 'false');
         expect(screen.getByText('content ext-1')).toBeInTheDocument();
         expect(content.mock.calls.map(([id]) => id)).toEqual(['ext-1']);
+        // aria-controls names only a body that is in the page.
+        expect(document.getElementById(toggle('Extension 1').getAttribute('aria-controls')!)).toHaveTextContent('content ext-1');
+        expect(toggle('Extension 2')).not.toHaveAttribute('aria-controls');
     });
 
     it('remembers each choice per extension', async () => {
