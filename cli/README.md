@@ -796,17 +796,17 @@ calm hub list namespaces
 calm hub list control-configurations --domain security --control-name encryption-at-rest
 ```
 
-### Configs
+### Conventions
 
-A config is versioned JSON that tools read, such as a `c4-mapping`. A config has no `$id`, so the commands take the config type and `--namespace`. `push config` finds the config by its name, which defaults to the config's `unique-id`. A new name creates the config at `1.0.0`. A known name gets the next version (see `--change-type`), or is skipped when the content is unchanged. `--set-default` also makes the pushed version the namespace default, which child namespaces inherit. It needs namespace admin.
+A convention is versioned JSON that tools read, such as a `c4-mapping`. A convention has no `$id`, so the commands take the convention type and `--namespace`. `push convention` finds the convention by its name, which defaults to the convention's `unique-id`. A new name creates the convention at `1.0.0`. A known name gets the next version (see `--change-type`), or is skipped when the content is unchanged. `--set-default` also makes the pushed version the namespace default, which child namespaces inherit. It needs namespace admin.
 
-`pull config` without `--id` pulls the default that applies to the namespace, which can come from a parent namespace. It writes the config JSON to stdout, and on stderr it says where the default comes from.
+`pull convention` without `--id` pulls the default that applies to the namespace, which can come from a parent namespace. It writes the convention JSON to stdout, and on stderr it says where the default comes from.
 
 ```shell
-calm hub push config c4-mapping ./acme-c4-mapping.json --namespace org --set-default
-calm hub list configs c4-mapping --namespace org
-calm hub pull config c4-mapping --namespace org.payments            # the namespace default
-calm hub pull config c4-mapping --namespace org --id 1 --ver 1.0.0
+calm hub push convention c4-mapping ./acme-c4-mapping.json --namespace org --set-default
+calm hub list conventions c4-mapping --namespace org
+calm hub pull convention c4-mapping --namespace org.payments            # the namespace default
+calm hub pull convention c4-mapping --namespace org --id 1 --ver 1.0.0
 ```
 
 ### `calm hub create`

@@ -52,12 +52,12 @@ import {
     runListExtensions,
     runDescribeExtension,
     runExtensionCommand,
-    PushConfigOptions,
-    PullConfigOptions,
-    ListConfigsOptions,
-    runPushConfig,
-    runPullConfig,
-    runListConfigs,
+    PushConventionOptions,
+    PullConventionOptions,
+    ListConventionsOptions,
+    runPushConvention,
+    runPullConvention,
+    runListConventions,
 } from './command-helpers/hub-commands';
 import type { ResourceChangeType } from '@finos/calm-shared';
 
@@ -688,20 +688,20 @@ Example:
         });
 
     hubPushCmd
-        .command('config <config-type> <config-file>')
-        .description('Push a config, such as a c4-mapping, to CALM Hub. A config with the same name in the namespace gets a new version, unless its content is unchanged.')
+        .command('convention <convention-type> <convention-file>')
+        .description('Push a convention, such as a c4-mapping, to CALM Hub. A convention with the same name in the namespace gets a new version, unless its content is unchanged.')
         .requiredOption(NAMESPACE_OPTION, 'Target namespace')
-        .option(NAME_OPTION, 'Name of the config in CALM Hub. Defaults to the unique-id of the config.')
-        .option(DESCRIPTION_OPTION, 'Description of the config')
+        .option(NAME_OPTION, 'Name of the convention in CALM Hub. Defaults to the unique-id of the convention.')
+        .option(DESCRIPTION_OPTION, 'Description of the convention')
         .option('--set-default', 'Also make the pushed version the default for the namespace. Child namespaces inherit it. Needs namespace admin.', false)
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
         .addOption(hubVersionBumpOption)
-        .action(async (configType, configFile, options) => {
-            const pushOptions: PushConfigOptions = {
+        .action(async (conventionType, conventionFile, options) => {
+            const pushOptions: PushConventionOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                configType,
-                file: configFile,
+                conventionType,
+                file: conventionFile,
                 namespace: options.namespace,
                 name: options.name,
                 description: options.description,
@@ -709,7 +709,7 @@ Example:
                 setDefault: options.setDefault,
                 format: options.format
             };
-            await runPushConfig(pushOptions);
+            await runPushConvention(pushOptions);
         });
 
     // hub pull
@@ -870,23 +870,23 @@ Example:
         });
 
     hubPullCmd
-        .command('config <config-type>')
-        .description('Pull a config from CALM Hub. Without --id, pull the default config that applies to the namespace, which can come from a parent namespace.')
+        .command('convention <convention-type>')
+        .description('Pull a convention from CALM Hub. Without --id, pull the default convention that applies to the namespace, which can come from a parent namespace.')
         .requiredOption(NAMESPACE_OPTION, 'Source namespace')
-        .option('--id <id>', 'ID of the config to pull')
+        .option('--id <id>', 'ID of the convention to pull')
         .option(HUB_VERSION_OPTION, 'Version to retrieve (defaults to the latest). Needs --id.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
-        .action(async (configType, options) => {
-            const pullOptions: PullConfigOptions = {
+        .action(async (conventionType, options) => {
+            const pullOptions: PullConventionOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                configType,
+                conventionType,
                 namespace: options.namespace,
                 id: options.id,
                 version: options.ver,
                 output: options.output
             };
-            await runPullConfig(pullOptions);
+            await runPullConvention(pullOptions);
         });
 
     // hub list
@@ -1041,19 +1041,19 @@ Example:
         });
 
     hubListCmd
-        .command('configs <config-type>')
-        .description('List the configs of one type, such as c4-mapping, in a namespace')
+        .command('conventions <convention-type>')
+        .description('List the conventions of one type, such as c4-mapping, in a namespace')
         .option(NAMESPACE_OPTION, 'Target namespace', 'default')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
         .addOption(hubOutputOption)
-        .action(async (configType, options) => {
-            const listOptions: ListConfigsOptions = {
+        .action(async (conventionType, options) => {
+            const listOptions: ListConventionsOptions = {
                 calmHubOptions: { calmHubUrl: options.calmHubUrl },
-                configType,
+                conventionType,
                 namespace: options.namespace,
                 format: options.format
             };
-            await runListConfigs(listOptions);
+            await runListConventions(listOptions);
         });
 
     // hub create

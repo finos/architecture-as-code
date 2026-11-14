@@ -13,7 +13,7 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces, runWhoami,
     runPushFlow, runPullFlow, runListFlows,
     runPushTimeline, runPullTimeline, runListTimelines,
     runListExtensions, runDescribeExtension, runExtensionCommand,
-    runPushConfig, runPullConfig, runListConfigs } from './hub-commands';
+    runPushConvention, runPullConvention, runListConventions } from './hub-commands';
 import { Readable } from 'stream';
 
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
@@ -44,13 +44,13 @@ vi.mock('@finos/calm-shared', async () => {
         createControlConfigurationVersion: vi.fn(),
         listExtensions: vi.fn(),
         callExtension: vi.fn(),
-        listConfigs: vi.fn(),
-        createConfig: vi.fn(),
-        createConfigVersion: vi.fn(),
-        getConfigVersions: vi.fn(),
-        getConfigVersion: vi.fn(),
-        getNamespaceDefaultConfig: vi.fn(),
-        setNamespaceDefaultConfig: vi.fn()
+        listConventions: vi.fn(),
+        createConvention: vi.fn(),
+        createConventionVersion: vi.fn(),
+        getConventionVersions: vi.fn(),
+        getConventionVersion: vi.fn(),
+        getNamespaceDefaultConvention: vi.fn(),
+        setNamespaceDefaultConvention: vi.fn()
     };
     return {
         // Keep all the real (pure) helpers — document-id-utils, semver and canonical — that
@@ -2879,102 +2879,102 @@ describe('hub-commands', () => {
             });
         });
     });
-    // ── configs ────────────────────────────────────────────────────────────────
+    // ── conventions ────────────────────────────────────────────────────────────────
 
-    describe('configs', () => {
+    describe('conventions', () => {
         const hub = { calmHubUrl: 'http://hub' };
-        const base = '/api/calm/namespaces/org.team/configs/c4-mapping';
+        const base = '/api/calm/namespaces/org.team/conventions/c4-mapping';
         const mapping = { 'unique-id': 'acme', 'node-types': { 'aws:lambda': 'container' }, nesting: 'demote' };
-        const pushOptions = { calmHubOptions: hub, configType: 'c4-mapping', file: 'acme.json', namespace: 'org.team' };
+        const pushOptions = { calmHubOptions: hub, conventionType: 'c4-mapping', file: 'acme.json', namespace: 'org.team' };
 
         beforeEach(() => {
             vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mapping, null, 2) as unknown as Uint8Array);
         });
 
-        describe('runPushConfig', () => {
-            it('creates a config named by its unique-id and reads its ID from the Location', async () => {
+        describe('runPushConvention', () => {
+            it('creates a convention named by its unique-id and reads its ID from the Location', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.listConfigs).mockResolvedValue([{ id: 2, name: 'other', versionCount: 1 }]);
-                vi.mocked(mockClient.createConfig).mockResolvedValue(`${base}/17/versions/1.0.0`);
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 2, name: 'other', versionCount: 1 }]);
+                vi.mocked(mockClient.createConvention).mockResolvedValue(`${base}/17/versions/1.0.0`);
 
-                await runPushConfig({ ...pushOptions, description: 'Acme mapping' });
+                await runPushConvention({ ...pushOptions, description: 'Acme mapping' });
 
-                expect(mockClient.createConfig).toHaveBeenCalledWith('org.team', 'c4-mapping',
-                    { name: 'acme', description: 'Acme mapping', configJson: JSON.stringify(mapping) });
+                expect(mockClient.createConvention).toHaveBeenCalledWith('org.team', 'c4-mapping',
+                    { name: 'acme', description: 'Acme mapping', conventionJson: JSON.stringify(mapping) });
                 expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith({
-                    status: 'created', namespace: 'org.team', configType: 'c4-mapping', id: 17, name: 'acme',
+                    status: 'created', namespace: 'org.team', conventionType: 'c4-mapping', id: 17, name: 'acme',
                     version: '1.0.0', location: `${base}/17/versions/1.0.0`, default: false
                 });
             });
 
             it('adds the next version after the latest one when the content changed', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.listConfigs).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 2 }]);
-                vi.mocked(mockClient.getConfigVersions).mockResolvedValue(['1.0.0', '1.2.0']);
-                vi.mocked(mockClient.getConfigVersion).mockResolvedValue({ ...mapping, nesting: 'strict' });
-                vi.mocked(mockClient.createConfigVersion).mockResolvedValue(`${base}/3/versions/1.3.0`);
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 2 }]);
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.0', '1.2.0']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue({ ...mapping, nesting: 'strict' });
+                vi.mocked(mockClient.createConventionVersion).mockResolvedValue(`${base}/3/versions/1.3.0`);
 
-                await runPushConfig({ ...pushOptions, changeType: 'MINOR' });
+                await runPushConvention({ ...pushOptions, changeType: 'MINOR' });
 
-                expect(mockClient.getConfigVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.2.0');
-                expect(mockClient.createConfigVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.3.0', expect.objectContaining({ name: 'acme' }));
+                expect(mockClient.getConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.2.0');
+                expect(mockClient.createConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.3.0', expect.objectContaining({ name: 'acme' }));
                 expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({ status: 'created', id: 3, version: '1.3.0' }));
             });
 
-            it('skips an unchanged config, whatever its key order, and can still set it as the default', async () => {
+            it('skips an unchanged convention, whatever its key order, and can still set it as the default', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.listConfigs).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 1 }]);
-                vi.mocked(mockClient.getConfigVersions).mockResolvedValue(['1.0.0']);
-                vi.mocked(mockClient.getConfigVersion).mockResolvedValue({ nesting: 'demote', 'node-types': { 'aws:lambda': 'container' }, 'unique-id': 'acme' });
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 1 }]);
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue({ nesting: 'demote', 'node-types': { 'aws:lambda': 'container' }, 'unique-id': 'acme' });
 
-                await runPushConfig({ ...pushOptions, calmHubOptions: { calmHubUrl: 'http://hub/' }, setDefault: true });
+                await runPushConvention({ ...pushOptions, calmHubOptions: { calmHubUrl: 'http://hub/' }, setDefault: true });
 
-                expect(mockClient.createConfigVersion).not.toHaveBeenCalled();
-                expect(mockClient.setNamespaceDefaultConfig).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.0.0');
+                expect(mockClient.createConventionVersion).not.toHaveBeenCalled();
+                expect(mockClient.setNamespaceDefaultConvention).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.0.0');
                 expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(expect.objectContaining({
                     status: 'skipped', version: '1.0.0', location: `http://hub${base}/3/versions/1.0.0`, default: true
                 }));
             });
 
-            it('uses --name over the unique-id to find the config', async () => {
+            it('uses --name over the unique-id to find the convention', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.listConfigs).mockResolvedValue([{ id: 4, name: 'acme', versionCount: 1 }]);
-                vi.mocked(mockClient.createConfig).mockResolvedValue(`${base}/5/versions/1.0.0`);
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 4, name: 'acme', versionCount: 1 }]);
+                vi.mocked(mockClient.createConvention).mockResolvedValue(`${base}/5/versions/1.0.0`);
 
-                await runPushConfig({ ...pushOptions, name: 'acme-v2' });
+                await runPushConvention({ ...pushOptions, name: 'acme-v2' });
 
-                expect(mockClient.createConfig).toHaveBeenCalledWith('org.team', 'c4-mapping', expect.objectContaining({ name: 'acme-v2' }));
+                expect(mockClient.createConvention).toHaveBeenCalledWith('org.team', 'c4-mapping', expect.objectContaining({ name: 'acme-v2' }));
             });
 
-            it('exits when the config has no unique-id and no --name is given', async () => {
+            it('exits when the convention has no unique-id and no --name is given', async () => {
                 const { mockClient } = await getSharedMocks();
                 vi.mocked(fs.readFile).mockResolvedValue('{"theme":"dark"}' as unknown as Uint8Array);
 
-                await expect(runPushConfig({ ...pushOptions, configType: 'theme' })).rejects.toThrow('process.exit');
+                await expect(runPushConvention({ ...pushOptions, conventionType: 'theme' })).rejects.toThrow('process.exit');
                 expect(hubOutput.printError).toHaveBeenCalledWith(0, expect.stringContaining('--name'), expect.any(String), 'json');
-                expect(mockClient.listConfigs).not.toHaveBeenCalled();
+                expect(mockClient.listConventions).not.toHaveBeenCalled();
             });
 
-            it('exits when several configs in the namespace have the name', async () => {
+            it('exits when several conventions in the namespace have the name', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.listConfigs).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 1 }, { id: 8, name: 'acme', versionCount: 1 }]);
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 1 }, { id: 8, name: 'acme', versionCount: 1 }]);
 
-                await expect(runPushConfig(pushOptions)).rejects.toThrow('process.exit');
-                expect(mockClient.createConfig).not.toHaveBeenCalled();
-                expect(mockClient.createConfigVersion).not.toHaveBeenCalled();
+                await expect(runPushConvention(pushOptions)).rejects.toThrow('process.exit');
+                expect(mockClient.createConvention).not.toHaveBeenCalled();
+                expect(mockClient.createConventionVersion).not.toHaveBeenCalled();
             });
 
-            it('exits with the Hub error when Hub rejects the config', async () => {
+            it('exits with the Hub error when Hub rejects the convention', async () => {
                 const { mockClient, shared } = await getSharedMocks();
-                vi.mocked(mockClient.listConfigs).mockResolvedValue([]);
-                vi.mocked(mockClient.createConfig).mockRejectedValue(new shared.HubClientError(400, 'The config does not match the schema', `POST ${base}`));
+                vi.mocked(mockClient.listConventions).mockResolvedValue([]);
+                vi.mocked(mockClient.createConvention).mockRejectedValue(new shared.HubClientError(400, 'The convention does not match the schema', `POST ${base}`));
 
-                await expect(runPushConfig(pushOptions)).rejects.toThrow('process.exit');
-                expect(hubOutput.printError).toHaveBeenCalledWith(400, 'The config does not match the schema', `POST ${base}`, 'json');
+                await expect(runPushConvention(pushOptions)).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(400, 'The convention does not match the schema', `POST ${base}`, 'json');
             });
         });
 
-        describe('runPullConfig', () => {
+        describe('runPullConvention', () => {
             let log: ReturnType<typeof vi.spyOn>;
             let stderr: ReturnType<typeof vi.spyOn>;
 
@@ -2988,13 +2988,13 @@ describe('hub-commands', () => {
                 stderr.mockRestore();
             });
 
-            it('prints only the config JSON of the inherited namespace default on stdout', async () => {
+            it('prints only the convention JSON of the inherited namespace default on stdout', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.getNamespaceDefaultConfig).mockResolvedValue({
-                    configType: 'c4-mapping', namespace: 'org', configId: 1, version: '1.1.0', inherited: true, config: mapping
+                vi.mocked(mockClient.getNamespaceDefaultConvention).mockResolvedValue({
+                    conventionType: 'c4-mapping', namespace: 'org', conventionId: 1, version: '1.1.0', inherited: true, convention: mapping
                 });
 
-                await runPullConfig({ calmHubOptions: hub, configType: 'c4-mapping', namespace: 'org.team' });
+                await runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team' });
 
                 expect(log).toHaveBeenCalledWith(JSON.stringify(mapping, null, 2));
                 expect(stderr).toHaveBeenCalledWith(expect.stringContaining('namespace org (inherited)'));
@@ -3002,32 +3002,32 @@ describe('hub-commands', () => {
 
             it('exits with 404 when no default applies', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.getNamespaceDefaultConfig).mockResolvedValue(undefined);
+                vi.mocked(mockClient.getNamespaceDefaultConvention).mockResolvedValue(undefined);
 
-                await expect(runPullConfig({ calmHubOptions: hub, configType: 'c4-mapping', namespace: 'org.team' })).rejects.toThrow('process.exit');
+                await expect(runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team' })).rejects.toThrow('process.exit');
                 expect(hubOutput.printError).toHaveBeenCalledWith(404, 'No c4-mapping default applies to namespace \'org.team\'', expect.any(String), 'json');
             });
 
-            it('pulls the latest version of a config by ID and writes it to a file', async () => {
+            it('pulls the latest version of a convention by ID and writes it to a file', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.getConfigVersions).mockResolvedValue(['1.0.0', '1.10.0']);
-                vi.mocked(mockClient.getConfigVersion).mockResolvedValue(mapping);
+                vi.mocked(mockClient.getConventionVersions).mockResolvedValue(['1.0.0', '1.10.0']);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue(mapping);
 
-                await runPullConfig({ calmHubOptions: hub, configType: 'c4-mapping', namespace: 'org.team', id: '3', output: 'out.json' });
+                await runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team', id: '3', output: 'out.json' });
 
-                expect(mockClient.getConfigVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.10.0');
-                expect(mockClient.getNamespaceDefaultConfig).not.toHaveBeenCalled();
+                expect(mockClient.getConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.10.0');
+                expect(mockClient.getNamespaceDefaultConvention).not.toHaveBeenCalled();
                 expect(fs.writeFile).toHaveBeenCalledWith('out.json', JSON.stringify(mapping, null, 2), 'utf-8');
             });
 
             it('pulls a given version without listing the versions', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.getConfigVersion).mockResolvedValue(mapping);
+                vi.mocked(mockClient.getConventionVersion).mockResolvedValue(mapping);
 
-                await runPullConfig({ calmHubOptions: hub, configType: 'c4-mapping', namespace: 'org.team', id: '3', version: '1.0.0' });
+                await runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team', id: '3', version: '1.0.0' });
 
-                expect(mockClient.getConfigVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.0.0');
-                expect(mockClient.getConfigVersions).not.toHaveBeenCalled();
+                expect(mockClient.getConventionVersion).toHaveBeenCalledWith('org.team', 'c4-mapping', 3, '1.0.0');
+                expect(mockClient.getConventionVersions).not.toHaveBeenCalled();
             });
 
             it.each([
@@ -3036,21 +3036,21 @@ describe('hub-commands', () => {
                 [{ id: '0' }, 'positive integer'],
             ])('exits on the options %o', async (extra, message) => {
                 const { mockClient } = await getSharedMocks();
-                await expect(runPullConfig({ calmHubOptions: hub, configType: 'c4-mapping', namespace: 'org.team', ...extra })).rejects.toThrow('process.exit');
+                await expect(runPullConvention({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team', ...extra })).rejects.toThrow('process.exit');
                 expect(hubOutput.printError).toHaveBeenCalledWith(0, expect.stringContaining(message), expect.any(String), 'json');
-                expect(mockClient.getConfigVersion).not.toHaveBeenCalled();
-                expect(mockClient.getNamespaceDefaultConfig).not.toHaveBeenCalled();
+                expect(mockClient.getConventionVersion).not.toHaveBeenCalled();
+                expect(mockClient.getNamespaceDefaultConvention).not.toHaveBeenCalled();
             });
         });
 
-        describe('runListConfigs', () => {
+        describe('runListConventions', () => {
             it('renders an ID/NAME/VERSIONS/DESCRIPTION table when format is pretty', async () => {
                 const { mockClient } = await getSharedMocks();
-                vi.mocked(mockClient.listConfigs).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 2 }]);
+                vi.mocked(mockClient.listConventions).mockResolvedValue([{ id: 3, name: 'acme', versionCount: 2 }]);
 
-                await runListConfigs({ calmHubOptions: hub, configType: 'c4-mapping', namespace: 'org.team', format: 'pretty' });
+                await runListConventions({ calmHubOptions: hub, conventionType: 'c4-mapping', namespace: 'org.team', format: 'pretty' });
 
-                expect(mockClient.listConfigs).toHaveBeenCalledWith('org.team', 'c4-mapping');
+                expect(mockClient.listConventions).toHaveBeenCalledWith('org.team', 'c4-mapping');
                 expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
                     [{ ID: 3, NAME: 'acme', VERSIONS: 2, DESCRIPTION: '' }],
                     ['ID', 'NAME', 'VERSIONS', 'DESCRIPTION'].map(key => ({ key, header: key }))
@@ -3059,10 +3059,10 @@ describe('hub-commands', () => {
 
             it('exits on HubClientError', async () => {
                 const { mockClient, shared } = await getSharedMocks();
-                vi.mocked(mockClient.listConfigs).mockRejectedValue(new shared.HubClientError(400, 'Unknown config type', `GET ${base}`));
+                vi.mocked(mockClient.listConventions).mockRejectedValue(new shared.HubClientError(400, 'Unknown convention type', `GET ${base}`));
 
-                await expect(runListConfigs({ calmHubOptions: hub, configType: 'nope', namespace: 'org.team' })).rejects.toThrow('process.exit');
-                expect(hubOutput.printError).toHaveBeenCalledWith(400, 'Unknown config type', expect.any(String), 'json');
+                await expect(runListConventions({ calmHubOptions: hub, conventionType: 'nope', namespace: 'org.team' })).rejects.toThrow('process.exit');
+                expect(hubOutput.printError).toHaveBeenCalledWith(400, 'Unknown convention type', expect.any(String), 'json');
             });
         });
     });

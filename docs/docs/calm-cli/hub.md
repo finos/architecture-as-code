@@ -551,51 +551,51 @@ CALM Hub checks the route, the path and the scope. It does not check the input a
 
 CALM Hub sends a generic `502` with the error `The extension failed` when the extension refuses the connection, when the reply is larger than the reply limit, when the extension replies with a 3xx, 401, 407 or 5xx status, or when the reply has a content type that CALM Hub does not pass on. The extension's own body does not reach the CLI. CALM Hub sends `504` with the error `The extension did not reply in time` when the connection or the reply takes longer than its timeout.
 
-## Managing Configs
+## Managing Conventions
 
-A config is versioned JSON that tools read, such as a `c4-mapping` for C4 diagrams. Each config type has a schema, and CALM Hub rejects a config that does not match it. A namespace can name a default config for each type, and child namespaces inherit it. A config has no `$id`, so these commands take the config type and a namespace.
+A convention is versioned JSON that tools read, such as a `c4-mapping` for C4 diagrams. Each convention type has a schema, and CALM Hub rejects a convention that does not match it. A namespace can name a default convention for each type, and child namespaces inherit it. A convention has no `$id`, so these commands take the convention type and a namespace.
 
-### Push a config
+### Push a convention
 
-The CLI finds the config by its name in the namespace. A new name creates the config at `1.0.0`. A known name gets the next version, or is skipped when the content is unchanged.
+The CLI finds the convention by its name in the namespace. A new name creates the convention at `1.0.0`. A known name gets the next version, or is skipped when the content is unchanged.
 
 ```shell
-calm hub push config c4-mapping acme-c4-mapping.json --namespace org --set-default -c http://localhost:8080
+calm hub push convention c4-mapping acme-c4-mapping.json --namespace org --set-default -c http://localhost:8080
 ```
 
 **Options:**
 
 - **`--namespace <namespace>`**: _(required)_ The target namespace.
-- **`--name <name>`**: Name of the config. Defaults to the `unique-id` of the config.
-- **`--description <description>`**: Description of the config.
+- **`--name <name>`**: Name of the convention. Defaults to the `unique-id` of the convention.
+- **`--description <description>`**: Description of the convention.
 - **`--set-default`**: Also make the pushed version the default for the namespace. This needs namespace admin.
 - **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
 
-### List configs
+### List conventions
 
 ```shell
-calm hub list configs c4-mapping --namespace org -c http://localhost:8080
+calm hub list conventions c4-mapping --namespace org -c http://localhost:8080
 ```
 
 The `pretty` format shows the columns **ID**, **NAME**, **VERSIONS**, and **DESCRIPTION**. `--namespace` defaults to `default`.
 
-### Pull a config
+### Pull a convention
 
-Without `--id`, the CLI pulls the default config that applies to the namespace. It comes from the namespace, or else from its nearest parent namespace that sets one. The config JSON goes to stdout, and a note on stderr says which namespace sets it.
+Without `--id`, the CLI pulls the default convention that applies to the namespace. It comes from the namespace, or else from its nearest parent namespace that sets one. The convention JSON goes to stdout, and a note on stderr says which namespace sets it.
 
 ```shell
-calm hub pull config c4-mapping --namespace org.payments -c http://localhost:8080
-calm hub pull config c4-mapping --namespace org --id 1 --ver 1.0.0 -o acme-c4-mapping.json -c http://localhost:8080
+calm hub pull convention c4-mapping --namespace org.payments -c http://localhost:8080
+calm hub pull convention c4-mapping --namespace org --id 1 --ver 1.0.0 -o acme-c4-mapping.json -c http://localhost:8080
 ```
 
 **Options:**
 
 - **`--namespace <namespace>`**: _(required)_ The source namespace.
-- **`--id <id>`**: ID of the config to pull. Omit it to pull the namespace default.
+- **`--id <id>`**: ID of the convention to pull. Omit it to pull the namespace default.
 - **`--ver <version>`**: Version to retrieve (defaults to the latest). Needs `--id`.
-- **`-o, --output <file>`**: Write the config JSON to a file instead of stdout.
+- **`-o, --output <file>`**: Write the convention JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
 ## Output Formats
