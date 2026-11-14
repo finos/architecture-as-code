@@ -49,7 +49,7 @@ describe('loadDocifyC4Mapping', () => {
     it('reads the workspace setting relative to the workspace root when there is no flag', async () => {
         await mkdir(path.join(dir, 'c4'));
         await writeFile(path.join(dir, 'c4', 'acme.json'), JSON.stringify(acme));
-        const hubSpy = vi.spyOn(CalmHubClient.prototype, 'getNamespaceDefaultConfig');
+        const hubSpy = vi.spyOn(CalmHubClient.prototype, 'getNamespaceDefaultConvention');
 
         const loaded = await loadDocifyC4Mapping(
             { workspaceMapping: 'c4/acme.json', workspaceRoot: dir, readArchitecture: async () => hubArchitecture, hub: { calmHubUrl: 'https://hub.example.com' } },
@@ -61,14 +61,14 @@ describe('loadDocifyC4Mapping', () => {
     });
 
     it('uses the namespace default of the CALM Hub the architecture came from', async () => {
-        const hubSpy = vi.spyOn(CalmHubClient.prototype, 'getNamespaceDefaultConfig').mockResolvedValue({
-            configType: 'c4-mapping', namespace: 'org', configId: 3, version: '1.1.0', inherited: true, config: acme,
+        const hubSpy = vi.spyOn(CalmHubClient.prototype, 'getNamespaceDefaultConvention').mockResolvedValue({
+            conventionType: 'c4-mapping', namespace: 'org', conventionId: 3, version: '1.1.0', inherited: true, convention: acme,
         });
 
         const loaded = await loadDocifyC4Mapping({ readArchitecture: async () => hubArchitecture, hub: { calmHubUrl: 'https://hub.example.com/' } }, loader);
 
         expect(hubSpy).toHaveBeenCalledWith('org.team', 'c4-mapping');
-        expect(loaded?.from).toBe('CALM Hub config 3 version 1.1.0 of namespace org');
+        expect(loaded?.from).toBe('CALM Hub convention 3 version 1.1.0 of namespace org');
         expect(loaded?.mapping['unique-id']).toBe('acme');
     });
 
@@ -78,7 +78,7 @@ describe('loadDocifyC4Mapping', () => {
         ['the architecture has no CALM Hub $id', { $id: 'https://example.com/shop.json' }, 'https://hub.example.com'],
         ['the architecture cannot be read', undefined, 'https://hub.example.com'],
     ])('returns undefined, so the default mapping applies, when %s', async (_, architecture, calmHubUrl) => {
-        vi.spyOn(CalmHubClient.prototype, 'getNamespaceDefaultConfig').mockResolvedValue(undefined);
+        vi.spyOn(CalmHubClient.prototype, 'getNamespaceDefaultConvention').mockResolvedValue(undefined);
         const readArchitecture = architecture ? async () => architecture : async () => Promise.reject(new Error('ENOENT'));
 
         await expect(loadDocifyC4Mapping({ readArchitecture, hub: { calmHubUrl } }, loader)).resolves.toBeUndefined();

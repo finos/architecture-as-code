@@ -53,10 +53,10 @@ export async function loadDocifyC4Mapping(sources: C4MappingSources, documentLoa
     const match = typeof id === 'string' ? HUB_ARCHITECTURE_ID.exec(id) : null;
     if (!match || new URL(hubUrl).origin !== new URL(match[1]).origin) return undefined;
     const namespace = decodeURIComponent(match[2]);
-    const found = await new CalmHubClient(sources.hub!).getNamespaceDefaultConfig(namespace, 'c4-mapping');
+    const found = await new CalmHubClient(sources.hub!).getNamespaceDefaultConvention(namespace, 'c4-mapping');
     if (!found) return undefined;
     return {
-        mapping: await resolve(found.config, process.cwd()),
-        from: `CALM Hub config ${found.configId} version ${found.version} of namespace ${found.namespace}`,
+        mapping: await resolve(found.convention, process.cwd()),
+        from: `CALM Hub convention ${found.conventionId} version ${found.version} of namespace ${found.namespace}`,
     };
 }
