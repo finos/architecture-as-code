@@ -155,6 +155,7 @@ const sidebars = {
             'tutorials/build-a-calm-architecture/generate-documentation',
             'tutorials/build-a-calm-architecture/tutorial-key-takeaways',
             'tutorials/build-a-calm-architecture/architecture-discovery-skill-tutorial',
+            'tutorials/build-a-calm-architecture/converting-controls',
            ],
         }
       ],
