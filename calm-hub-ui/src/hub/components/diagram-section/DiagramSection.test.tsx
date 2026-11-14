@@ -6,6 +6,17 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { saveNodePositions } from '../../../visualizer/services/node-position-service.js';
 import type { Node } from '@xyflow/react';
+import { ExtensionsContext, ExtensionsStatusContext } from '../../../extensions/ExtensionsContext.js';
+import { ExtensionService } from '../../../service/extension-service.js';
+import type { ExtensionSummary } from '../../../model/extensions.js';
+
+const releaseTracker: ExtensionSummary = {
+    id: 'release-tracker',
+    name: 'Release tracker',
+    hubApi: 0,
+    routes: [{ id: 'tab', method: 'GET', path: '/tab', scope: 'authenticated', readOnly: false }],
+    contributes: { 'designer-tab': [{ id: 'releases', title: 'Releases', route: 'tab' }] },
+};
 
 const DECORATOR_TARGET = '/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0';
 
@@ -747,6 +758,72 @@ describe('DiagramSection', () => {
                 <MemoryRouter initialEntries={['/?tab=no-such-tab&type=deployment']}>
                     <DiagramSection data={architectureData} />
                     <SearchProbe />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?type=deployment'));
+        });
+
+        it('opens an extension tab, keeps it in the URL, and does not cancel its request', async () => {
+            const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, title: 'Releases', blocks: [] });
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            render(
+                <MemoryRouter>
+                    <ExtensionsContext.Provider value={[releaseTracker]}>
+                        <DiagramSection data={architectureData} />
+                        <SearchProbe />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+
+            await userEvent.click(screen.getByRole('tab', { name: 'Releases' }));
+
+            expect(await screen.findByRole('heading', { name: 'Releases' })).toBeInTheDocument();
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extension%3Arelease-tracker%3Areleases');
+            expect(screen.getByRole('tab', { name: 'Releases' }).className).toContain('tab-active');
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect((call.mock.calls[0][3] as AbortSignal).aborted).toBe(false);
+            call.mockRestore();
+        });
+
+        it('keeps a link to an extension tab until the registry loads, then opens it', async () => {
+            vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, title: 'Releases', blocks: [] });
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            const page = (status: 'loading' | 'loaded', extensions: ExtensionSummary[]) => (
+                <MemoryRouter initialEntries={['/?tab=extension:release-tracker:releases']}>
+                    <ExtensionsStatusContext.Provider value={status}>
+                        <ExtensionsContext.Provider value={extensions}>
+                            <DiagramSection data={architectureData} />
+                            <SearchProbe />
+                        </ExtensionsContext.Provider>
+                    </ExtensionsStatusContext.Provider>
+                </MemoryRouter>
+            );
+            const { rerender } = render(page('loading', []));
+            expect(screen.queryByRole('tab', { name: 'Releases' })).not.toBeInTheDocument();
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extension:release-tracker:releases');
+
+            rerender(page('loaded', [releaseTracker]));
+
+            expect(await screen.findByRole('heading', { name: 'Releases' })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Releases' }).className).toContain('tab-active');
+            vi.restoreAllMocks();
+        });
+
+        it('drops an extension tab that the loaded registry does not have', async () => {
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            render(
+                <MemoryRouter initialEntries={['/?tab=extension:gone:releases&type=deployment']}>
+                    <ExtensionsContext.Provider value={[releaseTracker]}>
+                        <DiagramSection data={architectureData} />
+                        <SearchProbe />
+                    </ExtensionsContext.Provider>
                 </MemoryRouter>
             );
 

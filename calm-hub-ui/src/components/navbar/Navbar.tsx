@@ -1,3 +1,4 @@
+import { ExtensionScreenLinks } from '../../extensions/ExtensionPoints.js';
 import './Navbar.css';
 import { useContext, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -101,6 +102,7 @@ export function Navbar({ storage }: NavbarProps = {}) {
                         </li>
                     )}
                 </ul>
+                <ExtensionScreenLinks onNavigate={closeMenu} />
                 <MenuInfo identity={identity} items={items} />
             </div>
         </div>

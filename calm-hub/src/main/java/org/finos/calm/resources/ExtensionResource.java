@@ -12,6 +12,10 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.extensions.ExtensionRegistry;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 @Tag(name = "Extensions", description = "Extensions that the operator enabled on this CALM Hub")
 @Path("/api/calm/extensions")
 public class ExtensionResource {
@@ -21,6 +25,25 @@ public class ExtensionResource {
     @Inject
     public ExtensionResource(ExtensionRegistry registry) {
         this.registry = registry;
+    }
+
+    @GET
+    @Path("schema/0/blocks.schema.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    @Operation(summary = "Get the hubApi 0 blocks reply schema")
+    public Response blocksSchema() throws IOException {
+        return schemaResponse(ExtensionResource.class.getResourceAsStream(
+                "/META-INF/calm-extensions/schema/0/blocks.schema.json"));
+    }
+
+    static Response schemaResponse(InputStream stream) throws IOException {
+        try (stream) {
+            if (stream == null) {
+                return Response.serverError().build();
+            }
+            return Response.ok(new String(stream.readAllBytes(), StandardCharsets.UTF_8)).build();
+        }
     }
 
     @GET

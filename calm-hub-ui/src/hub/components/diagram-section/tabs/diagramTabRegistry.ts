@@ -13,6 +13,7 @@ export interface DiagramTabScope {
 
 export interface DiagramTabContext extends DiagramTabScope {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
+    selectedElement?: string;
     searchParams: URLSearchParams;
     /** Replaces the query parameters of the active tab. `tab` is kept. */
     setTabParams: (params: Record<string, string>) => void;

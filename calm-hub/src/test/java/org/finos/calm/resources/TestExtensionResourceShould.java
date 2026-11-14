@@ -29,4 +29,16 @@ class TestExtensionResourceShould {
                 .statusCode(200)
                 .body(equalTo("{\"values\":[]}"));
     }
+    @Test
+    @TestSecurity(user = "alice")
+    void serve_the_versioned_blocks_schema() {
+        given().when().get("/api/calm/extensions/schema/0/blocks.schema.json")
+                .then().statusCode(200).body("properties.hubApi.const", equalTo(0));
+    }
+
+    @Test
+    void protect_the_blocks_schema() {
+        given().when().get("/api/calm/extensions/schema/0/blocks.schema.json")
+                .then().statusCode(401);
+    }
 }

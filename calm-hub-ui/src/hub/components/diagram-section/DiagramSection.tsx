@@ -3,6 +3,9 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useExtensions, useExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
+import { ExtensionPoints } from '../../../extensions/ExtensionPoints.js';
+import { EXTENSION_TAB_PREFIX, extensionTabs } from '../../../extensions/extension-tabs.js';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
@@ -33,7 +36,7 @@ import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
 import { useArchitectureDecorators } from './decorators/useArchitectureDecorators.js';
-import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS } from './tabs/diagramTabs.js';
+import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS, extensionContext } from './tabs/diagramTabs.js';
 import {
     DEFAULT_DIAGRAM_TAB_ID,
     diagramTabLabel,
@@ -49,6 +52,7 @@ interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
     onItemSelect?: (item: SelectedItem) => void;
     hasDetailsPanel?: boolean;
+    selectedElement?: string;
     breadcrumbs?: BreadcrumbItem[];
     /**
      * Mirrors the resolved display name up to Hub, which snapshots it into the
@@ -62,6 +66,7 @@ interface DiagramSectionProps {
      * Called with an empty list on unmount. Must be identity-stable.
      */
     onDecoratorsChange?: (decorators: Decorator[]) => void;
+    onDroppedFileChange?: (dropped: boolean) => void;
 }
 
 const iconMap = {
@@ -77,7 +82,7 @@ const subscribeToNothing = () => () => {};
 const getNavbarSlot = () => document.getElementById('navbar-actions');
 const getNoNavbarSlot = () => null;
 
-export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange, onDecoratorsChange }: DiagramSectionProps) {
+export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange, onDecoratorsChange, onDroppedFileChange, selectedElement }: DiagramSectionProps) {
     const [urlSearchParams, setSearchParams] = useSearchParams();
     // An old tab link opens its replacement at once; the effect below then fixes the URL.
     const redirectedQuery = redirectedTabQuery(DIAGRAM_TAB_REDIRECTS, urlSearchParams);
@@ -151,6 +156,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const resourceKey = `${data.calmType}|${data.name}|${data.id}`;
     // A dropped file is not the loaded architecture, so the details drawer must not show its decorators.
     const [showsDroppedFile, setShowsDroppedFile] = useState(false);
+    useEffect(() => { onDroppedFileChange?.(showsDroppedFile); }, [onDroppedFileChange, showsDroppedFile]);
+    useEffect(() => () => onDroppedFileChange?.(false), [onDroppedFileChange]);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
     const [compareTo, setCompareTo] = useState<string | null>(null);
     const comparing = compareFrom !== null && compareTo !== null;
@@ -207,9 +214,11 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const typeLabel = isArchitecture ? 'Architecture' : 'Pattern';
 
     const implementationService = useMemo(() => new PatternImplementationService(), []);
+    const extensions = useExtensions();
+    const registeredTabs = [...DIAGRAM_TABS, ...extensionTabs(extensions)];
     const tabScope = { isArchitecture, patternName };
-    const visibleTabs = visibleDiagramTabs(DIAGRAM_TABS, tabScope);
-    const activeTab = resolveDiagramTab(DIAGRAM_TABS, searchParams.get('tab'), tabScope);
+    const visibleTabs = visibleDiagramTabs(registeredTabs, tabScope);
+    const activeTab = resolveDiagramTab(registeredTabs, searchParams.get('tab'), tabScope);
     const tabQuery = diagramTabQuery(activeTab, searchParams);
     const usedByOpen = activeTab.id === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
@@ -242,9 +251,13 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     }, [setSearchParams, location.state]);
 
     // A tab id no entry registers is dropped from the URL, so a copied link does not keep it. A hidden tab such as
-    // used-by is kept, because it can become visible when the pattern summary loads.
+    // used-by is kept, because it can become visible when the pattern summary loads. An extension tab is kept until
+    // the registry loads, because only then is it registered.
     const requestedTab = searchParams.get('tab');
-    const unknownTab = requestedTab !== null && !DIAGRAM_TABS.some((tab) => tab.id === requestedTab);
+    const registryLoaded = useExtensionsStatus() === 'loaded';
+    const unknownTab = requestedTab !== null
+        && !registeredTabs.some((tab) => tab.id === requestedTab)
+        && (registryLoaded || !requestedTab.startsWith(EXTENSION_TAB_PREFIX));
     useEffect(() => {
         if (!unknownTab) return;
         setSearchParams(
@@ -475,10 +488,14 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     ]);
 
     const Icon = iconMap[data.calmType];
+    const extensionActions = !showsDroppedFile && (
+        <ExtensionPoints point="action" context={extensionContext(data, selectedElement)} placement="diagram-toolbar" />
+    );
 
     const tabContext: DiagramTabContext = {
         ...tabScope,
         data,
+        selectedElement,
         searchParams,
         setTabParams,
         diagram: (
@@ -800,6 +817,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                         rightContent={
                             <div className="flex items-center gap-2">
                                 {tabs}
+                                {extensionActions}
                                 {layoutActions}
                             </div>
                         }
@@ -821,7 +839,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     return (
         <NodeSearchProvider value={nodeSearch}>
         <div className="w-full h-full">
-            {navbarSlot ? createPortal(viewMenu, navbarSlot) : viewMenu}
+            {navbarSlot ? createPortal(<>{viewMenu}{extensionActions}</>, navbarSlot) : <>{viewMenu}{extensionActions}</>}
             <div className="h-full bg-base-100 overflow-hidden flex flex-col">
                 {/* Mobile has no SectionHeader (full-bleed canvas), so after a
                     detailed-architecture hop the trail would be unreachable.

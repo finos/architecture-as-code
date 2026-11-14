@@ -1,5 +1,8 @@
 import { HashRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
+import { ExtensionsProvider } from './extensions/ExtensionsContext.js';
+import { ExtensionScreenPage } from './extensions/ExtensionScreenPage.js';
 import Hub from './hub/Hub.js';
+import { RESOURCE_ROUTE } from './hub/routes.js';
 import { AdminPage } from './admin/AdminPage.js';
 import { NamespacesPanel } from './admin/panels/NamespacesPanel.js';
 import { DomainsPanel } from './admin/panels/DomainsPanel.js';
@@ -14,8 +17,10 @@ function App() {
     return (
         <UserAccessProvider>
             <UiConfigProvider>
+                <ExtensionsProvider>
                 <Router>
                     <Routes>
+                        <Route path="/extensions/:extensionId/:contributionId" element={<ExtensionScreenPage />} />
                         <Route path="/" element={<Hub />} />
                         <Route path="/search" element={<Hub />} />
                         {/* The standalone /visualizer page was removed; redirect old links to the hub. */}
@@ -25,7 +30,7 @@ function App() {
                         {/* Landing page for malformed detailed-architecture refs; the
                             broken ref itself travels in history state (brokenRef). */}
                         <Route path="/broken-reference" element={<Hub />} />
-                        <Route path="/:namespace/:type/:id/:version" element={<Hub />} />
+                        <Route path={RESOURCE_ROUTE} element={<Hub />} />
                         <Route path="/admin" element={<AdminPage />}>
                             <Route index element={<Navigate to="entitlements" replace />} />
                             <Route path="namespaces" element={<NamespacesPanel />} />
@@ -34,6 +39,7 @@ function App() {
                         </Route>
                     </Routes>
                 </Router>
+                </ExtensionsProvider>
             </UiConfigProvider>
         </UserAccessProvider>
     );
