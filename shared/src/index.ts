@@ -94,6 +94,9 @@ export {
     type CalmHubOptions,
     type NarrativeDocumentRequest,
     type NarrativeDocumentVersion,
+    type HubConfigSummary,
+    type HubConfigRequest,
+    type HubNamespaceDefaultConfig,
     type ResourceType,
     type ResourceChangeType,
     isValidResourceType
