@@ -1297,6 +1297,56 @@ describe('CLI Commands', () => {
 
     });
 
+    describe('config commands', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPushConfig').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runPullConfig').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runListConfigs').mockResolvedValue(undefined);
+        });
+
+        it('passes the type, file, namespace, change type and --set-default to runPushConfig', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'config', 'c4-mapping', 'acme.json',
+                '--namespace', 'org', '--change-type', 'minor', '--set-default', '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushConfig).toHaveBeenCalledWith(expect.objectContaining({
+                configType: 'c4-mapping',
+                file: 'acme.json',
+                namespace: 'org',
+                changeType: 'MINOR',
+                setDefault: true,
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+            }));
+        });
+
+        it('passes the type, namespace, ID and version to runPullConfig', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'config', 'c4-mapping',
+                '--namespace', 'org.team', '--id', '3', '--ver', '1.0.0', '--output', 'out.json',
+            ]);
+
+            expect(hubCommandsModule.runPullConfig).toHaveBeenCalledWith(expect.objectContaining({
+                configType: 'c4-mapping',
+                namespace: 'org.team',
+                id: '3',
+                version: '1.0.0',
+                output: 'out.json',
+            }));
+        });
+
+        it('passes the type and namespace to runListConfigs', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'list', 'configs', 'c4-mapping', '--namespace', 'org', '--format', 'pretty']);
+
+            expect(hubCommandsModule.runListConfigs).toHaveBeenCalledWith(expect.objectContaining({
+                configType: 'c4-mapping',
+                namespace: 'org',
+                format: 'pretty',
+            }));
+        });
+    });
+
     describe('push pattern command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');

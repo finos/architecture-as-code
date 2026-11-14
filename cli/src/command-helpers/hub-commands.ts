@@ -1166,6 +1166,198 @@ export async function runListControlConfigurations(options: ListControlConfigura
     }
 }
 
+// ── configs ───────────────────────────────────────────────────────────────────
+
+export interface PushConfigOptions {
+    calmHubOptions: CalmHubOptions;
+    configType: string;
+    file: string;
+    namespace: string;
+    /** Defaults to the `unique-id` of the config. */
+    name?: string;
+    description?: string;
+    changeType?: ResourceChangeType;
+    /** Also name the pushed version as the namespace default for the type. */
+    setDefault?: boolean;
+    format?: string;
+}
+
+export interface ConfigPushResult {
+    status: PushAction;
+    namespace: string;
+    configType: string;
+    id: number;
+    name: string;
+    version: string;
+    location: string;
+    default: boolean;
+}
+
+// Matches the absolute Location header that Hub returns for a created version.
+function configVersionLocation(calmHubUrl: string, namespace: string, configType: string, id: number, version: string): string {
+    return `${calmHubUrl.replace(/\/+$/, '')}/api/calm/namespaces/${namespace}/configs/${configType}/${id}/versions/${version}`;
+}
+
+/**
+ * Pushes a config to CALM Hub. Configs have no `$id`, so the name finds the config in the namespace:
+ * a new name creates the config at 1.0.0, and a known name adds the next version unless the content is unchanged.
+ */
+export async function runPushConfig(options: PushConfigOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+    const { namespace, configType } = options;
+    const requestedCommand = `push config ${configType} ${options.file}`;
+
+    const configJson = validateAndMinifyJSON(await loadFileContent(options.file, requestedCommand, format), options.file, requestedCommand, format);
+    const config = JSON.parse(configJson);
+    const name = options.name ?? (typeof config?.['unique-id'] === 'string' ? config['unique-id'] : undefined);
+    if (!name) {
+        printError(0, 'The config has no unique-id. Give a name with --name.', requestedCommand, format);
+        process.exit(1);
+    }
+    const request = { name, description: options.description, configJson };
+
+    try {
+        const matches = (await client.listConfigs(namespace, configType)).filter(c => c.name === name);
+        if (matches.length > 1) {
+            throw new HubCommandError(0, `Namespace '${namespace}' has ${matches.length} ${configType} configs named '${name}'`, requestedCommand);
+        }
+
+        let result: Omit<ConfigPushResult, 'default'>;
+        if (matches.length === 0) {
+            const location = await client.createConfig(namespace, configType, request);
+            const id = Number(/\/configs\/[^/]+\/(\d+)\/versions\//.exec(location)?.[1]);
+            if (!id) {
+                throw new HubCommandError(0, `Cannot read the config ID from the Location ${location}`, requestedCommand);
+            }
+            result = { status: 'created', namespace, configType, id, name, version: '1.0.0', location };
+        } else {
+            const id = matches[0].id;
+            const versions = await client.getConfigVersions(namespace, configType, id);
+            const latestVersion = versions[versions.length - 1];
+            const latest = await client.getConfigVersion(namespace, configType, id, latestVersion);
+            if (canonicalEqual(config, latest)) {
+                result = { status: 'skipped', namespace, configType, id, name, version: latestVersion, location: configVersionLocation(calmHubOptions.calmHubUrl!, namespace, configType, id, latestVersion) };
+            } else {
+                const version = computeSemVerBump(latestVersion, options.changeType ?? 'PATCH');
+                const location = await client.createConfigVersion(namespace, configType, id, version, request);
+                result = { status: 'created', namespace, configType, id, name, version, location };
+            }
+        }
+
+        if (options.setDefault) {
+            await client.setNamespaceDefaultConfig(namespace, configType, result.id, result.version);
+        }
+        printConfigPushResult({ ...result, default: !!options.setDefault }, format);
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
+function printConfigPushResult(result: ConfigPushResult, format: OutputFormat): void {
+    if (format === 'pretty') {
+        printTableSuccess(
+            [{
+                STATUS: result.status === 'created' ? 'Created' : 'Unchanged',
+                ID: result.id,
+                NAME: result.name,
+                VERSION: result.version,
+                DEFAULT: result.default ? 'yes' : '',
+                LOCATION: result.location
+            }],
+            ['STATUS', 'ID', 'NAME', 'VERSION', 'DEFAULT', 'LOCATION'].map(key => ({ key, header: key }))
+        );
+    } else {
+        printJsonSuccess(result);
+    }
+}
+
+export interface PullConfigOptions {
+    calmHubOptions: CalmHubOptions;
+    configType: string;
+    namespace: string;
+    /** Without an ID, pull the namespace default, which can come from an ancestor namespace. */
+    id?: string;
+    version?: string;
+    output?: string;
+}
+
+/**
+ * Pulls a config version, or the default config that applies to the namespace, and writes its JSON to stdout or a file.
+ */
+export async function runPullConfig(options: PullConfigOptions): Promise<void> {
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions);
+    const client = new CalmHubClient(calmHubOptions);
+    const { namespace, configType, version } = options;
+    const requestedCommand = `pull config ${configType}`;
+
+    const id = options.id === undefined ? undefined : Number(options.id);
+    if (id !== undefined && !(Number.isInteger(id) && id > 0)) {
+        printError(0, `The config ID must be a positive integer: ${options.id}`, requestedCommand, 'json');
+        process.exit(1);
+    }
+    if (version && id === undefined) {
+        printError(0, '--ver needs --id. Without --id, pull reads the namespace default.', requestedCommand, 'json');
+        process.exit(1);
+    }
+
+    try {
+        let config: object;
+        if (id === undefined) {
+            const resolved = await client.getNamespaceDefaultConfig(namespace, configType);
+            if (!resolved) {
+                throw new HubCommandError(404, `No ${configType} default applies to namespace '${namespace}'`, requestedCommand);
+            }
+            console.error(`Using ${configType} config ${resolved.configId} version ${resolved.version}, the default of namespace ${resolved.namespace}${resolved.inherited ? ' (inherited)' : ''}`);
+            config = resolved.config;
+        } else {
+            let resolvedVersion = version;
+            if (!resolvedVersion) {
+                const versions = await client.getConfigVersions(namespace, configType, id);
+                resolvedVersion = versions[versions.length - 1];
+            }
+            config = await client.getConfigVersion(namespace, configType, id, resolvedVersion);
+        }
+
+        const pretty = JSON.stringify(config, null, 2);
+        if (options.output) {
+            await writeFile(options.output, pretty, 'utf-8');
+        } else {
+            console.log(pretty);
+        }
+    } catch (err) {
+        handleHubError(err, 'json');
+    }
+}
+
+export interface ListConfigsOptions {
+    calmHubOptions: CalmHubOptions;
+    configType: string;
+    namespace: string;
+    format?: string;
+}
+
+export async function runListConfigs(options: ListConfigsOptions): Promise<void> {
+    const format: OutputFormat = parseOutputFormat(options.format);
+    const calmHubOptions = await handleOptionsLoadError(options.calmHubOptions, format);
+    const client = new CalmHubClient(calmHubOptions);
+
+    try {
+        const configs = await client.listConfigs(options.namespace, options.configType);
+        if (format === 'pretty') {
+            printTableSuccess(
+                configs.map(c => ({ ID: c.id, NAME: c.name, VERSIONS: c.versionCount, DESCRIPTION: c.description ?? '' })),
+                ['ID', 'NAME', 'VERSIONS', 'DESCRIPTION'].map(key => ({ key, header: key }))
+            );
+        } else {
+            printJsonSuccess(configs);
+        }
+    } catch (err) {
+        handleHubError(err, format);
+    }
+}
+
 // ── shared error handler ──────────────────────────────────────────────────────
 
 /**

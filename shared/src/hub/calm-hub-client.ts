@@ -66,6 +66,32 @@ export interface NarrativeDocumentVersion {
     documentMarkdown: string;
 }
 
+export interface HubConfigSummary {
+    id: number;
+    name: string;
+    description?: string;
+    versionCount: number;
+}
+
+export interface HubConfigRequest {
+    name: string;
+    description?: string;
+    /** The config JSON, as a string. Hub validates it against the schema of its type. */
+    configJson: string;
+}
+
+/** The default config that applies to a namespace: its own, or that of its nearest ancestor. */
+export interface HubNamespaceDefaultConfig {
+    configType: string;
+    /** The namespace that sets the default. */
+    namespace: string;
+    configId: number;
+    version: string;
+    /** True when an ancestor of the requested namespace sets the default. */
+    inherited: boolean;
+    config: object;
+}
+
 export class HubClientError extends Error {
     /**
      * Creates a normalized Hub client error.
@@ -254,6 +280,110 @@ export class CalmHubClient {
             if (err instanceof HubClientError) throw err;
             throw this.wrapError(err, requestLabel);
         }
+    }
+
+    // ── Configs ──────────────────────────────────────────────────────────────
+
+    async listConfigs(namespace: string, configType: string): Promise<HubConfigSummary[]> {
+        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return this.extractValues<HubConfigSummary>(response.data, `GET ${endpoint}`);
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /**
+     * Creates a config at version 1.0.0.
+     * @returns The location of the new version.
+     */
+    async createConfig(namespace: string, configType: string, request: HubConfigRequest): Promise<string> {
+        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}`;
+        return this.postConfig(endpoint, request);
+    }
+
+    async createConfigVersion(namespace: string, configType: string, id: number, version: string, request: HubConfigRequest): Promise<string> {
+        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/${id}/versions/${version}`;
+        return this.postConfig(endpoint, request);
+    }
+
+    /** Returns the versions of a config, oldest first. */
+    async getConfigVersions(namespace: string, configType: string, id: number): Promise<string[]> {
+        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/${id}/versions`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return this.extractValues<string>(response.data, `GET ${endpoint}`);
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    async getConfigVersion(namespace: string, configType: string, id: number, version: string): Promise<object> {
+        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/${id}/versions/${version}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return this.requireObject(response.data, `GET ${endpoint}`);
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /**
+     * Returns the default config that applies to a namespace, which it can inherit from an ancestor.
+     * @returns The default, or undefined when Hub returns 404: no namespace in the chain sets one, or the namespace does not exist.
+     */
+    async getNamespaceDefaultConfig(namespace: string, configType: string): Promise<HubNamespaceDefaultConfig | undefined> {
+        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/default`;
+        try {
+            const response = await this.ax.get(endpoint);
+            const body = this.requireObject(response.data, `GET ${endpoint}`) as HubNamespaceDefaultConfig;
+            if (typeof body.configId !== 'number' || typeof body.version !== 'string' || !body.config || typeof body.config !== 'object') {
+                throw new HubClientError(0, 'Response does not contain configId, version and config', `GET ${endpoint}`);
+            }
+            return body;
+        } catch (err) {
+            if (axios.isAxiosError(err) && err.response?.status === 404) {
+                return undefined;
+            }
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /** Names a config version in the namespace as its default for the type. Needs ADMIN on the namespace. */
+    async setNamespaceDefaultConfig(namespace: string, configType: string, configId: number, version: string): Promise<void> {
+        const endpoint = `/api/calm/namespaces/${namespace}/configs/${configType}/default`;
+        try {
+            await this.ax.put(endpoint, { configId, version });
+        } catch (err) {
+            throw this.wrapError(err, `PUT ${endpoint}`);
+        }
+    }
+
+    private async postConfig(endpoint: string, request: HubConfigRequest): Promise<string> {
+        try {
+            const response = await this.ax.post(endpoint, request);
+            const location = response.headers.location as string | undefined;
+            if (!location) {
+                throw new HubClientError(0, 'Response does not include Location header', `POST ${endpoint}`);
+            }
+            return location;
+        } catch (err) {
+            const error = this.wrapError(err, `POST ${endpoint}`);
+            const fieldErrors = axios.isAxiosError(err) ? err.response?.data?.errors : undefined;
+            if (!Array.isArray(fieldErrors) || fieldErrors.length === 0) {
+                throw error;
+            }
+            const details = fieldErrors.map((e: { location?: string; error?: string }) => `${e.location || '/'}: ${e.error}`).join('; ');
+            throw new HubClientError(error.status, `${error.error}: ${details}`, error.request);
+        }
+    }
+
+    private requireObject(data: unknown, endpoint: string): object {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+            throw new HubClientError(0, 'Unexpected response body from CALM Hub: expected a JSON object', endpoint);
+        }
+        return data;
     }
 
     /**
