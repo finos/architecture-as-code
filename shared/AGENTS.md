@@ -58,7 +58,7 @@ Rules:
 
 ## Key Components
 
-- **Document Loader** (`document-loader/`): Strategies for loading CALM documents — FileSystem, MultiStrategy, plus CalmHub, direct-URL, and mapped loaders. Also `InMemoryDocumentLoader` (pass-a-map loader for tests and embedders) and `buildBrowserDocumentLoader` (the browser-entry loader factory, `document-loader/browser-document-loader.ts`). The HTTP loaders share their request-path checks in `document-loader/request-guards.ts` (traversal guard and path allowlist): change them there, not in one loader.
+- **Document Loader** (`document-loader/`): Strategies for loading CALM documents — FileSystem, MultiStrategy, plus CalmHub, direct-URL, and mapped loaders. Also `InMemoryDocumentLoader` (pass-a-map loader for tests and embedders) and `buildBrowserDocumentLoader` (the browser-entry loader factory, `document-loader/browser-document-loader.ts`). The HTTP loaders share their request-path checks in `document-loader/request-guards.ts` (traversal guard and path allowlist): change them there, not in one loader. CodeQL (`js/request-forgery`) accepts a check only on the same variable that the HTTP call receives: compute the path once, test that variable, and pass it to the call. A value derived again on another line, even with the same content, is not guarded.
 - **Template Processor** (`template/`): Handlebars-based template generation logic.
 - **Model Visitors** (`model-visitor/`): Visitor pattern implementations for traversing CALM models.
 - **Validation** (`commands/validate/`, `spectral/`): Core validation logic (Spectral integration) and output enrichment.

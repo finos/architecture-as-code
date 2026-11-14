@@ -461,6 +461,14 @@ All four workflows:
   directory, and requires a hub `$id`. Each subdirectory of `mongo/standards/finos.calm/` holds copies
   of the decorator standards of one calm-schema release, with their calm.finos.org `$id`, so
   `create_standards` seeds them through the numeric API instead, `deployment/` first
+- A version write (`POST .../architectures/{id}/versions/{version}`) takes
+  `{name, description, architectureJson: "<document as a JSON string>"}`, not the CALM document
+  itself. Patterns and flows take `patternJson` and `flowJson`. See `init-nitrite.sh`
+- A Standard is a JSON document: a JSON Schema that extends CALM. GitHub mode serves Markdown files
+  as Standards (`GitHubStandardStore.preferMarkdownSibling`, `ResourceRegistry.detectMarkdownType`).
+  That is a bug, #3321: do not extend it or style Markdown as a Standard
+- The `sdlc-control-requirement` Standard stays in the `finos.sdlc-common-controls` namespace with
+  its controls. `finos.calm` holds only the standards that calm-schema releases
 
 ### Integration Tests
 - Located in `src/integration-test/java/`
@@ -735,6 +743,20 @@ CALM Hub is largely independent - it's a standalone REST API server.
    with this profile ships no UI at all; never use it for a release, Docker image, or CI build
    that needs to serve the UI. It (and `-Dskip.npm`) also skips the meta-schema copy, so after
    `clean` the jar has no bundled meta-schemas and GitHub mode serves none.
+8. **Maven runs `npm install` at the repository root**: the frontend-maven-plugin runs it in the
+   `initialize` phase of every build goal. In a second worktree, do not link `node_modules` to
+   another checkout before you run Maven, or the install changes that checkout's tree. Run
+   `npm ci` in the worktree instead.
+9. **An old UI after a rebuild**: `calm-hub-ui:prod` copies the new bundle with `rsync -a` and does
+   not delete the old hashed files, and browsers cache `index.html`. Check a UI change in a new
+   browser context, or add a query string such as `/?fresh=1`, and make sure that the page loads
+   the newest file in `META-INF/resources/assets/`.
+10. **CodeQL Java barriers**: `java/polynomial-redos` has no length-check barrier, so take the
+    ambiguous regex off the tainted path. A regex check in an early return such as
+    `if (x != null && !P.matcher(x).matches()) return 400;` does not guard the sink, because it is
+    skipped when `x` is null. Put the check in the non-null branch and give the checked value to
+    the sink. Before you push a CodeQL fix, run the same query locally with the CodeQL version CI
+    uses (`--build-mode=none` takes about a minute here).
 
 ## Known Issues
 
