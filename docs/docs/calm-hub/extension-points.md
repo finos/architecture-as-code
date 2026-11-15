@@ -54,12 +54,12 @@ hides an action whose path gets such a value. Thus use `resource` only as a quer
 
 | Parameter | Value | Sent to |
 |---|---|---|
-| `namespace` | The namespace of the open resource | `designer-tab`, `detail-panel`, `action` |
-| `resource` | `<type>/<id>`, for example `architectures/1` or `patterns/2`. Not for a path | `designer-tab`, `detail-panel`, `action` |
-| `resourceType` | `architectures` or `patterns` | `designer-tab`, `detail-panel`, `action` |
-| `resourceId` | The resource id, for example `1` | `designer-tab`, `detail-panel`, `action` |
-| `version` | The version on screen, for example `1.0.0` | `designer-tab`, `detail-panel`, `action` |
-| `selectedElement` | The `unique-id` of the selected node | `detail-panel`, when you click a node. A link that names a node with `?node=<unique-id>` also sends it to `designer-tab` and `action`. A tab change clears a clicked selection |
+| `namespace` | The namespace of the open resource | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `resource` | `<type>/<id>`, for example `architectures/1` or `patterns/2`. Not for a path | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `resourceType` | `architectures` or `patterns` | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `resourceId` | The resource id, for example `1` | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `version` | The version on screen, for example `1.0.0` | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `selectedElement` | The `unique-id` of the selected node | `detail-panel`, when you click a node. A link that names a node with `?node=<unique-id>` also sends it to `designer-tab` and `action`. A tab change clears a clicked selection. `diagram-lens` gets it only when its route path names `{selectedElement}`, because the lens marks a selection with no request |
 
 CALM Hub checks the format of a `{namespace}` or `{domain}` path value, and checks the route `scope`
 against the value that the scope needs. It checks no other path value. A user can send any value,
@@ -256,6 +256,25 @@ The route returns JSON that matches
 - `layout` is `layered`, `tree`, `radial`, `force`, `stress`, `rectpacking`,
   `box`, or `fixed` with a `position` on each node.
 - A reply has at most 500 nodes, 2,000 edges and 200 groups.
+
+CALM Hub checks the reply before it lays it out. A reply that is not valid, or
+that has a control for a parameter that the lens does not declare, shows the
+first fault in the lens. A `4xx` reply with `application/problem+json` shows
+its `title` and `detail`. When CALM Hub draws the graph:
+
+- A part with no `fill` is not filled. A part with no `stroke` uses the
+  `stroke` of the style.
+- A `grow` slot and each `list` slot take the height of their text, and the
+  shape grows inside the band of that slot. An `aspect` shape does not grow.
+- A shape with a slot named `icon` shows the `icon` of the style there. Other
+  shapes show it at the top left.
+- An edge with no `end` in its style ends with `arrow`. Its `technology` shows
+  in brackets under the `label`.
+- `fixed` positions are in pixels, and each group fits around its members.
+  An edge to a group, and an edge with `direct` routing, is a straight line.
+- A click on a node follows its `link` and selects its first `calm` id. A link
+  can set only the parameters that the lens declares, with allowed values.
+- A click on an entry of the diagram key dims the elements with that tag.
 
 ## search-provider and chat
 

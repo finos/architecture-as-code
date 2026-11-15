@@ -92,6 +92,19 @@ describe('ExtensionService', () => {
         mock.onGet().reply(502);
         await expect(new ExtensionService(ax).call('test', route, { namespace: 'ns' })).rejects.toThrow();
     });
+    it('keeps the title and detail of a problem reply', async () => {
+        mock.onGet().reply(422, { type: 'about:blank', title: 'No C4 mapping', detail: 'Add one to the namespace', status: 422 });
+        await expect(new ExtensionService(ax).call('test', route, { namespace: 'ns' }))
+            .rejects.toMatchObject({ problem: { title: 'No C4 mapping', detail: 'Add one to the namespace' } });
+    });
+    it('reads the notation of a lens, and the core notation once', async () => {
+        mock.onGet('/api/calm/extensions/c%204/lenses/a%2Fb/notation').reply(200, { shapes: {} });
+        mock.onGet('/api/calm/extensions/notations/core').replyOnce(200, { markers: {} });
+        const service = new ExtensionService(ax);
+        expect(await service.fetchLensNotation('c 4', 'a/b')).toEqual({ shapes: {} });
+        expect(await service.fetchCoreNotation()).toEqual({ markers: {} });
+        expect(await service.fetchCoreNotation()).toEqual({ markers: {} });
+    });
     it('keeps registry and proxy failures out of the global error pages', async () => {
         const shared = new AxiosMockAdapter(apiClient as never);
         shared.onAny().reply(401);
@@ -140,9 +153,12 @@ describe('ExtensionService', () => {
             entry('object-screen', { contributes: { screen: { id: 's' } } }),
             entry('null-action', { contributes: { action: [null] } }),
             entry('tab-no-title', { contributes: { 'designer-tab': [{ id: 't', route: 'r' }] } }),
+            entry('good-lens', { contributes: { 'diagram-lens': [{ id: 'l', title: 'L', route: 'r', notation: 'n.json', params: {} }] } }),
+            entry('lens-no-notation', { contributes: { 'diagram-lens': [{ id: 'l', title: 'L', route: 'r' }] } }),
+            entry('lens-list-params', { contributes: { 'diagram-lens': [{ id: 'l', title: 'L', route: 'r', notation: 'n.json', params: [] }] } }),
         ] });
         const service = new ExtensionService(ax);
-        expect((await service.fetchExtensions()).map((e) => e.id)).toEqual(['good', 'good-views', 'good-screen']);
+        expect((await service.fetchExtensions()).map((e) => e.id)).toEqual(['good', 'good-views', 'good-screen', 'good-lens']);
         expect((await service.fetchDecoratorViews()).map((v) => v.id)).toEqual(['risk']);
     });
     it('logs one warning for each dropped registry entry, with its id if it has one', async () => {
