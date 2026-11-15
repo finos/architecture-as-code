@@ -102,7 +102,7 @@ A compact card in the **Extensions** section of the home page.
 "contributes": { "landing-card": [{ "id": "health", "title": "Release health", "route": "card" }] }
 ```
 
-- Hub calls only the first `landing-card` of an extension.
+- Hub calls only the first `landing-card` of an extension whose route path has no placeholder.
 - The card shows the extension `name` and `provider`, and a headline from the reply: the first
   three valid items of the first `stats` block. A valid item has a string `label` and a string or number
   `value`. Hub ignores other items. If a card cannot render, it shows an error and the other cards stay.
@@ -145,7 +145,9 @@ A button in the extension's section of the **Extensions** tab of an architecture
 - An action does not accept user input, and Hub does not show its reply. A call in flight
   shows `<title>: running…`. A call that succeeds
   shows `<title>: done.`, and a failed call shows "Extension request failed." The message stays
-  when the section closes and opens again, and goes when the context changes.
+  when the section closes and opens again. For a `readOnly` route, it goes when the context changes.
+  For a write, it stays until the action runs again, and names its target when the context has
+  changed, for example `Request release review: done (demo architectures/1 1.0.0).`
 - A read-only Hub leaves out an action whose route changes data and is not `readOnly`.
 
 ## decorator-views

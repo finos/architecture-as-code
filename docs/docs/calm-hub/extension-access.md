@@ -73,7 +73,7 @@ that it signs, in the `X-Calm-Hub-Identity` header. The public keys are at
 | `sub` | The user. When `auth` is `none`, one shared principal |
 | `auth` | `none`, `oidc` or `proxy` |
 | `iat`, `exp` | Issue and expiry time. The lifetime is `calm.extensions.identity.ttl-seconds`, by default 60 seconds |
-| `jti` | A unique id for this call. The audit log records it |
+| `jti` | A unique id for this call. The audit log records it for a route that is not `readOnly`. Hub does not audit `readOnly` routes |
 | `htm`, `htp` | The method, and the path and query relative to the backend URL. CALM Hub sorts the query by name |
 | `hubApi`, `route`, `scope` | The manifest `hubApi`, the route `id`, and the route `scope` |
 | `ns` | The namespace that CALM Hub checked. Only for a `read`, `write` or `admin` route |
@@ -87,7 +87,8 @@ Verify each request with the JWKS only:
 - the header `typ` is `calm-ext+jwt`, and `alg` is `RS256` or `ES256` and equals the `alg` of the
   key with that `kid`. Load the JWKS again for an unknown `kid`
 - the signature is valid
-- `iss` is the CALM Hub base URL, `aud` is your extension id, and `exp` is not past
+- `iss` is the CALM Hub base URL, `aud` is your extension id, `exp` is not past, and
+  `iat` is not in the future
 - `htm` is the request method, and `htp` is the path and query that you received, relative to the
   backend URL. For example, with the backend URL `https://svc.internal/base`, a request for
   `/base/screen` has the `htp` `/screen`

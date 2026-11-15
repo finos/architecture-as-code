@@ -294,7 +294,7 @@ curl -X POST http://localhost:8080/api/calm/namespaces/demo/architectures \
 
 curl -X POST http://localhost:8080/api/calm/namespaces/demo/decorators \
   -H 'Content-Type: application/json' \
-  -d '{"unique-id":"risk-order-service","type":"release-risk","target":["/api/calm/namespaces/demo/architectures/1/versions/1-0-0"],"target-type":["architecture"],"applies-to":["order-service"],"data":{"risk":"high","summary":"2.4.0 is rolling out"}}'
+  -d '{"unique-id":"risk-order-service","type":"release-risk","target":["/api/calm/namespaces/demo/architectures/1/versions/1-0-0"],"target-type":["architecture"],"applies-to":["order-service"],"data":{"risk":"medium","summary":"2.4.0 is rolling out"}}'
 ```
 
 The decorator `target` writes the version with `-`, not `.`. Do not send `creationDateTime` or
@@ -306,7 +306,7 @@ The decorator `target` writes the version with `-`, not `.`. Do not send `creati
 | Side menu, **Extensions** | **Releases**: an alert, figures, a table of releases, text and links |
 | Architecture `demo` / `1`, **Extensions** tab | A **Release tracker** section with the **Request release review** button and the **Releases** tab content. The button asks you to confirm, because its route is not `readOnly` |
 | Click the `order-service` node | The **Extensions** section of the node details, with the owner, last release and risk |
-| Diagram | A red **High** badge on `order-service`, and a **Release risk · Release tracker** row in the legend |
+| Diagram | An amber **Medium** badge on `order-service`, and a **Release risk · Release tracker** row in the legend |
 
 The backend log shows each call, for example
 `GET /tab/architectures/1?namespace=demo&resource=architectures%2F1&resourceId=1&resourceType=architectures&version=1.0.0 for no-auth: 200`.
@@ -324,7 +324,10 @@ node cli/dist/index.js hub ext release-tracker list-releases -c http://localhost
 ```
 
 With `calm.mcp.enabled=true`, the same command is the MCP tool `ext_release-tracker_list-releases`.
-Connect an MCP client to `http://localhost:8080/mcp`, or call it with `curl`:
+Connect an MCP client to `http://localhost:8080/mcp`. In dev mode (`quarkus:dev`, the first two
+options of step 4), you can also call it with `curl`, because dev mode accepts a call without an MCP
+session. The Docker image needs a client that sends `initialize` first and then the `Mcp-Session-Id`
+header. In dev mode:
 
 ```bash
 curl -s -X POST http://localhost:8080/mcp \

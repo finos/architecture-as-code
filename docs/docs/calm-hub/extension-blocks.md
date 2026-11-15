@@ -43,7 +43,7 @@ GitHub-flavoured Markdown. Hub ignores raw HTML, shows an image as its alt text,
 that is not `http` or `https` as plain text. Links open in a new tab. A Markdown heading goes
 one level below the slot heading, so `#` in a node details panel is not a page title. HTML has
 no level below `h6`, so in a node details panel, where the slot heading is `h6`, each Markdown
-heading is an `h6`. The size of the text still follows the Markdown level.
+heading is an `h6`. The text size still follows the Markdown level for `#`, `##` and `###`; `####` to `######` have the size of `###`.
 
 ### keyValue
 
@@ -59,8 +59,8 @@ Label and value pairs. A `value` is a string or a number.
 { "type": "stats", "items": [{ "label": "Releases this month", "value": 3 }, { "label": "Success rate", "value": "83%" }] }
 ```
 
-Large figures. A `value` is a string or a number. A landing card shows the first three items of its
-first `stats` block.
+Large figures. A `value` is a string or a number. For what a landing card shows from this block, see
+[landing-card](extension-points.md#landing-card).
 
 ### table
 
@@ -102,8 +102,8 @@ Small cards. `subtitle` and `link` are optional. A `link` has the same rules as 
 { "type": "alert", "tone": "warning", "text": "Release 2.4.0 is rolling out." }
 ```
 
-A message with a coloured background. `tone` is optional; the default is `info`. With no `stats`
-block, a landing card shows the text of its first `alert`.
+A message with a coloured background. `tone` is optional; the default is `info`. For when a landing
+card shows it, see [landing-card](extension-points.md#landing-card).
 
 ### links
 

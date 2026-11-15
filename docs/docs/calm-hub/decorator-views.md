@@ -30,7 +30,7 @@ manifest.
 
 | Field | Required | Rule |
 |---|---|---|
-| `id` | Yes | Unique in all enabled extensions. CALM Hub does not start with a duplicate |
+| `id` | Yes | Lower case letters, digits and `-`, starting with a letter (`^[a-z][a-z0-9-]*$`). Unique in all enabled extensions. CALM Hub does not start with a duplicate |
 | `match` | Yes | Exactly one of `type` (the decorator `type`) or `schema` (the decorator `$schema` URL) |
 | `label` | Yes | The name in the legend |
 | `overlay.status` | Yes | A JSON Pointer into the decorator `data`. The value must be a string |
