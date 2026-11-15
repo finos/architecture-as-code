@@ -283,6 +283,28 @@ describe('OverlayBadge details in a React Flow node', () => {
         expect(screen.getByTestId('overlay-badge')).toHaveFocus();
     });
 
+    it('keeps a key press on the badge away from the node', () => {
+        const onNodesChange = vi.fn();
+        render(
+            <div style={{ width: 800, height: 600 }}>
+                <ReactFlow
+                    nodes={[{ id: 'n1', type: 'badged', position: { x: 0, y: 0 }, data: {} }]}
+                    edges={[]}
+                    nodeTypes={nodeTypes}
+                    onNodesChange={onNodesChange}
+                />
+            </div>
+        );
+        onNodesChange.mockClear();
+        const badge = screen.getByTestId('overlay-badge');
+        fireEvent.keyDown(badge, { key: 'Enter' });
+        fireEvent.keyDown(badge, { key: 'ArrowRight' });
+        expect(onNodesChange).not.toHaveBeenCalled();
+
+        fireEvent.keyDown(badge.closest('.react-flow__node')!, { key: 'Enter' });
+        expect(onNodesChange).toHaveBeenCalled();
+    });
+
     it('lets a click on the node outside the badge select it', () => {
         const { onNodeClick } = renderFlow();
         fireEvent.click(screen.getByTestId('overlay-badge').closest('.react-flow__node')!);
@@ -297,6 +319,10 @@ describe('detailsPosition', () => {
 
     it('opens above when there is little room below and more above', () => {
         expect(detailsPosition(new DOMRect(100, 700, 60, 20), 1024, 768)).toEqual({ left: 100, bottom: 74, maxHeight: 686 });
+    });
+
+    it('never gives a negative height', () => {
+        expect(detailsPosition(new DOMRect(8, 4, 60, 20), 375, 10)).toMatchObject({ maxHeight: 0 });
     });
 
     it('stays below on a short screen when there is more room below than above', () => {

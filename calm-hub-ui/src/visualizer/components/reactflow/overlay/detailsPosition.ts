@@ -14,5 +14,5 @@ export function detailsPosition(anchor: DOMRect, viewportWidth: number, viewport
     if (roomBelow >= MIN_ROOM_BELOW || roomBelow >= roomAbove) {
         return { left, top: anchor.bottom + GAP, maxHeight: Math.max(roomBelow, 0) };
     }
-    return { left, bottom: viewportHeight - anchor.top + GAP, maxHeight: roomAbove };
+    return { left, bottom: viewportHeight - anchor.top + GAP, maxHeight: Math.max(roomAbove, 0) };
 }

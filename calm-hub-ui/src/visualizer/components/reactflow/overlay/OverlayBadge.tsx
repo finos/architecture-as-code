@@ -42,7 +42,8 @@ export function OverlayBadge({ shown, presenting, scale }: { shown: ShownOverlay
             <button
                 ref={button}
                 type="button"
-                className="nodrag nopan"
+                // nokey: xyflow would also take a key press on the badge as a node selection or move.
+                className="nodrag nopan nokey"
                 data-testid="overlay-badge"
                 data-view={view.id}
                 data-status={overlay.status}
