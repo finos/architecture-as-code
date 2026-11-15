@@ -544,6 +544,20 @@
             }
         },
         {
+            "unique-id": "mcp-to-services",
+            "description": "Built-in MCP tools write decorators through DecoratorWriteService in",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "hub-mcp-server"
+                    },
+                    "destination": {
+                        "node": "calm-hub-services"
+                    }
+                }
+            }
+        },
+        {
             "unique-id": "mcp-to-proxy",
             "description": "Extension tools call the same proxy service as REST",
             "relationship-type": {
