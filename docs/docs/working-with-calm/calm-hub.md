@@ -99,6 +99,28 @@ Under each namespace, you can browse and retrieve the following artifacts:
 
 ---
 
+### My Namespace
+
+If the operator turns on personal namespaces, each user can have one private namespace for scratch work, for example `users.jane-doe`. The home page shows a **My namespace** card:
+
+| Card | What it means |
+| :--- | :--- |
+| Name and **Create** | The namespace does not exist yet. **Create** makes it |
+| Name, **Open** and **Copy name** | The namespace is yours. **Copy name** is for the `$id` of documents that you push with the CLI |
+| A message to ask an admin | Another user holds the name, or your user name cannot be used |
+
+No card shows when personal namespaces are off.
+
+![My namespace card](/img/hub-ui/my-namespace-card.png)
+
+Only you can see your namespace until you give other users access. See [Personal Namespaces](./calm-hub-entitlements.md#personal-namespaces) for the rules. From the command line, use `calm hub whoami` and `calm hub create my-namespace` (see the [CLI hub commands](../calm-cli/hub.md#your-personal-namespace)).
+
+A new namespace contains **My architecture**, a starter architecture. It shows you, the CALM CLI, CALM Hub UI and the CALM Hub API, with flows for how you use them. Change it, or replace it with your own.
+
+![The starter architecture in a new personal namespace](/img/hub-ui/my-architecture.png)
+
+---
+
 ## Interactive Architecture Visualizer
 
 When you select an **Architecture** or **Pattern** artifact, CALM Hub renders the model using an interactive canvas.
@@ -111,14 +133,27 @@ When you select an **Architecture** or **Pattern** artifact, CALM Hub renders th
 * **Pan & Zoom:** Click and drag the canvas background to pan; use your scroll wheel or the floating bottom-left controls to zoom.
 * **Minimap:** A floating overview panel in the bottom-right corner helps navigate larger diagrams.
 * **Component Search & Filtering:** Filter nodes dynamically using the search bar and type dropdown at the top right of the canvas.
-* **Details Sidebar:** Clicking any component opens a right-hand sidebar displaying its complete metadata, interfaces, and compliance controls.
-* **Image Export:** The export control (the image icon in the bottom-left diagram controls) saves the whole diagram as an SVG or PNG file, as it is drawn on screen, with any decision overlay and in the current theme. It is not available on mobile.
+* **Details Sidebar:** Clicking any component opens a right-hand sidebar displaying its complete metadata, interfaces, and compliance controls. Its **Decorators** section lists the decorators whose `applies-to` contains the component.
+* **Image Export:** The export control (the image icon in the bottom-left diagram controls) saves the whole diagram as an SVG or PNG file, as it is drawn on screen, in the current theme. The image includes the decision overlay and the decorator overlay badges, but not the overlay legend. It is not available on mobile.
 
 ### Tab Views
 
 * **Diagram Tab:** The interactive visual representation of the model.
 * **JSON Tab:** The raw, validated CALM JSON backing the diagram.
-* **Deployments Tab:** Overlays deployment decorators (environments, hosts, and instance settings) on top of the base architecture.
+* **Decorators Tab:** Lists all decorators of the architecture version, of every type. Each shows its type (or "(no type)"), `applies-to`, its created and updated times when Hub returns them, and `data`, with links, dates, lists, tables and collapsible nested values. The JSON view shows the decorator as a write takes it, without the Hub-owned times, so you can copy it into a `PUT`. Filter by type and by `$schema`. The filters are in the URL, for example `?tab=decorators&type=deployment`.
+
+An unknown `?tab=` value opens the Diagram tab. The old `?tab=deployments` link opens the Decorators tab filtered to `deployment`.
+
+### Decorator Overlays
+
+Some decorator types are drawn on the diagram as an overlay. Each node or relationship gets a badge with its status, and a status that needs attention also colours the element: red for an error, amber for a warning. CALM Hub has two built-in overlays, and an extension can add more (see [decorator views](../calm-hub/decorator-views.md)):
+
+| Overlay | Decorator type | Shows |
+|---|---|---|
+| Control evaluations | `control-evaluation` | The latest result of each control: see [Control Evaluations](#control-evaluations) |
+| Deployments | `deployment` | The status of the latest deployment, by `start-time`: completed (OK), pending or in progress (Info), rolled back (Warning), failed (Error) |
+
+The legend at the bottom of the diagram lists each overlay that has decorators on screen, with how many elements show each status. Clear an overlay's checkbox to hide it. On a screen narrower than 1024 pixels, the legend starts closed: tap **Overlays** to open it. **View all** opens the Decorators tab filtered to the type and the `$schema` of that overlay. While the diagram, the Decorators tab or the details drawer is open, they refresh every 5 seconds.
 
 ![CALM Hub Raw JSON Viewer](/img/hub-ui/json-view.png)
 
@@ -133,7 +168,7 @@ The diagram shows the latest result for each node and relationship of the versio
 * **Containers:** A container (a node that other nodes are `deployed-in` or `composed-of`) shows the same badge beside its label, and a solid red border when not met. A `deployed-in` or `composed-of` relationship is drawn as its container rather than as a line, so its results show on the container.
 * **Evaluations panel:** The metadata panel below the diagram lists every evaluation of the version, newest first, with the elements it applies to and its findings.
 
-While the architecture is open, the results refresh every 5 seconds, so a new decision appears without reloading the page.
+The results refresh every 5 seconds, so a new decision appears without reloading the page.
 
 ![CALM Hub Control Evaluations](/img/hub-ui/control-evaluations.png)
 
@@ -209,6 +244,21 @@ Selecting a control from a **Control Domain** (e.g. `security` or `ai-governance
 
 ---
 
+## Extensions
+
+An operator can install extensions (see [Extensions](../calm-hub/index.md#extensions), and the
+[extension tutorial](../tutorials/advanced/hub-extension.md)). The UI groups what they add:
+
+* **Home page:** an **Extensions** section under **Namespaces**, with one card per extension. A card shows the extension name, its provider and up to three figures, or one line of text. If the extension has a screen, click the card to open it.
+* **Side menu:** an **Extensions** group with one entry per extension screen.
+* **Architecture and pattern pages:** one **Extensions** tab. Each extension has a collapsible section with its actions and its tab content. Actions show only here, not on the home page, and each runs with the context of the architecture or pattern. An action or a tab that needs a selected node shows a hint until a node is selected. With more than five extensions, a filter shows above the sections.
+* **Node details:** one **Extensions** section, with a collapsible part for each extension.
+* **Diagram overlays:** each extension has a colour marker on its badges and legend rows. Click a node's badge to see what it means.
+
+---
+
 ## Access Control
 
 CALM Hub uses a hierarchical entitlement model to control who can read, write, and administer namespaces. See [CALM Hub Entitlements](./calm-hub-entitlements) for the full model, worked examples, and API usage.
+
+For extension routes and JSON blocks, see the [extension blocks reference](../calm-hub/extension-blocks.md).

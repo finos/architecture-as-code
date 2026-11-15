@@ -13,6 +13,8 @@ import {
     PushOptions,
     PullOptions,
     runCreateNamespace,
+    runCreateMyNamespace,
+    runWhoami,
     runListArchitectures,
     runListNamespaces,
     runListPatterns,
@@ -47,6 +49,15 @@ import {
     runListControls,
     runListControlConfigurations,
     ListOptions,
+    runListExtensions,
+    runDescribeExtension,
+    runExtensionCommand,
+    PushConventionOptions,
+    PullConventionOptions,
+    ListConventionsOptions,
+    runPushConvention,
+    runPullConvention,
+    runListConventions,
 } from './command-helpers/hub-commands';
 import type { ResourceChangeType } from '@finos/calm-shared';
 
@@ -209,7 +220,10 @@ Validation requires:
                 localDirectory,
                 mode,
                 false,
-                options.clearOutputDirectory
+                options.clearOutputDirectory,
+                false,
+                undefined,
+                buildDocumentLoader(await parseDocumentLoaderConfig({ verbose: options.verbose }))
             );
 
             await processor.processTemplate();
@@ -297,7 +311,8 @@ Validation requires:
                 options.scaffold,
                 options.exportDiagrams as DiagramExportFormat | undefined,
                 options.browserPath,
-                diagramRenderTimeoutMs
+                diagramRenderTimeoutMs,
+                buildDocumentLoader(await parseDocumentLoaderConfig({ verbose: options.verbose }))
             );
 
             await docifier.docify();
@@ -672,6 +687,31 @@ Example:
             await runPushControlConfiguration(pushOptions);
         });
 
+    hubPushCmd
+        .command('convention <convention-type> <convention-file>')
+        .description('Push a convention, such as a c4-mapping, to CALM Hub. A convention with the same name in the namespace gets a new version, unless its content is unchanged.')
+        .requiredOption(NAMESPACE_OPTION, 'Target namespace')
+        .option(NAME_OPTION, 'Name of the convention in CALM Hub. Defaults to the unique-id of the convention.')
+        .option(DESCRIPTION_OPTION, 'Description of the convention')
+        .option('--set-default', 'Also make the pushed version the default for the namespace. Child namespaces inherit it. Needs namespace admin.', false)
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .action(async (conventionType, conventionFile, options) => {
+            const pushOptions: PushConventionOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                conventionType,
+                file: conventionFile,
+                namespace: options.namespace,
+                name: options.name,
+                description: options.description,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                setDefault: options.setDefault,
+                format: options.format
+            };
+            await runPushConvention(pushOptions);
+        });
+
     // hub pull
     const hubPullCmd = hubCmd.command('pull').description('Pull a CALM document from CALM Hub');
 
@@ -829,6 +869,26 @@ Example:
             await runPullControlConfiguration(pullOptions);
         });
 
+    hubPullCmd
+        .command('convention <convention-type>')
+        .description('Pull a convention from CALM Hub. Without --id, pull the default convention that applies to the namespace, which can come from a parent namespace.')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .option('--id <id>', 'ID of the convention to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve (defaults to the latest). Needs --id.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (conventionType, options) => {
+            const pullOptions: PullConventionOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                conventionType,
+                namespace: options.namespace,
+                id: options.id,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullConvention(pullOptions);
+        });
+
     // hub list
     const hubListCmd = hubCmd.command('list').description('List CALM Hub resources');
 
@@ -980,7 +1040,35 @@ Example:
             await runListControlConfigurations(listOptions);
         });
 
+    hubListCmd
+        .command('conventions <convention-type>')
+        .description('List the conventions of one type, such as c4-mapping, in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (conventionType, options) => {
+            const listOptions: ListConventionsOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                conventionType,
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListConventions(listOptions);
+        });
+
     // hub create
+    hubCmd
+        .command('whoami')
+        .description('Show your personal namespace in CALM Hub, and whether it exists')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            await runWhoami({
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                format: options.format
+            });
+        });
+
     const hubCreateCmd = hubCmd.command('create').description('Create CALM Hub resources');
 
     hubCreateCmd
@@ -1001,6 +1089,18 @@ Example:
         });
 
     hubCreateCmd
+        .command('my-namespace')
+        .description('Create your personal namespace in CALM Hub. Does nothing if you already own it.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            await runCreateMyNamespace({
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                format: options.format
+            });
+        });
+
+    hubCreateCmd
         .command('domain')
         .description('Create a new domain in CALM Hub')
         .requiredOption(NAME_OPTION, 'Domain name')
@@ -1015,10 +1115,60 @@ Example:
             await runCreateDomain(createOptions);
         });
 
+    // hub extensions / hub ext: static commands, so that --help works without a CALM Hub (ADR 0014).
+    // Extension commands are only reachable under `hub ext <id>`, so they cannot replace a built-in command.
+    const hubExtensionsCmd = hubCmd.command('extensions').description('List and describe the extensions that CALM Hub enabled');
+
+    hubExtensionsCmd
+        .command('list')
+        .description('List the enabled extensions and their commands')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            await runListExtensions({ calmHubOptions: { calmHubUrl: options.calmHubUrl }, format: options.format });
+        });
+
+    hubExtensionsCmd
+        .command('describe')
+        .description('Describe an extension, or one of its commands with its route and input schema')
+        .argument('<id>', 'Extension id')
+        .argument('[command]', 'Command name')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (id: string, command: string | undefined, options) => {
+            await runDescribeExtension({ calmHubOptions: { calmHubUrl: options.calmHubUrl }, id, command, format: options.format });
+        });
+
+    hubCmd
+        .command('ext')
+        .description('Run an extension command through CALM Hub and print the reply')
+        .argument('<id>', 'Extension id')
+        .argument('<command>', 'Command name')
+        .option('--input <file>', 'JSON file with the command input object, or - for stdin')
+        .option('--arg <key=value>', 'Set a top-level input property. Repeatable; overrides --input', collectArg)
+        .option('--timeout <seconds>', 'Stop waiting for the reply after this many seconds. By default, CALM Hub sets the limit')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (id: string, command: string, options) => {
+            await runExtensionCommand({
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                id,
+                command,
+                input: options.input,
+                args: options.arg,
+                timeout: options.timeout,
+                format: options.format
+            });
+        });
+
     program.addCommand(hubCmd);
 
     // Dev commands
     setupWorkspaceCommands(program);
+}
+
+function collectArg(value: string, previous: string[] | undefined): string[] {
+    return [...(previous ?? []), value];
 }
 
 export async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {

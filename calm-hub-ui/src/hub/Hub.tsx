@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useMatch, useNavigate } from 'react-router-dom';
 import { IoCompassOutline } from 'react-icons/io5';
+import { ExtensionResourceContext } from '../extensions/ExtensionResourceContext.js';
+import { RESOURCE_ROUTE } from './routes.js';
 import { ExploreRail } from './components/explore-rail/ExploreRail.js';
 import { CollapsedRail } from './components/explore-rail/CollapsedRail.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
@@ -10,12 +12,14 @@ import { IntroScreen } from './components/intro-screen/IntroScreen.js';
 import { SearchResultsPage } from './components/search-results/SearchResultsPage.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
 import { useResourceNavigationKey } from './hooks/useResourceNavigationKey.js';
+import { PersonalNamespaceControl, usePersonalNamespace } from './hooks/usePersonalNamespace.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { BreadcrumbItem, Data, Adr } from '../model/calm.js';
 import { ControlData } from '../model/control.js';
 import { InterfaceData } from '../model/interface.js';
 import { NamespaceCounts, DomainControlCount } from '../model/counts.js';
 import { CountsService } from '../service/counts-service.js';
+import { hideEmptyPersonalRoot } from '../model/personal-namespace.js';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { DocumentDetailSection } from './components/document-detail-section/DocumentDetailSection.js';
@@ -25,9 +29,12 @@ import { DiagramSection } from './components/diagram-section/DiagramSection.js';
 import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
 import { NodeSheet } from '../visualizer/components/sidebar/NodeSheet.js';
 import { DiagramActionsContext } from '../visualizer/context/DiagramActionsContext.js';
+import { DecoratorsContext, type DecoratorsState } from '../visualizer/context/DecoratorsContext.js';
+import { containersOfContainment } from '../visualizer/overlay/overlayEngine.js';
 import { ResourceNotFound } from './components/resource-not-found/ResourceNotFound.js';
+import { extensionContext } from './components/diagram-section/tabs/diagramTabs.js';
 import { parseCALMHubPath } from '../visualizer/components/reactflow/utils/calmHelpers.js';
-import type { SelectedItem } from '../visualizer/contracts/contracts.js';
+import type { Decorator, SelectedItem } from '../visualizer/contracts/contracts.js';
 import type { CalmNodeSchema } from '@finos/calm-models/types';
 import { authStore } from '../service/utils/auth-store.js';
 import './Hub.css';
@@ -61,6 +68,17 @@ export default function Hub() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
+    const [showsDroppedFile, setShowsDroppedFile] = useState(false);
+    // The selection can be a node of the dropped file, so it goes with the file. Set together, so that no render gives
+    // extensions that node with the loaded architecture's context.
+    const showsDroppedFileRef = useRef(false);
+    const handleDroppedFileChange = useCallback((dropped: boolean) => {
+        if (showsDroppedFileRef.current && !dropped) setSelectedItem(null);
+        showsDroppedFileRef.current = dropped;
+        setShowsDroppedFile(dropped);
+    }, []);
+    // Reported by DiagramSection, which fetches them, for the details drawer.
+    const [decorators, setDecorators] = useState<Decorator[]>([]);
     // A detail-route load rejected (missing resource, dangling reference). Cleared
     // on every navigation; renders ResourceNotFound instead of an empty pane.
     const [resourceLoadFailed, setResourceLoadFailed] = useState(false);
@@ -80,7 +98,7 @@ export default function Hub() {
     // route, so the URL — not residual state — decides what renders.
     const namespaceMatch = useMatch('/namespace/:ns');
     const domainMatch = useMatch('/domain/:domain');
-    const detailMatch = useMatch('/:namespace/:type/:id/:version');
+    const detailMatch = useMatch(RESOURCE_ROUTE);
     const searchMatch = useMatch('/search');
     const brokenRefMatch = useMatch('/broken-reference');
     const activeNamespace = namespaceMatch?.params.ns;
@@ -95,13 +113,13 @@ export default function Hub() {
 
     const countsService = useMemo(() => new CountsService(), []);
 
-    // Runs once: countsService is memoised and Hub is the top-level page, so this effect
-    // never re-fires and there is no in-flight fetch to cancel on a dependency change. (Unlike
-    // useNamespaceItems, whose fetch effect re-runs per namespace and so needs a cancel guard.)
-    useEffect(() => {
+    const loadNamespaceCounts = useCallback(() => {
         countsService
             .fetchNamespaceCounts()
-            .then(setNamespaceCounts)
+            .then((counts) => {
+                setNamespaceCounts(counts);
+                setNamespaceCountsFailed(false);
+            })
             // On failure counts are unknown, not zero: flag it so the tabs render
             // resting (no badge) rather than a misleading dimmed 0 while the
             // independent item grid still fills below.
@@ -113,6 +131,13 @@ export default function Hub() {
             // unknown (loading)" from "known zero" — an absent namespace after a
             // successful fetch is genuinely zero, not still loading.
             .finally(() => setNamespaceCountsLoaded(true));
+    }, [countsService]);
+
+    // Runs once: countsService is memoised and Hub is the top-level page, so this effect
+    // never re-fires and there is no in-flight fetch to cancel on a dependency change. (Unlike
+    // useNamespaceItems, whose fetch effect re-runs per namespace and so needs a cancel guard.)
+    useEffect(() => {
+        loadNamespaceCounts();
         countsService
             .fetchDomainCounts()
             .then(setDomainCounts)
@@ -121,7 +146,24 @@ export default function Hub() {
                 setDomainCountsFailed(true);
             })
             .finally(() => setDomainCountsLoaded(true));
-    }, [countsService]);
+    }, [countsService, loadNamespaceCounts]);
+
+    const personalNamespaceControl = usePersonalNamespace();
+    const { create: createPersonalNamespace } = personalNamespaceControl;
+    // A new personal namespace must appear in the browse grid and the rail, so counts reload.
+    const createAndReload = useCallback(async () => {
+        const created = await createPersonalNamespace();
+        if (created) loadNamespaceCounts();
+        return created;
+    }, [createPersonalNamespace, loadNamespaceCounts]);
+    const personalNamespace = useMemo<PersonalNamespaceControl>(
+        () => ({ ...personalNamespaceControl, create: createAndReload }),
+        [personalNamespaceControl, createAndReload]
+    );
+    const visibleNamespaceCounts = useMemo(
+        () => hideEmptyPersonalRoot(namespaceCounts, personalNamespace.state),
+        [namespaceCounts, personalNamespace.state]
+    );
 
     // The mobile drill-down overlay defaults open and would otherwise cover the
     // results on /search. Close it on route entry (during render, so a direct
@@ -307,6 +349,19 @@ export default function Hub() {
     );
 
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
+    // Memoised: a new object on each render would re-render each consumer and restart its effects.
+    const resourceContext = useMemo(
+        () => (data && isDiagramView && !showsDroppedFile ? extensionContext(data) : null),
+        [data, isDiagramView, showsDroppedFile]
+    );
+
+    const decoratorsState = useMemo(
+        (): DecoratorsState => ({
+            decorators,
+            drawnAs: containersOfContainment((data?.data as { relationships?: unknown } | undefined)?.relationships),
+        }),
+        [data, decorators]
+    );
 
     // Mobile node bottom-sheet prev/next steppers (Frame G). The ordered node list
     // is already in Hub — it's exactly what the Drawer renders (`data.data.nodes`)
@@ -386,7 +441,13 @@ export default function Hub() {
         !controlData &&
         !interfaceData
     ) {
-        return <IntroScreen namespaceCounts={namespaceCounts} domainCounts={domainCounts} />;
+        return (
+            <IntroScreen
+                namespaceCounts={visibleNamespaceCounts}
+                domainCounts={domainCounts}
+                personalNamespace={personalNamespace}
+            />
+        );
     }
 
     const detailContent = interfaceData ? (
@@ -406,8 +467,11 @@ export default function Hub() {
             data={data}
             onItemSelect={handleItemSelect}
             hasDetailsPanel={!!selectedItem}
+            selectedElement={selectedItem?.data['unique-id']}
             breadcrumbs={breadcrumbs}
             onDisplayNameChange={handleDisplayNameChange}
+            onDecoratorsChange={setDecorators}
+            onDroppedFileChange={handleDroppedFileChange}
         />
     ) : (
         <DocumentDetailSection data={data} />
@@ -452,6 +516,8 @@ export default function Hub() {
 
     return (
         <DiagramActionsContext.Provider value={diagramActions}>
+        <ExtensionResourceContext.Provider value={resourceContext}>
+        <DecoratorsContext.Provider value={decoratorsState}>
         <div className="flex flex-col h-screen overflow-hidden">
             <Navbar />
             {isMobile && !isMobileNavOpen && (
@@ -470,7 +536,7 @@ export default function Hub() {
                     <div className={`h-full shrink-0 ${isSidebarOpen ? '' : 'w-12'} transition-all duration-300`}>
                         {isSidebarOpen ? (
                             <ExploreRail
-                                namespaceCounts={namespaceCounts}
+                                namespaceCounts={visibleNamespaceCounts}
                                 domainCounts={domainCounts}
                                 namespacesLoading={!namespaceCountsLoaded}
                                 domainsLoading={!domainCountsLoaded}
@@ -479,7 +545,7 @@ export default function Hub() {
                                 onCollapse={() => setIsSidebarOpen(false)}
                             />
                         ) : (
-                            <CollapsedRail namespaceCounts={namespaceCounts} onExpand={() => setIsSidebarOpen(true)} />
+                            <CollapsedRail namespaceCounts={visibleNamespaceCounts} onExpand={() => setIsSidebarOpen(true)} />
                         )}
                     </div>
                 )}
@@ -497,7 +563,7 @@ export default function Hub() {
                     >
                         <div className="flex-1 min-h-0 overflow-hidden">
                             <MobileNavMenu
-                                namespaceCounts={namespaceCounts}
+                                namespaceCounts={visibleNamespaceCounts}
                                 domainCounts={domainCounts}
                                 namespacesLoading={!namespaceCountsLoaded}
                                 domainsLoading={!domainCountsLoaded}
@@ -525,6 +591,8 @@ export default function Hub() {
 
             </div>
         </div>
+        </DecoratorsContext.Provider>
+        </ExtensionResourceContext.Provider>
         </DiagramActionsContext.Provider>
     );
 }

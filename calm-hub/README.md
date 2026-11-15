@@ -12,6 +12,10 @@ The provided `docker-compose` file exposes four profiles, one per published imag
 | `readonly-static` | `finos/calm-hub:latest-read-only-static` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
 | `readonly-native` | `finos/calm-hub:latest-read-only-native` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
 
+The `latest` tags are the most recent release (see [CHANGELOG.md](CHANGELOG.md)). To use a fixed
+release, replace `latest` with its version, for example `0.8.0-native`. To try unreleased changes,
+replace `latest` with `main`.
+
 ```shell
 cd deploy
 
@@ -304,6 +308,17 @@ From the `calm-hub` directory
    2. Alternatively, create the self-signed certificate with localhost as the CN or SAN.
 5. Some browsers may block `.well-known` endpoints that use self-signed certificates (e.g., https://calm-hub.finos.org:9443/realms/calm-hub-realm/.well-known/openid-configuration). Ensure these endpoints are accessible in your browser before accessing `calm-hub-ui`.
 6. Open Calm UI at the URL matching your self-signed certificate’s CN: https://calm-hub.finos.org:8443 or https://localhost:8443.
+
+### Personal namespaces
+
+Each user can create one private namespace, `users.<name>`, for scratch work. The feature is off
+by default, and stays off when auth is off, when Hub is read-only, and in GitHub mode.
+
+```bash
+../mvnw quarkus:dev -Dquarkus.profile=proxy-auth -Dcalm.namespaces.personal.enabled=true
+```
+
+See [PERSONAL_NAMESPACES.md](PERSONAL_NAMESPACES.md) for the API, the grants and the naming rules.
 
 ### UI with hot reload (from src/main/webapp)
 

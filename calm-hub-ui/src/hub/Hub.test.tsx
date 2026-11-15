@@ -1,13 +1,17 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import Hub from './Hub.js';
 import { vi, describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { authStore } from '../service/utils/auth-store.js';
 import { CountsService } from '../service/counts-service.js';
+import { PersonalNamespaceService } from '../service/personal-namespace-service.js';
 import type { Data, Adr } from '../model/calm.js';
 import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
+
+// Each value of ExtensionResourceContext that the DiagramSection stub reads, in render order.
+const resourceContexts = vi.hoisted(() => [] as unknown[]);
 
 /**
  * Force `useIsMobile()` (which reads window.matchMedia) to report a mobile
@@ -49,9 +53,10 @@ vi.mock('./hooks/useResourceFromRoute', () => ({
 }));
 
 vi.mock('./components/explore-rail/ExploreRail', () => ({
-    ExploreRail: ({ onCollapse }: { onCollapse?: () => void }) => (
+    ExploreRail: ({ onCollapse, namespacesFailed }: { onCollapse?: () => void; namespacesFailed?: boolean }) => (
         <div data-testid="explore-rail">
             <div>Explore Rail</div>
+            <div data-testid="rail-namespaces-failed">{String(Boolean(namespacesFailed))}</div>
             {onCollapse && (
                 <button aria-label="Collapse sidebar" onClick={onCollapse}>
                     Collapse
@@ -91,8 +96,17 @@ vi.mock('./components/domain-page/DomainPage', () => ({
 // carries its own theme/search wiring, exercised in its own spec. Here we only need
 // to confirm Hub early-returns the chrome-free intro on the empty `/` route.
 vi.mock('./components/intro-screen/IntroScreen', () => ({
-    IntroScreen: ({ namespaceCounts }: { namespaceCounts: { namespace: string }[] }) => (
-        <div data-testid="intro-screen">Intro ({namespaceCounts.length})</div>
+    IntroScreen: ({
+        namespaceCounts,
+        personalNamespace,
+    }: {
+        namespaceCounts: { namespace: string }[];
+        personalNamespace?: { create: () => Promise<boolean> };
+    }) => (
+        <div data-testid="intro-screen">
+            Intro ({namespaceCounts.length})
+            <button onClick={() => void personalNamespace?.create()}>create-personal</button>
+        </div>
     ),
 }));
 
@@ -100,6 +114,18 @@ vi.mock('./components/intro-screen/IntroScreen', () => ({
 // the real SearchService.
 vi.mock('./components/search-results/SearchResultsPage', () => ({
     SearchResultsPage: () => <div data-testid="search-results-page">Search Results</div>,
+}));
+
+// Personal namespaces are off by default, so the hook sees the feature as unavailable.
+vi.mock('../service/personal-namespace-service', () => ({
+    PersonalNamespaceService: class {
+        fetchPersonalNamespace() {
+            return Promise.resolve({ status: 'unavailable' });
+        }
+        createPersonalNamespace() {
+            return Promise.resolve({ status: 'unavailable' });
+        }
+    },
 }));
 
 // Counts service returns deterministic data for the page meta assertions.
@@ -144,18 +170,25 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
     // Real context, not a mock: the stub consumes Hub's provider exactly like the
     // production tree (CustomNode / NodeDetails) does.
     const { useDiagramActions } = await import('../visualizer/context/DiagramActionsContext.js');
+    const { ExtensionResourceContext } = await import('../extensions/ExtensionResourceContext.js');
+    const { useContext } = await import('react');
     const DiagramSection = ({
         data,
         onItemSelect,
         breadcrumbs,
         onDisplayNameChange,
+        onDecoratorsChange,
+        onDroppedFileChange,
     }: {
         data: { id?: string };
         onItemSelect?: (item: { data: unknown }) => void;
         breadcrumbs?: unknown[];
         onDisplayNameChange?: (name: string | undefined) => void;
+        onDecoratorsChange?: (decorators: unknown[]) => void;
+        onDroppedFileChange?: (dropped: boolean) => void;
     }) => {
         const { onNavigateToDetailedArch } = useDiagramActions();
+        resourceContexts.push(useContext(ExtensionResourceContext));
         return (
         <div data-testid="diagram-section">
             Diagram: {data?.id}
@@ -185,6 +218,12 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
                 nodes loaded by `loadArchitectureWithNodes`, so Hub's index resolution
                 and the displayed node name line up). `select-edge` selects a
                 relationship (no `node-type`) to exercise the node-only degradation. */}
+            <button data-testid="drop-file" onClick={() => onDroppedFileChange?.(true)}>
+                drop file
+            </button>
+            <button data-testid="lose-dropped-file" onClick={() => onDroppedFileChange?.(false)}>
+                lose dropped file
+            </button>
             <button
                 data-testid="select-node"
                 onClick={() =>
@@ -224,6 +263,37 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
                 }
             >
                 select n3
+            </button>
+            {/* Simulates the decorators fetch resolving. */}
+            <button
+                data-testid="report-decorators"
+                onClick={() =>
+                    onDecoratorsChange?.([
+                        { uniqueId: 'obs-n1', type: 'observability', target: [], appliesTo: ['n1'], data: { owner: 'team-a' } },
+                        { uniqueId: 'obs-n2', type: 'observability', target: [], appliesTo: ['n2'], data: { owner: 'team-b' } },
+                    ])
+                }
+            >
+                report decorators
+            </button>
+            {/* A decorator on a containment relationship, which its container lists. */}
+            <button
+                data-testid="report-containment-decorator"
+                onClick={() =>
+                    onDecoratorsChange?.([
+                        { uniqueId: 'obs-deploy', type: 'observability', target: [], appliesTo: ['n1-in-cluster'], data: {} },
+                    ])
+                }
+            >
+                report containment decorator
+            </button>
+            <button
+                data-testid="select-cluster"
+                onClick={() =>
+                    onItemSelect?.({ data: { 'unique-id': 'cluster', name: 'Cluster', 'node-type': 'system' } })
+                }
+            >
+                select cluster
             </button>
             <button
                 data-testid="select-edge"
@@ -470,6 +540,71 @@ describe('Hub', () => {
         loadInterface();
         expect(screen.getByTestId('interface-detail-section')).toBeInTheDocument();
         expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+    });
+
+    describe('personal namespace', () => {
+        const usersRoot = { namespace: 'users', architectures: 0, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 0 };
+        const finos = { namespace: 'finos', architectures: 1, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 1 };
+        const bob = { namespace: 'users.bob', architectures: 0, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 0 };
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it('hides the empty personal namespace root on the intro', async () => {
+            vi.spyOn(PersonalNamespaceService.prototype, 'fetchPersonalNamespace').mockResolvedValue({ status: 'available', name: 'users.bob' });
+            vi.spyOn(CountsService.prototype, 'fetchNamespaceCounts').mockResolvedValue([finos, usersRoot]);
+
+            renderAt('/');
+
+            await waitFor(() => expect(screen.getByTestId('intro-screen')).toHaveTextContent('Intro (1)'));
+        });
+
+        it('reloads the namespace counts after the personal namespace is created', async () => {
+            vi.spyOn(PersonalNamespaceService.prototype, 'fetchPersonalNamespace').mockResolvedValue({ status: 'available', name: 'users.bob' });
+            vi.spyOn(PersonalNamespaceService.prototype, 'createPersonalNamespace').mockResolvedValue({ status: 'owned', name: 'users.bob' });
+            const fetchCounts = vi
+                .spyOn(CountsService.prototype, 'fetchNamespaceCounts')
+                .mockResolvedValueOnce([finos, usersRoot])
+                .mockResolvedValueOnce([finos, usersRoot, bob]);
+
+            renderAt('/');
+            await waitFor(() => expect(screen.getByTestId('intro-screen')).toHaveTextContent('Intro (1)'));
+            fireEvent.click(screen.getByText('create-personal'));
+
+            await waitFor(() => expect(screen.getByTestId('intro-screen')).toHaveTextContent('Intro (3)'));
+            expect(fetchCounts).toHaveBeenCalledTimes(2);
+        });
+
+        it('clears the counts failure when the reload after a create succeeds', async () => {
+            vi.spyOn(PersonalNamespaceService.prototype, 'fetchPersonalNamespace').mockResolvedValue({ status: 'available', name: 'users.bob' });
+            vi.spyOn(PersonalNamespaceService.prototype, 'createPersonalNamespace').mockResolvedValue({ status: 'owned', name: 'users.bob' });
+            const fetchCounts = vi
+                .spyOn(CountsService.prototype, 'fetchNamespaceCounts')
+                .mockRejectedValueOnce(new Error('boom'))
+                .mockResolvedValueOnce([finos, usersRoot, bob]);
+
+            renderWithNav('/', ['/namespace/finos']);
+            await waitFor(() => expect(fetchCounts).toHaveBeenCalledTimes(1));
+            fireEvent.click(screen.getByText('create-personal'));
+            await waitFor(() => expect(fetchCounts).toHaveBeenCalledTimes(2));
+            navigateTo('/namespace/finos');
+
+            await waitFor(() => expect(screen.getByTestId('rail-namespaces-failed')).toHaveTextContent('false'));
+        });
+
+        it('does not reload the counts when the name is taken', async () => {
+            vi.spyOn(PersonalNamespaceService.prototype, 'fetchPersonalNamespace').mockResolvedValue({ status: 'available', name: 'users.bob' });
+            vi.spyOn(PersonalNamespaceService.prototype, 'createPersonalNamespace').mockResolvedValue({ status: 'taken', name: 'users.bob' });
+            const fetchCounts = vi.spyOn(CountsService.prototype, 'fetchNamespaceCounts').mockResolvedValue([finos]);
+
+            renderAt('/');
+            await waitFor(() => expect(fetchCounts).toHaveBeenCalledTimes(1));
+            fireEvent.click(screen.getByText('create-personal'));
+
+            await waitFor(() => expect(PersonalNamespaceService.prototype.createPersonalNamespace).toHaveBeenCalled());
+            expect(fetchCounts).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe('route-driven pages', () => {
@@ -826,6 +961,128 @@ describe('Hub', () => {
         expect(screen.queryByTestId('node-sheet')).not.toBeInTheDocument();
         // The desktop Sidebar renders the node title in its drawer.
         expect(screen.getByText('Node One')).toBeInTheDocument();
+    });
+
+    describe('extension resource context', () => {
+        it('keeps one context object across a render that does not change the resource', () => {
+            renderAt('/');
+            loadData();
+            const before = resourceContexts.at(-1);
+            expect(before).toMatchObject({ namespace: 'test-namespace', resource: 'patterns/test', version: '1.0' });
+            const renders = resourceContexts.length;
+            fireEvent.click(screen.getByTestId('select-node'));
+            expect(resourceContexts.length).toBeGreaterThan(renders);
+            expect(resourceContexts.at(-1)).toBe(before);
+        });
+
+        it('clears a node of a dropped file when the file goes away', () => {
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('drop-file'));
+            expect(resourceContexts.at(-1)).toBeNull();
+            fireEvent.click(screen.getByTestId('select-node'));
+            expect(screen.getByText('Node One')).toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('lose-dropped-file'));
+            expect(resourceContexts.at(-1)).toMatchObject({ namespace: 'test-namespace' });
+            expect(screen.queryByText('Node One')).not.toBeInTheDocument();
+        });
+
+        it('keeps a node of the architecture when no file was dropped', () => {
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('select-node'));
+            fireEvent.click(screen.getByTestId('lose-dropped-file'));
+            expect(screen.getByText('Node One')).toBeInTheDocument();
+        });
+
+        it('gives a new context when the resource changes', () => {
+            renderAt('/');
+            loadData();
+            const first = resourceContexts.at(-1);
+            act(() => {
+                captured?.onDataLoad({ id: 'other', version: '2.0', calmType: 'Patterns', name: 'test-namespace', data: {} } as Data);
+            });
+            expect(resourceContexts.at(-1)).not.toBe(first);
+            expect(resourceContexts.at(-1)).toMatchObject({ resource: 'patterns/other', version: '2.0' });
+        });
+    });
+
+    describe('decorators in the details drawer', () => {
+        it('lists the decorators of the selected node on desktop', () => {
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('report-decorators'));
+            fireEvent.click(screen.getByTestId('select-node'));
+
+            expect(screen.getByRole('heading', { name: 'All decorators' })).toBeInTheDocument();
+            expect(screen.getByRole('article', { name: 'observability decorator obs-n1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-n2' })).not.toBeInTheDocument();
+        });
+
+        it('lists the decorators of the selected node in the mobile sheet', () => {
+            const restore = mockMobileViewport(true);
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('report-decorators'));
+            fireEvent.click(screen.getByTestId('select-node'));
+
+            expect(screen.getByTestId('node-sheet')).toBeInTheDocument();
+            expect(screen.getByRole('article', { name: 'observability decorator obs-n1' })).toBeInTheDocument();
+            restore();
+        });
+
+        const loadArchitectureWithRelationships = (relationships: unknown) =>
+            act(() => {
+                captured?.onDataLoad({
+                    id: 'arch',
+                    version: '1.0',
+                    calmType: 'Architectures',
+                    name: 'test-namespace',
+                    data: { nodes: [], relationships },
+                } as unknown as Data);
+            });
+        const deployedIn = {
+            'unique-id': 'n1-in-cluster',
+            'relationship-type': { 'deployed-in': { container: 'cluster', nodes: ['n1'] } },
+        };
+
+        it('lists the decorators of a containment relationship on its container', () => {
+            renderAt('/');
+            loadArchitectureWithRelationships([deployedIn]);
+            fireEvent.click(screen.getByTestId('report-containment-decorator'));
+            fireEvent.click(screen.getByTestId('select-cluster'));
+
+            expect(screen.getByRole('article', { name: 'observability decorator obs-deploy' })).toBeInTheDocument();
+        });
+
+        it('keeps the view and the containment decorators when the relationships hold malformed entries', () => {
+            renderAt('/');
+            loadArchitectureWithRelationships([null, 'bad', { 'relationship-type': null }, deployedIn]);
+            fireEvent.click(screen.getByTestId('report-containment-decorator'));
+            fireEvent.click(screen.getByTestId('select-cluster'));
+
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+            expect(screen.getByRole('article', { name: 'observability decorator obs-deploy' })).toBeInTheDocument();
+        });
+
+        it('keeps the view when the relationships are not a list', () => {
+            renderAt('/');
+            loadArchitectureWithRelationships({ not: 'a list' });
+            fireEvent.click(screen.getByTestId('report-containment-decorator'));
+            fireEvent.click(screen.getByTestId('select-cluster'));
+
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+            expect(screen.queryByRole('heading', { name: 'All decorators' })).not.toBeInTheDocument();
+        });
+
+        it('shows no Decorators section when none applies to the selected element', () => {
+            renderAt('/');
+            loadData();
+            fireEvent.click(screen.getByTestId('report-decorators'));
+            fireEvent.click(screen.getByTestId('select-edge'));
+
+            expect(screen.queryByRole('heading', { name: 'All decorators' })).not.toBeInTheDocument();
+        });
     });
 
     describe('the node query parameter', () => {

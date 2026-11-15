@@ -10,7 +10,7 @@ sidebar_label: hub
 The `hub` command group is under active development.  Functionality may change without notice.
 :::
 
-The `hub` command group allows you to interact with a running `CALM Hub` instance directly from the CLI. You can use it to manage Namespaces, Architectures, Standards, Patterns, Timelines, Domains and Controls stored in CALM Hub.
+The `hub` command group allows you to interact with a running `CALM Hub` instance directly from the CLI. You can use it to manage Namespaces, Architectures, Standards, Patterns, Timelines, Domains and Controls stored in CALM Hub, and to run the commands of CALM Hub extensions.
 
 ## Connecting to CALM Hub
 
@@ -73,6 +73,28 @@ calm hub create namespace --name my-namespace --description "Architectures for t
 - **`--description <description>`**: _(required)_ A short description of the namespace.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 - **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
+
+### Your personal namespace
+
+If the CALM Hub operator turns on [personal namespaces](../working-with-calm/calm-hub-entitlements.md#personal-namespaces), you can have one private namespace for scratch work, for example `users.mark-scott`.
+
+To show its name and whether it exists:
+
+```shell
+calm hub whoami -c http://localhost:8080 -f pretty
+```
+
+The `pretty` format shows the **PERSONAL NAMESPACE** and its **STATE**: `Not created`, `Yours`, or `Held by another user`.
+
+To create it:
+
+```shell
+calm hub create my-namespace -c http://localhost:8080
+```
+
+If you already own the namespace, the command does nothing and reports `Exists`. Put the namespace name in the `$id` of each document that you push to it.
+
+Both commands take `-c, --calm-hub-url <url>` and `-f, --format <format>`. They fail with 404 when personal namespaces are off, and with 409 (`create`) when another user holds the name.
 
 ## Managing Architectures
 
@@ -483,9 +505,102 @@ calm hub pull control-configuration \
 - **`-o, --output <file>`**: Write the configuration JSON to a file instead of stdout.
 - **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
 
+## Running Extension Commands
+
+A CALM Hub operator can enable extensions. An extension can declare commands, and the CLI runs them through CALM Hub. The CLI does not add a subcommand for each extension command, so `--help` works without a CALM Hub. An extension command runs only under `calm hub ext <id>`, so it cannot replace a built-in command.
+
+### List extensions
+
+```shell
+calm hub extensions list -c http://localhost:8080
+```
+
+The `pretty` format shows the columns **ID**, **VERSION**, **NAME** and **COMMANDS**. CALM Hub leaves out the commands that it cannot run, for example write commands on a read-only CALM Hub.
+
+### Describe an extension or a command
+
+```shell
+calm hub extensions describe example-services
+calm hub extensions describe example-services list-services
+```
+
+With a command name, the output shows the method, path and scope of the command's route, and the input and output JSON Schemas. `readOnly` is `true` for a `GET` route and for a route that the manifest marks `readOnly`, as the MCP `readOnlyHint` is.
+
+### Run a command
+
+```shell
+calm hub ext example-services list-services --arg namespace=finos
+echo '{"namespace":"finos","name":"payments"}' | calm hub ext example-services add-service --input -
+```
+
+**Options:**
+
+- **`--input <file>`**: A JSON file with the command input object, or `-` to read it from stdin.
+- **`--arg <key=value>`**: Sets a top-level input property. You can use it more than once, and it overrides `--input`. The value gets the type that the input schema declares for the property, so `--arg limit=5` sends a number. A number converts only when it is written as it is sent, so `0x10`, `1e3`, `1.0` and an integer above 2^53 stay strings, for the extension to reject. `--arg` cannot set `__proto__`: put it in the `--input` file.
+- **`--timeout <seconds>`**: Stops waiting for the reply after this many seconds, written as a decimal number up to 2147483. With no `--timeout`, the CLI waits until CALM Hub ends the call at the `request-timeout-seconds` of the extension. If the CLI stops waiting on a write, CALM Hub and the extension can still complete the write, so check before you run the command again.
+- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
+- **`-f, --format <format>`**: Error format, `json` (default) or `pretty`.
+
+Input properties that match a `{param}` in the route path fill the path. Such a value must not be empty or `.`, or contain `..`, `/`, `\`, `%`, `@`, a look-alike of `/`, `\`, `.`, `%`, `@` or `;` (such as `∕` U+2215, `＼` U+FF3C or `‥` U+2025), a code point whose NFKC form contains `/` or `\` (such as U+2100, `a/c`), a control character or a lone surrogate, because CALM Hub refuses these in a path. A value that makes the path match another route of the extension, such as `admin` for `/services/{name}` next to a `/services/admin` route, is refused too. The other properties go to the query for `GET` and `DELETE`, and to the JSON body for other methods. A query name or value must not contain a control character or a lone surrogate. A number fills the path or the query in plain notation, as for an MCP tool, so `1e21` gives `1000000000000000000000`. The CLI and MCP encode a value in the same way, so CALM Hub signs the same path and query for both. A JSON reply is printed as JSON, and a text reply as text.
+
+CALM Hub checks the route, the path and the scope. It does not check the input against the input schema, as it does for an MCP tool: the extension checks it. If CALM Hub or the extension rejects the call, the CLI exits with code 1 and prints the error with the body as CALM Hub sent it. For example, `add-service` with no `name`:
+
+```json
+{"status":400,"error":"name is required","request":"POST /api/calm/extensions/example-services/api/namespaces/finos/services","body":{"error":"name is required"}}
+```
+
+CALM Hub sends a generic `502` with the error `The extension failed` when the extension refuses the connection, when the reply is larger than the reply limit, when the extension replies with a 3xx, 401, 407 or 5xx status, or when the reply has a content type that CALM Hub does not pass on. The extension's own body does not reach the CLI. CALM Hub sends `504` with the error `The extension did not reply in time` when the connection or the reply takes longer than its timeout.
+
+## Managing Conventions
+
+A convention is versioned JSON that tools read, such as a `c4-mapping` for C4 diagrams. Each convention type has a schema, and CALM Hub rejects a convention that does not match it. A namespace can name a default convention for each type, and child namespaces inherit it. A convention has no `$id`, so these commands take the convention type and a namespace.
+
+### Push a convention
+
+The CLI finds the convention by its name in the namespace. A new name creates the convention at `1.0.0`. A known name gets the next version, or is skipped when the content and the description are unchanged.
+
+```shell
+calm hub push convention c4-mapping acme-c4-mapping.json --namespace org --set-default -c http://localhost:8080
+```
+
+**Options:**
+
+- **`--namespace <namespace>`**: _(required)_ The target namespace.
+- **`--name <name>`**: Name of the convention. Defaults to the `unique-id` of the convention.
+- **`--description <description>`**: Description of the convention.
+- **`--set-default`**: Also make the pushed version the default for the namespace. This needs namespace admin. If only this step fails, the error names the version that the push created.
+- **`-t, --change-type <type>`**: Semver bump type — `patch` (default), `minor`, or `major`.
+- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
+- **`-f, --format <format>`**: Output format — `json` (default) or `pretty`.
+
+### List conventions
+
+```shell
+calm hub list conventions c4-mapping --namespace org -c http://localhost:8080
+```
+
+The `pretty` format shows the columns **ID**, **NAME**, **VERSIONS**, and **DESCRIPTION**. `--namespace` defaults to `default`.
+
+### Pull a convention
+
+Without `--id`, the CLI pulls the default convention that applies to the namespace. It comes from the namespace, or else from its nearest parent namespace that sets one. The convention JSON goes to stdout, and a note on stderr says which namespace sets it.
+
+```shell
+calm hub pull convention c4-mapping --namespace org.payments -c http://localhost:8080
+calm hub pull convention c4-mapping --namespace org --id 1 --ver 1.0.0 -o acme-c4-mapping.json -c http://localhost:8080
+```
+
+**Options:**
+
+- **`--namespace <namespace>`**: _(required)_ The source namespace.
+- **`--id <id>`**: ID of the convention to pull. Omit it to pull the namespace default.
+- **`--ver <version>`**: Version to retrieve (defaults to the latest). Needs `--id`.
+- **`-o, --output <file>`**: Write the convention JSON to a file instead of stdout.
+- **`-c, --calm-hub-url <url>`**: URL to the CALM Hub instance.
+
 ## Output Formats
 
 All `hub` subcommands support a `-f, --format <format>` option with two choices:
 
 - **`json`** _(default)_ — outputs the raw JSON response from CALM Hub. Suitable for piping into other tools or scripts.
-- **`pretty`** — renders the output as a human-readable ASCII table. Available for `list` commands; for `push` and `pull` commands it formats the response in a more readable way.
+- **`pretty`** — renders the output as a human-readable ASCII table. Available for `list` commands; for `push` and `pull` commands it formats the response in a more readable way. For `ext`, it changes only the error format.

@@ -4,6 +4,9 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.collection.NitriteId;
+import org.dizitart.no2.common.tuples.Pair;
+import org.mockito.ArgumentCaptor;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -108,6 +111,7 @@ public class TestNitriteUserAccessStoreShould {
         when(userDoc.get("domain", String.class)).thenReturn(null);
         when(userDoc.get("permission", String.class)).thenReturn("write");
         when(userDoc.get("userAccessId", Integer.class)).thenReturn(1);
+        when(userDoc.get("subjectType", String.class)).thenReturn(null);
 
         Document wildcardDoc = mock(Document.class);
         when(wildcardDoc.get("username", String.class)).thenReturn("*");
@@ -115,6 +119,7 @@ public class TestNitriteUserAccessStoreShould {
         when(wildcardDoc.get("domain", String.class)).thenReturn(null);
         when(wildcardDoc.get("permission", String.class)).thenReturn("read");
         when(wildcardDoc.get("userAccessId", Integer.class)).thenReturn(2);
+        when(wildcardDoc.get("subjectType", String.class)).thenReturn(null);
 
         when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
         when(mockCursor.iterator()).thenReturn(List.of(userDoc, wildcardDoc).iterator());
@@ -137,6 +142,7 @@ public class TestNitriteUserAccessStoreShould {
         when(mockDoc.get("domain", String.class)).thenReturn(null);
         when(mockDoc.get("permission", String.class)).thenReturn("read");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(1);
+        when(mockDoc.get("subjectType", String.class)).thenReturn(null);
 
         // Act
         List<UserAccess> result = userAccessStore.getUserAccessForUsername("testuser");
@@ -170,6 +176,7 @@ public class TestNitriteUserAccessStoreShould {
         when(mockDoc.get("domain", String.class)).thenReturn(null);
         when(mockDoc.get("permission", String.class)).thenReturn("read");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(1);
+        when(mockDoc.get("subjectType", String.class)).thenReturn(null);
 
         // Act
         List<UserAccess> result = userAccessStore.getUserAccessForNamespace("finos");
@@ -201,6 +208,7 @@ public class TestNitriteUserAccessStoreShould {
         when(mockDoc.get("domain", String.class)).thenReturn(null);
         when(mockDoc.get("permission", String.class)).thenReturn("read");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(1);
+        when(mockDoc.get("subjectType", String.class)).thenReturn(null);
 
         // Act
         UserAccess result = userAccessStore.getUserAccessForNamespaceAndId("finos", 1);
@@ -254,6 +262,7 @@ public class TestNitriteUserAccessStoreShould {
         when(mockDoc.get("domain", String.class)).thenReturn("payments");
         when(mockDoc.get("permission", String.class)).thenReturn("write");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(2);
+        when(mockDoc.get("subjectType", String.class)).thenReturn(null);
 
         List<UserAccess> result = userAccessStore.getUserAccessForDomain("payments");
 
@@ -280,6 +289,7 @@ public class TestNitriteUserAccessStoreShould {
         when(mockDoc.get("domain", String.class)).thenReturn("payments");
         when(mockDoc.get("permission", String.class)).thenReturn("write");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(2);
+        when(mockDoc.get("subjectType", String.class)).thenReturn(null);
 
         UserAccess result = userAccessStore.getUserAccessForDomainAndId("payments", 2);
 
@@ -398,6 +408,7 @@ public class TestNitriteUserAccessStoreShould {
         when(mockDoc.get("domain", String.class)).thenReturn(null);
         when(mockDoc.get("permission", String.class)).thenReturn("admin");
         when(mockDoc.get("userAccessId", Integer.class)).thenReturn(303);
+        when(mockDoc.get("subjectType", String.class)).thenReturn(null);
 
         UserAccess result = userAccessStore.getUserAccessForNamespaceAndId("GLOBAL", 303);
 
@@ -461,5 +472,133 @@ public class TestNitriteUserAccessStoreShould {
         userAccessStore.deleteAllUserAccessForDomain("payments");
 
         verify(mockCollection, never()).remove(any(Document.class));
+    }
+
+    @Test
+    public void write_the_subject_type_when_creating_grants() throws NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists("finos")).thenReturn(true);
+        when(mockCounterStore.getNextUserAccessSequenceValue()).thenReturn(1, 2);
+
+        UserAccess group = new UserAccess.UserAccessBuilder()
+                .setNamespace("finos")
+                .setUsername("architects")
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setPermission(UserAccess.Permission.write)
+                .build();
+        UserAccess domainGroup = new UserAccess.UserAccessBuilder()
+                .setDomain("security")
+                .setUsername("security-team")
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setPermission(UserAccess.Permission.admin)
+                .build();
+
+        UserAccess createdGroup = userAccessStore.createUserAccessForNamespace(group);
+        UserAccess createdDomainGroup = userAccessStore.createUserAccessForDomain(domainGroup);
+
+        ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
+        verify(mockCollection, times(2)).insert(inserted.capture());
+        assertThat(inserted.getAllValues().get(0).get("subjectType", String.class), is("group"));
+        assertThat(inserted.getAllValues().get(1).get("subjectType", String.class), is("group"));
+        assertThat(createdGroup.getSubjectType(), is(UserAccess.SubjectType.group));
+        assertThat(createdDomainGroup.getSubjectType(), is(UserAccess.SubjectType.group));
+    }
+
+    @Test
+    public void exclude_group_rows_but_keep_legacy_rows_in_user_lookups() throws UserAccessNotFoundException {
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.iterator()).thenReturn(Collections.emptyIterator());
+
+        userAccessStore.getGrantsForUser("alice");
+        assertThrows(UserAccessNotFoundException.class, () -> userAccessStore.getUserAccessForUsername("alice"));
+
+        ArgumentCaptor<Filter> filters = ArgumentCaptor.forClass(Filter.class);
+        verify(mockCollection, times(2)).find(filters.capture());
+        for (Filter filter : filters.getAllValues()) {
+            assertThat(matches(filter, grantDocument("alice", null)), is(true));
+            assertThat(matches(filter, grantDocument("alice", "user")), is(true));
+            assertThat(matches(filter, grantDocument("alice", "group")), is(false));
+        }
+        assertThat(matches(filters.getAllValues().getFirst(), grantDocument("*", null)), is(true));
+    }
+
+    @Test
+    public void return_group_grants_for_namespaces() {
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.iterator()).thenReturn(List.of(grantDocument("architects", "group")).iterator());
+
+        List<UserAccess> result = userAccessStore.getGroupGrantsForNamespaces(List.of("org", "org.ab"));
+
+        assertThat(result, hasSize(1));
+        assertThat(result.getFirst().getSubjectType(), is(UserAccess.SubjectType.group));
+
+        ArgumentCaptor<Filter> filter = ArgumentCaptor.forClass(Filter.class);
+        verify(mockCollection).find(filter.capture());
+        assertThat(matches(filter.getValue(), grantDocument("architects", "group")), is(true));
+        assertThat(matches(filter.getValue(), grantDocument("architects", "group").put("namespace", "org.ab")), is(true));
+        assertThat(matches(filter.getValue(), grantDocument("architects", "group").put("namespace", "other")), is(false));
+        assertThat(matches(filter.getValue(), grantDocument("architects", null)), is(false));
+    }
+
+    @Test
+    public void return_no_group_grants_for_no_namespaces() {
+        assertThat(userAccessStore.getGroupGrantsForNamespaces(List.of()), is(empty()));
+        verify(mockCollection, never()).find(any(Filter.class));
+    }
+
+    @Test
+    public void return_group_grants_for_domain() {
+        Document domainGroup = Document.createDocument()
+                .put("username", "security-team")
+                .put("subjectType", "group")
+                .put("domain", "security")
+                .put("permission", "admin")
+                .put("userAccessId", 3);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.iterator()).thenReturn(List.of(domainGroup).iterator());
+
+        List<UserAccess> result = userAccessStore.getGroupGrantsForDomain("security");
+
+        assertThat(result, hasSize(1));
+        assertThat(result.getFirst().getDomain(), is("security"));
+
+        ArgumentCaptor<Filter> filter = ArgumentCaptor.forClass(Filter.class);
+        verify(mockCollection).find(filter.capture());
+        assertThat(matches(filter.getValue(), domainGroup), is(true));
+        assertThat(matches(filter.getValue(), Document.createDocument().put("username", "security-team")
+                .put("domain", "security")), is(false));
+    }
+
+    private static Document grantDocument(String username, String subjectType) {
+        Document doc = Document.createDocument()
+                .put("username", username)
+                .put("namespace", "org")
+                .put("permission", "read")
+                .put("userAccessId", 1);
+        if (subjectType != null) {
+            doc.put("subjectType", subjectType);
+        }
+        return doc;
+    }
+
+    private static boolean matches(Filter filter, Document doc) {
+        return filter.apply(new Pair<>(NitriteId.newId(), doc));
+    }
+
+    @Test
+    public void return_all_group_grants() {
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.iterator()).thenReturn(List.of(grantDocument("architects", "group")).iterator());
+
+        List<UserAccess> result = userAccessStore.getAllGroupGrants();
+
+        assertThat(result, hasSize(1));
+        assertThat(result.getFirst().getSubjectType(), is(UserAccess.SubjectType.group));
+
+        ArgumentCaptor<Filter> filter = ArgumentCaptor.forClass(Filter.class);
+        verify(mockCollection).find(filter.capture());
+        assertThat(matches(filter.getValue(), grantDocument("architects", "group")), is(true));
+        assertThat(matches(filter.getValue(), grantDocument("architects", "group").put("namespace", "other")), is(true));
+        assertThat(matches(filter.getValue(), grantDocument("alice", "user")), is(false));
+        assertThat(matches(filter.getValue(), grantDocument("alice", null)), is(false));
     }
 }

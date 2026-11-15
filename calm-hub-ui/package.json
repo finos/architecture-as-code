@@ -37,7 +37,7 @@
         "react-json-view-lite": "^2.4.1",
         "react-markdown": "^10.1.0",
         "react-router-dom": "^7.18.4",
-        "reactflow": "^11.11.4",
+        "@xyflow/react": "^12.10.1",
         "remark-gfm": "^4.0.1"
     },
     "devDependencies": {

@@ -1,14 +1,22 @@
 import { createServer } from 'http';
-import { lookup } from 'dns/promises';
 import * as fs from 'fs';
 import path from 'path';
 
-// A `*.localhost` name resolves to loopback (RFC 6761), but DirectUrlDocumentLoader rejects only the
-// literal `localhost`. So this is a second origin that the CLI fetches through DirectUrlDocumentLoader,
-// once it is in the allowlist. The fixture `$id`s and pattern consts hard-code
-// http://smoke-controls.localhost:8090.
-export const CROSS_HOST = 'smoke-controls.localhost';
+// A second origin that the CLI fetches through DirectUrlDocumentLoader, once it is in the allowlist.
+// The loader refuses localhost and *.localhost names, so the CLI resolves this reserved `.test` name
+// to 127.0.0.1 with a DNS shim. The fixture `$id`s and pattern consts hard-code
+// http://smoke-controls.test:8090.
+export const CROSS_HOST = 'smoke-controls.test';
 const PORT = 8090;
+
+/** Environment for a CLI run that fetches from the cross-host origin. */
+export function crossHostEnv(): NodeJS.ProcessEnv {
+    const shim = path.resolve(__dirname, 'resolve-cross-host.cjs');
+    return {
+        CALM_ALLOWED_REMOTE_HOSTS: CROSS_HOST,
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, `--require ${JSON.stringify(shim)}`].filter(Boolean).join(' '),
+    };
+}
 
 export interface CrossHostOrigin {
     /** Request paths in arrival order; clear it with `requests.length = 0`. */
@@ -18,11 +26,6 @@ export interface CrossHostOrigin {
 
 /** Serves each `*.json` file in `dir` at `/<file name>` on the cross-host origin. */
 export async function serveCrossHostOrigin(dir: string): Promise<CrossHostOrigin> {
-    const addresses = await lookup(CROSS_HOST, { all: true }).catch(() => []);
-    if (!addresses.some(a => a.address === '127.0.0.1')) {
-        throw new Error(`${CROSS_HOST} must resolve to 127.0.0.1 for the cross-host smoke tests (got ${JSON.stringify(addresses)})`);
-    }
-
     const files = new Map(
         fs.readdirSync(dir)
             .filter(name => name.endsWith('.json'))

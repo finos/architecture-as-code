@@ -11,6 +11,7 @@ import { isAuthServiceEnabled } from '../../authService.js';
 import { useUiConfig } from '../ui-config/UiConfigContext.js';
 import { EnvironmentPill } from './EnvironmentPill.js';
 import { MenuInfo } from './MenuInfo.js';
+import { ExtensionMenuGroup } from './ExtensionMenuGroup.js';
 
 /**
  * The navy-and-blue lockup is unreadable on a dark base, so dark gets a white one.
@@ -100,6 +101,7 @@ export function Navbar({ storage }: NavbarProps = {}) {
                             </NavLink>
                         </li>
                     )}
+                    <ExtensionMenuGroup linkClassName={menuNavClass} onNavigate={closeMenu} />
                 </ul>
                 <MenuInfo identity={identity} items={items} />
             </div>

@@ -27,6 +27,7 @@ import java.util.Optional;
  * timelines within CalmHub namespaces via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class TimelineTools {
 
     private static final Logger logger = LoggerFactory.getLogger(TimelineTools.class);

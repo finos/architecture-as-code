@@ -1,14 +1,29 @@
+import { useState } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { saveNodePositions } from '../../../visualizer/services/node-position-service.js';
-import type { Node } from 'reactflow';
+import type { Node } from '@xyflow/react';
+import { ExtensionsContext, ExtensionsStatusContext } from '../../../extensions/ExtensionsContext.js';
+import { ExtensionService } from '../../../service/extension-service.js';
+import type { ExtensionSummary } from '../../../model/extensions.js';
+
+const releaseTracker: ExtensionSummary = {
+    id: 'release-tracker',
+    name: 'Release tracker',
+    hubApi: 0,
+    routes: [{ id: 'tab', method: 'GET', path: '/tab', scope: 'authenticated', readOnly: false }],
+    contributes: { 'designer-tab': [{ id: 'releases', title: 'Releases', route: 'tab' }] },
+};
+
+const DECORATOR_TARGET = '/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0';
 
 const calmServiceMock = {
-    fetchDeploymentDecoratorsForArchitecture: vi.fn().mockResolvedValue([]),
+    resolveArchitectureVersionTarget: vi.fn().mockResolvedValue(DECORATOR_TARGET),
+    fetchDecoratorsForTarget: vi.fn().mockResolvedValue([]),
     fetchVersionsByCustomId: vi.fn().mockResolvedValue(['1.0.0', '2.0.0']),
     fetchArchitectureTimeline: vi.fn().mockRejectedValue(new Error('no timeline')),
     fetchArchitectureSummaries: vi
@@ -49,17 +64,36 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
     // simulate a drag without pulling in the full ReactFlow tree.
     Drawer: ({
         data,
+        decorators,
         onPositionsChange,
+        onDroppedFileChange,
+        onOpenView,
     }: {
         data: Data;
+        decorators?: { uniqueId: string }[];
         onPositionsChange?: (positions: { id: string; position: { x: number; y: number } }[]) => void;
+        onDroppedFileChange?: (dropped: boolean) => void;
+        onOpenView?: (view: { id: string; label: string; match: { type?: string; schema?: string } }) => void;
     }) => (
         <div data-testid="drawer">
             Drawer for {data.id}
+            <span data-testid="drawer-decorators">{decorators?.map((d) => d.uniqueId).join(' ') || '(none)'}</span>
             <button
                 onClick={() => onPositionsChange?.([{ id: 'node-1', position: { x: 1, y: 2 } }])}
             >
                 simulate-drag-report
+            </button>
+            <button onClick={() => onDroppedFileChange?.(true)}>simulate-file-drop</button>
+            <button onClick={() => onOpenView?.({ id: 'deployment', label: 'Deployments', match: { type: 'deployment' } })}>
+                simulate-open-view
+            </button>
+            <button onClick={() => onOpenView?.({ id: 'scan', label: 'Scans', match: { schema: 'https://example.org/scan.json' } })}>
+                simulate-open-schema-view
+            </button>
+            <button
+                onClick={() => onOpenView?.({ id: 'scan', label: 'Scans', match: { type: 'observability', schema: 'https://example.org/scan.json' } })}
+            >
+                simulate-open-type-and-schema-view
             </button>
         </div>
     ),
@@ -96,7 +130,8 @@ vi.mock('./timeline/TimelineBar.js', () => ({
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(function () { return {
-        fetchDeploymentDecoratorsForArchitecture: calmServiceMock.fetchDeploymentDecoratorsForArchitecture,
+        resolveArchitectureVersionTarget: calmServiceMock.resolveArchitectureVersionTarget,
+        fetchDecoratorsForTarget: calmServiceMock.fetchDecoratorsForTarget,
         fetchVersionsByCustomId: calmServiceMock.fetchVersionsByCustomId,
         fetchArchitectureTimeline: calmServiceMock.fetchArchitectureTimeline,
         fetchArchitectureSummaries: calmServiceMock.fetchArchitectureSummaries,
@@ -142,7 +177,8 @@ const patternData: Data & { calmType: 'Patterns' } = {
 describe('DiagramSection', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        calmServiceMock.fetchDeploymentDecoratorsForArchitecture.mockResolvedValue([]);
+        calmServiceMock.resolveArchitectureVersionTarget.mockResolvedValue(DECORATOR_TARGET);
+        calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([]);
         calmServiceMock.fetchVersionsByCustomId.mockResolvedValue(['1.0.0', '2.0.0']);
         calmServiceMock.fetchArchitectureTimeline.mockRejectedValue(new Error('no timeline'));
         implementationServiceMock.fetchImplementations.mockResolvedValue([]);
@@ -369,6 +405,510 @@ describe('DiagramSection', () => {
         });
     });
 
+    describe('decorators tab', () => {
+        const deployment = {
+            uniqueId: 'dep-1',
+            type: 'deployment',
+            target: ['/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0'],
+            appliesTo: ['api'],
+            data: { status: 'completed', 'start-time': '2026-03-01T10:15:00Z' },
+        };
+        const observability = {
+            uniqueId: 'obs-1',
+            type: 'observability',
+            target: ['/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0'],
+            appliesTo: ['api', 'db'],
+            data: { dashboard: 'https://grafana.example.com/d/abc' },
+        };
+        const scan = {
+            uniqueId: 'scan-1',
+            type: 'observability',
+            schema: 'https://example.org/scan.json',
+            target: ['/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0'],
+            appliesTo: ['api'],
+            data: { result: 'clean' },
+        };
+
+        function LocationProbe() {
+            const location = useLocation();
+            return <div data-testid="location">{location.search}</div>;
+        }
+
+        function renderArchitecture(entry = '/', props: Partial<Parameters<typeof DiagramSection>[0]> = {}) {
+            return render(
+                <MemoryRouter initialEntries={[entry]}>
+                    <DiagramSection data={architectureData} {...props} />
+                    <LocationProbe />
+                </MemoryRouter>
+            );
+        }
+
+        beforeEach(() => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability]);
+        });
+
+        it('shows the tab for an architecture, not for a pattern', () => {
+            const { unmount } = renderArchitecture();
+            expect(screen.getByRole('tab', { name: 'Decorators' })).toBeInTheDocument();
+            unmount();
+
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={patternData} />
+                </MemoryRouter>
+            );
+            expect(screen.queryByRole('tab', { name: 'Decorators' })).not.toBeInTheDocument();
+        });
+
+        it('lists decorators of every type when the tab opens, and writes the tab to the URL', async () => {
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByRole('tab', { name: 'Decorators' }));
+
+            expect(await screen.findByRole('article', { name: 'deployment decorator dep-1' })).toBeInTheDocument();
+            expect(screen.getByRole('article', { name: 'observability decorator obs-1' })).toBeInTheDocument();
+            expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators');
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+        });
+
+        it('reads the type filter from the URL', async () => {
+            renderArchitecture('/?tab=decorators&type=observability');
+
+            expect(await screen.findByRole('article', { name: 'observability decorator obs-1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'deployment decorator dep-1' })).not.toBeInTheDocument();
+            expect(screen.getByRole('combobox')).toHaveValue('observability');
+        });
+
+        it('writes the type filter to the URL, and removes it for all types', async () => {
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators');
+
+            await user.selectOptions(await screen.findByRole('combobox'), 'deployment');
+            expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators&type=deployment');
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-1' })).not.toBeInTheDocument();
+
+            await user.selectOptions(screen.getByRole('combobox'), '');
+            expect(screen.getByTestId('location').textContent).toBe('?tab=decorators');
+        });
+
+        it('drops the type filter when another tab opens', async () => {
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators&type=deployment');
+
+            await user.click(screen.getByRole('tab', { name: 'JSON' }));
+
+            expect(screen.getByTestId('location').textContent).toBe('?tab=json');
+        });
+
+        it('keeps the tab and the type filter on navigation to another version', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators&type=deployment&node=api');
+
+            await user.click(screen.getByText('nav-2.0.0'));
+
+            expect(navigate).toHaveBeenCalledWith(
+                '/arch-namespace/architectures/test-arch/2.0.0?tab=decorators&type=deployment',
+                expect.anything()
+            );
+        });
+
+        it('says so when the decorators cannot be loaded', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockRejectedValue(new Error('boom'));
+            renderArchitecture('/?tab=decorators');
+
+            expect(await screen.findByText(/^Could not load decorators\./)).toBeInTheDocument();
+        });
+
+        it('redirects the old Deployments tab to the Decorators tab filtered to deployment', async () => {
+            renderArchitecture('/?tab=deployments');
+
+            expect(screen.getByRole('tab', { name: 'Decorators' }).className).toContain('tab-active');
+            await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators&type=deployment'));
+            expect(await screen.findByText(/dep-1/)).toBeInTheDocument();
+            expect(screen.queryByText(/obs-1/)).not.toBeInTheDocument();
+        });
+
+        it('opens the Decorators tab filtered to a view from the overlay legend', async () => {
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-view'));
+            expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators&type=deployment');
+            expect(await screen.findByText(/dep-1/)).toBeInTheDocument();
+        });
+
+        it('opens the Decorators tab filtered to the $schema of a view that matches on $schema', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability, scan]);
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-schema-view'));
+            expect(new URLSearchParams(screen.getByTestId('location').textContent ?? '').get('schema')).toBe('https://example.org/scan.json');
+            expect(await screen.findByRole('article', { name: 'observability decorator scan-1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-1' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'deployment decorator dep-1' })).not.toBeInTheDocument();
+        });
+
+        it('moves focus to the Decorators tab content after View all, but not after a tab click', async () => {
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-view'));
+            expect(await screen.findByRole('region', { name: 'Decorators' })).toHaveFocus();
+
+            await user.click(screen.getByRole('tab', { name: 'Diagram' }));
+            await user.click(screen.getByRole('tab', { name: 'Decorators' }));
+            expect(screen.getByRole('region', { name: 'Decorators' })).not.toHaveFocus();
+        });
+
+        it('does not move focus again when the Decorators tab is reached some other way after View all', async () => {
+            function QueryLinks() {
+                const [, setSearchParams] = useSearchParams();
+                return (
+                    <>
+                        <button onClick={() => setSearchParams({ tab: 'diagram' })}>link-diagram</button>
+                        <button onClick={() => setSearchParams({ tab: 'decorators' })}>link-decorators</button>
+                    </>
+                );
+            }
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                    <QueryLinks />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByText('simulate-open-view'));
+            expect(await screen.findByRole('region', { name: 'Decorators' })).toHaveFocus();
+
+            await user.click(screen.getByText('link-diagram'));
+            await user.click(screen.getByText('link-decorators'));
+            expect(await screen.findByRole('region', { name: 'Decorators' })).not.toHaveFocus();
+        });
+
+        it('filters on both the type and the $schema of a view that matches on both', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability, scan]);
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-type-and-schema-view'));
+            const query = new URLSearchParams(screen.getByTestId('location').textContent ?? '');
+            expect([query.get('type'), query.get('schema')]).toEqual(['observability', 'https://example.org/scan.json']);
+            expect(await screen.findByRole('article', { name: 'observability decorator scan-1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-1' })).not.toBeInTheDocument();
+        });
+
+        it('keeps the $schema filter when the type changes, and drops it on "Show all schemas"', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability, scan]);
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators&schema=https%3A%2F%2Fexample.org%2Fscan.json');
+
+            await user.selectOptions(await screen.findByRole('combobox'), 'observability');
+            let query = new URLSearchParams(screen.getByTestId('location').textContent ?? '');
+            expect([query.get('type'), query.get('schema')]).toEqual(['observability', 'https://example.org/scan.json']);
+
+            await user.click(screen.getByRole('button', { name: 'Show all schemas' }));
+            query = new URLSearchParams(screen.getByTestId('location').textContent ?? '');
+            expect([query.get('type'), query.get('schema')]).toEqual(['observability', null]);
+            expect(await screen.findByRole('article', { name: 'observability decorator obs-1' })).toBeInTheDocument();
+        });
+
+        it('offers the tab in the mobile view menu, selected when active', async () => {
+            const restore = mockMobileViewport();
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators');
+
+            await user.click(screen.getByRole('button', { name: /view options/i }));
+            expect(await screen.findByRole('tab', { name: 'Decorators' })).toHaveAttribute('aria-selected', 'true');
+            restore();
+        });
+
+        it('reports the decorators for the details drawer, and an empty list on unmount', async () => {
+            const onDecoratorsChange = vi.fn();
+            const { unmount } = renderArchitecture('/', { onDecoratorsChange });
+
+            await waitFor(() => expect(onDecoratorsChange).toHaveBeenLastCalledWith([deployment, observability]));
+
+            unmount();
+            expect(onDecoratorsChange).toHaveBeenLastCalledWith([]);
+        });
+
+        it('reports an empty list while a dropped file replaces the architecture', async () => {
+            const user = userEvent.setup();
+            const onDecoratorsChange = vi.fn();
+            renderArchitecture('/', { onDecoratorsChange });
+            await waitFor(() => expect(onDecoratorsChange).toHaveBeenLastCalledWith([deployment, observability]));
+
+            await user.click(screen.getByText('simulate-file-drop'));
+
+            expect(onDecoratorsChange).toHaveBeenLastCalledWith([]);
+        });
+
+        it('gives the diagram, the tab and the details drawer one polled list, with one request per refresh', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            try {
+                const onDecoratorsChange = vi.fn();
+                renderArchitecture('/', { onDecoratorsChange });
+                await waitFor(() => expect(screen.getByTestId('drawer-decorators')).toHaveTextContent('dep-1 obs-1'));
+                // The report is a passive effect, which can run after the commit that waitFor saw.
+                await waitFor(() => expect(onDecoratorsChange).toHaveBeenLastCalledWith([deployment, observability]));
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
+
+                const newer = { ...deployment, uniqueId: 'dep-2' };
+                calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, newer]);
+                await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(2);
+                expect(screen.getByTestId('drawer-decorators')).toHaveTextContent('dep-1 dep-2');
+                await waitFor(() => expect(onDecoratorsChange).toHaveBeenLastCalledWith([deployment, newer]));
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it.each([
+            ['the JSON tab', '/?tab=json', false, 0],
+            ['the JSON tab with the details drawer open', '/?tab=json', true, 2],
+            ['the Decorators tab', '/?tab=decorators', false, 2],
+            ['the diagram', '/', false, 2],
+        ])('polls the decorators on %s only if something there shows them', async (_name, entry, hasDetailsPanel, calls) => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            try {
+                renderArchitecture(entry, { hasDetailsPanel });
+                await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+                await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(calls);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('loads the decorators at once when the diagram opens from another tab', async () => {
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=json');
+            expect(calmServiceMock.fetchDecoratorsForTarget).not.toHaveBeenCalled();
+
+            await user.click(screen.getByRole('tab', { name: 'Diagram' }));
+            await waitFor(() => expect(screen.getByTestId('drawer-decorators')).toHaveTextContent('dep-1 obs-1'));
+            expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
+        });
+
+        it('keeps the list when a refresh fails', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+            try {
+                renderArchitecture('/?tab=decorators');
+                expect(await screen.findByRole('article', { name: 'deployment decorator dep-1' })).toBeInTheDocument();
+
+                calmServiceMock.fetchDecoratorsForTarget.mockRejectedValue(new Error('boom'));
+                await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(2);
+                expect(screen.getByRole('article', { name: 'deployment decorator dep-1' })).toBeInTheDocument();
+                expect(screen.queryByText(/^Could not load decorators\./)).not.toBeInTheDocument();
+            } finally {
+                error.mockRestore();
+                vi.useRealTimers();
+            }
+        });
+
+        it('reports an empty list for a pattern', async () => {
+            const onDecoratorsChange = vi.fn();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={patternData} onDecoratorsChange={onDecoratorsChange} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(onDecoratorsChange).toHaveBeenCalledWith([]));
+            expect(calmServiceMock.fetchDecoratorsForTarget).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('unknown tab', () => {
+        it('falls back to the diagram for an unknown tab value', () => {
+            render(
+                <MemoryRouter initialEntries={['/?tab=no-such-tab']}>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Diagram' }).className).toContain('tab-active');
+        });
+
+        it('falls back to the diagram for a tab the resource does not have', () => {
+            render(
+                <MemoryRouter initialEntries={['/?tab=deployments']}>
+                    <DiagramSection data={patternData} />
+                </MemoryRouter>
+            );
+
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+        });
+
+        it('drops an unknown tab from the URL, and keeps the other parameters', async () => {
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            render(
+                <MemoryRouter initialEntries={['/?tab=no-such-tab&type=deployment']}>
+                    <DiagramSection data={architectureData} />
+                    <SearchProbe />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?type=deployment'));
+        });
+
+        it('keeps an extension tab selected after a click, and does not cancel its request', async () => {
+            const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, title: 'Releases', blocks: [] });
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            render(
+                <MemoryRouter>
+                    <ExtensionsContext.Provider value={[releaseTracker]}>
+                        <DiagramSection data={architectureData} />
+                        <SearchProbe />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+
+            await userEvent.click(screen.getByRole('tab', { name: 'Extensions' }));
+
+            expect(await screen.findByRole('heading', { name: 'Releases' })).toBeInTheDocument();
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions');
+            expect(screen.getByRole('tab', { name: 'Extensions' }).className).toContain('tab-active');
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect((call.mock.calls[0][3] as AbortSignal).aborted).toBe(false);
+            expect(call.mock.calls[0][2]).toMatchObject({
+                namespace: 'arch-namespace',
+                resource: 'architectures/test-arch',
+                resourceType: 'architectures',
+                resourceId: 'test-arch',
+            });
+            call.mockRestore();
+        });
+
+        it('keeps the Extensions tab open after a click when its only action needs the selected element', async () => {
+            const scanner: ExtensionSummary = {
+                id: 'scanner',
+                name: 'Scanner',
+                hubApi: 0,
+                routes: [{ id: 'scan', method: 'POST', path: '/scan/{selectedElement}', scope: 'authenticated', readOnly: false }],
+                contributes: { action: [{ id: 'scan', title: 'Scan', route: 'scan' }] },
+            };
+            // Hub clears a clicked selection on any change to the query.
+            function HubLike() {
+                const { search } = useLocation();
+                const [selection, setSelection] = useState<{ id?: string; search: string }>({ search });
+                const selectedElement = selection.search === search ? selection.id : undefined;
+                return (
+                    <>
+                        <button onClick={() => setSelection({ id: 'node-1', search })}>select node</button>
+                        <DiagramSection data={architectureData} selectedElement={selectedElement} />
+                        <div data-testid="search">{search}</div>
+                    </>
+                );
+            }
+            render(
+                <MemoryRouter>
+                    <ExtensionsContext.Provider value={[scanner]}>
+                        <HubLike />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+
+            expect(screen.getByRole('tab', { name: 'Extensions' })).toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: 'select node' }));
+            await userEvent.click(screen.getByRole('tab', { name: 'Extensions' }));
+
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions');
+            expect(screen.getByRole('tab', { name: 'Extensions' }).className).toContain('tab-active');
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Scan' })).toHaveAttribute('aria-disabled', 'true');
+        });
+
+        it('enables an action that needs the selected element when a link names the node', () => {
+            const scanner: ExtensionSummary = {
+                id: 'scanner',
+                name: 'Scanner',
+                hubApi: 0,
+                routes: [{ id: 'scan', method: 'POST', path: '/scan/{selectedElement}', scope: 'authenticated', readOnly: false }],
+                contributes: { action: [{ id: 'scan', title: 'Scan', route: 'scan' }] },
+            };
+            render(
+                <MemoryRouter initialEntries={['/?node=node-1&tab=extensions']}>
+                    <ExtensionsContext.Provider value={[scanner]}>
+                        <DiagramSection data={architectureData} selectedElement="node-1" />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+            expect(screen.getByRole('button', { name: 'Scan' })).toBeEnabled();
+        });
+
+        it('keeps a link to the Extensions tab until the registry loads, then opens it', async () => {
+            vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, title: 'Releases', blocks: [] });
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            const page = (extensions: ExtensionSummary[]) => (
+                <MemoryRouter initialEntries={['/?tab=extensions']}>
+                    <ExtensionsContext.Provider value={extensions}>
+                        <DiagramSection data={architectureData} />
+                        <SearchProbe />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+            const { rerender } = render(page([]));
+            expect(screen.queryByRole('tab', { name: 'Extensions' })).not.toBeInTheDocument();
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions');
+
+            rerender(page([releaseTracker]));
+
+            expect(await screen.findByRole('heading', { name: 'Releases' })).toBeInTheDocument();
+            vi.restoreAllMocks();
+        });
+
+        it('shows no extension buttons or tabs in the toolbar, only one Extensions tab', () => {
+            const many = Array.from({ length: 10 }, (_, i) => ({
+                ...releaseTracker,
+                id: `ext-${i}`,
+                name: `Extension ${i}`,
+                routes: [...releaseTracker.routes, { id: 'act', method: 'POST', path: '/act', scope: 'authenticated', readOnly: false }],
+                contributes: { ...releaseTracker.contributes, action: [{ id: 'act', title: `Act ${i}`, route: 'act' }] },
+            }));
+            render(
+                <MemoryRouter>
+                    <ExtensionsContext.Provider value={many}>
+                        <DiagramSection data={architectureData} />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+            expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Diagram', 'JSON', 'Decorators', 'Extensions']);
+            expect(screen.queryByRole('button', { name: /^Act / })).not.toBeInTheDocument();
+        });
+
+        it('keeps a known tab that is hidden for now in the URL', () => {
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            render(
+                <MemoryRouter initialEntries={['/?tab=decorators']}>
+                    <DiagramSection data={patternData} />
+                    <SearchProbe />
+                </MemoryRouter>
+            );
+
+            expect(screen.getByTestId('search').textContent).toBe('?tab=decorators');
+        });
+    });
+
     describe('with architecture data', () => {
         it('renders title with namespace, type and resolved name but not the version segment', async () => {
             render(
@@ -397,7 +937,7 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('drawer')).toHaveTextContent('Drawer for test-arch');
         });
 
-        it('fetches deployment decorators via the shared service method with namespace, id and version', async () => {
+        it('fetches the decorators of every type with namespace, id and version', async () => {
             render(
                 <MemoryRouter>
                     <DiagramSection data={architectureData} />
@@ -406,11 +946,8 @@ describe('DiagramSection', () => {
 
             await screen.findByTestId('drawer');
 
-            expect(calmServiceMock.fetchDeploymentDecoratorsForArchitecture).toHaveBeenCalledWith(
-                'arch-namespace',
-                'test-arch',
-                '1.0.0'
-            );
+            await waitFor(() => expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledWith('arch-namespace', DECORATOR_TARGET));
+            expect(calmServiceMock.resolveArchitectureVersionTarget).toHaveBeenCalledWith('arch-namespace', 'test-arch', '1.0.0');
         });
 
     });
@@ -452,7 +989,8 @@ describe('DiagramSection', () => {
 
             expect(screen.getByRole('tab', { name: /diagram/i })).toBeInTheDocument();
             expect(screen.getByRole('tab', { name: /json/i })).toBeInTheDocument();
-            expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Decorators' })).toBeInTheDocument();
+            expect(screen.queryByRole('tab', { name: /deployments/i })).not.toBeInTheDocument();
         });
 
         it('paints the active view tab with the redesign brand blue, not the old accent (#8)', () => {
@@ -468,36 +1006,6 @@ describe('DiagramSection', () => {
             const activeTab = screen.getByRole('tab', { name: /diagram/i });
             expect(activeTab).toHaveClass('!bg-[var(--color-interaction)]');
             expect(activeTab.className).not.toContain('bg-accent');
-        });
-
-        it('renders Deployments tab only for architectures, not patterns', () => {
-            const { rerender } = render(
-                <MemoryRouter>
-                    <DiagramSection data={architectureData} />
-                </MemoryRouter>
-            );
-            expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
-
-            rerender(
-                <MemoryRouter>
-                    <DiagramSection data={patternData} />
-                </MemoryRouter>
-            );
-            expect(screen.queryByRole('tab', { name: /deployments/i })).not.toBeInTheDocument();
-        });
-
-        it('switches to Deployments tab when clicked', async () => {
-            const user = userEvent.setup();
-            render(
-                <MemoryRouter>
-                    <DiagramSection data={architectureData} />
-                </MemoryRouter>
-            );
-
-            await user.click(screen.getByRole('tab', { name: /deployments/i }));
-
-            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
-            expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
         });
 
         it('shows diagram tab by default', () => {
@@ -651,6 +1159,48 @@ describe('DiagramSection', () => {
             expect(navigate).toHaveBeenCalledTimes(1);
         });
 
+        it('keeps a link to the Extensions tab when it redirects before the extension registry loads', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+
+            render(
+                <MemoryRouter initialEntries={['/?tab=extensions']}>
+                    <ExtensionsStatusContext.Provider value="loading">
+                        <ExtensionsContext.Provider value={[]}>
+                            <DiagramSection data={latestArchitectureData} />
+                        </ExtensionsContext.Provider>
+                    </ExtensionsStatusContext.Provider>
+                </MemoryRouter>
+            );
+
+            await waitFor(() => {
+                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/1.0.0?tab=extensions', {
+                    replace: true,
+                    state: null,
+                });
+            });
+        });
+
+        it.each(['/?tab=extensions', '/?tab=used-by'])('does not carry a tab that cannot show for the architecture (%s)', async (entry) => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+
+            render(
+                <MemoryRouter initialEntries={[entry]}>
+                    <ExtensionsContext.Provider value={[]}>
+                        <DiagramSection data={latestArchitectureData} />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+
+            await waitFor(() => {
+                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/1.0.0', {
+                    replace: true,
+                    state: null,
+                });
+            });
+        });
+
         it('marks a timeline selection in navigation state and keeps the existing state', async () => {
             const navigate = vi.fn();
             vi.mocked(useNavigate).mockReturnValue(navigate);
@@ -736,7 +1286,7 @@ describe('DiagramSection', () => {
             );
 
             await user.click(screen.getByRole('button', { name: /view options/i }));
-            // Opening reveals the view-mode list (Diagram / JSON / Deployments rows).
+            // Opening reveals the view-mode list (Diagram / JSON / Decorators rows).
             expect(screen.getByRole('button', { name: /close view options/i })).toBeInTheDocument();
             restore();
         });

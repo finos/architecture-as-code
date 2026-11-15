@@ -5,6 +5,30 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.72.0](https://github.com/finos/architecture-as-code/compare/cli-v1.71.0...cli-v1.72.0) (2026-11-14)
+
+### 🚀 Features
+
+* add personal namespace commands ([#3693](https://github.com/finos/architecture-as-code/issues/3693)) ([34b9956](https://github.com/finos/architecture-as-code/commit/34b995680031519162ad2a7920db89877c339a12))
+
+### 🐛 Bug Fixes
+
+* refuse *.localhost and IPv4-mapped private hosts for direct URLs ([db7a4ab](https://github.com/finos/architecture-as-code/commit/db7a4abb660db58ed9bf571089ecea7edd6a9763))
+
+### ♻️ Code Refactoring
+
+* test the request path inline so CodeQL sees the guard ([#3724](https://github.com/finos/architecture-as-code/issues/3724)) ([4b2146e](https://github.com/finos/architecture-as-code/commit/4b2146ebbd4c8aa1c4a2ac8e9848a9ea772a6d6c))
+
+## [1.71.0](https://github.com/finos/architecture-as-code/compare/cli-v1.70.0...cli-v1.71.0) (2026-11-13)
+
+### 🚀 Features
+
+* add OpenCode support to init-ai ([#3662](https://github.com/finos/architecture-as-code/issues/3662)) ([c57c3d9](https://github.com/finos/architecture-as-code/commit/c57c3d9ab92b8c5442c8bc40dc161be7dabbcce4))
+
+### 🐛 Bug Fixes
+
+* do not send calm: requests outside the CALM Hub base path ([#3638](https://github.com/finos/architecture-as-code/issues/3638)) ([33adfc9](https://github.com/finos/architecture-as-code/commit/33adfc93e84bc71e6a5c44de82a3ca4c740da151)), closes [#3627](https://github.com/finos/architecture-as-code/issues/3627)
+
 ## [1.70.0](https://github.com/finos/architecture-as-code/compare/cli-v1.69.0...cli-v1.70.0) (2026-11-11)
 
 ### 🚀 Features
@@ -14,6 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * add timelines to CalmHub ResourceType and workspace mapping ([#3640](https://github.com/finos/architecture-as-code/issues/3640)) ([f896ee2](https://github.com/finos/architecture-as-code/commit/f896ee2ec03a2b88df833d4291413bc2a4f65dae))
 * resolve CURIEs in control requirement-url during validate ([#3592](https://github.com/finos/architecture-as-code/issues/3592)) ([9716348](https://github.com/finos/architecture-as-code/commit/9716348d6fb8c4b868ad30ed689aceab7e179c0f))
 * validate interface config against its definition-url ([#3618](https://github.com/finos/architecture-as-code/issues/3618)) ([cb419bd](https://github.com/finos/architecture-as-code/commit/cb419bd6a551aa3652cc14eddbb3cfe80b6c633e)), closes [#1994](https://github.com/finos/architecture-as-code/issues/1994)
+
+### 🐛 Bug Fixes
+
+* resolve Spectral $ref through the document loader ([0626cea](https://github.com/finos/architecture-as-code/commit/0626cea3235928ff70da740ed87e350fe15a11d1))
 
 ## [1.69.0](https://github.com/finos/architecture-as-code/compare/cli-v1.68.0...cli-v1.69.0) (2026-11-09)
 

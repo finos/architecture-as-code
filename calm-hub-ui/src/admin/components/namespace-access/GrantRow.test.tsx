@@ -6,6 +6,7 @@ import { UserAccess } from '../../../model/user-access.js';
 const namedGrant: UserAccess = { userAccessId: 1, username: 'alice', permission: 'read', namespace: 'finos' };
 const wildcardGrant: UserAccess = { userAccessId: 2, username: '*', permission: 'read', namespace: 'finos' };
 const adminGrant: UserAccess = { userAccessId: 3, username: 'bob', permission: 'admin', namespace: 'finos' };
+const groupGrant: UserAccess = { userAccessId: 4, username: 'architects', subjectType: 'group', permission: 'write', namespace: 'finos' };
 
 describe('GrantRow', () => {
     it('renders the username', () => {
@@ -39,5 +40,27 @@ describe('GrantRow', () => {
     it('uses wildcard display name in aria-label', () => {
         render(<table><tbody><GrantRow grant={wildcardGrant} onRequestRevoke={() => {}} /></tbody></table>);
         expect(screen.getByRole('button', { name: /revoke access for \* \(everyone\)/i })).toBeInTheDocument();
+    });
+
+    it('shows the user type for a grant without a subject type', () => {
+        render(<table><tbody><GrantRow grant={namedGrant} onRequestRevoke={() => {}} /></tbody></table>);
+        expect(screen.getByText('user')).toBeInTheDocument();
+    });
+
+    it('shows a group grant with the group type', () => {
+        render(<table><tbody><GrantRow grant={groupGrant} onRequestRevoke={() => {}} /></tbody></table>);
+        expect(screen.getByText('architects')).toBeInTheDocument();
+        expect(screen.getByText('group').className).toContain('badge-neutral');
+    });
+
+    it('names the group in the revoke aria-label', () => {
+        render(<table><tbody><GrantRow grant={groupGrant} onRequestRevoke={() => {}} /></tbody></table>);
+        expect(screen.getByRole('button', { name: 'Revoke access for architects (group)' })).toBeInTheDocument();
+    });
+
+    it('shows a group named * as the group, not as everyone', () => {
+        const oddGroup: UserAccess = { ...groupGrant, username: '*' };
+        render(<table><tbody><GrantRow grant={oddGroup} onRequestRevoke={() => {}} /></tbody></table>);
+        expect(screen.queryByText('* (everyone)')).not.toBeInTheDocument();
     });
 });

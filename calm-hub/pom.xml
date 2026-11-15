@@ -88,6 +88,15 @@
             <artifactId>quarkus-caffeine</artifactId>
         </dependency>
 
+        <!-- LDAP client for the LDAP group membership provider. Not JDK JNDI: Quarkus disables
+             JNDI (quarkus.naming.enable-jndi), and enabling it would remove that guard for the
+             whole application. No transitive dependencies; the tests also use its in-memory server. -->
+        <dependency>
+            <groupId>com.unboundid</groupId>
+            <artifactId>unboundid-ldapsdk</artifactId>
+            <version>7.0.5</version>
+        </dependency>
+
         <!-- JGit via its Quarkus extension, which configures JGit for native builds -->
         <dependency>
             <groupId>io.quarkiverse.jgit</groupId>
@@ -122,6 +131,19 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-hibernate-validator</artifactId>
+        </dependency>
+        <!-- Validates extension manifests (ADR 0012), extension MCP tool input, and decorators against the bundled
+             decorator Standards. Version from the Vert.x BOM in the Quarkus BOM. -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-json-schema</artifactId>
+        </dependency>
+
+        <!-- Matches MCP tool input against schema patterns in linear time. -->
+        <dependency>
+            <groupId>com.google.re2j</groupId>
+            <artifactId>re2j</artifactId>
+            <version>1.8</version>
         </dependency>
 
         <!-- MCP Server -->
@@ -198,6 +220,15 @@
             <resource>
                 <directory>${project.basedir}/target/calm-schemas/release</directory>
                 <targetPath>META-INF/calm-schemas</targetPath>
+            </resource>
+            <!-- The calm-schema decorator Standards. DecoratorSchemaValidator reads them through
+                 META-INF/decorator-standards/files.txt, which is hand-authored. -->
+            <resource>
+                <directory>${project.basedir}/mongo/standards/finos.calm</directory>
+                <targetPath>META-INF/decorator-standards</targetPath>
+                <includes>
+                    <include>**/*.json</include>
+                </includes>
             </resource>
         </resources>
         <plugins>
@@ -464,6 +495,10 @@
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
+            <properties>
+                <!-- The MongoDB image of the integration suite (EndToEndResource), for example -Dcalm.it.mongo-image=mongo:8. -->
+                <calm.it.mongo-image>mongo:5.0</calm.it.mongo-image>
+            </properties>
             <dependencies>
                 <dependency>
                     <groupId>org.testcontainers</groupId>
@@ -531,6 +566,9 @@
                                  CI job's own timeout kills it with no stack trace. This forces
                                  failsafe to thread-dump and kill the fork after 5 minutes instead. -->
                             <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>
+                            <systemPropertyVariables>
+                                <calm.it.mongo-image>${calm.it.mongo-image}</calm.it.mongo-image>
+                            </systemPropertyVariables>
                         </configuration>
                     </plugin>
                 </plugins>

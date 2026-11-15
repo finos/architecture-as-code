@@ -1,6 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { ExtensionsContext } from '../../../extensions/ExtensionsContext.js';
+import { ExtensionService } from '../../../service/extension-service.js';
+import { fakeExtension } from '../../../test-support/fake-extensions.js';
 import { IntroScreen } from './IntroScreen.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { THEME_STORAGE_KEY } from '../../../theme/useTheme.js';
@@ -103,5 +106,60 @@ describe('IntroScreen environment pill', () => {
     it('shows the pill when an environment is configured', () => {
         renderIntro(createMemoryStorage(), { environment: { name: 'PROD', colour: 'error' } });
         expect(screen.getByTestId('environment-pill')).toHaveTextContent('PROD');
+    });
+});
+
+describe('IntroScreen personal namespace', () => {
+    it('shows no card when no personal namespace control is given', () => {
+        renderIntro(lightStorage());
+        expect(screen.queryByTestId('my-namespace-card')).not.toBeInTheDocument();
+    });
+
+    it('shows the card between the search bar and the browse grid', () => {
+        render(
+            <UiConfigContext.Provider value={{}}>
+                <MemoryRouter>
+                    <IntroScreen
+                        namespaceCounts={namespaceCounts}
+                        domainCounts={domainCounts}
+                        personalNamespace={{
+                            state: { status: 'available', name: 'users.alice' },
+                            creating: false,
+                            createFailed: false,
+                            create: () => Promise.resolve(true),
+                        }}
+                        storage={lightStorage()}
+                    />
+                </MemoryRouter>
+            </UiConfigContext.Provider>
+        );
+        const card = screen.getByTestId('my-namespace-card');
+        const browse = screen.getByText('finos');
+        expect(card.compareDocumentPosition(browse) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+});
+
+describe('IntroScreen extensions', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('shows extension cards in the centred column, and no landing card body or action below the page', async () => {
+        vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({
+            hubApi: 0,
+            blocks: [{ type: 'stats', items: [{ label: 'In flight', value: 1 }] }, { type: 'cards', items: [{ title: 'Card body' }] }],
+        });
+        render(
+            <UiConfigContext.Provider value={{}}>
+                <MemoryRouter>
+                    <ExtensionsContext.Provider value={[fakeExtension(1)]}>
+                        <IntroScreen namespaceCounts={namespaceCounts} domainCounts={domainCounts} storage={lightStorage()} />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            </UiConfigContext.Provider>
+        );
+        expect(await screen.findByText('In flight')).toBeInTheDocument();
+        const column = screen.getByTestId('intro-screen').lastElementChild!;
+        expect(column).toContainElement(screen.getByTestId('browse-extension'));
+        expect(screen.queryByText('Card body')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Run 1' })).not.toBeInTheDocument();
     });
 });

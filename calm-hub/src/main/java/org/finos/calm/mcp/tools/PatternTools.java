@@ -27,6 +27,7 @@ import java.util.Optional;
  * patterns within CalmHub namespaces via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class PatternTools {
 
     private static final Logger logger = LoggerFactory.getLogger(PatternTools.class);

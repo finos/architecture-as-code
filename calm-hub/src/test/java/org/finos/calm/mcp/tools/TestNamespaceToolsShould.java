@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
+import org.finos.calm.services.PersonalNamespaceService;
 import org.finos.calm.store.NamespaceStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +32,9 @@ class TestNamespaceToolsShould {
 
     @Mock
     NamespaceStore namespaceStore;
+
+    @Mock
+    PersonalNamespaceService personalNamespaceService;
 
     @InjectMocks
     NamespaceTools namespaceTools;
@@ -93,6 +100,16 @@ class TestNamespaceToolsShould {
         String result = text(namespaceTools.createNamespace("test", "A test namespace"));
 
         assertThat(result, containsString("created successfully"));
+    }
+
+    @Test
+    void reject_a_personal_namespace() throws NamespaceAlreadyExistsException {
+        when(personalNamespaceService.isReserved("users.alice")).thenReturn(true);
+
+        String result = text(namespaceTools.createNamespace("users.alice", "desc"));
+
+        assertThat(result, containsString("/api/calm/me/namespace"));
+        verify(namespaceStore, never()).createNamespace(any(), any());
     }
 
     @Test

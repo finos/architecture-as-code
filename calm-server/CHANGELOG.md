@@ -5,11 +5,31 @@ All notable changes to the CALM Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.9.0...calm-server-v0.10.0) (2026-11-14)
+
+### 🚀 Features
+
+* validate interface config against its definition-url ([#3618](https://github.com/finos/architecture-as-code/issues/3618)) ([cb419bd](https://github.com/finos/architecture-as-code/commit/cb419bd6a551aa3652cc14eddbb3cfe80b6c633e)), closes [#1994](https://github.com/finos/architecture-as-code/issues/1994)
+
+### 🐛 Bug Fixes
+
+* do not send calm: requests outside the CALM Hub base path ([#3638](https://github.com/finos/architecture-as-code/issues/3638)) ([33adfc9](https://github.com/finos/architecture-as-code/commit/33adfc93e84bc71e6a5c44de82a3ca4c740da151)), closes [#3627](https://github.com/finos/architecture-as-code/issues/3627)
+* refuse *.localhost and IPv4-mapped private hosts for direct URLs ([db7a4ab](https://github.com/finos/architecture-as-code/commit/db7a4abb660db58ed9bf571089ecea7edd6a9763))
+
+### ♻️ Code Refactoring
+
+* test the request path inline so CodeQL sees the guard ([#3724](https://github.com/finos/architecture-as-code/issues/3724)) ([4b2146e](https://github.com/finos/architecture-as-code/commit/4b2146ebbd4c8aa1c4a2ac8e9848a9ea772a6d6c))
+
 ## [0.9.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.8.0...calm-server-v0.9.0) (2026-11-10)
 
 ### 🚀 Features
 
 * resolve CURIEs in control requirement-url during validate ([#3592](https://github.com/finos/architecture-as-code/issues/3592)) ([9716348](https://github.com/finos/architecture-as-code/commit/9716348d6fb8c4b868ad30ed689aceab7e179c0f))
+
+### 🐛 Bug Fixes
+
+* never read a local file that a request references ([0626cea](https://github.com/finos/architecture-as-code/commit/0626cea3235928ff70da740ed87e350fe15a11d1))
+* resolve Spectral $ref through the document loader ([0626cea](https://github.com/finos/architecture-as-code/commit/0626cea3235928ff70da740ed87e350fe15a11d1))
 
 ## [0.8.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.7.0...calm-server-v0.8.0) (2026-11-10)
 

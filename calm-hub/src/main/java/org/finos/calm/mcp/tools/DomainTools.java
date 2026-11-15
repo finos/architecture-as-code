@@ -23,6 +23,7 @@ import java.util.Optional;
  * requirements (e.g. 'security') and are independent of namespaces.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class DomainTools {
 
     private static final Logger logger = LoggerFactory.getLogger(DomainTools.class);

@@ -1,9 +1,10 @@
 import { useCallback, useLayoutEffect, useState } from 'react';
-import { EdgeLabelRenderer, useStore } from 'reactflow';
+import { EdgeLabelRenderer, useStore } from '@xyflow/react';
 import { THEME } from './theme.js';
 import { scalePx } from '../../../theme/useDiagramTextScale.js';
 import type { DecisionSummary } from './utils/decisionSummary.js';
 import { sameNodeGeometry } from './utils/floatingEdges.js';
+import { nodeHeight, nodePositionAbsolute, nodeWidth } from './utils/nodeGeometry.js';
 import { useElementSize } from './hooks/useElementSize.js';
 import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
 
@@ -28,9 +29,9 @@ interface DecisionCalloutProps {
  * through to whatever is beneath.
  */
 export function DecisionCallout({ nodeId, summary, presenting, scale, width }: DecisionCalloutProps) {
-    const node = useStore(useCallback((store) => store.nodeInternals.get(nodeId), [nodeId]), sameNodeGeometry);
+    const node = useStore(useCallback((store) => store.nodeLookup.get(nodeId), [nodeId]), sameNodeGeometry);
     // Searching dims a node through its style. The callout is not inside the node, so it takes the same opacity.
-    const opacity = useStore(useCallback((store) => store.nodeInternals.get(nodeId)?.style?.opacity, [nodeId]));
+    const opacity = useStore(useCallback((store) => store.nodeLookup.get(nodeId)?.style?.opacity, [nodeId]));
     const { reportCalloutSize } = useDecisionOverlay();
     const [element, setElement] = useState<HTMLDivElement | null>(null);
     const size = useElementSize(element);
@@ -42,8 +43,10 @@ export function DecisionCallout({ nodeId, summary, presenting, scale, width }: D
         return () => reportCalloutSize(nodeId, undefined);
     }, [nodeId, size, gap, reportCalloutSize]);
 
-    const position = node?.positionAbsolute;
-    if (!position || !node.width || !node.height) {
+    const position = node ? nodePositionAbsolute(node) : undefined;
+    const widthOfNode = node ? nodeWidth(node) : undefined;
+    const heightOfNode = node ? nodeHeight(node) : undefined;
+    if (!position || !widthOfNode || !heightOfNode) {
         return null;
     }
 
@@ -52,7 +55,7 @@ export function DecisionCallout({ nodeId, summary, presenting, scale, width }: D
     const bodySize = scalePx(presenting ? 16 : 12, scale);
     const accent = blocked ? THEME.colors.error : THEME.colors.success;
     const accentText = blocked ? THEME.colors.errorText : THEME.colors.successText;
-    const calloutWidth = width ?? node.width;
+    const calloutWidth = width ?? widthOfNode;
 
     return (
         <EdgeLabelRenderer>
@@ -62,7 +65,7 @@ export function DecisionCallout({ nodeId, summary, presenting, scale, width }: D
                 data-outcome={summary.outcome}
                 style={{
                     position: 'absolute',
-                    transform: `translate(${position.x}px, ${position.y + node.height + gap}px)`,
+                    transform: `translate(${position.x}px, ${position.y + heightOfNode + gap}px)`,
                     width: summary.outcome === 'met' ? 'max-content' : calloutWidth,
                     maxWidth: calloutWidth,
                     boxSizing: 'border-box',

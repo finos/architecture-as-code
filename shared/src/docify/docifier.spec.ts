@@ -58,9 +58,21 @@ describe('Docifier', () => {
             true,
             false,
             false,
+            undefined,
             undefined
         );
         expect(processTemplateMock).toHaveBeenCalled();
+    });
+
+    it('passes the document loader to the template processor', async () => {
+        MockedTemplateProcessor.mockImplementationOnce(function () { return {
+            processTemplate: vi.fn().mockResolvedValue(undefined),
+        }; });
+        const documentLoader = { initialise: vi.fn(), loadMissingDocument: vi.fn(), resolvePath: vi.fn() };
+
+        new Docifier('WEBSITE', inputPath, outputPath, undefined, 'bundle', undefined, false, false, undefined, undefined, undefined, documentLoader);
+
+        expect(MockedTemplateProcessor.mock.calls[0][9]).toBe(documentLoader);
     });
 
     it('should pass clear-output-directory through to template processor', async () => {
@@ -81,7 +93,8 @@ describe('Docifier', () => {
             true,
             true,
             false,
-            urlMappingPath
+            urlMappingPath,
+            undefined
         );
         expect(processTemplateMock).toHaveBeenCalled();
     });
@@ -119,6 +132,7 @@ describe('Docifier', () => {
             true,
             false,
             false,
+            undefined,
             undefined
         );
 
@@ -159,6 +173,7 @@ describe('Docifier', () => {
                 true,
                 false,
                 false,
+                undefined,
                 undefined
             );
         });
@@ -182,6 +197,7 @@ describe('Docifier', () => {
                 true,
                 false,
                 false,
+                undefined,
                 undefined
             );
         });
@@ -219,7 +235,8 @@ describe('Docifier', () => {
                 true,
                 true,
                 false,
-                urlMappingPath
+                urlMappingPath,
+                undefined
             );
         });
     });

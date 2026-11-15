@@ -58,6 +58,10 @@ const sidebars = {
             'working-with-calm/calm-hub',
             'calm-hub/calm-hub-developer-guide',
             'calm-hub/calm-hub-mcp-api',
+            'calm-hub/calm-hub-extension-points',
+            'calm-hub/calm-hub-extension-blocks',
+            'calm-hub/calm-hub-decorator-views',
+            'calm-hub/calm-hub-extension-access',
             'working-with-calm/calm-hub-entitlements',
           ],
         },
@@ -136,6 +140,7 @@ const sidebars = {
           label: '🔴 Advanced',
           items: [
             'tutorials/advanced/qcon-demos',
+            'tutorials/advanced/hub-extension',
           ],
         },
         {

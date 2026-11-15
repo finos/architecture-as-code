@@ -697,11 +697,14 @@ Usage: calm hub [command]
 Interact with CALM Hub
 
 Commands:
-  push [command]     Push a CALM document to CALM Hub
-  pull [command]     Pull a CALM document from CALM Hub
-  list [command]     List CALM Hub resources
-  create [command]   Create CALM Hub resources
-  help [command]     display help for command
+  push [command]                Push a CALM document to CALM Hub
+  pull [command]                Pull a CALM document from CALM Hub
+  list [command]                List CALM Hub resources
+  whoami [options]              Show your personal namespace in CALM Hub, and whether it exists
+  create [command]              Create CALM Hub resources
+  extensions [command]          List and describe the extensions that CALM Hub enabled
+  ext [options] <id> <command>  Run an extension command through CALM Hub and print the reply
+  help [command]                display help for command
 ```
 
 Every subcommand accepts `-c, --calm-hub-url <url>` (falls back to `calmHubUrl` in `~/.calm.json` if omitted).
@@ -793,12 +796,25 @@ calm hub list namespaces
 calm hub list control-configurations --domain security --control-name encryption-at-rest
 ```
 
+### Conventions
+
+A convention is versioned JSON that tools read, such as a `c4-mapping`. A convention has no `$id`, so the commands take the convention type and `--namespace`. `push convention` finds the convention by its name, which defaults to the convention's `unique-id`. A new name creates the convention at `1.0.0`. A known name gets the next version (see `--change-type`), or is skipped when the content is unchanged. `--set-default` also makes the pushed version the namespace default, which child namespaces inherit. It needs namespace admin.
+
+`pull convention` without `--id` pulls the default that applies to the namespace, which can come from a parent namespace. It writes the convention JSON to stdout, and on stderr it says where the default comes from.
+
+```shell
+calm hub push convention c4-mapping ./acme-c4-mapping.json --namespace org --set-default
+calm hub list conventions c4-mapping --namespace org
+calm hub pull convention c4-mapping --namespace org.payments            # the namespace default
+calm hub pull convention c4-mapping --namespace org --id 1 --ver 1.0.0
+```
+
 ### `calm hub create`
 
-Creates a new namespace or domain.
+Creates a new namespace or domain, or your personal namespace.
 
 ```
-calm hub create <namespace|domain> [options]
+calm hub create <namespace|domain|my-namespace> [options]
 ```
 
 | Option | Applies to | Description |
@@ -811,6 +827,43 @@ calm hub create <namespace|domain> [options]
 ```shell
 calm hub create namespace --name com.example --description "Example org namespace"
 calm hub create domain --name security
+```
+
+`calm hub create my-namespace` creates your personal namespace when the CALM Hub operator has turned on personal namespaces. It takes only `-c` and `-f`, and does nothing if you already own the namespace.
+
+### `calm hub whoami`
+
+Shows your personal namespace and whether it exists, is yours, or is held by another user. Takes `-c` and `-f`.
+
+```shell
+calm hub whoami --format pretty
+```
+
+### `calm hub extensions` and `calm hub ext`
+
+Run the commands of the extensions that a CalmHub operator enabled. The commands are fixed, so `--help` works without a CalmHub. An extension command runs only under `calm hub ext <id>`, so it cannot replace a built-in command.
+
+```
+calm hub extensions list [options]
+calm hub extensions describe <id> [command] [options]
+calm hub ext <id> <command> [--input <file|->] [--arg key=value]... [--timeout <seconds>] [options]
+```
+
+| Option | Applies to | Description |
+|--------|------------|-------------|
+| `--input <file>` | `ext` | JSON file with the command input object, or `-` for stdin. |
+| `--arg <key=value>` | `ext` | Sets a top-level input property. Repeatable, and overrides `--input`. The value gets the type that the input schema declares for the property. A number converts only when it is written as it is sent, so `0x10`, `1e3`, `1.0`, `NaN`, `Infinity` and an integer above 2^53 stay strings. It cannot set `__proto__`. If you repeat a key, only the last value stays: for an array, use `--arg k='["a","b"]'`. |
+| `--timeout <seconds>` | `ext` | Stops waiting for the reply, after a decimal number of seconds up to 2147483. With none, CalmHub ends the call at the `request-timeout-seconds` of the extension. A write can still complete after the CLI stops waiting. |
+| `-c, --calm-hub-url <url>` | all | CalmHub instance. |
+| `-f, --format <format>` | all | Output format: `json` (default) or `pretty`. For `ext`, it changes only the error format. |
+
+`ext` reads the command's route from CalmHub. Input properties that match a `{param}` in the route path fill the path. A value that fills the path must not be empty or `.`, or contain `..`, `/`, `\`, `%`, `@`, a look-alike of `/`, `\`, `.`, `%`, `@` or `;`, a code point whose NFKC form contains `/` or `\` (such as U+2100, `a/c`), a control character or a lone surrogate. A value that makes the path match another route of the extension is refused too. A query name or value must not contain a control character or a lone surrogate. `ext` refuses such a value before the call (see [the CLI hub docs](../docs/docs/calm-cli/hub.md#run-a-command)). The other properties go to the query for `GET` and `DELETE`, and to the JSON body for other methods. A number fills the path or query in plain notation, as for an MCP tool. CalmHub checks the route, the path and the scope, but not the input: the extension checks it. An error is printed with its body as CalmHub sent it. CalmHub sends a generic `502` in place of the reply when the extension refuses the connection, when the reply is too large, when the extension replies with a 3xx, 401, 407 or 5xx status, or when the reply has a content type that CalmHub does not pass on. It sends `504` when the connection or the reply takes too long.
+
+```shell
+calm hub extensions list -f pretty
+calm hub extensions describe example-services list-services
+calm hub ext example-services list-services --arg namespace=finos
+echo '{"namespace":"finos","name":"payments"}' | calm hub ext example-services add-service --input -
 ```
 
 ## CALM Workspace

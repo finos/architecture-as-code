@@ -1,5 +1,8 @@
+import { useContext } from 'react';
 import { CalmNodeSchema } from '@finos/calm-models/types';
 import { ZoomIn } from 'lucide-react';
+import { ExtensionResourceContext } from '../../../extensions/ExtensionResourceContext.js';
+import { ExtensionDetailPanels } from '../../../extensions/sections/ExtensionDetailPanels.js';
 import { extractNodeType, isNavigableArch, resolveDetailedArchitecture } from '../reactflow/utils/calmHelpers.js';
 import { getNodeTypeColor } from '../../../theme/helpers.js';
 import { useDiagramActions } from '../../context/DiagramActionsContext.js';
@@ -9,13 +12,17 @@ import {
     PropertiesSection, ControlsSection, RisksSection, MitigationsSection, InterfacesSection,
     getNodeIcon, extractAigf, getExtraProperties,
 } from './detail-components.js';
+import { DecoratorsSection } from './DecoratorsSection.js';
 
 const KNOWN_FIELDS = new Set([
     'unique-id', 'name', 'node-type', 'description', 'details',
     'interfaces', 'controls', 'metadata',
 ]);
 
-export function NodeDetails({ data }: { data: CalmNodeSchema }) {
+/** `storage` is injected for tests; see the storage note in calm-hub-ui/AGENTS.md. */
+export function NodeDetails({ data, storage }: { data: CalmNodeSchema; storage?: Storage }) {
+    const resourceContext = useContext(ExtensionResourceContext);
+    const extensionContext = { ...resourceContext, selectedElement: data['unique-id'] };
     const { onNavigateToDetailedArch } = useDiagramActions();
     const nodeType = extractNodeType(data) || 'Unknown';
     const Icon = getNodeIcon(nodeType);
@@ -80,6 +87,8 @@ export function NodeDetails({ data }: { data: CalmNodeSchema }) {
             <ControlsSection controls={controls} />
             <RisksSection risks={risks} riskLevel={riskLevel} />
             <MitigationsSection mitigations={mitigations} />
+            {resourceContext && <ExtensionDetailPanels context={extensionContext} storage={storage} />}
+            <DecoratorsSection elementId={data['unique-id']} />
         </div>
     );
 }

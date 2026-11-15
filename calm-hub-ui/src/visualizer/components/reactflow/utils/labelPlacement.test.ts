@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calloutRects, calloutShift, coveredNodeTop } from './labelPlacement.js';
 
-const node = (id: string, x: number, y: number, type = 'custom') => ({ id, type, width: 320, height: 100, positionAbsolute: { x, y } });
+const node = (id: string, x: number, y: number, type = 'custom') => ({ id, type, measured: { width: 320, height: 100 }, internals: { positionAbsolute: { x, y } } });
 
 describe('coveredNodeTop', () => {
     const nodes = [node('group', 0, 0, 'group'), node('a', 0, 400), node('middle', 450, 400), node('b', 900, 400)];
@@ -17,7 +17,7 @@ describe('coveredNodeTop', () => {
 
     it('is undefined in the gap between nodes, and for a node not yet measured', () => {
         expect(coveredNodeTop(nodes, 400, 450, ['a', 'b'])).toBeUndefined();
-        expect(coveredNodeTop([{ id: 'x', type: 'custom', positionAbsolute: { x: 0, y: 0 } }], 10, 10, [])).toBeUndefined();
+        expect(coveredNodeTop([{ id: 'x', type: 'custom', internals: { positionAbsolute: { x: 0, y: 0 } } }], 10, 10, [])).toBeUndefined();
     });
 });
 
@@ -32,7 +32,7 @@ describe('calloutRects', () => {
     });
 
     it('skips a node not yet measured', () => {
-        expect(calloutRects([{ id: 'a', positionAbsolute: { x: 0, y: 0 } }], new Map([['a', { width: 10, height: 10 }]]))).toEqual([]);
+        expect(calloutRects([{ id: 'a', internals: { positionAbsolute: { x: 0, y: 0 } } }], new Map([['a', { width: 10, height: 10 }]]))).toEqual([]);
     });
 });
 

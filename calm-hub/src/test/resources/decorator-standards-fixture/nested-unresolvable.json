@@ -1,0 +1,9 @@
+{
+    "$id": "https://calm.finos.org/standards/test/nested-unresolvable.decorator.standard.json",
+    "type": "object",
+    "properties": {
+        "data": {
+            "$ref": "https://calm.finos.org/release/9.8/meta/decorators.json#/defs/missing"
+        }
+    }
+}

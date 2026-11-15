@@ -14,6 +14,7 @@ import java.util.List;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @TestSecurity(authorizationEnabled = false)
@@ -373,6 +374,117 @@ public class TestUserAccessResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString("Only 'admin' permission is valid for the GLOBAL namespace"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
+
+    @Test
+    void pass_a_group_grant_to_the_store() throws Exception {
+        UserAccess created = new UserAccess.UserAccessBuilder()
+                .setNamespace("finos")
+                .setUsername("architects")
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setPermission(UserAccess.Permission.write)
+                .setUserAccessId(101)
+                .build();
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class))).thenReturn(created);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"architects\",\"subjectType\":\"group\",\"permission\":\"write\"}")
+                .when()
+                .post("/api/calm/namespaces/finos/user-access")
+                .then()
+                .statusCode(201);
+
+        verify(mockUserAccessStore).createUserAccessForNamespace(argThat(ua ->
+                ua.getSubjectType() == UserAccess.SubjectType.group
+                        && "architects".equals(ua.getUsername())
+                        && "finos".equals(ua.getNamespace())));
+    }
+
+    @Test
+    void pass_a_user_grant_to_the_store_when_subject_type_is_omitted() throws Exception {
+        UserAccess created = new UserAccess.UserAccessBuilder()
+                .setNamespace("finos")
+                .setUsername("alice")
+                .setPermission(UserAccess.Permission.read)
+                .setUserAccessId(101)
+                .build();
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class))).thenReturn(created);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"alice\",\"permission\":\"read\"}")
+                .when()
+                .post("/api/calm/namespaces/finos/user-access")
+                .then()
+                .statusCode(201);
+
+        verify(mockUserAccessStore).createUserAccessForNamespace(argThat(ua ->
+                ua.getSubjectType() == UserAccess.SubjectType.user));
+    }
+
+    @Test
+    void return_201_when_group_global_admin_grant_is_created() throws Exception {
+        UserAccess created = new UserAccess.UserAccessBuilder()
+                .setNamespace("GLOBAL")
+                .setUsername("hub-admins")
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setPermission(UserAccess.Permission.admin)
+                .setUserAccessId(101)
+                .build();
+        when(mockUserAccessStore.createUserAccessForNamespace(any(UserAccess.class))).thenReturn(created);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"hub-admins\",\"subjectType\":\"group\",\"permission\":\"admin\"}")
+                .when()
+                .post("/api/calm/namespaces/GLOBAL/user-access")
+                .then()
+                .statusCode(201);
+
+        verify(mockUserAccessStore).createUserAccessForNamespace(argThat(ua ->
+                ua.getSubjectType() == UserAccess.SubjectType.group && "GLOBAL".equals(ua.getNamespace())));
+    }
+
+    @Test
+    void return_400_when_group_global_grant_is_not_admin() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"hub-admins\",\"subjectType\":\"group\",\"permission\":\"write\"}")
+                .when()
+                .post("/api/calm/namespaces/GLOBAL/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("Only 'admin' permission is valid for the GLOBAL namespace"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
+
+    @Test
+    void return_400_when_wildcard_group_grant_is_requested() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"subjectType\":\"group\",\"permission\":\"read\"}")
+                .when()
+                .post("/api/calm/namespaces/finos/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("The '*' wildcard is not a valid group name"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+    }
+
+    @Test
+    void return_400_when_subject_type_is_unknown() throws Exception {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"architects\",\"subjectType\":\"team\",\"permission\":\"read\"}")
+                .when()
+                .post("/api/calm/namespaces/finos/user-access")
+                .then()
+                .statusCode(400);
 
         verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
     }

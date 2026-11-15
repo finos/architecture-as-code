@@ -21,7 +21,7 @@ The project ships several independently released components. For every component
 | CALM specification ([finos/calm-schema](https://github.com/finos/calm-schema)) | https://calm.finos.org/release and npm `@finos/calm-schema`, tagged `v<major>.<minor>` | Latest release. Earlier published releases stay available at their URLs so existing documents keep validating, but they receive no further changes. |
 | `@finos/calm-cli`, `@finos/calm-server` | npm | Latest published version of each package. `@finos/calm-shared`, `@finos/calm-models` and `@finos/calm-widgets` are bundled into the CLI and are not published separately. |
 | `calm-models` (Java) | Maven Central | Latest published version. |
-| CALM Hub | Docker Hub `finos/calm-hub` (and the read-only and native variants) | Latest tag. |
+| CALM Hub | Docker Hub `finos/calm-hub` (and the read-only and native variants), tagged `<version>` and `latest` | Latest release. The `main` and `sha-` tags are builds of `main`, not releases. |
 | CALM VS Code extension | Visual Studio Marketplace | Latest published version. |
 | CALM Lab | Web app at https://lab.calm.finos.org | The deployed version. There are no versioned releases: a change to the lab, or to a package it is built from, is deployed when it merges to `main`. |
 | CALMGuard, `experimental/` | Various | Experimental. No support commitment and no security-update commitment until they are promoted out of experimental status. |

@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
  * on control requirements within CalmHub domains via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class ControlTools {
 
     private static final Logger logger = LoggerFactory.getLogger(ControlTools.class);

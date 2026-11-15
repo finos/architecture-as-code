@@ -6,12 +6,12 @@ sidebar_label: Direct URL loading
 
 # Interacting with non-CALM Hub repository
 
-For an organization that does not require the full functionality of CALM Hub and only needs the ability to store CALM artifacts in a central repository, the CLI's `DirectUrlDocumentLoader` lets `calm validate` and `calm generate` fetch architectures, patterns, and standards directly from any HTTP(S) endpoint — for example a static file server or an internal artifact repository — without going through CALM Hub.
+For an organization that does not require the full functionality of CALM Hub and only needs the ability to store CALM artifacts in a central repository, the CLI's `DirectUrlDocumentLoader` lets `calm validate`, `calm generate`, `calm template` and `calm docify` fetch architectures, patterns, and standards directly from any HTTP(S) endpoint — for example a static file server or an internal artifact repository — without going through CALM Hub.
 
 Depending on the authentication/authorization requirements for the non-CALM Hub repositories the following configurations in `~/.calm.json` are supported. See [Configuring the CLI](configuration.md) for the environment variables and `calm init-config`:
 
 - Public, anonymous access allowed:  
-  - **`allowedRemoteHosts`** is an allow-list of hostnames the CLI is permitted to fetch documents.
+  - **`allowedRemoteHosts`** is an allow-list of hostnames the CLI is permitted to fetch documents. `calm template` and `calm docify` load the references in an architecture (for example `config-url`) in the same way as `calm validate`. To use a document from another host, map its URL to a local file with `--url-to-local-file-mapping`.
 - Requires authenticated access: 
   - **`directUrlAuthModule`**: Path to the local JavaScript authentication plugin used for protected direct URLs.
   - **`directUrlAuthConfigPath`**: Optional path passed to the plugin constructor for its own configuration.

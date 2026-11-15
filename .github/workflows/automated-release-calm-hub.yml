@@ -1,0 +1,391 @@
+name: CALM Hub - Automated Release
+
+# Each closed PR starts a run, so key on its branch: a queued release run must not be replaced.
+concurrency:
+  group: calm-hub-release-${{ github.event.pull_request.head.ref || 'analyze' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: '30 7 * * 2'  # Run at 7:30 AM GMT on Tuesday
+  workflow_dispatch:
+    inputs:
+      force-release:
+        description: 'Force a release even if no relevant changes are detected'
+        required: false
+        type: boolean
+        default: false
+      release-type:
+        description: 'Release type (only used with force-release)'
+        required: false
+        type: choice
+        default: 'patch'
+        options:
+          - patch
+          - minor
+          - major
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      # semantic-release checks that it can push, also with --dry-run.
+      contents: write
+      pull-requests: read
+      actions: read
+    outputs:
+      should-release: ${{ steps.check.outputs.should-release }}
+      release-type: ${{ steps.check.outputs.release-type }}
+      next-version: ${{ steps.check.outputs.next-version }}
+      current-version: ${{ steps.check.outputs.current-version }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: '.nvmrc'
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for an open release PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Match the release branch, not the title: --search is a full-text search.
+          PR_LIST=$(gh pr list \
+            --state open \
+            --label automated-release \
+            --json title,number,headRefName \
+            --jq '[.[] | select(.headRefName | startswith("release/calm-hub-v"))]')
+
+          if [ "$PR_LIST" != "[]" ]; then
+            echo "$PR_LIST" | jq -r '.[] | "::error::Open CALM Hub release PR #\(.number) (\(.headRefName)). Merge or close it first."'
+            exit 1
+          fi
+
+      - name: Check that CALM Hub builds on main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for WORKFLOW in build-calm-hub.yml build-calm-hub-ui.yml; do
+            CONCLUSION=$(gh run list --workflow="$WORKFLOW" --branch=main --event=push --limit=1 --json conclusion --jq '.[0].conclusion // empty')
+            if [ "$CONCLUSION" != "success" ]; then
+              echo "::error::The last $WORKFLOW run on main did not pass (${CONCLUSION:-no run}). Skipping release."
+              exit 1
+            fi
+          done
+
+      - name: Check release type
+        id: check
+        env:
+          FORCE_RELEASE: ${{ github.event.inputs.force-release }}
+          FORCE_RELEASE_TYPE: ${{ github.event.inputs.release-type }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CURRENT_TAG=$(git describe --tags --abbrev=0 --match 'calm-hub-v*' 2>/dev/null || true)
+          if [ -z "$CURRENT_TAG" ]; then
+            echo "::error::No calm-hub-v* tag. Tag the last released commit first (see calm-hub/AGENTS.md)."
+            exit 1
+          fi
+          CURRENT_VERSION="${CURRENT_TAG#calm-hub-v}"
+          IFS=. read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+          if [ "$FORCE_RELEASE" = "true" ]; then
+            RELEASE_TYPE="$FORCE_RELEASE_TYPE"
+            case "$RELEASE_TYPE" in
+              major) NEXT_VERSION="$((MAJOR + 1)).0.0" ;;
+              minor) NEXT_VERSION="$MAJOR.$((MINOR + 1)).0" ;;
+              patch) NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))" ;;
+            esac
+          else
+            cd calm-hub
+            # A failed analysis must not look like "no release needed".
+            if ! npx semantic-release --dry-run > analysis.txt 2>&1; then
+              cat analysis.txt
+              echo "::error::semantic-release failed. See the output above."
+              exit 1
+            fi
+            cat analysis.txt
+
+            NEXT_VERSION=$(sed -n 's/.*The next release version is \([^[:space:]]*\).*/\1/p' analysis.txt)
+            if [ -z "$NEXT_VERSION" ]; then
+              echo "should-release=false" >> "$GITHUB_OUTPUT"
+              echo "ℹ️ No release needed" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            IFS=. read -r NEXT_MAJOR NEXT_MINOR _ <<< "$NEXT_VERSION"
+            if [ "$NEXT_MAJOR" -gt "$MAJOR" ]; then
+              RELEASE_TYPE=major
+            elif [ "$NEXT_MINOR" -gt "$MINOR" ]; then
+              RELEASE_TYPE=minor
+            else
+              RELEASE_TYPE=patch
+            fi
+          fi
+
+          {
+            echo "should-release=true"
+            echo "release-type=$RELEASE_TYPE"
+            echo "next-version=$NEXT_VERSION"
+            echo "current-version=$CURRENT_VERSION"
+          } >> "$GITHUB_OUTPUT"
+          echo "🔍 Release: $CURRENT_VERSION → $NEXT_VERSION ($RELEASE_TYPE)" >> "$GITHUB_STEP_SUMMARY"
+
+  # Every release, major included, goes through a release PR: merging it is the approval.
+  create-version-pr:
+    needs: analyze
+    runs-on: ubuntu-latest
+    if: needs.analyze.outputs.should-release == 'true'
+    steps:
+      - name: Generate release app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: '.nvmrc'
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create release branch
+        env:
+          NEXT_VERSION: ${{ needs.analyze.outputs.next-version }}
+          FORCE_RELEASE: ${{ github.event.inputs.force-release }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          ./mvnw -q versions:set -pl calm-hub -DnewVersion="$NEXT_VERSION" -DgenerateBackupPoms=false
+
+          cd calm-hub
+          if [ "$FORCE_RELEASE" != "true" ]; then
+            node -e "const fs=require('fs');const {default: semanticRelease}=require('semantic-release');(async()=>{const result=await semanticRelease({ci:false,dryRun:true});fs.writeFileSync('release-notes.md',result?.nextRelease?.notes?.trim()??'');})();"
+          fi
+          if [ ! -s release-notes.md ]; then
+            printf '## [%s] - %s\n\n### Changed\n\n* Manual release\n' "$NEXT_VERSION" "$(date +%Y-%m-%d)" > release-notes.md
+          fi
+
+          # The first 7 lines of CHANGELOG.md are its header.
+          { head -n 7 CHANGELOG.md; cat release-notes.md; echo; tail -n +8 CHANGELOG.md; } > CHANGELOG.new
+          mv CHANGELOG.new CHANGELOG.md
+          rm release-notes.md
+
+          BRANCH="release/calm-hub-v$NEXT_VERSION"
+          git checkout -b "$BRANCH"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md pom.xml
+          git commit -m "ci(calm-hub): release version $NEXT_VERSION"
+          git push origin "$BRANCH"
+
+      - name: Create Pull Request
+        env:
+          CURRENT_VERSION: ${{ needs.analyze.outputs.current-version }}
+          NEXT_VERSION: ${{ needs.analyze.outputs.next-version }}
+          RELEASE_TYPE: ${{ needs.analyze.outputs.release-type }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          WARNING=""
+          if [ "$RELEASE_TYPE" = "major" ]; then
+            WARNING="🚨 **Major release.** Check the breaking changes and the upgrade notes before you merge."
+          fi
+          gh pr create \
+            --title "ci(calm-hub): release version $NEXT_VERSION" \
+            --head "release/calm-hub-v$NEXT_VERSION" \
+            --base main \
+            --label automated-release \
+            --body "🚀 **Automated Release PR**
+
+          This PR moves CALM Hub from $CURRENT_VERSION to $NEXT_VERSION ($RELEASE_TYPE).
+
+          $WARNING
+
+          - Sets the \`calm-hub/pom.xml\` version to $NEXT_VERSION
+          - Adds the release notes to \`calm-hub/CHANGELOG.md\`
+
+          When this PR merges, the release tags the merge commit \`calm-hub-v$NEXT_VERSION\`, pushes the \`$NEXT_VERSION\` images to Docker Hub, and creates the GitHub release.
+
+          ⚠️ Do not edit this PR manually - it is generated automatically by semantic-release"
+
+          echo "📋 Release PR for $CURRENT_VERSION → $NEXT_VERSION ($RELEASE_TYPE)" >> "$GITHUB_STEP_SUMMARY"
+
+  tag:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'automated-release') &&
+      startsWith(github.event.pull_request.head.ref, 'release/calm-hub-v')
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.version.outputs.sha }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2
+        with:
+          egress-policy: audit
+
+      # The merge commit, not main: main can move on before this job runs.
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Resolve the release
+        id: version
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          VERSION=$(./mvnw -q -pl calm-hub help:evaluate -Dexpression=project.version -DforceStdout)
+          if [ "release/calm-hub-v$VERSION" != "$BRANCH" ]; then
+            echo "::error::calm-hub/pom.xml is at $VERSION, but the release branch is $BRANCH."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/calm-hub-v$VERSION" >/dev/null; then
+            echo "::error::Tag calm-hub-v$VERSION already exists."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Check dependency scan status
+        env:
+          SHA: ${{ steps.version.outputs.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Release only if the push-triggered OSV Scanner run on this commit passed.
+          RUN='{}'
+          for _ in $(seq 1 30); do
+            RUN=$(gh run list \
+              --workflow=osv-scanner.yml \
+              --commit="$SHA" \
+              --event=push \
+              --limit=1 \
+              --json status,conclusion,url \
+              --jq '.[0] // {}')
+            if [ "$(echo "$RUN" | jq -r '.status // empty')" = "completed" ]; then
+              break
+            fi
+            echo "Waiting for the dependency scan of $SHA..."
+            sleep 30
+          done
+          echo "Dependency scan of $SHA: $RUN"
+          if [ "$(echo "$RUN" | jq -r '.conclusion // empty')" != "success" ]; then
+            echo "::error::The dependency scan of $SHA did not pass. Fix or suppress the findings before releasing."
+            exit 1
+          fi
+
+      - name: Create Git tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA: ${{ steps.version.outputs.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "calm-hub-v$VERSION" "$SHA" -m "CALM Hub $VERSION"
+          git push origin "calm-hub-v$VERSION"
+
+  # A tag pushed with GITHUB_TOKEN starts no workflows, so the release calls the publish workflows.
+  docker-jvm:
+    needs: tag
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docker-publish-calm-hub.yml
+    with:
+      version: ${{ needs.tag.outputs.version }}
+      ref: ${{ needs.tag.outputs.sha }}
+    secrets: inherit
+
+  docker-native:
+    needs: tag
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docker-publish-calm-hub-native.yml
+    with:
+      version: ${{ needs.tag.outputs.version }}
+      ref: ${{ needs.tag.outputs.sha }}
+    secrets: inherit
+
+  docker-readonly:
+    needs: tag
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docker-publish-calm-hub-readonly.yml
+    with:
+      version: ${{ needs.tag.outputs.version }}
+      ref: ${{ needs.tag.outputs.sha }}
+    secrets: inherit
+
+  docker-readonly-native:
+    needs: tag
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docker-publish-calm-hub-readonly-native.yml
+    with:
+      version: ${{ needs.tag.outputs.version }}
+      ref: ${{ needs.tag.outputs.sha }}
+    secrets: inherit
+
+  # Last, so that a published release always has its images.
+  github-release:
+    needs: [tag, docker-jvm, docker-native, docker-readonly, docker-readonly-native]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.tag.outputs.sha }}
+
+      - name: Create GitHub Release
+        env:
+          VERSION: ${{ needs.tag.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NOTES=$(awk -v heading="## [$VERSION]" 'index($0, heading) == 1 { found = 1; next } found && /^## \[/ { exit } found' calm-hub/CHANGELOG.md)
+          IMAGES="**Docker images:** \`finos/calm-hub:$VERSION\`, \`:$VERSION-native\`, \`:$VERSION-read-only-static\`, \`:$VERSION-read-only-native\`"
+          gh release create "calm-hub-v$VERSION" \
+            --verify-tag \
+            --title "CALM Hub v$VERSION" \
+            --notes "${NOTES:-Release of CALM Hub $VERSION}
+
+          $IMAGES"
+          echo "✅ Released CALM Hub $VERSION" >> "$GITHUB_STEP_SUMMARY"
