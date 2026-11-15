@@ -1,6 +1,7 @@
 # ADR 0014: Extension commands in the CLI and MCP
 
-**Status**: Proposed. Not built. Runtime tool registration in a native image is
+**Status**: Accepted. Built: `calm hub extensions` and `calm hub ext` (#3710), and MCP tools
+through `ToolManager` (#3712). Runtime tool registration in a native image is
 not yet tested.
 
 ## Context

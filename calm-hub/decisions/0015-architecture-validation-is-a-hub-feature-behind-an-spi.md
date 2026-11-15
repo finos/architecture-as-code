@@ -1,6 +1,6 @@
 # ADR 0015: Architecture validation is a Hub feature behind an SPI, recorded async first
 
-**Status**: Proposed. Not built. It needs the write seam in
+**Status**: Accepted. Not built. It needs the write seam in
 [ADR 0016](0016-store-write-seam-and-outbox-for-post-write-events.md), the
 `system` flag and `validation` type in
 [ADR 0017](0017-reserved-decorator-types-and-decorator-history.md),

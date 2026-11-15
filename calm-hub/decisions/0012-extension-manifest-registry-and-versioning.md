@@ -1,8 +1,7 @@
 # ADR 0012: Extension manifest, registry and versioning
 
-**Status**: Proposed. The proof of concept loads manifests from a directory and
-serves `GET /api/calm/extensions`. Route ids, commands, schema validation and
-per-environment overrides are not built.
+**Status**: Accepted. Built (#3704): manifest validation, `hubApi`, built-in manifests
+and `GET /api/calm/extensions`.
 
 ## Context
 

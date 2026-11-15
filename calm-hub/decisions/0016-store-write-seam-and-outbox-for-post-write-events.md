@@ -1,6 +1,6 @@
 # ADR 0016: Store write seam and outbox for post-write events
 
-**Status**: Proposed. Not built. Hub has no domain events today.
+**Status**: Accepted. Not built. Hub has no domain events today.
 
 ## Context
 

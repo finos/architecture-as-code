@@ -1,6 +1,6 @@
 # ADR 0017: Reserved decorator types and decorator history
 
-**Status**: Proposed, partly built. Built (#3703, #3716): reserved types with
+**Status**: Accepted, partly built. Built (#3703, #3716): reserved types with
 configured writers, the Standard check, append-only reserved types with
 `supersedes` history, and Hub-set timestamps. Not built: the `validation` type,
 the `system` flag, supersede by key, and one document per decorator
