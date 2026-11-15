@@ -11,6 +11,7 @@ on:
         default: true
 
 permissions:
+  actions: write
   pull-requests: write
 
 jobs:
