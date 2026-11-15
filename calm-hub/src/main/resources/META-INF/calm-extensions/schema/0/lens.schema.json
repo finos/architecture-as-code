@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/calm-hub/extensions/hub-api-0/lens.schema.json",
+  "description": "The reply of a diagram-lens route. Hub lays out the graph and draws it with the notation of the lens.",
+  "type": "object",
+  "properties": {
+    "hubApi": { "const": 0 },
+    "kind": { "const": "graph" },
+    "title": { "type": "string", "maxLength": 200 },
+    "layout": { "$ref": "#/$defs/layout" },
+    "graph": {
+      "type": "object",
+      "properties": {
+        "groups": { "type": "array", "items": { "$ref": "#/$defs/group" }, "maxItems": 200 },
+        "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" }, "maxItems": 500 },
+        "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 2000 }
+      },
+      "required": ["nodes"],
+      "additionalProperties": false
+    },
+    "controls": { "type": "array", "items": { "$ref": "#/$defs/control" }, "maxItems": 8 },
+    "panels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "blocks": {
+            "description": "Blocks of blocks.schema.json. The UI checks each with that schema.",
+            "type": "array",
+            "items": { "type": "object" },
+            "maxItems": 20
+          }
+        },
+        "required": ["title", "blocks"],
+        "additionalProperties": false
+      },
+      "maxItems": 4
+    }
+  },
+  "required": ["hubApi", "kind", "graph"],
+  "additionalProperties": false,
+  "$defs": {
+    "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "text": { "type": "string", "maxLength": 500 },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 64 },
+      "maxItems": 16
+    },
+    "calm": {
+      "description": "The CALM unique-ids that the element stands for. A click selects the first on the CALM diagram.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+      "maxItems": 32
+    },
+    "badge": {
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "tone": { "enum": ["neutral", "info", "positive", "warning", "negative"] }
+      },
+      "required": ["text"],
+      "additionalProperties": false
+    },
+    "link": {
+      "description": "Exactly one: view parameters of this lens to set, a Hub page, or an https URL.",
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "maxLength": 128 },
+          "maxProperties": 8
+        },
+        "hub": {
+          "type": "object",
+          "properties": {
+            "namespace": { "type": "string" },
+            "type": { "enum": ["architectures", "patterns", "flows", "standards", "adrs", "interfaces"] },
+            "id": { "type": "string" },
+            "version": { "type": "string" }
+          },
+          "required": ["namespace", "type", "id"],
+          "additionalProperties": false
+        },
+        "href": { "type": "string", "pattern": "^https://", "maxLength": 2048 }
+      },
+      "oneOf": [{ "required": ["params"] }, { "required": ["hub"] }, { "required": ["href"] }],
+      "additionalProperties": false
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "algorithm": { "enum": ["layered", "tree", "radial", "force", "stress", "rectpacking", "box", "fixed"] },
+        "direction": { "enum": ["down", "right", "up", "left"] },
+        "spacing": { "type": "integer", "minimum": 10, "maximum": 400 }
+      },
+      "required": ["algorithm"],
+      "additionalProperties": false
+    },
+    "position": {
+      "description": "With the fixed layout only.",
+      "type": "object",
+      "properties": {
+        "x": { "type": "number", "minimum": -100000, "maximum": 100000 },
+        "y": { "type": "number", "minimum": -100000, "maximum": 100000 }
+      },
+      "required": ["x", "y"],
+      "additionalProperties": false
+    },
+    "node": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "metadata": { "$ref": "#/$defs/text" },
+        "description": { "$ref": "#/$defs/text" },
+        "fields": {
+          "description": "Text for the custom slots of the shape, by slot name.",
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/text" },
+          "maxProperties": 8
+        },
+        "sections": {
+          "description": "Rows for the list slots of the shape, by slot name.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string", "maxLength": 200 },
+            "maxItems": 50
+          },
+          "maxProperties": 4
+        },
+        "tags": { "$ref": "#/$defs/tags" },
+        "badges": { "type": "array", "items": { "$ref": "#/$defs/badge" }, "maxItems": 4 },
+        "group": { "$ref": "#/$defs/id" },
+        "calm": { "$ref": "#/$defs/calm" },
+        "link": { "$ref": "#/$defs/link" },
+        "tooltip": { "$ref": "#/$defs/text" },
+        "position": { "$ref": "#/$defs/position" }
+      },
+      "required": ["id", "label"],
+      "additionalProperties": false
+    },
+    "group": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "type": "string", "maxLength": 200 },
+        "parent": { "$ref": "#/$defs/id" },
+        "tags": { "$ref": "#/$defs/tags" },
+        "calm": { "$ref": "#/$defs/calm" },
+        "layout": { "$ref": "#/$defs/layout" },
+        "position": { "$ref": "#/$defs/position" }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "edge": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "source": { "$ref": "#/$defs/id" },
+        "target": { "$ref": "#/$defs/id" },
+        "sourcePort": { "type": "string", "maxLength": 64 },
+        "targetPort": { "type": "string", "maxLength": 64 },
+        "label": { "$ref": "#/$defs/text" },
+        "technology": { "type": "string", "maxLength": 200 },
+        "startLabel": { "type": "string", "maxLength": 40 },
+        "endLabel": { "type": "string", "maxLength": 40 },
+        "tags": { "$ref": "#/$defs/tags" },
+        "calm": { "$ref": "#/$defs/calm" },
+        "tooltip": { "$ref": "#/$defs/text" }
+      },
+      "required": ["id", "source", "target"],
+      "additionalProperties": false
+    },
+    "control": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["segmented", "select", "breadcrumb"] },
+        "param": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]{0,31}$" },
+        "label": { "type": "string", "maxLength": 64 },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": { "type": "string", "minLength": 1, "maxLength": 128 },
+              "label": { "type": "string", "minLength": 1, "maxLength": 100 }
+            },
+            "required": ["value", "label"],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 200
+        }
+      },
+      "required": ["type", "param", "items"],
+      "additionalProperties": false
+    }
+  }
+}

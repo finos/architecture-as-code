@@ -147,6 +147,103 @@ class TestExtensionManifestLoaderShould {
     }
 
     @Test
+    void read_a_diagram_lens_with_its_route_params_and_notation_from_an_operator_manifest() throws IOException {
+        write(ID, withLens(lens("c4")));
+        Files.writeString(tempDir.resolve(ID).resolve("notation.json"), NOTATION.encode());
+
+        ExtensionManifest.DiagramLens lens = loader.loadDirectory(tempDir).getFirst().contributes().diagramLens().getFirst();
+
+        assertThat(lens.id(), equalTo("c4"));
+        assertThat(lens.route(), equalTo("lens"));
+        assertThat(lens.appliesTo().resourceTypes(), contains("architectures"));
+        assertThat(lens.params().keySet(), contains("level", "scope"));
+        assertThat(lens.params().get("level").defaultValue(), equalTo("context"));
+        assertThat(lens.notation(), equalTo("notation.json"));
+        assertThat(new JsonObject(lens.notationContent()), equalTo(NOTATION));
+    }
+
+    @Test
+    void reject_a_diagram_lens_that_is_declared_twice() {
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(withLens(lens("c4"), lens("c4")).encode(), ID, "test"));
+
+        assertThat(e.getMessage(), containsString("diagram-lens 'c4' is declared more than once"));
+    }
+
+    @Test
+    void reject_a_diagram_lens_whose_route_is_missing_not_a_get_or_has_a_path_parameter_the_ui_cannot_fill() {
+        JsonObject m = withLens(lens("missing").put("route", "nope"), lens("post").put("route", "add-service"),
+                lens("unfillable").put("route", "by-level"));
+        m.getJsonArray("routes").add(route("by-level", "GET", "/lens/{namespace}/{level}", "read"));
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test"));
+
+        assertThat(e.getMessage(), containsString("diagram-lens 'missing' names route 'nope', which is not declared"));
+        assertThat(e.getMessage(), containsString("diagram-lens 'post' must name a GET route, but route 'add-service' is POST"));
+        assertThat(e.getMessage(), containsString("diagram-lens 'unfillable' route 'by-level' has {level} in its path"));
+    }
+
+    @Test
+    void reject_a_lens_param_with_a_reserved_name_a_bad_pattern_or_a_default_it_does_not_allow() {
+        JsonObject params = new JsonObject()
+                .put("node", new JsonObject().put("values", new JsonArray().add("a")))
+                .put("level", new JsonObject().put("values", new JsonArray().add("context")).put("default", "container"))
+                .put("scope", new JsonObject().put("pattern", "^[a-z]+$").put("default", "Shop"))
+                .put("depth", new JsonObject().put("pattern", "(["));
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(withLens(lens("c4").put("params", params)).encode(), ID, "test"));
+
+        assertThat(e.getMessage(), containsString("param 'node' is reserved by CALM Hub"));
+        assertThat(e.getMessage(), containsString("param 'level' default is not one of its values"));
+        assertThat(e.getMessage(), containsString("param 'scope' default does not match its pattern"));
+        assertThat(e.getMessage(), containsString("param 'depth' pattern is not a valid regular expression"));
+    }
+
+    @Test
+    void reject_a_lens_notation_that_is_missing_not_json_or_names_an_unknown_shape() {
+        JsonObject bad = new JsonObject().put("styles", new JsonObject().put("elements", new JsonArray()
+                .add(new JsonObject().put("tag", "Person").put("shape", "Person"))));
+        Map<String, String> files = Map.of("bad.json", bad.encode(), "text.json", "not json");
+        JsonObject m = withLens(lens("missing"), lens("text").put("notation", "text.json"), lens("bad").put("notation", "bad.json"));
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test", files::get));
+
+        assertThat(e.getMessage(), containsString("diagram-lens 'missing' notation notation.json is not in the extension folder"));
+        assertThat(e.getMessage(), containsString("diagram-lens 'text' notation text.json is not a JSON object"));
+        assertThat(e.getMessage(), containsString(
+                "diagram-lens 'bad' notation bad.json/styles/elements/0/shape: 'Person' is not a shape of this notation or of the core notation"));
+    }
+
+    @Test
+    void reject_a_notation_path_that_leaves_the_extension_folder() {
+        JsonObject m = withLens(lens("c4").put("notation", "../secrets.json"));
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test"));
+
+        assertThat(e.getMessage(), containsString("/contributes/diagram-lens/0/notation"));
+    }
+
+    private static JsonObject withLens(JsonObject... lenses) {
+        JsonObject m = valid();
+        m.getJsonArray("routes").add(route("lens", "GET", "/lens/{namespace}/{resourceType}/{resourceId}", "read"));
+        m.getJsonObject("contributes").put("diagram-lens", new JsonArray(List.of((Object[]) lenses)));
+        return m;
+    }
+
+    private static JsonObject lens(String id) {
+        return new JsonObject().put("id", id).put("title", "C4").put("description", "C4 diagrams").put("route", "lens")
+                .put("appliesTo", new JsonObject().put("resourceTypes", new JsonArray().add("architectures")))
+                .put("params", new JsonObject()
+                        .put("level", new JsonObject().put("values", new JsonArray().add("context").add("container")).put("default", "context"))
+                        .put("scope", new JsonObject().put("pattern", "^[A-Za-z0-9._-]{1,128}$")))
+                .put("notation", "notation.json");
+    }
+
+    private static final JsonObject NOTATION = new JsonObject().put("styles", new JsonObject().put("elements", new JsonArray()
+            .add(new JsonObject().put("tag", "Person").put("shape", "Box").put("background", "#08427b"))));
+
+    @Test
     void accept_routes_that_one_path_cannot_match_twice_or_where_one_has_more_literals() {
         JsonObject m = valid();
         m.getJsonArray("routes")

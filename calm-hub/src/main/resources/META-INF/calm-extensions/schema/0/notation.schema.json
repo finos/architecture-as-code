@@ -1,0 +1,727 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/calm-hub/extensions/hub-api-0/notation.schema.json",
+  "description": "The notation of a diagram lens: its shapes, edge markers and styles. Hub draws the shapes from this data; no extension markup or code reaches the browser.",
+  "type": "object",
+  "properties": {
+    "shapes": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/name"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/shape"
+      },
+      "maxProperties": 128
+    },
+    "markers": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/name"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/marker"
+      },
+      "maxProperties": 64
+    },
+    "styles": {
+      "type": "object",
+      "properties": {
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/elementStyle"
+          },
+          "maxItems": 256
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relationshipStyle"
+          },
+          "maxItems": 256
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/groupStyle"
+          },
+          "maxItems": 256
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "name": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9-]{0,63}$"
+    },
+    "reference": {
+      "description": "A shape or marker of this notation, or of Hub's core notation. core/<name> names a core one when the notation has its own with that name.",
+      "type": "string",
+      "pattern": "^(core/)?[A-Za-z][A-Za-z0-9-]{0,63}$"
+    },
+    "tag": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "hex": {
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "paint": {
+      "description": "A colour of the element style, none, or a fixed hex colour.",
+      "anyOf": [
+        {
+          "enum": [
+            "background",
+            "stroke",
+            "color",
+            "accent",
+            "none"
+          ]
+        },
+        {
+          "$ref": "#/$defs/hex"
+        }
+      ]
+    },
+    "coordinate": {
+      "type": "number",
+      "minimum": -1000,
+      "maximum": 1000
+    },
+    "length": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "viewBox": {
+      "description": "[minX, minY, width, height].",
+      "type": "array",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/coordinate"
+        },
+        {
+          "$ref": "#/$defs/coordinate"
+        },
+        {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/$defs/coordinate"
+          },
+          {
+            "$ref": "#/$defs/coordinate"
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "minItems": 2,
+      "maxItems": 64
+    },
+    "part": {
+      "description": "One SVG element of a shape. Exactly one geometry: path, rect, circle, ellipse, line, polyline or polygon.",
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "rect": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "y": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "width": {
+              "$ref": "#/$defs/length"
+            },
+            "height": {
+              "$ref": "#/$defs/length"
+            },
+            "rx": {
+              "$ref": "#/$defs/length"
+            },
+            "ry": {
+              "$ref": "#/$defs/length"
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        "circle": {
+          "type": "object",
+          "properties": {
+            "cx": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "cy": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "r": {
+              "$ref": "#/$defs/length"
+            }
+          },
+          "required": [
+            "cx",
+            "cy",
+            "r"
+          ],
+          "additionalProperties": false
+        },
+        "ellipse": {
+          "type": "object",
+          "properties": {
+            "cx": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "cy": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "rx": {
+              "$ref": "#/$defs/length"
+            },
+            "ry": {
+              "$ref": "#/$defs/length"
+            }
+          },
+          "required": [
+            "cx",
+            "cy",
+            "rx",
+            "ry"
+          ],
+          "additionalProperties": false
+        },
+        "line": {
+          "type": "object",
+          "properties": {
+            "x1": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "y1": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "x2": {
+              "$ref": "#/$defs/coordinate"
+            },
+            "y2": {
+              "$ref": "#/$defs/coordinate"
+            }
+          },
+          "required": [
+            "x1",
+            "y1",
+            "x2",
+            "y2"
+          ],
+          "additionalProperties": false
+        },
+        "polyline": {
+          "$ref": "#/$defs/points"
+        },
+        "polygon": {
+          "$ref": "#/$defs/points"
+        },
+        "fill": {
+          "$ref": "#/$defs/paint"
+        },
+        "stroke": {
+          "$ref": "#/$defs/paint"
+        },
+        "strokeWidth": {
+          "description": "In shape units. Absent: the strokeWidth of the element style.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "dash": {
+          "description": "Absent: the border of the element style. solid keeps a part solid, such as a glyph.",
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted"
+          ]
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pin": {
+          "description": "Keeps the part at its size, at this corner or edge, when the shape resizes.",
+          "enum": [
+            "top-left",
+            "top",
+            "top-right",
+            "left",
+            "center",
+            "right",
+            "bottom-left",
+            "bottom",
+            "bottom-right"
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "path"
+          ]
+        },
+        {
+          "required": [
+            "rect"
+          ]
+        },
+        {
+          "required": [
+            "circle"
+          ]
+        },
+        {
+          "required": [
+            "ellipse"
+          ]
+        },
+        {
+          "required": [
+            "line"
+          ]
+        },
+        {
+          "required": [
+            "polyline"
+          ]
+        },
+        {
+          "required": [
+            "polygon"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    },
+    "slot": {
+      "description": "A box in shape coordinates where Hub sets text. A list slot shows the rows of a node's sections.",
+      "type": "object",
+      "properties": {
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        },
+        "kind": {
+          "enum": [
+            "text",
+            "list"
+          ]
+        },
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "end"
+          ]
+        },
+        "valign": {
+          "enum": [
+            "top",
+            "middle",
+            "bottom"
+          ]
+        },
+        "weight": {
+          "enum": [
+            "normal",
+            "bold"
+          ]
+        },
+        "size": {
+          "enum": [
+            "small",
+            "normal",
+            "large"
+          ]
+        },
+        "grow": {
+          "description": "The slot takes the height that its text needs, and the shape grows with it. At most one slot in a shape.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "port": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/name"
+        },
+        "side": {
+          "enum": [
+            "top",
+            "right",
+            "bottom",
+            "left"
+          ]
+        },
+        "offset": {
+          "description": "0 to 1 along the side.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "id",
+        "side"
+      ],
+      "additionalProperties": false
+    },
+    "shape": {
+      "type": "object",
+      "properties": {
+        "viewBox": {
+          "$ref": "#/$defs/viewBox"
+        },
+        "resize": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "enum": [
+                "stretch",
+                "aspect",
+                "nine-slice"
+              ]
+            },
+            "insets": {
+              "description": "nine-slice only: [top, right, bottom, left] in shape units. The corners keep their size.",
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/length"
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          },
+          "required": [
+            "mode"
+          ],
+          "additionalProperties": false
+        },
+        "minSize": {
+          "description": "[width, height] in pixels.",
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 8,
+            "maximum": 1000
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/part"
+          },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "slots": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/name"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/slot"
+          },
+          "maxProperties": 8
+        },
+        "ports": {
+          "description": "outline: an edge joins the outline anywhere. Or named points.",
+          "anyOf": [
+            {
+              "const": "outline"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/port"
+              },
+              "minItems": 1,
+              "maxItems": 16
+            }
+          ]
+        }
+      },
+      "required": [
+        "viewBox",
+        "parts"
+      ],
+      "additionalProperties": false
+    },
+    "marker": {
+      "description": "An edge end, drawn pointing right. Its tip is at the right middle of the viewBox.",
+      "type": "object",
+      "properties": {
+        "viewBox": {
+          "$ref": "#/$defs/viewBox"
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/part"
+          },
+          "minItems": 1,
+          "maxItems": 8
+        }
+      },
+      "required": [
+        "viewBox",
+        "parts"
+      ],
+      "additionalProperties": false
+    },
+    "border": {
+      "enum": [
+        "solid",
+        "dashed",
+        "dotted"
+      ]
+    },
+    "darkColours": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/hex"
+        },
+        "color": {
+          "$ref": "#/$defs/hex"
+        },
+        "stroke": {
+          "$ref": "#/$defs/hex"
+        },
+        "accent": {
+          "$ref": "#/$defs/hex"
+        }
+      },
+      "additionalProperties": false
+    },
+    "elementStyle": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "$ref": "#/$defs/tag"
+        },
+        "shape": {
+          "$ref": "#/$defs/reference"
+        },
+        "background": {
+          "$ref": "#/$defs/hex"
+        },
+        "color": {
+          "$ref": "#/$defs/hex"
+        },
+        "stroke": {
+          "$ref": "#/$defs/hex"
+        },
+        "accent": {
+          "$ref": "#/$defs/hex"
+        },
+        "strokeWidth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "border": {
+          "$ref": "#/$defs/border"
+        },
+        "opacity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        },
+        "metadata": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "boolean"
+        },
+        "label": {
+          "description": "The name of the tag in the diagram key.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "dark": {
+          "$ref": "#/$defs/darkColours"
+        }
+      },
+      "required": [
+        "tag"
+      ],
+      "additionalProperties": false
+    },
+    "groupStyle": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "$ref": "#/$defs/tag"
+        },
+        "shape": {
+          "$ref": "#/$defs/reference"
+        },
+        "background": {
+          "$ref": "#/$defs/hex"
+        },
+        "color": {
+          "$ref": "#/$defs/hex"
+        },
+        "stroke": {
+          "$ref": "#/$defs/hex"
+        },
+        "strokeWidth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "border": {
+          "$ref": "#/$defs/border"
+        },
+        "opacity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "dark": {
+          "$ref": "#/$defs/darkColours"
+        }
+      },
+      "required": [
+        "tag"
+      ],
+      "additionalProperties": false
+    },
+    "relationshipStyle": {
+      "type": "object",
+      "properties": {
+        "tag": {
+          "$ref": "#/$defs/tag"
+        },
+        "color": {
+          "$ref": "#/$defs/hex"
+        },
+        "thickness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "style": {
+          "$ref": "#/$defs/border"
+        },
+        "routing": {
+          "enum": [
+            "direct",
+            "curved",
+            "orthogonal"
+          ]
+        },
+        "opacity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "start": {
+          "$ref": "#/$defs/reference"
+        },
+        "end": {
+          "$ref": "#/$defs/reference"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "dark": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "$ref": "#/$defs/hex"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "tag"
+      ],
+      "additionalProperties": false
+    },
+    "icon": {
+      "description": "A base64 data URI of a PNG, JPEG or SVG image, up to 32 KB. Hub shows it with an img element, so an SVG script does not run. A remote URL is not allowed, so the browser fetches nothing from the author.",
+      "type": "string",
+      "maxLength": 43700,
+      "pattern": "^data:image/(png|jpeg|svg\\+xml);base64,[A-Za-z0-9+/]+={0,2}$"
+    }
+  }
+}

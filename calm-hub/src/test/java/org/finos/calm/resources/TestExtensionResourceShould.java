@@ -42,6 +42,19 @@ class TestExtensionResourceShould {
     }
 
     @Test
+    @TestSecurity(user = "alice")
+    void serve_the_lens_and_notation_schemas_and_the_core_notation() {
+        given().when().get("/api/calm/extensions/schema/0/lens.schema.json")
+                .then().statusCode(200).body("properties.kind.const", equalTo("graph"));
+        given().when().get("/api/calm/extensions/schema/0/notation.schema.json")
+                .then().statusCode(200).body("$id", equalTo("https://calm.finos.org/calm-hub/extensions/hub-api-0/notation.schema.json"));
+        given().when().get("/api/calm/extensions/notations/core")
+                .then().statusCode(200).body("shapes.Box.viewBox", contains(0, 0, 200, 120));
+        given().when().get("/api/calm/extensions/notations/c4-shapes").then().statusCode(404);
+        given().when().get("/api/calm/extensions/control-evaluation/lenses/c4/notation").then().statusCode(404);
+    }
+
+    @Test
     void protect_the_blocks_schema() {
         given().when().get("/api/calm/extensions/schema/0/blocks.schema.json")
                 .then().statusCode(401);

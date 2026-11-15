@@ -196,7 +196,7 @@ The manifest declares:
 - `id`, `version`, `hubApi` (now `0`), `name`, and optional `description` and `provider`.
 - `routes`: every call that the extension can receive, each with an `id`, `method`, `path`, `scope` and optional `readOnly`. A `read`, `write` or `admin` scope needs a `{namespace}` in the path. A `domain_*` scope needs a `{domain}`. A path parameter cannot contain a slash, so a route for a CALM Hub resource uses `{resourceType}/{resourceId}`, not `{resource}`. When two routes with the same method match a path, the route with more literal segments wins. CALM Hub does not start if two such routes have the same number, for example `GET /{namespace}/report` and `GET /public/{id}`.
 - `commands`: CLI and MCP commands, keyed by name. Each names a route by `id`.
-- `contributes`: the UI extension points `screen`, `designer-tab`, `landing-card`, `detail-panel`, `action`, `search-provider` and `chat`, which name a route by `id`, and `decorator-views`, which CALM Hub draws from decorators with no route. A decorator view `id` must be unique in all enabled extensions.
+- `contributes`: the UI extension points `screen`, `designer-tab`, `landing-card`, `detail-panel`, `action`, `search-provider` and `chat`, which name a route by `id`, `decorator-views`, which CALM Hub draws from decorators with no route, and `diagram-lens`, a picture of an architecture that CALM Hub draws from a graph reply and a notation. A decorator view `id` must be unique in all enabled extensions.
 
 The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in the CALM Hub jar. Unknown fields are errors. See [the example manifest](https://github.com/finos/architecture-as-code/blob/main/calm-hub/local-dev/extensions/example-services/extension.json).
 
