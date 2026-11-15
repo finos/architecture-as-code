@@ -60,11 +60,12 @@ an outbox entry for them, so subscribers see them.
   (`allow.put.operations`) sets it in the same update as `content`, with a
   `version.updated` event.
 - For decorators and deletes, Hub writes the outbox entry before the write, as
-  above.
+  above. The decorator store keeps the event id beside the decorator, from
+  `WriteContext`, as it does for `supersedes`.
 - A `@Scheduled` relay claims `ready` and pending entries with a lease, delivers
   them, then removes them. When a `prepared` entry is older than the lease, the
-  write may not have happened. The relay checks the store (the decorator
-  exists, or the resource is gone), then delivers the entry or drops it.
+  write may not have happened. The relay checks the store (a decorator has the
+  event id, or the resource is gone), then delivers the entry or drops it.
 - A reconcile sweep finds versions that have at least one rule source and no
   validation result for their content hash, and adds them again. It also
   retries `validator-error` results, with an exponential backoff up to a limit.
