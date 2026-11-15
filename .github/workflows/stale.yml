@@ -1,0 +1,37 @@
+name: Stale pull requests
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      debug-only:
+        description: 'Log what would happen and change nothing'
+        type: boolean
+        default: true
+
+permissions:
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11
+        with:
+          debug-only: ${{ github.event_name == 'workflow_dispatch' && inputs.debug-only || false }}
+          # Issues are out of scope. Draft PRs can go stale like any other PR.
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+          days-before-pr-stale: 5
+          days-before-pr-close: 5
+          exempt-draft-pr: false
+          stale-pr-label: stale
+          exempt-pr-labels: keep-open
+          stale-pr-message: >
+            This pull request has had no comment or commit for 5 days.
+            It will close in 5 days if there is no new comment or commit.
+            Add the `keep-open` label to stop this.
+          close-pr-message: >
+            Closed after 10 days without a comment or commit.
+            Reopen it when you are ready to continue.
