@@ -181,8 +181,54 @@ class TestExtensionManifestLoaderShould {
         IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test"));
 
         assertThat(e.getMessage(), containsString("diagram-lens 'missing' names route 'nope', which is not declared"));
-        assertThat(e.getMessage(), containsString("diagram-lens 'post' must name a GET route, but route 'add-service' is POST"));
+        assertThat(e.getMessage(), containsString("diagram-lens 'post' must name a GET route, or a route with hubData, but route 'add-service' is POST"));
         assertThat(e.getMessage(), containsString("diagram-lens 'unfillable' route 'by-level' has {level} in its path"));
+    }
+
+    @Test
+    void accept_a_lens_on_a_read_only_post_route_that_takes_its_body_from_hub() {
+        JsonObject m = withLens(lens("c4").put("route", "hub-lens"));
+        m.getJsonArray("routes").add(route("hub-lens", "POST", "/hub-lens/{namespace}/{resourceType}/{resourceId}", "read")
+                .put("readOnly", true).put("hubData", new JsonArray().add("document").add("detailed-architectures").add("c4-mapping")));
+
+        ExtensionManifest manifest = loader.parse(m.encode(), ID, "test", Map.of("notation.json", NOTATION.encode())::get);
+
+        assertThat(manifest.route("hub-lens").orElseThrow().hubData(), contains("document", "detailed-architectures", "c4-mapping"));
+        assertThat(manifest.route("lens").orElseThrow().hubData(), nullValue());
+    }
+
+    @Test
+    void reject_a_command_on_a_route_with_hub_data() {
+        JsonObject m = valid();
+        m.getJsonArray("routes").add(route("hub-lens", "POST", "/hub-lens/{namespace}/{resourceType}/{resourceId}", "read")
+                .put("readOnly", true).put("hubData", new JsonArray().add("document")));
+        m.getJsonObject("commands").put("lens", new JsonObject().put("route", "hub-lens").put("description", "Draw a lens")
+                .put("input", new JsonObject().put("type", "object")));
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test"));
+
+        assertThat(e.getMessage(), containsString("command 'lens' names route 'hub-lens', which has hubData. A command cannot use it"));
+    }
+
+    @Test
+    void reject_hub_data_on_a_route_that_writes_has_another_scope_or_names_no_resource() {
+        JsonObject m = valid();
+        m.getJsonArray("routes")
+                .add(route("get", "GET", "/a/{namespace}/{resourceType}/{resourceId}", "read")
+                        .put("hubData", new JsonArray().add("document")))
+                .add(route("writes", "POST", "/b/{namespace}/{resourceType}/{resourceId}", "write")
+                        .put("hubData", new JsonArray().add("document")))
+                .add(route("no-resource", "POST", "/c/{namespace}", "read").put("readOnly", true)
+                        .put("hubData", new JsonArray().add("c4-mapping")))
+                .add(route("links-only", "POST", "/d/{namespace}/{resourceType}/{resourceId}", "read").put("readOnly", true)
+                        .put("hubData", new JsonArray().add("detailed-architectures")));
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test"));
+
+        assertThat(e.getMessage(), containsString("route 'get' has hubData, so it must be a POST route with readOnly true"));
+        assertThat(e.getMessage(), containsString("route 'writes' has hubData, so its scope must be 'read'"));
+        assertThat(e.getMessage(), containsString("route 'no-resource' has hubData, so its path needs {namespace}, {resourceType} and {resourceId}"));
+        assertThat(e.getMessage(), containsString("route 'links-only' hubData has detailed-architectures, so it needs document too"));
     }
 
     @Test

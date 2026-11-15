@@ -69,6 +69,7 @@ public class ExtensionProxyService {
     private final ExtensionIdentitySigner signer;
     private final CalmHubPermissionChecker permissions;
     private final AuditService auditService;
+    private final ExtensionHubData hubData;
     private final String authMode;
     private final Map<String, HttpClient> clients = new ConcurrentHashMap<>();
     private final Map<String, Semaphore> concurrentCalls = new ConcurrentHashMap<>();
@@ -76,16 +77,22 @@ public class ExtensionProxyService {
     @Inject
     public ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer,
                                  CalmHubPermissionChecker permissions, AuditService auditService, Config properties,
-                                 Instance<ProxyAuthenticationMechanism> proxyAuthentication) {
-        this(registry, signer, permissions, auditService, authMode(properties, proxyAuthentication.isResolvable()));
+                                 Instance<ProxyAuthenticationMechanism> proxyAuthentication, ExtensionHubData hubData) {
+        this(registry, signer, permissions, auditService, hubData, authMode(properties, proxyAuthentication.isResolvable()));
     }
 
     ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer,
                           CalmHubPermissionChecker permissions, AuditService auditService, String authMode) {
+        this(registry, signer, permissions, auditService, null, authMode);
+    }
+
+    ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer, CalmHubPermissionChecker permissions,
+                          AuditService auditService, ExtensionHubData hubData, String authMode) {
         this.registry = registry;
         this.signer = signer;
         this.permissions = permissions;
         this.auditService = auditService;
+        this.hubData = hubData;
         this.authMode = authMode;
     }
 
@@ -125,6 +132,7 @@ public class ExtensionProxyService {
             if (!acceptsContentType(method, body, request.contentType())) {
                 throw new ExtensionProxyException(415, "The request must be JSON");
             }
+            // Before the hubData reads, so that the limit also bounds the reads that Hub does for the extension.
             acquired = calls.tryAcquire();
             if (!acquired) {
                 LOG.warn("Extension {} has {} calls in progress, so Hub refused one more", extension.id(),
@@ -132,11 +140,21 @@ public class ExtensionProxyService {
                 throw new ExtensionProxyException(503, "The extension is busy. Try again later",
                         Map.of("Retry-After", "1"));
             }
-            String jti = UUID.randomUUID().toString();
-            String assertion = signer.sign(new ExtensionAssertion(identity.getPrincipal().getName(), extension.id(), jti,
-                    authMode, extension.manifest().hubApi(), route.id(), route.scope(), access.namespace(),
-                    access.domain(), method, pathAndQuery), body);
-            HttpRequest outbound = outboundRequest(request, method, target, body, limits, assertion);
+            String contentType = request.contentType();
+            if (route.sendsHubData()) {
+                // Hub sends what it read for the caller, never the caller's body, so the extension can trust it.
+                body = hubData.body(identity, route, access.parameters(), request.rawQuery());
+                contentType = "application/json";
+                if (body.length > limits.maxRequestBytes()) {
+                    throw new ExtensionProxyException(413, "The document is too large for this extension. "
+                            + "The operator can raise its max-request-bytes");
+                }
+            }
+            String jti = extension.sendsIdentity() ? UUID.randomUUID().toString() : null;
+            String assertion = jti == null ? null : signer.sign(new ExtensionAssertion(identity.getPrincipal().getName(),
+                    extension.id(), jti, authMode, extension.manifest().hubApi(), route.id(), route.scope(),
+                    access.namespace(), access.domain(), method, pathAndQuery), body);
+            HttpRequest outbound = outboundRequest(request, contentType, method, target, body, limits, assertion);
             outcome = AuditOutcome.UNKNOWN;
             sentJti = jti;
             ExtensionProxyResponse reply = send(extension, route, outbound);
@@ -155,7 +173,7 @@ public class ExtensionProxyService {
     }
 
     private record Access(RegisteredExtension extension, URI backend, String method, String path,
-                          ExtensionManifest.Route route, String namespace, String domain) {
+                          ExtensionManifest.Route route, String namespace, String domain, Map<String, String> parameters) {
     }
 
     private Access authorise(SecurityIdentity identity, ExtensionProxyRequest request) {
@@ -197,7 +215,7 @@ public class ExtensionProxyService {
                     ? new ExtensionProxyException(401, "Sign in to call this extension")
                     : new ExtensionProxyException(403, "You do not have the scope that this extension route needs");
         }
-        return new Access(extension, backend, method, path, route, namespace, domain);
+        return new Access(extension, backend, method, path, route, namespace, domain, match.parameters());
     }
 
     /**
@@ -246,16 +264,18 @@ public class ExtensionProxyService {
                 .build());
     }
 
-    private static HttpRequest outboundRequest(ExtensionProxyRequest request, String method, URI target, byte[] body,
-                                               ExtensionLimits limits, String assertion) {
+    private static HttpRequest outboundRequest(ExtensionProxyRequest request, String contentType, String method,
+                                               URI target, byte[] body, ExtensionLimits limits, String assertion) {
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder(target)
                     .timeout(limits.requestTimeout())
-                    .header(ExtensionIdentitySigner.HEADER, assertion)
                     .method(method, body.length == 0
                             ? HttpRequest.BodyPublishers.noBody()
                             : HttpRequest.BodyPublishers.ofByteArray(body));
-            copyHeader(builder, "Content-Type", request.contentType());
+            if (assertion != null) {
+                builder.header(ExtensionIdentitySigner.HEADER, assertion);
+            }
+            copyHeader(builder, "Content-Type", contentType);
             copyHeader(builder, "Accept", request.accept());
             copyHeader(builder, "Accept-Language", request.acceptLanguage());
             copyHeader(builder, "If-Match", request.ifMatch());

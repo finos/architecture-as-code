@@ -110,7 +110,8 @@ public class ExtensionIdentitySigner {
                 throw invalid(PREFIX + "public-key-locations is set, but " + PREFIX + "private-key-location is not");
             }
             if (hasRoutes()) {
-                throw invalid(PREFIX + "private-key-location must be set, because an enabled extension has routes");
+                throw invalid(PREFIX + "private-key-location must be set, because an enabled extension has routes "
+                        + "and sends the identity assertion");
             }
             return;
         }
@@ -147,7 +148,7 @@ public class ExtensionIdentitySigner {
     }
 
     private boolean hasRoutes() {
-        return registry.enabled().stream().anyMatch(e -> !e.manifest().routes().isEmpty());
+        return registry.enabled().stream().anyMatch(e -> e.sendsIdentity() && !e.manifest().routes().isEmpty());
     }
 
     /** The public keys in JWK form. The first one signs. */

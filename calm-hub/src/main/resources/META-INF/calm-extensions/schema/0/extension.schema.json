@@ -148,6 +148,19 @@
         "readOnly": {
           "type": "boolean",
           "default": false
+        },
+        "hubData": {
+          "description": "The data that CALM Hub reads, with the scope of the caller, and sends as the body of a POST route: document (the resource version in the path, which needs a version query parameter), detailed-architectures (the detailed architectures that its nodes link to, in the same namespace), or the name of a convention type (the namespace default, with each CALM Hub convention that it extends). The route must be a readOnly POST with the read scope and {namespace}/{resourceType}/{resourceId} in its path. The service then needs no account and no route back to CALM Hub.",
+          "type": "array",
+          "items": {
+            "enum": [
+              "document",
+              "detailed-architectures",
+              "c4-mapping"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
         }
       },
       "required": [

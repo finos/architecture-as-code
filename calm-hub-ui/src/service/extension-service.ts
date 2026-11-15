@@ -59,7 +59,8 @@ function problemOf(error: unknown): ExtensionCallError['problem'] {
     const data: unknown = isAxiosError(error) ? error.response?.data : undefined;
     if (!isObject(data)) return undefined;
     const text = (value: unknown) => (typeof value === 'string' ? value.slice(0, 500) : undefined);
-    const problem = { title: text(data.title), detail: text(data.detail) };
+    // A refusal by Hub itself has an error message, not a problem title.
+    const problem = { title: text(data.title) ?? text(data.error), detail: text(data.detail) };
     return problem.title || problem.detail ? problem : undefined;
 }
 

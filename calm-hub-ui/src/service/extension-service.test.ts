@@ -97,6 +97,11 @@ describe('ExtensionService', () => {
         await expect(new ExtensionService(ax).call('test', route, { namespace: 'ns' }))
             .rejects.toMatchObject({ problem: { title: 'No C4 mapping', detail: 'Add one to the namespace' } });
     });
+    it('shows the error message of a refusal by Hub', async () => {
+        mock.onGet().reply(413, { error: 'The document is too large for this extension' });
+        await expect(new ExtensionService(ax).call('test', route, { namespace: 'ns' }))
+            .rejects.toMatchObject({ problem: { title: 'The document is too large for this extension' } });
+    });
     it('reads the notation of a lens, and the core notation once', async () => {
         mock.onGet('/api/calm/extensions/c%204/lenses/a%2Fb/notation').reply(200, { shapes: {} });
         mock.onGet('/api/calm/extensions/notations/core').replyOnce(200, { markers: {} });

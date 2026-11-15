@@ -123,10 +123,44 @@ With `calm.auth.allow-public-read=true`, each signed-in user can read every name
   It does not return `Location`, because that would name your private backend URL. Return the
   identifier in the body.
 
+### Let CALM Hub send the data
+
+A route that only reads a CALM Hub resource can ask CALM Hub for the data, with `hubData`. CALM Hub
+reads the data with the scope of the user and sends it as the body. The service then needs no account
+and no network route back to CALM Hub, so it can run anywhere, also as a hosted service for many Hubs.
+
+```json
+{ "id": "lens", "method": "POST", "path": "/lens/{namespace}/{resourceType}/{resourceId}",
+  "scope": "read", "readOnly": true, "hubData": ["document", "detailed-architectures", "c4-mapping"] }
+```
+
+| Value | What CALM Hub sends |
+|---|---|
+| `document` | The resource version in the path. The call needs a `version` query parameter |
+| `detailed-architectures` | The detailed architectures that the nodes of the document link to, in the same namespace, at most 50. Needs `document` |
+| `c4-mapping` | The namespace default of that convention type, with each CALM Hub convention that it `extends`, at most 8. CALM Hub leaves out a convention that the user cannot read |
+
+The route must be a `readOnly` `POST` with the `read` scope and `{namespace}/{resourceType}/{resourceId}`
+in its path. CALM Hub replaces the body of the caller, so `bdh` covers the data that CALM Hub sent:
+
+```json
+{ "hubApi": 0, "document": { … },
+  "conventions": { "c4-mapping": { "namespace": "finos", "conventionId": "…", "version": "…", "inherited": false, "convention": { … } } },
+  "linked": { "<URL of a detailed architecture or an extends>": { … } } }
+```
+
+A body over `max-request-bytes` gets `413`. A missing resource version gets `404`.
+
 ### When the extension calls CALM Hub
 
-CALM Hub refuses its own assertion as a credential. An extension that calls CALM Hub uses its own
-service account, with the fewest grants that it needs.
+CALM Hub refuses its own assertion as a credential. An extension that calls CALM Hub for more than
+`hubData` sends uses its own service account, with the fewest grants that it needs.
+
+### Serve many CALM Hubs
+
+A service for more than one CALM Hub keeps a list of the Hubs that it trusts: each `iss`, with its
+public keys or its JWKS URL. Pick the keys by `iss` from that list. Never fetch keys from a URL that
+the request names, because a caller could then make the service call any host.
 
 ## Trust model
 

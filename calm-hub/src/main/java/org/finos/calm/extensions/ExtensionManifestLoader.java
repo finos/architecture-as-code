@@ -210,8 +210,31 @@ public class ExtensionManifestLoader {
             if (DOMAIN_SCOPES.contains(route.scope()) && !params.contains("domain")) {
                 problems.add(where + " has scope '" + route.scope() + "', so its path needs a {domain} parameter");
             }
+            if (route.sendsHubData()) {
+                checkHubData(where, route, params, problems);
+            }
         }
         checkAmbiguousRoutes(manifest.routes(), problems);
+    }
+
+    /**
+     * Hub reads the resource of the path with the scope that it checked, and sends it as the body. So the route reads
+     * only, names the resource, and takes no body of its own.
+     */
+    private static void checkHubData(String where, ExtensionManifest.Route route, List<String> params, List<String> problems) {
+        if (!"POST".equals(route.method()) || !route.readOnly()) {
+            problems.add(where + " has hubData, so it must be a POST route with readOnly true: Hub sends the data as its body");
+        }
+        if (!"read".equals(route.scope())) {
+            problems.add(where + " has hubData, so its scope must be 'read'");
+        }
+        if (!params.containsAll(List.of("namespace", "resourceType", "resourceId"))) {
+            problems.add(where + " has hubData, so its path needs {namespace}, {resourceType} and {resourceId}");
+        }
+        if (route.hubData().contains(ExtensionManifest.Route.DETAILED_ARCHITECTURES)
+                && !route.hubData().contains(ExtensionManifest.Route.DOCUMENT)) {
+            problems.add(where + " hubData has detailed-architectures, so it needs document too");
+        }
     }
 
     /**
@@ -270,6 +293,10 @@ public class ExtensionManifestLoader {
                         + MAX_TOOL_NAME_LENGTH + " characters");
             }
             manifest.route(command.route()).ifPresentOrElse(route -> {
+                // The command input would be lost: Hub replaces the body, and the CLI and MCP send no query.
+                if (route.sendsHubData()) {
+                    problems.add(where + " names route '" + route.id() + "', which has hubData. A command cannot use it");
+                }
                 Object properties = command.input().get("properties");
                 Object required = command.input().get("required");
                 for (String param : pathParams(route.path())) {
@@ -323,8 +350,9 @@ public class ExtensionManifestLoader {
     private static void checkLens(ExtensionManifest manifest, ExtensionManifest.DiagramLens lens, List<String> problems) {
         String where = "diagram-lens '" + lens.id() + "'";
         manifest.route(lens.route()).ifPresentOrElse(route -> {
-            if (!"GET".equals(route.method())) {
-                problems.add(where + " must name a GET route, but route '" + route.id() + "' is " + route.method());
+            if (!"GET".equals(route.method()) && !route.sendsHubData()) {
+                problems.add(where + " must name a GET route, or a route with hubData, but route '" + route.id() + "' is "
+                        + route.method());
             }
             for (String param : pathParams(route.path())) {
                 if (!DESIGNER_TAB_PARAMS.contains(param)) {

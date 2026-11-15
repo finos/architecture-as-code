@@ -49,6 +49,12 @@ public interface ExtensionsConfig {
         /** Allows a plain http backend that is not on loopback, such as a cluster-internal host. */
         Optional<String> allowHttp();
 
+        /**
+         * {@code false} sends no identity assertion, for an open service that needs no caller identity. Hub then needs
+         * no identity keys for this extension.
+         */
+        Optional<String> sendIdentity();
+
         Optional<String> connectTimeoutSeconds();
 
         Optional<String> requestTimeoutSeconds();

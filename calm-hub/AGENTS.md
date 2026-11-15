@@ -474,6 +474,11 @@ from; it fails if there is none.
 - `calm-hub-extensions/` holds the extensions we own (`c4`, `ea-layers`): real services, each with its own notation.
   Each runs as a sidecar and copies its folder to the shared `calm.extensions.dir` volume (`deploy/docker-compose.yml`).
   `TestExtensionManifestLoaderShould` loads that folder, so a manifest or notation that Hub refuses fails the Java tests
+- `ExtensionHubData` builds the body of a `hubData` route, with the scope of the caller: the document, detailed
+  architectures in the same namespace only, and conventions only where `permissions.canRead` allows. The proxy
+  replaces the caller's body with it before it signs, so `bdh` covers it. Keep both limits (`MAX_*`).
+- `send-identity=false` (`RegisteredExtension.sendsIdentity`) skips the assertion for an open service. The registry
+  allows it only when every route is `GET` or `readOnly`, so no audited call goes out without a `jti`.
 - Try it: see `local-dev/extensions/example-services/README.md`. `local-dev/demo-extensions/` holds a demo
   (release-tracker) that uses every UI extension point, to test the UI layout.
   Keep it out of `local-dev/extensions`: it has routes, so a Hub that loads it without its `backend-url` does

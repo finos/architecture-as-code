@@ -198,7 +198,7 @@ is a smaller one, in the ArchiMate® notation.
 | `id` | Yes | Lowercase letters, digits and `-`, starting with a letter. Unique in the extension. The URL names the lens with `?lens=<id>` |
 | `title` | Yes | The name in the lens list |
 | `description` | No | The tooltip in the lens list |
-| `route` | Yes | A `GET` route. Its path can use only the parameters that a designer tab can fill |
+| `route` | Yes | A `GET` route, or a `POST` route with [`hubData`](extension-access.md#let-calm-hub-send-the-data). Its path can use only the parameters that a designer tab can fill |
 | `appliesTo` | No | `resourceTypes`: `architectures`, `patterns` or both. The default is both |
 | `params` | No | The view parameters of the lens, each with `values` or a `pattern`, and an optional `default`. CALM Hub keeps them in the URL and sends them in the query. `tab`, `lens`, `node`, `type`, `schema`, `q` and the context names are reserved |
 | `notation` | Yes | The name of a JSON file in the extension folder, next to `extension.json`, with the shapes, edge markers and styles. See below |

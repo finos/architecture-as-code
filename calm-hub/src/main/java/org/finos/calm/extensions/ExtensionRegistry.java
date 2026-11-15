@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 public class ExtensionRegistry {
 
     private static final Logger LOG = LoggerFactory.getLogger(ExtensionRegistry.class);
-    private static final List<String> PER_ID_KEYS = List.of("enabled", "order", "backend-url", "allow-http",
+    private static final List<String> PER_ID_KEYS = List.of("enabled", "order", "backend-url", "allow-http", "send-identity",
             "connect-timeout-seconds", "request-timeout-seconds", "max-request-bytes", "max-response-bytes",
             "max-concurrent-calls");
     private static final Pattern PER_ID_SETTING = Pattern.compile(
@@ -92,6 +92,7 @@ public class ExtensionRegistry {
             Optional<Integer> order = intSetting(id, "order", errors);
             Optional<URI> backendUrl = urlSetting(id, "backend-url", errors);
             boolean allowHttp = booleanSetting(id, "allow-http", errors).orElse(false);
+            boolean sendIdentity = booleanSetting(id, "send-identity", errors).orElse(true);
             ExtensionLimits limits = limits(id, errors);
             if (!isEnabled.orElse(true)) {
                 LOG.info("Extension {} is disabled", id);
@@ -112,7 +113,12 @@ public class ExtensionRegistry {
             backendUrl.filter(url -> "http".equalsIgnoreCase(url.getScheme()) && !allowHttp && !isLoopback(url.getHost()))
                     .ifPresent(url -> errors.add(key(id, "backend-url") + " must use https. Plain http is allowed only "
                             + "for a loopback host, or with " + key(id, "allow-http") + "=true"));
-            enabled.add(new RegisteredExtension(manifest, order.orElse(0), backendUrl, limits));
+            // A service that changes data must know who asked, and the audit entry names the assertion that Hub sent.
+            if (!sendIdentity && manifest.routes().stream().anyMatch(r -> !"GET".equals(r.method()) && !r.readOnly())) {
+                errors.add(key(id, "send-identity") + "=false is allowed only when every route of extension '" + id
+                        + "' is a GET or readOnly route");
+            }
+            enabled.add(new RegisteredExtension(manifest, order.orElse(0), backendUrl, limits, sendIdentity));
         }
         // With auth off every caller is a global admin, so every route would be open (ADR 0011).
         boolean authEnabled = properties.getOptionalValue("calm.auth.enabled", Boolean.class).orElse(false);

@@ -1,5 +1,6 @@
 package org.finos.calm.domain.extensions;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.quarkus.runtime.annotations.RegisterForReflection;
@@ -59,8 +60,26 @@ public record ExtensionManifest(
     }
 
     @RegisterForReflection
-    @JsonbPropertyOrder({"id", "method", "path", "scope", "readOnly"})
-    public record Route(String id, String method, String path, String scope, boolean readOnly) {}
+    @JsonbPropertyOrder({"id", "method", "path", "scope", "readOnly", "hubData"})
+    public record Route(String id, String method, String path, String scope, boolean readOnly, List<String> hubData) {
+
+        /** The data that Hub reads and sends as the body of the route: the document, its links, conventions. */
+        public static final String DOCUMENT = "document";
+        public static final String DETAILED_ARCHITECTURES = "detailed-architectures";
+
+        @JsonCreator
+        public Route {
+            hubData = hubData == null || hubData.isEmpty() ? null : List.copyOf(hubData);
+        }
+
+        public Route(String id, String method, String path, String scope, boolean readOnly) {
+            this(id, method, path, scope, readOnly, null);
+        }
+
+        public boolean sendsHubData() {
+            return hubData != null;
+        }
+    }
 
     @RegisterForReflection
     @JsonbPropertyOrder({"route", "description", "input", "output", "destructive", "idempotent"})
