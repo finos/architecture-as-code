@@ -2,6 +2,8 @@
 
 The [CALM Hub extensions](../docs/docs/calm-hub/index.md#extensions) that the CALM project owns. Each
 one is an HTTP service that runs next to CALM Hub, and each one is a worked example for extension authors.
+To install one, see [Install an extension](../docs/docs/extensions/install.md) and the
+[Extensions page](https://calm.finos.org/extensions) of the docs site.
 
 | Extension | What it adds |
 |---|---|

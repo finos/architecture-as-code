@@ -154,6 +154,7 @@ The Hub UI shows the contributions of an extension, the CLI runs its commands (s
 
 | Page | Read it to |
 |:-----|:-----------|
+| [Extensions](pathname:///extensions) | Find an extension and install it |
 | [Build and install an extension](../tutorials/advanced/hub-extension.md) | Follow a tutorial from the manifest to the UI, CLI and MCP |
 | [Extension points](extension-points.md) | Find the fields, the context and the limits of each extension point and of commands |
 | [Extension blocks](extension-blocks.md) | Write the JSON that the UI draws |
