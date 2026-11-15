@@ -2,7 +2,8 @@
 
 **Status**: Proposed. Not built. It needs the write seam in
 [ADR 0016](0016-store-write-seam-and-outbox-for-post-write-events.md), the
-decorator rules in [ADR 0017](0017-reserved-decorator-types-and-decorator-history.md),
+`system` flag and `validation` type in
+[ADR 0017](0017-reserved-decorator-types-and-decorator-history.md),
 a `validation` decorator Standard and changes to calm-server.
 
 ## Context
@@ -32,8 +33,10 @@ Facts in the code:
   client. `--rate-limit-window` and `--rate-limit-max` change the limit.
 - With `allow.put.operations=true`, a PUT overwrites a version, and promotion
   deletes snapshot versions. Versions are not always immutable.
-- `DecoratorResource` and the MCP `DecoratorTools` accept a decorator of any type
-  from a caller with WRITE scope.
+- A decorator type can be reserved to named writers, and Hub checks a decorator
+  against the Standard in its `$schema` when it bundles that Standard
+  ([ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)). Hub does
+  not reserve `validation` yet.
 - The control-evaluation Standard records `status`, `findings`, `engine` and
   `evaluated-at` for one control.
 - `decorators.json` in calm-schema 1.3.0 requires at least one `applies-to` item.
@@ -112,9 +115,7 @@ is [finos/calm-schema#52](https://github.com/finos/calm-schema/issues/52).
 ## Consequences
 
 - #3399 does not wait for the extension proxy. It needs ADR 0016 and these
-  calm-server changes: a standards mode that skips the `$schema` check, a
-  schema-only mode that checks a document that is not an architecture (for
-  example a decorator) against a JSON Schema with no architecture rules, a map of
+  calm-server changes: a standards mode that skips the `$schema` check, a map of
   resolved documents in the request, and a source id on each output. The
   deployment sets a calm-server rate limit that is sufficient for Hub.
 - A publish is never slower and never fails because of validation until a `deny`

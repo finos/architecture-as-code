@@ -31,19 +31,23 @@ Facts in the code:
 `ObservedXStore` that implements the store interface and wraps the selected
 implementation. The order is:
 
-1. Before: `warn` and `deny` validators, when they exist, and the decorator
-   rules in [ADR 0017](0017-reserved-decorator-types-and-decorator-history.md).
+1. Before: `warn` and `deny` validators, when they exist.
    For a write that does not create or overwrite a version, write a `prepared`
    outbox entry.
 2. The delegate write.
 3. After: mark the outbox entry `ready`.
+
+The decorator rules of [ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)
+run in `DecoratorWriteService`, above the store, for REST and MCP, so the wrapper
+does not repeat them.
 
 A request-scoped `WriteContext` holds the actor, the channel (REST, MCP, mapping,
 seed), the dry-run flag and the pending event. Store signatures do not change.
 Data that must be in the same write as the document is below the wrapper: the
 version-document helpers read the pending event from `WriteContext`, and the
 decorator store reads `supersedes`
-([ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)) from it. Seed and migration
+([ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)) from it, and
+the `system` flag is set there. Seed and migration
 writes run as the system actor and skip the hooks. Hub's own decorator writes,
 for example `validation` results, skip the checks in ADR 0017, but Hub records
 an outbox entry for them, so subscribers see them.
