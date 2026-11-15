@@ -220,7 +220,8 @@ per-extension toolbar button or tab: it does not scale to many extensions.
 - Menu: `ExtensionMenuGroup` in the navbar drawer.
 - Architecture: one `extensions` tab in `DIAGRAM_TABS`, hidden (not unknown) until the registry loads, so a link
   to it keeps the tab. `resourceExtensions()` decides if it shows.
-- Actions: `ExtensionActionButton`. A route that is not `readOnly` asks in `ConfirmActionDialog`, not
+- Actions: `ExtensionActionButton`, only in the Extensions tab, so each action runs with a resource context. There
+  is no home placement. A route that is not `readOnly` asks in `ConfirmActionDialog`, not
   `window.confirm`. The dialog opens with `showModal()`, gives Cancel the focus, and names the target context. Do not abort a confirmed
   write: the backend can still finish it, so a retry can write twice. The busy state and the last result live in
   the provider's `ActionRuns` (`extensions/actionRuns.ts`), not in the button, so a remount cannot enable a write
