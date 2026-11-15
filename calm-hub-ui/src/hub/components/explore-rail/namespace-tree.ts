@@ -81,17 +81,16 @@ export function ancestorPathsOf(path: string): string[] {
 }
 
 /**
- * Paths that match `needle` (assumed already lower-cased) plus their strict
- * ancestors — a matching parent brings its subtree along for free, since
- * `'finos.calm'.includes(needle)` whenever `'finos'.includes(needle)`.
+ * Paths of every node that `matches`, plus their strict ancestors, so the
+ * tree stays navigable down to each match. For a text match, a matching
+ * parent brings its subtree along for free, since `'finos.calm'.includes(needle)`
+ * whenever `'finos'.includes(needle)`.
  */
-export function filterNamespaceTree(tree: NamespaceTreeNode[], needle: string): Set<string> {
+export function collectVisiblePaths(tree: NamespaceTreeNode[], matches: (node: NamespaceTreeNode) => boolean): Set<string> {
     const visible = new Set<string>();
-    if (!needle) return visible;
-
     const visit = (nodes: NamespaceTreeNode[]) => {
         for (const node of nodes) {
-            if (node.path.toLowerCase().includes(needle)) {
+            if (matches(node)) {
                 visible.add(node.path);
                 for (const ancestor of ancestorPathsOf(node.path)) {
                     visible.add(ancestor);
@@ -127,7 +126,7 @@ interface FlattenOptions {
     /** Full paths the user has collapsed. Read only outside filter mode. */
     collapsed: ReadonlySet<string>;
     filtering: boolean;
-    /** From {@link filterNamespaceTree}. Ignored outside filter mode. */
+    /** From {@link collectVisiblePaths}. Ignored outside filter mode. */
     visible: ReadonlySet<string>;
 }
 

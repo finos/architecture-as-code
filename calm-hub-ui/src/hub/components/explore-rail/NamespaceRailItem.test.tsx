@@ -216,4 +216,19 @@ describe('NamespaceRailItem', () => {
         const mark = screen.getByText('calm', { selector: 'mark' });
         expect(mark).toHaveStyle({ backgroundColor: colors.redesign.tintBg, color: colors.redesign.primaryText });
     });
+
+    it('mutes a row shown only as the parent of a match', () => {
+        renderItem({ contextOnly: true, filtering: true });
+        expect(screen.getByRole('link', { name: 'finos.calm' })).toHaveStyle({ color: colors.redesign.faintAlt });
+    });
+
+    it('keeps the active treatment on a context row', () => {
+        renderItem({ contextOnly: true, active: true });
+        expect(screen.getByRole('link', { name: 'finos.calm' })).toHaveStyle({ color: colors.redesign.activeText });
+    });
+
+    it('shows the segment, not the full path, while filtering with no filter text', () => {
+        renderItem({ filtering: true, needle: '' });
+        expect(screen.getByRole('link', { name: 'finos.calm' })).toHaveTextContent(/^calm$/);
+    });
 });
