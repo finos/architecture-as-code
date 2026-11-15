@@ -545,7 +545,7 @@ CALM architecture diff
 ----------------------
 Nodes:         +1  -0  ~1  ↔0  =3
 Relationships: +1  -0  ~0  ↔0  =2
-Flows:         +0  -0  ~0  =0
+Flows:         +0  -0  ~1  =1
 
 Nodes added:
   - audit-service
