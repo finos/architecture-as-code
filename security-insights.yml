@@ -92,7 +92,7 @@ project:
     - name: calm-hub-extensions
       url: https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions
       comment: |
-        The CALM Hub extensions that the project owns, such as the C4 lens.
+        The CALM Hub extensions that the project owns: the C4 and Layers lenses.
         Each one is a TypeScript service that runs as a sidecar of CALM Hub.
         Docker images built from source; not published. Status: Active.
     - name: calm-server

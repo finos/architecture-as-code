@@ -177,7 +177,9 @@ ArchiMate® view. The lens shows in the lens list of the tab, under
 Hub lays it out and draws it with the shapes of the lens **notation**. No
 extension code runs in the browser. The
 [C4 extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/c4)
-is a full example, with its manifest, notation and service.
+is a full example, with its manifest, notation and service. The
+[ea-layers extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/ea-layers)
+is a smaller one, in the ArchiMate® notation.
 
 ```json
 "diagram-lens": [{
@@ -270,7 +272,8 @@ its `title` and `detail`. When CALM Hub draws the graph:
   shape grows inside the band of that slot. An `aspect` shape does not grow.
 - A shape with a slot named `icon` shows the `icon` of the style there. Other
   shapes show it at the top left.
-- An edge with no `end` in its style ends with `arrow`. Its `technology` shows
+- An edge with no `end` in its style ends with `arrow`. Set `"end": "none"`
+  for an edge with no end, such as an association. Its `technology` shows
   in brackets under the `label`.
 - `fixed` positions are in pixels, and each group fits around its members.
   An edge to a group, and an edge with `direct` routing, is a straight line.

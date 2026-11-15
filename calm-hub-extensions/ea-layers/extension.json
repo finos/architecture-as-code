@@ -1,0 +1,32 @@
+{
+  "id": "ea-layers",
+  "version": "1.0.0",
+  "hubApi": 0,
+  "name": "Enterprise architecture layers",
+  "description": "The business, application and technology layers of an architecture, in the ArchiMate® notation.",
+  "provider": "FINOS CALM",
+  "routes": [
+    {
+      "id": "lens",
+      "method": "GET",
+      "path": "/lens/{namespace}/{resourceType}/{resourceId}",
+      "scope": "read",
+      "readOnly": true
+    }
+  ],
+  "contributes": {
+    "diagram-lens": [
+      {
+        "id": "layers",
+        "title": "Layers",
+        "description": "Business, application and technology layers, in the ArchiMate® notation",
+        "route": "lens",
+        "appliesTo": { "resourceTypes": ["architectures"] },
+        "params": {
+          "view": { "values": ["layered", "application"], "default": "layered" }
+        },
+        "notation": "notation.json"
+      }
+    ]
+  }
+}

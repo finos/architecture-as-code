@@ -17,6 +17,7 @@
         "calm-server",
         "calm-hub-ui",
         "calm-hub-extensions/c4",
+        "calm-hub-extensions/ea-layers",
         "calm-lab",
         "calm-plugins/vscode",
         "calm-guard",

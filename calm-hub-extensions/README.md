@@ -6,6 +6,7 @@ one is an HTTP service that runs next to CALM Hub, and each one is a worked exam
 | Extension | What it adds |
 |---|---|
 | [`c4`](c4) | The C4 lens on the Diagram tab: context, container, component and deployment diagrams in a Structurizr-style notation |
+| [`ea-layers`](ea-layers) | The Layers lens on the Diagram tab: business, application and technology layers in the ArchiMate® notation |
 
 ## Layout
 
@@ -29,6 +30,8 @@ Rules for a new extension:
 - Add a case to `TestExtensionManifestLoaderShould` that loads the folder, so a manifest or notation that
   CALM Hub refuses fails the Java tests.
 - Add it to the table above.
+
+ArchiMate is a registered trademark of The Open Group in the United States and other countries.
 
 Extensions that are not here:
 

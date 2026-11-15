@@ -471,8 +471,8 @@ from; it fails if there is none.
   that an OIDC provider that is down cannot make it a 500
 - Tests generate key pairs at run time (`ExtensionTestKeys`); `*.pem` is git-ignored. `FixtureBackend` is a
   loopback backend for proxy tests
-- `calm-hub-extensions/c4` is the C4 lens, a real extension service with its own notation. It runs as a sidecar and
-  copies its folder to the shared `calm.extensions.dir` volume (`deploy/docker-compose.yml`).
+- `calm-hub-extensions/` holds the extensions we own (`c4`, `ea-layers`): real services, each with its own notation.
+  Each runs as a sidecar and copies its folder to the shared `calm.extensions.dir` volume (`deploy/docker-compose.yml`).
   `TestExtensionManifestLoaderShould` loads that folder, so a manifest or notation that Hub refuses fails the Java tests
 - Try it: see `local-dev/extensions/example-services/README.md`. `local-dev/demo-extensions/` holds a demo
   (release-tracker) that uses every UI extension point, to test the UI layout.

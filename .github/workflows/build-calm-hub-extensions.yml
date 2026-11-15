@@ -21,7 +21,7 @@ jobs:
             fail-fast: false
             matrix:
                 # One entry for each folder in calm-hub-extensions.
-                extension: [c4]
+                extension: [c4, ea-layers]
 
         steps:
             - name: Checkout PR Branch

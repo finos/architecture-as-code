@@ -25,10 +25,11 @@
 # quick-start only.  DO NOT use in production — see calm-hub/README.md for the
 # secure / proxy-auth profiles.
 #
-# The jvm and native profiles also run the C4 extension as a sidecar (finos/calm-hub-c4), for the C4 lens of
-# the Diagram tab. The sidecar copies its extension folder into the calm-extensions volume, which Hub reads as
-# calm.extensions.dir, and Hub calls it on the private network. Leave out the c4 service, and the calm.extensions
-# settings of Hub, to run Hub without it. Compose builds the sidecar image from source when it is not present.
+# The jvm and native profiles also run the extensions in calm-hub-extensions as sidecars: c4 (the C4 lens) and
+# ea-layers (the Layers lens) of the Diagram tab. Each sidecar copies its extension folder into the calm-extensions
+# volume, which Hub reads as calm.extensions.dir, and Hub calls it on the private network. Compose builds the
+# sidecar images from source when they are not present. To run Hub without one, leave out its service and its
+# calm.extensions settings of Hub, and remove the volume (docker compose down -v), which still holds its folder.
 
 services:
   mongodb:
@@ -81,6 +82,22 @@ services:
     networks:
       - calm-net
 
+  ea-layers:
+    image: finos/calm-hub-ea-layers:latest
+    build:
+      context: ../..
+      dockerfile: calm-hub-extensions/ea-layers/Dockerfile
+    container_name: calm-hub-ea-layers
+    profiles: [jvm, native]
+    environment:
+      - CALM_HUB_URL=http://hub:8080
+      - CALM_HUB_ISSUER=http://localhost:8080
+      - CALM_EA_LAYERS_EXPORT_DIR=/extensions
+    volumes:
+      - calm-extensions:/extensions
+    networks:
+      - calm-net
+
   calmhub:
     image: finos/calm-hub:latest
     container_name: calm-hub
@@ -94,6 +111,7 @@ services:
         JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017 -Dquarkus.profile=no-auth
         -Dcalm.extensions.dir=/extensions
         -Dcalm.extensions.c4.backend-url=http://c4:8093 -Dcalm.extensions.c4.allow-http=true
+        -Dcalm.extensions.ea-layers.backend-url=http://ea-layers:8094 -Dcalm.extensions.ea-layers.allow-http=true
         -Dcalm.extensions.identity.private-key-location=/keys/hub-private.pem
         -Dcalm.extensions.identity.public-key-locations=/keys/hub-public.pem
         -Dcalm.extensions.allow-without-auth=true
@@ -104,6 +122,8 @@ services:
       calm-hub-keys:
         condition: service_completed_successfully
       c4:
+        condition: service_healthy
+      ea-layers:
         condition: service_healthy
     networks:
       calm-net:
@@ -125,6 +145,8 @@ services:
       - CALM_EXTENSIONS_DIR=/extensions
       - CALM_EXTENSIONS__C4__BACKEND_URL=http://c4:8093
       - CALM_EXTENSIONS__C4__ALLOW_HTTP=true
+      - CALM_EXTENSIONS__EA_LAYERS__BACKEND_URL=http://ea-layers:8094
+      - CALM_EXTENSIONS__EA_LAYERS__ALLOW_HTTP=true
       - CALM_EXTENSIONS_IDENTITY_PRIVATE_KEY_LOCATION=/keys/hub-private.pem
       - CALM_EXTENSIONS_IDENTITY_PUBLIC_KEY_LOCATIONS=/keys/hub-public.pem
       - CALM_EXTENSIONS_ALLOW_WITHOUT_AUTH=true
@@ -135,6 +157,8 @@ services:
       calm-hub-keys:
         condition: service_completed_successfully
       c4:
+        condition: service_healthy
+      ea-layers:
         condition: service_healthy
     networks:
       calm-net:

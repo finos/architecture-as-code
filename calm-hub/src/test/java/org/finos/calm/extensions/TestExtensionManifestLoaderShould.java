@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -440,13 +441,17 @@ class TestExtensionManifestLoaderShould {
     }
 
     @Test
-    void load_the_c4_extension_with_its_lens_and_notation_as_it_ships() {
+    void load_the_extensions_that_ship_with_their_lenses_and_notations() {
         List<ExtensionManifest> manifests = loader.loadDirectory(Path.of("../calm-hub-extensions"));
 
-        assertThat(manifests.stream().map(ExtensionManifest::id).toList(), contains("c4"));
-        ExtensionManifest.DiagramLens lens = manifests.getFirst().contributes().diagramLens().getFirst();
-        assertThat(lens.params().keySet(), contains("level", "scope"));
-        assertThat(lens.notationContent(), hasKey("shapes"));
+        assertThat(manifests.stream().map(ExtensionManifest::id).toList(), containsInAnyOrder("c4", "ea-layers"));
+        assertThat(lens(manifests, "c4").params().keySet(), contains("level", "scope"));
+        assertThat(lens(manifests, "ea-layers").params().keySet(), contains("view"));
+        manifests.forEach(manifest -> assertThat(manifest.id(), manifest.contributes().diagramLens().getFirst().notationContent(), hasKey("shapes")));
+    }
+
+    private static ExtensionManifest.DiagramLens lens(List<ExtensionManifest> manifests, String id) {
+        return manifests.stream().filter(m -> m.id().equals(id)).findFirst().orElseThrow().contributes().diagramLens().getFirst();
     }
 
     @Test
