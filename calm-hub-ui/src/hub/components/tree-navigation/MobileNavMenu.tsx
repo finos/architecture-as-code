@@ -22,7 +22,8 @@ import { ExplorerSearch } from '../../../components/navbar/ExplorerSearch.js';
 import { LoadingSpinner } from '../LoadingSpinner.js';
 import { useNamespaceTree } from '../explore-rail/useNamespaceTree.js';
 import { MobileNamespaceRow } from './MobileNamespaceRow.js';
-import { EditScopeToggle } from '../explore-rail/EditScopeToggle.js';
+import { EditScopeMenuButton } from '../explore-rail/EditScopeMenuButton.js';
+import { EditScopeChip } from '../explore-rail/EditScopeChip.js';
 import { useEditScope } from '../explore-rail/useEditScope.js';
 
 const RESOURCE_TYPES: TypeInUI[] = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
@@ -125,7 +126,7 @@ export function MobileNavMenu({
     // Derive the namespace/domain lists from the counts Hub already fetched, rather than
     // re-fetching them here. Avoids two redundant requests and keeps the row labels in the
     // same snapshot as the count badges.
-    const { scope, setScope, showScopeToggle, editableOnly, canEditNamespace, isContextOnly, filterDomains } = useEditScope();
+    const { scope, setScope, showScopeControl, editableOnly, canEditNamespace, isContextOnly, filterDomains } = useEditScope(storage);
     const allDomains = useMemo(() => domainCounts.map((c) => c.domain), [domainCounts]);
     const domains = filterDomains(allDomains, (d) => d);
 
@@ -347,6 +348,7 @@ export function MobileNavMenu({
     // failed counts fetch is unknown, not zero (mirrors Hub's own namespaceCountsFailed).
     // No retry action exists here (Hub fetches counts once on mount), so the copy
     // must not promise one — matches ExploreRail's equivalent desktop wording.
+    const scopeLevel = view.level === 'namespaces' || view.level === 'domains';
     const emptyMessage = emptyMessageFor(view.level, {
         namespacesFailed,
         domainsFailed,
@@ -366,6 +368,7 @@ export function MobileNavMenu({
                     <IoCompassOutline className="text-accent ml-2" size={20} />
                 )}
                 <h2 className="text-lg font-semibold flex-1 min-w-0 truncate">{title}</h2>
+                {scopeLevel && showScopeControl && <EditScopeMenuButton scope={scope} onChange={setScope} size={32} />}
                 <button aria-label="Close navigation" className="btn btn-ghost btn-sm btn-circle" onClick={onClose}>
                     <IoCloseOutline size={22} />
                 </button>
@@ -373,9 +376,9 @@ export function MobileNavMenu({
 
             <ExplorerSearch onSearchingChange={setSearching} />
 
-            {!searching && (view.level === 'namespaces' || view.level === 'domains') && showScopeToggle && (
-                <div className="px-3 py-2 border-b border-base-200">
-                    <EditScopeToggle scope={scope} onChange={setScope} />
+            {!searching && scopeLevel && editableOnly && (
+                <div className="flex px-3 py-2 border-b border-base-200">
+                    <EditScopeChip onClear={() => setScope('all')} />
                 </div>
             )}
 

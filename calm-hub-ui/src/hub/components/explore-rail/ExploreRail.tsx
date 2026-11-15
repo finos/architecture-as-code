@@ -9,7 +9,8 @@ import { RailSectionLabel } from './RailSectionLabel.js';
 import { LoadingSpinner } from '../LoadingSpinner.js';
 import { NamespaceRailItem } from './NamespaceRailItem.js';
 import { useNamespaceTree } from './useNamespaceTree.js';
-import { EditScopeToggle } from './EditScopeToggle.js';
+import { EditScopeMenuButton } from './EditScopeMenuButton.js';
+import { EditScopeChip } from './EditScopeChip.js';
 import { useEditScope } from './useEditScope.js';
 
 interface ExploreRailProps {
@@ -49,8 +50,10 @@ function emptyNamespacesMessage(hasNamespaces: boolean, needle: string, editable
     return 'Nothing here';
 }
 
-function emptyDomainsMessage(hasDomains: boolean, editableOnly: boolean): string {
-    return hasDomains && editableOnly ? 'You cannot edit any control domains' : 'Nothing here';
+function emptyDomainsMessage(hasDomains: boolean, needle: string, editableOnly: boolean): string {
+    if (hasDomains && needle !== '') return 'No control domains match your filter';
+    if (hasDomains && editableOnly) return 'You cannot edit any control domains';
+    return 'Nothing here';
 }
 
 type RailRouteParams = { ns?: string; domain?: string; namespace?: string };
@@ -81,7 +84,7 @@ export function ExploreRail({
     const activeNamespace = ns ?? namespace;
 
     const [filter, setFilter] = useState('');
-    const { scope, setScope, showScopeToggle, editableOnly, canEditNamespace, isContextOnly, filterDomains } = useEditScope();
+    const { scope, setScope, showScopeControl, editableOnly, canEditNamespace, isContextOnly, filterDomains } = useEditScope(storage);
 
     const needle = filter.trim().toLowerCase();
     const { rows, filtering, toggleCollapsed } = useNamespaceTree({
@@ -95,7 +98,9 @@ export function ExploreRail({
         () => new Map(namespaceCounts.map((nc) => [nc.namespace, nc.description])),
         [namespaceCounts]
     );
-    const visibleDomains = filterDomains(domainCounts, (dc) => dc.domain);
+    const visibleDomains = filterDomains(domainCounts, (dc) => dc.domain).filter((dc) =>
+        dc.domain.toLowerCase().includes(needle)
+    );
 
     return (
         <div
@@ -123,16 +128,25 @@ export function ExploreRail({
             </div>
 
             <div className="px-3 flex flex-col gap-2">
-                <input
-                    type="text"
-                    aria-label="Filter namespaces"
-                    placeholder="Filter namespaces"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="w-full h-8 px-2 text-[13px] rounded-[7px] outline-none focus:ring-1"
+                <div
+                    className="flex items-center h-8 pr-1 rounded-[7px] focus-within:ring-1"
                     style={{ border: `1px solid ${colors.redesign.borderStrong}` }}
-                />
-                {showScopeToggle && <EditScopeToggle scope={scope} onChange={setScope} />}
+                >
+                    <input
+                        type="text"
+                        aria-label="Filter"
+                        placeholder="Filter"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        className="min-w-0 flex-1 h-full px-2 text-[13px] bg-transparent outline-none"
+                    />
+                    {showScopeControl && <EditScopeMenuButton scope={scope} onChange={setScope} />}
+                </div>
+                {editableOnly && (
+                    <div className="flex">
+                        <EditScopeChip onClear={() => setScope('all')} />
+                    </div>
+                )}
             </div>
 
             <div className="flex-1 overflow-auto pb-3">
@@ -171,7 +185,7 @@ export function ExploreRail({
                     ) : domainsFailed ? (
                         <RailEmpty>Couldn&apos;t load control domains</RailEmpty>
                     ) : visibleDomains.length === 0 ? (
-                        <RailEmpty>{emptyDomainsMessage(domainCounts.length > 0, editableOnly)}</RailEmpty>
+                        <RailEmpty>{emptyDomainsMessage(domainCounts.length > 0, needle, editableOnly)}</RailEmpty>
                     ) : (
                         visibleDomains.map((dc) => (
                             <RailItem

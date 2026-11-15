@@ -83,26 +83,24 @@ describe('ExploreRail', () => {
         renderRail();
         await screen.findByRole('link', { name: /finos/ });
 
-        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'trade' } });
+        fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'trade' } });
 
         expect(screen.getByRole('link', { name: /traderx/ })).toBeInTheDocument();
         expect(screen.queryByRole('link', { name: /finos/ })).not.toBeInTheDocument();
-        // Domain rows are unaffected by the namespace filter.
-        expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
     });
 
     it('tells a filter matching nothing apart from a genuinely empty namespace list', async () => {
         renderRail();
         await screen.findByRole('link', { name: /finos/ });
 
-        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'no-such-namespace' } });
+        fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'no-such-namespace' } });
         expect(screen.getByText('No namespaces match your filter')).toBeInTheDocument();
     });
 
     it('says nothing was fetched, not that the filter missed, when the namespace list is empty', () => {
         renderRail('/', { namespaceCounts: [] });
 
-        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'anything' } });
+        fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'anything' } });
 
         expect(screen.getByText('Nothing here')).toBeInTheDocument();
         expect(screen.queryByText('No namespaces match your filter')).not.toBeInTheDocument();
@@ -206,7 +204,7 @@ describe('ExploreRail — namespace hierarchy', () => {
         renderRail('/', { namespaceCounts: deepNamespaceCounts });
         await screen.findByRole('link', { name: 'finos' });
 
-        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'tra' } });
+        fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'tra' } });
 
         expect(screen.getByRole('link', { name: 'finos.traderx' })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'traderx' })).toBeInTheDocument();
@@ -221,10 +219,10 @@ describe('ExploreRail — namespace hierarchy', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Collapse finos' }));
         expect(screen.queryByRole('link', { name: 'finos.calm' })).not.toBeInTheDocument();
 
-        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'calm' } });
+        fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'calm' } });
         expect(screen.getByRole('link', { name: 'finos.calm' })).toBeInTheDocument();
 
-        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: '' } });
+        fireEvent.change(screen.getByLabelText('Filter'), { target: { value: '' } });
         expect(screen.queryByRole('link', { name: 'finos.calm' })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Expand finos' })).toBeInTheDocument();
     });
@@ -258,6 +256,13 @@ describe('ExploreRail edit scope', () => {
         return { userAccessId: 0, username: 'alice', permission, namespace };
     }
 
+    const domainGrant = (domain: string, permission: UserAccessPermission): UserAccess => ({
+        userAccessId: 0,
+        username: 'alice',
+        permission,
+        domain,
+    });
+
     const renderWithAccess = (grants: UserAccess[], storage: Storage = createMemoryStorage()) => {
         const service = { getCurrentUserAccess: () => Promise.resolve(grants) } as unknown as UserAccessService;
         return render(
@@ -269,25 +274,39 @@ describe('ExploreRail edit scope', () => {
         );
     };
 
-    const selectCanEdit = async () => fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+    const chooseScope = async (label: 'All' | 'Can edit') => {
+        fireEvent.click(await screen.findByRole('button', { name: 'Filter options' }));
+        fireEvent.click(screen.getByRole('menuitemradio', { name: label }));
+    };
+    const selectCanEdit = () => chooseScope('Can edit');
     const visiblePaths = () =>
         screen.queryAllByRole('link').map((l) => l.getAttribute('aria-label')).filter((p) => p?.startsWith('a'));
+    const chip = () => screen.queryByRole('button', { name: 'Clear the Can edit filter' });
 
-    it('hides the scope control when the user has no grants', async () => {
+    it('hides the filter button when the user has no grants', async () => {
         renderWithAccess([]);
         await screen.findByRole('link', { name: 'a.c' });
-        await waitFor(() => expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument());
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Filter options' })).not.toBeInTheDocument());
     });
 
-    it('hides the scope control when there is no access provider', async () => {
+    it('hides the filter button when there is no access provider', async () => {
         renderRail();
         await screen.findByRole('link', { name: /finos/ });
-        expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Filter options' })).not.toBeInTheDocument();
     });
 
-    it('starts on All and shows every namespace', async () => {
+    it('hides the filter button from a global admin, who can edit everything', async () => {
+        renderWithAccess([grant('GLOBAL', 'admin')]);
+        await screen.findByRole('link', { name: 'a.c' });
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Filter options' })).not.toBeInTheDocument());
+        expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
+    });
+
+    it('starts on All, with no chip and every namespace shown', async () => {
         renderWithAccess([grant('a.c', 'write')]);
-        expect(await screen.findByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+        fireEvent.click(await screen.findByRole('button', { name: 'Filter options' }));
+        expect(screen.getByRole('menuitemradio', { name: 'All' })).toHaveAttribute('aria-checked', 'true');
+        expect(chip()).not.toBeInTheDocument();
         expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
     });
 
@@ -295,7 +314,8 @@ describe('ExploreRail edit scope', () => {
         renderWithAccess([grant('a.c', 'write'), grant('a.b', 'read')]);
         await selectCanEdit();
 
-        expect(screen.getByRole('button', { name: 'Can edit' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+        expect(chip()).toBeInTheDocument();
         expect(visiblePaths()).toEqual(['a', 'a.c']);
         expect(screen.getByRole('link', { name: 'a' })).toHaveStyle({ color: colors.redesign.faintAlt });
         expect(screen.getByRole('link', { name: 'a.c' })).toHaveStyle({ color: colors.redesign.bodyAlt });
@@ -314,17 +334,10 @@ describe('ExploreRail edit scope', () => {
         expect(screen.getByRole('link', { name: 'a' })).toHaveStyle({ color: colors.redesign.bodyAlt });
     });
 
-    it('hides the scope control from a global admin, who can edit everything', async () => {
-        renderWithAccess([grant('GLOBAL', 'admin')]);
-        await screen.findByRole('link', { name: 'a.c' });
-        await waitFor(() => expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument());
-        expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
-    });
-
     it('combines with the text filter', async () => {
         renderWithAccess([grant('a.b', 'write'), grant('a.c', 'write')]);
         await selectCanEdit();
-        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'c' } });
+        fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'c' } });
         expect(visiblePaths()).toEqual(['a', 'a.c']);
     });
 
@@ -342,18 +355,31 @@ describe('ExploreRail edit scope', () => {
         expect(screen.getByText('You cannot edit any namespaces')).toBeInTheDocument();
     });
 
-    it('returns to every namespace when All is selected again', async () => {
+    it('returns to every namespace when the chip is cleared', async () => {
         renderWithAccess([grant('a.c', 'write')]);
         await selectCanEdit();
-        fireEvent.click(screen.getByRole('button', { name: 'All' }));
+        fireEvent.click(chip()!);
+        expect(chip()).not.toBeInTheDocument();
         expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
     });
 
-    const domainGrant = (domain: string, permission: UserAccessPermission): UserAccess => ({
-        userAccessId: 0,
-        username: 'alice',
-        permission,
-        domain,
+    it('returns to every namespace when All is chosen in the menu', async () => {
+        renderWithAccess([grant('a.c', 'write')]);
+        await selectCanEdit();
+        await chooseScope('All');
+        expect(chip()).not.toBeInTheDocument();
+        expect(visiblePaths()).toEqual(['a', 'a.b', 'a.c']);
+    });
+
+    it('remembers the choice in storage', async () => {
+        const storage = createMemoryStorage();
+        const first = renderWithAccess([grant('a.c', 'write')], storage);
+        await selectCanEdit();
+        first.unmount();
+
+        renderWithAccess([grant('a.c', 'write')], storage);
+        expect(await screen.findByRole('button', { name: 'Clear the Can edit filter' })).toBeInTheDocument();
+        expect(visiblePaths()).toEqual(['a', 'a.c']);
     });
 
     it('shows only the control domains the user can edit', async () => {
@@ -367,5 +393,22 @@ describe('ExploreRail edit scope', () => {
         renderWithAccess([grant('a', 'admin')]);
         await selectCanEdit();
         expect(screen.getByText('You cannot edit any control domains')).toBeInTheDocument();
+    });
+});
+
+describe('ExploreRail text filter on control domains', () => {
+    it('filters control domains as well as namespaces', async () => {
+        renderRail();
+        await screen.findByRole('link', { name: /finos/ });
+        fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'secu' } });
+        expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /compliance/ })).not.toBeInTheDocument();
+    });
+
+    it('says so when no control domain matches the filter', async () => {
+        renderRail();
+        await screen.findByRole('link', { name: /finos/ });
+        fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'finos' } });
+        expect(screen.getByText('No control domains match your filter')).toBeInTheDocument();
     });
 });

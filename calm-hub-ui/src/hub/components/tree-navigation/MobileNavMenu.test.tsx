@@ -348,12 +348,12 @@ describe('MobileNavMenu edit scope', () => {
         { namespace: 'a.c', total: 3 },
     ] as NamespaceCounts[];
 
-    const renderWithAccess = (grants: UserAccess[]) => {
+    const renderWithAccess = (grants: UserAccess[], storage: Storage = createMemoryStorage()) => {
         const service = { getCurrentUserAccess: () => Promise.resolve(grants) } as unknown as UserAccessService;
         return render(
             <UserAccessProvider service={service}>
                 <MemoryRouter>
-                    <MobileNavMenu {...props} namespaceCounts={abc} storage={createMemoryStorage()} />
+                    <MobileNavMenu {...props} namespaceCounts={abc} storage={storage} />
                 </MemoryRouter>
             </UserAccessProvider>
         );
@@ -365,46 +365,73 @@ describe('MobileNavMenu edit scope', () => {
         namespace,
     });
     const rowLabels = () => screen.getAllByRole('listitem').map((li) => li.textContent);
+    const selectCanEdit = async () => {
+        fireEvent.click(await screen.findByRole('button', { name: 'Filter options' }));
+        fireEvent.click(screen.getByRole('menuitemradio', { name: 'Can edit' }));
+    };
+    const chip = () => screen.queryByRole('button', { name: 'Clear the Can edit filter' });
 
-    it('shows the scope control at the namespaces and domains levels, not the root', async () => {
+    it('shows the filter button in the header at the namespaces and domains levels, not the root', async () => {
         renderWithAccess([grant('a.c', 'write')]);
-        await waitFor(() => expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument());
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Filter options' })).not.toBeInTheDocument());
         fireEvent.click(screen.getByText('Namespaces'));
-        expect(await screen.findByRole('group', { name: 'Scope' })).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Filter options' })).toBeInTheDocument();
         fireEvent.click(screen.getByLabelText('Back'));
         fireEvent.click(screen.getByText('Control Domains'));
-        expect(screen.getByRole('group', { name: 'Scope' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Filter options' })).toBeInTheDocument();
+    });
+
+    it('shows the chip row only while Can edit is on', async () => {
+        renderWithAccess([grant('a.c', 'write')]);
+        fireEvent.click(screen.getByText('Namespaces'));
+        await screen.findByRole('button', { name: 'Filter options' });
+        expect(chip()).not.toBeInTheDocument();
+
+        await selectCanEdit();
+        expect(chip()).toBeInTheDocument();
+
+        fireEvent.click(chip()!);
+        expect(chip()).not.toBeInTheDocument();
+        expect(rowLabels()).toHaveLength(3);
     });
 
     it('keeps the scope when moving between levels', async () => {
         renderWithAccess([grant('a.c', 'write')]);
         fireEvent.click(screen.getByText('Namespaces'));
-        fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+        await selectCanEdit();
         fireEvent.click(screen.getByLabelText('Back'));
         fireEvent.click(screen.getByText('Control Domains'));
-        expect(screen.getByRole('button', { name: 'Can edit' })).toHaveAttribute('aria-pressed', 'true');
+        expect(chip()).toBeInTheDocument();
         expect(screen.getByText('You cannot edit any control domains')).toBeInTheDocument();
+    });
+
+    it('starts with the choice remembered in storage', async () => {
+        const storage = createMemoryStorage();
+        storage.setItem('calmHub.editScope', 'editable');
+        renderWithAccess([grant('a.c', 'write')], storage);
+        fireEvent.click(screen.getByText('Namespaces'));
+        expect(await screen.findByRole('button', { name: 'Clear the Can edit filter' })).toBeInTheDocument();
     });
 
     it('shows only the control domains the user can edit', async () => {
         const domainGrant: UserAccess = { userAccessId: 0, username: 'alice', permission: 'admin', domain: 'security' };
         renderWithAccess([domainGrant]);
         fireEvent.click(screen.getByText('Control Domains'));
-        fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+        await selectCanEdit();
         expect(screen.getByText('security')).toBeInTheDocument();
     });
 
-    it('hides the scope control when the user has no grants', async () => {
+    it('hides the filter button when the user has no grants', async () => {
         renderMenu();
         fireEvent.click(screen.getByText('Namespaces'));
         await screen.findByText('finos');
-        expect(screen.queryByRole('group', { name: 'Scope' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Filter options' })).not.toBeInTheDocument();
     });
 
     it('shows editable namespaces with muted parents and no collapse chevrons', async () => {
         renderWithAccess([grant('a.c', 'write')]);
         fireEvent.click(screen.getByText('Namespaces'));
-        fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+        await selectCanEdit();
 
         expect(rowLabels()).toEqual([expect.stringMatching(/^a/), expect.stringMatching(/^c/)]);
         expect(screen.getByText('a')).toHaveStyle({ color: colors.redesign.faintAlt });
@@ -414,7 +441,7 @@ describe('MobileNavMenu edit scope', () => {
     it('says so when the user cannot edit any namespace', async () => {
         renderWithAccess([grant('a', 'read')]);
         fireEvent.click(screen.getByText('Namespaces'));
-        fireEvent.click(await screen.findByRole('button', { name: 'Can edit' }));
+        await selectCanEdit();
         expect(screen.getByText('You cannot edit any namespaces')).toBeInTheDocument();
     });
 });
