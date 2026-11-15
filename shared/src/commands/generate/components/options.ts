@@ -23,7 +23,7 @@ export interface CalmOption {
 }
 
 function getItemsInOptionsRelationship(optionsRelationship: SchemaNode): SchemaNode[] {
-    return optionsRelationship['properties']['relationship-type']['properties']['options']['prefixItems'];
+    return optionsRelationship['properties']['relationship-type']['properties']['options']['prefixItems'] ?? [];
 }
 
 function extractOptionsFromBlock(optionsRelationship: SchemaNode, blockType: 'oneOf' | 'anyOf'): CalmOption[] {
@@ -32,12 +32,13 @@ function extractOptionsFromBlock(optionsRelationship: SchemaNode, blockType: 'on
         .map((prefixItem: SchemaNode) => prefixItem[blockType] as SchemaNode[])
         .map((choices: SchemaNode[]) => ({
             optionType: blockType,
-            optionId: optionsRelationship['properties']['unique-id']['const'],
-            prompt: optionsRelationship['properties']['description']['const'],
+            // A pattern need not pin every field, and validate reads this for any decision.
+            optionId: optionsRelationship['properties']['unique-id']?.['const'],
+            prompt: optionsRelationship['properties']['description']?.['const'],
             choices: choices.map(choice => ({
-                description: choice['properties']['description']['const'],
-                nodes: choice['properties']['nodes']['const'],
-                relationships: choice['properties']['relationships']['const']
+                description: choice['properties']?.['description']?.['const'],
+                nodes: choice['properties']?.['nodes']?.['const'] ?? [],
+                relationships: choice['properties']?.['relationships']?.['const'] ?? []
             }))
         }));
 }

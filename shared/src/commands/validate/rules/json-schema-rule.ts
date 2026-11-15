@@ -8,7 +8,7 @@ import {
     convertJsonSchemaIssuesToValidationOutputs,
     findLatestCalmCoreSchemaUrl,
     prettifyJson,
-    unansweredOneOfDecisions
+    oneOfDecisionsWithoutOneAnswer
 } from '../validation-helpers.js';
 import { emptyRuleResult, RuleResult, ValidationContext, ValidationPhase, ValidationRule } from '../validation-rule.js';
 
@@ -71,10 +71,10 @@ export class JsonSchemaValidationRule implements ValidationRule {
             logger.debug(`JSON Schema validation raw output: ${prettifyJson(schemaErrors)}`);
         }
         const schemaOutputs = convertJsonSchemaIssuesToValidationOutputs(schemaErrors, 'architecture');
-        // The pattern may already reject an empty answer, with `minItems` on its options list.
-        const unanswered = unansweredOneOfDecisions(architecture, context.pattern!)
+        // The pattern may already reject the answer count, with `minItems` or `maxItems` on its options list.
+        const wrongAnswerCount = oneOfDecisionsWithoutOneAnswer(architecture, context.pattern!)
             .filter(output => !schemaOutputs.some(existing => existing.path === output.path));
-        const outputs = [...schemaOutputs, ...unanswered];
+        const outputs = [...schemaOutputs, ...wrongAnswerCount];
         if (outputs.length > 0) {
             return { ...emptyRuleResult(), jsonSchemaOutputs: outputs, hasErrors: true };
         }
