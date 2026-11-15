@@ -76,7 +76,7 @@ describe('validate E2E', () => {
             .toEqual(['/relationships/0/relationship-type/options']);
     });
 
-    describe('a decision answered with nothing', () => {
+    describe('decision answers', () => {
         const NODE = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/node';
         const RELATIONSHIP = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship';
         const DECISION = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/decision';
@@ -150,6 +150,76 @@ describe('validate E2E', () => {
             expect(response.jsonSchemaValidationOutputs.map(o => `${o.path} ${o.message}`)).toEqual([
                 '/relationships/0/relationship-type/options The decision [add-cache] is a oneOf and needs exactly one answer.'
             ]);
+        });
+
+        describe('with several answers', () => {
+            // Both candidates sit in their own slot before the required db, so a dropped slot moves db up.
+            const severalAnswersPattern = (keyword: Keyword) => ({
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                $id: 'https://calm.finos.org/test/decision-with-several-answers.json',
+                type: 'object',
+                properties: {
+                    nodes: { type: 'array', prefixItems: [node('api'), { [keyword]: [node('cache')] }, { [keyword]: [node('queue')] }, node('db')] },
+                    relationships: { type: 'array', prefixItems: [decision('add-components', keyword, [cache, queue])] }
+                },
+                required: ['nodes', 'relationships']
+            });
+
+            async function generateThenValidateSeveral(keyword: Keyword, chosen: CalmChoice[]) {
+                const pattern = severalAnswersPattern(keyword);
+                const architecture = await generate(pattern, schemaDirectory, { chosenChoices: chosen }) as { nodes: { 'unique-id': string }[] };
+                const response = await validate(architecture, pattern, undefined, schemaDirectory, false);
+                return { nodes: architecture.nodes.map(n => n['unique-id']), response };
+            }
+
+            it('accepts what calm generate builds when an anyOf decision has two answers', async () => {
+                const { nodes, response } = await generateThenValidateSeveral('anyOf', [cache, queue]);
+
+                expect(nodes).toEqual(['api', 'cache', 'queue', 'db']);
+                expect(response.jsonSchemaValidationOutputs).toEqual([]);
+            });
+
+            it('still accepts an anyOf decision with one answer', async () => {
+                const { nodes, response } = await generateThenValidateSeveral('anyOf', [queue]);
+
+                expect(nodes).toEqual(['api', 'queue', 'db']);
+                expect(response.jsonSchemaValidationOutputs).toEqual([]);
+            });
+
+            it('reports a oneOf decision with two answers', async () => {
+                const { response } = await generateThenValidateSeveral('oneOf', [cache, queue]);
+
+                expect(response.jsonSchemaValidationOutputs.map(o => `${o.path} ${o.message}`)).toEqual([
+                    '/relationships/0/relationship-type/options The decision [add-components] is a oneOf and needs exactly one answer.'
+                ]);
+            });
+
+            it('accepts two answers when the pattern alternatives pin only a description', async () => {
+                const loose = (description: string) => ({ type: 'object', properties: { description: { const: description } } });
+                const pattern = {
+                    $schema: 'https://json-schema.org/draft/2020-12/schema',
+                    $id: 'https://calm.finos.org/test/decision-with-loose-alternatives.json',
+                    type: 'object',
+                    properties: {
+                        nodes: { type: 'array', prefixItems: [node('api')] },
+                        relationships: { type: 'array', prefixItems: [{ type: 'object', properties: {
+                            'unique-id': { const: 'loose' },
+                            'relationship-type': { type: 'object', properties: { options: { type: 'array', prefixItems: [{ anyOf: [loose('A'), loose('B')] }] } } }
+                        } }] }
+                    }
+                };
+                const architecture = {
+                    nodes: [{ 'unique-id': 'api', name: 'api', 'node-type': 'service', description: 'api' }],
+                    relationships: [{ 'unique-id': 'loose', 'relationship-type': { options: [
+                        { description: 'A', nodes: [], relationships: [] },
+                        { description: 'B', nodes: [], relationships: [] }
+                    ] } }]
+                };
+
+                const response = await validate(architecture, pattern, undefined, schemaDirectory, false);
+
+                expect(response.jsonSchemaValidationOutputs).toEqual([]);
+            });
         });
     });
 

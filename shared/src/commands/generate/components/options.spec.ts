@@ -228,6 +228,33 @@ describe('Pattern Options', () => {
 
             expect(extractOptions(pattern)).toEqual(expectedOptions);
         });
+
+        it('should read a decision whose alternatives do not pin every field', () => {
+            const pattern = {
+                properties: {
+                    relationships: {
+                        prefixItems: [{
+                            properties: {
+                                'unique-id': { const: 'loose' },
+                                'relationship-type': { properties: { options: {
+                                    prefixItems: [{ oneOf: [{ properties: { description: { const: 'A' } } }, {}] }]
+                                } } }
+                            }
+                        }]
+                    }
+                }
+            };
+
+            expect(extractOptions(pattern)).toEqual([{
+                optionType: 'oneOf',
+                optionId: 'loose',
+                prompt: undefined,
+                choices: [
+                    { description: 'A', nodes: [], relationships: [] },
+                    { description: undefined, nodes: [], relationships: [] }
+                ]
+            }]);
+        });
     });
 
     describe('selectChoices', () => {
