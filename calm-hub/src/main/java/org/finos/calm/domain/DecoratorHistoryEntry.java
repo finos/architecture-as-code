@@ -5,8 +5,8 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.util.Objects;
 
 /**
- * One decorator in the history of a reserved-type decorator. {@code supersedes} and
- * {@code supersededBy} are Hub-owned and stored outside the decorator itself.
+ * One decorator in the history of a reserved-type decorator. {@code supersedes}, {@code supersededBy} and
+ * {@code supersededDateTime} are Hub-owned and stored outside the decorator itself.
  *
  * <p>Immutable</p>
  */
@@ -15,12 +15,18 @@ public class DecoratorHistoryEntry {
     private final int id;
     private final Integer supersedes;
     private final Integer supersededBy;
+    private final String supersededDateTime;
     private final Decorator decorator;
 
     public DecoratorHistoryEntry(int id, Integer supersedes, Integer supersededBy, Decorator decorator) {
+        this(id, supersedes, supersededBy, null, decorator);
+    }
+
+    public DecoratorHistoryEntry(int id, Integer supersedes, Integer supersededBy, String supersededDateTime, Decorator decorator) {
         this.id = id;
         this.supersedes = supersedes;
         this.supersededBy = supersededBy;
+        this.supersededDateTime = supersededDateTime;
         this.decorator = decorator;
     }
 
@@ -36,6 +42,14 @@ public class DecoratorHistoryEntry {
         return supersededBy;
     }
 
+    /**
+     * The time this entry was superseded. The superseded decorator keeps its own {@code updateDateTime}, which
+     * stays the time its content was last written.
+     */
+    public String getSupersededDateTime() {
+        return supersededDateTime;
+    }
+
     public Decorator getDecorator() {
         return decorator;
     }
@@ -47,12 +61,13 @@ public class DecoratorHistoryEntry {
         return id == that.id
                 && Objects.equals(supersedes, that.supersedes)
                 && Objects.equals(supersededBy, that.supersededBy)
+                && Objects.equals(supersededDateTime, that.supersededDateTime)
                 && Objects.equals(decorator, that.decorator);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, supersedes, supersededBy, decorator);
+        return Objects.hash(id, supersedes, supersededBy, supersededDateTime, decorator);
     }
 
     @Override
@@ -61,6 +76,7 @@ public class DecoratorHistoryEntry {
                 "id=" + id +
                 ", supersedes=" + supersedes +
                 ", supersededBy=" + supersededBy +
+                ", supersededDateTime='" + supersededDateTime + '\'' +
                 ", decorator=" + decorator +
                 '}';
     }

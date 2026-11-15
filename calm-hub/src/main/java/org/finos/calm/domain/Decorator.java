@@ -1,5 +1,7 @@
 package org.finos.calm.domain;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +10,7 @@ import java.util.Objects;
 /**
  * Represents a decorator in the CALM system.
  * A decorator contains metadata and properties that can be applied to architectures or other elements.
+ * {@code creationDateTime} and {@code updateDateTime} are Hub-owned and stored outside the decorator itself.
  *
  * <p>Immutable</p>
  */
@@ -19,6 +22,8 @@ public class Decorator {
     private final List<String> targetType;
     private final List<String> appliesTo;
     private final Object data;
+    private final String creationDateTime;
+    private final String updateDateTime;
 
     private Decorator(DecoratorBuilder builder) {
         this.schema = builder.schema;
@@ -28,6 +33,8 @@ public class Decorator {
         this.targetType = builder.targetType;
         this.appliesTo = builder.appliesTo;
         this.data = builder.data;
+        this.creationDateTime = builder.creationDateTime;
+        this.updateDateTime = builder.updateDateTime;
     }
 
     public String getSchema() {
@@ -58,6 +65,31 @@ public class Decorator {
         return data;
     }
 
+    // A decorator stored before Hub recorded times has none.
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getCreationDateTime() {
+        return creationDateTime;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String getUpdateDateTime() {
+        return updateDateTime;
+    }
+
+    public Decorator withTimestamps(String creationDateTime, String updateDateTime) {
+        return new DecoratorBuilder()
+                .setSchema(schema)
+                .setUniqueId(uniqueId)
+                .setType(type)
+                .setTarget(target)
+                .setTargetType(targetType)
+                .setAppliesTo(appliesTo)
+                .setData(data)
+                .setCreationDateTime(creationDateTime)
+                .setUpdateDateTime(updateDateTime)
+                .build();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
@@ -68,12 +100,14 @@ public class Decorator {
                 && Objects.equals(target, that.target)
                 && Objects.equals(targetType, that.targetType)
                 && Objects.equals(appliesTo, that.appliesTo)
-                && Objects.equals(data, that.data);
+                && Objects.equals(data, that.data)
+                && Objects.equals(creationDateTime, that.creationDateTime)
+                && Objects.equals(updateDateTime, that.updateDateTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(schema, uniqueId, type, target, targetType, appliesTo, data);
+        return Objects.hash(schema, uniqueId, type, target, targetType, appliesTo, data, creationDateTime, updateDateTime);
     }
 
     @Override
@@ -86,6 +120,8 @@ public class Decorator {
                 ", targetType=" + targetType +
                 ", appliesTo=" + appliesTo +
                 ", data=" + data +
+                ", creationDateTime='" + creationDateTime + '\'' +
+                ", updateDateTime='" + updateDateTime + '\'' +
                 '}';
     }
 
@@ -131,6 +167,8 @@ public class Decorator {
         private List<String> targetType;
         private List<String> appliesTo;
         private Object data;
+        private String creationDateTime;
+        private String updateDateTime;
 
         public DecoratorBuilder setSchema(String schema) {
             this.schema = schema;
@@ -164,6 +202,16 @@ public class Decorator {
 
         public DecoratorBuilder setData(Object data) {
             this.data = data;
+            return this;
+        }
+
+        public DecoratorBuilder setCreationDateTime(String creationDateTime) {
+            this.creationDateTime = creationDateTime;
+            return this;
+        }
+
+        public DecoratorBuilder setUpdateDateTime(String updateDateTime) {
+            this.updateDateTime = updateDateTime;
             return this;
         }
 
