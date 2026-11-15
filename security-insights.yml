@@ -1,6 +1,6 @@
 header:
   schema-version: 2.2.0
-  last-updated: '2026-11-10'
+  last-updated: '2026-11-15'
   last-reviewed: '2026-09-26'
   url: https://raw.githubusercontent.com/finos/architecture-as-code/main/security-insights.yml
   comment: |
@@ -89,6 +89,12 @@ project:
       url: https://github.com/finos/architecture-as-code/tree/main/calm-hub-ui
       comment: |
         React frontend for CALM Hub. Status: Active.
+    - name: calm-hub-extensions
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions
+      comment: |
+        The CALM Hub extensions that the project owns, such as the C4 lens.
+        Each one is a TypeScript service that runs as a sidecar of CALM Hub.
+        Docker images built from source; not published. Status: Active.
     - name: calm-server
       url: https://github.com/finos/architecture-as-code/tree/main/calm-server
       comment: |

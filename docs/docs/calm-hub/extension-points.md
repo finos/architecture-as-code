@@ -175,7 +175,9 @@ Another picture of the architecture on the **Diagram** tab, such as a C4 or an
 ArchiMate® view. The lens shows in the lens list of the tab, under
 **Extensions**, with the extension name. Its route returns a graph, and CALM
 Hub lays it out and draws it with the shapes of the lens **notation**. No
-extension code runs in the browser.
+extension code runs in the browser. The
+[C4 extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/c4)
+is a full example, with its manifest, notation and service.
 
 ```json
 "diagram-lens": [{
@@ -183,7 +185,7 @@ extension code runs in the browser.
   "appliesTo": { "resourceTypes": ["architectures"] },
   "params": {
     "level": { "values": ["context", "container", "component", "deployment"], "default": "context" },
-    "scope": { "pattern": "^[A-Za-z0-9._-]{1,128}$" }
+    "scope": { "pattern": "^[A-Za-z0-9_.:/-]{1,128}$" }
   },
   "notation": "notation.json"
 }]

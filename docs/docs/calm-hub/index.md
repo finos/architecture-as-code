@@ -158,6 +158,7 @@ The Hub UI shows the contributions of an extension, the CLI runs its commands (s
 | [Extension points](extension-points.md) | Find the fields, the context and the limits of each extension point and of commands |
 | [Extension blocks](extension-blocks.md) | Write the JSON that the UI draws |
 | [Decorator views](decorator-views.md) | Draw decorators on the diagram, with no backend |
+| [The C4 extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/c4) | See a diagram lens with its own notation, run as a sidecar |
 | [Extension access](extension-access.md) | Learn the scopes, the identity assertion and the trust model |
 
 Put one folder for each extension in `calm.extensions.dir`, with an `extension.json` in it. The folder name must equal the manifest `id`. Hub skips hidden folders and warns about folders without a manifest. A per-id setting for an unknown extension id gives a warning at start up, as a property or as an environment variable.

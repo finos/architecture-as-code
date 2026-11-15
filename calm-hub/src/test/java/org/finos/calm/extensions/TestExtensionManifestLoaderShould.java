@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -436,6 +437,16 @@ class TestExtensionManifestLoaderShould {
         List<ExtensionManifest> manifests = loader.loadDirectory(Path.of("local-dev/extensions"));
 
         assertThat(manifests.stream().map(ExtensionManifest::id).toList(), contains("example-services"));
+    }
+
+    @Test
+    void load_the_c4_extension_with_its_lens_and_notation_as_it_ships() {
+        List<ExtensionManifest> manifests = loader.loadDirectory(Path.of("../calm-hub-extensions"));
+
+        assertThat(manifests.stream().map(ExtensionManifest::id).toList(), contains("c4"));
+        ExtensionManifest.DiagramLens lens = manifests.getFirst().contributes().diagramLens().getFirst();
+        assertThat(lens.params().keySet(), contains("level", "scope"));
+        assertThat(lens.notationContent(), hasKey("shapes"));
     }
 
     @Test

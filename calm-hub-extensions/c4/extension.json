@@ -1,0 +1,33 @@
+{
+  "id": "c4",
+  "version": "1.0.0",
+  "hubApi": 0,
+  "name": "C4 model",
+  "description": "C4 context, container, component and deployment diagrams of an architecture, by the CALM C4 standard.",
+  "provider": "FINOS CALM",
+  "routes": [
+    {
+      "id": "lens",
+      "method": "GET",
+      "path": "/lens/{namespace}/{resourceType}/{resourceId}",
+      "scope": "read",
+      "readOnly": true
+    }
+  ],
+  "contributes": {
+    "diagram-lens": [
+      {
+        "id": "c4",
+        "title": "C4",
+        "description": "C4 context, container, component and deployment diagrams",
+        "route": "lens",
+        "appliesTo": { "resourceTypes": ["architectures"] },
+        "params": {
+          "level": { "values": ["context", "container", "component", "deployment"], "default": "context" },
+          "scope": { "pattern": "^[A-Za-z0-9_.:/-]{1,128}$" }
+        },
+        "notation": "notation.json"
+      }
+    ]
+  }
+}

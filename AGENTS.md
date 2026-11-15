@@ -50,6 +50,7 @@ architecture-as-code/
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
 ├── calm-hub-ui/               # React frontend for CALM Hub
+├── calm-hub-extensions/       # The CALM Hub extensions we own, one folder per manifest id (see its README)
 ├── calm-lab/                  # Standalone learning lab app (lab.calm.finos.org)
 ├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
@@ -224,6 +225,7 @@ TypeScript packages (npm workspaces) build in order:
   calm-models → calm-widgets → shared → cli → calm-plugins/vscode
                                      ↳ calm-lab
   calm-models → calm-diagram → calm-docusaurus-plugin → docs
+  calm-models → calm-hub-extensions/c4 (bundled into its dist)
                              ↳ calm-plugins/vscode
 ```
 

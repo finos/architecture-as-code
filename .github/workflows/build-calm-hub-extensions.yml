@@ -1,0 +1,52 @@
+name: Build CALM Hub Extensions
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        branches:
+            - 'main'
+            - 'release*'
+    push:
+        branches:
+            - 'main'
+            - 'release*'
+
+jobs:
+    extension:
+        name: Build, Test, and Lint the ${{ matrix.extension }} Extension
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                # One entry for each folder in calm-hub-extensions.
+                extension: [c4]
+
+        steps:
+            - name: Checkout PR Branch
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version-file: '.nvmrc'
+
+            - name: Install workspace
+              run: npm ci
+
+            - name: Build CALM Models
+              run: npm run build --workspace calm-models
+
+            - name: Lint the extension
+              run: npm run lint --workspace calm-hub-extensions/${{ matrix.extension }}
+
+            - name: Run tests with coverage
+              run: npm test --workspace calm-hub-extensions/${{ matrix.extension }} -- --coverage
+
+            - name: Build the extension
+              run: npm run build --workspace calm-hub-extensions/${{ matrix.extension }}
+
+            # The image installs only the workspaces that it needs from the root lockfile, so build it to catch a lockfile it cannot use.
+            - name: Build the image
+              run: docker build -f calm-hub-extensions/${{ matrix.extension }}/Dockerfile -t finos/calm-hub-${{ matrix.extension }}:ci .
