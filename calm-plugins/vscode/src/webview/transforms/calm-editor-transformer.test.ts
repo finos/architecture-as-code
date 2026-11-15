@@ -305,6 +305,16 @@ describe('flowToCalm - round trip', () => {
                 'relationship-type': { 'composed-of': { container: 'platform', nodes: ['worker'] } },
             },
             {
+                'unique-id': 'worker-db',
+                'relationship-type': { connects: { source: { node: 'worker' }, destination: { node: 'db' } } },
+                metadata: { 'line-style': 'solid', routing: 'bezier' },
+            },
+            {
+                'unique-id': 'worker-api',
+                'relationship-type': { connects: { source: { node: 'worker' }, destination: { node: 'api' } } },
+                metadata: {},
+            },
+            {
                 'unique-id': 'api-pending',
                 description: 'Destination not chosen yet',
                 'relationship-type': { connects: { source: { node: 'api' }, destination: { interfaces: ['db-sql'] } } },
@@ -351,6 +361,31 @@ describe('flowToCalm - round trip', () => {
         expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
     });
 
+    it('writes a document that has no relationships', () => {
+        const { relationships: _, ...withoutRelationships } = fullArchitecture();
+        const { nodes, edges } = openCanvas(withoutRelationships as CalmArchitecture);
+
+        expect(flowToCalm(nodes, edges).nodes).toHaveLength(nodes.length);
+    });
+
+    it('writes edited line style and routing into metadata that held their defaults', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        const workerDb = edges.find((e) => e.id === 'worker-db')!;
+        workerDb.data = { ...workerDb.data, lineStyle: 'dotted' };
+
+        expect(relationship(flowToCalm(nodes, edges), 'worker-db').metadata).toEqual({ 'line-style': 'dotted' });
+    });
+
+    it('keeps array metadata an array when the line style changes', () => {
+        const { nodes, edges } = openCanvas(fullArchitecture());
+        for (const edge of edges.filter((e) => e.data.calmRelId === 'user-api')) edge.data = { ...edge.data, lineStyle: 'dotted' };
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(relationship(result, 'user-api').metadata).toEqual([{ channel: 'web' }, { 'line-style': 'dotted' }]);
+        expect(openCanvas(result).edges.find((e) => e.data.calmRelId === 'user-api')!.data.lineStyle).toBe('dotted');
+    });
+
     it('applies canvas edits and keeps the other fields', () => {
         const { nodes, edges } = openCanvas(fullArchitecture());
         const api = nodes.find((n) => n.id === 'api')!;
@@ -392,19 +427,83 @@ describe('flowToCalm - round trip', () => {
 
     it('keeps the fields of the reverse relationship of a bidirectional edge', () => {
         const arch = fullArchitecture();
+        const { 'unique-id': _id, 'relationship-type': _type, authentication: _auth, ...editedFields } = arch.relationships[0];
         arch.relationships.push({
             'unique-id': 'db-api',
             authentication: 'mTLS',
             'relationship-type': {
                 connects: { source: { node: 'db', interfaces: ['db-sql'] }, destination: { node: 'api' } },
             },
+            ...editedFields,
         });
         const { nodes, edges } = openCanvas(arch);
+        expect(edges.find((e) => e.id === 'api-db')!.data.calmReverseRelId).toBe('db-api');
 
         const reverse = relationship(flowToCalm(nodes, edges), 'db-api');
 
         expect(reverse.authentication).toBe('mTLS');
         expect(reverse['relationship-type'].connects.source).toEqual({ node: 'db', interfaces: ['db-sql'] });
+    });
+
+    it('keeps the metadata of each relationship of a bidirectional edge', () => {
+        const arch = fullArchitecture();
+        arch.relationships.push({
+            'unique-id': 'db-worker',
+            'relationship-type': { connects: { source: { node: 'db' }, destination: { node: 'worker' } } },
+        });
+        const original = JSON.parse(JSON.stringify(arch));
+        const { nodes, edges } = openCanvas(arch);
+        expect(edges.find((e) => e.id === 'worker-db')!.data.calmReverseRelId).toBe('db-worker');
+
+        const result = flowToCalm(nodes, edges, original.controls);
+
+        expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
+    });
+
+    it('keeps the data of each relationship of an A→B and B→A pair that differ', () => {
+        const arch = fullArchitecture();
+        arch.relationships.push({
+            'unique-id': 'db-api',
+            description: 'Notifies the API',
+            protocol: 'JDBC',
+            'relationship-type': { connects: { source: { node: 'db' }, destination: { node: 'api' } } },
+            controls: { retention: { description: 'Kept 7 days', requirements: [{ 'requirement-url': 'https://example.com/ret' }] } },
+        });
+        const original = JSON.parse(JSON.stringify(arch));
+        const { nodes, edges } = openCanvas(arch);
+
+        const result = flowToCalm(nodes, edges, original.controls);
+
+        expect(JSON.stringify(withoutLayout(result), null, 2)).toBe(JSON.stringify(original, null, 2));
+    });
+
+    it('keeps array metadata an array in a new reverse relationship', () => {
+        const arch = fullArchitecture();
+        relationship(arch, 'worker-api').metadata = [{ owner: 'team' }];
+        const { nodes, edges } = openCanvas(arch);
+        const workerApi = edges.find((e) => e.id === 'worker-api')!;
+        workerApi.data = { ...workerApi.data, direction: 'bidirectional' };
+
+        expect(relationship(flowToCalm(nodes, edges), 'worker-api-reverse').metadata).toEqual([{ owner: 'team' }]);
+    });
+
+    it('writes an edit of a bidirectional edge to both relationships', () => {
+        const arch = fullArchitecture();
+        const { 'unique-id': _id, 'relationship-type': _type, authentication: _auth, ...editedFields } = arch.relationships[0];
+        arch.relationships.push({
+            'unique-id': 'db-api',
+            'relationship-type': { connects: { source: { node: 'db' }, destination: { node: 'api' } } },
+            ...editedFields,
+        });
+        const { nodes, edges } = openCanvas(arch);
+        const controls = { audit: { description: 'Edited', requirements: [{ 'requirement-url': 'https://example.com/audit' }] } };
+        const apiDb = edges.find((e) => e.id === 'api-db')!;
+        apiDb.data = { ...apiDb.data, controls };
+
+        const result = flowToCalm(nodes, edges);
+
+        expect(relationship(result, 'api-db').controls).toEqual(controls);
+        expect(relationship(result, 'db-api').controls).toEqual(controls);
     });
 
     it('keeps the containment fields when a child moves out', () => {

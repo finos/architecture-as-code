@@ -50,7 +50,7 @@ import { updateInstances, hasSharedDrawings, pathOf } from './transforms/node-in
 import { resolveLiveSelectedNode } from './utils/live-selected-node';
 import { deleteDrawings, unparentDrawing, withIssueCounts, pastedNode, originalsOf } from './transforms/canvas-edits';
 import { NodePalette } from './panels/NodePalette';
-import { EdgeProperties } from './panels/EdgeProperties';
+import { EdgeProperties, hasSeparateReverseEdge } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
 import { ControlsList } from './panels/ControlsList';
 import { CustomMetadata } from './panels/CustomMetadata';
@@ -1079,7 +1079,7 @@ function CanvasApp() {
                                 <button onClick={() => setPanelCollapsed(true)} title="Collapse panel" style={collapseToggleStyle}>›</button>
                             </div>
                             {selectedEdge && !liveSelectedNode ? (
-                                <EdgeProperties edge={selectedEdge} readonlyMode={store.readonlyMode} onEdgeUpdate={onEdgeUpdate} />
+                                <EdgeProperties edge={selectedEdge} hasReverseEdge={hasSeparateReverseEdge(selectedEdge, edges)} readonlyMode={store.readonlyMode} onEdgeUpdate={onEdgeUpdate} />
                             ) : liveSelectedNode && data ? (
                                 <>
                                     <div style={{ padding: '12px' }}>
