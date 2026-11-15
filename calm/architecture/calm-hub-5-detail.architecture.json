@@ -18,8 +18,52 @@
             "unique-id": "calm-hub-services",
             "node-type": "service",
             "name": "Services Layer",
-            "description": "Business logic under org.finos.calm.services that orchestrates store access on behalf of the REST resources layer",
-            "development-language": "Java"
+            "description": "Business logic under org.finos.calm.services that orchestrates store access on behalf of the REST resources layer. DecoratorWriteService applies the decorator write rules for REST and MCP",
+            "development-language": "Java",
+            "controls": {
+                "validation-decorator-trust": {
+                    "description": "A reserved decorator type can be written only by the principals that the operator lists for it, and any other writer gets 403. Proposed: validation maps to system, a flag that only Hub code sets, so no caller name can write it",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-val-01",
+                                "name": "Only Hub writes validation decorators",
+                                "description": "A reserved decorator type can be written only by the principals that the operator lists for it, and any other writer gets 403. Proposed: validation maps to system, a flag that only Hub code sets, so no caller name can write it",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
+                            }
+                        }
+                    ]
+                },
+                "reserved-types-append-only": {
+                    "description": "An update of a reserved type stores a new decorator that supersedes the one it names, and returns 201. An update of a decorator that is already superseded returns 409. Proposed: Hub finds the decorator to supersede by type, target and key",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-dec-01",
+                                "name": "Reserved types are append-only",
+                                "description": "An update of a reserved type stores a new decorator that supersedes the one it names, and returns 201. An update of a decorator that is already superseded returns 409. Proposed: Hub finds the decorator to supersede by type, target and key",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
+                            }
+                        }
+                    ]
+                },
+                "decorator-standard-check": {
+                    "description": "When a decorator's $schema is a Standard that Hub bundles, Hub checks the decorator before the write and returns 400 if it is not valid. A decorator with an unknown $schema is accepted. Hub makes no call to a validator",
+                    "requirements": [
+                        {
+                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
+                            "config": {
+                                "control-id": "calm-hub-dec-02",
+                                "name": "Decorators checked against a known Standard",
+                                "description": "When a decorator's $schema is a Standard that Hub bundles, Hub checks the decorator before the write and returns 400 if it is not valid. A decorator with an unknown $schema is accepted. Hub makes no call to a validator",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
+                            }
+                        }
+                    ]
+                }
+            }
         },
         {
             "unique-id": "calm-hub-storage",
@@ -60,48 +104,6 @@
             "description": "Wrappers that the store producers return around the selected implementation. Every REST, MCP, mapping and promotion write passes through them",
             "development-language": "Java",
             "controls": {
-                "validation-decorator-trust": {
-                    "description": "Hub maps the validation decorator type to the system writer, which only Hub code sets. The operator cannot change this. The decorator store wrapper returns 403 to any other writer",
-                    "requirements": [
-                        {
-                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-                            "config": {
-                                "control-id": "calm-hub-val-01",
-                                "name": "Only Hub writes validation decorators",
-                                "description": "Hub maps the validation decorator type to the system writer, which only Hub code sets. The operator cannot change this. The decorator store wrapper returns 403 to any other writer",
-                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
-                            }
-                        }
-                    ]
-                },
-                "reserved-types-append-only": {
-                    "description": "An update returns 409 if the stored or the new type is reserved. A writer creates a new decorator, which supersedes the current one with the same type, target and key",
-                    "requirements": [
-                        {
-                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-                            "config": {
-                                "control-id": "calm-hub-dec-01",
-                                "name": "Reserved types are append-only",
-                                "description": "An update returns 409 if the stored or the new type is reserved. A writer creates a new decorator, which supersedes the current one with the same type, target and key",
-                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
-                            }
-                        }
-                    ]
-                },
-                "decorator-standard-check": {
-                    "description": "When a validator is configured and a decorator's $schema is a Standard that Hub holds, Hub checks the decorator before the write and returns 400 if it is not valid. If the validator call fails, a reserved type gets 503 and other types are accepted. Hub's own writes skip the check",
-                    "requirements": [
-                        {
-                            "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-                            "config": {
-                                "control-id": "calm-hub-dec-02",
-                                "name": "Decorators checked against a known Standard",
-                                "description": "When a validator is configured and a decorator's $schema is a Standard that Hub holds, Hub checks the decorator before the write and returns 400 if it is not valid. If the validator call fails, a reserved type gets 503 and other types are accepted. Hub's own writes skip the check",
-                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0017-reserved-decorator-types-and-decorator-history.md"
-                            }
-                        }
-                    ]
-                },
                 "outbox-atomic-with-write": {
                     "description": "A new version's pending event is written in the same insert as the version document",
                     "requirements": [
@@ -515,7 +517,7 @@
         },
         {
             "unique-id": "observed-stores-to-storage",
-            "description": "Delegates to the selected implementation, then records outbox entries",
+            "description": "Delegates to the selected implementation. A new version carries its pending event in the same insert. For other writes, the wrapper writes a prepared outbox entry before the write and marks it ready after",
             "relationship-type": {
                 "connects": {
                     "source": {
@@ -697,20 +699,6 @@
                     },
                     "destination": {
                         "node": "observed-stores"
-                    }
-                }
-            }
-        },
-        {
-            "unique-id": "observed-stores-to-validation",
-            "description": "Checks a decorator with a known Standard before the write, synchronously",
-            "relationship-type": {
-                "connects": {
-                    "source": {
-                        "node": "observed-stores"
-                    },
-                    "destination": {
-                        "node": "validation-service"
                     }
                 }
             }

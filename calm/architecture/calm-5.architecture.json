@@ -498,14 +498,14 @@
             "protocol": "HTTPS",
             "controls": {
                 "ext-identity-assertion": {
-                    "description": "Hub never forwards the user's token. Each call carries a 60-second RS256 or ES256 assertion of type calm-ext+jwt with iss, sub, aud, jti, htm, htp and the checked route, scope and namespace",
+                    "description": "Hub never forwards the user's token. Each call carries an RS256 or ES256 assertion of type calm-ext+jwt in X-Calm-Hub-Identity, valid for 60 seconds by default and 300 at most. It holds iss, sub, aud, jti, htm, htp, bdh when Hub buffers the body, and the checked route, scope and namespace",
                     "requirements": [
                         {
                             "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
                             "config": {
                                 "control-id": "calm-hub-ext-14",
                                 "name": "Hub-signed, request-bound identity assertion",
-                                "description": "Hub never forwards the user's token. Each call carries a 60-second RS256 or ES256 assertion of type calm-ext+jwt with iss, sub, aud, jti, htm, htp and the checked route, scope and namespace",
+                                "description": "Hub never forwards the user's token. Each call carries an RS256 or ES256 assertion of type calm-ext+jwt in X-Calm-Hub-Identity, valid for 60 seconds by default and 300 at most. It holds iss, sub, aud, jti, htm, htp, bdh when Hub buffers the body, and the checked route, scope and namespace",
                                 "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md"
                             }
                         }
@@ -691,15 +691,15 @@
             "protocol": "HTTPS",
             "controls": {
                 "ext-own-service-account": {
-                    "description": "The service calls Hub only with its own service account and grants. Hub rejects its own assertion as a credential",
+                    "description": "A subscriber that needs the document reads it with its own service account, which has the least grants it needs",
                     "requirements": [
                         {
                             "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
                             "config": {
                                 "control-id": "calm-hub-evt-04",
-                                "name": "Own least-privilege service account",
-                                "description": "The service calls Hub only with its own service account and grants. Hub rejects its own assertion as a credential",
-                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0010-extension-identity-is-a-hub-signed-assertion.md"
+                                "name": "Subscriber reads with its own service account",
+                                "description": "A subscriber that needs the document reads it with its own service account, which has the least grants it needs",
+                                "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
                             }
                         }
                     ]
