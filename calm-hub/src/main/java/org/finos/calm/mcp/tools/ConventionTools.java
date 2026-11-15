@@ -94,13 +94,13 @@ public class ConventionTools {
             @ToolArg(description = "The namespace containing the convention") String namespace,
             @ToolArg(description = "The convention type (e.g. 'c4-mapping')") String conventionType,
             @ToolArg(description = "The convention ID (positive integer)") int conventionId,
-            @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
+            @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> validateConventionType(conventionType),
                 () -> McpValidationHelper.validatePositiveId(conventionId, "Convention ID"),
-                () -> McpValidationHelper.validateVersion(version));
+                () -> McpValidationHelper.validateVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {

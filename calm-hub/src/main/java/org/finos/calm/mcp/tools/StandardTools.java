@@ -89,12 +89,12 @@ public class StandardTools {
     public ToolResponse getStandard(
             @ToolArg(description = "The namespace containing the standard") String namespace,
             @ToolArg(description = "The standard ID (positive integer)") int standardId,
-            @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
+            @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> McpValidationHelper.validatePositiveId(standardId, "Standard ID"),
-                () -> McpValidationHelper.validateVersion(version));
+                () -> McpValidationHelper.validateSnapshotVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {

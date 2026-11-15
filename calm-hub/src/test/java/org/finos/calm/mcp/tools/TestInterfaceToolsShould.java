@@ -167,6 +167,16 @@ class TestInterfaceToolsShould {
     }
 
     @Test
+    void return_interface_json_for_commit_sha_version() throws Exception {
+        when(interfaceStore.getInterfaceForVersion("finos", 1, "1e38a517")).thenReturn("{\"$schema\":\"x\"}");
+
+        ToolResponse result = interfaceTools.getInterface("finos", 1, "1e38a517");
+
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("$schema"));
+    }
+
+    @Test
     void return_error_when_interface_version_not_found() throws Exception {
         when(interfaceStore.getInterfaceForVersion("finos", 1, "9.9.9"))
                 .thenThrow(new InterfaceVersionNotFoundException());
