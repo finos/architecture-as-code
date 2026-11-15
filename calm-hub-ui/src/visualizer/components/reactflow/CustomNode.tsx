@@ -28,7 +28,7 @@ import { usePresentationMode, type PresentationModeStore } from '../../../theme/
 import { FindingText } from './FindingText.js';
 import { OverlayBadge } from './overlay/OverlayBadge.js';
 import { overlayOutline } from './overlay/overlayStyle.js';
-import { worstStatus } from '../../overlay/overlayEngine.js';
+import { viewKey, worstStatus } from '../../overlay/overlayEngine.js';
 import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
 import { decisionSummary } from './utils/decisionSummary.js';
 import { DecisionCallout } from './DecisionCallout.js';
@@ -249,7 +249,7 @@ function CustomNodeComponent({ id, data, presentationStore, textScaleStore }: Cu
         </div>
         {(riskCount > 0 || mitigationCount > 0 || controlCount > 0 || overlays.length > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '4px', alignItems: 'center' }}>
-            {overlays.map((shown) => <OverlayBadge key={shown.view.id} shown={shown} presenting={presenting} scale={scale} />)}
+            {overlays.map((shown) => <OverlayBadge key={viewKey(shown.view)} shown={shown} presenting={presenting} scale={scale} />)}
             {riskCount > 0 && (
               <div
                 style={{

@@ -3,11 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { Drawer } from './Drawer.js';
 import { Data } from '../../../model/calm.js';
-import type { Decorator, ReactFlowVisualizerProps } from '../../contracts/contracts.js';
+import type { Decorator, DecoratorView, ReactFlowVisualizerProps } from '../../contracts/contracts.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { fakeView } from '../../../test-support/fake-overlays.js';
 import type { PatternVisualizerProps } from '../reactflow/PatternVisualizer.js';
 import { DropzoneOptions } from 'react-dropzone';
 
-vi.mock('../../overlay/decoratorViews.js', () => ({ useDecoratorViews: () => BUILTIN_DECORATOR_VIEWS }));
+const registered = vi.hoisted(() => ({ views: undefined as DecoratorView[] | undefined }));
+vi.mock('../../overlay/decoratorViews.js', () => ({ useDecoratorViews: () => registered.views ?? BUILTIN_DECORATOR_VIEWS }));
 
 // Captures the `onDrop` the Drawer hands to react-dropzone so tests can invoke
 // it directly with a fake File. Hoisted so the (hoisted) vi.mock factory below
@@ -46,7 +49,7 @@ vi.mock('../reactflow/ReactFlowVisualizer.js', async () => {
                     {useElementOverlays('n1').map(({ view, overlay }) => `${view.id}:${overlay.status}`).join(' ') || '(none)'}
                 </div>
                 <div data-testid="overlay-views">{overlays.map(({ view }) => view.id).join(' ') || '(none)'}</div>
-                <button onClick={() => toggleView('deployment')}>toggle-deployment</button>
+                <button onClick={() => toggleView('deployment/deployment')}>toggle-deployment</button>
                 <button onClick={() => onOpenView?.(overlays[0].view)}>open-first-view</button>
             </>
         );
@@ -395,6 +398,13 @@ describe('Drawer — decorator overlays', () => {
         data: { status, 'start-time': '2026-11-04T15:00:00Z' },
     }) as unknown as Decorator;
 
+    const risk = (uniqueId: string) => ({
+        uniqueId, type: 'risk', target: [], appliesTo: ['n1'], data: { status: 'high', at: '2026-11-04T15:00:00Z' },
+    }) as unknown as Decorator;
+
+    beforeEach(() => {
+        registered.views = undefined;
+    });
 
     it('hands each node\'s latest evaluation to the diagram through the context, and lists them in the metadata panel', () => {
         render(<Drawer data={architectureWithNode} decorators={[evaluation('not-met')]} />);
@@ -464,7 +474,7 @@ describe('Drawer — decorator overlays', () => {
     });
 
     it('hides a view that the legend turns off, and shows it again when turned back on', async () => {
-        render(<Drawer data={architectureWithNode} decorators={[evaluation('not-met'), deployment('completed')]} />);
+        render(<Drawer data={architectureWithNode} decorators={[evaluation('not-met'), deployment('completed')]} storage={createMemoryStorage()} />);
         expect(screen.getByTestId('overlays-n1')).toHaveTextContent('control-evaluation:error deployment:ok');
 
         await act(async () => { screen.getByText('toggle-deployment').click(); });
@@ -475,8 +485,37 @@ describe('Drawer — decorator overlays', () => {
         expect(screen.getByTestId('overlays-n1')).toHaveTextContent('control-evaluation:error deployment:ok');
     });
 
+    it('keeps a view off by default when a later refresh draws views that sort before it', () => {
+        const views = ['ext-1', 'ext-2', 'ext-3', 'ext-4'].map((id) => ({ ...fakeView(id, `${id}-risk`), match: { type: `${id}-risk` } }));
+        registered.views = [...views, ...BUILTIN_DECORATOR_VIEWS];
+        const of = (extension: string) => ({ ...risk(`${extension}-d`), type: `${extension}-risk` }) as Decorator;
+        const storage = createMemoryStorage();
+        const { rerender } = render(<Drawer data={architectureWithNode} decorators={[of('ext-4'), evaluation('met')]} storage={storage} />);
 
+        expect(screen.getByTestId('overlays-n1')).toHaveTextContent(/^control-evaluation:ok$/);
 
+        rerender(<Drawer data={architectureWithNode} decorators={[of('ext-1'), of('ext-4'), evaluation('met')]} storage={storage} />);
+
+        expect(screen.getByTestId('overlays-n1')).toHaveTextContent(/^ext-1-risk:error control-evaluation:ok$/);
+    });
+
+    it('takes the evaluation history from the built-in view only', () => {
+        registered.views = [{ ...fakeView('ops', 'control-evaluation'), match: { type: 'control-evaluation' } }];
+        render(<Drawer data={architectureWithNode} decorators={[evaluation('not-met')]} />);
+
+        expect(screen.queryByTestId('metadata-panel')).not.toBeInTheDocument();
+        expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('(none)');
+    });
+
+    it('gives the metadata panel the built-in control-evaluation overlay, not an operator view with the same id', () => {
+        registered.views = [
+            { ...fakeView('ops', 'control-evaluation'), match: { type: 'control-evaluation' }, overlay: { status: '/status', map: { met: 'error' } } },
+            ...BUILTIN_DECORATOR_VIEWS,
+        ];
+        render(<Drawer data={architectureWithNode} decorators={[evaluation('met')]} />);
+
+        expect(screen.getByTestId('evaluation-overlay-map')).toHaveTextContent(JSON.stringify({ met: 'ok', 'not-met': 'error' }));
+    });
 
     it('passes onOpenView to the overlay legend', async () => {
         const onOpenView = vi.fn();

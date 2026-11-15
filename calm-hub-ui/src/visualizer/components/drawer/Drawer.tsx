@@ -8,9 +8,10 @@ import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/pattern
 import { buildViewportKey } from '../../services/node-position-service.js';
 import { DropzoneEmptyState } from './DropzoneEmptyState.js';
 import { colors } from '../../../theme/colors.js';
-import { CONTROL_EVALUATION_VIEW_ID, DecoratorOverlayContext, type DecoratorOverlayState } from '../../context/DecoratorOverlayContext.js';
+import { DecoratorOverlayContext, isControlEvaluationView, type DecoratorOverlayState } from '../../context/DecoratorOverlayContext.js';
 import { containersOfContainment, hasOverlay, matchesView, overlayByElement } from '../../overlay/overlayEngine.js';
 import { useDecoratorViews } from '../../overlay/decoratorViews.js';
+import { useOverlayVisibility } from '../../overlay/useOverlayVisibility.js';
 import type { DrawerProps, Control, ControlEvaluationDecorator, Decorator, ViewOverlay } from '../../contracts/contracts.js';
 
 const NO_DECORATORS: Decorator[] = [];
@@ -41,10 +42,10 @@ export function Drawer({
     onDroppedFileChange,
     decorators = NO_DECORATORS,
     onOpenView,
+    storage,
 }: DrawerProps) {
     const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [dropError, setDropError] = useState<string | undefined>(undefined);
-    const [hiddenViews, setHiddenViews] = useState<ReadonlySet<string>>(() => new Set());
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
     const [metadataPanelHeight, setMetadataPanelHeight] = useState(250);
 
@@ -113,19 +114,13 @@ export function Drawer({
             .map((view) => ({ view, elements: overlayByElement(view, overlayDecorators, drawnAs) }))
             .filter(({ elements }) => elements.size > 0);
     }, [views, overlayDecorators, calmInstance]);
-    const toggleView = useCallback((viewId: string) => {
-        setHiddenViews((prev) => {
-            const next = new Set(prev);
-            if (!next.delete(viewId)) next.add(viewId);
-            return next;
-        });
-    }, []);
+    const { hiddenViews, toggleView, setViewsShown } = useOverlayVisibility(views, storage);
     const overlayState = useMemo(
-        (): DecoratorOverlayState => ({ overlays, hiddenViews, toggleView, onOpenView }),
-        [overlays, hiddenViews, toggleView, onOpenView],
+        (): DecoratorOverlayState => ({ overlays, hiddenViews, toggleView, setViewsShown, onOpenView }),
+        [overlays, hiddenViews, toggleView, setViewsShown, onOpenView],
     );
     // The evaluation history for the panel under the diagram, which lists every evaluation, not only the newest.
-    const evaluationView = useMemo(() => views.find((view) => view.id === CONTROL_EVALUATION_VIEW_ID), [views]);
+    const evaluationView = useMemo(() => views.find(isControlEvaluationView), [views]);
     const evaluations = useMemo(
         () => (evaluationView ? overlayDecorators.filter((d) => matchesView(evaluationView, d)) as ControlEvaluationDecorator[] : []),
         [evaluationView, overlayDecorators],

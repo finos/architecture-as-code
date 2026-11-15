@@ -20,6 +20,16 @@ const isOverlayStatus = (value: unknown): value is OverlayStatus =>
 
 export const hasOverlay = (view: DecoratorView): view is OverlayDecoratorView => !!view.overlay;
 
+/**
+ * Hub refuses a view id that two enabled extensions declare, but another extension can use it when the first is off.
+ * So a view is keyed by its extension too, and a stored choice does not pass to the other extension.
+ */
+export const viewKey = (view: DecoratorView): string => (view.source ? `${view.source.id}/${view.id}` : view.id);
+
+/** "Release risk · Release tracker"; a built-in view says "Built-in". */
+export const viewTitle = (view: DecoratorView): string =>
+    view.source ? `${view.label} · ${view.source.builtIn ? 'Built-in' : view.source.name}` : view.label;
+
 export function matchesView(view: DecoratorView, decorator: Decorator): boolean {
     const { type, schema } = view.match;
     if (type === undefined && schema === undefined) return false;
@@ -135,7 +145,13 @@ export function overlayByElement(
             time,
             entry: status.status === null
                 ? null
-                : { decorator, value: status.value, status: status.status, label: stringAt(decorator.data, overlay.label) },
+                : {
+                    decorator,
+                    value: status.value,
+                    status: status.status,
+                    label: stringAt(decorator.data, overlay.label),
+                    time: stringAt(decorator.data, overlay.time),
+                },
         };
         const group = overlay.time === undefined ? `#${item.id}` : `=${key ?? ''}`;
         for (const element of elementsOf(decorator)) {

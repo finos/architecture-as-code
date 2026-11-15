@@ -252,6 +252,7 @@ An operator can install extensions (see [Extensions](../calm-hub/index.md#extens
 * **Side menu:** an **Extensions** group with one entry per extension screen.
 * **Architecture and pattern pages:** one **Extensions** tab. Each extension has a collapsible section with its actions and its tab content. An action or a tab that needs a selected node shows a hint until a node is selected. With more than five extensions, a filter shows above the sections.
 * **Node details:** one **Extensions** section, with a collapsible part for each extension.
+* **Diagram overlays:** each extension has a colour marker on its badges and legend rows. Click a node's badge to see what it means.
 
 ---
 

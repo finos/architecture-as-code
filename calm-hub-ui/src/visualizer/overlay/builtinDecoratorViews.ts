@@ -17,6 +17,7 @@ export const BUILTIN_DECORATOR_VIEWS: readonly DecoratorView[] = [
             key: '/control/unique-id',
             time: '/evaluated-at',
         },
+        source: { id: 'control-evaluation', name: 'Control evaluations', builtIn: true },
     },
     {
         id: 'deployment',
@@ -28,5 +29,6 @@ export const BUILTIN_DECORATOR_VIEWS: readonly DecoratorView[] = [
             default: 'info',
             time: '/start-time',
         },
+        source: { id: 'deployment', name: 'Deployments', builtIn: true },
     },
 ];
