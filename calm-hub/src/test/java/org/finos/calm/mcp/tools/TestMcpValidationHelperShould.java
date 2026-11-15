@@ -67,6 +67,57 @@ class TestMcpValidationHelperShould {
         assertThat(result, containsString("Invalid version format"));
     }
 
+    @Test
+    void reject_commit_sha_for_write_versions() {
+        assertThat(McpValidationHelper.validateVersion("1e38a517"), startsWith("Error:"));
+    }
+
+    // --- validateVersionOrSha ---
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.0.0", "1-0-0", "1e38a517", "0123456789abcdef0123456789abcdef01234567"})
+    void accept_semver_or_commit_sha(String version) {
+        assertThat(McpValidationHelper.validateVersionOrSha(version), is(nullValue()));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void reject_blank_version_or_sha(String version) {
+        assertThat(McpValidationHelper.validateVersionOrSha(version), containsString("blank"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.0.0-SNAPSHOT", "abc123", "1E38A517", "0123456789abcdef0123456789abcdef012345678", "1.0"})
+    void reject_invalid_version_or_sha(String version) {
+        String result = McpValidationHelper.validateVersionOrSha(version);
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("commit SHA"));
+    }
+
+    // --- validateSnapshotVersionOrSha ---
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.0.0", "1.0.0-SNAPSHOT", "1e38a517"})
+    void accept_semver_snapshot_or_commit_sha(String version) {
+        assertThat(McpValidationHelper.validateSnapshotVersionOrSha(version), is(nullValue()));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void reject_blank_snapshot_version_or_sha(String version) {
+        assertThat(McpValidationHelper.validateSnapshotVersionOrSha(version), containsString("blank"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.0.0-snapshot", "abc123", "not-a-version"})
+    void reject_invalid_snapshot_version_or_sha(String version) {
+        String result = McpValidationHelper.validateSnapshotVersionOrSha(version);
+        assertThat(result, startsWith("Error:"));
+        assertThat(result, containsString("SNAPSHOT"));
+    }
+
     // --- validateDomain ---
 
     @ParameterizedTest

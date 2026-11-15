@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 /**
@@ -88,11 +90,39 @@ final class McpValidationHelper {
      * @return error string, or {@code null} if valid
      */
     static String validateVersion(String version) {
+        return validateVersionAgainst(version, VERSION_REGEX, "semantic version (e.g. '1.0.0')");
+    }
+
+    /**
+     * Validates a version for a read tool whose REST endpoint accepts
+     * {@code VERSION_OR_SHA_REGEX}. GitHub mode uses commit SHAs as versions.
+     *
+     * @param version the version string to validate
+     * @return error string, or {@code null} if valid
+     */
+    static String validateVersionOrSha(String version) {
+        return validateVersionAgainst(version, VERSION_OR_SHA_REGEX,
+                "semantic version (e.g. '1.0.0') or a commit SHA (7-40 hex characters)");
+    }
+
+    /**
+     * Validates a version for a read tool whose REST endpoint accepts
+     * {@code SNAPSHOT_VERSION_OR_SHA_REGEX}.
+     *
+     * @param version the version string to validate
+     * @return error string, or {@code null} if valid
+     */
+    static String validateSnapshotVersionOrSha(String version) {
+        return validateVersionAgainst(version, SNAPSHOT_VERSION_OR_SHA_REGEX,
+                "semantic version (e.g. '1.0.0' or '1.0.0-SNAPSHOT') or a commit SHA (7-40 hex characters)");
+    }
+
+    private static String validateVersionAgainst(String version, String regex, String expected) {
         if (version == null || version.isBlank()) {
             return "Error: Version must not be blank.";
         }
-        if (!version.matches(VERSION_REGEX)) {
-            return "Error: Invalid version format '" + version + "'. Expected semantic version (e.g. '1.0.0').";
+        if (!version.matches(regex)) {
+            return "Error: Invalid version format '" + version + "'. Expected " + expected + ".";
         }
         return null;
     }

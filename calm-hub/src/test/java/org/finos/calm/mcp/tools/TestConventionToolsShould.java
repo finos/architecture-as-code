@@ -77,6 +77,13 @@ class TestConventionToolsShould {
     }
 
     @Test
+    void get_a_version_by_commit_sha() throws Exception {
+        when(conventionService.getConventionForVersion("finos", C4, 3, "1e38a517")).thenReturn("{\"unique-id\":\"acme\"}");
+
+        assertThat(text(conventionTools.getConvention("finos", "c4-mapping", 3, "1e38a517")), is("{\"unique-id\":\"acme\"}"));
+    }
+
+    @Test
     void report_missing_namespaces_conventions_and_versions() throws Exception {
         when(conventionService.getConventionsForNamespace("missing", C4)).thenThrow(new NamespaceNotFoundException());
         when(conventionService.getConventionVersions("missing", C4, 3)).thenThrow(new NamespaceNotFoundException());
