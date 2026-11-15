@@ -31,7 +31,7 @@ jobs:
           stale-pr-message: >
             This pull request has had no comment or commit for 5 days.
             It will close in 5 days if there is no new comment or commit.
-            Add the `keep-open` label to stop this.
+            A maintainer can add the `keep-open` label to stop this.
           close-pr-message: >
             Closed after 10 days without a comment or commit.
-            Reopen it when you are ready to continue.
+            Comment here when you are ready to continue, and a maintainer will reopen it.

@@ -63,6 +63,7 @@ Treat automated release pull requests and release-preparation branches carefully
 Maintainers help keep work discoverable and moving:
 
 - Acknowledge new issues and PRs, especially when follow-up will take time.
+- Respond to a pull request in less than 5 days. The stale workflow marks a pull request stale after 5 days without a comment or commit, and closes it 5 days later. Add the `keep-open` label to a pull request that has a reason to wait, such as a stacked PR that waits for its base.
 - Apply existing labels, close duplicates, and redirect out-of-scope requests to the right place.
 - Route governance matters, including maintainer roster changes, to [finos/calm-governance](https://github.com/finos/calm-governance) and use the [Maintainer Update template](./.github/ISSUE_TEMPLATE/Maintainer_update.md) when this repository needs a maintainer change processed.
 - Keep the [Projects table](./README.md#projects) and [.github/CODEOWNERS](./.github/CODEOWNERS) aligned when component ownership changes.
