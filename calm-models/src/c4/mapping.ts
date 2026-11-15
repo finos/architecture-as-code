@@ -1,5 +1,6 @@
-// The C4 mapping standard is published at https://calm.finos.org/standards/c4/1.0/. This copy of the default
+// The C4 mapping standard is published at https://calm.finos.org/standards/c4/1.1/. This copy of the default
 // follows the published calm-default.c4-mapping.json, so that the projection makes no network request.
+// The 1.0 default has the same entries.
 
 export const C4_KINDS = [
     'person',
@@ -40,10 +41,15 @@ export interface ResolvedC4Mapping {
     nesting: C4Nesting;
 }
 
-export const CALM_DEFAULT_C4_MAPPING_URL = 'https://calm.finos.org/standards/c4/1.0/calm-default.c4-mapping.json';
+export const CALM_DEFAULT_C4_MAPPING_URL = 'https://calm.finos.org/standards/c4/1.1/calm-default.c4-mapping.json';
+
+const DEFAULT_MAPPING_URLS: ReadonlySet<string> = new Set([
+    CALM_DEFAULT_C4_MAPPING_URL,
+    'https://calm.finos.org/standards/c4/1.0/calm-default.c4-mapping.json',
+]);
 
 export const CALM_DEFAULT_C4_MAPPING: C4MappingDocument = {
-    $schema: 'https://calm.finos.org/standards/c4/1.0/c4-mapping.json',
+    $schema: 'https://calm.finos.org/standards/c4/1.1/c4-mapping.json',
     $id: CALM_DEFAULT_C4_MAPPING_URL,
     'unique-id': 'calm-default-c4-mapping',
     description: 'The default C4 mapping for the CALM node types. A tool uses it when no other mapping is set.',
@@ -61,7 +67,7 @@ export const CALM_DEFAULT_C4_MAPPING: C4MappingDocument = {
     nesting: 'demote',
 };
 
-/** Fetches the mapping at an `extends` URL. The default mapping URL never reaches the loader. */
+/** Fetches the mapping at an `extends` URL. A default mapping URL of the standard never reaches the loader. */
 export type C4MappingLoader = (url: string) => Promise<unknown>;
 
 /**
@@ -75,7 +81,7 @@ export async function resolveC4Mapping(mapping?: unknown, load?: C4MappingLoader
     for (let parent = chain[0].extends; parent; parent = chain[chain.length - 1].extends) {
         if (seen.has(parent)) throw new Error(`The C4 mapping ${parent} extends itself through its chain`);
         seen.add(parent);
-        if (parent === CALM_DEFAULT_C4_MAPPING_URL) {
+        if (DEFAULT_MAPPING_URLS.has(parent)) {
             chain.push(CALM_DEFAULT_C4_MAPPING);
             break;
         }

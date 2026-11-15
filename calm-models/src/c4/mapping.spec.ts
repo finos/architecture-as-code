@@ -18,12 +18,17 @@ describe('resolveC4Mapping', () => {
         expect(mapping['node-types']['aws:lambda'].source).toBe('mapping');
     });
 
-    it('replaces the default entries per node type and keeps the others when it extends the default', async () => {
-        const mapping = await resolveC4Mapping({
-            'unique-id': 'acme',
-            extends: CALM_DEFAULT_C4_MAPPING_URL,
-            'node-types': { database: 'hidden', 'acme:vendor': { kind: 'software-system', external: true } },
-        });
+    it.each([
+        ['1.1', CALM_DEFAULT_C4_MAPPING_URL],
+        ['1.0', 'https://calm.finos.org/standards/c4/1.0/calm-default.c4-mapping.json'],
+    ])('replaces the default entries per node type and keeps the others when it extends the %s default', async (_, url) => {
+        const load = vi.fn();
+        const mapping = await resolveC4Mapping(
+            { 'unique-id': 'acme', extends: url, 'node-types': { database: 'hidden', 'acme:vendor': { kind: 'software-system', external: true } } },
+            load
+        );
+
+        expect(load).not.toHaveBeenCalled();
 
         expect(mapping['node-types'].database).toEqual({ kind: 'hidden', external: false, source: 'mapping' });
         expect(mapping['node-types']['acme:vendor']).toEqual({ kind: 'software-system', external: true, source: 'mapping' });
@@ -106,7 +111,7 @@ describe('checkC4Mapping', () => {
 
     it('accepts every field of the schema', () => {
         const document = {
-            $schema: 'https://calm.finos.org/standards/c4/1.0/c4-mapping.json',
+            $schema: 'https://calm.finos.org/standards/c4/1.1/c4-mapping.json',
             $id: 'https://example.com/acme.json',
             'unique-id': 'acme',
             description: 'Acme types',
