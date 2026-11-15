@@ -191,7 +191,7 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 				nodeId,
 			});
 		}
-		if (nodeId && (!node.description || node.description.trim() === '')) {
+		if (nodeId && (typeof node.description !== 'string' || node.description.trim() === '')) {
 			issues.push({
 				severity: 'info',
 				message: `Node "${nodeId}" has no description`,

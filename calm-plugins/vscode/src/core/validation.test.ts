@@ -165,6 +165,14 @@ describe('validateCalmArchitecture', () => {
     expect(warnings).toHaveLength(0);
   });
 
+  it('returns the schema error for a non-string description when relationships is absent', () => {
+    const arch = {
+      nodes: [{ 'unique-id': 'node-1', 'node-type': 'service', name: 'Test', description: 42 }],
+    } as unknown as CalmArchitecture;
+    const issues = validateCalmArchitecture(arch);
+    expect(issues.some((i) => i.severity === 'error')).toBe(true);
+  });
+
   it('schema error on relationship extracts relationshipId', () => {
     // A relationship with no relationship-type object at all is a schema violation.
     const arch = {
