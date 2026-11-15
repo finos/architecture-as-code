@@ -447,7 +447,7 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
 
 ### C4 Diagram Widget
 
-Renders an architecture as a Mermaid C4 diagram. The [CALM C4 standard](https://calm.finos.org/standards/c4/1.0/c4-mapping.json) sets how node types become C4 elements. The projection is `projectC4` in `@finos/calm-models/c4`.
+Renders an architecture as a Mermaid C4 diagram. The [CALM C4 standard](https://calm.finos.org/standards/c4/1.1/c4-mapping.json) sets how node types become C4 elements. The projection is `projectC4` in `@finos/calm-models/c4`.
 
 ```handlebars
 {{!-- System context diagram of the first software system --}}
