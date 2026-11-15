@@ -10,7 +10,7 @@ const EXTENSIONS = [
         to: '/extensions/c4',
         title: 'C4 model',
         adds: 'C4 lens',
-        runs: 'Sidecar',
+        runs: 'Service',
         provider: 'FINOS CALM',
         desc: 'Context, container, component and deployment diagrams of an architecture, in the look of Structurizr.',
     },
@@ -18,7 +18,7 @@ const EXTENSIONS = [
         to: '/extensions/ea-layers',
         title: 'Enterprise architecture layers',
         adds: 'Layers lens',
-        runs: 'Sidecar',
+        runs: 'Service',
         provider: 'FINOS CALM',
         desc: 'Business, application and technology layers of an architecture, in the ArchiMate® notation.',
     },
@@ -54,7 +54,7 @@ export default function Extensions() {
     return (
         <Layout
             title="Extensions"
-            description="Extensions for CALM Hub: new diagram lenses, views and commands, run in your own network.">
+            description="Extensions for CALM Hub: new diagram lenses, views and commands.">
             <main>
                 <section className={shared.banner}>
                     <div className={shared.wrap}>
@@ -62,8 +62,8 @@ export default function Extensions() {
                         <h1>Extend CALM Hub</h1>
                         <p>
                             Add new pictures of your architectures, views and commands to
-                            CALM Hub, without a fork. Extensions run in your own network, so
-                            your architectures stay with you.
+                            CALM Hub, without a fork. Run an extension next to CALM Hub, so that
+                            your architectures stay in your network, or use a hosted service.
                         </p>
                     </div>
                 </section>
@@ -81,8 +81,8 @@ export default function Extensions() {
                         <div className={clsx(shared.card, shared.cardTint)}>
                             <h3>Install an extension</h3>
                             <p style={{marginBottom: 10}}>
-                                Run an extension next to CALM Hub with Docker Compose or
-                                Kubernetes, and point CALM Hub at it.
+                                Point CALM Hub at a hosted service, or run the extension next
+                                to CALM Hub with Docker Compose or Kubernetes.
                             </p>
                             <Link className={clsx(shared.chip, shared.chipPrimary)} to="/extensions/install">Install guide</Link>
                         </div>
@@ -108,8 +108,9 @@ export default function Extensions() {
                         <h3>List your extension</h3>
                         <p>
                             Open a pull request that adds your extension to this page. It must be
-                            open source, have a manifest that CALM Hub accepts, verify the identity
-                            assertion of CALM Hub, and have a README with its settings.
+                            open source, have a manifest that CALM Hub accepts, and have a README with
+                            its settings. It must verify the identity assertion of CALM Hub, unless it
+                            is open to any caller and keeps no data.
                         </p>
                     </div>
                     <p style={{marginTop: 18, fontSize: 13, opacity: 0.75}}>

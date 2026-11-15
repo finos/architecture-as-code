@@ -1,6 +1,6 @@
 import { createHash, generateKeyPairSync, sign, type KeyObject } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
-import { createVerifier, type Jwks } from './identity.js';
+import { describe, expect, it, vi } from 'vitest';
+import { createVerifier, parseTenants, type Jwks } from './identity.js';
 
 const NOW = 1_800_000_000;
 const rsa = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -47,6 +47,19 @@ describe('createVerifier', () => {
         await expect(verifier()(make(), request)).rejects.toThrow(message);
     });
 
+    it('fetches the keys again for an unknown key id at most once a minute, with one request at a time', async () => {
+        let clock = NOW;
+        const fetchJwks = vi.fn(async () => jwks);
+        const verify = createVerifier({ issuer: 'http://hub', audience: 'ea-layers', fetchJwks, now: () => clock });
+        const forged = () => token({ header: { kid: 'forged' } });
+        await Promise.all([verify(forged(), request), verify(forged(), request)].map((p) => p.catch(() => undefined)));
+        await expect(verify(forged(), request)).rejects.toThrow('unknown key id');
+        expect(fetchJwks).toHaveBeenCalledTimes(1);
+        clock += 61;
+        await expect(verify(forged(), request)).rejects.toThrow('unknown key id');
+        expect(fetchJwks).toHaveBeenCalledTimes(2);
+    });
+
     it('rejects a replayed assertion, and one with a body hash for a request with no body', async () => {
         const verify = verifier();
         const once = token({ claims: { jti: 'same' } });
@@ -54,5 +67,19 @@ describe('createVerifier', () => {
         await expect(verify(once, request)).rejects.toThrow('replayed');
         const bdh = createHash('sha256').update('{}').digest('base64url');
         await expect(verify(token({ claims: { bdh } }), request)).rejects.toThrow('wrong body');
+    });
+});
+
+describe('parseTenants', () => {
+    it('reads Hubs with inline keys or a JWKS URL', () => {
+        expect(parseTenants(JSON.stringify([{ issuer: 'https://a.example', jwks: { keys: [] } }, { issuer: 'https://b.example', jwksUrl: 'https://b.example/jwks' }])))
+            .toEqual([{ issuer: 'https://a.example', jwks: { keys: [] } }, { issuer: 'https://b.example', jwksUrl: 'https://b.example/jwks' }]);
+    });
+
+    it('refuses a list that a service cannot use', () => {
+        expect(() => parseTenants('[]')).toThrow(/at least one/);
+        expect(() => parseTenants('[{"issuer":"not a url","jwksUrl":"https://a/jwks"}]')).toThrow(/issuer URL/);
+        expect(() => parseTenants('[{"issuer":"https://a.example"}]')).toThrow(/jwks or jwksUrl/);
+        expect(() => parseTenants('[{"issuer":"https://a.example","jwks":{"keys":[]},"jwksUrl":"https://a/jwks"}]')).toThrow(/jwks or jwksUrl/);
     });
 });

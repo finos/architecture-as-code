@@ -9,6 +9,8 @@ const ALGORITHMS: Record<string, { hash: string; dsaEncoding?: 'ieee-p1363' }> =
     ES256: { hash: 'sha256', dsaEncoding: 'ieee-p1363' },
 };
 const CLOCK_SKEW_SECONDS = 30;
+/** An unknown kid can come from anyone, so the service fetches the JWKS again at most this often. */
+const REFETCH_SECONDS = 60;
 
 export interface Claims {
     iss: string;
@@ -37,10 +39,21 @@ const decode = (part: string) => JSON.parse(Buffer.from(part, 'base64url').toStr
 export function createVerifier({ issuer, audience, fetchJwks, now = () => Date.now() / 1000 }: VerifierOptions) {
     let keys = new Map<string, { alg: string; key: KeyObject }>();
     const seen = new Map<string, number>();
+    let fetchedAt = -Infinity;
+    let loading: Promise<void> | undefined;
 
-    async function loadKeys() {
-        const { keys: jwks } = await fetchJwks();
-        keys = new Map(jwks.map((jwk) => [jwk.kid, { alg: jwk.alg, key: createPublicKey({ key: jwk, format: 'jwk' }) }]));
+    function loadKeys(): Promise<void> {
+        if (loading) return loading;
+        if (now() - fetchedAt < REFETCH_SECONDS) return Promise.resolve();
+        fetchedAt = now();
+        loading = fetchJwks()
+            .then(({ keys: jwks }) => {
+                keys = new Map(jwks.map((jwk) => [jwk.kid, { alg: jwk.alg, key: createPublicKey({ key: jwk, format: 'jwk' }) }]));
+            })
+            .finally(() => {
+                loading = undefined;
+            });
+        return loading;
     }
 
     return async function verifyAssertion(token: string | undefined, request: { method: string; pathAndQuery: string; body?: Buffer }): Promise<Claims> {
@@ -72,5 +85,56 @@ export function createVerifier({ issuer, audience, fetchJwks, now = () => Date.n
         seen.set(claims.jti, claims.exp);
         for (const [jti, exp] of seen) if (exp + CLOCK_SKEW_SECONDS < time) seen.delete(jti);
         return claims;
+    };
+}
+
+/** A CALM Hub that the service trusts: its issuer, and its public keys or the URL of its JWKS. */
+export interface Tenant {
+    issuer: string;
+    jwks?: Jwks;
+    jwksUrl?: string;
+}
+
+/** Reads a list of tenants, such as the file that CALM_HUB_TENANTS_FILE names. */
+export function parseTenants(text: string): Tenant[] {
+    const value: unknown = JSON.parse(text);
+    if (!Array.isArray(value) || value.length === 0) throw new Error('the tenants must be a JSON array with at least one entry');
+    return value.map((entry, index) => {
+        const { issuer, jwks, jwksUrl } = (entry ?? {}) as Tenant;
+        if (typeof issuer !== 'string' || !URL.canParse(issuer)) throw new Error(`tenant ${index} needs an issuer URL`);
+        if (!jwks === !jwksUrl) throw new Error(`tenant ${index} needs jwks or jwksUrl, not both`);
+        if (jwks && !Array.isArray(jwks.keys)) throw new Error(`tenant ${index} jwks needs keys`);
+        if (jwksUrl && !URL.canParse(jwksUrl)) throw new Error(`tenant ${index} jwksUrl is not a URL`);
+        return { issuer, ...(jwks ? { jwks } : { jwksUrl }) };
+    });
+}
+
+/**
+ * Verifies assertions from any of the tenants. The service picks the keys by the issuer, and fetches only the JWKS URLs
+ * that the operator configured, so a request cannot make it call another host. A tenant with inline keys needs no
+ * route from the service to its Hub.
+ */
+export function createTenantVerifier(tenants: Tenant[], audience: string, now?: () => number) {
+    const verifiers = new Map(tenants.map((tenant) => [tenant.issuer, createVerifier({
+        issuer: tenant.issuer,
+        audience,
+        now,
+        fetchJwks: async () => {
+            if (tenant.jwks) return tenant.jwks;
+            const res = await fetch(tenant.jwksUrl!, { signal: AbortSignal.timeout(5_000), redirect: 'error' });
+            if (!res.ok) throw new Error(`JWKS request failed with ${res.status}`);
+            return (await res.json()) as Jwks;
+        },
+    })]));
+    return async function verifyAssertion(token: string | undefined, request: { method: string; pathAndQuery: string; body?: Buffer }) {
+        let issuer: unknown;
+        try {
+            issuer = decode(token?.split('.')[1] ?? '').iss;
+        } catch {
+            throw new Error('not a JWT');
+        }
+        const verifier = typeof issuer === 'string' ? verifiers.get(issuer) : undefined;
+        if (!verifier) throw new Error('unknown issuer');
+        return verifier(token, request);
     };
 }

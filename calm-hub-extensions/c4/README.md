@@ -11,7 +11,7 @@ graph that the service returns.
 |---|---|---|
 | Manifest | [`extension.json`](extension.json) | Declares the `lens` route and the `diagram-lens` entry, with its `level` and `scope` parameters |
 | Notation | [`notation.json`](notation.json) | The shapes, edge markers and styles of the diagrams. Hub checks it at start-up |
-| Service | [`src/`](src) | Answers `GET /lens/{namespace}/{resourceType}/{resourceId}` with a graph reply (`src/lens.ts`) |
+| Service | [`src/`](src) | Answers `POST /lens/{namespace}/{resourceType}/{resourceId}` with a graph reply (`src/lens.ts`). CALM Hub sends the architecture, its detailed architectures and the C4 mapping in the body (`hubData`), so the service never calls Hub for data |
 
 ## Run it as a sidecar
 
@@ -35,6 +35,7 @@ Hub needs these settings for the extension (see [Extensions](../../docs/docs/cal
 | `calm.extensions.c4.backend-url` | The URL of the sidecar, for example `http://c4:8093` |
 | `calm.extensions.c4.allow-http` | `true` for a plain `http` sidecar on a private network |
 | `calm.extensions.identity.*` | The key that signs the identity assertion |
+| `calm.extensions.c4.send-identity` | `false` only for an open service (`CALM_OPEN_ACCESS=true`). Hub then needs no identity key for it |
 
 ## Settings
 
@@ -42,17 +43,34 @@ Hub needs these settings for the extension (see [Extensions](../../docs/docs/cal
 |---|---|---|
 | `PORT` | `8093` | The port |
 | `HOST` | `127.0.0.1` | The address. The image sets `0.0.0.0` |
-| `CALM_HUB_URL` | `http://localhost:8080` | The URL that the service reads Hub at |
-| `CALM_HUB_ISSUER` | `CALM_HUB_URL` | The `calm.hub.base-url` of Hub, which Hub signs as the issuer |
-| `CALM_HUB_TOKEN_URL` | not set | The OAuth 2.0 token endpoint of the service account. With none, the service calls Hub with no token, as a no-auth Hub needs |
-| `CALM_HUB_CLIENT_ID`, `CALM_HUB_CLIENT_SECRET`, `CALM_HUB_SCOPE` | not set | The client credentials of the service account |
+| `CALM_HUB_URL` | `http://localhost:8080` | The sidecar Hub. The service reads its keys from `/api/calm/auth/jwks` |
+| `CALM_HUB_ISSUER` | `CALM_HUB_URL` | The `calm.hub.base-url` of the sidecar Hub, which Hub signs as the issuer |
+| `CALM_HUB_TENANTS_FILE` | not set | A JSON list of the Hubs that the service trusts, for a service that serves more than one Hub. It replaces `CALM_HUB_URL` and `CALM_HUB_ISSUER`. See below |
+| `CALM_OPEN_ACCESS` | not set | `true` answers any caller, with no identity check. See below |
 | `CALM_C4_MAPPING_HOSTS` | not set | The hosts, separated by commas, that a mapping `extends` URL can name outside Hub. They must use `https` |
 | `CALM_C4_EXPORT_DIR` | not set | The folder to copy the extension files to |
 
-The service checks the identity assertion of each request with the JWKS of Hub. Then it reads the
-architecture and the C4 mapping with its own service account, never with the token of the user. Give
-the account read access to the namespaces that the lens shows. The service reads only the namespace that
-Hub checked for the user.
+Unless it is open, the service checks the identity assertion of each request, with the keys of the Hub that
+signed it, and checks that `bdh` matches the body. So it trusts only data that a trusted Hub read for the user. It keeps
+nothing, and logs only the caller, the path with its query, and the number of nodes.
+
+## Serve more than one Hub
+
+With `CALM_OPEN_ACCESS=true` the service answers any caller. It checks no assertion, because it has nothing
+to protect: it keeps no data, and draws only the architecture in the request. Limit the request rate in
+front of it. The FINOS-hosted service is meant to run this way.
+
+To serve only some Hubs, for example for a paid service, list them in `CALM_HUB_TENANTS_FILE`. Each entry has the `issuer`, and its keys as
+`jwks` or a `jwksUrl`:
+
+```json
+[{ "issuer": "https://calm-hub.example.com", "jwksUrl": "https://calm-hub.example.com/api/calm/auth/jwks" }]
+```
+
+The service picks the keys by `iss` and fetches only the configured URLs, so a request cannot make it call
+another host. An operator of a Hub gets the extension folder from `GET /extension/extension.json` and
+`GET /extension/notation.json`, which need no assertion. See
+[Install an extension](../../docs/docs/extensions/install.md#use-a-hosted-service).
 
 ## Develop
 

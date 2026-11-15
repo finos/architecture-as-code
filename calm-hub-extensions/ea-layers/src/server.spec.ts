@@ -1,4 +1,4 @@
-import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomUUID, sign, type KeyObject } from 'node:crypto';
 import { once } from 'node:events';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
@@ -6,17 +6,21 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { architecturePath, createLayersServer, exportExtension } from './server.js';
+import type { Jwks } from './identity.js';
+import { createLayersServer, exportExtension } from './server.js';
 import { SHOP } from './testing.js';
 
-const ISSUER = 'http://hub.test';
-const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
-const jwks = { keys: [{ ...publicKey.export({ format: 'jwk' }), kid: 'k1', alg: 'ES256', use: 'sig' }] };
+// Two Hubs: a sidecar Hub that the service reads keys from, and a Hub registered with its keys, as a hosted service has.
+const SIDECAR = 'http://hub.test';
+const REGISTERED = 'https://hub.bank.example';
+const sidecarKeys = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+const registeredKeys = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+const jwksOf = (key: KeyObject, kid: string): Jwks => ({ keys: [{ ...key.export({ format: 'jwk' }), kid, alg: 'ES256', use: 'sig' }] });
 
 let hub: Server;
 let service: Server;
 let base: string;
-const hubAuthorizations: (string | undefined)[] = [];
+const hubRequests: string[] = [];
 
 async function listen(server: Server) {
     server.listen(0, '127.0.0.1');
@@ -26,15 +30,15 @@ async function listen(server: Server) {
 
 beforeAll(async () => {
     hub = createServer((req, res) => {
-        const json = (status: number, body?: unknown) => res.writeHead(status, { 'Content-Type': 'application/json' }).end(body === undefined ? undefined : JSON.stringify(body));
-        if (req.url === '/api/calm/auth/jwks') return json(200, jwks);
-        if (req.url === '/token') return json(200, { access_token: 'service-token', expires_in: 300 });
-        hubAuthorizations.push(req.headers.authorization);
-        if (req.url === '/api/calm/namespaces/finos/architectures/7/versions/1.0.0') return json(200, SHOP);
-        return json(404, {});
+        hubRequests.push(req.url ?? '');
+        if (req.url === '/api/calm/auth/jwks') return res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(jwksOf(sidecarKeys.publicKey, 's1')));
+        return res.writeHead(404).end();
     });
     const hubUrl = await listen(hub);
-    service = createLayersServer({ hubUrl, issuer: ISSUER, account: { tokenUrl: `${hubUrl}/token`, clientId: 'ea-layers', clientSecret: 'secret' } });
+    service = createLayersServer({ tenants: [
+        { issuer: SIDECAR, jwksUrl: `${hubUrl}/api/calm/auth/jwks` },
+        { issuer: REGISTERED, jwks: jwksOf(registeredKeys.publicKey, 'r1') },
+    ] });
     base = await listen(service);
 });
 
@@ -43,57 +47,115 @@ afterAll(() => {
     service.close();
 });
 
-function assertion(path: string, claims: object = {}) {
+const BODY = JSON.stringify({ hubApi: 0, document: SHOP });
+const bdh = (body: string) => (body ? createHash('sha256').update(body).digest('base64url') : undefined);
+
+function assertion(path: string, body = BODY, claims: Record<string, unknown> = {}) {
+    const issuer = (claims.iss as string | undefined) ?? SIDECAR;
+    const [key, kid] = issuer === REGISTERED ? [registeredKeys.privateKey, 'r1'] : [sidecarKeys.privateKey, 's1'];
     const now = Math.floor(Date.now() / 1000);
-    const header = { alg: 'ES256', typ: 'calm-ext+jwt', kid: 'k1' };
-    const payload = { iss: ISSUER, sub: 'alice', aud: 'ea-layers', iat: now, exp: now + 60, jti: randomUUID(), htm: 'GET', htp: path, ns: 'finos', ...claims };
+    const header = { alg: 'ES256', typ: 'calm-ext+jwt', kid };
+    const payload = { iss: issuer, sub: 'alice', aud: 'ea-layers', iat: now, exp: now + 60, jti: randomUUID(), htm: 'POST', htp: path, bdh: bdh(body), ns: 'finos', ...claims };
     const input = [header, payload].map((part) => Buffer.from(JSON.stringify(part)).toString('base64url')).join('.');
-    return `${input}.${sign('sha256', Buffer.from(input), { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64url')}`;
+    return `${input}.${sign('sha256', Buffer.from(input), { key, dsaEncoding: 'ieee-p1363' }).toString('base64url')}`;
 }
 
-const get = (path: string, token = assertion(path)) =>
-    fetch(`${base}${path}`, { headers: { 'X-Calm-Hub-Identity': token } });
+const post = (path: string, body = BODY, token = assertion(path, body)) =>
+    fetch(`${base}${path}`, { method: 'POST', headers: { 'X-Calm-Hub-Identity': token, 'Content-Type': 'application/json' }, body });
 
 describe('the layers service', () => {
     const lens = '/lens/finos/architectures/7?version=1.0.0&view=application';
 
-    it('answers a lens request from CALM Hub with a graph, and reads Hub with its own service account', async () => {
-        const res = await get(lens);
+    it('draws the architecture that Hub sent, and calls Hub only for its keys', async () => {
+        const res = await post(lens);
         expect(res.status).toBe(200);
         const reply = (await res.json()) as { graph: { nodes: { id: string }[] } };
         expect(reply).toMatchObject({ hubApi: 0, kind: 'graph', title: 'Application cooperation view' });
         expect(reply.graph.nodes.map((node) => node.id)).toContain('api');
-        expect(hubAuthorizations).toEqual(['Bearer service-token']);
+        expect(hubRequests.every((url) => url === '/api/calm/auth/jwks')).toBe(true);
     });
 
-    it('refuses a request without a valid assertion, or for another path', async () => {
-        expect((await fetch(`${base}${lens}`)).status).toBe(401);
-        expect((await get(lens, assertion('/lens/finos/architectures/8?version=1.0.0'))).status).toBe(401);
-        expect((await get(lens, assertion(lens, { aud: 'c4' }))).status).toBe(401);
+    it('answers a registered Hub with the keys that it registered, with no request to that Hub', async () => {
+        const before = hubRequests.length;
+        const res = await post(lens, BODY, assertion(lens, BODY, { iss: REGISTERED }));
+        expect(res.status).toBe(200);
+        expect(hubRequests.length).toBe(before);
+    });
+
+    it('refuses a Hub that is not registered, a body that Hub did not sign, or another path', async () => {
+        expect((await post(lens, BODY, assertion(lens, BODY, { iss: 'https://evil.example' }))).status).toBe(401);
+        expect((await post(lens, JSON.stringify({ document: { nodes: [] } }), assertion(lens))).status).toBe(401);
+        expect((await post(lens, BODY, assertion('/lens/finos/architectures/8?version=1.0.0'))).status).toBe(401);
+        expect((await post(lens, BODY, assertion(lens, BODY, { aud: 'c4' }))).status).toBe(401);
+        expect((await fetch(`${base}${lens}`, { method: 'POST', body: BODY })).status).toBe(401);
     });
 
     it('refuses an assertion for another namespace than the one in the path', async () => {
-        const res = await get(lens, assertion(lens, { ns: 'other' }));
+        const res = await post(lens, BODY, assertion(lens, BODY, { ns: 'other' }));
         expect(res.status).toBe(403);
         expect(res.headers.get('content-type')).toBe('application/problem+json');
     });
 
-    it('answers with a problem that the lens shows', async () => {
-        const missing = '/lens/finos/architectures/7?version=2.0.0';
-        expect(await (await get(missing)).json()).toEqual({ type: 'about:blank', title: 'CALM Hub has no such architecture', status: 404, detail: 'finos/7 version 2.0.0' });
-        expect(((await (await get('/lens/finos/patterns/7?version=1.0.0')).json()) as { title: string }).title).toBe('The layers lens shows architectures only');
-        expect((await get('/lens/finos/architectures/7')).status).toBe(400);
+    it('answers a request target that is not a URL with 400, and keeps running', async () => {
+        const { request } = await import('node:http');
+        const status = await new Promise<number | undefined>((resolve, reject) => {
+            const { hostname, port } = new URL(base);
+            request({ hostname, port, path: '//[', method: 'GET' }, (res) => { res.resume(); resolve(res.statusCode); })
+                .on('error', reject).end();
+        });
+        expect(status).toBe(400);
+        expect((await fetch(`${base}/healthz`)).status).toBe(200);
     });
 
-    it('answers its health check with no assertion', async () => {
+    it('refuses a path with an escape that is not valid', async () => {
+        const bad = '/lens/finos/architectures/%E0?version=1.0.0';
+        expect((await post(bad, BODY, assertion(bad))).status).toBe(400);
+    });
+
+    it('answers with a problem that the lens shows', async () => {
+        const patterns = '/lens/finos/patterns/7?version=1.0.0';
+        expect(((await (await post(patterns)).json()) as { title: string }).title).toBe('The layers lens shows architectures only');
+        expect(await (await post(lens, '{}')).json()).toMatchObject({ status: 400, title: 'CALM Hub sent no architecture' });
+    });
+
+    it('serves its health check and its extension files with no assertion', async () => {
         expect((await fetch(`${base}/healthz`)).status).toBe(200);
+        const manifest = (await (await fetch(`${base}/extension/extension.json`)).json()) as { id: string };
+        expect(manifest.id).toBe('ea-layers');
+        expect((await fetch(`${base}/extension/notation.json`)).status).toBe(200);
+        expect((await fetch(`${base}/extension/package.json`)).status).toBe(401);
     });
 });
 
-describe('architecturePath', () => {
-    it('reads a Hub id from the API, and a custom id from the mapping API', () => {
-        expect(architecturePath('finos', '7', '1.0.0')).toBe('/api/calm/namespaces/finos/architectures/7/versions/1.0.0');
-        expect(architecturePath('finos', 'shop/web', '1.0.0')).toBe('/calm/namespaces/finos/architectures/shop%2Fweb/versions/1.0.0');
+describe('an open service', () => {
+    let open: Server;
+    let openBase: string;
+    const lens = '/lens/finos/architectures/7?version=1.0.0&view=application';
+
+    beforeAll(async () => {
+        open = createLayersServer({ tenants: 'open' });
+        openBase = await listen(open);
+    });
+
+    afterAll(() => {
+        open.close();
+    });
+
+    const openPost = (body: string, headers: Record<string, string> = {}) =>
+        fetch(`${openBase}${lens}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body });
+
+    it('draws the body for any caller, with or without an assertion', async () => {
+        const plain = await openPost(BODY);
+        expect(plain.status).toBe(200);
+        expect(await plain.json()).toMatchObject({ kind: 'graph', title: 'Application cooperation view' });
+        const unknownHub = await openPost(BODY, { 'X-Calm-Hub-Identity': assertion(lens, BODY, { iss: 'https://any-hub.example', ns: 'other' }) });
+        expect(unknownHub.status).toBe(200);
+    });
+
+    it('still refuses a body with no architecture, and any other route', async () => {
+        expect((await openPost('{}')).status).toBe(400);
+        expect((await openPost('not json')).status).toBe(400);
+        expect((await fetch(`${openBase}${lens}`)).status).toBe(404);
     });
 });
 

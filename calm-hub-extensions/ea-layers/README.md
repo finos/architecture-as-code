@@ -47,7 +47,8 @@ The same as [`c4`](../c4/README.md#settings), with these differences:
 | `PORT` | `8094` | The port |
 | `CALM_EA_LAYERS_EXPORT_DIR` | not set | The folder to copy the extension files to |
 
-The service has no mapping and follows no links: it reads only the architecture that the lens shows.
+The route asks only for `"hubData": ["document"]`: CALM Hub sends the architecture that the lens shows,
+and the service follows no links. It has no `CALM_C4_MAPPING_HOSTS`.
 
 ## Develop
 

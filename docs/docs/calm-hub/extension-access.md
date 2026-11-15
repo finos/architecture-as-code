@@ -158,9 +158,16 @@ CALM Hub refuses its own assertion as a credential. An extension that calls CALM
 
 ### Serve many CALM Hubs
 
-A service for more than one CALM Hub keeps a list of the Hubs that it trusts: each `iss`, with its
-public keys or its JWKS URL. Pick the keys by `iss` from that list. Never fetch keys from a URL that
-the request names, because a caller could then make the service call any host.
+The assertion tells a service which Hub calls it. Anyone can run a Hub with keys of their own, so a valid
+assertion from an unknown Hub proves nothing. Choose one of these:
+
+| Service | Do this |
+|---|---|
+| Uses only the `hubData` that it gets, keeps nothing, and is free | Accept any caller. Limit the request rate. Its operators can set `send-identity=false`, so that their Hub needs no identity keys for it |
+| Charges, limits its users, or holds data of its own | Keep a list of the Hubs that it trusts: each `iss`, with its public keys or its JWKS URL. Pick the keys by `iss` from that list |
+
+Never fetch keys from a URL that the request names, such as `<iss>/api/calm/auth/jwks`. A caller could
+then make the service call any host.
 
 ## Trust model
 

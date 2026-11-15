@@ -8,10 +8,13 @@
   "routes": [
     {
       "id": "lens",
-      "method": "GET",
+      "method": "POST",
       "path": "/lens/{namespace}/{resourceType}/{resourceId}",
       "scope": "read",
-      "readOnly": true
+      "readOnly": true,
+      "hubData": [
+        "document"
+      ]
     }
   ],
   "contributes": {
@@ -21,9 +24,19 @@
         "title": "Layers",
         "description": "Business, application and technology layers, in the ArchiMate® notation",
         "route": "lens",
-        "appliesTo": { "resourceTypes": ["architectures"] },
+        "appliesTo": {
+          "resourceTypes": [
+            "architectures"
+          ]
+        },
         "params": {
-          "view": { "values": ["layered", "application"], "default": "layered" }
+          "view": {
+            "values": [
+              "layered",
+              "application"
+            ],
+            "default": "layered"
+          }
         },
         "notation": "notation.json"
       }
