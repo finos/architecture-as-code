@@ -125,7 +125,7 @@ Each extension has a collapsible sub-section.
 
 ## action
 
-A button in the extension's section of the **Extensions** tab.
+A button in the extension's section of the **Extensions** tab of an architecture or pattern. Actions show only there, not on the home page, so each call has a resource context.
 
 ```json
 "routes": [{ "id": "request-review", "method": "POST", "path": "/reviews", "scope": "authenticated" }],
