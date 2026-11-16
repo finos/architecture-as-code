@@ -393,6 +393,8 @@ All four workflows:
 **Native workflows** (`-native.yml`) use a per-architecture build matrix (`ubuntu-latest` for `amd64`, `ubuntu-24.04-arm` for `arm64`). Each runner builds for its own arch, pushes by digest, and a final merge job assembles the multi-arch manifest via `docker buildx imagetools create`.
 
 The EC2 demo (`ec2/`) runs `main-read-only-native`, so it changes on every merge, not on a release.
+`docker-publish-calm-hub-extensions.yml` publishes each folder of `calm-hub-extensions/` as
+`finos/calm-hub-<id>`, with the `main` and `sha-<short>` tags on each merge. They have no release.
 
 ## Releasing
 
