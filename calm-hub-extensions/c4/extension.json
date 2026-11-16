@@ -42,7 +42,7 @@
             "default": "context"
           },
           "scope": {
-            "pattern": "^[A-Za-z0-9_.:/-]{1,128}$"
+            "pattern": "^[^\\p{Cc}]{1,128}$"
           }
         },
         "notation": "notation.json"

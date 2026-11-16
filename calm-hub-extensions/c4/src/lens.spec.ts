@@ -99,6 +99,14 @@ describe('c4LensReply', () => {
         expect(container.graph.nodes.find((n) => n.calm?.[0] === longId)?.id).toHaveLength(117);
     });
 
+    it('declares a scope that takes any CALM unique-id up to 128 characters, so each drill-down link opens', () => {
+        const manifest = JSON.parse(readFileSync(new URL('../extension.json', import.meta.url), 'utf8'));
+        // Hub checks the pattern in Unicode mode, as here.
+        const scope = new RegExp(manifest.contributes['diagram-lens'][0].params.scope.pattern, 'u');
+        expect(['order service', 'café', 'a/b:c'].every((id) => scope.test(id))).toBe(true);
+        expect(['', 'a\nb', 'x'.repeat(129)].some((id) => scope.test(id))).toBe(false);
+    });
+
     it('says why a level has nothing to draw', () => {
         const value = reply('component');
         expect(value.graph.nodes).toEqual([]);

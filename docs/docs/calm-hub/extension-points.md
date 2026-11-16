@@ -187,7 +187,7 @@ is a smaller one, in the ArchiMate® notation.
   "appliesTo": { "resourceTypes": ["architectures"] },
   "params": {
     "level": { "values": ["context", "container", "component", "deployment"], "default": "context" },
-    "scope": { "pattern": "^[A-Za-z0-9_.:/-]{1,128}$" }
+    "scope": { "pattern": "^[^\\p{Cc}]{1,128}$" }
   },
   "notation": "notation.json"
 }]
@@ -200,7 +200,7 @@ is a smaller one, in the ArchiMate® notation.
 | `description` | No | The tooltip in the lens list |
 | `route` | Yes | A `GET` route, or a `POST` route with [`hubData`](extension-access.md#let-calm-hub-send-the-data). Its path can use only the parameters that a designer tab can fill |
 | `appliesTo` | No | `resourceTypes`: `architectures`, `patterns` or both. The default is both |
-| `params` | No | The view parameters of the lens, each with `values` or a `pattern`, and an optional `default`. CALM Hub keeps them in the URL and sends them in the query. `tab`, `lens`, `node`, `type`, `schema`, `q` and the context names are reserved |
+| `params` | No | The view parameters of the lens, each with `values` or a `pattern`, and an optional `default`. A `pattern` is a regular expression in Unicode mode, so a class such as `\p{Cc}` works. CALM Hub keeps them in the URL and sends them in the query. `tab`, `lens`, `node`, `type`, `schema`, `q` and the context names are reserved |
 | `notation` | Yes | The name of a JSON file in the extension folder, next to `extension.json`, with the shapes, edge markers and styles. See below |
 
 ### Notation
