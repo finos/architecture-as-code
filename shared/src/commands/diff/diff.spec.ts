@@ -187,6 +187,23 @@ describe('runDiff', () => {
         expect(result.hasChanges).toBe(true);
     });
 
+    it('treats a node that moves into a catalogue as a change', async () => {
+        const cache = { properties: { 'unique-id': { const: 'cache' }, 'node-type': { const: 'database' } } };
+        const pattern = (nodes: Record<string, unknown>) => ({
+            $schema: 'https://calm.finos.org/release/1.3/meta/calm.json',
+            type: 'object',
+            properties: { nodes: { type: 'array', ...nodes }, relationships: { type: 'array', prefixItems: [] } },
+        });
+        const a = writeArch('a.pattern.json', pattern({ prefixItems: [cache] }));
+        const b = writeArch('b.pattern.json', pattern({ prefixItems: [], items: { anyOf: [cache] } }));
+
+        const result = await runDiff(a, b, { format: 'summary' });
+
+        expect(result.hasChanges).toBe(true);
+        expect(result.formatted).toContain('Obligation changed: 1 node(s) + 0 relationship(s)');
+        expect(result.formatted).toContain('Nodes with a changed obligation:\n  - cache (required -> catalogue)');
+    });
+
     it('diffs two pattern files and reports a pattern-titled summary', async () => {
         const a = writeArch('a.pattern.json', makePattern('Service A'));
         const b = writeArch('b.pattern.json', makePattern('Service A v2'));
@@ -286,6 +303,17 @@ describe('hasChanges', () => {
         const r: NodesAndRelationshipsDiffResult = {
             ...emptyResult,
             undiffableItems: { nodes: [{ name: 'unpinned' }], relationships: [] },
+        };
+        expect(hasChanges(r)).toBe(true);
+    });
+
+    it('returns true when only obligation changes are present', () => {
+        const r: NodesAndRelationshipsDiffResult = {
+            ...emptyResult,
+            obligationChanged: {
+                nodes: [],
+                relationships: [{ item: { 'unique-id': 'r1' }, from: 'catalogue', to: 'required' }],
+            },
         };
         expect(hasChanges(r)).toBe(true);
     });

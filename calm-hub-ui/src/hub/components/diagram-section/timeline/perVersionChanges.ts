@@ -49,6 +49,13 @@ function diffResultToChanges(diff: NodesAndRelationshipsDiffResult): VersionChan
     for (const r of diff.edgesRenamed) {
         changes.push({ kind: 'mod', text: `Renamed relationship ${r.oldId} → ${r.newId}` });
     }
+    for (const c of diff.obligationChanged?.nodes ?? []) {
+        changes.push({ kind: 'mod', text: `Node ${nodeLabel(c.item)} changed from ${c.from} to ${c.to}` });
+    }
+    for (const c of diff.obligationChanged?.relationships ?? []) {
+        const id = c.item['unique-id'] ?? 'relationship';
+        changes.push({ kind: 'mod', text: `Relationship ${id} changed from ${c.from} to ${c.to}` });
+    }
     return changes;
 }
 
