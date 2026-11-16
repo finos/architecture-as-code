@@ -43,6 +43,21 @@ describe('layoutLens', () => {
         expect(Math.abs(edge.labelAt!.x - edge.points[0].x)).toBeLessThan(120);
     });
 
+    it('makes the drawing wide enough for each edge label', async () => {
+        const layout = await layoutLens(reply({
+            nodes: [{ id: 'cli', label: 'CLI' }, { id: 'user', label: 'User' }, { id: 'hub', label: 'Hub' }],
+            edges: [
+                { id: 'e1', source: 'cli', target: 'hub', label: 'Publishes and retrieves architectures through the REST endpoint', technology: 'HTTPS' },
+                { id: 'e2', source: 'user', target: 'hub', label: 'Interacts with the web user interface through a browser' },
+            ],
+        }), notation, 'light', sharedElk);
+        for (const edge of layout.edges) {
+            const width = Math.max(...edge.label.map((line) => line.length)) * 11 * 0.55;
+            expect(edge.labelAt!.x - width / 2).toBeGreaterThanOrEqual(0);
+            expect(edge.labelAt!.x + width / 2).toBeLessThanOrEqual(layout.width);
+        }
+    });
+
     it('draws an edge to a group as a straight line between the outlines', async () => {
         const layout = await layoutLens(reply({
             groups: [{ id: 'g' }],

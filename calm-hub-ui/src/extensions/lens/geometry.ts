@@ -280,6 +280,20 @@ export function placeSlot(slot: Slot, fit: Fitted, content: string | string[] | 
     };
 }
 
+/** The point halfway along a line, where an edge label goes when the layout did not place it. */
+export function midpoint(points: { x: number; y: number }[]) {
+    const lengths = points.slice(1).map((p, i) => Math.hypot(p.x - points[i].x, p.y - points[i].y));
+    let half = lengths.reduce((sum, length) => sum + length, 0) / 2;
+    for (let i = 0; i < lengths.length; i++) {
+        if (half <= lengths[i] && lengths[i] > 0) {
+            const t = half / lengths[i];
+            return { x: points[i].x + (points[i + 1].x - points[i].x) * t, y: points[i].y + (points[i + 1].y - points[i].y) * t };
+        }
+        half -= lengths[i];
+    }
+    return points[0];
+}
+
 /** A named port, in node pixels. */
 export function portPoint(port: Port, width: number, height: number): { x: number; y: number } {
     const offset = port.offset ?? 0.5;

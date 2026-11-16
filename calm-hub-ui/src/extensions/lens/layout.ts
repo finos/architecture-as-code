@@ -1,7 +1,7 @@
 import type { ELK, ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api.js';
 import type { LensEdge, LensGroup, LensLayout, LensNode, LensReply, Port, Shape } from '../../model/lens.js';
 import type { Theme } from '../../theme/useTheme.js';
-import { FONT_SIZE, LINE_HEIGHT, fitShape, portPoint, textWidth, wrap, type Fitted } from './geometry.js';
+import { FONT_SIZE, LINE_HEIGHT, fitShape, midpoint, portPoint, textWidth, wrap, type Fitted } from './geometry.js';
 import {
     elementStyle, findShape, groupStyle, relationshipStyle,
     type ComputedElementStyle, type ComputedGroupStyle, type ComputedRelationshipStyle, type ResolvedNotation,
@@ -285,6 +285,12 @@ function finish({ nodes, groups, edges, ports }: Prepared): Layout {
         ...nodes.map(({ x, y, fit }) => ({ x, y, width: fit.width, height: fit.height })),
         ...groups,
         ...edges.flatMap(({ points }) => points.map((point) => ({ ...point, width: 0, height: 0 }))),
+        ...edges.filter(({ label, points }) => label.length > 0 && points.length > 0).map(({ label, labelAt, points }) => {
+            const at = labelAt ?? midpoint(points);
+            const width = Math.max(...label.map((line) => textWidth(line, EDGE_LABEL.size)));
+            const height = label.length * EDGE_LABEL.size * LINE_HEIGHT;
+            return { x: at.x - width / 2, y: at.y - height / 2, width, height };
+        }),
     ];
     const left = Math.min(0, ...extents.map((box) => box.x)) - MARGIN;
     const top = Math.min(0, ...extents.map((box) => box.y)) - MARGIN;

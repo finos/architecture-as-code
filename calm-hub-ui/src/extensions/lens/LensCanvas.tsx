@@ -3,7 +3,7 @@ import type { LensNode } from '../../model/lens.js';
 import type { Theme } from '../../theme/useTheme.js';
 import { useSvgZoomPan } from '../../hub/components/flow-sequence-diagram/useSvgZoomPan.js';
 import { ZoomControls } from '../../hub/components/flow-sequence-diagram/ZoomControls.js';
-import { FONT_SIZE, LINE_HEIGHT, fitShape } from './geometry.js';
+import { FONT_SIZE, LINE_HEIGHT, fitShape, midpoint } from './geometry.js';
 import type { Layout, PlacedEdge } from './layout.js';
 import { GroupShape, NodeShape, ShapeParts } from './LensShape.js';
 import { CANVAS, DASH, findMarker, findShape, type ResolvedNotation } from './styles.js';
@@ -33,19 +33,6 @@ function edgePath({ points, style }: Pick<PlacedEdge, 'points' | 'style'>): stri
         d += ` Q${points[i].x} ${points[i].y} ${end.x} ${end.y}`;
     }
     return d;
-}
-
-function midpoint(points: { x: number; y: number }[]) {
-    const lengths = points.slice(1).map((p, i) => Math.hypot(p.x - points[i].x, p.y - points[i].y));
-    let half = lengths.reduce((sum, length) => sum + length, 0) / 2;
-    for (let i = 0; i < lengths.length; i++) {
-        if (half <= lengths[i] && lengths[i] > 0) {
-            const t = half / lengths[i];
-            return { x: points[i].x + (points[i + 1].x - points[i].x) * t, y: points[i].y + (points[i + 1].y - points[i].y) * t };
-        }
-        half -= lengths[i];
-    }
-    return points[0];
 }
 
 /** A point near one end, set off from the line, for a multiplicity or a role. */
