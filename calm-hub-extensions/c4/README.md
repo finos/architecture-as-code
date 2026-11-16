@@ -32,7 +32,7 @@ Hub needs these settings for the extension (see [Extensions](../../docs/docs/cal
 | Hub setting | Value |
 |---|---|
 | `calm.extensions.dir` | The shared folder |
-| `calm.extensions.c4.backend-url` | The URL of the sidecar, for example `http://c4:8093` |
+| `calm.extensions.c4.backend-url` | The root URL of the sidecar, for example `http://c4:8093`. A path prefix in front of the service breaks every call |
 | `calm.extensions.c4.allow-http` | `true` for a plain `http` sidecar on a private network |
 | `calm.extensions.identity.*` | The key that signs the identity assertion |
 | `calm.extensions.c4.send-identity` | `false` only for an open service (`CALM_OPEN_ACCESS=true`). Hub then needs no identity key for it |

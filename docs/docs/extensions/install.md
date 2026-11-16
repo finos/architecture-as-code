@@ -38,6 +38,10 @@ FINOS does not host the FINOS extensions yet. Until it does, run them yourself.
    calm.extensions.c4.send-identity=false
    ```
 
+   Set `backend-url` to the root of the service. The C4 and ea-layers services answer at `/lens/...` and
+   `/extension/...`, and they check the path that CALM Hub signs against the path that they get. So a proxy
+   that keeps a path prefix in front of the service, such as `https://example.com/c4/`, breaks every call.
+
 When the provider changes its manifest or notation, download the folder again.
 
 A provider that charges, or that limits who uses it, answers only the Hubs that it registered. Give it the
