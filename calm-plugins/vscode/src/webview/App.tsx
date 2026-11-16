@@ -73,6 +73,7 @@ import { edgeTypes } from './canvas/edgeTypes';
 import { minimapNodeClassName } from './canvas/minimap';
 import { makeContainment, removeContainment, isInsideBounds, getAbsolutePosition } from './utils/containment';
 import { validateArchitecture } from './utils/validation';
+import { isEmptyDocument } from './utils/empty-document';
 
 const SUPPRESS_ECHO_MS = 1200;
 const CORE_NODE_TYPES = new Set(['actor', 'ecosystem', 'system', 'service', 'database', 'network', 'ldap', 'webclient', 'data-asset']);
@@ -939,6 +940,7 @@ function CanvasApp() {
     // --- Clear canvas ---
     const confirmClear = useCallback(() => {
         setShowClearConfirm(false);
+        if (isEmptyDocument(lastEmittedJson.current)) return;
         if (lastEmittedJson.current !== null) {
             undoStack.current.push(lastEmittedJson.current);
             if (undoStack.current.length > 50) undoStack.current.shift();
@@ -949,6 +951,15 @@ function CanvasApp() {
         notifyCanvasChanged(emptyJson);
         suppressFileUpdatesUntil.current = Date.now() + SUPPRESS_ECHO_MS;
     }, [loadArchitecture]);
+
+    useEffect(() => {
+        if (!showClearConfirm) return;
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setShowClearConfirm(false);
+        };
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, [showClearConfirm]);
 
     if (!initialized) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--calm-fg-muted)' }}>Loading CALM architecture...</div>;
@@ -981,12 +992,11 @@ function CanvasApp() {
                     )}
                     {!store.readonlyMode && (
                         <>
-                            <span className="fid-toolbar-sep" />
+                            <span className="calm-toolbar-sep" />
                             <button
                                 onClick={() => setShowClearConfirm(true)}
-                                className="fid-toolbar-btn"
-                                title="Clear all architecture contents"
-                                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '3px 7px', color: '#e55', border: '1px solid #e55', borderRadius: '4px' }}
+                                className="calm-toolbar-btn calm-toolbar-btn--danger"
+                                title="Clear the whole document"
                             >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="10" y1="3" x2="16" y2="17" fill="none" />
@@ -1194,7 +1204,7 @@ function CanvasApp() {
                         <div style={{ padding: '20px 24px 12px' }}>
                             <h3 style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 600, color: 'var(--calm-fg)' }}>Clear Architecture</h3>
                             <p style={{ margin: 0, fontSize: '12px', color: 'var(--calm-fg-muted)', lineHeight: 1.5 }}>
-                                This will remove all nodes, relationships, and controls. You can undo with Ctrl+Z / Cmd+Z.
+                                This clears the whole document, including the schema, name, description and metadata. You can undo with Ctrl+Z / Cmd+Z while the canvas is open.
                             </p>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '12px 24px 16px' }}>
@@ -1215,14 +1225,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const toolbarStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '6px 12px', background: 'var(--calm-bg-secondary)', borderBottom: '1px solid var(--calm-border)', flexShrink: 0 };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '5px 8px', fontSize: '12px', color: 'var(--calm-fg)', background: 'var(--calm-bg-input)', border: '1px solid var(--calm-border-input)', borderRadius: '3px', outline: 'none', fontFamily: 'inherit' };
 const validationPanelStyle: React.CSSProperties = { position: 'absolute', bottom: 0, left: 0, right: 0, maxHeight: '40%', display: 'flex', flexDirection: 'column', background: 'var(--calm-bg)', borderTop: '1px solid var(--calm-border-heavy)', zIndex: 100, boxShadow: '0 -2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36))' };
-const collapsedPanelStyle: React.CSSProperties = { position: 'absolute', top: '8px', right: '8px', padding: '6px', color: '#ccc', background: 'var(--calm-bg-secondary)', border: '1px solid var(--calm-border)', borderRadius: '6px', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const collapsedPanelStyle: React.CSSProperties = { position: 'absolute', top: '8px', right: '8px', padding: '6px', color: 'var(--calm-fg)', background: 'var(--calm-bg-secondary)', border: '1px solid var(--calm-border)', borderRadius: '6px', cursor: 'pointer', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const collapseToggleStyle: React.CSSProperties = { border: '1px solid var(--calm-border)', background: 'var(--calm-bg-secondary)', color: 'var(--calm-fg)', cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: '2px 8px', borderRadius: '4px', flexShrink: 0 };
 const crumbStyle: React.CSSProperties = { background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-link)', fontSize: '11px', padding: '2px 4px' };
 const unparentBtnStyle: React.CSSProperties = { marginTop: '8px', padding: '4px 10px', fontSize: '11px', color: 'var(--calm-link)', background: 'none', border: '1px solid var(--calm-link)', borderRadius: '4px', cursor: 'pointer' };
 const clearOverlayStyle: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const clearModalStyle: React.CSSProperties = { width: '380px', maxWidth: '90vw', background: 'var(--calm-bg)', border: '1px solid var(--calm-border-heavy)', borderRadius: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' };
 const clearCancelBtnStyle: React.CSSProperties = { fontSize: '12px', padding: '6px 14px', cursor: 'pointer', background: 'var(--calm-bg-secondary)', color: 'var(--calm-fg)', border: '1px solid var(--calm-border)', borderRadius: '4px' };
-const clearConfirmBtnStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 600, padding: '6px 14px', cursor: 'pointer', background: '#d33', color: '#fff', border: 'none', borderRadius: '4px' };
+const clearConfirmBtnStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 600, padding: '6px 14px', cursor: 'pointer', background: 'var(--vscode-editorError-foreground, #f14c4c)', color: 'var(--vscode-button-foreground, #fff)', border: 'none', borderRadius: '4px' };
 
 export function App() {
     return <ReactFlowProvider><CanvasApp /></ReactFlowProvider>;

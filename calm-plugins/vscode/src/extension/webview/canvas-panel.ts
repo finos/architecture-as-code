@@ -192,6 +192,11 @@ export class CanvasPanel {
             );
 
             this.registerFileWatcher(document);
+
+            void vscode.commands.executeCommand('vscode.setEditorLayout', {
+                orientation: 0,
+                groups: [{ size: 0.2 }, { size: 0.8 }],
+            });
         }
 
         this.panel.webview.html = getWebviewHtml(
@@ -200,11 +205,6 @@ export class CanvasPanel {
             document
         );
         this.panel.reveal(vscode.ViewColumn.Beside);
-
-        void vscode.commands.executeCommand('vscode.setEditorLayout', {
-            orientation: 0,
-            groups: [{ size: 0.2 }, { size: 0.8 }],
-        });
     }
 
     onDispose(callback: () => void): void {
