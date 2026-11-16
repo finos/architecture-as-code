@@ -1,7 +1,7 @@
 # ADR 0013: Extension UI is tiered, with Hub-rendered blocks by default
 
-**Status**: Proposed. The proof of concept renders seven block types for one
-`screen`. Decorator views and the iframe tier are not built.
+**Status**: Accepted. Built (#3708, #3709, #3713): the seven block types, decorator views
+and the blocks schema. Not built: the iframe tier, and a `designer-tab` tab of its own beside Diagram and JSON.
 
 ## Context
 
