@@ -17,8 +17,10 @@ export interface DiagramTabContext extends DiagramTabScope {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
     selectedElement?: string;
     searchParams: URLSearchParams;
-    /** Replaces the query parameters of the active tab, or of the active lens for a lens. `tab` or `lens` is kept. */
-    /** Sets the parameters of the tab or lens. A lens can name a node to select in the same navigation. */
+    /**
+     * Replaces the query parameters of the active tab, or of the active lens for a lens. `tab` or `lens` is kept.
+     * A lens can name a node to select in the same navigation.
+     */
     setTabParams: (params: Record<string, string>, selectNode?: string) => void;
     /** Selects the CALM node or relationship with this unique-id, as a click on the CALM diagram does. */
     selectElement?: (uniqueId: string) => void;
