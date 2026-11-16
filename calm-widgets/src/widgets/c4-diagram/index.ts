@@ -123,9 +123,28 @@ function writeView(view: C4View, model: C4Model, title: string | undefined): str
     if (title) writer.line(`title ${title.replace(/\s+/g, ' ')}`);
 
     if (view.deployments) {
-        for (const { node, hosted } of view.deployments) {
-            writer.block(`Deployment_Node(${writer.alias(node.id)}, ${text(node.name)}, ${text(node.nodeType)})`, () => hosted.forEach((h) => writer.element(h)));
-        }
+        type Deployment = NonNullable<C4View['deployments']>[number];
+        const byId = new Map(view.deployments.map((deployment) => [deployment.node.id, deployment]));
+        const nested = new Set(view.deployments.flatMap(({ hosted }) => hosted.filter((h) => byId.has(h.id)).map((h) => h.id)));
+        // Mermaid cannot draw a relationship to a Deployment_Node, so a node that a relationship names is also an element.
+        const endpoints = new Set(view.relationships.flatMap(({ source, target }) => [source, target]));
+        const drawn = new Set<string>();
+        const draw = ({ node, hosted }: Deployment) => {
+            drawn.add(node.id);
+            const alias = endpoints.has(node.id) ? writer.alias(`deployment:${node.id}`) : writer.alias(node.id);
+            writer.block(`Deployment_Node(${alias}, ${text(node.name)}, ${text(node.nodeType)})`, () => {
+                if (endpoints.has(node.id)) writer.element(node);
+                hosted.forEach((h) => {
+                    const child = byId.get(h.id);
+                    if (!child) writer.element(h);
+                    else if (!drawn.has(h.id)) draw(child);
+                });
+            });
+        };
+        view.deployments.filter(({ node }) => !nested.has(node.id)).forEach(draw);
+        // A deployed-in cycle has no top, so its first node is drawn at the top level.
+        for (const deployment of view.deployments) if (!drawn.has(deployment.node.id)) draw(deployment);
+        view.outside.forEach((e) => writer.element(e));
     } else if (view.level === 'context') {
         const boundary = [...model.elements.values()].find((e) => e.kind === 'enterprise-boundary');
         const outsideEnterprise = (e: C4Element) => e.external.includes('outside-enterprise') || e.external.includes('mapped-external');

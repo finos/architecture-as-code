@@ -109,6 +109,70 @@ describe('C4DiagramWidget', () => {
         ]);
     });
 
+    it('nests a deployment node in the node it is deployed in, and declares each node once', () => {
+        const deployedIn = (container: string, ...nodes: string[]) => ({
+            'unique-id': `${container}-d`,
+            'relationship-type': { 'deployed-in': { container, nodes } },
+        });
+        const nested = {
+            nodes: [node('cloud', 'network', 'Cloud'), node('cluster', 'network', 'Cluster'), node('api', 'service', 'API'), node('a', 'network', 'A'), node('b', 'network', 'B')],
+            relationships: [deployedIn('cloud', 'cluster'), deployedIn('cluster', 'api'), deployedIn('a', 'b'), deployedIn('b', 'a')],
+        };
+
+        expect(render(nested, { level: 'deployment' })).toEqual([
+            'C4Deployment',
+            '    Deployment_Node(cloud, "Cloud", "network") {',
+            '        Deployment_Node(cluster, "Cluster", "network") {',
+            '            Container(api, "API", "service", "")',
+            '        }',
+            '    }',
+            '    Deployment_Node(a, "A", "network") {',
+            '        Deployment_Node(b, "B", "network") {',
+            '        }',
+            '    }',
+        ]);
+    });
+
+    it('declares a deployment node that a relationship names as an element inside its own block', () => {
+        const nested = {
+            nodes: [node('cloud', 'network', 'Cloud'), node('cluster', 'network', 'Cluster'), node('api', 'service', 'API')],
+            relationships: [
+                { 'unique-id': 'd1', 'relationship-type': { 'deployed-in': { container: 'cloud', nodes: ['cluster'] } } },
+                { 'unique-id': 'd2', 'relationship-type': { 'deployed-in': { container: 'cluster', nodes: ['api'] } } },
+                connects('api', 'cluster', 'Registers with'),
+            ],
+        };
+
+        expect(render(nested, { level: 'deployment' })).toEqual([
+            'C4Deployment',
+            '    Deployment_Node(cloud, "Cloud", "network") {',
+            '        Deployment_Node(deployment_cluster, "Cluster", "network") {',
+            '            Container(cluster, "Cluster", "network", "")',
+            '            Container(api, "API", "service", "")',
+            '        }',
+            '    }',
+            '    Rel(api, cluster, "Registers with")',
+        ]);
+    });
+
+    it('draws what a hidden top-level node holds outside any deployment node', async () => {
+        setC4Mapping(await resolveC4Mapping({ 'unique-id': 'm', extends: CALM_DEFAULT_C4_MAPPING_URL, 'node-types': { 'x:pod': 'hidden' } }));
+        const deployed = {
+            nodes: [node('pod', 'x:pod', 'Pod'), node('api', 'service', 'API'), node('db', 'database', 'DB')],
+            relationships: [
+                { 'unique-id': 'd', 'relationship-type': { 'deployed-in': { container: 'pod', nodes: ['api', 'db'] } } },
+                connects('api', 'db', 'Reads'),
+            ],
+        };
+
+        expect(render(deployed, { level: 'deployment' })).toEqual([
+            'C4Deployment',
+            '    Container(api, "API", "service", "")',
+            '    ContainerDb(db, "DB", "database", "")',
+            '    Rel(api, db, "Reads")',
+        ]);
+    });
+
     it('uses the mapping set with setC4Mapping', async () => {
         setC4Mapping(
             await resolveC4Mapping({
