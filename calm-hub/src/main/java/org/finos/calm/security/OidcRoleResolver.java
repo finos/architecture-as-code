@@ -16,6 +16,8 @@ import java.util.stream.Stream;
  * Resolves user access by checking SecurityIdentity roles (populated from the
  * token's "groups" claim via {@code quarkus.oidc.roles.role-claim-path=groups})
  * against the required access groups for a namespace.
+ * <p>
+ * A namespace with no groups gives read-only access to any authenticated user.
  */
 @ApplicationScoped
 public class OidcRoleResolver {
