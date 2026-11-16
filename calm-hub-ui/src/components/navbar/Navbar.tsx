@@ -42,11 +42,12 @@ export function Navbar({ storage }: NavbarProps = {}) {
     const closeMenu = () => setIsMenuOpen(false);
 
     return (
-        <div className="navbar relative bg-base-100 border-b-2 border-base-200 text-primary-content gap-1">
-            {/* Below lg the logo stays in the flex flow: equal flex-1 sides keep it
-                centred, but neither side can shrink under its content, so page
-                actions in #navbar-actions push the logo aside instead of covering it. */}
-            <div className="navbar-start flex items-center gap-1 max-lg:w-auto max-lg:flex-1 lg:min-w-0">
+        <div className="navbar bg-base-100 border-b-2 border-base-200 text-primary-content gap-1 lg:grid lg:grid-cols-[minmax(auto,1fr)_auto_minmax(auto,1fr)]">
+            {/* The logo is never absolutely positioned, so it cannot be covered. Equal
+                flexible sides keep it centred; a side that needs more room than half
+                the bar pushes it aside. Below lg this is flex-1, from lg a grid
+                (daisyUI's 50% side width and min-w-0 would let the sides overlap it). */}
+            <div className="navbar-start flex items-center gap-1 w-auto max-lg:flex-1">
                 <button
                     // Narrower on mobile with a pill, which must fit beside the centred logo.
                     className={`btn btn-ghost gap-2 text-primary shrink-0${environment ? ' px-2 lg:px-4' : ''}`}
@@ -57,12 +58,12 @@ export function Navbar({ storage }: NavbarProps = {}) {
                 </button>
                 {environment && <EnvironmentPill environment={environment} />}
             </div>
-            <div className="navbar-center min-w-0 max-lg:shrink lg:absolute lg:left-1/2 lg:-translate-x-1/2">
+            <div className="navbar-center min-w-0 max-lg:shrink">
                 <Link to="/" className="btn btn-ghost min-w-0 px-1 max-lg:shrink" aria-label="CALM Hub home">
                     <img src={LOGO_SRC[theme]} alt="CALM Logo" className="h-10 logo min-w-0 object-contain" />
                 </Link>
             </div>
-            <div className="navbar-end flex items-center gap-1 shrink-0 max-lg:w-auto max-lg:flex-1 lg:min-w-0">
+            <div className="navbar-end flex items-center gap-1 shrink-0 w-auto max-lg:flex-1">
                 {/* Portal target for page-level actions (e.g. the diagram's
                     view-options menu), always visible across breakpoints. */}
                 <div id="navbar-actions" className="flex items-center" />
