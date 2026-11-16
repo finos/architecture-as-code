@@ -137,7 +137,8 @@ export function DiagramLensView({ extension, lens, context, params, onParamsChan
                     )}
                 </div>
             )}
-            <div className="relative flex min-h-0 flex-1">
+            {/* Below 1024 pixels the notes go under the diagram, so a phone keeps the width for the diagram. */}
+            <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
                 {state.status === 'loading' && <p role="status" className="m-auto text-sm text-base-content/60">Loading {lens.title}…</p>}
                 {state.status === 'error' && (
                     <div role="alert" className="m-auto max-w-md text-center text-sm">
@@ -147,13 +148,13 @@ export function DiagramLensView({ extension, lens, context, params, onParamsChan
                 )}
                 {state.status === 'ready' && (
                     <>
-                        <div className="relative min-w-0 flex-1">
+                        <div className="relative min-h-0 min-w-0 flex-1">
                             <LensCanvas layout={state.layout} notation={state.notation} theme={theme} selectedElement={selectedElement}
                                 hiddenTags={hiddenTags} onActivateNode={activate} onSelect={(calm) => onSelectElement(calm[0])} />
                             <LensKey entries={entries} notation={state.notation} theme={theme} hidden={hiddenTags} onToggle={toggleTag} />
                         </div>
                         {panelsOpen && state.reply.panels.length > 0 && (
-                            <aside className="flex w-80 shrink-0 flex-col gap-4 overflow-auto border-l border-base-300 p-3" aria-label="Lens notes">
+                            <aside className="flex max-h-[40%] shrink-0 flex-col gap-4 overflow-auto border-t border-base-300 p-3 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0" aria-label="Lens notes">
                                 <button type="button" className="btn btn-ghost btn-xs self-end" onClick={() => setPanelsOpen(false)}>
                                     Hide
                                 </button>
