@@ -200,20 +200,45 @@ describe('projectC4', () => {
             const architecture = {
                 nodes: [
                     node('sys', 'system'),
-                    node('payments', 'service', { 'detailed-architecture': hub('finos') }),
+                    node('orders', 'service', { 'detailed-architecture': hub('finos.calm') }),
+                    node('payments', 'service', { 'detailed-architecture': hub('finos.calm.payments') }),
+                    node('platform', 'service', { 'detailed-architecture': hub('finos') }),
                     node('ledger', 'service', { 'detailed-architecture': hub('finos.calmx') }),
                     node('ledger-db', 'database'),
                 ],
-                relationships: [composed('sys', 'payments', 'ledger'), composed('ledger', 'ledger-db')],
+                relationships: [composed('sys', 'orders', 'payments', 'platform', 'ledger'), composed('ledger', 'ledger-db')],
             };
 
             const model = projectC4(architecture, undefined, { namespace: 'finos.calm' });
 
+            expect(element(model, 'orders')).toMatchObject({ kind: 'container', external: [] });
             expect(element(model, 'payments')).toMatchObject({ kind: 'container', external: [] });
+            expect(element(model, 'platform')).toMatchObject({ kind: 'software-system', external: ['other-team'] });
             expect(element(model, 'ledger')).toMatchObject({ kind: 'software-system', external: ['other-team'] });
             expect(element(model, 'ledger').notes).toEqual(['Owned by namespace finos.calmx, so it is shown as a software system, not a container']);
             expect(element(model, 'ledger-db').kind).toBe('component');
             expect(element(projectC4(architecture), 'ledger').external).toEqual([]);
+        });
+
+        it('reads the namespace only from the path of a CALM Hub URL, decoded once', () => {
+            const linked = (reference: string) => {
+                const architecture = {
+                    nodes: [node('sys', 'system'), node('svc', 'service', { 'detailed-architecture': reference })],
+                    relationships: [composed('sys', 'svc')],
+                };
+                return element(projectC4(architecture, undefined, { namespace: 'finos.calm' }), 'svc').external;
+            };
+            const hubPath = '/calm/namespaces/finos/architectures/1/versions/1.0.0';
+
+            expect(linked(`https://example.com/architecture.json?source=${hubPath}`)).toEqual([]);
+            expect(linked(`https://example.com/architecture.json#${hubPath}`)).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos%2Ecalm/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos.calm%2Epayments/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/%66inos.calm/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos.calm%2Ex%25zz/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos.calm%E0/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos%2Ecalmx/architectures/1/versions/1.0.0')).toEqual(['other-team']);
+            expect(linked(`../other${hubPath}`)).toEqual(['other-team']);
         });
     });
 
