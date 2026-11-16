@@ -23,7 +23,8 @@ export interface DiagramLensViewProps {
     context: ExtensionContext;
     /** The view parameters in the URL. Only the ones that the lens declares reach its route. */
     params: Record<string, string | undefined>;
-    onParamsChange: (params: Record<string, string>) => void;
+    /** Sets the view parameters. `select` names a CALM element to select in the same navigation. */
+    onParamsChange: (params: Record<string, string>, select?: string) => void;
     onSelectElement: (uniqueId: string) => void;
 }
 
@@ -108,10 +109,15 @@ export function DiagramLensView({ extension, lens, context, params, onParamsChan
 
     const setParam = (param: string, value: string) => onParamsChange({ ...values, [param]: value });
     const activate = (node: LensNode) => {
-        if (node.calm?.[0]) onSelectElement(node.calm[0]);
+        const select = node.calm?.[0];
         const link = node.link;
-        if (link?.params && isParamsLinkAllowed(lens, link.params)) onParamsChange({ ...values, ...link.params });
-        else if (link?.hub?.version) navigate(resourcePath({ ...link.hub, version: link.hub.version }));
+        // Two navigations from one click would each start from the old URL, and the second would undo the first.
+        if (link?.params && isParamsLinkAllowed(lens, link.params)) {
+            onParamsChange({ ...values, ...link.params }, select);
+            return;
+        }
+        if (select) onSelectElement(select);
+        if (link?.hub?.version) navigate(resourcePath({ ...link.hub, version: link.hub.version }));
         else if (link?.href) {
             const href = safeHref(link.href);
             if (href?.startsWith('https://')) window.open(href, '_blank', 'noopener,noreferrer');

@@ -168,6 +168,31 @@ hidden tab falls back to `diagram`. An unknown tab id is also dropped from the U
 `searchParams`, so a version change keeps them. Add a tab there, not as a new branch in
 `DiagramSection`.
 
+### Diagram lenses
+
+A different picture of the same architecture is a **lens** of the Diagram tab, not a tab. A lens has the same
+shape as a `DIAGRAM_TABS` entry (`diagram-section/tabs/diagramLenses.tsx`). Hub's own lenses are `calm`, the CALM
+diagram, and `json` (`?tab=json` redirects to it) (`HUB_LENSES`). An extension adds a lens with a `diagram-lens`
+entry in its manifest, such as the `c4` extension, and `DiagramLensView` draws its graph reply with its notation.
+`diagramLenses()` lists Hub's lenses, then the lenses of the enabled extensions from the registry. Until the
+registry loads, or if it fails, it lists only Hub's lenses, and `DiagramSection` keeps an unknown `?lens=` while the
+registry loads. The backend refuses a lens id that two extensions declare, or `calm` or `json`. Do not add a
+lens drawing for one extension: extension code must not run in Hub's origin (ADR 0013).
+
+The URL is `?lens=<id>` plus the lens's own `searchParams`, with no `tab`. An unknown or hidden lens falls back to
+`calm`. A version change keeps the lens and its parameters (`diagramTabQuery`). A lens change keeps the other query
+parameters, such as `node`, and Hub keeps the selection when only the lens or its parameters change
+(`withoutLens`). A lens click that selects a node and changes the lens parameters is one navigation that names the
+node (`setLens`): two navigations from one click both start from the old URL, so the second undoes the first. A
+choice that leaves the query as it is does not navigate, because Hub reloads the resource on a new location key.
+Each lens fits its own view. The layout controls, the component search, decorator overlays and the
+version compare belong to the `calm` lens. An extension lens draws its controls on its canvas (`LensToolbar`). On desktop,
+the Diagram tab names the open lens, and its chevron opens `LensMenu`: the lenses, with a text filter, so many
+lenses take no more space in the header. The list and the mobile View sheet show Hub's lenses first, then the
+extension lenses (`DiagramLens.extension`) under an "Extensions" heading, with the extension name on each row
+(`lensGroups`). The layout controls keep their space (`invisible`) on another lens, so the tabs do not move when the
+lens changes.
+
 `src/decorator-renderer/` renders any decorator by the shape of its `data`. It must not import Hub
 code, so that it can move to a package that the VS Code extension shares. The UI calls them
 "Decorators", never "Metadata", which is the CALM `metadata` field (`MetadataPanel` is the panel

@@ -198,6 +198,14 @@ class TestExtensionManifestLoaderShould {
     }
 
     @Test
+    void reject_a_lens_with_the_id_of_a_lens_of_hub() {
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(withLens(lens("json")).encode(), ID, "test", Map.of("notation.json", NOTATION.encode())::get));
+
+        assertThat(e.getMessage(), containsString("diagram-lens 'json' has an id that CALM Hub uses for its own lens"));
+    }
+
+    @Test
     void reject_a_command_on_a_route_with_hub_data() {
         JsonObject m = valid();
         m.getJsonArray("routes").add(route("hub-lens", "POST", "/hub-lens/{namespace}/{resourceType}/{resourceId}", "read")

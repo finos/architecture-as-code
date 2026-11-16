@@ -66,6 +66,8 @@ public class ExtensionManifestLoader {
     /** Query parameters that the Diagram tab or the extension context already use. A lens param must not take one. */
     static final Set<String> RESERVED_LENS_PARAMS = Set.of("tab", "lens", "node", "type", "schema", "q", "namespace",
             "resource", "resourceType", "resourceId", "version", "selectedElement");
+    /** The lenses that ship with Hub UI. */
+    static final Set<String> RESERVED_LENS_IDS = Set.of("calm", "json");
     private static final NotationChecker NOTATIONS = NotationChecker.SHARED;
 
     private final ObjectMapper mapper = new ObjectMapper()
@@ -349,6 +351,9 @@ public class ExtensionManifestLoader {
 
     private static void checkLens(ExtensionManifest manifest, ExtensionManifest.DiagramLens lens, List<String> problems) {
         String where = "diagram-lens '" + lens.id() + "'";
+        if (RESERVED_LENS_IDS.contains(lens.id())) {
+            problems.add(where + " has an id that CALM Hub uses for its own lens. Reserved ids: " + RESERVED_LENS_IDS);
+        }
         manifest.route(lens.route()).ifPresentOrElse(route -> {
             if (!"GET".equals(route.method()) && !route.sendsHubData()) {
                 problems.add(where + " must name a GET route, or a route with hubData, but route '" + route.id() + "' is "

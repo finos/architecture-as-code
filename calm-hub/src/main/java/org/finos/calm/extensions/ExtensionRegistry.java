@@ -81,6 +81,7 @@ public class ExtensionRegistry {
         List<String> errors = new ArrayList<>();
         Set<String> ids = new HashSet<>();
         Map<String, String> viewOwners = new HashMap<>();
+        Map<String, String> lensOwners = new HashMap<>();
         List<RegisteredExtension> enabled = new ArrayList<>();
         for (ExtensionManifest manifest : manifests) {
             String id = manifest.id();
@@ -105,6 +106,14 @@ public class ExtensionRegistry {
                 if (owner != null) {
                     errors.add("decorator view id '" + view.id() + "' is declared by extensions '" + owner + "' and '"
                             + id + "'");
+                }
+            }
+            // The URL names a lens by its id alone: ?lens=<id>.
+            List<ExtensionManifest.DiagramLens> lenses = manifest.contributes().diagramLens();
+            for (ExtensionManifest.DiagramLens lens : lenses == null ? List.<ExtensionManifest.DiagramLens>of() : lenses) {
+                String owner = lensOwners.putIfAbsent(lens.id(), id);
+                if (owner != null) {
+                    errors.add("diagram lens id '" + lens.id() + "' is declared by extensions '" + owner + "' and '" + id + "'");
                 }
             }
             if (!manifest.routes().isEmpty() && backendUrl.isEmpty()) {

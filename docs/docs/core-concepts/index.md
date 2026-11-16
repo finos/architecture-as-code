@@ -20,5 +20,6 @@ Explore each concept below:
 - [Decorators](decorators): Attach supplementary information like deployments, security context, and business metadata to architecture elements.
 - [Metadata](metadata): Learn how to enrich your architecture with additional information.
 - [Widgets](widgets): Learn how to generate Markdown documentation from your architecture models using reusable template components.
+- [C4 Model](c4): Learn how CALM tools show an architecture as C4 diagrams, and how to map your own node types to C4.
 
 Continue through each section to get detailed explanations, examples, and best practices.

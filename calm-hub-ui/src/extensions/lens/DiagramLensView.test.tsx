@@ -68,11 +68,13 @@ describe('DiagramLensView', () => {
         expect(screen.queryByRole('option', { name: 'Choose…' })).toBeNull();
     });
 
-    it('selects the CALM element of a node, and follows its link to other parameters', async () => {
+    it('selects the CALM element of a node, and follows its link to other parameters in the same change', async () => {
         const { onParamsChange, onSelectElement } = show();
         fireEvent.click(await screen.findByRole('button', { name: 'Online Shop' }));
-        expect(onSelectElement).toHaveBeenCalledWith('shop');
-        expect(onParamsChange).toHaveBeenCalledWith({ level: 'container' });
+        expect(onParamsChange).toHaveBeenCalledWith({ level: 'container' }, 'shop');
+        fireEvent.click(screen.getByRole('button', { name: 'Payments' }));
+        expect(onSelectElement).toHaveBeenCalledWith('payments');
+        expect(onSelectElement).toHaveBeenCalledTimes(1);
     });
 
     it('marks a selection with no new request when the route does not take it', async () => {

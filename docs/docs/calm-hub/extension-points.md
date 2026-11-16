@@ -195,7 +195,7 @@ is a smaller one, in the ArchiMate® notation.
 
 | Field | Required | Rule |
 |---|---|---|
-| `id` | Yes | Lowercase letters, digits and `-`, starting with a letter. Unique in the extension. The URL names the lens with `?lens=<id>` |
+| `id` | Yes | Lowercase letters, digits and `-`, starting with a letter. Unique in all enabled extensions, and not `calm` or `json`, which are the lenses of CALM Hub. The URL names the lens with `?lens=<id>` |
 | `title` | Yes | The name in the lens list |
 | `description` | No | The tooltip in the lens list |
 | `route` | Yes | A `GET` route, or a `POST` route with [`hubData`](extension-access.md#let-calm-hub-send-the-data). Its path can use only the parameters that a designer tab can fill |

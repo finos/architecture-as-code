@@ -36,13 +36,20 @@ import { PatternImplementationService } from '../../../service/pattern-implement
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
 import { useArchitectureDecorators } from './decorators/useArchitectureDecorators.js';
 import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS, EXTENSIONS_TAB_ID, extensionContext } from './tabs/diagramTabs.js';
+import { diagramLenses } from './tabs/diagramLenses.js';
+import { LensMenu } from './tabs/LensMenu.js';
 import {
+    DEFAULT_DIAGRAM_LENS_ID,
     DEFAULT_DIAGRAM_TAB_ID,
+    LENS_PARAM,
+    withoutLens,
+    lensGroups,
     diagramTabLabel,
     diagramTabQuery,
     redirectedTabQuery,
     resolveDiagramTab,
     visibleDiagramTabs,
+    type DiagramLens,
     type DiagramTab,
     type DiagramTabContext,
 } from './tabs/diagramTabRegistry.js';
@@ -74,12 +81,23 @@ const iconMap = {
 } as const;
 
 const NO_DECORATORS: Decorator[] = [];
-const DECORATOR_TAB_IDS: ReadonlySet<string> = new Set([DEFAULT_DIAGRAM_TAB_ID, DECORATORS_TAB_ID]);
+// `.tabs-sm` sizes only its direct `.tab` children, so the two halves of the Diagram tab take its size here.
+const JOINED_TAB = '!flex items-center h-8 text-sm whitespace-nowrap shrink-0';
 const NO_MOMENTS: TimelineMoment[] = [];
 
 const subscribeToNothing = () => () => {};
 const getNavbarSlot = () => document.getElementById('navbar-actions');
 const getNoNavbarSlot = () => null;
+
+/**
+ * The query that keeps a lens that the registry does not list yet, on navigation to another version. Its own
+ * parameters are not known yet, so it keeps all but `node`, `tab` and the parameters of the tabs.
+ */
+function pendingLensQuery(searchParams: URLSearchParams): string {
+    const query = new URLSearchParams(searchParams);
+    for (const name of ['node', 'tab', ...DIAGRAM_TABS.flatMap((tab) => tab.searchParams ?? [])]) query.delete(name);
+    return `?${query.toString()}`;
+}
 
 export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange, onDecoratorsChange, onDroppedFileChange, selectedElement }: DiagramSectionProps) {
     const [urlSearchParams, setSearchParams] = useSearchParams();
@@ -220,15 +238,27 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const visibleTabs = visibleDiagramTabs(DIAGRAM_TABS, tabScope);
     const activeTab = resolveDiagramTab(DIAGRAM_TABS, searchParams.get('tab'), tabScope);
     // The Extensions tab is hidden until the registry loads, so a version change keeps it while the registry loads.
-    const registryLoading = useExtensionsStatus() === 'loading';
+    const registryStatus = useExtensionsStatus();
+    const registryLoading = registryStatus === 'loading';
     const carriedTab = registryLoading && searchParams.get('tab') === EXTENSIONS_TAB_ID
         ? DIAGRAM_TABS.find((tab) => tab.id === EXTENSIONS_TAB_ID) ?? activeTab
         : activeTab;
-    const tabQuery = diagramTabQuery(carriedTab, searchParams);
+    const lenses = useMemo(() => diagramLenses(extensions, registryStatus), [extensions, registryStatus]);
+    const visibleLenses = visibleDiagramTabs(lenses, tabScope);
+    const activeLens = resolveDiagramTab(lenses, searchParams.get(LENS_PARAM), tabScope, DEFAULT_DIAGRAM_LENS_ID);
+    // An extension lens is known once the registry loads. Until then its link waits, and a version change keeps it.
+    const requestedLens = searchParams.get(LENS_PARAM);
+    const lensPending = registryLoading && requestedLens !== null && !lenses.some((lens) => lens.id === requestedLens);
+    const onDiagramTab = !comparing && activeTab.id === DEFAULT_DIAGRAM_TAB_ID;
+    // The layout controls, the component search and the overlays belong to the CALM lens.
+    const onCalmDiagram = onDiagramTab && activeLens.id === DEFAULT_DIAGRAM_LENS_ID;
+    const tabQuery = lensPending && activeTab.id === DEFAULT_DIAGRAM_TAB_ID
+        ? pendingLensQuery(searchParams)
+        : diagramTabQuery(carriedTab, searchParams, activeLens);
     const usedByOpen = activeTab.id === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
     // Polled only while the diagram, the Decorators tab or the details drawer shows them.
-    const showsDecorators = (!comparing && DECORATOR_TAB_IDS.has(activeTab.id)) || !!hasDetailsPanel;
+    const showsDecorators = onCalmDiagram || (!comparing && activeTab.id === DECORATORS_TAB_ID) || !!hasDetailsPanel;
     const decoratorsState = useArchitectureDecorators(calmService, data, isArchitecture, showsDecorators);
     const allDecorators = decoratorsState.status === 'loaded' ? decoratorsState.decorators : NO_DECORATORS;
 
@@ -242,6 +272,24 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     };
     const setTabParams = (params: Record<string, string>) => {
         setSearchParams({ tab: activeTab.id, ...params }, { replace: true, state: location.state });
+    };
+    // A lens change keeps the other parameters, such as `node`, so the selection stays.
+    // From another tab, it starts from a clean URL, as a tab change does.
+    // A node to select goes in the same URL as `node`, which Hub opens as a link does.
+    const setLens = (lens: DiagramLens, params: Record<string, string> = {}, selectNode?: string) => {
+        const next = activeTab.id === DEFAULT_DIAGRAM_TAB_ID ? withoutLens(lenses, searchParams) : new URLSearchParams();
+        next.delete('tab');
+        if (lens.id !== DEFAULT_DIAGRAM_LENS_ID) next.set(LENS_PARAM, lens.id);
+        for (const [name, value] of Object.entries(params)) next.set(name, value);
+        if (selectNode !== undefined) next.set('node', selectNode);
+        // Hub reloads the resource on each navigation that is not a query change, so an unchanged query must not navigate.
+        if (next.toString() === searchParams.toString()) return;
+        setSearchParams(next, { replace: true, state: location.state });
+    };
+    // A choice of the open lens keeps its view parameters, such as the C4 level and scope.
+    const chooseLens = (lens: DiagramLens) => {
+        if (onDiagramTab && lens.id === activeLens.id) return;
+        setLens(lens);
     };
     const redirectTo = redirectedQuery?.toString();
     useEffect(() => {
@@ -490,12 +538,18 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
 
     const Icon = iconMap[data.calmType];
 
-    const tabContext: DiagramTabContext = {
+    const lensContext: DiagramTabContext = {
         ...tabScope,
         data,
         selectedElement,
         searchParams,
-        setTabParams,
+        setTabParams: (params, selectNode) => setLens(activeLens, params, selectNode),
+        selectElement: (uniqueId) => {
+            const document = data.data as { nodes?: unknown; relationships?: unknown } | undefined;
+            const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
+            const item = items.find((entry) => (entry as { 'unique-id'?: unknown })?.['unique-id'] === uniqueId);
+            if (item) onItemSelect?.({ data: item });
+        },
         diagram: (
             <Drawer
                 data={data}
@@ -511,14 +565,54 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         ),
         decorators: decoratorsState,
         usedBy,
+    };
+
+    const tabContext: DiagramTabContext = {
+        ...lensContext,
+        setTabParams,
+        diagram: lensPending
+            ? <div className="flex h-full items-center justify-center text-sm text-base-content/60">Loading the lens…</div>
+            : activeLens.render(lensContext),
         focusPanel,
         onPanelFocused: clearFocusPanel,
     };
+
+    // The lenses are listed when more than one applies: in the Diagram tab, and in the mobile View sheet. A lens chosen on another tab opens the Diagram tab.
+    const showLensMenu = !comparing && visibleLenses.length > 1;
 
     // Desktop: inline tabs in the section header (unchanged).
     const tabs = (
         <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
             {visibleTabs.map((tab) => {
+                const active = !comparing && activeTab === tab;
+                const tabClass = `tab gap-1 rounded-lg ${active ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`;
+                if (tab.id === DEFAULT_DIAGRAM_TAB_ID && showLensMenu) {
+                    // The Diagram tab names the open lens, and its chevron lists the lenses. A fixed width keeps the bar still.
+                    const lensLabel = onDiagramTab && activeLens.id !== DEFAULT_DIAGRAM_LENS_ID ? diagramTabLabel(activeLens, lensContext) : diagramTabLabel(tab, tabContext);
+                    const LensIcon = onDiagramTab ? activeLens.icon : tab.icon;
+                    return (
+                        <div key={tab.id} className="flex items-stretch shrink-0">
+                            <button
+                                role="tab"
+                                aria-label={lensLabel}
+                                aria-selected={active}
+                                title={onDiagramTab ? activeLens.title : tab.title}
+                                className={`${tabClass} ${JOINED_TAB} !rounded-r-none !pl-2 !pr-1 min-w-[6rem] !justify-start`}
+                                onClick={() => (onDiagramTab ? undefined : setLens(activeLens))}
+                            >
+                                <LensIcon />
+                                <span className="hidden sm:inline">{lensLabel}</span>
+                            </button>
+                            <LensMenu
+                                lenses={visibleLenses}
+                                activeLensId={onDiagramTab ? activeLens.id : ''}
+                                labelOf={(lens) => diagramTabLabel(lens, lensContext)}
+                                onSelect={chooseLens}
+                                buttonClassName={`${tabClass} ${JOINED_TAB} !rounded-l-none !px-1`}
+                            />
+                        </div>
+                    );
+                }
                 const label = diagramTabLabel(tab, tabContext);
                 const TabIcon = tab.icon;
                 return (
@@ -527,7 +621,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                         role="tab"
                         aria-label={label}
                         title={tab.title}
-                        className={`tab gap-1 rounded-lg ${!comparing && activeTab === tab ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
+                        className={tabClass}
                         onClick={() => setActiveTab(tab)}
                     >
                         <TabIcon />
@@ -539,12 +633,13 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     );
 
     // Desktop entry point for the shared default layout (mobile's lives in the
-    // view-options menu below). Only meaningful on the diagram tab, and never
-    // while comparing versions. Not gated on isArchitecture — layout save is
-    // supported for both architectures and patterns.
-    const showLayoutActions = !comparing && activeTab.id === DEFAULT_DIAGRAM_TAB_ID;
-    const layoutActions = showLayoutActions && (
-        <div className="flex items-center gap-1">
+    // view-options menu below). Only meaningful on the CALM lens of the diagram
+    // tab, and never while comparing versions. Not gated on isArchitecture —
+    // layout save is supported for both architectures and patterns.
+    const showLayoutActions = onCalmDiagram;
+    // Another lens keeps their space, so the tabs and the Lens control do not move when the lens changes.
+    const layoutActions = onDiagramTab && (
+        <div className={`flex items-center gap-1 ${showLayoutActions ? '' : 'invisible'}`} aria-hidden={!showLayoutActions} inert={!showLayoutActions}>
             {defaultLayoutState.hasBothSources && (
                 <div className="join" role="group" aria-label="Layout source">
                     <button
@@ -661,6 +756,53 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         </div>
     );
 
+    const lensRow = (lens: DiagramLens, onSelect: () => void) => {
+        const active = onDiagramTab && activeLens === lens;
+        const LensIcon = lens.icon;
+        return (
+            <button
+                key={lens.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                    chooseLens(lens);
+                    onSelect();
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 ${
+                    active ? 'bg-base-200 text-[var(--color-interaction)] font-semibold' : 'text-base-content'
+                }`}
+            >
+                <span className={active ? 'text-[var(--color-interaction)]' : 'text-base-content/60'}>
+                    <LensIcon size={18} />
+                </span>
+                <span className="flex-1 min-w-0 truncate">{diagramTabLabel(lens, lensContext)}</span>
+                {lens.extension && <span className="text-xs font-normal text-base-content/50 truncate max-w-[45%]">{lens.extension.name}</span>}
+                {active && <IoCheckmarkOutline size={18} className="text-[var(--color-interaction)] shrink-0" />}
+            </button>
+        );
+    };
+
+    // The lenses that ship with Hub come first. The extension lenses follow under their own heading.
+    const renderLenses = (onSelect: () => void) => {
+        const { builtIn, extension } = lensGroups(visibleLenses);
+        return (
+            <div role="group" aria-labelledby="diagram-lens-heading" className="border-b border-base-200">
+                <div id="diagram-lens-heading" className="px-4 pt-3 pb-1 text-xs font-semibold text-base-content/50 uppercase tracking-wide">
+                    Lens
+                </div>
+                <div className="divide-y divide-base-200">{builtIn.map((lens) => lensRow(lens, onSelect))}</div>
+                {extension.length > 0 && (
+                    <div role="group" aria-labelledby="diagram-extension-lens-heading" className="border-t border-base-200">
+                        <div id="diagram-extension-lens-heading" className="px-4 pt-3 pb-1 text-xs font-semibold text-base-content/50 uppercase tracking-wide">
+                            Extensions
+                        </div>
+                        <div className="divide-y divide-base-200">{extension.map((lens) => lensRow(lens, onSelect))}</div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const ActiveViewIcon = activeTab.icon;
     const activeViewIcon = <ActiveViewIcon size={20} />;
 
@@ -692,6 +834,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                     <div className="flex-1 overflow-auto">
                         {breadcrumb}
                         {renderViewModes(() => setShowViewMenu(false))}
+                        {showLensMenu && renderLenses(() => setShowViewMenu(false))}
                         <div className="divide-y divide-base-200 border-b border-base-200">
                             <button
                                 type="button"
@@ -746,7 +889,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                                 </button>
                             </div>
                         )}
-                        {!comparing && activeTab.id === DEFAULT_DIAGRAM_TAB_ID && (
+                        {onCalmDiagram && (
                             <div className="p-4">
                                 <div className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">
                                     Search components

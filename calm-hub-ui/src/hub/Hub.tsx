@@ -37,6 +37,9 @@ import { parseCALMHubPath } from '../visualizer/components/reactflow/utils/calmH
 import type { Decorator, SelectedItem } from '../visualizer/contracts/contracts.js';
 import type { CalmNodeSchema } from '@finos/calm-models/types';
 import { authStore } from '../service/utils/auth-store.js';
+import { diagramLenses } from './components/diagram-section/tabs/diagramLenses.js';
+import { useExtensions, useExtensionsStatus } from '../extensions/ExtensionsContext.js';
+import { withoutLens } from './components/diagram-section/tabs/diagramTabRegistry.js';
 import './Hub.css';
 
 // Breadcrumbs live in history state so Back restores the parent's trail for free,
@@ -60,6 +63,10 @@ function readBreadcrumbs(state: unknown): BreadcrumbItem[] {
 export default function Hub() {
     const navigate = useNavigate();
     const location = useLocation();
+    const extensions = useExtensions();
+    const extensionsStatus = useExtensionsStatus();
+    const lenses = useMemo(() => diagramLenses(extensions, extensionsStatus), [extensions, extensionsStatus]);
+    const lensFreeQuery = (search: string) => withoutLens(lenses, new URLSearchParams(search)).toString();
     const currentDisplayNameRef = useRef<string | undefined>(undefined);
     const [data, setData] = useState<Data | undefined>();
     const [adrData, setAdrData] = useState<Adr | undefined>();
@@ -204,26 +211,30 @@ export default function Hub() {
     }
 
     // Any navigation, a tab change included, closes the node details panel, except the one that
-    // handleItemSelect makes to take `node` out of the URL.
+    // handleItemSelect makes to take `node` out of the URL, and a change of only the diagram lens or its parameters.
     const [nodeRemovedFromUrl, setNodeRemovedFromUrl] = useState<string | null>(null);
     const [selectionLocation, setSelectionLocation] = useState({ key: location.key, search: location.search });
     if (selectionLocation.key !== location.key || selectionLocation.search !== location.search) {
+        const lensChangeOnly = selectionLocation.search !== location.search
+            && lensFreeQuery(selectionLocation.search) === lensFreeQuery(location.search);
         setSelectionLocation({ key: location.key, search: location.search });
         setNodeRemovedFromUrl(null);
-        if (nodeRemovedFromUrl !== location.search) setSelectedItem(null);
+        if (!lensChangeOnly && nodeRemovedFromUrl !== location.search) setSelectedItem(null);
     }
 
     // A link can name a node to open: `#/ns/architectures/1/1.0.0?node=client-ledger`. This comes after
-    // the clear above, so a link to another node replaces the cleared selection.
+    // the clear above, so a link to another node replaces the cleared selection. A lens can name a relationship
+    // there too, because a lens element can stand for one.
     const linkedNodeId = new URLSearchParams(location.search).get('node');
     const [linkSource, setLinkSource] = useState({ data, linkedNodeId, key: location.key });
     if (linkSource.data !== data || linkSource.linkedNodeId !== linkedNodeId || linkSource.key !== location.key) {
         setLinkSource({ data, linkedNodeId, key: location.key });
-        const nodes = (data?.data as { nodes?: unknown } | undefined)?.nodes;
-        const node = linkedNodeId && Array.isArray(nodes)
-            ? (nodes as CalmNodeSchema[]).find((n) => n['unique-id'] === linkedNodeId)
+        const document = data?.data as { nodes?: unknown; relationships?: unknown } | undefined;
+        const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
+        const item = linkedNodeId
+            ? (items as CalmNodeSchema[]).find((entry) => entry?.['unique-id'] === linkedNodeId)
             : undefined;
-        if (node) setSelectedItem({ data: node });
+        if (item) setSelectedItem({ data: item });
     }
 
     const handleDataLoad = useCallback((loaded: Data) => {

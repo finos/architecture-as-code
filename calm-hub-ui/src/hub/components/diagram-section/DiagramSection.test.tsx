@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
@@ -7,7 +7,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { saveNodePositions } from '../../../visualizer/services/node-position-service.js';
 import type { Node } from '@xyflow/react';
-import { ExtensionsContext, ExtensionsStatusContext } from '../../../extensions/ExtensionsContext.js';
+import { ExtensionsContext, ExtensionsStatusContext, type ExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
 import { ExtensionService } from '../../../service/extension-service.js';
 import type { ExtensionSummary } from '../../../model/extensions.js';
 
@@ -99,6 +99,21 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
     ),
 }));
 
+vi.mock('../../../extensions/lens/DiagramLensView.js', () => ({
+    DiagramLensView: ({ context, params, onParamsChange, onSelectElement }: {
+        context: { selectedElement?: string; version?: string };
+        params: Record<string, string | undefined>;
+        onParamsChange: (params: Record<string, string>, select?: string) => void;
+        onSelectElement: (uniqueId: string) => void;
+    }) => (
+        <div data-testid="c4-lens" data-selected={context.selectedElement ?? ''} data-params={JSON.stringify(params)}>
+            <button onClick={() => onParamsChange({ level: 'container', scope: 'shop' })}>open-container</button>
+            <button onClick={() => onParamsChange({ level: 'container', scope: 'shop' }, 'shop')}>open-shop</button>
+            <button onClick={() => onSelectElement('api')}>select-api</button>
+        </div>
+    ),
+}));
+
 vi.mock('./compare/CompareView.js', () => ({
     CompareView: ({ calmType, versionA, versionB }: { calmType: string; versionA: string; versionB: string }) => (
         <div data-testid="compare-view" data-from={versionA} data-to={versionB} data-calm-type={calmType}>
@@ -172,6 +187,30 @@ const patternData: Data & { calmType: 'Patterns' } = {
     name: 'pattern-namespace',
     calmType: 'Patterns',
     data: undefined,
+};
+
+// Desktop: the chevron of the Diagram tab lists the lenses. Mobile: the Lens group of the View sheet.
+const openLensMenu = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole('button', { name: 'Choose a lens' }));
+// An extension lens row also shows the extension name, so a lens is found by the start of its name.
+const menuLens = (name: string) =>
+    within(screen.getByRole('button', { name: 'Choose a lens' }).parentElement!).getByRole('button', { name: new RegExp(`^${name}`) });
+const menuLensNames = (list = 'Lenses') => within(screen.getByRole('list', { name: list })).getAllByRole('button').map((b) => b.textContent);
+const C4_EXTENSION: ExtensionSummary = {
+    id: 'c4',
+    name: 'C4 model',
+    hubApi: 0,
+    routes: [{ id: 'lens', method: 'POST', path: '/lens/{namespace}/{resourceType}/{resourceId}', scope: 'read', readOnly: true }],
+    contributes: {
+        'diagram-lens': [{
+            id: 'c4', title: 'C4', description: 'C4 context, container, component and deployment diagrams', route: 'lens',
+            notation: 'notation.json', appliesTo: { resourceTypes: ['architectures'] },
+            params: { level: { values: ['context', 'container', 'component'], default: 'context' }, scope: { pattern: '^[a-z]+$' } },
+        }],
+    },
+};
+const chooseLens = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+    await openLensMenu(user);
+    await user.click(menuLens(name));
 };
 
 describe('DiagramSection', () => {
@@ -492,13 +531,13 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('location').textContent).toBe('?tab=decorators');
         });
 
-        it('drops the type filter when another tab opens', async () => {
+        it('drops the type filter when a lens opens', async () => {
             const user = userEvent.setup();
             renderArchitecture('/?tab=decorators&type=deployment');
 
-            await user.click(screen.getByRole('tab', { name: 'JSON' }));
+            await chooseLens(user, 'JSON');
 
-            expect(screen.getByTestId('location').textContent).toBe('?tab=json');
+            expect(screen.getByTestId('location').textContent).toBe('?lens=json');
         });
 
         it('keeps the tab and the type filter on navigation to another version', async () => {
@@ -687,12 +726,12 @@ describe('DiagramSection', () => {
             }
         });
 
-        it('loads the decorators at once when the diagram opens from another tab', async () => {
+        it('loads the decorators at once when the CALM lens opens from another lens', async () => {
             const user = userEvent.setup();
-            renderArchitecture('/?tab=json');
+            renderArchitecture('/?lens=json');
             expect(calmServiceMock.fetchDecoratorsForTarget).not.toHaveBeenCalled();
 
-            await user.click(screen.getByRole('tab', { name: 'Diagram' }));
+            await chooseLens(user, 'CALM');
             await waitFor(() => expect(screen.getByTestId('drawer-decorators')).toHaveTextContent('dep-1 obs-1'));
             expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
         });
@@ -890,7 +929,7 @@ describe('DiagramSection', () => {
                     </ExtensionsContext.Provider>
                 </MemoryRouter>
             );
-            expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Diagram', 'JSON', 'Decorators', 'Extensions']);
+            expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Diagram', 'Decorators', 'Extensions']);
             expect(screen.queryByRole('button', { name: /^Act / })).not.toBeInTheDocument();
         });
 
@@ -979,6 +1018,259 @@ describe('DiagramSection', () => {
         });
     });
 
+    describe('diagram lenses', () => {
+        function LocationProbe() {
+            const location = useLocation();
+            return <div data-testid="location" data-key={location.key}>{location.search}</div>;
+        }
+
+        function renderAt(
+            entry: string,
+            data: Data & { calmType: 'Architectures' | 'Patterns' } = architectureData,
+            selectedElement?: string,
+            registry: { extensions?: ExtensionSummary[]; status?: ExtensionsStatus } = {},
+        ) {
+            return render(
+                <ExtensionsStatusContext.Provider value={registry.status ?? 'loaded'}>
+                    <ExtensionsContext.Provider value={registry.extensions ?? [C4_EXTENSION]}>
+                        <MemoryRouter initialEntries={[entry]}>
+                            <DiagramSection data={data} selectedElement={selectedElement} />
+                            <LocationProbe />
+                        </MemoryRouter>
+                    </ExtensionsContext.Provider>
+                </ExtensionsStatusContext.Provider>
+            );
+        }
+
+        const lens = (name: string) => within(screen.getByRole('group', { name: 'Lens' })).getByRole('button', { name: new RegExp(`^${name}`) });
+
+        it('shows the CALM lens first and selected, with the layout controls', async () => {
+            const user = userEvent.setup();
+            renderAt('/');
+
+            expect(screen.getByRole('tab', { name: 'Diagram' }).className).toContain('tab-active');
+            await openLensMenu(user);
+            expect(menuLensNames()).toEqual(['CALM', 'JSON']);
+            expect(menuLensNames('Extensions')).toEqual(['C4C4 model']);
+            expect(menuLens('CALM')).toHaveAttribute('aria-current', 'true');
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Reset to default layout' })).toBeInTheDocument();
+        });
+
+        it('lists no C4 lens when the operator turns off the c4 extension, and opens the CALM lens for a C4 link', async () => {
+            renderAt('/?lens=c4', architectureData, undefined, { extensions: [] });
+
+            expect(screen.queryByTestId('c4-lens')).not.toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Diagram' }).className).toContain('tab-active');
+            await openLensMenu(userEvent.setup());
+            expect(menuLensNames()).toEqual(['CALM', 'JSON']);
+            expect(screen.queryByRole('list', { name: 'Extensions' })).not.toBeInTheDocument();
+        });
+
+        it('keeps a link to an extension lens while the registry loads, and opens the CALM lens when it fails', () => {
+            const loading = renderAt('/?lens=c4&level=container', architectureData, undefined, { extensions: [], status: 'loading' });
+            expect(screen.getByText('Loading the lens…')).toBeInTheDocument();
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4&level=container$/);
+            loading.unmount();
+
+            renderAt('/?lens=c4', architectureData, undefined, { extensions: [], status: 'failed' });
+            expect(screen.queryByTestId('c4-lens')).not.toBeInTheDocument();
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+        });
+
+        it('sends the lens its view parameters from the URL, and selects the CALM element that the lens names', async () => {
+            const onItemSelect = vi.fn();
+            const user = userEvent.setup();
+            render(
+                <ExtensionsContext.Provider value={[C4_EXTENSION]}>
+                    <MemoryRouter initialEntries={['/?lens=c4&level=component&scope=orders&type=x']}>
+                        <DiagramSection
+                            data={{ ...architectureData, data: { nodes: [{ 'unique-id': 'api', 'node-type': 'service', name: 'API', description: '' }], relationships: [] } as never }}
+                            onItemSelect={onItemSelect}
+                        />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+
+            expect(JSON.parse(screen.getByTestId('c4-lens').dataset.params!)).toEqual({ level: 'component', scope: 'orders' });
+            await user.click(screen.getByText('select-api'));
+            expect(onItemSelect).toHaveBeenCalledWith({ data: expect.objectContaining({ 'unique-id': 'api' }) });
+        });
+
+        it('lists no C4 lens for a pattern, no lens while comparing, and draws no lens on another tab', async () => {
+            const { unmount } = renderAt('/', patternData);
+            await openLensMenu(userEvent.setup());
+            expect(menuLensNames()).toEqual(['CALM', 'JSON']);
+            expect(screen.queryByRole('list', { name: 'Extensions' })).not.toBeInTheDocument();
+            unmount();
+
+            const decorators = renderAt('/?tab=decorators&lens=c4');
+            expect(screen.queryByTestId('c4-lens')).not.toBeInTheDocument();
+            decorators.unmount();
+
+            renderAt('/?lens=c4');
+            await userEvent.setup().click(screen.getByText('compare'));
+            expect(screen.queryByRole('button', { name: 'Choose a lens' })).not.toBeInTheDocument();
+            expect(screen.getByTestId('compare-view')).toBeInTheDocument();
+        });
+
+        it('opens the C4 lens in place of the CALM diagram, and keeps the selection and the node link', async () => {
+            const user = userEvent.setup();
+            renderAt('/?node=api', architectureData, 'api');
+
+            await chooseLens(user, 'C4');
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=api&lens=c4$/);
+            expect(screen.getByTestId('c4-lens')).toHaveAttribute('data-selected', 'api');
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect(screen.queryByRole('list', { name: 'Lenses' })).not.toBeInTheDocument();
+            // The Diagram tab names the open lens.
+            expect(screen.getByRole('tab', { name: 'C4' }).className).toContain('tab-active');
+            expect(screen.queryByRole('button', { name: 'Reset to default layout' })).not.toBeInTheDocument();
+            // Hidden, not removed, so the header keeps its width and the Lens control does not move.
+            expect(screen.getByRole('button', { name: 'Reset to default layout', hidden: true })).toBeInTheDocument();
+        });
+
+        it('keeps the lens and the node link when the lens changes its own parameters', async () => {
+            const user = userEvent.setup();
+            renderAt('/?node=api&lens=c4&level=component&scope=orders');
+
+            await user.click(screen.getByText('open-container'));
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=api&lens=c4&level=container&scope=shop$/);
+        });
+
+        it('selects a node and opens its link in one navigation, so the link does not bring back the old node', async () => {
+            const user = userEvent.setup();
+            renderAt('/?lens=c4&node=api');
+
+            await user.click(screen.getByText('open-shop'));
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=shop&lens=c4&level=container&scope=shop$/);
+        });
+
+        it('does not navigate when the open lens is chosen again, and keeps its view parameters', async () => {
+            const user = userEvent.setup();
+            renderAt('/?lens=c4&level=component&scope=orders');
+            const key = screen.getByTestId('location').dataset.key;
+
+            await chooseLens(user, 'C4');
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4&level=component&scope=orders$/);
+            expect(screen.getByTestId('location').dataset.key).toBe(key);
+        });
+
+        it('drops the lens and its parameters on a return to the CALM lens', async () => {
+            const user = userEvent.setup();
+            renderAt('/?node=api&lens=c4&level=container&scope=shop');
+
+            await chooseLens(user, 'CALM');
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=api$/);
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+        });
+
+        it('redirects the old JSON tab to the JSON lens, and keeps the node link', async () => {
+            renderAt('/?tab=json&node=api', architectureData, 'api');
+
+            expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'JSON' }).className).toContain('tab-active');
+            await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=api&lens=json$/));
+        });
+
+        it('filters the lenses, and opens the first match on Enter', async () => {
+            const user = userEvent.setup();
+            renderAt('/');
+
+            await openLensMenu(user);
+            await user.type(screen.getByRole('searchbox', { name: 'Filter lenses' }), 'c4');
+            expect(screen.queryByRole('list', { name: 'Lenses' })).not.toBeInTheDocument();
+            expect(menuLensNames('Extensions')).toEqual(['C4C4 model']);
+            await user.type(screen.getByRole('searchbox', { name: 'Filter lenses' }), 'x');
+            expect(screen.getByText('No lens matches the filter.')).toBeInTheDocument();
+
+            await user.type(screen.getByRole('searchbox', { name: 'Filter lenses' }), '{Backspace}{Enter}');
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4$/);
+        });
+
+        it('opens a lens from another tab without the parameters of that tab', async () => {
+            const user = userEvent.setup();
+            renderAt('/?tab=decorators&type=deployment');
+
+            await chooseLens(user, 'C4');
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4$/);
+            expect(screen.getByTestId('c4-lens')).toBeInTheDocument();
+        });
+
+        it('falls back to the CALM lens for an unknown lens, and for C4 on a pattern', async () => {
+            const { unmount } = renderAt('/?lens=no-such-lens');
+            await openLensMenu(userEvent.setup());
+            expect(menuLens('CALM')).toHaveAttribute('aria-current', 'true');
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            unmount();
+
+            renderAt('/?lens=c4', patternData);
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            expect(screen.queryByTestId('c4-lens')).not.toBeInTheDocument();
+        });
+
+        it('keeps the lens and its parameters on navigation to another version', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+            const user = userEvent.setup();
+            renderAt('/?lens=c4&level=container&scope=shop&node=api&type=x');
+
+            await user.click(screen.getByText('nav-2.0.0'));
+
+            expect(navigate).toHaveBeenCalledWith(
+                '/arch-namespace/architectures/test-arch/2.0.0?lens=c4&level=container&scope=shop',
+                expect.anything()
+            );
+        });
+
+        it('keeps a lens that the registry does not list yet on navigation to another version, but not the node or a tab filter', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+            const user = userEvent.setup();
+            renderAt('/?lens=c4&scope=shop&node=api&type=x', architectureData, undefined, { extensions: [], status: 'loading' });
+
+            await user.click(screen.getByText('nav-2.0.0'));
+
+            expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/2.0.0?lens=c4&scope=shop', expect.anything());
+        });
+
+        it('lists the lenses in the mobile View sheet, and closes the sheet on a choice', async () => {
+            const restore = mockMobileViewport();
+            try {
+                const user = userEvent.setup();
+                renderAt('/');
+
+                await user.click(screen.getByRole('button', { name: /view options/i }));
+                await user.click(lens('C4'));
+
+                expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4$/);
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+                expect(screen.getByTestId('c4-lens')).toBeInTheDocument();
+
+                await user.click(screen.getByRole('button', { name: /view options/i }));
+                expect(lens('C4')).toHaveAttribute('aria-pressed', 'true');
+                expect(screen.queryByText('Search components')).not.toBeInTheDocument();
+
+                // From another tab, a lens opens the Diagram tab.
+                await user.click(screen.getByRole('tab', { name: 'Decorators' }));
+                await user.click(screen.getByRole('button', { name: /view options/i }));
+                expect(lens('C4')).toHaveAttribute('aria-pressed', 'false');
+                await user.click(lens('JSON'));
+                expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=json$/);
+                expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+            } finally {
+                restore();
+            }
+        });
+    });
+
     describe('tab behavior', () => {
         it('renders tabs with icons', () => {
             render(
@@ -988,7 +1280,7 @@ describe('DiagramSection', () => {
             );
 
             expect(screen.getByRole('tab', { name: /diagram/i })).toBeInTheDocument();
-            expect(screen.getByRole('tab', { name: /json/i })).toBeInTheDocument();
+            expect(screen.queryByRole('tab', { name: /json/i })).not.toBeInTheDocument();
             expect(screen.getByRole('tab', { name: 'Decorators' })).toBeInTheDocument();
             expect(screen.queryByRole('tab', { name: /deployments/i })).not.toBeInTheDocument();
         });
@@ -1019,7 +1311,7 @@ describe('DiagramSection', () => {
             expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
         });
 
-        it('switches to JSON tab when clicked', async () => {
+        it('opens the JSON lens from the lens list', async () => {
             const user = userEvent.setup();
             render(
                 <MemoryRouter>
@@ -1027,13 +1319,13 @@ describe('DiagramSection', () => {
                 </MemoryRouter>
             );
 
-            await user.click(screen.getByRole('tab', { name: /json/i }));
+            await chooseLens(user, 'JSON');
 
             expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
             expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
         });
 
-        it('switches back to diagram tab when clicked', async () => {
+        it('switches back to the CALM lens', async () => {
             const user = userEvent.setup();
             render(
                 <MemoryRouter>
@@ -1041,10 +1333,10 @@ describe('DiagramSection', () => {
                 </MemoryRouter>
             );
 
-            await user.click(screen.getByRole('tab', { name: /json/i }));
+            await chooseLens(user, 'JSON');
             expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
 
-            await user.click(screen.getByRole('tab', { name: /diagram/i }));
+            await chooseLens(user, 'CALM');
             expect(screen.getByTestId('drawer')).toBeInTheDocument();
             expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
         });
@@ -1058,14 +1350,14 @@ describe('DiagramSection', () => {
             );
 
             const diagramTab = screen.getByRole('tab', { name: /diagram/i });
-            const jsonTab = screen.getByRole('tab', { name: /json/i });
+            const decoratorsTab = screen.getByRole('tab', { name: 'Decorators' });
 
             expect(diagramTab).toHaveClass('tab-active');
-            expect(jsonTab).not.toHaveClass('tab-active');
+            expect(decoratorsTab).not.toHaveClass('tab-active');
 
-            await user.click(jsonTab);
+            await user.click(decoratorsTab);
 
-            expect(jsonTab).toHaveClass('tab-active');
+            expect(decoratorsTab).toHaveClass('tab-active');
             expect(diagramTab).not.toHaveClass('tab-active');
         });
     });
@@ -1112,7 +1404,7 @@ describe('DiagramSection', () => {
             );
 
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
-            await user.click(screen.getByRole('tab', { name: /json/i }));
+            await user.click(screen.getByRole('tab', { name: 'Decorators' }));
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
         });
     });
@@ -1305,7 +1597,7 @@ describe('DiagramSection', () => {
 
             // Desktop ships the inline view-mode tabs...
             expect(screen.getByRole('tab', { name: /diagram/i })).toBeInTheDocument();
-            expect(screen.getByRole('tab', { name: /json/i })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Decorators' })).toBeInTheDocument();
             // ...and never the mobile "View options" pill (a button, distinct from
             // the role="tab" view-mode buttons).
             expect(screen.queryByRole('button', { name: /view options/i })).not.toBeInTheDocument();

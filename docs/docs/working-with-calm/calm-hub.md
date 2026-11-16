@@ -138,11 +138,29 @@ When you select an **Architecture** or **Pattern** artifact, CALM Hub renders th
 
 ### Tab Views
 
-* **Diagram Tab:** The interactive visual representation of the model.
-* **JSON Tab:** The raw, validated CALM JSON backing the diagram.
+* **Diagram Tab:** The interactive visual representation of the model. Select the arrow on the **Diagram** tab to choose a lens. Type in the box to filter the list. The tab shows the name of the open lens.
+  * **CALM:** the CALM diagram.
+  * **JSON:** the raw, validated CALM JSON backing the diagram (`?lens=json`).
+  * Under **Extensions**, the lenses of the enabled extensions, with the extension name. For example, **C4**, from the **C4 model** extension, shows the architecture as a C4 model (see [C4 lens](#c4-lens)). The operator installs extensions (see [Install an extension](../extensions/install.md)).
 * **Decorators Tab:** Lists all decorators of the architecture version, of every type. Each shows its type (or "(no type)"), `applies-to`, its created and updated times when Hub returns them, and `data`, with links, dates, lists, tables and collapsible nested values. The JSON view shows the decorator as a write takes it, without the Hub-owned times, so you can copy it into a `PUT`. Filter by type and by `$schema`. The filters are in the URL, for example `?tab=decorators&type=deployment`.
 
-An unknown `?tab=` value opens the Diagram tab. The old `?tab=deployments` link opens the Decorators tab filtered to `deployment`.
+An unknown `?tab=` value opens the Diagram tab. The old `?tab=deployments` link opens the Decorators tab filtered to `deployment`, and the old `?tab=json` link opens the JSON lens. An unknown `?lens=` value opens the CALM lens.
+
+### C4 lens
+
+The **C4** lens of the Diagram tab shows the architecture as a C4 context, container, component or deployment diagram. The [CALM C4 standard](../core-concepts/c4.md) sets the C4 kind of each node. The lens comes from the [C4 extension](../extensions/c4.md), so it shows only when the operator installs that extension. On a screen narrower than 1024 pixels, select the lens in the **Lens** group of the **View** menu.
+
+![The C4 lens at container level](/img/hub-ui/c4-view.png)
+
+* **Level and scope:** select a level in **Level**, then the system or container in scope in the list next to it. Click an element to open the next level down. The next level is a `composed-of` child, or the detailed architecture of the node. The title of the diagram names the systems and containers above the scope.
+* **Selection:** click an element to select its CALM node, as on the CALM diagram. A node that you select stays selected when you change the lens, and the lens marks its element with a blue outline. Each lens fits its diagram to the view, so the zoom does not stay.
+* **Key:** the key lists the kinds of element on the diagram. Click a kind to hide or show it.
+* **Notes:** the **C4 notes** panel names the C4 mapping in use, and lists the conflicts with the standard and why an element shows at a different kind than its mapping. **Hide** closes it.
+* **Mapping:** the lens uses the `c4-mapping` default convention of the namespace, or of its nearest parent namespace. When no namespace sets one, it uses the default mapping of the standard. When the mapping, or a mapping that it extends, does not load or is not valid, the lens shows the error and no diagram.
+* **Guessed elements:** an element with a **Guessed** badge has a node type that the mapping does not name. Its kind comes from the structure of the architecture. Add the node type to the mapping to fix the kind.
+* **External elements:** a grey element is outside the enterprise or owned by another team. Its badge gives the reason.
+
+The lens, the level and the scope are in the URL, for example `?lens=c4&level=container&scope=trading-system`. A link to another version keeps them. Decorator overlays, the layout controls and the version compare use the CALM lens only.
 
 ### Decorator Overlays
 
