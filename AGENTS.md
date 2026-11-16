@@ -225,8 +225,8 @@ TypeScript packages (npm workspaces) build in order:
   calm-models → calm-widgets → shared → cli → calm-plugins/vscode
                                      ↳ calm-lab
   calm-models → calm-diagram → calm-docusaurus-plugin → docs
-  calm-models → calm-hub-extensions/c4 (bundled into its dist)
                              ↳ calm-plugins/vscode
+  calm-models → calm-hub-extensions/c4 (bundled into its dist)
 ```
 
 Always build dependencies before dependent packages. The Maven reactor works this out for itself:

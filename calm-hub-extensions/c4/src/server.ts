@@ -47,7 +47,6 @@ async function readBody(req: IncomingMessage): Promise<Buffer> {
     return Buffer.concat(chunks);
 }
 
-/** The folder of the service, which holds extension.json and notation.json, next to dist/. */
 function decodePathSegment(segment: string) {
     try {
         return decodeURIComponent(segment);
@@ -56,6 +55,7 @@ function decodePathSegment(segment: string) {
     }
 }
 
+/** The folder of the service, which holds extension.json and notation.json, next to dist/. */
 export const PACKAGE_DIR = fileURLToPath(new URL('..', import.meta.url));
 
 export function createC4Handler(config: C4ServiceConfig, packageDir = PACKAGE_DIR) {
