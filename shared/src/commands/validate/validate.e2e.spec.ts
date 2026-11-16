@@ -6,7 +6,7 @@ import { FileSystemDocumentLoader } from '../../document-loader/file-system-docu
 import { SchemaDirectory } from '../../schema-directory.js';
 import { TEST_1_1_SCHEMA_AND_ABOVE, TEST_1_2_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA, calmSchemaDir, setCalmSchema } from '../../test/test-utils';
 import { generate } from '../generate/generate-core.js';
-import { CalmChoice } from '../generate/components/options.js';
+import { CalmChoice, extractOptions } from '../generate/components/options.js';
 import { enrichWithDocumentPositions, parseDocumentWithPositions } from './validation-enrichment.js';
 
 const inputArchPath = path.join(
@@ -219,6 +219,38 @@ describe('validate E2E', () => {
 
                 const response = await validate(architecture, pattern, undefined, schemaDirectory, false);
 
+                expect(response.jsonSchemaValidationOutputs).toEqual([]);
+            });
+        });
+
+        describe('two decisions with a choice of the same description', () => {
+            const pattern = {
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                $id: 'https://calm.finos.org/test/decisions-with-same-description.json',
+                type: 'object',
+                properties: {
+                    nodes: { type: 'array', prefixItems: [node('api'), { anyOf: [node('cache')] }, { anyOf: [node('queue')] }, node('db')] },
+                    relationships: { type: 'array', prefixItems: [
+                        decision('want-cache', 'anyOf', [answer('Yes', 'cache')]),
+                        decision('want-queue', 'anyOf', [answer('Yes', 'queue')])
+                    ] }
+                },
+                required: ['nodes', 'relationships']
+            };
+
+            it('records and applies an answer only for its own decision', async () => {
+                // Pick the answer as the CLI does, from the decision it belongs to.
+                const chosen = extractOptions(pattern).find(option => option.optionId === 'want-cache')!.choices;
+                const architecture = await generate(pattern, schemaDirectory, { chosenChoices: chosen }) as {
+                    nodes: { 'unique-id': string }[],
+                    relationships: { 'unique-id': string, 'relationship-type': { options: unknown[] } }[]
+                };
+
+                const response = await validate(architecture, pattern, undefined, schemaDirectory, false);
+
+                expect(architecture.nodes.map(n => n['unique-id'])).toEqual(['api', 'cache', 'db']);
+                expect(architecture.relationships.map(r => [r['unique-id'], r['relationship-type'].options.length]))
+                    .toEqual([['want-cache', 1], ['want-queue', 0]]);
                 expect(response.jsonSchemaValidationOutputs).toEqual([]);
             });
         });

@@ -409,8 +409,8 @@ describe('validation support functions', () => {
             };
             const choices = extractChoicesFromArchitecture(architecture);
             expect(choices).toEqual([
-                { description: 'Option A', nodes: ['node-4'], relationships: [] },
-                { description: 'Option B', nodes: ['node-5'], relationships: ['rel-9'] }
+                { description: 'Option A', nodes: ['node-4'], relationships: [], optionId: 'rel-1' },
+                { description: 'Option B', nodes: ['node-5'], relationships: ['rel-9'], optionId: 'rel-1' }
             ]);
         });
     });
