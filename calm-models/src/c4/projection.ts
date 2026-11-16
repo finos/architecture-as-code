@@ -221,7 +221,7 @@ export function projectC4(
     if (options.namespace) {
         for (const element of elements.values()) {
             const owner = element.detailedArchitecture && hubNamespaceOf(element.detailedArchitecture);
-            if (!owner || isSameOrBelow(options.namespace, owner)) continue;
+            if (!owner || isSameOrBelow(owner, options.namespace)) continue;
             element.external.push('other-team');
             if (element.kind !== 'software-system') {
                 element.notes.push(`Owned by namespace ${owner}, so it is shown as a software system, not a ${element.kind}`);
@@ -259,9 +259,26 @@ export function projectC4(
 
 /** The namespace in a CALM Hub architecture URL (`.../calm/namespaces/{namespace}/architectures/...`). */
 function hubNamespaceOf(reference: string): string | undefined {
-    return /\/calm\/namespaces\/([^/]+)\/architectures\//.exec(reference)?.[1];
+    // Only the path counts: a query or fragment can hold a Hub path that is not the link target.
+    let path: string;
+    try {
+        path = new URL(reference, 'file:///').pathname;
+    } catch {
+        return undefined;
+    }
+    const encoded = /\/calm\/namespaces\/([^/]+)\/architectures\//.exec(path)?.[1];
+    if (!encoded) return undefined;
+    try {
+        const namespace = decodeURIComponent(encoded);
+        return HUB_NAMESPACE.test(namespace) ? namespace : undefined;
+    } catch {
+        return undefined;
+    }
 }
 
-function isSameOrBelow(namespace: string, owner: string): boolean {
-    return namespace === owner || namespace.startsWith(`${owner}.`);
+/** The namespace grammar of CALM Hub (`ResourceValidationConstants.NAMESPACE_REGEX`). */
+const HUB_NAMESPACE = /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*$/;
+
+function isSameOrBelow(namespace: string, ancestor: string): boolean {
+    return namespace === ancestor || namespace.startsWith(`${ancestor}.`);
 }
