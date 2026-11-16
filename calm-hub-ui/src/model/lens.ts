@@ -181,6 +181,8 @@ export interface LensControl {
     type: 'segmented' | 'select' | 'breadcrumb';
     param: string;
     label?: string;
+    /** The value that the reply was drawn with, when the request did not name one. */
+    value?: string;
     items: { value: string; label: string }[];
 }
 

@@ -131,7 +131,8 @@ function isControl(value: unknown, lens: DiagramLensContribution): value is Lens
     return isObject(value) && ['segmented', 'select', 'breadcrumb'].includes(value.type as string)
         && isString(value.param) && !!lens.params?.[value.param] && isOptional(value.label, isText(MAX.port))
         && Array.isArray(value.items) && value.items.length > 0 && value.items.length <= MAX.controlItems
-        && value.items.every((item) => isObject(item) && isText(MAX.param)(item.value) && isText(100)(item.label));
+        && value.items.every((item) => isObject(item) && isText(MAX.param)(item.value) && item.value !== '' && isText(100)(item.label) && item.label !== '')
+        && (value.value === undefined || value.items.some((item) => isObject(item) && item.value === value.value));
 }
 
 function accepts(param: { values?: string[]; pattern?: string }, value: string): boolean {

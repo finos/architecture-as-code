@@ -12,7 +12,7 @@ export function LensToolbar({ controls, values, onChange }: LensToolbarProps) {
     return (
         <div className="flex flex-wrap items-center gap-3" role="toolbar" aria-label="Lens controls">
             {controls.map((control) => {
-                const current = values[control.param];
+                const current = values[control.param] ?? control.value;
                 const label = control.label ?? control.param;
                 switch (control.type) {
                     case 'segmented':

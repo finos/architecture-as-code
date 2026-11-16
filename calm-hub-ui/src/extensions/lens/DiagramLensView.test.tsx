@@ -57,6 +57,17 @@ describe('DiagramLensView', () => {
             { namespace: 'finos', resourceType: 'architectures', resourceId: 'shop', version: '1.0.0', level: 'context' }, expect.any(AbortSignal));
     });
 
+    it('shows the value that the reply was drawn with when the URL names none', async () => {
+        const scoped = { ...lens, params: { ...lens.params, scope: { pattern: '^[a-z]+$' } } };
+        call.mockResolvedValue({
+            ...reply,
+            controls: [{ type: 'select', param: 'scope', label: 'System', value: 'payments', items: [{ value: 'shop', label: 'Online Shop' }, { value: 'payments', label: 'Payments' }] }],
+        });
+        show({ lens: scoped, extension: { ...extension, contributes: { 'diagram-lens': [scoped] } } });
+        expect(await screen.findByRole('combobox', { name: 'System' })).toHaveValue('payments');
+        expect(screen.queryByRole('option', { name: 'Choose…' })).toBeNull();
+    });
+
     it('selects the CALM element of a node, and follows its link to other parameters', async () => {
         const { onParamsChange, onSelectElement } = show();
         fireEvent.click(await screen.findByRole('button', { name: 'Online Shop' }));

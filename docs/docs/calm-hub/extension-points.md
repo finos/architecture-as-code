@@ -257,6 +257,9 @@ The route returns JSON that matches
 - `calm` names the CALM `unique-id`s that the element stands for. A click
   selects the first one on the CALM diagram.
 - A `link` sets view parameters, opens a CALM Hub page or opens an `https` URL.
+- A control can name its `value`: the value that the reply was drawn with,
+  when the request named none. For example, the C4 service draws the first
+  system when the URL names no `scope`, and its list shows that system.
 - `layout` is `layered`, `tree`, `radial`, `force`, `stress`, `rectpacking`,
   `box`, or `fixed` with a `position` on each node.
 - A reply has at most 500 nodes, 2,000 edges and 200 groups.

@@ -181,6 +181,7 @@
         "type": { "enum": ["segmented", "select", "breadcrumb"] },
         "param": { "type": "string", "pattern": "^[a-z][a-zA-Z0-9]{0,31}$" },
         "label": { "type": "string", "maxLength": 64 },
+        "value": { "type": "string", "minLength": 1, "maxLength": 128 },
         "items": {
           "type": "array",
           "items": {

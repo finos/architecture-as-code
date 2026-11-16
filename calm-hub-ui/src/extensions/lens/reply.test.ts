@@ -50,6 +50,13 @@ describe('parseLensReply', () => {
         expect(problem(reply({ nodes: [] }, { controls }))).toContain('does not declare');
     });
 
+    it('refuses a control whose value is not one of its items, or is empty', () => {
+        const controls = [{ type: 'segmented', param: 'level', value: 'component', items: [{ value: 'context', label: 'Context' }] }];
+        expect(problem(reply({ nodes: [] }, { controls }))).toContain('A control is not valid');
+        const empty = [{ type: 'select', param: 'level', value: '', items: [{ value: '', label: 'Empty' }] }];
+        expect(problem(reply({ nodes: [] }, { controls: empty }))).toContain('A control is not valid');
+    });
+
     it('refuses a link that is not https, and a reply of another contract', () => {
         expect(problem(reply({ nodes: [{ id: 'a', label: 'A', link: { href: 'javascript:alert(1)' } }] }))).toContain("Node 'a'");
         expect(problem({ ...reply({ nodes: [] }), hubApi: 1 })).toContain('hubApi 0');

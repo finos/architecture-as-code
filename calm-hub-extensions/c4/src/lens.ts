@@ -54,7 +54,7 @@ export interface LensReply {
     graph: { groups: GraphGroup[]; nodes: GraphNode[]; edges: GraphEdge[] };
     controls: (
         | { type: 'segmented'; param: 'level'; label: string; items: { value: string; label: string }[] }
-        | { type: 'select'; param: 'scope'; label: string; items: { value: string; label: string }[] }
+        | { type: 'select'; param: 'scope'; label: string; value: string; items: { value: string; label: string }[] }
     )[];
     panels: { title: string; blocks: Block[] }[];
 }
@@ -247,7 +247,7 @@ export function c4LensReply(
     ];
     if (level !== 'deployment' && scopes.length > 1) {
         controls.push({
-            type: 'select', param: 'scope', label: level === 'component' ? 'Container' : 'System',
+            type: 'select', param: 'scope', label: level === 'component' ? 'Container' : 'System', value: scope!.id,
             items: scopes.map((element) => ({ value: element.id, label: element.name })),
         });
     }

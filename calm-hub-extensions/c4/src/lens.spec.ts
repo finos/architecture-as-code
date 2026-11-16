@@ -67,6 +67,8 @@ describe('c4LensReply', () => {
             ['level', ['context', 'container', 'component', 'deployment']],
             ['scope', ['shop', 'payments']],
         ]);
+        expect(context.controls[1]).toMatchObject({ value: 'shop' });
+        expect(reply('context', 'payments').controls[1]).toMatchObject({ value: 'payments' });
         expect(reply('container').controls.map((control) => control.param)).toEqual(['level']);
     });
 
