@@ -468,6 +468,8 @@ Renders an architecture as a Mermaid C4 diagram. The [CALM C4 standard](https://
 
 The widget uses the default C4 mapping. To use a different mapping, call `setC4Mapping` with a resolved mapping before you render. `calm docify --c4-mapping` does this.
 
+When the projection reports conflicts, the widget lists them in a table under the diagram. The widget does not apply rule E3: docify replaces each `detailed-architecture` link with the document that it loads, so the widget cannot see the namespace of the link. The C4 lens in CALM Hub applies E3.
+
 Output of `{{c4-diagram this level="container" scope="shop"}}`:
 
 ```mermaid

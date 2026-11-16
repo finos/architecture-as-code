@@ -3,3 +3,11 @@
 {{{this}}}
 {{/each}}
 ```
+{{#if conflicts.length}}
+
+| Element | Conflict |
+| --- | --- |
+{{#each conflicts}}
+| {{{element}}} | {{{message}}} |
+{{/each}}
+{{/if}}

@@ -173,6 +173,17 @@ describe('C4DiagramWidget', () => {
         ]);
     });
 
+    it('escapes Markdown and MDX syntax in the conflict table', () => {
+        const shopWithClerk = {
+            nodes: [node('shop', 'system', 'Shop'), node('clerk', 'actor', 'Clerk <T> {x} \\ | [a](b)')],
+            relationships: [composed('shop', 'clerk')],
+        };
+
+        const { conflicts } = C4DiagramWidget.transformToViewModel!(shopWithClerk as never, { level: 'container', scope: 'shop' });
+
+        expect(conflicts).toEqual([{ element: 'Clerk \\<T\\> \\{x\\} \\\\ \\| \\[a\\](b)', message: 'A person inside software-system "Shop"' }]);
+    });
+
     it('uses the mapping set with setC4Mapping', async () => {
         setC4Mapping(
             await resolveC4Mapping({

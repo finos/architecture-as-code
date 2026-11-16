@@ -24,6 +24,8 @@ export interface C4DiagramOptions {
 
 export interface C4DiagramViewModel {
     lines: string[];
+    /** The conflicts the C4 standard asks tools to report, by element name. */
+    conflicts: { element: string; message: string }[];
 }
 
 let configuredMapping: ResolvedC4Mapping | undefined;
@@ -186,7 +188,15 @@ export const C4DiagramWidget: CalmWidget<ArchitectureLike, C4DiagramOptions, C4D
             const known = scopes.map((s) => s.id).join(', ') || 'none';
             throw new Error(`c4-diagram has no ${level} diagram for scope '${options?.scope ?? ''}'. Scopes at this level: ${known}`);
         }
-        return { lines: writeView(c4View(model, level, scope?.id), model, options?.title) };
+        // Docify output can be MDX, so a name such as `Clerk <T>` must stay text.
+        const cell = (value: string) => value.replace(/\s+/g, ' ').trim().replace(/[\\`*_{}[\]<>|~&]/g, '\\$&');
+        return {
+            lines: writeView(c4View(model, level, scope?.id), model, options?.title),
+            conflicts: model.conflicts.map(({ element, message }) => ({
+                element: cell(model.elements.get(element)?.name ?? element),
+                message: cell(message),
+            })),
+        };
     },
 
     validateContext: (context): context is ArchitectureLike => isArchitecture(context),

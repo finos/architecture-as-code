@@ -196,6 +196,13 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const result = compiledTemplate(context);
             expectToBeSameIgnoringLineEndings(result, expected);
         });
+
+        it('lists the conflicts of the projection under the diagram', () => {
+            const { context, template, expected } = fixtures.loadFixture('c4-diagram-widget', 'conflicts');
+            const compiledTemplate = handlebars.compile(template);
+            const result = compiledTemplate(context);
+            expectToBeSameIgnoringLineEndings(result, expected);
+        });
     });
 
     describe('Flow Sequence Widget', () => {
