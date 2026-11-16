@@ -41,7 +41,8 @@ const sidebars = {
         'core-concepts/decorators',
         'core-concepts/metadata',
         'core-concepts/patterns',
-        'core-concepts/widgets'
+        'core-concepts/widgets',
+        'core-concepts/c4'
       ],
     },
     {

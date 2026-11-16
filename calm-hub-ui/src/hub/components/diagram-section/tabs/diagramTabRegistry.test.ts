@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { IoEyeOutline } from 'react-icons/io5';
 import {
+    DEFAULT_DIAGRAM_LENS_ID,
     diagramTabLabel,
     diagramTabQuery,
     redirectedTabQuery,
     resolveDiagramTab,
     visibleDiagramTabs,
+    withoutLens,
     type DiagramTab,
     type DiagramTabContext,
 } from './diagramTabRegistry.js';
@@ -44,6 +46,11 @@ describe('resolveDiagramTab', () => {
         expect(resolveDiagramTab(tabs, 'arch-only', pattern)).toBe(diagram);
     });
 
+    it('falls back to the given default, as for the CALM lens', () => {
+        const calm = tab(DEFAULT_DIAGRAM_LENS_ID);
+        expect(resolveDiagramTab([archOnly, calm], 'no-such-lens', architecture, DEFAULT_DIAGRAM_LENS_ID)).toBe(calm);
+    });
+
     it('falls back to the first visible tab when there is no diagram tab', () => {
         expect(resolveDiagramTab([json, archOnly], 'unknown', architecture)).toBe(json);
     });
@@ -72,6 +79,27 @@ describe('diagramTabQuery', () => {
             '?tab=arch-only&type=deployment'
         );
         expect(diagramTabQuery(archOnly, new URLSearchParams('tab=arch-only'))).toBe('?tab=arch-only');
+    });
+});
+
+describe('diagramTabQuery with a lens', () => {
+    const c4 = tab('c4', { searchParams: ['level', 'scope'] });
+    const calm = tab(DEFAULT_DIAGRAM_LENS_ID);
+
+    it('keeps the lens and only its own parameters on the diagram tab', () => {
+        expect(diagramTabQuery(diagram, new URLSearchParams('lens=c4&level=container&node=n1&type=x'), c4)).toBe('?lens=c4&level=container');
+    });
+
+    it('is empty for the CALM lens, and ignores the lens on another tab', () => {
+        expect(diagramTabQuery(diagram, new URLSearchParams('level=container'), calm)).toBe('');
+        expect(diagramTabQuery(json, new URLSearchParams('tab=json&lens=c4&level=container'), c4)).toBe('?tab=json');
+    });
+});
+
+describe('withoutLens', () => {
+    it('drops the lens and the parameters of every lens, and keeps the rest', () => {
+        const lenses = [tab('c4', { searchParams: ['level', 'scope'] }), tab('other', { searchParams: ['depth'] })];
+        expect(withoutLens(lenses, new URLSearchParams('lens=c4&level=component&scope=s&depth=2&node=n1')).toString()).toBe('node=n1');
     });
 });
 

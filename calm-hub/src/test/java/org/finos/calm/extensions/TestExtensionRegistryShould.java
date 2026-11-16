@@ -251,6 +251,22 @@ class TestExtensionRegistryShould {
     }
 
     @Test
+    void reject_a_diagram_lens_id_that_two_enabled_extensions_declare() throws IOException {
+        Path c4 = Path.of("../calm-hub-extensions/c4");
+        for (String id : List.of("c4", "c4-copy")) {
+            Path dir = Files.createDirectories(tempDir.resolve(id));
+            Files.writeString(dir.resolve("extension.json"),
+                    new JsonObject(Files.readString(c4.resolve("extension.json"))).put("id", id).encodePrettily());
+            Files.copy(c4.resolve("notation.json"), dir.resolve("notation.json"));
+            properties.put("calm.extensions.\"" + id + "\".backend-url", "http://localhost:8093");
+        }
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS));
+
+        assertThat(e.getMessage(), containsString("diagram lens id 'c4' is declared by extensions 'c4' and 'c4-copy'"));
+    }
+
+    @Test
     void allow_a_decorator_view_id_of_a_disabled_extension() throws IOException {
         write("scanner", decoratorViewsOnly("scanner", "deployment"));
         properties.put("calm.extensions.\"builtin-views\".enabled", "false");

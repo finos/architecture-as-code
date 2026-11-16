@@ -7,6 +7,8 @@ import { authStore } from '../service/utils/auth-store.js';
 import { CountsService } from '../service/counts-service.js';
 import { PersonalNamespaceService } from '../service/personal-namespace-service.js';
 import type { Data, Adr } from '../model/calm.js';
+import type { ExtensionSummary } from '../model/extensions.js';
+import { ExtensionsContext } from '../extensions/ExtensionsContext.js';
 import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
 
@@ -425,15 +427,23 @@ function NavHarness({ to }: { to: string }) {
     );
 }
 
-const renderWithNav = (path: string, targets: string[]) =>
+const renderWithNav = (path: string, targets: string[], extensions: ExtensionSummary[] = []) =>
     render(
-        <MemoryRouter initialEntries={[path]}>
-            <Hub />
-            {targets.map((t) => (
-                <NavHarness key={t} to={t} />
-            ))}
-        </MemoryRouter>
+        <ExtensionsContext.Provider value={extensions}>
+            <MemoryRouter initialEntries={[path]}>
+                <Hub />
+                {targets.map((t) => (
+                    <NavHarness key={t} to={t} />
+                ))}
+            </MemoryRouter>
+        </ExtensionsContext.Provider>
     );
+
+// An extension with a lens and its own view parameter, as the registry lists it.
+const C4_EXTENSION = {
+    id: 'c4', name: 'C4 model', hubApi: 0, routes: [],
+    contributes: { 'diagram-lens': [{ id: 'c4', title: 'C4', route: 'lens', notation: 'notation.json', params: { level: { values: ['container'] } } }] },
+} as unknown as ExtensionSummary;
 
 const navigateTo = (to: string) => fireEvent.click(screen.getByTestId(`nav-${to}`));
 
@@ -1149,6 +1159,24 @@ describe('Hub', () => {
             expect(screen.getByText('Node One')).toBeInTheDocument();
             navigateTo('/?tab=json');
             expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+        });
+
+        it('keeps a node the user selected when only the diagram lens or its parameters change', () => {
+            renderWithNav('/', ['/?lens=c4', '/?lens=c4&level=container', '/'], [C4_EXTENSION]);
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('select-n1'));
+            navigateTo('/?lens=c4');
+            navigateTo('/?lens=c4&level=container');
+            navigateTo('/');
+            expect(screen.getByText('Node One')).toBeInTheDocument();
+        });
+
+        it('keeps the selection when a lens opens from an explicit Diagram tab link', () => {
+            renderWithNav('/?tab=diagram', ['/?lens=c4'], [C4_EXTENSION]);
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('select-n1'));
+            navigateTo('/?lens=c4');
+            expect(screen.getByText('Node One')).toBeInTheDocument();
         });
 
         it('ignores a node query on the page URL outside the hash route', () => {
