@@ -302,7 +302,11 @@ Validation requires:
                 templatePath = options.templateDir;
             }
 
-            const documentLoaderOptions = await parseDocumentLoaderConfig({ verbose: options.verbose });
+            const { getUrlToLocalFileMap } = await import('./command-helpers/template');
+            const documentLoaderOptions = await parseDocumentLoaderConfig(
+                { verbose: options.verbose },
+                getUrlToLocalFileMap(options.urlToLocalFileMapping)
+            );
             const documentLoader = buildDocumentLoader(documentLoaderOptions);
             try {
                 const { loadDocifyC4Mapping } = await import('./command-helpers/c4-mapping');

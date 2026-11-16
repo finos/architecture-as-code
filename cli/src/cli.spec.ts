@@ -449,6 +449,16 @@ describe('CLI Commands', () => {
             await rm(dir, { recursive: true, force: true });
         });
 
+        it('gives the document loader the --url-to-local-file-mapping', async () => {
+            const urlMap = new Map([['https://example.com/c4-mapping.json', '/local/c4-mapping.json']]);
+            vi.mocked(templateModule.getUrlToLocalFileMap).mockReturnValue(urlMap);
+
+            await program.parseAsync(['node', 'cli.js', 'docify', '--architecture', 'model.json', '--output', 'outDir', '--url-to-local-file-mapping', 'url-map.json']);
+
+            expect(templateModule.getUrlToLocalFileMap).toHaveBeenCalledWith('url-map.json');
+            expect(calmShared.buildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({ urlToLocalMap: urlMap }));
+        });
+
         it('stops when the --c4-mapping cannot be loaded', async () => {
             const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => { throw new Error(`exit ${code}`); }) as never);
             const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
