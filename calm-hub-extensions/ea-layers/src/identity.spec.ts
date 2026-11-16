@@ -60,6 +60,44 @@ describe('createVerifier', () => {
         expect(fetchJwks).toHaveBeenCalledTimes(2);
     });
 
+    it('fetches the keys again when they are five minutes old, and stops trusting them when that fails', async () => {
+        let clock = NOW;
+        let current: Jwks | undefined = jwks;
+        const fetchJwks = vi.fn(async () => {
+            if (!current) throw new Error('down');
+            return current;
+        });
+        const verify = createVerifier({ issuer: 'http://hub', audience: 'ea-layers', fetchJwks, now: () => clock });
+        const at = () => token({ claims: { iat: clock, exp: clock + 60 } });
+        expect((await verify(at(), request)).sub).toBe('alice');
+        // CALM Hub removed the rsa key.
+        current = { keys: jwks.keys.filter((key) => key.kid !== 'rsa') };
+        clock += 299;
+        expect((await verify(at(), request)).sub).toBe('alice');
+        clock += 1;
+        await expect(verify(at(), request)).rejects.toThrow('unknown key id');
+        current = jwks;
+        clock += 61;
+        expect((await verify(at(), request)).sub).toBe('alice');
+        current = undefined;
+        clock += 300;
+        await expect(verify(at(), request)).rejects.toThrow('down');
+        await expect(verify(at(), request)).rejects.toThrow('unknown key id');
+    });
+
+    it('stops trusting the keys when a new JWKS cannot be read', async () => {
+        let clock = NOW;
+        let current: Jwks = jwks;
+        const verify = createVerifier({ issuer: 'http://hub', audience: 'ea-layers', fetchJwks: async () => current, now: () => clock });
+        const at = () => token({ claims: { iat: clock, exp: clock + 60 } });
+        expect((await verify(at(), request)).sub).toBe('alice');
+        current = { keys: [{ kid: 'replacement', alg: 'RS256', kty: 'bogus' }] } as unknown as Jwks;
+        clock += 300;
+        await expect(verify(at(), request)).rejects.toThrow();
+        clock += 1;
+        await expect(verify(at(), request)).rejects.toThrow('unknown key id');
+    });
+
     it('rejects a replayed assertion, and one with a body hash for a request with no body', async () => {
         const verify = verifier();
         const once = token({ claims: { jti: 'same' } });

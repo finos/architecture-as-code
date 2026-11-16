@@ -11,6 +11,8 @@ const ALGORITHMS: Record<string, { hash: string; dsaEncoding?: 'ieee-p1363' }> =
 const CLOCK_SKEW_SECONDS = 30;
 /** An unknown kid can come from anyone, so the service fetches the JWKS again at most this often. */
 const REFETCH_SECONDS = 60;
+/** The keys are fetched again when they are older than this, so a key that CALM Hub removed stops working. */
+const KEY_MAX_AGE_SECONDS = 300;
 
 export interface Claims {
     iss: string;
@@ -40,15 +42,23 @@ export function createVerifier({ issuer, audience, fetchJwks, now = () => Date.n
     let keys = new Map<string, { alg: string; key: KeyObject }>();
     const seen = new Map<string, number>();
     let fetchedAt = -Infinity;
+    let loadedAt = -Infinity;
     let loading: Promise<void> | undefined;
 
     function loadKeys(): Promise<void> {
         if (loading) return loading;
         if (now() - fetchedAt < REFETCH_SECONDS) return Promise.resolve();
-        fetchedAt = now();
+        const started = now();
+        fetchedAt = started;
         loading = fetchJwks()
             .then(({ keys: jwks }) => {
                 keys = new Map(jwks.map((jwk) => [jwk.kid, { alg: jwk.alg, key: createPublicKey({ key: jwk, format: 'jwk' }) }]));
+                loadedAt = started;
+            })
+            .catch((error: unknown) => {
+                // Keys that cannot be checked again, or a JWKS that cannot be read, are not trusted any longer.
+                keys = new Map();
+                throw error;
             })
             .finally(() => {
                 loading = undefined;
@@ -64,7 +74,7 @@ export function createVerifier({ issuer, audience, fetchJwks, now = () => Date.n
         if (header.typ !== 'calm-ext+jwt') throw new Error('wrong typ');
         const algorithm = ALGORITHMS[header.alg];
         if (!algorithm) throw new Error(`alg ${header.alg} is not allowed`);
-        if (!keys.has(header.kid)) await loadKeys();
+        if (!keys.has(header.kid) || now() - loadedAt >= KEY_MAX_AGE_SECONDS) await loadKeys();
         const entry = keys.get(header.kid);
         if (!entry) throw new Error('unknown key id');
         if (entry.alg !== header.alg) throw new Error('alg does not match the key');
