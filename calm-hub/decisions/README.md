@@ -27,7 +27,7 @@ assuming anything here reflects current behaviour.
 | [0008](0008-pattern-implementations-read-the-architecture-schema.md) | Pattern implementations are found by reading the architecture's `$schema` | Implemented |
 | [0009](0009-extensions-run-out-of-process-behind-a-hub-proxy.md) | Extensions run out of process, behind a Hub proxy | Accepted — manifests and the proxy built |
 | [0010](0010-extension-identity-is-a-hub-signed-assertion.md) | Extension identity is a Hub-signed, request-bound assertion | Accepted |
-| [0011](0011-extension-proxy-request-handling.md) | Extension proxy request handling | Accepted — built |
+| [0011](0011-extension-proxy-request-handling.md) | Extension proxy request handling | Accepted — buffered proxy built; streaming and its limits not built |
 | [0012](0012-extension-manifest-registry-and-versioning.md) | Extension manifest, registry and versioning | Accepted — built |
 | [0013](0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md) | Extension UI is tiered, with Hub-rendered blocks by default | Accepted — blocks and decorator views built; iframe tier and a `designer-tab` tab of its own not built |
 | [0014](0014-extension-commands-in-the-cli-and-mcp.md) | Extension commands in the CLI and MCP | Accepted — CLI and MCP built |

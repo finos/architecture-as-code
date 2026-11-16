@@ -1,6 +1,6 @@
 # ADR 0011: Extension proxy request handling
 
-**Status**: Accepted. Built (#3707): route scopes, limits, audit and the check for auth off.
+**Status**: Accepted. Built (#3707): route scopes, limits, audit and the check for auth off. Not built: streaming replies and their limits (a cap on concurrent streams, an idle-read timeout and a maximum stream duration). The proxy buffers each reply.
 
 ## Context
 

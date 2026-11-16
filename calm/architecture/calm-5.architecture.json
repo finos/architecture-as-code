@@ -657,14 +657,14 @@
             "protocol": "HTTPS",
             "controls": {
                 "event-signing": {
-                    "description": "Event deliveries are signed as Standard Webhooks specifies, with a stable webhook-id and timestamp. Payloads hold no document body",
+                    "description": "Event deliveries are signed as Standard Webhooks specifies, with a stable webhook-id. Each attempt carries a fresh timestamp and signature. Payloads hold no document body",
                     "requirements": [
                         {
                             "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
                             "config": {
                                 "control-id": "calm-hub-evt-03",
                                 "name": "Signed webhooks",
-                                "description": "Event deliveries are signed as Standard Webhooks specifies, with a stable webhook-id and timestamp. Payloads hold no document body",
+                                "description": "Event deliveries are signed as Standard Webhooks specifies, with a stable webhook-id. Each attempt carries a fresh timestamp and signature. Payloads hold no document body",
                                 "adr": "https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0016-store-write-seam-and-outbox-for-post-write-events.md"
                             }
                         }
