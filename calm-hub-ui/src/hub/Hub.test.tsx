@@ -1106,6 +1106,20 @@ describe('Hub', () => {
             expect(screen.getByText('Node Two')).toBeInTheDocument();
         });
 
+        it('opens the relationship that a link names, as a lens names one', () => {
+            renderAt('/?node=n1-calls-n2');
+            act(() => {
+                captured?.onDataLoad({
+                    id: 'arch', version: '1.0', calmType: 'Architectures', name: 'test-namespace',
+                    data: {
+                        nodes: [{ 'unique-id': 'n1', name: 'Node One', 'node-type': 'service' }],
+                        relationships: [{ 'unique-id': 'n1-calls-n2', 'relationship-type': { connects: { source: { node: 'n1' }, destination: { node: 'n2' } } } }],
+                    },
+                } as unknown as Data);
+            });
+            expect(screen.getByText('n1-calls-n2')).toBeInTheDocument();
+        });
+
         it('selects nothing when the node is not in the diagram', () => {
             renderAt('/?node=missing');
             loadArchitectureWithNodes();

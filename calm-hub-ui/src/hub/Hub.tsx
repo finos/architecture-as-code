@@ -223,16 +223,18 @@ export default function Hub() {
     }
 
     // A link can name a node to open: `#/ns/architectures/1/1.0.0?node=client-ledger`. This comes after
-    // the clear above, so a link to another node replaces the cleared selection.
+    // the clear above, so a link to another node replaces the cleared selection. A lens can name a relationship
+    // there too, because a lens element can stand for one.
     const linkedNodeId = new URLSearchParams(location.search).get('node');
     const [linkSource, setLinkSource] = useState({ data, linkedNodeId, key: location.key });
     if (linkSource.data !== data || linkSource.linkedNodeId !== linkedNodeId || linkSource.key !== location.key) {
         setLinkSource({ data, linkedNodeId, key: location.key });
-        const nodes = (data?.data as { nodes?: unknown } | undefined)?.nodes;
-        const node = linkedNodeId && Array.isArray(nodes)
-            ? (nodes as CalmNodeSchema[]).find((n) => n['unique-id'] === linkedNodeId)
+        const document = data?.data as { nodes?: unknown; relationships?: unknown } | undefined;
+        const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
+        const item = linkedNodeId
+            ? (items as CalmNodeSchema[]).find((entry) => entry?.['unique-id'] === linkedNodeId)
             : undefined;
-        if (node) setSelectedItem({ data: node });
+        if (item) setSelectedItem({ data: item });
     }
 
     const handleDataLoad = useCallback((loaded: Data) => {
