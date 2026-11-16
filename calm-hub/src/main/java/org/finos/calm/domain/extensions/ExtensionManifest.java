@@ -1,9 +1,12 @@
 package org.finos.calm.domain.extensions;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.json.bind.annotation.JsonbProperty;
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
+import jakarta.json.bind.annotation.JsonbTransient;
 
 import java.util.Collections;
 import java.util.List;
@@ -57,8 +60,26 @@ public record ExtensionManifest(
     }
 
     @RegisterForReflection
-    @JsonbPropertyOrder({"id", "method", "path", "scope", "readOnly"})
-    public record Route(String id, String method, String path, String scope, boolean readOnly) {}
+    @JsonbPropertyOrder({"id", "method", "path", "scope", "readOnly", "hubData"})
+    public record Route(String id, String method, String path, String scope, boolean readOnly, List<String> hubData) {
+
+        /** The data that Hub reads and sends as the body of the route: the document, its links, conventions. */
+        public static final String DOCUMENT = "document";
+        public static final String DETAILED_ARCHITECTURES = "detailed-architectures";
+
+        @JsonCreator
+        public Route {
+            hubData = hubData == null || hubData.isEmpty() ? null : List.copyOf(hubData);
+        }
+
+        public Route(String id, String method, String path, String scope, boolean readOnly) {
+            this(id, method, path, scope, readOnly, null);
+        }
+
+        public boolean sendsHubData() {
+            return hubData != null;
+        }
+    }
 
     @RegisterForReflection
     @JsonbPropertyOrder({"route", "description", "input", "output", "destructive", "idempotent"})
@@ -75,7 +96,7 @@ public record ExtensionManifest(
     @RegisterForReflection
     // Yasson matches the order against Java names, not JSON names.
     @JsonbPropertyOrder({"screen", "designerTab", "landingCard", "detailPanel", "action", "searchProvider", "chat",
-            "decoratorViews"})
+            "decoratorViews", "diagramLens"})
     public record Contributions(
             List<RouteContribution> screen,
             @JsonProperty("designer-tab") @JsonbProperty("designer-tab") List<RouteContribution> designerTab,
@@ -84,10 +105,11 @@ public record ExtensionManifest(
             List<RouteContribution> action,
             @JsonProperty("search-provider") @JsonbProperty("search-provider") List<RouteContribution> searchProvider,
             List<RouteContribution> chat,
-            @JsonProperty("decorator-views") @JsonbProperty("decorator-views") List<DecoratorView> decoratorViews
+            @JsonProperty("decorator-views") @JsonbProperty("decorator-views") List<DecoratorView> decoratorViews,
+            @JsonProperty("diagram-lens") @JsonbProperty("diagram-lens") List<DiagramLens> diagramLens
     ) {
 
-        public static final Contributions NONE = new Contributions(null, null, null, null, null, null, null, null);
+        public static final Contributions NONE = new Contributions(null, null, null, null, null, null, null, null, null);
 
         /** The route-based extension points by their manifest name. Absent points are left out. */
         public Map<String, List<RouteContribution>> byRoutePoint() {
@@ -102,10 +124,17 @@ public record ExtensionManifest(
             return points;
         }
 
+        /** A copy with these lenses in place of the declared ones. */
+        public Contributions withDiagramLens(List<DiagramLens> lenses) {
+            return new Contributions(screen, designerTab, landingCard, detailPanel, action, searchProvider, chat,
+                    decoratorViews, lenses);
+        }
+
         Contributions withRoutes(Predicate<String> routeKept) {
             return new Contributions(keep(screen, routeKept), keep(designerTab, routeKept), keep(landingCard, routeKept),
                     keep(detailPanel, routeKept), keep(action, routeKept), keep(searchProvider, routeKept),
-                    keep(chat, routeKept), decoratorViews);
+                    keep(chat, routeKept), decoratorViews,
+                    diagramLens == null ? null : diagramLens.stream().filter(l -> routeKept.test(l.route())).toList());
         }
 
         private static List<RouteContribution> keep(List<RouteContribution> entries, Predicate<String> routeKept) {
@@ -128,6 +157,45 @@ public record ExtensionManifest(
     @RegisterForReflection
     @JsonbPropertyOrder({"id", "match", "label", "overlay"})
     public record DecoratorView(String id, Match match, String label, Overlay overlay) {}
+
+    /**
+     * Another picture of the architecture on the Diagram tab, chosen in its lens list (ADR 0013). Its route returns a
+     * graph, and Hub draws it with the shapes and styles of the notation file, so no extension code reaches the browser.
+     * The registry leaves out {@code notationContent}; the UI reads it from the lens notation endpoint when the lens opens.
+     */
+    @RegisterForReflection
+    @JsonbPropertyOrder({"id", "title", "description", "route", "appliesTo", "params", "notation"})
+    public record DiagramLens(
+            String id,
+            String title,
+            String description,
+            String route,
+            AppliesTo appliesTo,
+            Map<String, LensParam> params,
+            String notation,
+            @JsonIgnore @JsonbTransient Map<String, Object> notationContent
+    ) {
+        public DiagramLens {
+            params = params == null ? Map.of() : Collections.unmodifiableMap(new java.util.LinkedHashMap<>(params));
+        }
+
+        public DiagramLens withNotationContent(Map<String, Object> content) {
+            return new DiagramLens(id, title, description, route, appliesTo, params, notation, content);
+        }
+    }
+
+    /** The resource types that a lens draws. Absent means every type that the Diagram tab shows. */
+    @RegisterForReflection
+    public record AppliesTo(List<String> resourceTypes) {}
+
+    /** A view parameter of a lens: one of {@code values}, or a match of {@code pattern}. */
+    @RegisterForReflection
+    @JsonbPropertyOrder({"values", "pattern", "default"})
+    public record LensParam(
+            List<String> values,
+            String pattern,
+            @JsonProperty("default") @JsonbProperty("default") String defaultValue
+    ) {}
 
     /** Exactly one of {@code type} or {@code schema} (a decorator {@code $schema} URL). */
     @RegisterForReflection

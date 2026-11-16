@@ -249,6 +249,12 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   `extensionMarkerColour()` gives the marker colour.
   When there is no stored choice, `useOverlayVisibility` switches on the built-in views and the first 3 extension
   views in registry order. It takes the registered views, not the views drawn, so a default is the same on each diagram.
+- Diagram lens: `DiagramLensView` (`extensions/lens/`) draws a `diagram-lens`. `parseLensReply()` checks the reply
+  and the limits, `layoutLens()` runs ELK in a web worker (`elk.ts`; tests have no `Worker`, so ELK runs in the
+  test), and `LensCanvas` draws SVG elements built from the notation data. Never put notation or reply text into
+  markup or a style sheet. Node sizes come from `textWidth()`, an estimate, so layout is the same in every browser
+  and in jsdom. An element that takes a click has `data-clickable`: a press on it must not start a drag-pan,
+  because pointer capture would send the click to the pane.
 
 ### Namespace conventions
 

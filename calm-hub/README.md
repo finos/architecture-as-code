@@ -35,6 +35,8 @@ The `jvm` and `native` profiles seed MongoDB with the released CALM meta-schemas
 npm ci && npm run calm-hub:copy-schemas
 ```
 
+The `jvm` and `native` profiles also run the [extensions we own](../calm-hub-extensions/README.md) as sidecars, for the C4 and Layers lenses of the Diagram tab. Compose builds their images from source the first time.
+
 A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 

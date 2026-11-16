@@ -1,3 +1,5 @@
+import type { DiagramLensContribution } from './lens.js';
+
 export interface ExtensionContribution {
     id: string;
     title: string;
@@ -18,7 +20,7 @@ export interface ExtensionSummary {
     provider?: string;
     hubApi: number;
     routes: ExtensionRoute[];
-    contributes: Partial<Record<ExtensionPoint, ExtensionContribution[]>>;
+    contributes: Partial<Record<ExtensionPoint, ExtensionContribution[]>> & { 'diagram-lens'?: DiagramLensContribution[] };
 }
 export interface ExtensionContext {
     namespace?: string;

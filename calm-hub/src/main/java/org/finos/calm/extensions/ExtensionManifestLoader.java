@@ -27,6 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -62,6 +63,11 @@ public class ExtensionManifestLoader {
     static final List<String> DESIGNER_TAB_PARAMS = List.of("namespace", "resourceType", "resourceId", "version",
             "selectedElement");
 
+    /** Query parameters that the Diagram tab or the extension context already use. A lens param must not take one. */
+    static final Set<String> RESERVED_LENS_PARAMS = Set.of("tab", "lens", "node", "type", "schema", "q", "namespace",
+            "resource", "resourceType", "resourceId", "version", "selectedElement");
+    private static final NotationChecker NOTATIONS = NotationChecker.SHARED;
+
     private final ObjectMapper mapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     private final Map<Integer, Validator> validators = new HashMap<>();
@@ -93,7 +99,7 @@ public class ExtensionManifestLoader {
             } catch (IOException e) {
                 throw new UncheckedIOException("Cannot read extension manifest " + file, e);
             }
-            manifests.add(parse(json, folder.getFileName().toString(), file.toString()));
+            manifests.add(parse(json, folder.getFileName().toString(), file.toString(), name -> readFile(folder.resolve(name))));
         }
         return manifests;
     }
@@ -118,7 +124,8 @@ public class ExtensionManifestLoader {
             if (json == null) {
                 throw new IllegalStateException("Built-in extension " + line + " has no classpath resource " + resource);
             }
-            manifests.add(parse(json, line, "classpath:" + resource));
+            String folder = base + line + "/";
+            manifests.add(parse(json, line, "classpath:" + resource, name -> readResource(classLoader, folder + name)));
         }
         return manifests;
     }
@@ -128,6 +135,14 @@ public class ExtensionManifestLoader {
      * @param source     names the manifest in error messages
      */
     public ExtensionManifest parse(String json, String expectedId, String source) {
+        return parse(json, expectedId, source, name -> null);
+    }
+
+    /**
+     * @param siblings reads a file next to the manifest by name, or returns null when there is none. The schema
+     *                 allows only a plain file name, so a name cannot leave the extension folder.
+     */
+    ExtensionManifest parse(String json, String expectedId, String source, Function<String, String> siblings) {
         JsonObject raw;
         try {
             raw = new JsonObject(json);
@@ -150,6 +165,7 @@ public class ExtensionManifestLoader {
             throw new IllegalStateException("Cannot read extension manifest " + source, e);
         }
         List<String> problems = check(manifest, expectedId);
+        manifest = withNotations(manifest, siblings, problems);
         if (!problems.isEmpty()) {
             throw invalid(source, problems);
         }
@@ -194,8 +210,31 @@ public class ExtensionManifestLoader {
             if (DOMAIN_SCOPES.contains(route.scope()) && !params.contains("domain")) {
                 problems.add(where + " has scope '" + route.scope() + "', so its path needs a {domain} parameter");
             }
+            if (route.sendsHubData()) {
+                checkHubData(where, route, params, problems);
+            }
         }
         checkAmbiguousRoutes(manifest.routes(), problems);
+    }
+
+    /**
+     * Hub reads the resource of the path with the scope that it checked, and sends it as the body. So the route reads
+     * only, names the resource, and takes no body of its own.
+     */
+    private static void checkHubData(String where, ExtensionManifest.Route route, List<String> params, List<String> problems) {
+        if (!"POST".equals(route.method()) || !route.readOnly()) {
+            problems.add(where + " has hubData, so it must be a POST route with readOnly true: Hub sends the data as its body");
+        }
+        if (!"read".equals(route.scope())) {
+            problems.add(where + " has hubData, so its scope must be 'read'");
+        }
+        if (!params.containsAll(List.of("namespace", "resourceType", "resourceId"))) {
+            problems.add(where + " has hubData, so its path needs {namespace}, {resourceType} and {resourceId}");
+        }
+        if (route.hubData().contains(ExtensionManifest.Route.DETAILED_ARCHITECTURES)
+                && !route.hubData().contains(ExtensionManifest.Route.DOCUMENT)) {
+            problems.add(where + " hubData has detailed-architectures, so it needs document too");
+        }
     }
 
     /**
@@ -254,6 +293,10 @@ public class ExtensionManifestLoader {
                         + MAX_TOOL_NAME_LENGTH + " characters");
             }
             manifest.route(command.route()).ifPresentOrElse(route -> {
+                // The command input would be lost: Hub replaces the body, and the CLI and MCP send no query.
+                if (route.sendsHubData()) {
+                    problems.add(where + " names route '" + route.id() + "', which has hubData. A command cannot use it");
+                }
                 Object properties = command.input().get("properties");
                 Object required = command.input().get("required");
                 for (String param : pathParams(route.path())) {
@@ -291,6 +334,92 @@ public class ExtensionManifestLoader {
                     problems.add("decorator-views '" + view.id() + "' is declared more than once");
                 }
             }
+        }
+        List<ExtensionManifest.DiagramLens> lenses = manifest.contributes().diagramLens();
+        if (lenses != null) {
+            Set<String> ids = new HashSet<>();
+            for (ExtensionManifest.DiagramLens lens : lenses) {
+                if (!ids.add(lens.id())) {
+                    problems.add("diagram-lens '" + lens.id() + "' is declared more than once");
+                }
+                checkLens(manifest, lens, problems);
+            }
+        }
+    }
+
+    private static void checkLens(ExtensionManifest manifest, ExtensionManifest.DiagramLens lens, List<String> problems) {
+        String where = "diagram-lens '" + lens.id() + "'";
+        manifest.route(lens.route()).ifPresentOrElse(route -> {
+            if (!"GET".equals(route.method()) && !route.sendsHubData()) {
+                problems.add(where + " must name a GET route, or a route with hubData, but route '" + route.id() + "' is "
+                        + route.method());
+            }
+            for (String param : pathParams(route.path())) {
+                if (!DESIGNER_TAB_PARAMS.contains(param)) {
+                    problems.add(where + " route '" + route.id() + "' has {" + param + "} in its path, which the UI cannot fill. "
+                            + "It fills only " + DESIGNER_TAB_PARAMS + ". Put a view parameter in the query");
+                }
+            }
+        }, () -> problems.add(where + " names route '" + lens.route() + "', which is not declared"));
+        lens.params().forEach((name, param) -> {
+            String at = where + " param '" + name + "'";
+            if (RESERVED_LENS_PARAMS.contains(name)) {
+                problems.add(at + " is reserved by CALM Hub. Reserved names: " + RESERVED_LENS_PARAMS);
+            }
+            if (param.pattern() != null) {
+                try {
+                    Pattern pattern = Pattern.compile(param.pattern());
+                    if (param.defaultValue() != null && !pattern.matcher(param.defaultValue()).matches()) {
+                        problems.add(at + " default does not match its pattern");
+                    }
+                } catch (java.util.regex.PatternSyntaxException e) {
+                    problems.add(at + " pattern is not a valid regular expression");
+                }
+            } else if (param.defaultValue() != null && !param.values().contains(param.defaultValue())) {
+                problems.add(at + " default is not one of its values");
+            }
+        });
+    }
+
+    private static ExtensionManifest withNotations(ExtensionManifest manifest, Function<String, String> siblings,
+                                                   List<String> problems) {
+        List<ExtensionManifest.DiagramLens> lenses = manifest.contributes().diagramLens();
+        if (lenses == null) {
+            return manifest;
+        }
+        List<ExtensionManifest.DiagramLens> loaded = new ArrayList<>();
+        for (ExtensionManifest.DiagramLens lens : lenses) {
+            String where = "diagram-lens '" + lens.id() + "' notation " + lens.notation();
+            String text = siblings.apply(lens.notation());
+            if (text == null) {
+                problems.add(where + " is not in the extension folder");
+                loaded.add(lens);
+                continue;
+            }
+            Map<String, Object> notation;
+            try {
+                notation = new JsonObject(text).getMap();
+            } catch (DecodeException | ClassCastException e) {
+                problems.add(where + " is not a JSON object");
+                loaded.add(lens);
+                continue;
+            }
+            NOTATIONS.check(notation).forEach(problem -> problems.add(where + problem));
+            loaded.add(lens.withNotationContent(notation));
+        }
+        return new ExtensionManifest(manifest.id(), manifest.version(), manifest.hubApi(), manifest.name(),
+                manifest.description(), manifest.provider(), manifest.routes(), manifest.commands(),
+                manifest.contributes().withDiagramLens(loaded));
+    }
+
+    private static String readFile(Path file) {
+        if (!Files.isRegularFile(file)) {
+            return null;
+        }
+        try {
+            return Files.readString(file, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read " + file, e);
         }
     }
 

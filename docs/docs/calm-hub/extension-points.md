@@ -20,13 +20,14 @@ An extension manifest lists its extension points in `contributes`, and its CLI a
 | [`detail-panel`](#detail-panel) | Hub UI | `GET` | Resource and node |
 | [`action`](#action) | Hub UI | Any | Resource |
 | [`decorator-views`](#decorator-views) | Hub UI | No route | Decorators |
+| [`diagram-lens`](#diagram-lens) | Hub UI | `GET` | Resource |
 | [`search-provider`](#search-provider-and-chat) | Nothing yet | Any | — |
 | [`chat`](#search-provider-and-chat) | Nothing yet | Any | — |
 | [`commands`](#commands) | CLI and MCP | Any | Command input |
 
 ## Shared fields
 
-Each extension point, except `decorator-views`, is a list of entries with these fields:
+Each extension point, except `decorator-views` and `diagram-lens`, is a list of entries with these fields:
 
 | Field | Required | Rule |
 |---|---|---|
@@ -53,12 +54,12 @@ hides an action whose path gets such a value. Thus use `resource` only as a quer
 
 | Parameter | Value | Sent to |
 |---|---|---|
-| `namespace` | The namespace of the open resource | `designer-tab`, `detail-panel`, `action` |
-| `resource` | `<type>/<id>`, for example `architectures/1` or `patterns/2`. Not for a path | `designer-tab`, `detail-panel`, `action` |
-| `resourceType` | `architectures` or `patterns` | `designer-tab`, `detail-panel`, `action` |
-| `resourceId` | The resource id, for example `1` | `designer-tab`, `detail-panel`, `action` |
-| `version` | The version on screen, for example `1.0.0` | `designer-tab`, `detail-panel`, `action` |
-| `selectedElement` | The `unique-id` of the selected node | `detail-panel`, when you click a node. A link that names a node with `?node=<unique-id>` also sends it to `designer-tab` and `action`. A tab change clears a clicked selection |
+| `namespace` | The namespace of the open resource | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `resource` | `<type>/<id>`, for example `architectures/1` or `patterns/2`. Not for a path | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `resourceType` | `architectures` or `patterns` | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `resourceId` | The resource id, for example `1` | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `version` | The version on screen, for example `1.0.0` | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
+| `selectedElement` | The `unique-id` of the selected node | `detail-panel`, when you click a node. A link that names a node with `?node=<unique-id>` also sends it to `designer-tab` and `action`. A tab change clears a clicked selection. `diagram-lens` gets it only when its route path names `{selectedElement}`, because the lens marks a selection with no request |
 
 CALM Hub checks the format of a `{namespace}` or `{domain}` path value, and checks the route `scope`
 against the value that the scope needs. It checks no other path value. A user can send any value,
@@ -168,6 +169,121 @@ backend.
 
 See [Decorator views](decorator-views.md) for the fields and the built-in views.
 
+## diagram-lens
+
+Another picture of the architecture on the **Diagram** tab, such as a C4 or an
+ArchiMate® view. The lens shows in the lens list of the tab, under
+**Extensions**, with the extension name. Its route returns a graph, and CALM
+Hub lays it out and draws it with the shapes of the lens **notation**. No
+extension code runs in the browser. The
+[C4 extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/c4)
+is a full example, with its manifest, notation and service. The
+[ea-layers extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/ea-layers)
+is a smaller one, in the ArchiMate® notation.
+
+```json
+"diagram-lens": [{
+  "id": "c4", "title": "C4", "route": "lens",
+  "appliesTo": { "resourceTypes": ["architectures"] },
+  "params": {
+    "level": { "values": ["context", "container", "component", "deployment"], "default": "context" },
+    "scope": { "pattern": "^[^\\p{Cc}]{1,128}$" }
+  },
+  "notation": "notation.json"
+}]
+```
+
+| Field | Required | Rule |
+|---|---|---|
+| `id` | Yes | Lowercase letters, digits and `-`, starting with a letter. Unique in the extension. The URL names the lens with `?lens=<id>` |
+| `title` | Yes | The name in the lens list |
+| `description` | No | The tooltip in the lens list |
+| `route` | Yes | A `GET` route, or a `POST` route with [`hubData`](extension-access.md#let-calm-hub-send-the-data). Its path can use only the parameters that a designer tab can fill |
+| `appliesTo` | No | `resourceTypes`: `architectures`, `patterns` or both. The default is both |
+| `params` | No | The view parameters of the lens, each with `values` or a `pattern`, and an optional `default`. A `pattern` is a regular expression in Unicode mode, so a class such as `\p{Cc}` works. CALM Hub keeps them in the URL and sends them in the query. `tab`, `lens`, `node`, `type`, `schema`, `q` and the context names are reserved |
+| `notation` | Yes | The name of a JSON file in the extension folder, next to `extension.json`, with the shapes, edge markers and styles. See below |
+
+### Notation
+
+The notation file ships with the extension. CALM Hub checks it against
+`GET /api/calm/extensions/schema/0/notation.schema.json` when it starts, and
+does not start if it is missing or not valid. The UI reads it from
+`GET /api/calm/extensions/<id>/lenses/<lens>/notation` when the lens first
+opens.
+
+```json
+{
+  "shapes": { "Person": { "viewBox": [0, 0, 200, 220], "parts": [ … ], "slots": { … } } },
+  "styles": { "elements": [{ "tag": "Person", "shape": "Person", "background": "#08427b", "color": "#ffffff" }] }
+}
+```
+
+| Part | Content |
+|---|---|
+| `shapes` | Your shapes. A `viewBox`, and `parts`: `path`, `rect`, `circle`, `ellipse`, `line`, `polyline` or `polygon`. A part paints with `background`, `stroke`, `color`, `accent`, `none` or a hex colour, and can be `pin`ned to a corner so that it keeps its size. `resize` is `stretch`, `aspect` or `nine-slice` with `insets`. `slots` are boxes for the `label`, `metadata`, `description`, custom `fields`, or a `list` of `sections`. `ports` are `outline` or named points |
+| `markers` | Your edge ends, drawn pointing right |
+| `styles` | `elements`, `relationships` and `groups`, each keyed by `tag`. Styles apply in order, and a later style overrides what it sets. An element style sets `shape`, `background`, `color`, `stroke`, `accent`, `strokeWidth`, `border`, `opacity`, `icon`, `metadata`, `description`, a `label` for the diagram key, and `dark` colours. A relationship style sets `color`, `thickness`, `style`, `routing`, `start` and `end` markers |
+
+Every notation can also name the shapes and markers of the **core notation** of
+CALM Hub (`GET /api/calm/extensions/notations/core`): the shape `Box`, and the
+markers `arrow`, `open-arrow`, `hollow-triangle`, `diamond`, `hollow-diamond`,
+`dot` and `hollow-dot`. Use `core/<name>` when your notation has its own shape
+or marker with that name. A shape has no text, image, link, style sheet or filter: text
+goes in slots, and an `icon` is a `data:` PNG, JPEG or SVG image up to 32 KB.
+
+### The reply
+
+The route returns JSON that matches
+`GET /api/calm/extensions/schema/0/lens.schema.json`:
+
+```json
+{
+  "hubApi": 0, "kind": "graph", "layout": { "algorithm": "layered", "direction": "down" },
+  "graph": {
+    "groups": [{ "id": "shop", "label": "Shop", "tags": ["Boundary"] }],
+    "nodes": [
+      { "id": "customer", "label": "Customer", "tags": ["Person"], "calm": ["customer"] },
+      { "id": "api", "label": "Orders API", "metadata": "[Container: Java]", "tags": ["Container"], "group": "shop",
+        "calm": ["orders-api"], "link": { "params": { "level": "component", "scope": "api" } } }
+    ],
+    "edges": [{ "id": "e1", "source": "customer", "target": "api", "label": "Places orders" }]
+  },
+  "controls": [{ "type": "segmented", "param": "level", "items": [{ "value": "context", "label": "Context" }] }],
+  "panels": [{ "title": "Notes", "blocks": [{ "type": "alert", "tone": "warning", "text": "…" }] }]
+}
+```
+
+- `tags` choose the styles of a node, an edge or a group.
+- `calm` names the CALM `unique-id`s that the element stands for. A click
+  selects the first one on the CALM diagram.
+- A `link` sets view parameters, opens a CALM Hub page or opens an `https` URL.
+- A control can name its `value`: the value that the reply was drawn with,
+  when the request named none. For example, the C4 service draws the first
+  system when the URL names no `scope`, and its list shows that system.
+- `layout` is `layered`, `tree`, `radial`, `force`, `stress`, `rectpacking`,
+  `box`, or `fixed` with a `position` on each node.
+- A reply has at most 500 nodes, 2,000 edges and 200 groups.
+
+CALM Hub checks the reply before it lays it out. A reply that is not valid, or
+that has a control for a parameter that the lens does not declare, shows the
+first fault in the lens. A `4xx` reply with `application/problem+json` shows
+its `title` and `detail`. When CALM Hub draws the graph:
+
+- A part with no `fill` is not filled. A part with no `stroke` uses the
+  `stroke` of the style.
+- A `grow` slot and each `list` slot take the height of their text, and the
+  shape grows inside the band of that slot. An `aspect` shape does not grow.
+- A shape with a slot named `icon` shows the `icon` of the style there. Other
+  shapes show it at the top left.
+- An edge with no `end` in its style ends with `arrow`. Set `"end": "none"`
+  for an edge with no end, such as an association. Its `technology` shows
+  in brackets under the `label`.
+- `fixed` positions are in pixels, and each group fits around its members.
+  An edge to a group, and an edge with `direct` routing, is a straight line.
+- A click on a node follows its `link` and selects its first `calm` id. A link
+  can set only the parameters that the lens declares, with allowed values.
+- A click on an entry of the diagram key dims the elements with that tag.
+
 ## search-provider and chat
 
 CALM Hub accepts `search-provider` and `chat` entries in a manifest, with the shared fields. It
@@ -216,3 +332,7 @@ Commands that the CLI and MCP can run, keyed by name. The name uses lowercase le
   checks the scope, and then the input against `input`, before it calls the backend. The CLI calls the route through the REST proxy, and CALM Hub does not check the input
   there. Thus the backend must check its input.
 - A read-only Hub leaves out a command whose route changes data and is not `readOnly`.
+
+---
+
+ArchiMate is a registered trademark of The Open Group in the United States and other countries.

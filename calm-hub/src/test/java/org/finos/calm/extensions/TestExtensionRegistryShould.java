@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -389,6 +390,24 @@ class TestExtensionRegistryShould {
         properties.put("calm.extensions.allow-without-auth", "true");
 
         assertThat(ids(registry(dir(), NO_BUILTINS)), contains("alpha", "team-services"));
+    }
+
+    @Test
+    void send_no_identity_only_to_an_extension_whose_routes_change_nothing() throws IOException {
+        JsonObject manifest = valid();
+        write("team-services", manifest);
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.example.com");
+
+        assertThat(registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().sendsIdentity(), is(true));
+
+        properties.put("calm.extensions.\"team-services\".send-identity", "false");
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS));
+        assertThat(e.getMessage(), containsString("calm.extensions.\"team-services\".send-identity=false is allowed only "
+                + "when every route of extension 'team-services' is a GET or readOnly route"));
+
+        manifest.getJsonArray("routes").getJsonObject(3).put("readOnly", true);
+        write("team-services", manifest);
+        assertThat(registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().sendsIdentity(), is(false));
     }
 
     private static JsonObject withReadOnlySearch() {

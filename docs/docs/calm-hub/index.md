@@ -154,10 +154,13 @@ The Hub UI shows the contributions of an extension, the CLI runs its commands (s
 
 | Page | Read it to |
 |:-----|:-----------|
+| [Extensions](pathname:///extensions) | Find an extension and install it |
 | [Build and install an extension](../tutorials/advanced/hub-extension.md) | Follow a tutorial from the manifest to the UI, CLI and MCP |
 | [Extension points](extension-points.md) | Find the fields, the context and the limits of each extension point and of commands |
 | [Extension blocks](extension-blocks.md) | Write the JSON that the UI draws |
 | [Decorator views](decorator-views.md) | Draw decorators on the diagram, with no backend |
+| [The C4 extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/c4) | See a diagram lens with its own notation, run as a sidecar |
+| [The ea-layers extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/ea-layers) | See a smaller diagram lens, in the ArchiMate® notation |
 | [Extension access](extension-access.md) | Learn the scopes, the identity assertion and the trust model |
 
 Put one folder for each extension in `calm.extensions.dir`, with an `extension.json` in it. The folder name must equal the manifest `id`. Hub skips hidden folders and warns about folders without a manifest. A per-id setting for an unknown extension id gives a warning at start up, as a property or as an environment variable.
@@ -175,6 +178,7 @@ Put one folder for each extension in `calm.extensions.dir`, with an `extension.j
 | `calm.extensions."<id>".order` | `0` | Lower values come first in the list. Equal values sort by id |
 | `calm.extensions."<id>".backend-url` | not set | The base URL of the extension service. Required for an enabled extension with routes |
 | `calm.extensions."<id>".allow-http` | `false` | Allows a plain `http` backend that is not on loopback, such as a cluster-internal host. Otherwise the backend must use `https`, or `http` on `localhost`, `127.x.x.x` or `[::1]` |
+| `calm.extensions."<id>".send-identity` | `true` | `false` sends no identity assertion to the extension, for an open service that answers any caller. CALM Hub then needs no identity keys for it. Allowed only when every route of the extension is a `GET` or `readOnly` route. CALM Hub still checks the route scope for the user |
 | `calm.extensions."<id>".connect-timeout-seconds` | `calm.extensions.http.connect-timeout-seconds` (`5`) | The connect timeout for each call. A value below 1 stops start-up |
 | `calm.extensions."<id>".request-timeout-seconds` | `calm.extensions.http.request-timeout-seconds` (`10`) | The limit for the whole call. A slow backend gets `504`. A value below 1 stops start-up |
 | `calm.extensions."<id>".max-request-bytes` | `calm.extensions.http.max-request-bytes` (`1048576`) | A larger request body gets `413`. A value below 1 stops start-up |
@@ -194,9 +198,9 @@ CALM_EXTENSIONS__TEAM_SERVICES__ORDER=10
 The manifest declares:
 
 - `id`, `version`, `hubApi` (now `0`), `name`, and optional `description` and `provider`.
-- `routes`: every call that the extension can receive, each with an `id`, `method`, `path`, `scope` and optional `readOnly`. A `read`, `write` or `admin` scope needs a `{namespace}` in the path. A `domain_*` scope needs a `{domain}`. A path parameter cannot contain a slash, so a route for a CALM Hub resource uses `{resourceType}/{resourceId}`, not `{resource}`. When two routes with the same method match a path, the route with more literal segments wins. CALM Hub does not start if two such routes have the same number, for example `GET /{namespace}/report` and `GET /public/{id}`.
+- `routes`: every call that the extension can receive, each with an `id`, `method`, `path`, `scope`, and optional `readOnly` and `hubData` (the data that CALM Hub reads for the user and sends as the body, see [Let CALM Hub send the data](extension-access.md#let-calm-hub-send-the-data)). A `read`, `write` or `admin` scope needs a `{namespace}` in the path. A `domain_*` scope needs a `{domain}`. A path parameter cannot contain a slash, so a route for a CALM Hub resource uses `{resourceType}/{resourceId}`, not `{resource}`. When two routes with the same method match a path, the route with more literal segments wins. CALM Hub does not start if two such routes have the same number, for example `GET /{namespace}/report` and `GET /public/{id}`.
 - `commands`: CLI and MCP commands, keyed by name. Each names a route by `id`.
-- `contributes`: the UI extension points `screen`, `designer-tab`, `landing-card`, `detail-panel`, `action`, `search-provider` and `chat`, which name a route by `id`, and `decorator-views`, which CALM Hub draws from decorators with no route. A decorator view `id` must be unique in all enabled extensions.
+- `contributes`: the UI extension points `screen`, `designer-tab`, `landing-card`, `detail-panel`, `action`, `search-provider` and `chat`, which name a route by `id`, `decorator-views`, which CALM Hub draws from decorators with no route, and `diagram-lens`, a picture of an architecture that CALM Hub draws from a graph reply and a notation. A decorator view `id` must be unique in all enabled extensions.
 
 The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in the CALM Hub jar. Unknown fields are errors. See [the example manifest](https://github.com/finos/architecture-as-code/blob/main/calm-hub/local-dev/extensions/example-services/extension.json).
 

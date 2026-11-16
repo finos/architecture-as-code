@@ -93,6 +93,17 @@ const sidebars = {
     },
   ],
 
+  // Extensions sidebar - reached via the Extensions navbar item
+  extensionsSidebar: [
+    'extensions/install',
+    {
+      type: 'category',
+      label: 'Extensions',
+      collapsed: false,
+      items: ['extensions/c4', 'extensions/ea-layers'],
+    },
+  ],
+
   // Learning sidebar - tutorials
   learningSidebar: [
     'tutorials/calm-overview-presentation',

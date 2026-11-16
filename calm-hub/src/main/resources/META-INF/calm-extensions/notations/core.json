@@ -1,0 +1,246 @@
+{
+  "shapes": {
+    "Box": {
+      "viewBox": [
+        0,
+        0,
+        200,
+        120
+      ],
+      "resize": {
+        "mode": "stretch"
+      },
+      "parts": [
+        {
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 200,
+            "height": 120
+          },
+          "fill": "background",
+          "stroke": "stroke"
+        }
+      ],
+      "slots": {
+        "label": {
+          "x": 10,
+          "y": 12,
+          "width": 180,
+          "height": 22,
+          "align": "center",
+          "weight": "bold"
+        },
+        "metadata": {
+          "x": 10,
+          "y": 34,
+          "width": 180,
+          "height": 16,
+          "align": "center",
+          "size": "small"
+        },
+        "description": {
+          "x": 10,
+          "y": 54,
+          "width": 180,
+          "height": 40,
+          "align": "center",
+          "size": "small",
+          "grow": true
+        }
+      }
+    }
+  },
+  "markers": {
+    "arrow": {
+      "viewBox": [
+        0,
+        0,
+        12,
+        12
+      ],
+      "parts": [
+        {
+          "polygon": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              6
+            ],
+            [
+              0,
+              12
+            ]
+          ],
+          "fill": "stroke",
+          "stroke": "none"
+        }
+      ]
+    },
+    "open-arrow": {
+      "viewBox": [
+        0,
+        0,
+        12,
+        12
+      ],
+      "parts": [
+        {
+          "polyline": [
+            [
+              0,
+              0
+            ],
+            [
+              12,
+              6
+            ],
+            [
+              0,
+              12
+            ]
+          ],
+          "fill": "none",
+          "stroke": "stroke",
+          "dash": "solid"
+        }
+      ]
+    },
+    "hollow-triangle": {
+      "viewBox": [
+        0,
+        0,
+        14,
+        14
+      ],
+      "parts": [
+        {
+          "polygon": [
+            [
+              0,
+              0
+            ],
+            [
+              14,
+              7
+            ],
+            [
+              0,
+              14
+            ]
+          ],
+          "fill": "none",
+          "stroke": "stroke",
+          "dash": "solid"
+        }
+      ]
+    },
+    "diamond": {
+      "viewBox": [
+        0,
+        0,
+        16,
+        10
+      ],
+      "parts": [
+        {
+          "polygon": [
+            [
+              0,
+              5
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              16,
+              5
+            ],
+            [
+              8,
+              10
+            ]
+          ],
+          "fill": "stroke",
+          "stroke": "none"
+        }
+      ]
+    },
+    "hollow-diamond": {
+      "viewBox": [
+        0,
+        0,
+        16,
+        10
+      ],
+      "parts": [
+        {
+          "polygon": [
+            [
+              0,
+              5
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              16,
+              5
+            ],
+            [
+              8,
+              10
+            ]
+          ],
+          "fill": "none",
+          "stroke": "stroke",
+          "dash": "solid"
+        }
+      ]
+    },
+    "dot": {
+      "viewBox": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "parts": [
+        {
+          "circle": {
+            "cx": 5,
+            "cy": 5,
+            "r": 5
+          },
+          "fill": "stroke",
+          "stroke": "none"
+        }
+      ]
+    },
+    "hollow-dot": {
+      "viewBox": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "parts": [
+        {
+          "circle": {
+            "cx": 5,
+            "cy": 5,
+            "r": 4
+          },
+          "fill": "none",
+          "stroke": "stroke",
+          "dash": "solid"
+        }
+      ]
+    }
+  }
+}

@@ -92,6 +92,12 @@
           "items": {
             "$ref": "#/$defs/decoratorView"
           }
+        },
+        "diagram-lens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/diagramLens"
+          }
         }
       },
       "required": [],
@@ -142,6 +148,19 @@
         "readOnly": {
           "type": "boolean",
           "default": false
+        },
+        "hubData": {
+          "description": "The data that CALM Hub reads, with the scope of the caller, and sends as the body of a POST route: document (the resource version in the path, which needs a version query parameter), detailed-architectures (the detailed architectures that its nodes link to, in the same namespace), or the name of a convention type (the namespace default, with each CALM Hub convention that it extends). The route must be a readOnly POST with the read scope and {namespace}/{resourceType}/{resourceId} in its path. The service then needs no account and no route back to CALM Hub.",
+          "type": "array",
+          "items": {
+            "enum": [
+              "document",
+              "detailed-architectures",
+              "c4-mapping"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
         }
       },
       "required": [
@@ -314,6 +333,107 @@
         "id",
         "match",
         "label"
+      ],
+      "additionalProperties": false
+    },
+    "diagramLens": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "type": "string",
+          "minLength": 1
+        },
+        "appliesTo": {
+          "type": "object",
+          "properties": {
+            "resourceTypes": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "architectures",
+                  "patterns"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "params": {
+          "description": "The view parameters that the lens owns. Hub keeps them in the URL, checks them, and sends them to the route.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/lensParam"
+          },
+          "maxProperties": 8
+        },
+        "notation": {
+          "description": "A JSON file in the extension folder, next to extension.json, that matches notation.schema.json: the shapes, markers and styles of the lens.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}\\.json$"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "route",
+        "notation"
+      ],
+      "additionalProperties": false
+    },
+    "lensParam": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "default": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "values"
+          ]
+        },
+        {
+          "required": [
+            "pattern"
+          ]
+        }
       ],
       "additionalProperties": false
     }

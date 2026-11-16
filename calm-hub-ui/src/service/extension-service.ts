@@ -2,6 +2,7 @@ import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { isBuiltInExtension } from '../extensions/extensionIdentity.js';
 import { ExtensionContext, ExtensionPoint, ExtensionRoute, ExtensionSummary } from '../model/extensions.js';
+import type { Notation } from '../model/lens.js';
 import type { DecoratorView } from '../visualizer/contracts/contracts.js';
 import { authStore } from './utils/auth-store.js';
 
@@ -27,7 +28,10 @@ function isRegistryEntry(value: unknown): value is RegistryEntry {
         && UI_POINTS.every((point) => {
             const entries = contributes[point];
             return entries === undefined || (Array.isArray(entries) && entries.every((entry) => hasStrings(entry, ['id', 'title', 'route'])));
-        });
+        })
+        && (contributes['diagram-lens'] === undefined || (Array.isArray(contributes['diagram-lens'])
+            && contributes['diagram-lens'].every((entry) => isObject(entry) && hasStrings(entry, ['id', 'title', 'route', 'notation'])
+                && (entry.params === undefined || isObject(entry.params)))));
 }
 
 function keepRegistryEntry(value: unknown): value is RegistryEntry {
@@ -42,6 +46,22 @@ export class ExtensionRegistryError extends Error {
     constructor(message: string, readonly signedOut: boolean) {
         super(message);
     }
+}
+
+/** A failed extension call. `problem` holds the title and detail of an `application/problem+json` reply. */
+export class ExtensionCallError extends Error {
+    constructor(readonly problem?: { title?: string; detail?: string }) {
+        super('Error calling extension');
+    }
+}
+
+function problemOf(error: unknown): ExtensionCallError['problem'] {
+    const data: unknown = isAxiosError(error) ? error.response?.data : undefined;
+    if (!isObject(data)) return undefined;
+    const text = (value: unknown) => (typeof value === 'string' ? value.slice(0, 500) : undefined);
+    // A refusal by Hub itself has an error message, not a problem title.
+    const problem = { title: text(data.title) ?? text(data.error), detail: text(data.detail) };
+    return problem.title || problem.detail ? problem : undefined;
 }
 
 const isSignedOut = (error: unknown) => isAxiosError(error) && error.response?.status === 401;
@@ -62,7 +82,10 @@ function isQueryValue(value: string): boolean {
     return !LONE_SURROGATE.test(value) && !/[\u0000-\u001f\u007f]/.test(value);
 }
 
-export function extensionRequest(id: string, route: ExtensionRoute, context: ExtensionContext) {
+/** The resource context, and for a lens its view parameters. Hub reserves the context names, so they cannot clash. */
+export type ExtensionQuery = ExtensionContext & Record<string, string | undefined>;
+
+export function extensionRequest(id: string, route: ExtensionRoute, context: ExtensionQuery) {
     const values: Record<string, string | undefined> = { ...context };
     const path = route.path.replace(/\{([^}]+)\}/g, (_, key: string) => {
         const value = values[key];
@@ -82,6 +105,7 @@ export function extensionRequest(id: string, route: ExtensionRoute, context: Ext
 export class ExtensionService {
     private readonly ax: AxiosInstance;
     private registry?: Promise<RegistryEntry[]>;
+    private core?: Promise<Notation>;
 
     constructor(axiosInstance?: AxiosInstance) {
         // Not apiClient: an extension failure stays in its slot and must not open the global auth or outage page.
@@ -131,7 +155,27 @@ export class ExtensionService {
             });
     }
 
-    public async call(id: string, route: ExtensionRoute, context: ExtensionContext, signal?: AbortSignal): Promise<unknown> {
+    /** The notation of a lens. Hub checked it at start-up. */
+    public async fetchLensNotation(id: string, lens: string, signal?: AbortSignal): Promise<Notation> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get<Notation>(`/api/calm/extensions/${encodeURIComponent(id)}/lenses/${encodeURIComponent(lens)}/notation`, { headers, signal })
+            .then((res) => res.data);
+    }
+
+    /** Hub's core notation, behind every lens notation. It changes only with Hub, so the UI reads it once. */
+    public fetchCoreNotation(): Promise<Notation> {
+        this.core ??= getAuthHeaders()
+            .then((headers) => this.ax.get<Notation>('/api/calm/extensions/notations/core', { headers }))
+            .then((res) => res.data)
+            .catch((error) => {
+                this.core = undefined;
+                return Promise.reject(error);
+            });
+        return this.core;
+    }
+
+    public async call(id: string, route: ExtensionRoute, context: ExtensionQuery, signal?: AbortSignal): Promise<unknown> {
         const headers = await getAuthHeaders();
         const request = extensionRequest(id, route, context);
         return this.ax
@@ -145,7 +189,7 @@ export class ExtensionService {
             .then((res) => res.data)
             .catch((error) => {
                 console.error('%s', 'Error calling extension:', error);
-                return Promise.reject(new Error('Error calling extension'));
+                return Promise.reject(new ExtensionCallError(problemOf(error)));
             });
     }
 }

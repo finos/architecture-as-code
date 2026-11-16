@@ -75,6 +75,8 @@ class TestExtensionProxyServiceShould {
     private final SecurityIdentity alice = identity("alice");
     private ExtensionProxyService service;
 
+    private ExtensionIdentitySigner signer;
+
     @BeforeEach
     void setup() {
         ExtensionTestKeys.KeyFiles keys = ExtensionTestKeys.rsa(tempDir, "hub");
@@ -85,7 +87,7 @@ class TestExtensionProxyServiceShould {
                         "calm.extensions.identity.public-key-locations", keys.publicKey().toString(),
                         "calm.hub.base-url", "https://hub.example.com"), "test", 100))
                 .build();
-        ExtensionIdentitySigner signer = new ExtensionIdentitySigner(config.getConfigMapping(ExtensionsConfig.class),
+        signer = new ExtensionIdentitySigner(config.getConfigMapping(ExtensionsConfig.class),
                 config, registry);
         signer.load();
         service = new ExtensionProxyService(registry, signer, permissions, auditService, "oidc");
@@ -193,6 +195,69 @@ class TestExtensionProxyServiceShould {
                 "application/json", null, null, new ByteArrayInputStream(new byte[0]));
         assertThat(service.call(alice, json).status(), is(200));
         assertThat(claims(backend.received().header("X-Calm-Hub-Identity")).has("bdh"), is(false));
+    }
+
+    @Test
+    void refuse_a_busy_extension_before_hub_reads_its_data() {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        Route lens = new Route("lens", "POST", "/lens/{namespace}/{resourceType}/{resourceId}", "read", true, List.of("document"));
+        ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
+                List.of(lens), null, null);
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc");
+        when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
+                Optional.of(backend.url("/base")), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 0))));
+
+        assertThat(status(request("POST", "/lens/finos/architectures/7", "version=1.0.0", "{}")), is(503));
+        verify(hubData, never()).body(any(), any(), any(), any());
+    }
+
+    @Test
+    void send_no_identity_to_an_extension_that_the_operator_set_to_send_none() {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        Route lens = new Route("lens", "POST", "/lens/{namespace}/{resourceType}/{resourceId}", "read", true, List.of("document"));
+        ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
+                List.of(lens), null, null);
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc");
+        when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
+                Optional.of(backend.url("/base")), limits(1024, 1024, Duration.ofSeconds(5)), false)));
+        String hubBody = "{\"hubApi\":0,\"document\":{\"nodes\":[]}}";
+        when(hubData.body(any(), any(), any(), any())).thenReturn(hubBody.getBytes(StandardCharsets.UTF_8));
+        backend.reply(FixtureBackend.Reply.json(200, "{}"));
+
+        service.call(alice, request("POST", "/lens/finos/architectures/7", "version=1.0.0", "{}"));
+
+        FixtureBackend.Received received = backend.received();
+        assertThat(received.body(), is(hubBody));
+        assertThat(received.header("X-Calm-Hub-Identity"), nullValue());
+    }
+
+    @Test
+    void send_the_data_that_hub_read_in_place_of_the_body_of_the_caller_and_sign_it() throws Exception {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        Route lens = new Route("lens", "POST", "/lens/{namespace}/{resourceType}/{resourceId}", "read", true, List.of("document"));
+        ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
+                List.of(lens), null, null);
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc");
+        when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
+                Optional.of(backend.url("/base")), limits(64, 1024, Duration.ofSeconds(5)))));
+        String hubBody = "{\"hubApi\":0,\"document\":{\"nodes\":[]}}";
+        when(hubData.body(eq(alice), eq(lens), eq(Map.of("namespace", "finos", "resourceType", "architectures", "resourceId", "7")),
+                eq("version=1.0.0"))).thenReturn(hubBody.getBytes(StandardCharsets.UTF_8));
+        backend.reply(FixtureBackend.Reply.json(200, "{}"));
+
+        service.call(alice, new ExtensionProxyRequest("team-services", "POST", "/lens/finos/architectures/7", "version=1.0.0",
+                "application/x+json; charset=utf-16", "application/json", "en-GB",
+                new ByteArrayInputStream("{\"document\":\"forged\"}".getBytes(StandardCharsets.UTF_8))));
+
+        FixtureBackend.Received received = backend.received();
+        assertThat(received.body(), is(hubBody));
+        assertThat(received.header("Content-Type"), is("application/json"));
+        String hash = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                MessageDigest.getInstance("SHA-256").digest(hubBody.getBytes(StandardCharsets.UTF_8)));
+        assertThat(claims(received.header("X-Calm-Hub-Identity")).get("bdh").asText(), is(hash));
+
+        when(hubData.body(any(), any(), any(), any())).thenReturn(new byte[65]);
+        assertThat(status(request("POST", "/lens/finos/architectures/7", "version=1.0.0", "{}")), is(413));
     }
 
     @Test

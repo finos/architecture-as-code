@@ -357,6 +357,40 @@ describe('c4View', () => {
         expect(edges(view)).toEqual(['api->dbx1']);
     });
 
+    it('leaves hidden elements off the deployment diagram, and moves what a hidden node holds to the node above it', async () => {
+        const mapping = await resolveC4Mapping({
+            'unique-id': 'm', extends: CALM_DEFAULT_C4_MAPPING_URL, 'node-types': { database: 'hidden', 'x:pod': 'hidden' },
+        });
+        const deployed = projectC4({
+            nodes: [node('k8s', 'network'), node('pod', 'x:pod'), node('api', 'service'), node('db', 'database')],
+            relationships: [
+                { 'unique-id': 'd1', 'relationship-type': { 'deployed-in': { container: 'k8s', nodes: ['pod', 'db'] } } },
+                { 'unique-id': 'd2', 'relationship-type': { 'deployed-in': { container: 'pod', nodes: ['api'] } } },
+            ],
+        }, mapping);
+
+        const view = c4View(deployed, 'deployment');
+
+        expect(view.deployments?.map((d) => [d.node.id, ids(d.hosted)])).toEqual([['k8s', ['api']]]);
+    });
+
+    it('keeps what a hidden top-level node holds, outside any deployment node', async () => {
+        const mapping = await resolveC4Mapping({ 'unique-id': 'm', extends: CALM_DEFAULT_C4_MAPPING_URL, 'node-types': { 'x:pod': 'hidden' } });
+        const deployed = projectC4({
+            nodes: [node('pod', 'x:pod'), node('api', 'service'), node('db', 'database')],
+            relationships: [
+                { 'unique-id': 'd', 'relationship-type': { 'deployed-in': { container: 'pod', nodes: ['api', 'db'] } } },
+                connects('api', 'db', 'Reads'),
+            ],
+        }, mapping);
+
+        const view = c4View(deployed, 'deployment');
+
+        expect(view.deployments).toEqual([]);
+        expect(ids(view.outside)).toEqual(['api', 'db']);
+        expect(edges(view)).toEqual(['api->dbx1']);
+    });
+
     it('returns an empty view for an unknown scope', () => {
         expect(c4View(model, 'container', 'nope')).toEqual({ level: 'container', inside: [], outside: [], relationships: [] });
     });

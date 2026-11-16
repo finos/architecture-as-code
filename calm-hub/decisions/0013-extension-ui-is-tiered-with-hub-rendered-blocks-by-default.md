@@ -1,7 +1,7 @@
 # ADR 0013: Extension UI is tiered, with Hub-rendered blocks by default
 
 **Status**: Accepted. Built (#3708, #3709, #3713): the seven block types, decorator views
-and the blocks schema. Not built: the iframe tier, and a `designer-tab` tab of its own beside Diagram and JSON.
+and the blocks schema. Built (#3771): diagram lenses. Not built: the iframe tier, and a `designer-tab` tab of its own beside Diagram and JSON.
 
 ## Context
 
@@ -39,6 +39,7 @@ views and blocks.
 | Tier | What runs in the browser | Extension points |
 |---|---|---|
 | 1. Decorator views | No extension code and no route. Hub draws stored decorators | `decorator-views` |
+| Lenses | No extension code. The route returns a graph, and Hub draws it with the shapes and styles of the lens notation | `diagram-lens` |
 | 2. Blocks | No extension code. The extension returns JSON blocks, versioned by `hubApi`. Hub renders them with its own components | `screen`, `designer-tab` (a subset), `landing-card` (a subset), `detail-panel` |
 | Host-owned contracts | No extension code. Hub renders from data or from the manifest | `search-provider`, `chat`, `action` |
 | 3. Isolated code | Extension code in a cross-origin `<iframe sandbox="allow-scripts allow-forms">`, without `allow-same-origin` | `screen` and `designer-tab` only, when blocks are not enough |
@@ -64,6 +65,23 @@ block JSON Schema, versioned by `hubApi`, so that other clients, such as the VS
 Code extension framework
 ([#3499](https://github.com/finos/architecture-as-code/issues/3499)), can render
 blocks.
+
+**A different picture of the same architecture is a lens, not a tab.** The
+Diagram tab lists its lenses. A `diagram-lens` names a `GET` route, the view
+`params` that it owns, and a `notation`. The route returns a graph
+(`lens.schema.json`): nodes, edges and groups with tags, and no positions
+unless the layout is `fixed`. Hub lays it out and draws it.
+
+The notation (`notation.schema.json`) is data, not code. A shape is SVG
+geometry from a closed subset (`path`, `rect`, `circle`, `ellipse`, `line`,
+`polyline`, `polygon`) with text slots, ports and resize rules. Styles are keyed
+by tag and cascade, as in Structurizr. An icon is a `data:` image shown with
+`<img>`, so no remote fetch and no script. Hub checks the notation at start-up.
+The UI builds each SVG element from the JSON, never from markup. The notation
+is a file in the extension folder, so each notation ships with its extension,
+like any other part of it. Hub ships only a small core notation (a box and
+common edge markers). So an author defines their own notation, and the iframe
+tier stays for editors and other views that need code.
 
 **`designer-tab` is for views that a service computes on request.** A result that
 is stored must be a decorator, so that the CLI, MCP and VS Code see it too, and a
