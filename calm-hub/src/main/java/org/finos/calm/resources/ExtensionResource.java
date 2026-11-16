@@ -46,8 +46,9 @@ public class ExtensionResource {
     @Authenticated
     @Operation(summary = "Get the hubApi 0 diagram lens reply or notation schema")
     public Response lensSchema(@PathParam("name") String name) throws IOException {
-        return schemaResponse(ExtensionResource.class.getResourceAsStream(
-                "/META-INF/calm-extensions/schema/0/" + name + ".schema.json"));
+        // The route allows only these two names. A constant path keeps the request value out of the resource path.
+        String file = "lens".equals(name) ? "lens.schema.json" : "notation.schema.json";
+        return schemaResponse(ExtensionResource.class.getResourceAsStream("/META-INF/calm-extensions/schema/0/" + file));
     }
 
     @GET

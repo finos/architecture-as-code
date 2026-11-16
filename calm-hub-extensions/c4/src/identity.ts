@@ -134,7 +134,7 @@ export function createTenantVerifier(tenants: Tenant[], audience: string, now?: 
             throw new Error('not a JWT');
         }
         const verifier = typeof issuer === 'string' ? verifiers.get(issuer) : undefined;
-        if (!verifier) throw new Error('unknown issuer');
+        if (typeof verifier !== 'function') throw new Error('unknown issuer');
         return verifier(token, request);
     };
 }
