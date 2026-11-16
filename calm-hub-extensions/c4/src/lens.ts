@@ -219,7 +219,9 @@ export function c4LensReply(
     const view = c4View(model, level, scope?.id);
     const openable = new Set([...c4Scopes(model, 'container'), ...c4Scopes(model, 'component')].map((element) => element.id));
     const { groups, groupOf } = grouping(view, model, calmIds);
-    const elements = view.deployments ? [...new Map(view.deployments.flatMap(({ hosted }) => hosted).map((e) => [e.id, e])).values()] : [...view.inside, ...view.outside];
+    const elements = view.deployments
+        ? [...new Map([...view.deployments.flatMap(({ hosted }) => hosted), ...view.outside].map((e) => [e.id, e])).values()]
+        : [...view.inside, ...view.outside];
     const groupIds = new Set(groups.map((group) => group.id));
     const used = new Set(groupOf.values());
     const hasContent = (group: GraphGroup): boolean => used.has(group.id) || groups.some((child) => child.parent === group.id && hasContent(child));

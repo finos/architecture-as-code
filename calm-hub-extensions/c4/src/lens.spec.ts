@@ -55,6 +55,22 @@ describe('c4LensReply', () => {
         expect(value.graph.nodes.map((entry) => [entry.id, entry.group])).toEqual([['api', 'deployment:cluster'], ['db', 'deployment:cluster']]);
     });
 
+    it('draws what a hidden top-level node holds with no deployment node around it', () => {
+        const base = defaultC4Mapping();
+        const mapping = { ...base, 'node-types': { ...base['node-types'], 'x:pod': { ...base['node-types'].network, kind: 'hidden' as const } } };
+        const hiddenHost = projectC4({
+            nodes: [calmNode('pod', 'x:pod'), calmNode('api', 'service'), calmNode('db', 'database')],
+            relationships: [{ 'unique-id': 'd', 'relationship-type': { 'deployed-in': { container: 'pod', nodes: ['api', 'db'] } } }, connects('api', 'db')],
+        }, mapping);
+
+        const value = c4LensReply(hiddenHost, 'deployment', null, source);
+
+        expect(validate(value), JSON.stringify(validate.errors)).toBe(true);
+        expect(value.graph.groups).toEqual([]);
+        expect(value.graph.nodes.map((entry) => [entry.id, entry.group])).toEqual([['api', undefined], ['db', undefined]]);
+        expect(value.graph.edges.map((edge) => edge.id)).toEqual(['api->db']);
+    });
+
     it('says why a level has nothing to draw', () => {
         const value = reply('component');
         expect(value.graph.nodes).toEqual([]);
