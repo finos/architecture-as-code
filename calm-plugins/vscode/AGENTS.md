@@ -41,6 +41,7 @@ src/
   `calm.packs.excludeNodes`.
 
 The editor title, context menus, keybinding, and CodeLens open the same canvas.
+In the JSON editor, a hover on a `unique-id` shows what it identifies.
 Do not add guidance for removed preview tabs or settings such as `calm.urlMapping`.
 
 ## Data flow
