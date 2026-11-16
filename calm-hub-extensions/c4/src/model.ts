@@ -6,7 +6,7 @@ import {
     type C4ArchitectureInput,
     type C4Model,
 } from '@finos/calm-models/c4';
-import { Problem } from './problem.js';
+import { hasArchitectureShape, Problem } from './problem.js';
 import type { MappingSource } from './lens.js';
 
 /**
@@ -83,11 +83,14 @@ export async function buildC4Model(data: HubData, namespace: string, id: string,
     if (!architecture || typeof architecture !== 'object') {
         throw new Problem(400, 'CALM Hub sent no architecture', 'The lens route of the manifest needs "hubData": ["document", …]');
     }
+    if (!hasArchitectureShape(architecture)) {
+        throw new Problem(400, 'The architecture is not valid CALM', 'Each node needs a unique-id and a node-type, and each relationship a unique-id and a relationship-type');
+    }
     const resolved = await namespaceMapping(data, mappingHosts);
     const details = Object.fromEntries((architecture.nodes ?? []).flatMap((node) => {
         const link = node.details?.['detailed-architecture'];
         const child = link && data.linked && Object.hasOwn(data.linked, link) ? data.linked[link] : undefined;
-        return child && typeof child === 'object' ? [[node['unique-id'], child as C4ArchitectureInput]] : [];
+        return hasArchitectureShape(child) ? [[node['unique-id'], child as C4ArchitectureInput]] : [];
     }));
     const expanded = withDetailedArchitectures(architecture, details);
     const model = projectC4(expanded, resolved.mapping, { namespace, architectureName: /^\d+$/.test(id) ? undefined : id });

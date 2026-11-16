@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createTenantVerifier, type Claims, type Tenant } from './identity.js';
 import { layersLensReply, parseView, type CalmArchitecture } from './lens.js';
-import { Problem } from './problem.js';
+import { hasArchitectureShape, Problem } from './problem.js';
 
 /** The manifest id. Hub names the extension folder after it, and puts it in the `aud` of each assertion. */
 export const EXTENSION_ID = 'ea-layers';
@@ -71,6 +71,9 @@ export function createLayersHandler(config: LayersServiceConfig, packageDir = PA
         }
         if (!document || typeof document !== 'object') {
             throw new Problem(400, 'CALM Hub sent no architecture', 'The lens route of the manifest needs "hubData": ["document"]');
+        }
+        if (!hasArchitectureShape(document)) {
+            throw new Problem(400, 'The architecture is not valid CALM', 'Each node needs a unique-id and a node-type, and each relationship a unique-id and a relationship-type');
         }
         return layersLensReply(document, parseView(url.searchParams.get('view')));
     }

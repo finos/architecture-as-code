@@ -116,6 +116,13 @@ describe('the C4 service', () => {
         const patterns = '/lens/finos/patterns/7?version=1.0.0';
         expect(((await (await post(patterns)).json()) as { title: string }).title).toBe('The C4 lens shows architectures only');
         expect(await (await post(lens, '{}')).json()).toMatchObject({ status: 400, title: 'CALM Hub sent no architecture' });
+        for (const nodes of [[null], ['api'], [{ 'unique-id': 'api' }]]) {
+            expect(await (await post(lens, JSON.stringify({ document: { nodes } }))).json()).toMatchObject({ status: 400, title: 'The architecture is not valid CALM' });
+        }
+        for (const type of [{ connects: {} }, { interacts: { actor: 'a' } }, { 'composed-of': { container: 'a', nodes: [1] } }]) {
+            const document = { nodes: [], relationships: [{ 'unique-id': 'r', 'relationship-type': type }] };
+            expect(await (await post(lens, JSON.stringify({ document }))).json()).toMatchObject({ status: 400, title: 'The architecture is not valid CALM' });
+        }
     });
 
     it('serves its health check and its extension files with no assertion', async () => {
