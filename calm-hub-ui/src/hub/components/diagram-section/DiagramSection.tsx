@@ -286,6 +286,11 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         if (next.toString() === searchParams.toString()) return;
         setSearchParams(next, { replace: true, state: location.state });
     };
+    // A choice of the open lens keeps its view parameters, such as the C4 level and scope.
+    const chooseLens = (lens: DiagramLens) => {
+        if (onDiagramTab && lens.id === activeLens.id) return;
+        setLens(lens);
+    };
     const redirectTo = redirectedQuery?.toString();
     useEffect(() => {
         if (redirectTo !== undefined) setSearchParams(new URLSearchParams(redirectTo), { replace: true, state: location.state });
@@ -602,7 +607,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                                 lenses={visibleLenses}
                                 activeLensId={onDiagramTab ? activeLens.id : ''}
                                 labelOf={(lens) => diagramTabLabel(lens, lensContext)}
-                                onSelect={(lens) => setLens(lens)}
+                                onSelect={chooseLens}
                                 buttonClassName={`${tabClass} ${JOINED_TAB} !rounded-l-none !px-1`}
                             />
                         </div>
@@ -760,7 +765,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                 type="button"
                 aria-pressed={active}
                 onClick={() => {
-                    setLens(lens);
+                    chooseLens(lens);
                     onSelect();
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 ${

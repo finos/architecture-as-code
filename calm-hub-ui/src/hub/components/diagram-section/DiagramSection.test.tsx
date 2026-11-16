@@ -1150,13 +1150,14 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=shop&lens=c4&level=container&scope=shop$/);
         });
 
-        it('does not navigate when the open lens is chosen again', async () => {
+        it('does not navigate when the open lens is chosen again, and keeps its view parameters', async () => {
             const user = userEvent.setup();
-            renderAt('/?lens=c4');
+            renderAt('/?lens=c4&level=component&scope=orders');
             const key = screen.getByTestId('location').dataset.key;
 
             await chooseLens(user, 'C4');
 
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4&level=component&scope=orders$/);
             expect(screen.getByTestId('location').dataset.key).toBe(key);
         });
 
