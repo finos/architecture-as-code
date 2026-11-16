@@ -1,7 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
+
+const revealed: vscode.TextDocument[] = [];
+
+vi.mock('./webview/canvas-panel', () => ({
+    CanvasPanel: class {
+        onDispose(): void {}
+        reveal(document: vscode.TextDocument): void {
+            revealed.push(document);
+        }
+    },
+}));
+
 import {
     activate,
+    CALM_DOCUMENT_CONTEXT_KEY,
     CALM_FILE_SUFFIXES,
     disconnectFromHub,
     hubMenuItems,
@@ -169,5 +182,57 @@ describe('CALM_FILE_SUFFIXES and isCalmFile', () => {
         expect(isCalmFile('/workspace/legacy.standard.json')).toBe(false);
         expect(isCalmFile('/workspace/legacy.guideline.json')).toBe(false);
         expect(isCalmFile('/workspace/pattern.pattern.json')).toBe(false);
+    });
+});
+
+describe('CALM documents with other file names (#3678)', () => {
+    const architecture = JSON.stringify({ nodes: [], relationships: [] });
+
+    function textDocument(fsPath: string, text: string): vscode.TextDocument {
+        return { uri: vscode.Uri.file(fsPath), getText: () => text } as unknown as vscode.TextDocument;
+    }
+
+    beforeEach(() => {
+        revealed.length = 0;
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+        (vscode.window as { activeTextEditor: unknown }).activeTextEditor = undefined;
+    });
+
+    it('opens the canvas for a CALM architecture named system.json', async () => {
+        vi.spyOn(vscode.workspace, 'openTextDocument').mockImplementation(
+            async (uri: vscode.Uri) => textDocument(uri.fsPath, architecture) as never
+        );
+        activate(context());
+
+        await registeredCommands.get('calm.openCanvas')!(vscode.Uri.file('/workspace/system.json'));
+
+        expect(revealed.map((document) => document.uri.fsPath)).toEqual(['/workspace/system.json']);
+    });
+
+    it('warns and does not open the canvas for JSON that is not CALM', async () => {
+        vi.spyOn(vscode.workspace, 'openTextDocument').mockImplementation(
+            async (uri: vscode.Uri) => textDocument(uri.fsPath, '{"name":"my-app"}') as never
+        );
+        const warn = vi.spyOn(vscode.window, 'showWarningMessage');
+        activate(context());
+
+        await registeredCommands.get('calm.openCanvas')!(vscode.Uri.file('/workspace/package.json'));
+
+        expect(revealed).toEqual([]);
+        expect(warn).toHaveBeenCalledWith('Open a CALM architecture first.');
+    });
+
+    it('marks the active editor as a CALM document for the editor menus', () => {
+        (vscode.window as { activeTextEditor: unknown }).activeTextEditor = {
+            document: textDocument('/workspace/system.json', architecture),
+        };
+        const execute = vi.spyOn(vscode.commands, 'executeCommand');
+
+        activate(context());
+
+        expect(execute).toHaveBeenCalledWith('setContext', CALM_DOCUMENT_CONTEXT_KEY, true);
     });
 });

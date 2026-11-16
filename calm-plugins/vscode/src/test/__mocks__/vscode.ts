@@ -153,6 +153,7 @@ function createMockStatusBarItem(): StatusBarItem {
 export const window = {
     visibleTextEditors: [] as Array<{ document: { uri: Uri }; viewColumn?: ViewColumn }>,
     activeTextEditor: undefined as { document: { uri: Uri }; viewColumn?: ViewColumn } | undefined,
+    onDidChangeActiveTextEditor: (_listener: unknown) => ({ dispose: () => {} }),
     showWarningMessage: () => Promise.resolve(undefined),
     showErrorMessage: () => Promise.resolve(undefined),
     showInformationMessage: () => Promise.resolve(undefined),

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { hasCalmArchitectureContent } from '../calm-document';
 
 /**
  * Adds inline "View in CALM Canvas" CodeLens entries above CALM
@@ -9,6 +10,7 @@ import * as vscode from 'vscode';
 export class CalmCanvasCodeLensProvider implements vscode.CodeLensProvider {
     provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
         const text = document.getText();
+        if (!hasCalmArchitectureContent(text)) return [];
 
         let parsed: {
             nodes?: Array<Record<string, unknown>>;
@@ -19,8 +21,6 @@ export class CalmCanvasCodeLensProvider implements vscode.CodeLensProvider {
         } catch {
             return [];
         }
-
-        if (!parsed.nodes && !parsed.relationships) return [];
 
         const lenses: vscode.CodeLens[] = [];
         const topRange = new vscode.Range(0, 0, 0, 0);

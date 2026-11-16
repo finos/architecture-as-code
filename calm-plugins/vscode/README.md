@@ -8,7 +8,8 @@ relationships on a ReactFlow canvas alongside the JSON document.
 Use VS Code 1.88 or newer and the
 [FINOS CALM extension](https://marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin).
 
-1. Open a file ending in `.calm.json` or `.architecture.json`.
+1. Open a CALM architecture. Any JSON file name works. The Explorer context menu
+   shows the command only for files ending in `.calm.json` or `.architecture.json`.
 2. Run **CALM: View in CALM Canvas** from the Command Palette, or use the editor
    title, editor context, or Explorer context menu.
 3. You can also use **Ctrl+Shift+K** on Windows/Linux or **Cmd+Shift+K** on macOS,
