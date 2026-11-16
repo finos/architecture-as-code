@@ -62,6 +62,7 @@ const sidebars = {
             'calm-hub/calm-hub-extension-blocks',
             'calm-hub/calm-hub-decorator-views',
             'calm-hub/calm-hub-extension-access',
+            'calm-hub/calm-hub-github-storage',
             'working-with-calm/calm-hub-entitlements',
           ],
         },
