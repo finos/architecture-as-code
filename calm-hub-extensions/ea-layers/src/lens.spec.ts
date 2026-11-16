@@ -89,6 +89,31 @@ describe('the application cooperation view', () => {
         expect(edgeIds(value)).toEqual(['Serving group:a->billing']);
     });
 
+    it('keeps long CALM text and ids inside the limits of the lens schema', () => {
+        const longId = `svc-${'x'.repeat(150)}`;
+        const long: CalmArchitecture = {
+            nodes: [
+                { ...calmNode('app', 'system'), name: 'N'.repeat(300) },
+                { ...calmNode('api', 'service'), description: 'd'.repeat(600) },
+                calmNode(longId, 'service'),
+            ],
+            relationships: [
+                { 'unique-id': 'c', 'relationship-type': { 'composed-of': { container: 'app', nodes: ['api', longId] } } },
+                { ...connects(longId, 'api', 'r'.repeat(600), 'p'.repeat(300)), 'unique-id': `rel-${'y'.repeat(300)}` },
+            ],
+        };
+
+        const value = reply('application', long);
+
+        expect(value.graph.groups[0].label).toBe(`${'N'.repeat(199)}…`);
+        expect(node(value, 'api')?.tooltip).toHaveLength(500);
+        expect(value.graph.edges).toHaveLength(1);
+        expect(value.graph.edges[0]).toMatchObject({ label: `${'r'.repeat(499)}…`, technology: `${'p'.repeat(199)}…` });
+        expect(value.graph.edges[0].calm).toBeUndefined();
+        expect(value.graph.nodes.map((entry) => entry.id)).toContain(value.graph.edges[0].target);
+        reply('layered', long);
+    });
+
     it('says so when there is nothing to show', () => {
         const value = reply('application', { nodes: [calmNode('customer', 'actor')] });
         expect(value.graph.nodes).toEqual([]);

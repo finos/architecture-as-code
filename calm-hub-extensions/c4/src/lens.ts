@@ -9,6 +9,7 @@ import {
     type C4Model,
     type C4View,
 } from '@finos/calm-models/c4';
+import { fitLensReply } from './fit.js';
 
 // The lens reply of hubApi 0 (calm-hub lens.schema.json), with only the fields that this lens sends.
 export interface GraphNode {
@@ -253,7 +254,7 @@ export function c4LensReply(
             items: scopes.map((element) => ({ value: element.id, label: element.name })),
         });
     }
-    return {
+    return fitLensReply({
         hubApi: 0,
         kind: 'graph',
         title: [`${LEVEL_LABEL[level]} diagram`, ...(chain.length ? [chain.join(' › ')] : scope && level === 'context' ? [scope.name] : [])].join(': '),
@@ -261,5 +262,5 @@ export function c4LensReply(
         graph: { groups: groups.filter(hasContent), nodes, edges },
         controls,
         panels: notes(model, source, empty),
-    };
+    });
 }

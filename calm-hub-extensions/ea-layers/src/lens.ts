@@ -1,3 +1,5 @@
+import { fitLensReply } from './fit.js';
+
 // The CALM fields that this lens reads. It needs no CALM library: an architecture is plain JSON.
 export interface CalmNode {
     'unique-id': string;
@@ -98,7 +100,6 @@ export const ELEMENT_OF: Readonly<Record<string, ElementKind>> = {
 // A node type that the table does not name is most often a service of the team's own vocabulary.
 const GUESSED: ElementKind = { element: 'Application Component', layer: 'Application' };
 const LAYERS: Layer[] = ['Business', 'Application', 'Technology'];
-const MAX_TOOLTIP = 500;
 
 // True when `inner` is `outer`, or is inside it: nesting `outer` in `inner` would then make a cycle.
 function contains(containerOf: ReadonlyMap<string, string>, outer: string, inner: string): boolean {
@@ -163,7 +164,7 @@ export function layersLensReply(architecture: CalmArchitecture, view: View): Len
             ...(isGuessed && { badges: [{ text: 'Type guessed', tone: 'warning' as const }] }),
             ...(group && { group }),
             calm: [id],
-            tooltip: tooltip.slice(0, MAX_TOOLTIP),
+            tooltip,
         };
     });
 
@@ -210,7 +211,7 @@ export function layersLensReply(architecture: CalmArchitecture, view: View): Len
     notes.push({ type: 'table', columns: ['CALM node type', 'Element'], rows: used });
     notes.push({ type: 'alert', tone: 'info', text: 'ArchiMate is a registered trademark of The Open Group in the United States and other countries.' });
 
-    return {
+    return fitLensReply({
         hubApi: 0,
         kind: 'graph',
         title: view === 'layered' ? 'Layered view' : 'Application cooperation view',
@@ -218,5 +219,5 @@ export function layersLensReply(architecture: CalmArchitecture, view: View): Len
         graph: { groups, nodes: graphNodes, edges: [...edges.values()] },
         controls: [{ type: 'segmented', param: 'view', label: 'View', items: VIEWS.map((value) => ({ value, label: VIEW_LABEL[value] })) }],
         panels: [{ title: 'Notes', blocks: notes }],
-    };
+    });
 }

@@ -71,6 +71,34 @@ describe('c4LensReply', () => {
         expect(value.graph.edges.map((edge) => edge.id)).toEqual(['api->db']);
     });
 
+    it('keeps long CALM text and ids inside the limits of the lens schema', () => {
+        const longId = `svc-${'x'.repeat(150)}`;
+        const longModel = projectC4({
+            title: 'T'.repeat(300),
+            nodes: [
+                calmNode('shop', 'system', { name: 'S'.repeat(300) }),
+                calmNode('api', 'service', { description: 'd'.repeat(600) }),
+                calmNode(longId, 'service'),
+                calmNode('k8s', 'network'),
+            ],
+            relationships: [
+                { 'unique-id': 'c', 'relationship-type': { 'composed-of': { container: 'shop', nodes: ['api', longId] } } },
+                { 'unique-id': 'd', 'relationship-type': { 'deployed-in': { container: 'k8s', nodes: ['api', longId] } } },
+                connects('api', longId, 'r'.repeat(600), 'p'.repeat(300)),
+            ],
+        }, defaultC4Mapping());
+
+        for (const level of ['context', 'container', 'deployment'] as const) {
+            const value = c4LensReply(longModel, level, null, source);
+            expect(validate(value), `${level}: ${JSON.stringify(validate.errors)}`).toBe(true);
+            expect(value.graph.edges.every((edge) => value.graph.nodes.some((n) => n.id === edge.source) && value.graph.nodes.some((n) => n.id === edge.target))).toBe(true);
+        }
+        const container = c4LensReply(longModel, 'container', 'shop', source);
+        expect(node(container, 'api')?.description).toBe(`${'d'.repeat(499)}…`);
+        expect(container.graph.edges[0]).toMatchObject({ label: `${'r'.repeat(499)}…`, technology: `${'p'.repeat(199)}…` });
+        expect(container.graph.nodes.find((n) => n.calm?.[0] === longId)?.id).toHaveLength(117);
+    });
+
     it('says why a level has nothing to draw', () => {
         const value = reply('component');
         expect(value.graph.nodes).toEqual([]);
