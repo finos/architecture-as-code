@@ -5,6 +5,19 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.73.0](https://github.com/finos/architecture-as-code/compare/cli-v1.72.0...cli-v1.73.0) (2026-11-16)
+
+### 🚀 Features
+
+* add a C4 projection from the C4 mapping standard ([#3748](https://github.com/finos/architecture-as-code/issues/3748)) ([f06ab1f](https://github.com/finos/architecture-as-code/commit/f06ab1f070ee81a3675b3dcbcff43bd16cab41e5))
+* add hub extension commands ([#3710](https://github.com/finos/architecture-as-code/issues/3710)) ([0bb1ea4](https://github.com/finos/architecture-as-code/commit/0bb1ea41f5013e399d77e98679a934a625e7fde7))
+* add hub push, pull and list for conventions ([#3745](https://github.com/finos/architecture-as-code/issues/3745)) ([1e38a51](https://github.com/finos/architecture-as-code/commit/1e38a517bcfbf91edad0d4dd7614367d8c5328df))
+
+### 🐛 Bug Fixes
+
+* apply every answer of a decision in validate, as generate does ([#3768](https://github.com/finos/architecture-as-code/issues/3768)) ([06715e4](https://github.com/finos/architecture-as-code/commit/06715e43a3521a31b1d88ec52e5c3633d201ed7a))
+* include flows in architecture diffs ([#3046](https://github.com/finos/architecture-as-code/issues/3046)) ([4adfd43](https://github.com/finos/architecture-as-code/commit/4adfd43e048dfd412ff2b0591611abcdeef17ced))
+
 ## [1.72.0](https://github.com/finos/architecture-as-code/compare/cli-v1.71.0...cli-v1.72.0) (2026-11-14)
 
 ### 🚀 Features
