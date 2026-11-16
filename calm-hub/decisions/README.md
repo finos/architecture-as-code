@@ -29,7 +29,7 @@ assuming anything here reflects current behaviour.
 | [0010](0010-extension-identity-is-a-hub-signed-assertion.md) | Extension identity is a Hub-signed, request-bound assertion | Accepted |
 | [0011](0011-extension-proxy-request-handling.md) | Extension proxy request handling | Accepted — buffered proxy built; streaming and its limits not built |
 | [0012](0012-extension-manifest-registry-and-versioning.md) | Extension manifest, registry and versioning | Accepted — built |
-| [0013](0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md) | Extension UI is tiered, with Hub-rendered blocks by default | Accepted — blocks and decorator views built; iframe tier and a `designer-tab` tab of its own not built |
+| [0013](0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md) | Extension UI is tiered, with Hub-rendered blocks by default | Accepted — blocks, decorator views and diagram lenses built; iframe tier and a `designer-tab` tab of its own not built |
 | [0014](0014-extension-commands-in-the-cli-and-mcp.md) | Extension commands in the CLI and MCP | Accepted — CLI and MCP built |
 | [0015](0015-architecture-validation-is-a-hub-feature-behind-an-spi.md) | Architecture validation is a Hub feature behind an SPI, recorded async first | Accepted — not built |
 | [0016](0016-store-write-seam-and-outbox-for-post-write-events.md) | Store write seam and outbox for post-write events | Accepted — not built |
