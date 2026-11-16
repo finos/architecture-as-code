@@ -89,7 +89,8 @@ export function validateCalmArchitecture(arch: CalmArchitecture): ValidationIssu
 	}
 
 	// 2. Semantic validation (only if basic structure is valid enough to traverse)
-	if (Array.isArray(arch.nodes) && Array.isArray(arch.relationships)) {
+	// relationships is optional in the schema, so a document with no key still gets these checks
+	if (Array.isArray(arch.nodes) && (arch.relationships === undefined || Array.isArray(arch.relationships))) {
 		issues.push(...runSemanticRules(arch));
 	}
 
@@ -190,7 +191,7 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 				nodeId,
 			});
 		}
-		if (nodeId && (!node.description || node.description.trim() === '')) {
+		if (nodeId && (typeof node.description !== 'string' || node.description.trim() === '')) {
 			issues.push({
 				severity: 'info',
 				message: `Node "${nodeId}" has no description`,
