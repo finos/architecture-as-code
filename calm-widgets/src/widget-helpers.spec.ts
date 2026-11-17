@@ -189,13 +189,27 @@ describe('Widget Helpers', () => {
     });
 
     describe('mermaidQuotedText helper', () => {
-        it('preserves parentheses, brackets, braces, pipes, and hashes literally', () => {
+        it('preserves parentheses, brackets, braces, pipes, and plain hashes literally', () => {
             expect(helpers.mermaidQuotedText('(RabbitMQ)')).toBe('(RabbitMQ)');
             expect(helpers.mermaidQuotedText('test (with brackets)')).toBe('test (with brackets)');
             expect(helpers.mermaidQuotedText('[array]')).toBe('[array]');
             expect(helpers.mermaidQuotedText('{object}')).toBe('{object}');
             expect(helpers.mermaidQuotedText('A | B')).toBe('A | B');
             expect(helpers.mermaidQuotedText('#tag')).toBe('#tag');
+            expect(helpers.mermaidQuotedText('#1')).toBe('#1');
+            expect(helpers.mermaidQuotedText('C#;')).toBe('C#;');
+        });
+
+        it('breaks Mermaid entity sequences (#word;) with a zero-width space', () => {
+            expect(helpers.mermaidQuotedText('Issue #42; user')).toBe('Issue #\u200B42; user');
+            expect(helpers.mermaidQuotedText('Ticket #123; system')).toBe('Ticket #\u200B123; system');
+            expect(helpers.mermaidQuotedText('#quot;')).toBe('#\u200Bquot;');
+        });
+
+        it('prefixes a leading backtick with a zero-width space so it does not open a markdown string', () => {
+            expect(helpers.mermaidQuotedText('`code` thing')).toBe('\u200B`code` thing');
+            expect(helpers.mermaidQuotedText('`wrapped`')).toBe('\u200B`wrapped`');
+            expect(helpers.mermaidQuotedText('mid `code` ok')).toBe('mid `code` ok');
         });
 
         it('replaces double quotes with apostrophes', () => {

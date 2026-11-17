@@ -115,9 +115,12 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
         },
         mermaidQuotedText: (text: unknown): string => {
             if (typeof text !== 'string') return '';
-            // Inside double-quoted Mermaid labels, (), [], {}, |, and # are literal text,
-            // and Mermaid entity codes (#40;, #quot;) render literally on edges/subgraphs when htmlLabels is false.
-            return text.replace(/"/g, '\'');
+            // Mermaid still decodes #\w+; entities inside quotes, opens a markdown string on "` ,
+            // and leaves #quot; as &quot; on edges and subgraphs when htmlLabels is false.
+            return text
+                .replace(/^`/, '\u200B`')
+                .replace(/#(?=\w+;)/g, '#\u200B')
+                .replace(/"/g, '\'');
         },
         mermaidText: (text: unknown): string => {
             if (typeof text !== 'string') return '';

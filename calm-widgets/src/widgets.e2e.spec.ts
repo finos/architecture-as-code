@@ -463,8 +463,8 @@ describe('Widgets E2E - Handlebars Integration', () => {
         it('renders node names, containers, and relationship labels containing special characters without entity-encoding them', () => {
             const context = {
                 nodes: [
-                    { 'unique-id': 'sys', 'node-type': 'system', name: 'Core "Alpha" (Platform)', description: 'Container' },
-                    { 'unique-id': 'ui', 'node-type': 'service', name: 'UI [Web]', description: 'User Interface' },
+                    { 'unique-id': 'sys', 'node-type': 'system', name: 'Core "Alpha" (Platform) #123; v1', description: 'Container' },
+                    { 'unique-id': 'ui', 'node-type': 'service', name: '`UI` [Web]', description: 'User Interface' },
                     { 'unique-id': 'user', 'node-type': 'actor', name: 'User (Human)', description: 'A user' },
                 ],
                 relationships: [
@@ -490,13 +490,13 @@ describe('Widgets E2E - Handlebars Integration', () => {
             const template = '{{block-architecture this}}\n{{block-architecture this render-node-type-shapes=true}}\n{{related-nodes this node-id="user"}}';
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            expect(result).toContain('subgraph sys["Core \'Alpha\' (Platform)"]');
-            expect(result).toContain('ui["UI [Web]"]:::node');
+            expect(result).toContain('subgraph sys["Core \'Alpha\' (Platform) #\u200B123; v1"]');
+            expect(result).toContain('ui["\u200B`UI` [Web]"]:::node');
             expect(result).toContain('user["User (Human)"]:::node');
             expect(result).toContain('user(["👤 User (Human)"]):::actor');
             expect(result).toContain('|"test \'quoted\' relationship (with brackets)"|');
             expect(result).toContain('user["User (Human)"]:::highlight;');
-            expect(result).toContain('user["User (Human)"] -- Connects --> ui["UI [Web]"];');
+            expect(result).toContain('user["User (Human)"] -- Connects --> ui["\u200B`UI` [Web]"];');
             expect(result).not.toContain('#40;');
             expect(result).not.toContain('#41;');
             expect(result).not.toContain('#91;');
