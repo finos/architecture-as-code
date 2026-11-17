@@ -6,6 +6,7 @@ import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useClampToggle } from '../show-more/useClampToggle.js';
 import { ShowMoreToggle } from '../show-more/ShowMoreToggle.js';
 import { useExtensions } from '../../../extensions/ExtensionsContext.js';
+import { extensionNavLinks } from '../../../extensions/contributions.js';
 import { ExtensionCard } from './ExtensionCard.js';
 
 interface BrowseCardProps {
@@ -97,12 +98,12 @@ interface IntroBrowseProps {
 /**
  * The intro's browse affordance: every namespace and control domain as a clickable
  * tile (the same routes the explore rail uses), so the sidebar's targets are
- * reachable from the hero, and each extension with a landing card or a screen. Renders nothing when all are empty.
+ * reachable from the hero, and each extension with a landing card or a top-level page. Renders nothing when all are empty.
  */
 export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps) {
-    const extensions = useExtensions().filter(
-        (extension) => (extension.contributes['landing-card'] ?? []).length > 0 || (extension.contributes.screen ?? []).length > 0
-    );
+    const extensions = useExtensions()
+        .map((extension) => ({ extension, links: extensionNavLinks(extension) }))
+        .filter(({ extension, links }) => (extension.contributes['landing-card'] ?? []).length > 0 || links.length > 0);
     if (namespaceCounts.length === 0 && domainCounts.length === 0 && extensions.length === 0) return null;
 
     return (
@@ -125,8 +126,8 @@ export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps)
             {extensions.length > 0 && (
                 // Wider cards than the tiles, so that the figures stay readable on a phone.
                 <BrowseSection title="Extensions" gridClassName="grid-cols-1 sm:grid-cols-2">
-                    {extensions.map((extension) => (
-                        <ExtensionCard key={extension.id} extension={extension} />
+                    {extensions.map(({ extension, links }) => (
+                        <ExtensionCard key={extension.id} extension={extension} links={links} />
                     ))}
                 </BrowseSection>
             )}

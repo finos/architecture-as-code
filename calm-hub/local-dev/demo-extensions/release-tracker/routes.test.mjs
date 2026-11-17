@@ -27,6 +27,16 @@ test('the designer tab is not found without both path segments', () => {
     assert.equal(get('/tab/architectures/1/extra'), null);
 });
 
+test('each screen has its own route, which returns blocks with the screen title', () => {
+    const routes = new Map(manifest.routes.map((r) => [r.id, r]));
+    assert.deepEqual(manifest.contributes.screen.map((s) => s.title), ['Releases', 'Release calendar']);
+    for (const screen of manifest.contributes.screen) {
+        const reply = get(routes.get(screen.route).path);
+        assert.equal(reply.title, screen.title);
+        assert.ok(reply.blocks.length > 0, screen.id);
+    }
+});
+
 test('every GET route that a UI contribution names is readOnly', () => {
     const routes = new Map(manifest.routes.map((r) => [r.id, r]));
     const gets = Object.values(manifest.contributes).flat().map((c) => routes.get(c.route)).filter((r) => r?.method === 'GET');

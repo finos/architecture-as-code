@@ -102,7 +102,7 @@ export function Navbar({ storage }: NavbarProps = {}) {
                             </NavLink>
                         </li>
                     )}
-                    <ExtensionMenuGroup linkClassName={menuNavClass} onNavigate={closeMenu} />
+                    <ExtensionMenuGroup heading="Extensions" linkClassName={menuNavClass} onNavigate={closeMenu} />
                 </ul>
                 <MenuInfo identity={identity} items={items} />
             </div>
