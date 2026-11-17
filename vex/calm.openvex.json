@@ -3,8 +3,8 @@
   "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-11-08T00:00:00Z",
-  "version": 23,
+  "timestamp": "2026-11-17T00:00:00Z",
+  "version": 24,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -280,7 +280,72 @@
       "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_present",
       "impact_statement": "The flaw is unbounded growth of globParts in the preprocessing that minimatch runs at optimizationLevel 2 or higher. minimatch 3.1.5 comes in through @stoplight/spectral-core (in @finos/calm-shared, so the CLI, the VS Code extension and CALM Lab), serve-handler (Docusaurus), and eslint and its plugins (development only). minimatch 3 has no optimizationLevel option and no such preprocessing, so the vulnerable code is not present. An override to 11.x is not possible, because minimatch 11 has a different export shape. minimatch 10.2.5 is bundled inside npm 11.21.1, which is pulled in only by @semantic-release/npm for the CLI release job and is not part of the published package. npm never sets optimizationLevel, so the default of 1 applies and the vulnerable code does not run. The other minimatch 10 copies are overridden to 11.0.4, which has the fix."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-fc5q-39xc-vjpf",
+        "aliases": [
+          "CVE-2026-112366"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/picomatch@4.0.7"
+            },
+            {
+              "@id": "pkg:npm/picomatch@4.0.4"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-plugins/vscode",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/picomatch@4.0.7"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-lab",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/picomatch@4.0.7"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-hub",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/picomatch@4.0.7"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-docusaurus-plugin",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/picomatch@4.0.7"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#docs",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/picomatch@4.0.7"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2027-03-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "The flaw is a ReDoS in picomatch through 4.0.7 (the latest release, so no fix exists) for glob patterns with repeated extglobs in a single branch. It needs an attacker-controlled glob pattern. picomatch 4.0.7 comes in through vite, vitest, tinyglobby and fdir, lint-staged, npm-run-all2, @rollup/pluginutils, and micromatch, chokidar, readdirp and anymatch under Docusaurus and @semantic-release/commit-analyzer. picomatch 4.0.4 is bundled inside npm 11.21.2, which is pulled in only by @semantic-release/npm for the CLI release job. All of these run at build, test, lint or release time and take glob patterns from this repository's own configuration, never from user input. No published runtime package depends on picomatch, and the CLI, CALM Server, VS Code extension and CALM Lab builds do not contain it. The docs site is static output."
     }
   ],
-  "last_updated": "2026-11-08T00:00:00Z"
+  "last_updated": "2026-11-17T00:00:00Z"
 }
