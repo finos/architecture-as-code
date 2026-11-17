@@ -12,6 +12,7 @@ import { useNamespaceTree } from './useNamespaceTree.js';
 import { EditScopeMenuButton } from './EditScopeMenuButton.js';
 import { EditScopeChip } from './EditScopeChip.js';
 import { useEditScope } from './useEditScope.js';
+import { useNavigationSettings } from '../../../components/navigation/navigation-settings.js';
 
 interface ExploreRailProps {
     /** Per-namespace counts, fetched once by {@link Hub} and passed down. */
@@ -84,6 +85,7 @@ export function ExploreRail({
     const activeNamespace = ns ?? namespace;
 
     const [filter, setFilter] = useState('');
+    const { showNamespaces, showControlDomains } = useNavigationSettings();
     const { scope, setScope, showScopeControl, editableOnly, canEditNamespace, isContextOnly, filterDomains } = useEditScope(storage);
 
     const needle = filter.trim().toLowerCase();
@@ -150,54 +152,62 @@ export function ExploreRail({
             </div>
 
             <div className="flex-1 overflow-auto pb-3">
-                <RailSectionLabel>NAMESPACES</RailSectionLabel>
-                <div className="flex flex-col gap-0.5 px-1.5">
-                    {namespacesLoading ? (
-                        <RailSpinner label="Loading namespaces" />
-                    ) : namespacesFailed ? (
-                        <RailEmpty>Couldn&apos;t load namespaces</RailEmpty>
-                    ) : rows.length === 0 ? (
-                        <RailEmpty>{emptyNamespacesMessage(namespaceCounts.length > 0, needle, editableOnly)}</RailEmpty>
-                    ) : (
-                        rows.map((row) => (
-                            <NamespaceRailItem
-                                key={row.node.path}
-                                node={row.node}
-                                description={descriptions.get(row.node.path)}
-                                depth={row.depth}
-                                hasChildren={row.hasChildren}
-                                collapsed={row.collapsed}
-                                descendantTotal={row.descendantTotal}
-                                active={row.node.path === activeNamespace}
-                                filtering={filtering}
-                                needle={needle}
-                                contextOnly={isContextOnly(row.node.path)}
-                                onToggleCollapsed={toggleCollapsed}
-                            />
-                        ))
-                    )}
-                </div>
+                {showNamespaces && (
+                    <>
+                        <RailSectionLabel>NAMESPACES</RailSectionLabel>
+                        <div className="flex flex-col gap-0.5 px-1.5">
+                            {namespacesLoading ? (
+                                <RailSpinner label="Loading namespaces" />
+                            ) : namespacesFailed ? (
+                                <RailEmpty>Couldn&apos;t load namespaces</RailEmpty>
+                            ) : rows.length === 0 ? (
+                                <RailEmpty>{emptyNamespacesMessage(namespaceCounts.length > 0, needle, editableOnly)}</RailEmpty>
+                            ) : (
+                                rows.map((row) => (
+                                    <NamespaceRailItem
+                                        key={row.node.path}
+                                        node={row.node}
+                                        description={descriptions.get(row.node.path)}
+                                        depth={row.depth}
+                                        hasChildren={row.hasChildren}
+                                        collapsed={row.collapsed}
+                                        descendantTotal={row.descendantTotal}
+                                        active={row.node.path === activeNamespace}
+                                        filtering={filtering}
+                                        needle={needle}
+                                        contextOnly={isContextOnly(row.node.path)}
+                                        onToggleCollapsed={toggleCollapsed}
+                                    />
+                                ))
+                            )}
+                        </div>
+                    </>
+                )}
 
-                <RailSectionLabel>CONTROL DOMAINS</RailSectionLabel>
-                <div className="flex flex-col gap-0.5 px-1.5">
-                    {domainsLoading ? (
-                        <RailSpinner label="Loading control domains" />
-                    ) : domainsFailed ? (
-                        <RailEmpty>Couldn&apos;t load control domains</RailEmpty>
-                    ) : visibleDomains.length === 0 ? (
-                        <RailEmpty>{emptyDomainsMessage(domainCounts.length > 0, needle, editableOnly)}</RailEmpty>
-                    ) : (
-                        visibleDomains.map((dc) => (
-                            <RailItem
-                                key={dc.domain}
-                                label={dc.domain}
-                                count={dc.controlCount}
-                                active={dc.domain === activeDomain}
-                                to={`/domain/${dc.domain}`}
-                            />
-                        ))
-                    )}
-                </div>
+                {showControlDomains && (
+                    <>
+                        <RailSectionLabel>CONTROL DOMAINS</RailSectionLabel>
+                        <div className="flex flex-col gap-0.5 px-1.5">
+                            {domainsLoading ? (
+                                <RailSpinner label="Loading control domains" />
+                            ) : domainsFailed ? (
+                                <RailEmpty>Couldn&apos;t load control domains</RailEmpty>
+                            ) : visibleDomains.length === 0 ? (
+                                <RailEmpty>{emptyDomainsMessage(domainCounts.length > 0, needle, editableOnly)}</RailEmpty>
+                            ) : (
+                                visibleDomains.map((dc) => (
+                                    <RailItem
+                                        key={dc.domain}
+                                        label={dc.domain}
+                                        count={dc.controlCount}
+                                        active={dc.domain === activeDomain}
+                                        to={`/domain/${dc.domain}`}
+                                    />
+                                ))
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

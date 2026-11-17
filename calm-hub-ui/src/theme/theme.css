@@ -91,6 +91,9 @@
 
     /* Redesign — surfaces, washes, borders */
     --calm-redesign-tint-bg: #EEF4FF;
+
+    /* Inset bar of the selected rail row; a brand colour replaces it */
+    --calm-rail-accent: #2563EB;
     --calm-redesign-tint2: #F8FAFF;
     --calm-redesign-border-strong: #E2E6ED;
     --calm-redesign-border: #E6E9EE;
@@ -242,6 +245,7 @@
 
     /* Redesign — surfaces, washes, borders */
     --calm-redesign-tint-bg: #1B2942;
+    --calm-rail-accent: #2563EB;
     --calm-redesign-tint2: #1A2436;
     --calm-redesign-border-strong: #334155;
     --calm-redesign-border: #1E293B;

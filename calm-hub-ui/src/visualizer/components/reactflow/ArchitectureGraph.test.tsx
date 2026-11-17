@@ -423,7 +423,7 @@ describe('ArchitectureGraph', () => {
 
         it('gives the minimap a primary-blue viewport rect and a themed mask', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
-            expect(miniMapProps()?.maskStrokeColor).toBe('#2563EB');
+            expect(miniMapProps()?.maskStrokeColor).toBe('var(--color-interaction)');
             expect(miniMapProps()?.maskStrokeWidth).toBe(1.5);
             // The mask is no longer a prop: ReactFlow writes `maskColor` into an SVG
             // `fill` attribute, which `var()` cannot reach. It opts into the themed

@@ -311,6 +311,29 @@ name in full, because a touch screen has no hover for its `title`. The pill is a
 Identity and items show at the bottom of the navbar drawer (`MenuInfo`). The drawer identity is
 the server's principal, not the OIDC token profile that `UserMenu` shows.
 
+`useUiConfigStatus()` tells `loading`, `loaded` or `failed`. `BrandLockup` shows nothing while it loads, so the CALM
+logo does not flash before the organisation's. A request that has no reply after `UI_CONFIG_WAIT_MS` (3 s) counts as
+`failed`, so the page continues with the defaults. A later reply still applies.
+
+- **Branding** (`components/branding/`): `BrandTheme` turns `branding.colour` into a `<style>` that replaces the
+  interaction tokens (`--color-primary`, `--color-interaction`, `--calm-interaction-text`,
+  `--calm-redesign-active-text`, `--calm-redesign-tint-bg`, `--calm-rail-accent`) for each theme. `brand-colours.ts`
+  moves the colour only as far as it must for 4.5:1 text and 3:1 focus rings; `brand-colours.test.ts` checks this.
+  `useProductName()` gives the name that the UI uses for the product, "CALM Hub" by default. Logos load through
+  `useImageAsset`, never through a plain `<img src>`, because the logo endpoint needs the auth header. `BrandLockup`
+  also handles the `<img>` `error` event: the browser can refuse a `data:` URL that loaded (a CSP without `data:`, or
+  bytes it cannot decode). Without a dark logo, the dark theme puts the light logo on a white plate.
+- **Navigation** (`components/navigation/`): `NavigationMenu` is the one menu, used by the navbar drawer and by the
+  `AppLayout` sidebar. Its desktop toggle stores `calm-navigation-collapsed` in the injected storage and hides the menu from keyboard navigation; storage failure must not break toggling. It does not change the mobile drawer. A page uses `AppLayout`, not `Navbar`. `useNavigationSettings()` gives the settings with their
+  defaults. `show-namespaces` and `show-control-domains` only hide entries: routes, deep links and access checks must
+  not read them. `StartPageRedirect` sends a user to `start-page` only on the first load of `/`. It wraps the routes in
+  `App`, not the `/` route, so it decides once for the life of the app: a route unmounts when the user leaves it, and
+  Back to the first entry gives `/` the `default` key again. It decides after `START_PAGE_WAIT_MS` (3 s) at most, so a
+  slow config or registry neither keeps the page empty nor moves the user later. `App.test.tsx` checks this through the
+  real routes and browser history. The navbar drawer is a `<dialog>` opened with `showModal()`: the rest of the page is inert, and a click outside
+  the drawer only closes it. It has its own close button, which takes the focus, and Tab stays in the drawer. When it
+  closes, the focus goes back to the menu button. jsdom has no modal dialogs, so `Navbar.test.tsx` models them.
+
 ## Theming (light + dark)
 
 The app ships a light and a dark theme. `<html data-theme>` is the **single source of
@@ -335,6 +358,8 @@ aesthetic choice:
 - **Chromatic** values (node-type hues, risk/status, brand accents) stay **hex**,
   because they are alpha-concatenated (`` `${color}20` ``) — `var(--x)20` is not a
   colour — and because ReactFlow serialises some into SVG presentation attributes.
+  The exception is `redesign.primary`, which is `var(--color-interaction)` so that it follows the operator's brand
+  colour. Mix it with `color-mix(in srgb, … N%, transparent)`, never with a hex suffix.
 
 ### Adding a colour
 
@@ -350,7 +375,8 @@ aesthetic choice:
 ### Three traps that have already bitten
 
 1. **SVG presentation attributes ignore `var()`.** ReactFlow writes `<Background color>`
-   and `<MiniMap nodeColor/maskColor>` straight into `fill`/`stroke` attributes. Don't
+   and `<MiniMap maskColor>` straight into `fill`/`stroke` attributes (`nodeColor` and
+   `nodeStrokeColor` go into a `style`, so `var()` works there). Don't
    pass theme colours through those props — omit them and style
    `.react-flow__background circle`, `.react-flow__minimap-mask` etc. in `index.css`,
    where a CSS *property* beats the attribute.

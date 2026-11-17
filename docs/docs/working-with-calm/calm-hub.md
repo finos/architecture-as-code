@@ -69,6 +69,8 @@ The CALM Hub dashboard is divided into three primary zones:
 2. **Explore Sidebar (Left):** Allows hierarchical or flat navigation of Namespaces, Resource Types, and Compliance Control Domains.
 3. **Main Content Area (Center/Right):** Dynamically updates depending on the selected resource, rendering visual diagrams, JSON documents, or interactive schema forms.
 
+Your operator can change the name, logo and colours, show the menu at the left of each page, hide namespaces or control domains from the menus, and choose the first page. See [UI Customization](../calm-hub/index.md#ui-customization).
+
 ![CALM Hub Explorer Dashboard](/img/hub-ui/home.png)
 
 ---

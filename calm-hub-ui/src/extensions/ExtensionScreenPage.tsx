@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useExtensions, useExtensionsStatus } from './ExtensionsContext.js';
-import { Navbar } from '../components/navbar/Navbar.js';
+import { AppLayout } from '../components/navigation/AppLayout.js';
 import { ExtensionSlot, SlotFrame } from './ExtensionSlot.js';
 import { ExtensionLogo } from './ExtensionLogo.js';
 
@@ -42,11 +42,10 @@ function ScreenBody() {
 
 export function ExtensionScreenPage() {
     return (
-        <>
-            <Navbar />
-            <main className="p-6">
+        <AppLayout>
+            <main className="flex-1 overflow-auto p-6">
                 <ScreenBody />
             </main>
-        </>
+        </AppLayout>
     );
 }

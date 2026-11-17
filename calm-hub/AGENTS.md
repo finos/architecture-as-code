@@ -447,6 +447,13 @@ from; it fails if there is none.
   they stop CSS injection and `javascript:` links in the UI
 - The response leaves out a section that is not configured or not enabled. The server does not
   read `SecurityIdentity` unless `calm.ui.identity.enabled=true`
+- `calm.ui.branding.*` and `calm.ui.navigation.*` brand the UI and set its menus. `BrandingLogos` reads the logo files
+  one time, with the shared `assets/ImageAsset` checks, and `GET /api/calm/ui/branding/logo/{variant}` serves them.
+  The config gives each logo as that URL with `?v=<version>`, so a new image gets a new URL
+- `navigation.show-*` only hides menu entries. Do not use it in an access check: a deep link to a hidden section
+  must still open
+- `navigation.start-page` accepts only the UI routes in `UiConfigValidator.START_PAGE`. Add a route there when the
+  UI gets a new top-level page that an operator may open first
 
 ### Extensions
 - ADRs 0009–0014 in `decisions/` are the design. `ExtensionRegistry` loads manifests at start up from

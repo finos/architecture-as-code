@@ -1,35 +1,37 @@
-import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
-import { useTheme } from '../../../theme/useTheme.js';
+import { useResolvedTheme, useTheme } from '../../../theme/useTheme.js';
 import { ThemeToggle } from '../../../components/navbar/ThemeToggle.js';
 import { UserMenu } from '../../../components/user-menu/UserMenu.js';
 import { isAuthServiceEnabled } from '../../../authService.js';
 import { EnvironmentPill } from '../../../components/navbar/EnvironmentPill.js';
 import { useUiConfig } from '../../../components/ui-config/UiConfigContext.js';
-import { IntroSearchBar } from './IntroSearchBar.js';
-import { IntroBrowse } from './IntroBrowse.js';
-import { MyNamespaceCard } from './MyNamespaceCard.js';
-import { PersonalNamespaceControl } from '../../hooks/usePersonalNamespace.js';
+import { IntroBody, IntroBodyProps } from './IntroBody.js';
 
-/** The navy lockup is unreadable on a dark base, so dark gets the white variant. */
-const LOGO_SRC = {
-    light: '/brand/Horizontal/2025_CALM_Horizontal.svg',
-    dark: '/brand/Horizontal/2025_CALM_Horizontal_WHT.svg',
-} as const;
-
-interface IntroScreenProps {
-    namespaceCounts: NamespaceCounts[];
-    domainCounts: DomainControlCount[];
-    personalNamespace?: PersonalNamespaceControl;
+interface IntroScreenProps extends IntroBodyProps {
+    /** Inside the app layout, which has the navbar, so the page has no controls of its own. */
+    embedded?: boolean;
     /** Injected for tests; see the storage note in calm-hub-ui/AGENTS.md. */
     storage?: Storage;
 }
 
 /**
- * The search-first intro / front door shown on `/`. Deliberately chrome-free (no
- * navbar, no rail), so it mounts its own `useTheme` for the corner toggle — the
- * navbar, which normally owns theme state, is hidden here.
+ * The search-first intro / front door shown on `/`. Without `embedded` it is chrome-free (no navbar, no rail), so it
+ * mounts its own `useTheme` for the corner toggle — the navbar, which normally owns theme state, is hidden here.
  */
-export function IntroScreen({ namespaceCounts, domainCounts, personalNamespace, storage }: IntroScreenProps) {
+export function IntroScreen({ embedded, storage, ...body }: IntroScreenProps) {
+    return embedded ? <EmbeddedIntro {...body} /> : <StandaloneIntro storage={storage} {...body} />;
+}
+
+/** The navbar owns the theme here, so this only reads it: a second `useTheme` would drift from the toggle. */
+function EmbeddedIntro(body: IntroBodyProps) {
+    const theme = useResolvedTheme();
+    return (
+        <div data-testid="intro-screen" className="h-full overflow-auto bg-base-100">
+            <IntroBody {...body} theme={theme} />
+        </div>
+    );
+}
+
+function StandaloneIntro({ storage, ...body }: IntroBodyProps & { storage?: Storage }) {
     const { theme, toggleTheme } = useTheme(storage);
     const { environment } = useUiConfig();
 
@@ -45,30 +47,7 @@ export function IntroScreen({ namespaceCounts, domainCounts, personalNamespace, 
                 {isAuthServiceEnabled() && <UserMenu />}
             </div>
 
-            <div className="min-h-full flex flex-col items-center px-6 py-16 sm:py-24">
-                {/* No `logo` navbar helper class here: its global `max-width: 100%`
-                    rule loads after Tailwind and would override the cap below,
-                    letting the lockup span the whole column. */}
-                <img
-                    src={LOGO_SRC[theme]}
-                    alt="CALM"
-                    className="h-auto w-[420px] sm:w-[520px] max-w-full"
-                />
-
-                <div className="w-full flex justify-center mt-10 sm:mt-12">
-                    <IntroSearchBar />
-                </div>
-
-                {personalNamespace && (
-                    <div className="w-full flex justify-center mt-14 sm:mt-16 empty:hidden">
-                        <MyNamespaceCard personalNamespace={personalNamespace} />
-                    </div>
-                )}
-
-                <div className="w-full flex justify-center mt-14 sm:mt-16">
-                    <IntroBrowse namespaceCounts={namespaceCounts} domainCounts={domainCounts} />
-                </div>
-            </div>
+            <IntroBody {...body} theme={theme} />
         </div>
     );
 }
