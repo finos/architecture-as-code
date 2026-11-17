@@ -28,7 +28,8 @@ Rules for a new extension:
 
 - Make it an npm workspace in the root `package.json`, after `calm-hub-ui`. Use a private package named
   `@finos/calm-hub-<id>`.
-- Add its id to the matrix of `.github/workflows/build-calm-hub-extensions.yml`.
+- Add its id to the matrix of `.github/workflows/build-calm-hub-extensions.yml` and of
+  `.github/workflows/docker-publish-calm-hub-extensions.yml`, which publishes `finos/calm-hub-<id>`.
 - Add a case to `TestExtensionManifestLoaderShould` that loads the folder, so a manifest or notation that
   CALM Hub refuses fails the Java tests.
 - Add it to the table above.

@@ -1,0 +1,107 @@
+name: Docker Publish CALM Hub Extensions
+
+permissions:
+    contents: read
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - 'calm-hub-extensions/**'
+            - 'calm-models/**'
+            - 'package.json'
+            - 'package-lock.json'
+            - '.npmrc'
+            - 'tsconfig.base.json'
+            - '.github/workflows/docker-publish-calm-hub-extensions.yml'
+    workflow_dispatch:
+
+jobs:
+    build-and-push:
+        name: Build and Push the ${{ matrix.extension }} Image
+        # A manual run from another branch must not push the main tags.
+        if: github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        concurrency:
+            group: docker-publish-calm-hub-${{ matrix.extension }}
+            cancel-in-progress: false
+        strategy:
+            fail-fast: false
+            matrix:
+                # One entry for each folder in calm-hub-extensions.
+                extension: [c4, ea-layers]
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            # The build stage runs npm ci, so the arm64 image needs emulation.
+            - name: Set up QEMU
+              uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+            - name: Login to Docker Hub
+              uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+              with:
+                  username: ${{ secrets.DOCKER_USERNAME }}
+                  password: ${{ secrets.DOCKER_PASSWORD }}
+
+            - name: Extract Docker metadata
+              id: meta
+              uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+              with:
+                  context: git
+                  images: ${{ secrets.DOCKER_USERNAME }}/calm-hub-${{ matrix.extension }}
+                  flavor: latest=false
+                  tags: |
+                      type=raw,value=main
+                      type=sha,format=short
+
+            - name: Build image for smoke test
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: .
+                  file: calm-hub-extensions/${{ matrix.extension }}/Dockerfile
+                  platforms: linux/amd64
+                  load: true
+                  tags: calm-hub-${{ matrix.extension }}:smoke
+                  cache-from: type=gha,scope=calm-hub-${{ matrix.extension }}
+                  cache-to: type=gha,mode=max,scope=calm-hub-${{ matrix.extension }}
+
+            # The image's own healthcheck covers /healthz. Also check that it serves its manifest.
+            - name: Smoke test
+              env:
+                  EXTENSION: ${{ matrix.extension }}
+              run: |
+                  docker run -d --name extension -p 8090:8090 -e PORT=8090 -e CALM_OPEN_ACCESS=true "calm-hub-$EXTENSION:smoke"
+                  for _ in $(seq 1 30); do
+                    curl -fsS http://localhost:8090/healthz >/dev/null && break
+                    sleep 1
+                  done
+                  curl -fsS http://localhost:8090/healthz
+                  curl -fsS http://localhost:8090/extension/extension.json | jq -e --arg id "$EXTENSION" '.id == $id'
+
+            - name: Dump container logs on failure
+              if: failure()
+              run: docker logs extension 2>/dev/null || true
+
+            - name: Cleanup smoke test container
+              if: always()
+              run: docker rm -f extension 2>/dev/null || true
+
+            - name: Build and push
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: .
+                  file: calm-hub-extensions/${{ matrix.extension }}/Dockerfile
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  sbom: true
+                  provenance: mode=max
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
+                  cache-from: type=gha,scope=calm-hub-${{ matrix.extension }}
+                  cache-to: type=gha,mode=max,scope=calm-hub-${{ matrix.extension }}
