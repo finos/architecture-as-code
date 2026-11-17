@@ -196,7 +196,7 @@ export function MomentCards({
                                     padding: '10px 14px',
                                     minWidth: 124,
                                     boxShadow: isViewed
-                                        ? `0 6px 14px ${colors.redesign.primary}2e`
+                                        ? `0 6px 14px color-mix(in srgb, ${colors.redesign.primary} 18%, transparent)`
                                         : 'none',
                                 }}
                             >

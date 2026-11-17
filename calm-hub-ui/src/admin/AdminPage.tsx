@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Navbar } from '../components/navbar/Navbar.js';
+import { AppLayout } from '../components/navigation/AppLayout.js';
 import { useUserAccess } from './context/UserAccessContext.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { colors } from '../theme/colors.js';
@@ -36,8 +36,7 @@ export function AdminPage() {
     const isMobile = useIsMobile();
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden">
-            <Navbar />
+        <AppLayout>
             {loading ? (
                 <div className="flex justify-center py-12">
                     <span className="loading loading-spinner loading-lg" aria-label="Loading" />
@@ -76,6 +75,6 @@ export function AdminPage() {
                     </div>
                 </>
             )}
-        </div>
+        </AppLayout>
     );
 }

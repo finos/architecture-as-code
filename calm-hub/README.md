@@ -322,6 +322,19 @@ by default, and stays off when auth is off, when Hub is read-only, and in GitHub
 
 See [PERSONAL_NAMESPACES.md](PERSONAL_NAMESPACES.md) for the API, the grants and the naming rules.
 
+### UI branding and navigation
+
+The `calm.ui.branding.*` and `calm.ui.navigation.*` properties set the organisation name, logo and colour of
+the UI, its menu layout, the sections it shows and its start page. CALM Hub reads the logo files at start up and does
+not start if a value is not valid.
+
+```bash
+../mvnw quarkus:dev -Pstandalone "-Dcalm.ui.branding.organisation-name=Northstar Financial" \
+  -Dcalm.ui.branding.colour=#0f766e -Dcalm.ui.navigation.layout=sidebar
+```
+
+See [UI Customization](https://calm.finos.org/calm-hub/#ui-customization) for every property and the logo rules.
+
 ### UI with hot reload (from src/main/webapp)
 
 The first time, you may need to run `npm install`.
