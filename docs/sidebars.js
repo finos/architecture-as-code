@@ -96,6 +96,7 @@ const sidebars = {
 
   // Extensions sidebar - reached via the Extensions navbar item
   extensionsSidebar: [
+    'extensions/why',
     'extensions/install',
     {
       type: 'category',

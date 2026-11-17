@@ -5,6 +5,60 @@ All notable changes to the CALM Hub will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0](https://github.com/finos/architecture-as-code/compare/calm-hub-v0.7.7...calm-hub-v0.8.0) (2026-11-17)
+
+### ⚠ BREAKING CHANGES
+
+* a client that sends creationDateTime, updateDateTime,
+supersededDateTime, supersedes or supersededBy on a decorator now gets
+400. Hub sets these fields.
+
+Amp-Thread-ID: https://ampcode.com/threads/T-01a1d651-f0a1-710b-8566-7d7c5179105b
+
+Co-authored-by: Amp <amp@ampcode.com>
+* reserve decorator types, check decorator schemas and keep history (#3703)
+
+### 🚀 Features
+
+* add a 'Can edit' scope filter to the namespace and domain lists ([#3758](https://github.com/finos/architecture-as-code/issues/3758)) ([5a78c61](https://github.com/finos/architecture-as-code/commit/5a78c6142e366d1ced380d9d0f08e585ead42658)), closes [#3757](https://github.com/finos/architecture-as-code/issues/3757)
+* add a diagram tab registry and a generic Decorators view ([#3702](https://github.com/finos/architecture-as-code/issues/3702)) ([dcb00f9](https://github.com/finos/architecture-as-code/commit/dcb00f93de23ceced2f4156d11f77bd1cf998dc6))
+* add a starter architecture to new personal namespaces ([#3694](https://github.com/finos/architecture-as-code/issues/3694)) ([a4d2a9c](https://github.com/finos/architecture-as-code/commit/a4d2a9ca34a22aa181b56a06260845bcebae0d29))
+* add a text size control to the diagram toolbar ([#3647](https://github.com/finos/architecture-as-code/issues/3647)) ([12b94c1](https://github.com/finos/architecture-as-code/commit/12b94c1c0261578a75452b168915f092e6e08ffd))
+* add diagram lenses that extensions provide ([#3771](https://github.com/finos/architecture-as-code/issues/3771)) ([12d8839](https://github.com/finos/architecture-as-code/commit/12d88399601f8016bf2d5d56c5f15464237b486f))
+* add MCP tools for extension commands ([#3712](https://github.com/finos/architecture-as-code/issues/3712)) ([471dad6](https://github.com/finos/architecture-as-code/commit/471dad65289cdc0f070505ca3b1ddc7ca3ee2a9d))
+* add personal namespaces ([#3690](https://github.com/finos/architecture-as-code/issues/3690)) ([684eff8](https://github.com/finos/architecture-as-code/commit/684eff8af154c2a33cc52b9821c1c7b1b7f30192))
+* add the personal namespace card ([#3692](https://github.com/finos/architecture-as-code/issues/3692)) ([f5898a2](https://github.com/finos/architecture-as-code/commit/f5898a249c8a0b056a25ba511c8974a4a65684da))
+* add versioned conventions with inherited namespace defaults ([#3744](https://github.com/finos/architecture-as-code/issues/3744)) ([b45be1e](https://github.com/finos/architecture-as-code/commit/b45be1ed07c0d04469409952e042fa275a1e60db))
+* check extension command input patterns in linear time ([#3711](https://github.com/finos/architecture-as-code/issues/3711)) ([685f5f8](https://github.com/finos/architecture-as-code/commit/685f5f8fa333936c1498f6626629c06bef4e1839))
+* draw decorator overlays and show deployments as a decorator view ([#3705](https://github.com/finos/architecture-as-code/issues/3705)) ([9c52886](https://github.com/finos/architecture-as-code/commit/9c52886614bf5e175058da091069244dbd9453e7))
+* export the diagram as an SVG or PNG image ([#3652](https://github.com/finos/architecture-as-code/issues/3652)) ([135e959](https://github.com/finos/architecture-as-code/commit/135e959c7d84267a16b0ee0f5cfa83bd568b1937))
+* give extension contributions one place each in the UI ([#3713](https://github.com/finos/architecture-as-code/issues/3713)) ([f68eb13](https://github.com/finos/architecture-as-code/commit/f68eb13d3c659326fd051b5fa9e88be04dc3a311))
+* hide write tools from MCP tools/list on a read-only Hub ([#3721](https://github.com/finos/architecture-as-code/issues/3721)) ([fb76677](https://github.com/finos/architecture-as-code/commit/fb766775a638eba87425dd4c670f30dd49d92451))
+* list conventions and the namespace default on the namespace page ([#3746](https://github.com/finos/architecture-as-code/issues/3746)) ([aef594e](https://github.com/finos/architecture-as-code/commit/aef594e32515fc3bd6dd1a2921a67876805704fd))
+* load decorator views from the extension registry ([#3709](https://github.com/finos/architecture-as-code/issues/3709)) ([2dc48b0](https://github.com/finos/architecture-as-code/commit/2dc48b0981fba06513dcb6c2c9ab37f9805b5f44))
+* load extension manifests and list them at /api/calm/extensions ([#3704](https://github.com/finos/architecture-as-code/issues/3704)) ([ef195db](https://github.com/finos/architecture-as-code/commit/ef195db61ca6b2441cb40d651249f07290434ac8))
+* manage group grants in the admin UI ([#3683](https://github.com/finos/architecture-as-code/issues/3683)) ([0ee1925](https://github.com/finos/architecture-as-code/commit/0ee1925fbc7d2aa6d29c2b82e68d3454119b9390))
+* proxy extension routes with a signed identity assertion ([#3707](https://github.com/finos/architecture-as-code/issues/3707)) ([55a173f](https://github.com/finos/architecture-as-code/commit/55a173fbcb3b26ce17b91a55864173f70a06b0ee))
+* render Tier 1 extension blocks ([#3708](https://github.com/finos/architecture-as-code/issues/3708)) ([670f4eb](https://github.com/finos/architecture-as-code/commit/670f4eb087b730246bf1faee52cc79920d1cc902))
+* reserve decorator types, check decorator schemas and keep history ([#3703](https://github.com/finos/architecture-as-code/issues/3703)) ([e4040ea](https://github.com/finos/architecture-as-code/commit/e4040ea72581394abbbc60921d2ff245560e31ca))
+* set decorator timestamps in Hub ([#3716](https://github.com/finos/architecture-as-code/issues/3716)) ([100b49a](https://github.com/finos/architecture-as-code/commit/100b49ac42b8ef1e09281e12192c9155d0caa8a5))
+* show extension lenses in the Diagram tab ([#3749](https://github.com/finos/architecture-as-code/issues/3749)) ([d9fd607](https://github.com/finos/architecture-as-code/commit/d9fd6078c249fc7e2f17fde190a05e25fc413e92))
+* sign an identity assertion for extensions and publish a JWKS ([#3706](https://github.com/finos/architecture-as-code/issues/3706)) ([d08d6bc](https://github.com/finos/architecture-as-code/commit/d08d6bc39f655badd142fd12219be1b98dec6a73))
+* support group entitlements with LDAP group membership ([#3682](https://github.com/finos/architecture-as-code/issues/3682)) ([1bec366](https://github.com/finos/architecture-as-code/commit/1bec366348281a58ec4ce0968634ceaa08fc18fa))
+* toggle decorator overlays per extension ([#3714](https://github.com/finos/architecture-as-code/issues/3714)) ([2581e80](https://github.com/finos/architecture-as-code/commit/2581e808c38f18ae84491650e33625e968736cbd))
+
+### 🐛 Bug Fixes
+
+* accept commit SHA versions in MCP read tools ([#3761](https://github.com/finos/architecture-as-code/issues/3761)) ([f514e08](https://github.com/finos/architecture-as-code/commit/f514e084e5dd5c4007e89b0513eac5dedfa330ee))
+* refuse MCP write tools on a read-only Hub ([#3699](https://github.com/finos/architecture-as-code/issues/3699)) ([cc61052](https://github.com/finos/architecture-as-code/commit/cc61052d9e89b2d10a06cc505b70e29f3632b12f))
+* stop the navbar controls covering the logo at lg widths ([#3770](https://github.com/finos/architecture-as-code/issues/3770)) ([c3b77fd](https://github.com/finos/architecture-as-code/commit/c3b77fda3fc374d614b8fb0a4017cfd3b29f3b4c)), closes [#3522](https://github.com/finos/architecture-as-code/issues/3522)
+* stop the React Flow nodeTypes warning under StrictMode ([#3665](https://github.com/finos/architecture-as-code/issues/3665)) ([ee3b7ae](https://github.com/finos/architecture-as-code/commit/ee3b7ae1d9f722357ba621c3183ca804c10c7acb)), closes [#3506](https://github.com/finos/architecture-as-code/issues/3506)
+
+### 📚 Documentation
+
+* model the CALM Hub extensions design in CALM ([#3582](https://github.com/finos/architecture-as-code/issues/3582)) ([1070320](https://github.com/finos/architecture-as-code/commit/107032061a24dd2cc8429e37db18e16fb745fce1))
+* propose architecture validation, store write seam and reserved decorator ADRs ([#3581](https://github.com/finos/architecture-as-code/issues/3581)) ([7b130fd](https://github.com/finos/architecture-as-code/commit/7b130fd0893a9e2a487dce2d8ea2fba5a315f6dc))
+* propose personal namespaces in ADR 0018 ([#3688](https://github.com/finos/architecture-as-code/issues/3688)) ([2e7d32b](https://github.com/finos/architecture-as-code/commit/2e7d32bafb199d2bebe5c1ed74e3cc637d18ee68))
 ## [0.7.7](https://github.com/finos/architecture-as-code/compare/calm-hub-v0.7.6...calm-hub-v0.7.7) (2026-11-11)
 
 ### 🚀 Features

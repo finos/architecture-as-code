@@ -154,7 +154,7 @@ The **C4** lens of the Diagram tab shows the architecture as a C4 context, conta
 
 * **Level and scope:** select a level in **Level**, then the system or container in scope in the list next to it. Click an element to open the next level down. The next level is a `composed-of` child, or the detailed architecture of the node. The title of the diagram names the systems and containers above the scope.
 * **Selection:** click an element to select its CALM node, as on the CALM diagram. A node that you select stays selected when you change the lens, and the lens marks its element with a blue outline. Each lens fits its diagram to the view, so the zoom does not stay.
-* **Key:** the key lists the kinds of element on the diagram. Click a kind to hide or show it.
+* **Key:** the key lists the kinds of element on the diagram. Click a kind to dim it or show it again.
 * **Notes:** the **C4 notes** panel names the C4 mapping in use, and lists the conflicts with the standard and why an element shows at a different kind than its mapping. **Hide** closes it.
 * **Mapping:** the lens uses the `c4-mapping` default convention of the namespace, or of its nearest parent namespace. When no namespace sets one, it uses the default mapping of the standard. When the mapping, or a mapping that it extends, does not load or is not valid, the lens shows the error and no diagram.
 * **Guessed elements:** an element with a **Guessed** badge has a node type that the mapping does not name. Its kind comes from the structure of the architecture. Add the node type to the mapping to fix the kind.
