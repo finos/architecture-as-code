@@ -296,6 +296,36 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   and in jsdom. An element that takes a click has `data-clickable`: a press on it must not start a drag-pan,
   because pointer capture would send the click to the pane.
 
+### Navigation and return points
+
+A link from an extension, a search result or a chat citation names a typed `Destination` (`model/extensions.ts`):
+exactly one of `href`, `hub` (namespace, type, id, version, optional `element` and `extension`) or `screen`
+(extension, screen, optional resource `context` and `params`). Never accept or build an internal URL from extension
+data. `navigation/destinations.ts` is the one place that maps a destination to a route (`destinationLocation()`),
+checks one (`isDestination()`, the same rules as `blocks.schema.json#/$defs/destination`) and reads a screen URL
+(`readScreenQuery()`). Screen params (no dot, at most 8) go to the screen route; table keys (`<table>.filter|q|page`,
+at most 12, `isTableStateEntry()`) stay in the browser and do not reload the screen. The context and the screen params
+have at most 2048 characters form-encoded (`SCREEN_STATE_LIMITS.routeQuery`): the extension's query budget inside Hub's
+4096-byte request line. Every length counts Unicode code points, as JSON Schema `maxLength` does (`isWithin()`), not
+UTF-16 units. `resourceContext()` maps a target to the `ExtensionContext` names. The server applies the same limits to search
+results and chat citations in `ExtensionDestinations` (calm-hub); change both together.
+
+Render links with `DestinationLink` (or `ScreenLink` for a block link with a label). A Hub or screen link records the
+current page as a return point in `location.state.returnTo` (`navigation/returnPoints.ts`, at most 5), never in the
+URL: a page, its query and a label. A page declares itself with `ReturnPointProvider` (the screen page, `Hub` for
+resource pages and `/search`; the chat view adds `{ kind: 'chat' }`). `ReturnLink` shows **Back to …**. A navigation
+that is not a new destination, such as a breadcrumb or a detailed-architecture hop, keeps the points with
+`carryReturnPoints(location.state)`, and a URL state change uses `{ replace: true, state: location.state }`. Pass the
+target to `useLinkState(to)`: a link to the same page, such as a filter, keeps the points and adds none. A typed
+Hub link (`destinationLocation()`) and a return to a resource (`returnPointLocation()`) add `exact=1`
+(`EXACT_VERSION_PARAM`) to the URL, so DiagramSection's timeline redirect (`isExactVersion(location)`) leaves the
+version, also for a copied link. A plain latest-version URL keeps the redirect; a timeline pick still uses
+`EXACT_VERSION_STATE` in history state. DiagramSection keeps `exact` through tab and lens changes, and a lens param
+cannot take the name. `boundLabel()` shortens a label to 200 code points on write and
+read; a long title never costs the return point. `safeHref()` takes `unknown`: extension data is untyped at run time. Form
+input never goes in a URL, a param or a return point. `ReturnBar` shows the return link and the notices for a linked
+`node` that is not in the version or a linked `extension` that does not apply.
+
 ### Namespace conventions
 
 `NamespaceConventions` (`namespace-page/`) lists the namespace's conventions (such as `c4-mapping`) under the type

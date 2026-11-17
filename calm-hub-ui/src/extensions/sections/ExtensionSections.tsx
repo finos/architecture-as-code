@@ -1,4 +1,4 @@
-import { ReactNode, useId } from 'react';
+import { ReactNode, useEffect, useId, useRef } from 'react';
 import { IoChevronDownOutline, IoChevronForwardOutline } from 'react-icons/io5';
 import type { ExtensionLogoFiles } from '../../model/extensions.js';
 import { ExtensionLogo } from '../ExtensionLogo.js';
@@ -25,12 +25,20 @@ interface ExtensionSectionsProps {
     defaultOpenId?: string;
     /** The level of each section title. */
     headingLevel?: HeadingLevel;
+    /** The section that a link names: open, and scrolled into view. */
+    linkedId?: string;
 }
 
 /** One collapsible section per extension. The default section is open until the user chooses. */
-export function ExtensionSections({ sections, storageKey, storage, compact, headingLevel = 3, defaultOpenId }: ExtensionSectionsProps) {
-    const { isOpen, setSectionOpen } = useOpenSections(storageKey, storage);
+export function ExtensionSections({ sections, storageKey, storage, compact, headingLevel = 3, defaultOpenId, linkedId }: ExtensionSectionsProps) {
+    const { isOpen, setSectionOpen } = useOpenSections(storageKey, storage, linkedId);
     const baseId = useId();
+    const linkedRef = useRef<HTMLElement>(null);
+    const hasLinked = sections.some((section) => section.id === linkedId);
+    useEffect(() => {
+        // jsdom has no scrollIntoView.
+        if (hasLinked) linkedRef.current?.scrollIntoView?.({ block: 'nearest' });
+    }, [linkedId, hasLinked]);
     return (
         <div className="flex flex-col divide-y divide-base-300 rounded-box border border-base-300">
             {sections.map((section, index) => {
@@ -38,7 +46,12 @@ export function ExtensionSections({ sections, storageKey, storage, compact, head
                 const bodyId = `${baseId}-${index}`;
                 const Chevron = open ? IoChevronDownOutline : IoChevronForwardOutline;
                 return (
-                    <section key={section.id} data-testid="extension-section" data-extension={section.id}>
+                    <section
+                        key={section.id}
+                        ref={section.id === linkedId ? linkedRef : undefined}
+                        data-testid="extension-section"
+                        data-extension={section.id}
+                    >
                         <Heading level={headingLevel} className="m-0">
                             <button
                                 type="button"

@@ -3,7 +3,7 @@ import Markdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import '../../hub/components/adr-renderer/AdrMarkdown.css';
 import { Heading, HeadingLevel } from '../Heading.js';
-import { safeHref } from '../ScreenLink.js';
+import { safeHref } from '../../navigation/destinations.js';
 
 // Tailwind's base styles remove heading sizes, list markers and gaps, so Markdown sets its own.
 const HEADING_CLASS = ['text-lg font-bold mt-4 mb-2', 'text-base font-bold mt-4 mb-2', 'text-sm font-semibold mt-3 mb-1'];

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate, useSearchParams, type InitialEntry } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -10,6 +10,10 @@ import type { Node } from '@xyflow/react';
 import { ExtensionsContext, ExtensionsStatusContext, type ExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
 import { ExtensionService } from '../../../service/extension-service.js';
 import type { ExtensionSummary } from '../../../model/extensions.js';
+import { DestinationLink } from '../../../navigation/DestinationLink.js';
+import { destinationLocation } from '../../../navigation/destinations.js';
+import { ReturnLink } from '../../../navigation/ReturnLink.js';
+import { ReturnPointProvider } from '../../../navigation/ReturnPointProvider.js';
 
 const releaseTracker: ExtensionSummary = {
     id: 'release-tracker',
@@ -1518,6 +1522,84 @@ describe('DiagramSection', () => {
                 expect(screen.getByTestId('timeline-bar')).toHaveAttribute('data-moments', '2');
             });
             expect(navigate).not.toHaveBeenCalled();
+        });
+
+        // A generated Hub link or a return names its version in the URL (`exact=1`), so a copied link, a new tab or a
+        // reload opens that version too. A plain URL of the latest version still opens the current moment.
+        describe('a link that names the exact version', () => {
+            const LATEST = '/arch-namespace/architectures/test-arch/2.0.0';
+            const hub = { namespace: 'arch-namespace', type: 'architectures', id: 'test-arch', version: '2.0.0', element: 'api' };
+            const timelineLoaded = () => waitFor(() => expect(screen.getByTestId('timeline-bar')).toHaveAttribute('data-moments', '2'));
+
+            function Resource() {
+                const location = useLocation();
+                return (
+                    <>
+                        <DiagramSection data={latestArchitectureData} />
+                        <div data-testid="location">{`${location.pathname}${location.search}`}</div>
+                    </>
+                );
+            }
+
+            const renderRoutes = (entry: InitialEntry) =>
+                render(
+                    <MemoryRouter initialEntries={[entry]}>
+                        <Routes>
+                            <Route path={LATEST} element={<Resource />} />
+                            <Route
+                                path="/extensions/reviews/list"
+                                element={
+                                    <ReturnPointProvider page={{ kind: 'screen', extension: 'reviews', screen: 'list' }} label="Reviews">
+                                        <DestinationLink destination={{ hub }}>Open test-arch 2.0.0</DestinationLink>
+                                        <ReturnLink />
+                                    </ReturnPointProvider>
+                                }
+                            />
+                        </Routes>
+                    </MemoryRouter>
+                );
+
+            let navigate = vi.fn();
+            beforeEach(() => {
+                navigate = vi.fn();
+                vi.mocked(useNavigate).mockReturnValue(navigate);
+            });
+
+            it('stays on the version that a generated link names, opened with no history state', async () => {
+                renderRoutes(destinationLocation({ hub })!);
+                await timelineLoaded();
+                expect(screen.getByTestId('location')).toHaveTextContent(`${LATEST}?node=api&exact=1`);
+                expect(navigate).not.toHaveBeenCalled();
+            });
+
+            it('stays on the version when the user follows the link', async () => {
+                renderRoutes('/extensions/reviews/list');
+                fireEvent.click(screen.getByRole('link', { name: 'Open test-arch 2.0.0' }));
+                await timelineLoaded();
+                expect(screen.getByTestId('location')).toHaveTextContent(`${LATEST}?node=api&exact=1`);
+                expect(navigate).not.toHaveBeenCalled();
+            });
+
+            it('stays on the version that a return names', async () => {
+                const returnTo = [{ page: { kind: 'resource', namespace: 'arch-namespace', type: 'architectures', id: 'test-arch', version: '2.0.0' }, search: '?node=api&lens=c4', label: 'test-arch 2.0.0' }];
+                renderRoutes({ pathname: '/extensions/reviews/list', state: { returnTo } });
+                fireEvent.click(screen.getByRole('link', { name: 'Back to test-arch 2.0.0' }));
+                await timelineLoaded();
+                expect(screen.getByTestId('location')).toHaveTextContent(`${LATEST}?node=api&lens=c4&exact=1`);
+                expect(navigate).not.toHaveBeenCalled();
+            });
+
+            it('keeps the exact version through a change of tab, so a copy of the URL still names it', async () => {
+                renderRoutes(`${LATEST}?node=api&exact=1`);
+                await timelineLoaded();
+                fireEvent.click(screen.getByRole('tab', { name: 'Decorators' }));
+                expect(screen.getByTestId('location')).toHaveTextContent(`${LATEST}?tab=decorators&exact=1`);
+            });
+
+            it.each([LATEST, `${LATEST}?node=api`, `${LATEST}?exact=0`])('still opens the current moment for a plain URL (%s)', async (entry) => {
+                renderRoutes(entry);
+                await waitFor(() => expect(navigate).toHaveBeenCalledWith(expect.stringMatching(/^\/arch-namespace\/architectures\/test-arch\/1\.0\.0/), expect.objectContaining({ replace: true })));
+            });
         });
 
         it('does not carry the timeline flag into breadcrumb navigation', async () => {

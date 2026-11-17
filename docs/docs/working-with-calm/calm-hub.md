@@ -275,6 +275,8 @@ An operator can install extensions (see [Extensions](../calm-hub/index.md#extens
 * **Node details:** one **Extensions** section, with a collapsible part for each extension.
 * **Diagram overlays:** each extension has a colour marker on its badges and legend rows. Click a node's badge to see what it means.
 
+A link in an extension can open an exact architecture version, with a node selected, or an extension screen for an architecture. The page that it opens shows **Back to &lt;page&gt;**, which returns to the list or architecture that you came from, with its filters, page and selected node. Back, Forward and a refresh keep this link; a copied link does not have it. If the link names a node that is not in the version, or an extension that is not enabled, the page says so and shows the rest. See [Extension navigation](../calm-hub/extension-navigation.md).
+
 ---
 
 ## Access Control

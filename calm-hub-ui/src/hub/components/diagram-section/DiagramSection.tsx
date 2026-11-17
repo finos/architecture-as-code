@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { createSearchParams, useNavigate, useSearchParams, useLocation, type SetURLSearchParams } from 'react-router-dom';
 import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useExtensions, useExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
@@ -35,12 +35,15 @@ import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
 import { useArchitectureDecorators } from './decorators/useArchitectureDecorators.js';
-import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS, EXTENSIONS_TAB_ID, extensionContext } from './tabs/diagramTabs.js';
+import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS, extensionContext } from './tabs/diagramTabs.js';
 import { diagramLenses } from './tabs/diagramLenses.js';
+import { carryReturnPoints, EXACT_VERSION_STATE, isExactVersion } from '../../../navigation/returnPoints.js';
 import { LensMenu } from './tabs/LensMenu.js';
 import {
     DEFAULT_DIAGRAM_LENS_ID,
     DEFAULT_DIAGRAM_TAB_ID,
+    EXACT_VERSION_PARAM,
+    EXTENSIONS_TAB_ID,
     LENS_PARAM,
     withoutLens,
     lensGroups,
@@ -95,12 +98,23 @@ const getNoNavbarSlot = () => null;
  */
 function pendingLensQuery(searchParams: URLSearchParams): string {
     const query = new URLSearchParams(searchParams);
-    for (const name of ['node', 'tab', ...DIAGRAM_TABS.flatMap((tab) => tab.searchParams ?? [])]) query.delete(name);
+    for (const name of ['node', 'tab', EXACT_VERSION_PARAM, ...DIAGRAM_TABS.flatMap((tab) => tab.searchParams ?? [])]) query.delete(name);
     return `?${query.toString()}`;
 }
 
 export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange, onDecoratorsChange, onDroppedFileChange, selectedElement }: DiagramSectionProps) {
-    const [urlSearchParams, setSearchParams] = useSearchParams();
+    const [urlSearchParams, setUrlSearchParams] = useSearchParams();
+    // `exact` says how the page was opened, not what it shows, so a change of tab or lens keeps it in the URL.
+    const setSearchParams = useCallback<SetURLSearchParams>(
+        (next, options) =>
+            setUrlSearchParams((current) => {
+                const query = createSearchParams(typeof next === 'function' ? next(current) : next);
+                const exact = current.get(EXACT_VERSION_PARAM);
+                if (exact !== null) query.set(EXACT_VERSION_PARAM, exact);
+                return query;
+            }, options),
+        [setUrlSearchParams]
+    );
     // An old tab link opens its replacement at once; the effect below then fixes the URL.
     const redirectedQuery = redirectedTabQuery(DIAGRAM_TAB_REDIRECTS, urlSearchParams);
     const searchParams = redirectedQuery ?? urlSearchParams;
@@ -348,15 +362,15 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         if (version === data.version) return;
         // Preserve the active tab and breadcrumb state when switching version.
         navigate(`/${data.name}/${urlType}/${data.id}/${version}${tabQuery}`, {
-            state: { ...(location.state as object | null), timelineSelection: true },
+            state: { ...(location.state as object | null), ...EXACT_VERSION_STATE },
         });
     };
 
     const handleBreadcrumbClick = useCallback((crumb: BreadcrumbItem, index: number) => {
         navigate(`/${crumb.namespace}/${crumb.type}/${crumb.id}/${crumb.version}`, {
-            state: { breadcrumbs: (breadcrumbs || []).slice(0, index) }
+            state: { ...carryReturnPoints(location.state), breadcrumbs: (breadcrumbs || []).slice(0, index) }
         });
-    }, [navigate, breadcrumbs]);
+    }, [navigate, breadcrumbs, location.state]);
 
     const startCompare = (from: string, to: string) => {
         setCompareFrom(from);
@@ -504,7 +518,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     }, [data.name, data.id]);
     useEffect(() => {
         if (!isArchitecture) return;
-        if ((location.state as { timelineSelection?: boolean } | null)?.timelineSelection) return;
+        if (isExactVersion(location)) return;
         if (!timelineIsExplicit || !timelineCurrentMomentId) return;
         if (versions.length === 0 || moments.length === 0) return;
         const resourceKey = `${data.name}/${data.id}`;
@@ -533,7 +547,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         urlType,
         tabQuery,
         navigate,
-        location.state,
+        location,
     ]);
 
     const Icon = iconMap[data.calmType];

@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ExtensionContext, ExtensionSummary } from '../../model/extensions.js';
 import type { DiagramLensContribution, LensNode, LensReply } from '../../model/lens.js';
-import { resourcePath } from '../../hub/routes.js';
 import { ExtensionCallError } from '../../service/extension-service.js';
 import { useResolvedTheme } from '../../theme/useTheme.js';
 import { useExtensionService } from '../ExtensionsContext.js';
 import { ScreenErrorBoundary } from '../ScreenErrorBoundary.js';
-import { safeHref } from '../ScreenLink.js';
+import { destinationLocation, safeHref } from '../../navigation/destinations.js';
+import { useLinkState } from '../../navigation/returnPoints.js';
 import { BlockRenderer } from '../blocks/BlockRenderer.js';
 import { resetElk, sharedElk } from './elk.js';
 import { LayoutTimeout, layoutLens, type Layout } from './layout.js';
@@ -45,6 +45,7 @@ export function DiagramLensView({ extension, lens, context, params, onParamsChan
     const service = useExtensionService();
     const theme = useResolvedTheme();
     const navigate = useNavigate();
+    const linkState = useLinkState();
     const [fetched, setFetched] = useState<Fetched>({ status: 'loading' });
     const [laidOut, setLaidOut] = useState<LaidOut>();
     const [hiddenTags, setHiddenTags] = useState<ReadonlySet<string>>(new Set());
@@ -117,7 +118,8 @@ export function DiagramLensView({ extension, lens, context, params, onParamsChan
             return;
         }
         if (select) onSelectElement(select);
-        if (link?.hub?.version) navigate(resourcePath({ ...link.hub, version: link.hub.version }));
+        const to = link?.hub?.version ? destinationLocation({ hub: { ...link.hub, version: link.hub.version } }) : undefined;
+        if (to) navigate(to, { state: linkState });
         else if (link?.href) {
             const href = safeHref(link.href);
             if (href?.startsWith('https://')) window.open(href, '_blank', 'noopener,noreferrer');

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ExtensionsContext } from '../ExtensionsContext.js';
@@ -6,7 +6,7 @@ import type { ExtensionSummary } from '../../model/extensions.js';
 import { ExtensionService } from '../../service/extension-service.js';
 import { createMemoryStorage } from '../../test-support/memory-storage.js';
 import { fakeExtensions } from '../../test-support/fake-extensions.js';
-import { ExtensionsTabPanel } from './ExtensionsTabPanel.js';
+import { EXTENSIONS_TAB_SECTIONS_KEY, ExtensionsTabPanel } from './ExtensionsTabPanel.js';
 
 const context = { namespace: 'demo', resource: 'architectures/1', version: '1.0.0', selectedElement: 'web-app' };
 
@@ -21,6 +21,22 @@ function renderPanel(extensions: ExtensionSummary[], storage = createMemoryStora
 afterEach(() => vi.restoreAllMocks());
 
 describe('ExtensionsTabPanel', () => {
+    it('opens the section of the extension that a link names, until the user closes it', () => {
+        vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+        const storage = createMemoryStorage();
+        storage.setItem(EXTENSIONS_TAB_SECTIONS_KEY, JSON.stringify({ 'ext-3': false }));
+        render(
+            <ExtensionsContext.Provider value={fakeExtensions(3)}>
+                <ExtensionsTabPanel context={context} linkedExtension="ext-3" storage={storage} />
+            </ExtensionsContext.Provider>
+        );
+        const toggle = () => screen.getByRole('button', { name: /Extension 3/ });
+        expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+        fireEvent.click(toggle());
+        expect(toggle()).toHaveAttribute('aria-expanded', 'false');
+        expect(JSON.parse(storage.getItem(EXTENSIONS_TAB_SECTIONS_KEY)!)).toEqual({ 'ext-3': false });
+    });
+
     it('shows actions above the designer tab of the open extension, and loads only that tab', async () => {
         const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
         renderPanel(fakeExtensions(10));

@@ -3,7 +3,7 @@ import { ExtensionsTabPanel } from '../../../../extensions/sections/ExtensionsTa
 import { DecoratorsPanel } from '../decorators/DecoratorsPanel.js';
 import { UsedByPanel } from '../used-by/UsedByPanel.js';
 import { USED_BY_TOOLTIP, usedByLabel } from '../used-by/usedBy.js';
-import { DEFAULT_DIAGRAM_TAB_ID, JSON_LENS_ID, LENS_PARAM, type DiagramTab } from './diagramTabRegistry.js';
+import { DEFAULT_DIAGRAM_TAB_ID, EXTENSION_PARAM, EXTENSIONS_TAB_ID, JSON_LENS_ID, LENS_PARAM, type DiagramTab } from './diagramTabRegistry.js';
 import type { Data } from '../../../../model/calm.js';
 import type { ExtensionContext } from '../../../../model/extensions.js';
 
@@ -24,8 +24,6 @@ export const DIAGRAM_TAB_REDIRECTS: Readonly<Record<string, Record<string, strin
     deployments: { tab: DECORATORS_TAB_ID, [DECORATOR_TYPE_PARAM]: 'deployment' },
     json: { tab: DEFAULT_DIAGRAM_TAB_ID, [LENS_PARAM]: JSON_LENS_ID },
 };
-
-export const EXTENSIONS_TAB_ID = 'extensions';
 
 export const extensionContext = (data: Data, selectedElement?: string): ExtensionContext => {
     const resourceType = data.calmType.toLowerCase();
@@ -83,6 +81,12 @@ export const DIAGRAM_TABS: readonly DiagramTab[] = [
         icon: IoAppsOutline,
         // Hidden, not unknown, until the registry loads, so a link to the tab keeps it.
         isVisible: ({ hasExtensions }) => !!hasExtensions,
-        render: ({ data, selectedElement }) => <ExtensionsTabPanel context={extensionContext(data, selectedElement)} />,
+        searchParams: [EXTENSION_PARAM],
+        render: ({ data, selectedElement, searchParams }) => (
+            <ExtensionsTabPanel
+                context={extensionContext(data, selectedElement)}
+                linkedExtension={searchParams.get(EXTENSION_PARAM) ?? undefined}
+            />
+        ),
     },
 ];

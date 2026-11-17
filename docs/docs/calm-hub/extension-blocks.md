@@ -83,10 +83,14 @@ Each cell has one of these forms:
 | Number | `42` | The number |
 | Badge | `{ "badge": "released", "tone": "positive" }` | A coloured badge. `tone` is optional; the default is `neutral` |
 | External link | `{ "label": "Runbook", "href": "https://example.org" }` | A link that opens in a new tab, marked `↗` |
-| Hub link | `{ "label": "Architecture", "hub": { "namespace": "demo", "type": "architectures", "id": "1", "version": "1.0.0" } }` | A link to a Hub page. All four fields are required: a link without one shows its label as text |
+| Hub link | `{ "label": "Architecture", "hub": { "namespace": "demo", "type": "architectures", "id": "1", "version": "1.0.0", "element": "web-app" } }` | A link to a version of a Hub resource. `element` is optional and selects a node or relationship |
+| Screen link | `{ "label": "Releases", "screen": { "extension": "release-tracker", "screen": "releases", "params": { "status": "released" } } }` | A link to an extension screen, with an optional resource context and view parameters |
 
-A link has a `label` and exactly one of `href` or `hub`. An `href` must start with `http://` or
-`https://`. The UI shows other URLs as plain text.
+A link has a `label` and exactly one of `href`, `hub` or `screen`: a
+[destination](extension-navigation.md#destinations). An `href` must start with `http://` or
+`https://`. The UI shows a link that is not valid, such as a Hub link without one of its four
+required fields, as plain text. A Hub or screen link shows **Back to &lt;page&gt;** on the page that it
+opens (see [Return to the page](extension-navigation.md#return-to-the-page)).
 
 ### cards
 
