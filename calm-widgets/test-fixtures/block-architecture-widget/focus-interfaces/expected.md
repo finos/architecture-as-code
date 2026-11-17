@@ -41,14 +41,14 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         trade-service__iface__trade-websocket["◻ trade-websocket"]:::iface
         trade-service__iface__trade-metrics["◻ trade-metrics"]:::iface
 
-    api-gateway__iface__gateway-rest -->|API Gateway routes product requests| product-service__iface__product-data-interface
-    api-gateway__iface__gateway-rest -->|API Gateway routes account requests| account-service__iface__account-data-interface
-    api-gateway__iface__gateway-rest -->|API Gateway routes trade requests| trade-service__iface__trade-data-interface
-    trade-service__iface__trade-data-interface -->|Trade service publishes execution events| kafka-broker__iface__kafka-events
-    account-service__iface__account-data-interface -->|Account service publishes update events| kafka-broker__iface__kafka-events
-    legacy-system__iface__legacy-trade-interface -->|Legacy system publishes trades via adapter| kafka-broker__iface__kafka-events
-    trade-service__iface__trade-data-interface -->|Trade service validates account balance| account-service__iface__account-data-interface
-    trade-service__iface__trade-data-interface -->|Trade service gets product pricing| product-service__iface__product-data-interface
+    api-gateway__iface__gateway-rest -->|"API Gateway routes product requests"| product-service__iface__product-data-interface
+    api-gateway__iface__gateway-rest -->|"API Gateway routes account requests"| account-service__iface__account-data-interface
+    api-gateway__iface__gateway-rest -->|"API Gateway routes trade requests"| trade-service__iface__trade-data-interface
+    trade-service__iface__trade-data-interface -->|"Trade service publishes execution events"| kafka-broker__iface__kafka-events
+    account-service__iface__account-data-interface -->|"Account service publishes update events"| kafka-broker__iface__kafka-events
+    legacy-system__iface__legacy-trade-interface -->|"Legacy system publishes trades via adapter"| kafka-broker__iface__kafka-events
+    trade-service__iface__trade-data-interface -->|"Trade service validates account balance"| account-service__iface__account-data-interface
+    trade-service__iface__trade-data-interface -->|"Trade service gets product pricing"| product-service__iface__product-data-interface
 
     product-service -.- product-service__iface__product-data-interface
     product-service -.- product-service__iface__product-rest-api
@@ -155,8 +155,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         trade-service__iface__trade-websocket["◻ trade-websocket"]:::iface
         trade-service__iface__trade-metrics["◻ trade-metrics"]:::iface
 
-    api-gateway__iface__gateway-rest -->|API Gateway routes product requests| product-service__iface__product-data-interface
-    trade-service__iface__trade-data-interface -->|Trade service gets product pricing| product-service__iface__product-data-interface
+    api-gateway__iface__gateway-rest -->|"API Gateway routes product requests"| product-service__iface__product-data-interface
+    trade-service__iface__trade-data-interface -->|"Trade service gets product pricing"| product-service__iface__product-data-interface
 
     product-service -.- product-service__iface__product-data-interface
     product-service -.- product-service__iface__product-rest-api

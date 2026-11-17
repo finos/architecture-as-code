@@ -25,9 +25,9 @@ classDef system fill:#000000,stroke:#9cb4ff,stroke-width:2px,color:#ffffff;
 
 
     backend[/"⚙️ Backend API"/]:::service
-    frontend[[💻 Frontend App]]:::webclient
+    frontend[["💻 Frontend App"]]:::webclient
 
-    frontend -->|API calls| backend
+    frontend -->|"API calls"| backend
 
 
 

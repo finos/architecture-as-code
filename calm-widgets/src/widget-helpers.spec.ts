@@ -188,6 +188,32 @@ describe('Widget Helpers', () => {
         });
     });
 
+    describe('mermaidQuotedText helper', () => {
+        it('preserves parentheses, brackets, braces, pipes, and hashes literally', () => {
+            expect(helpers.mermaidQuotedText('(RabbitMQ)')).toBe('(RabbitMQ)');
+            expect(helpers.mermaidQuotedText('test (with brackets)')).toBe('test (with brackets)');
+            expect(helpers.mermaidQuotedText('[array]')).toBe('[array]');
+            expect(helpers.mermaidQuotedText('{object}')).toBe('{object}');
+            expect(helpers.mermaidQuotedText('A | B')).toBe('A | B');
+            expect(helpers.mermaidQuotedText('#tag')).toBe('#tag');
+        });
+
+        it('replaces double quotes with apostrophes', () => {
+            expect(helpers.mermaidQuotedText('"quoted"')).toBe('\'quoted\'');
+        });
+
+        it('returns empty string for non-string input', () => {
+            expect(helpers.mermaidQuotedText(null)).toBe('');
+            expect(helpers.mermaidQuotedText(undefined)).toBe('');
+            expect(helpers.mermaidQuotedText(123)).toBe('');
+        });
+
+        it('handles empty string and plain text', () => {
+            expect(helpers.mermaidQuotedText('')).toBe('');
+            expect(helpers.mermaidQuotedText('simple text')).toBe('simple text');
+        });
+    });
+
     describe('mermaidText helper', () => {
         it('escapes parentheses', () => {
             expect(helpers.mermaidText('(RabbitMQ)')).toBe('#40;RabbitMQ#41;');
@@ -203,8 +229,10 @@ describe('Widget Helpers', () => {
             expect(helpers.mermaidText('A | B')).toBe('A #124; B');
         });
 
-        it('escapes hash and quote characters', () => {
+        it('escapes hash, semicolon, and quote characters without double-escaping', () => {
             expect(helpers.mermaidText('#tag')).toBe('#35;tag');
+            expect(helpers.mermaidText('a; b')).toBe('a#59; b');
+            expect(helpers.mermaidText('#tag; next')).toBe('#35;tag#59; next');
             expect(helpers.mermaidText('"quoted"')).toBe('#quot;quoted#quot;');
         });
 
