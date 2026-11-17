@@ -99,3 +99,15 @@ reason = "glob 13.0.6 is bundled in npm under @semantic-release/npm, used only b
 id = "GHSA-g3hv-75wg-m249"
 ignoreUntil = 2027-03-31
 reason = "minimatch 3.1.5 has no optimizationLevel preprocessing, so the vulnerable code is not present. minimatch 10.2.5 is bundled in npm for the CLI release job only, and npm never sets optimizationLevel 2. Remove when eslint, spectral-core and serve-handler move off minimatch 3 and an npm release bundles minimatch >= 11.0.1."
+
+# picomatch has no fixed release: the advisory covers every version through 4.0.7, the latest.
+# The lockfile holds 4.0.7 at the root and 4.0.4 bundled inside npm 11.21.2 (@semantic-release/npm,
+# the CLI release job). Both copies come in only through build, test, lint and release tooling
+# (vite, vitest, tinyglobby, lint-staged, npm-run-all2, @rollup/pluginutils, and micromatch,
+# chokidar and anymatch under Docusaurus and semantic-release). They take glob patterns from this
+# repository's own configuration. No published runtime package depends on picomatch, and none of
+# the CLI, CALM Server, VS Code extension or CALM Lab builds contains it.
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2027-03-31
+reason = "picomatch is reached only through build, test, lint and release tooling, which reads glob patterns from this repository's own configuration. No attacker-controlled pattern reaches it, and no shipped runtime package or build output contains it. Remove when a picomatch release later than 4.0.7 has the fix."
