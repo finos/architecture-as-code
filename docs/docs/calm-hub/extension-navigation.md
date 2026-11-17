@@ -20,7 +20,7 @@ A destination has exactly one of these fields. A block link also has a `label`.
 |---|---|---|
 | `href` | An external page, in a new tab. Only `http://` and `https://` | `{ "href": "https://example.org/runbook" }` |
 | `hub` | A version of a Hub resource | `{ "hub": { "namespace": "demo", "type": "architectures", "id": "1", "version": "1.0.0", "element": "web-app" } }` |
-| `screen` | A top-level extension screen | `{ "screen": { "extension": "release-tracker", "screen": "releases", "params": { "status": "released" } } }` |
+| `screen` | A top-level extension screen | `{ "screen": { "extension": "release-tracker", "screen": "releases", "params": { "releases.filter": "released" } } }` |
 
 The JSON Schema is `$defs/destination` (no label) and `$defs/link` (with a label) in
 `GET /api/calm/extensions/schema/0/blocks.schema.json`. The UI shows a link that is not valid as

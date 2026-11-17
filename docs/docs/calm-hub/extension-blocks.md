@@ -62,6 +62,9 @@ Label and value pairs. A `value` is a string or a number.
 Large figures. A `value` is a string or a number. For what a landing card shows from this block, see
 [landing-card](extension-points.md#landing-card).
 
+A stat with a `filter` is a button that filters a [table](#filter-a-table) of the same reply. A stat
+without a `filter` shows only its figure, as before.
+
 ### table
 
 ```json
@@ -84,13 +87,111 @@ Each cell has one of these forms:
 | Badge | `{ "badge": "released", "tone": "positive" }` | A coloured badge. `tone` is optional; the default is `neutral` |
 | External link | `{ "label": "Runbook", "href": "https://example.org" }` | A link that opens in a new tab, marked `↗` |
 | Hub link | `{ "label": "Architecture", "hub": { "namespace": "demo", "type": "architectures", "id": "1", "version": "1.0.0", "element": "web-app" } }` | A link to a version of a Hub resource. `element` is optional and selects a node or relationship |
-| Screen link | `{ "label": "Releases", "screen": { "extension": "release-tracker", "screen": "releases", "params": { "status": "released" } } }` | A link to an extension screen, with an optional resource context and view parameters |
+| Screen link | `{ "label": "Releases", "screen": { "extension": "release-tracker", "screen": "releases", "params": { "releases.filter": "released" } } }` | A link to an extension screen, with an optional resource context and view parameters |
 
 A link has a `label` and exactly one of `href`, `hub` or `screen`: a
 [destination](extension-navigation.md#destinations). An `href` must start with `http://` or
 `https://`. The UI shows a link that is not valid, such as a Hub link without one of its four
 required fields, as plain text. A Hub or screen link shows **Back to &lt;page&gt;** on the page that it
 opens (see [Return to the page](extension-navigation.md#return-to-the-page)).
+
+#### Filter a table
+
+Give the table an `id`, and give a stat a `filter` that names it. Hub then shows the table with a
+result line, a **Clear filters** button and, with `search`, a text filter.
+
+```json
+{
+  "hubApi": 0,
+  "blocks": [
+    { "type": "stats", "items": [
+      { "label": "All architectures", "value": 6, "filter": { "table": "reviews" } },
+      { "label": "Needs review", "value": 2, "filter": { "table": "reviews", "id": "needs-review", "column": "Status", "value": "Needs review" } },
+      { "label": "Approved", "value": 3, "filter": { "table": "reviews", "id": "approved", "column": "Status", "value": "Approved" } }
+    ] },
+    { "type": "table", "id": "reviews", "columns": ["Architecture", "Owner", "Status"],
+      "rows": [["Payments platform", "Payments", { "badge": "Needs review", "tone": "warning" }]],
+      "search": { "label": "Filter by name or owner", "columns": ["Architecture", "Owner"] } }
+  ]
+}
+```
+
+| Field | Rule |
+|---|---|
+| Table `id` | Matches `^[a-z][a-z0-9-]{0,63}$`. Unique in the reply: a second table with the same `id` cannot be filtered |
+| `filter.table` | The `id` of a table in the same reply. Otherwise the stat shows only its figure |
+| `filter.id` | Names the filter, at most 100 characters. A stat without `id` shows all rows |
+| `filter.column`, `filter.value` | For a table with `rows`: a row matches when the text of its cell in `column` is `value`. The text of a badge is its `badge`, and of a link its `label` |
+| `search.label` | The label of the text filter. The default is "Filter rows" |
+| `search.columns` | The columns that the text filter searches, without case. The default is all columns |
+
+- The selected stat is pressed (`aria-pressed`). Press it again, or the stat without `id`, to show
+  all rows.
+- A tile filter and the search text combine: a row must match both.
+- The stat `value` is the figure of the extension, for the whole dataset. Hub never changes it.
+  The result line gives the rows that match, for example `1 of 6 rows · Needs review · "pay"`.
+- `rows` must be the whole dataset: Hub filters them in the browser. For more rows than one reply
+  can hold, use a `source`.
+
+#### Load a table one page at a time
+
+A table with a `source` gets its rows from a route of the extension, one page at a time. The route
+filters the whole dataset. Hub never filters a page in the browser.
+
+```json
+{
+  "hubApi": 0,
+  "blocks": [
+    { "type": "stats", "items": [
+      { "label": "All deployments", "value": 23, "filter": { "table": "deployments" } },
+      { "label": "Failed", "value": 4, "filter": { "table": "deployments", "id": "failed" } }
+    ] },
+    { "type": "table", "id": "deployments", "columns": ["Deployment", "Service", "Result"], "rows": [],
+      "search": { "label": "Filter by deployment or service" },
+      "source": { "route": "deployments", "pageSize": 5 } }
+  ]
+}
+```
+
+- `source.route` is the `id` of a `GET` route with `readOnly`. Hub refuses another route and
+  shows "Table source route unavailable."
+- `source.pageSize` is 1 to 100. The default is 20.
+- Hub sends the context of the slot and these query parameters: `filter` (the `filter.id` of the
+  selected stat, if there is one), `q` (the search text, if there is one), `page` (from 1) and
+  `pageSize`. Hub sends `q` when typing stops.
+- A stat filter for a table with a source needs only `table` and `id`.
+- Hub shows `rows` only if it cannot read `source`, such as an older Hub.
+
+The route returns one page and the number of rows that match. The blocks schema defines this reply
+as `$defs/tableRowsReply`:
+
+```json
+{ "hubApi": 0, "rows": [["deploy-003", "api-gateway", { "badge": "failed", "tone": "negative" }]], "total": 4 }
+```
+
+Hub shows only the reply for the latest filters and page, and ignores a late reply. When a page
+does not load, Hub keeps the filters and shows "The rows could not be loaded." with **Try again**.
+
+#### Filters in the page address
+
+On a `screen`, Hub keeps the filters of each table in the page address:
+`<table id>.filter`, `<table id>.q` and `<table id>.page`, for example
+`?reviews.filter=needs-review&reviews.q=pay`. Hub leaves out a default value. So Back from an
+architecture, a reload and a shared link show the same rows. A filter change replaces the address,
+so it adds no history entry.
+
+The address holds at most 12 table keys for all the tables of a screen. A change that needs more
+keeps the filters of that table in the page only, and the table shows "These filters are not kept
+in the page address." A link or Back shows the filters of its address, not those in the page.
+
+A `designer-tab` or a `detail-panel` keeps its filters in the page only, while the slot shows.
+
+#### Refresh after a write
+
+When an [action](extension-points.md#action) that is not `readOnly` succeeds, Hub loads each block
+slot of that extension again, and each of its tables with a `source`. The filters stay. The earlier
+reply shows until the new one comes. If the reload fails, Hub shows the earlier reply with "Could
+not refresh. This shows the data from before." and **Try again**. A failed write does not reload.
 
 ### cards
 
@@ -149,6 +250,9 @@ An error stays in the slot of its extension. It does not break the Hub page arou
 | A block has an unknown `type` | "This screen has a block type that this CALM Hub cannot show." in place of that block. The other blocks show |
 | A block that the UI cannot draw, for example a `table` with no `rows` | "This extension sent content that CALM Hub cannot show." in place of the whole contribution |
 | A landing card call fails or has a bad reply | The card shows no headline |
+| A reload after a write fails | The earlier reply, with "Could not refresh" and **Try again** |
+| A table `source` names a route that is not a `GET` route with `readOnly` | "Table source route unavailable." in place of the table |
+| A table `source` call fails, or its reply has no `rows` list or no whole `total` | "The rows could not be loaded." with **Try again**. The filters stay |
 
 An unknown block type is not valid against the schema. Hub shows a placeholder, so that a newer
 backend still works with an older Hub.

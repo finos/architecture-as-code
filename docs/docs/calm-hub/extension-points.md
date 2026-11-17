@@ -89,6 +89,8 @@ together under the extension `name`.
 - The menu and the home page show the extensions in the order of `calm.extensions."<id>".order`, and
   the screens in the order of the manifest. Two extensions can use the same screen `title`: each
   link is in the group of its extension.
+- The page address keeps the filters of its tables, so Back, a reload and a link show the same rows
+  (see [Filters in the page address](extension-blocks.md#filters-in-the-page-address)).
 
 ## designer-tab
 
@@ -160,7 +162,9 @@ A button in the extension's section of the **Extensions** tab of an architecture
   An action that needs only `{selectedElement}` shows disabled until a link names a node. It also shows disabled when Hub refuses the node id in a path, for example an id with `/`, `@` or `%`.
 - An action does not accept user input, and Hub does not show its reply. A call in flight
   shows `<title>: running…`. A call that succeeds
-  shows `<title>: done.`, and a failed call shows "Extension request failed." The message stays
+  shows `<title>: done.`, and a failed call shows "Extension request failed." After a write that
+  succeeds, Hub loads the blocks of the extension again, with the same table filters (see
+  [Refresh after a write](extension-blocks.md#refresh-after-a-write)). The message stays
   when the section closes and opens again. For a `readOnly` route, it goes when the context changes.
   For a write, it stays until the action runs again, and names its target when the context has
   changed, for example `Request release review: done (demo architectures/1 1.0.0).`

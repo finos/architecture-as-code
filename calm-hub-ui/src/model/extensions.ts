@@ -90,11 +90,39 @@ export interface BadgeValue {
 
 export type CellValue = string | number | BadgeValue | ScreenLinkValue;
 
+/**
+ * What a stat tile selects in the table `table` of the same reply. Without `id`, the tile shows all rows. A table with
+ * inline rows keeps the rows whose cell in `column` has the text `value`; a table with a `source` sends `id` to its route.
+ */
+export interface StatFilter {
+    table: string;
+    id?: string;
+    column?: string;
+    value?: string;
+}
+
+export interface StatItem {
+    label: string;
+    value: string | number;
+    filter?: StatFilter;
+}
+
+export interface TableBlockValue {
+    type: 'table';
+    id?: string;
+    columns: string[];
+    /** All rows. With a `source`, only a Hub that does not read `source` shows them. */
+    rows: CellValue[][];
+    search?: { label?: string; columns?: string[] };
+    /** A GET `readOnly` route that returns one page of rows for the filters: `{ hubApi, rows, total }`. */
+    source?: { route: string; pageSize?: number };
+}
+
 export type ScreenBlock =
     | { type: 'markdown'; text: string }
     | { type: 'keyValue'; items: { label: string; value: string | number }[] }
-    | { type: 'stats'; items: { label: string; value: string | number }[] }
-    | { type: 'table'; columns: string[]; rows: CellValue[][] }
+    | { type: 'stats'; items: StatItem[] }
+    | TableBlockValue
     | { type: 'cards'; items: { title: string; subtitle?: string; link?: ScreenLinkValue }[] }
     | { type: 'alert'; tone?: Tone; text: string }
     | { type: 'links'; items: ScreenLinkValue[] };
@@ -103,4 +131,11 @@ export interface ExtensionScreen {
     hubApi: number;
     title?: string;
     blocks: ScreenBlock[];
+}
+
+/** The reply of a table `source` route: one page of rows, and the number of rows that match the filters. */
+export interface TableRowsReply {
+    hubApi: number;
+    rows: CellValue[][];
+    total: number;
 }
