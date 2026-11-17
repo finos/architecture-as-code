@@ -9,6 +9,8 @@ import { PersonalNamespaceService } from '../service/personal-namespace-service.
 import type { Data, Adr } from '../model/calm.js';
 import type { ExtensionSummary } from '../model/extensions.js';
 import { ExtensionsContext } from '../extensions/ExtensionsContext.js';
+import { UiConfigContext } from '../components/ui-config/UiConfigContext.js';
+import type { UiNavigation } from '../model/ui-config.js';
 import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
 
@@ -649,6 +651,57 @@ describe('Hub', () => {
     // layout effect (keyed on location.key) and the in-place-precedence ternary.
     // The page components stay mocked at their seam, but Hub's routing/clearing
     // logic runs for real via genuine react-router navigation.
+    describe('operator navigation settings', () => {
+        const renderWithNavigation = (path: string, navigation: Partial<UiNavigation>) =>
+            render(
+                <UiConfigContext.Provider value={{ navigation: { layout: 'menu', showNamespaces: true, showControlDomains: true, ...navigation } }}>
+                    <MemoryRouter initialEntries={[path]}>
+                        <Hub />
+                    </MemoryRouter>
+                </UiConfigContext.Provider>
+            );
+        const hidden = { showNamespaces: false, showControlDomains: false };
+
+        it('still opens a deep link to a namespace and a domain whose navigation is hidden', async () => {
+            const { unmount } = renderWithNavigation('/namespace/finos', hidden);
+            expect(await screen.findByTestId('namespace-page')).toHaveTextContent('Namespace: finos (1)');
+            unmount();
+
+            renderWithNavigation('/domain/security', hidden);
+            expect(await screen.findByTestId('domain-page')).toHaveTextContent('Domain: security (3)');
+        });
+
+        it('has no explore rail when both of its sections are hidden, and keeps it for one', async () => {
+            const { unmount } = renderWithNavigation('/namespace/finos', hidden);
+            await screen.findByTestId('namespace-page');
+            expect(screen.queryByTestId('explore-rail')).not.toBeInTheDocument();
+            unmount();
+
+            renderWithNavigation('/namespace/finos', { showControlDomains: false });
+            expect(screen.getByTestId('explore-rail')).toBeInTheDocument();
+        });
+
+        it('does not open the mobile drill-down by itself when both of its sections are hidden', () => {
+            const restore = mockMobileViewport(true);
+            renderWithNavigation('/namespace/finos', hidden);
+
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Explore' })).toBeInTheDocument();
+            restore();
+        });
+
+        it('keeps the navbar on the home page in the sidebar layout', async () => {
+            const { unmount } = renderWithNavigation('/', {});
+            await screen.findByTestId('intro-screen');
+            expect(screen.queryByTestId('navbar')).not.toBeInTheDocument();
+            unmount();
+
+            renderWithNavigation('/', { layout: 'sidebar' });
+            expect(await screen.findByTestId('intro-screen')).toBeInTheDocument();
+            expect(screen.getByTestId('navbar')).toBeInTheDocument();
+        });
+    });
+
     describe('route-driven content selection (clearing + in-place precedence)', () => {
         it('clears stale detail content when navigating from a detail route to a namespace page', async () => {
             // Start on a detail route with a resource loaded (deep-link style).

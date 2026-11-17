@@ -31,7 +31,7 @@ describe('Home page tests', () => {
     it("Finds navigation items", () => {
       cy.viewport('macbook-16')
       cy.visit('/');
-      cy.findByRole("link", { name: "Hub" })
+      cy.findByRole("link", { name: "Home" })
     })
   })
 
@@ -40,7 +40,7 @@ describe('Home page tests', () => {
       cy.viewport(1000, 600)
       cy.visit('/');
       cy.findByRole("button", { name: "Open Menu" }).click();
-      cy.findByRole("link", { name: "Hub" })
+      cy.findByRole("link", { name: "Home" })
     })
   })
 })
