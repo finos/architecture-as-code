@@ -18,7 +18,7 @@ export function BlockRenderer({ block, headingLevel = 2 }: { block: ScreenBlock;
         case 'stats':
             return <StatsBlock items={block.items} />;
         case 'table':
-            return <TableBlock columns={block.columns} rows={block.rows} />;
+            return <TableBlock block={block} />;
         case 'cards':
             return <CardsBlock items={block.items} />;
         case 'alert':

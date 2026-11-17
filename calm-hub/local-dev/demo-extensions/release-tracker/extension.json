@@ -12,7 +12,8 @@
     { "id": "card", "method": "GET", "path": "/card", "scope": "authenticated", "readOnly": true },
     { "id": "element", "method": "GET", "path": "/element", "scope": "authenticated", "readOnly": true },
     { "id": "request-review", "method": "POST", "path": "/reviews", "scope": "authenticated" },
-    { "id": "releases", "method": "GET", "path": "/releases", "scope": "authenticated", "readOnly": true }
+    { "id": "releases", "method": "GET", "path": "/releases", "scope": "authenticated", "readOnly": true },
+    { "id": "deployments", "method": "GET", "path": "/deployments", "scope": "authenticated", "readOnly": true }
   ],
   "commands": {
     "list-releases": {

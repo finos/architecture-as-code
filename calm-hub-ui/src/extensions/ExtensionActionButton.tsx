@@ -3,6 +3,7 @@ import { ExtensionContext, ExtensionContribution, ExtensionRoute, ExtensionSumma
 import { ExtensionService } from '../service/extension-service.js';
 import { actionButtonKey, actionRunKey, useActionOutcome, useActionRunning, useActionRunningOn, useActionRuns } from './actionRuns.js';
 import { ConfirmActionDialog } from './ConfirmActionDialog.js';
+import { useExtensionRefresh } from './extensionRefresh.js';
 
 interface ExtensionActionButtonProps {
     service: ExtensionService;
@@ -21,6 +22,7 @@ const targetName = ({ selectedElement, resource, namespace, version }: Extension
 
 export function ExtensionActionButton({ service, extension, contribution, route, context, placement }: ExtensionActionButtonProps) {
     const runs = useActionRuns();
+    const refresh = useExtensionRefresh();
     const runKey = actionRunKey(extension.id, contribution.id);
     const busy = useActionRunning(runs, runKey);
     const outcomeKey = actionButtonKey(extension.id, contribution.id, placement);
@@ -54,6 +56,8 @@ export function ExtensionActionButton({ service, extension, contribution, route,
             const result = { for: contextKey(target), ok, target: route.readOnly ? undefined : targetName(target) };
             runs.finish(runKey, outcomeKey, controller?.signal.aborted ? undefined : result);
         }
+        // Only a confirmed write changes what the extension's blocks show.
+        if (ok && !route.readOnly) refresh.refresh(extension.id);
     };
 
     // Focus moves after the dialog is gone: while it is modal, the page is inert and focus() on the button does nothing.
