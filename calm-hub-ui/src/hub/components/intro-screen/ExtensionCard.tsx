@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { IoArrowForwardOutline } from 'react-icons/io5';
 import { ExtensionSummary } from '../../../model/extensions.js';
 import { colors } from '../../../theme/colors.js';
 import { ExtensionLogo } from '../../../extensions/ExtensionLogo.js';
 import { ScreenErrorBoundary } from '../../../extensions/ScreenErrorBoundary.js';
-import { screenPath, slotContributions } from '../../../extensions/contributions.js';
+import { ExtensionNavLink, slotContributions } from '../../../extensions/contributions.js';
 import { useExtensionService } from '../../../extensions/ExtensionsContext.js';
 import { CardHeadline, cardHeadline } from '../../../extensions/landingCard.js';
 import { isBlocksReply } from '../../../extensions/blocks/reply.js';
@@ -58,15 +59,45 @@ function Headline({ headline }: { headline: CardHeadline }) {
     );
 }
 
-function ExtensionCardContent({ extension }: { extension: ExtensionSummary }) {
+function PageLinks({ links, labelledBy }: { links: ExtensionNavLink[]; labelledBy: string }) {
+    return (
+        // A negative margin so that the link text lines up with the name, and the hover colour reaches past it.
+        <ul aria-labelledby={labelledBy} className="mt-2 -mx-2">
+            {links.map((link) => (
+                <li key={link.key} style={{ borderTop: `1px solid ${colors.redesign.border}` }}>
+                    <Link
+                        to={link.to}
+                        className="flex items-center justify-between gap-2 rounded-md px-2 py-2 text-[13px] no-underline hover:bg-base-200 transition-colors"
+                        style={{ color: colors.redesign.bodyStrong }}
+                    >
+                        {/* Not clamped: two titles can differ only at the end. */}
+                        <span className="min-w-0 wrap-anywhere">{link.title}</span>
+                        <IoArrowForwardOutline aria-hidden="true" className="shrink-0" style={{ color: colors.redesign.muted }} />
+                    </Link>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+interface ExtensionCardProps {
+    extension: ExtensionSummary;
+    /** The pages of the extension, from `extensionNavLinks()`. */
+    links: ExtensionNavLink[];
+}
+
+function ExtensionCardContent({ extension, links }: ExtensionCardProps) {
     const headline = useCardHeadline(extension);
-    const screen = extension.contributes.screen?.[0];
-    const style = { border: `1px solid ${colors.redesign.border}`, color: colors.redesign.bodyStrong };
-    const body = (
-        <>
+    const nameId = useId();
+    return (
+        <div
+            data-testid="browse-extension"
+            className="flex flex-col gap-1 rounded-xl px-4 py-3 min-w-0"
+            style={{ border: `1px solid ${colors.redesign.border}`, color: colors.redesign.bodyStrong }}
+        >
             <span className="flex items-center gap-2 min-w-0">
                 <ExtensionLogo extension={extension} size={20} />
-                <span className="min-w-0 line-clamp-2 wrap-anywhere font-medium text-[14px]" title={extension.name}>
+                <span id={nameId} className="min-w-0 line-clamp-2 wrap-anywhere font-medium text-[14px]" title={extension.name}>
                     {extension.name}
                 </span>
             </span>
@@ -76,33 +107,16 @@ function ExtensionCardContent({ extension }: { extension: ExtensionSummary }) {
                 </span>
             )}
             {headline && <Headline headline={headline} />}
-        </>
-    );
-    const className = 'flex flex-col gap-1 rounded-xl px-4 py-3 no-underline min-w-0';
-    if (!screen) {
-        return (
-            <div data-testid="browse-extension" className={className} style={style}>
-                {body}
-            </div>
-        );
-    }
-    return (
-        <Link
-            to={screenPath(extension, screen)}
-            data-testid="browse-extension"
-            className={`${className} hover:bg-base-200 transition-colors`}
-            style={style}
-        >
-            {body}
-        </Link>
+            {links.length > 0 && <PageLinks links={links} labelledBy={nameId} />}
+        </div>
     );
 }
 
-/** A compact home page card: the extension's name, provider and landing card headline. Opens its first screen. */
-export function ExtensionCard({ extension }: { extension: ExtensionSummary }) {
+/** A compact home page card: the extension's name, provider and landing card headline, and a link to each of its pages. */
+export function ExtensionCard(props: ExtensionCardProps) {
     return (
         <ScreenErrorBoundary>
-            <ExtensionCardContent extension={extension} />
+            <ExtensionCardContent {...props} />
         </ScreenErrorBoundary>
     );
 }

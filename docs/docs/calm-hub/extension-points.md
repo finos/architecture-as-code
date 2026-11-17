@@ -67,16 +67,26 @@ so check that the user may see the data that you return (see [Extension access](
 
 ## screen
 
-A full page. Its link shows in the **Extensions** group of the side menu, at
-`/extensions/<extension id>/<screen id>`. The home page card of the extension opens its first
-screen.
+A full page, at `/extensions/<extension id>/<screen id>`. An extension can have more than one
+screen. Declare them in one manifest, not as one extension for each screen, so that they show
+together under the extension `name`.
 
 ```json
-"contributes": { "screen": [{ "id": "releases", "title": "Releases", "route": "screen" }] }
+"contributes": {
+  "screen": [
+    { "id": "releases", "title": "Releases", "route": "screen" },
+    { "id": "calendar", "title": "Release calendar", "route": "calendar" }
+  ]
+}
 ```
 
 - The route returns [blocks](extension-blocks.md).
 - A screen gets no context.
+- The side menu has a group for each extension that has a screen, with the extension `name` as its
+  label and a link to each screen. The home page card of the extension has the same links.
+- The menu and the home page show the extensions in the order of `calm.extensions."<id>".order`, and
+  the screens in the order of the manifest. Two extensions can use the same screen `title`: each
+  link is in the group of its extension.
 
 ## designer-tab
 
@@ -110,6 +120,8 @@ A compact card in the **Extensions** section of the home page.
   With no valid item in the first `stats` block, it shows the text of the first
   `alert` block, on one line. Hub does not show other blocks on the card.
 - A card gets no context. If the call fails, the card shows no headline.
+- Under the headline, the card has a link to each [screen](#screen) of the extension. A card with
+  no screen has no link.
 - An extension with a `screen` and no `landing-card` also gets a card, with no headline.
 
 ## detail-panel

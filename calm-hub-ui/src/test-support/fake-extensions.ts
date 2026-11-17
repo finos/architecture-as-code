@@ -23,5 +23,21 @@ export function fakeExtension(index: number, points: ExtensionPoint[] = ['screen
     };
 }
 
+/** `extension` with a screen for each title, in this order. The id of each screen and its GET route is the title in kebab case. */
+export function withScreens(extension: ExtensionSummary, titles: string[]): ExtensionSummary {
+    const screens = titles.map((title) => {
+        const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        return { id, title, route: id };
+    });
+    return {
+        ...extension,
+        routes: [
+            ...extension.routes,
+            ...screens.map(({ id }) => ({ id, method: 'GET', path: `/${id}`, scope: 'authenticated', readOnly: true })),
+        ],
+        contributes: { ...extension.contributes, screen: screens },
+    };
+}
+
 export const fakeExtensions = (count: number, points?: ExtensionPoint[]) =>
     Array.from({ length: count }, (_, index) => fakeExtension(index + 1, points));
