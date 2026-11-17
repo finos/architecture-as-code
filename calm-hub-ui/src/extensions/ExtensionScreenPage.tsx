@@ -8,6 +8,7 @@ import { readScreenQuery, resourceContext } from '../navigation/destinations.js'
 import { ReturnLink } from '../navigation/ReturnLink.js';
 import { ReturnPointProvider } from '../navigation/ReturnPointProvider.js';
 import { ExtensionLogo } from './ExtensionLogo.js';
+import { UrlTableState } from './blocks/BlockScope.js';
 
 function ScreenBody() {
     const { extensionId = '', contributionId = '' } = useParams();
@@ -56,7 +57,9 @@ function ScreenBody() {
                                 {extension.name}
                             </span>
                         </p>
-                        <ExtensionSlot extension={extension} contribution={contribution} context={context} query={screenQuery.params} headingLevel={1} />
+                        <UrlTableState>
+                            <ExtensionSlot extension={extension} contribution={contribution} context={context} query={screenQuery.params} headingLevel={1} />
+                        </UrlTableState>
                     </div>
                 )}
             </div>

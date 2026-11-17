@@ -93,6 +93,51 @@ class TestExtensionBlocksSchemaShould {
     }
 
     @Test
+    void accept_stat_filters_and_filterable_tables() throws Exception {
+        var reply = new JsonObject("""
+                {"hubApi":0,"blocks":[
+                  {"type":"stats","items":[
+                    {"label":"All","value":5,"filter":{"table":"reviews"}},
+                    {"label":"Needs review","value":2,"filter":{"table":"reviews","id":"needs-review","column":"Status","value":"Needs review"}},
+                    {"label":"Failed","value":7,"filter":{"table":"deploys","id":"failed"}},
+                    {"label":"Mean age","value":"4 days"}
+                  ]},
+                  {"type":"table","id":"reviews","columns":["Name","Status"],"rows":[["a","b"]],
+                   "search":{"label":"Filter by name","columns":["Name"]}},
+                  {"type":"table","id":"deploys","columns":["Name"],"rows":[],"source":{"route":"deploy-rows","pageSize":50}}
+                ]}
+                """);
+        assertTrue(validator().validate(reply).getValid());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"type\":\"stats\",\"items\":[{\"label\":\"x\",\"value\":1,\"filter\":{\"id\":\"a\"}}]}",
+            "{\"type\":\"stats\",\"items\":[{\"label\":\"x\",\"value\":1,\"filter\":{\"table\":\"t\",\"id\":\"a\",\"column\":\"Status\"}}]}",
+            "{\"type\":\"stats\",\"items\":[{\"label\":\"x\",\"value\":1,\"filter\":{\"table\":\"t\",\"column\":\"Status\",\"value\":\"x\"}}]}",
+            "{\"type\":\"stats\",\"items\":[{\"label\":\"x\",\"value\":1,\"filter\":{\"table\":\"t\",\"id\":\"\"}}]}",
+            "{\"type\":\"table\",\"id\":\"Reviews\",\"columns\":[],\"rows\":[]}",
+            "{\"type\":\"table\",\"columns\":[],\"rows\":[],\"source\":{\"route\":\"rows\",\"pageSize\":0}}",
+            "{\"type\":\"table\",\"columns\":[],\"rows\":[],\"source\":{\"pageSize\":10}}"
+    })
+    void reject_invalid_filters(String block) throws Exception {
+        assertFalse(validator().validate(new JsonObject("{\"hubApi\":0,\"blocks\":[" + block + "]}")).getValid());
+    }
+
+    @Test
+    void define_the_reply_of_a_table_source_route() throws Exception {
+        try (var stream = getClass().getResourceAsStream("/META-INF/calm-extensions/schema/0/blocks.schema.json")) {
+            var json = new JsonObject(new String(stream.readAllBytes(), StandardCharsets.UTF_8));
+            var rows = Validator.create(JsonSchema.of(new JsonObject()
+                    .put("$ref", "#/$defs/tableRowsReply").put("$defs", json.getJsonObject("$defs"))),
+                    new JsonSchemaOptions().setDraft(Draft.DRAFT202012).setBaseUri(json.getString("$id")));
+            assertTrue(rows.validate(new JsonObject("{\"hubApi\":0,\"rows\":[[\"a\",1,{\"badge\":\"ok\"}]],\"total\":12}")).getValid());
+            assertFalse(rows.validate(new JsonObject("{\"hubApi\":0,\"rows\":[]}")).getValid());
+            assertFalse(rows.validate(new JsonObject("{\"hubApi\":0,\"rows\":[],\"total\":-1}")).getValid());
+        }
+    }
+
+    @Test
     void return_a_server_error_if_the_packaged_schema_is_missing() throws Exception {
         assertEquals(500, ExtensionResource.schemaResponse(null).getStatus());
     }
