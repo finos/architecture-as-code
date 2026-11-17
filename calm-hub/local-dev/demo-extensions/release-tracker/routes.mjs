@@ -23,27 +23,61 @@ const elements = {
     database: { owner: 'data-team', lastRelease: '2.2.0', risk: 'Low', oncall: 'Kim' },
     'message-queue': { owner: 'platform-team', lastRelease: '2.3.0', risk: 'Low', oncall: 'Sam' },
 };
+// 23 deployments: 17 succeeded, 4 failed, 2 rolled back. The deployments table loads them a page at a time.
+const services = ['order-service', 'web-app', 'api-gateway', 'user-service', 'database'];
+const deployments = Array.from({ length: 23 }, (_, i) => ({
+    id: `deploy-${String(i + 1).padStart(3, '0')}`,
+    service: services[i % services.length],
+    result: [2, 8, 13, 19].includes(i) ? 'failed' : [5, 16].includes(i) ? 'rolled-back' : 'succeeded',
+}));
+const deploymentTone = { succeeded: 'positive', failed: 'negative', 'rolled-back': 'warning' };
 let reviews = 0;
 
 const screen = (title, blocks) => ({ hubApi: 0, title, blocks });
 const releaseRows = () =>
     releases.map((r) => [r.version, { badge: r.status, tone: tone[r.status] }, r.date, r.owner]);
 // Each row links to the exact architecture version and the component that the release changed.
-const screenRows = (status) =>
+const screenRows = () =>
     releases
-        .filter((r) => !status || r.status === status)
         .map((r) => [
             r.version,
             { badge: r.status, tone: tone[r.status] },
             r.date,
             { label: r.element, hub: { ...DEMO, element: r.element } },
+            r.owner,
         ]);
+const count = (list, key, value) => list.filter((item) => item[key] === value).length;
+// A tile that filters the releases table: the rows whose Status cell shows the status.
+const releaseTile = (label, status) => ({
+    label,
+    value: status ? count(releases, 'status', status) : releases.length,
+    filter: status ? { table: 'releases', id: status, column: 'Status', value: status } : { table: 'releases' },
+});
+// A tile that filters the deployments table: Hub sends the id to the deployments route.
+const deploymentTile = (label, result) => ({
+    label,
+    value: result ? count(deployments, 'result', result) : deployments.length,
+    filter: result ? { table: 'deployments', id: result } : { table: 'deployments' },
+});
+
+function deploymentPage(q) {
+    const filter = q.get('filter');
+    const text = (q.get('q') ?? '').trim().toLowerCase();
+    const page = Math.max(1, Number.parseInt(q.get('page') ?? '1', 10) || 1);
+    const size = Math.min(100, Math.max(1, Number.parseInt(q.get('pageSize') ?? '20', 10) || 20));
+    const matches = deployments.filter(
+        (d) => (!filter || d.result === filter) && (!text || `${d.id} ${d.service}`.includes(text))
+    );
+    return {
+        hubApi: 0,
+        rows: matches.slice((page - 1) * size, page * size).map((d) => [d.id, d.service, { badge: d.result, tone: deploymentTone[d.result] }]),
+        total: matches.length,
+    };
+}
 
 export function route(method, url, body) {
     const q = url.searchParams;
     if (method === 'GET' && url.pathname === '/screen') {
-        // `status` is a view parameter of the screen. Hub keeps it in the URL, so a return from an architecture restores it.
-        const status = q.get('status') ?? undefined;
         const resource = q.get('namespace') && `${q.get('namespace')} / ${q.get('resourceType')} / ${q.get('resourceId')} ${q.get('version')}`;
         return screen('Releases', [
             ...(resource ? [{ type: 'alert', tone: 'info', text: `Releases that change ${resource}.` }] : []),
@@ -54,13 +88,22 @@ export function route(method, url, body) {
                 { label: 'Mean lead time', value: '2.1 days' },
                 { label: 'Open reviews', value: reviews },
             ] },
-            { type: 'links', items: [
-                { label: 'All', screen: SELF },
-                { label: 'In progress', screen: { ...SELF, params: { status: 'in-progress' } } },
-                { label: 'Released', screen: { ...SELF, params: { status: 'released' } } },
-                { label: 'Rolled back', screen: { ...SELF, params: { status: 'rolled-back' } } },
+            { type: 'stats', items: [
+                releaseTile('All releases'),
+                releaseTile('In progress', 'in-progress'),
+                releaseTile('Released', 'released'),
+                releaseTile('Rolled back', 'rolled-back'),
             ] },
-            { type: 'table', columns: ['Version', 'Status', 'Date', 'Component'], rows: screenRows(status) },
+            { type: 'table', id: 'releases', columns: ['Version', 'Status', 'Date', 'Component', 'Owner'], rows: screenRows(),
+                search: { label: 'Filter by version or owner', columns: ['Version', 'Owner'] } },
+            { type: 'markdown', text: '### Deployments' },
+            { type: 'stats', items: [
+                deploymentTile('All deployments'),
+                deploymentTile('Failed', 'failed'),
+                deploymentTile('Rolled back', 'rolled-back'),
+            ] },
+            { type: 'table', id: 'deployments', columns: ['Deployment', 'Service', 'Result'], rows: [],
+                search: { label: 'Filter by deployment or service' }, source: { route: 'deployments', pageSize: 5 } },
             { type: 'markdown', text: '### How releases work\nEach release goes through **review**, **canary** and **full rollout**. A rollback opens an incident automatically.' },
             { type: 'links', items: [
                 { label: 'Release runbook', href: 'https://example.org/runbooks/release' },
@@ -86,6 +129,7 @@ export function route(method, url, body) {
                 { label: 'Version', value: q.get('version') ?? '?' },
                 { label: 'Current release', value: '2.4.0 (rolling out)' },
                 { label: 'Change freeze', value: 'None' },
+                { label: 'Open reviews', value: reviews },
             ] },
             { type: 'table', columns: ['Version', 'Status', 'Date', 'Owner'], rows: releaseRows() },
             { type: 'links', items: [
@@ -125,6 +169,9 @@ export function route(method, url, body) {
     if (method === 'POST' && url.pathname === '/reviews') {
         reviews += 1;
         return { hubApi: 0, ok: true, review: reviews, context: body };
+    }
+    if (method === 'GET' && url.pathname === '/deployments') {
+        return deploymentPage(q);
     }
     if (method === 'GET' && url.pathname === '/releases') {
         return { releases: releases.map(({ version, status, date }) => ({ version, status, date })) };

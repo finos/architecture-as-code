@@ -44,11 +44,15 @@ test('every GET route that a UI contribution names is readOnly', () => {
     for (const route of gets) assert.equal(route.readOnly, true, route.id);
 });
 
-test('the screen filters by its status parameter and links each release to its component', () => {
-    const table = get('/screen?status=released').blocks.find((block) => block.type === 'table');
+test('the screen links each release to its component and declares a status filter', () => {
+    const { blocks } = get('/screen');
+    const table = blocks.find((block) => block.id === 'releases');
+    const filter = blocks.filter((block) => block.type === 'stats').flatMap((block) => block.items)
+        .find((item) => item.filter?.id === 'released').filter;
+    const rows = table.rows.filter((row) => row[table.columns.indexOf(filter.column)].badge === filter.value);
 
-    assert.deepEqual(table.rows.map((row) => row[0]), ['2.3.1', '2.2.0']);
-    assert.deepEqual(table.rows[0][3], {
+    assert.deepEqual(rows.map((row) => row[0]), ['2.3.1', '2.2.0']);
+    assert.deepEqual(rows[0][3], {
         label: 'web-app',
         hub: { namespace: 'demo', type: 'architectures', id: '1', version: '1.0.0', element: 'web-app' },
     });
@@ -62,4 +66,30 @@ test('the designer tab links to the screen for the same resource and element', (
         screen: 'releases',
         context: { namespace: 'demo', type: 'architectures', id: '1', version: '1.0.0', element: 'web-app' },
     });
+});
+
+test('each screen tile filter selects as many rows as its figure', () => {
+    const { blocks } = get('/screen');
+    const tables = new Map(blocks.filter((b) => b.type === 'table' && b.id).map((b) => [b.id, b]));
+    const tiles = blocks.filter((b) => b.type === 'stats').flatMap((b) => b.items).filter((item) => item.filter);
+    assert.equal(tiles.length, 7);
+    for (const { label, value, filter } of tiles) {
+        const table = tables.get(filter.table);
+        assert.ok(table, label);
+        const total = table.source
+            ? get(`/deployments?${filter.id ? `filter=${filter.id}&` : ''}pageSize=100`).total
+            : table.rows.filter((row) => !filter.id || row[table.columns.indexOf(filter.column)].badge === filter.value).length;
+        assert.equal(total, value, label);
+    }
+});
+
+test('the deployments route filters the whole dataset, then returns one page', () => {
+    assert.equal(manifest.routes.find((r) => r.id === 'deployments').readOnly, true);
+    const failed = get('/deployments?filter=failed&page=1&pageSize=3');
+    assert.equal(failed.total, 4);
+    assert.deepEqual(failed.rows.map((row) => row[0]), ['deploy-003', 'deploy-009', 'deploy-014']);
+    assert.deepEqual(get('/deployments?filter=failed&page=2&pageSize=3').rows.map((row) => row[0]), ['deploy-020']);
+
+    const search = get('/deployments?filter=failed&q=user-service&pageSize=3');
+    assert.deepEqual([search.total, search.rows.map((row) => row[0])], [2, ['deploy-009', 'deploy-014']]);
 });

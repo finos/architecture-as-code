@@ -2,6 +2,7 @@ import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useSt
 import { ExtensionSummary } from '../model/extensions.js';
 import { ExtensionRegistryError, ExtensionService } from '../service/extension-service.js';
 import { ActionRuns, ActionRunsContext } from './actionRuns.js';
+import { ExtensionRefresh, ExtensionRefreshContext } from './extensionRefresh.js';
 
 export type ExtensionsStatus = 'loading' | 'loaded' | 'failed' | 'signed-out';
 
@@ -28,6 +29,7 @@ export function ExtensionsProvider({ children, service }: { children: ReactNode;
     // The failures in a row for one service. A success or a new service starts the backoff again.
     const failures = useRef({ service: svc, count: 0 });
     const [runs] = useState(() => new ActionRuns());
+    const [refresh] = useState(() => new ExtensionRefresh());
     // A new service has its own registry: show loading, not the list of the old one.
     const current = state.service === svc ? state : { service: svc, extensions: [], status: 'loading' as const };
 
@@ -61,9 +63,11 @@ export function ExtensionsProvider({ children, service }: { children: ReactNode;
     return (
         <ExtensionServiceContext.Provider value={svc}>
             <ActionRunsContext.Provider value={runs}>
-                <ExtensionsStatusContext.Provider value={current.status}>
-                    <ExtensionsContext.Provider value={current.extensions}>{children}</ExtensionsContext.Provider>
-                </ExtensionsStatusContext.Provider>
+                <ExtensionRefreshContext.Provider value={refresh}>
+                    <ExtensionsStatusContext.Provider value={current.status}>
+                        <ExtensionsContext.Provider value={current.extensions}>{children}</ExtensionsContext.Provider>
+                    </ExtensionsStatusContext.Provider>
+                </ExtensionRefreshContext.Provider>
             </ActionRunsContext.Provider>
         </ExtensionServiceContext.Provider>
     );

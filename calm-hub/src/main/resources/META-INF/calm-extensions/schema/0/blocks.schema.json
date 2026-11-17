@@ -83,6 +83,9 @@
                         "string",
                         "number"
                       ]
+                    },
+                    "filter": {
+                      "$ref": "#/$defs/statFilter"
                     }
                   },
                   "required": [
@@ -105,6 +108,10 @@
               "type": {
                 "const": "table"
               },
+              "id": {
+                "description": "Names the table, so that a stat filter can select it. Unique in the reply. CALM Hub keeps the filters of the table in the screen URL as <id>.filter, <id>.q and <id>.page.",
+                "$ref": "#/$defs/tableId"
+              },
               "columns": {
                 "type": "array",
                 "items": {
@@ -119,6 +126,43 @@
                     "$ref": "#/$defs/cell"
                   }
                 }
+              },
+              "search": {
+                "description": "Shows a text filter for the rows. It combines with the stat filter: a row must match both.",
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "columns": {
+                    "description": "The columns that the text filter searches. Default: all columns.",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              "source": {
+                "description": "Loads the rows one page at a time from a GET route with readOnly, which filters the whole dataset. CALM Hub sends the context and filter, q, page and pageSize in the query; the route replies with $defs/tableRowsReply. Without a source, rows are the whole dataset and CALM Hub filters them in the browser. A CALM Hub that does not read source shows rows.",
+                "type": "object",
+                "properties": {
+                  "route": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$"
+                  },
+                  "pageSize": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20
+                  }
+                },
+                "required": [
+                  "route"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
@@ -460,6 +504,71 @@
           "$ref": "#/$defs/link"
         }
       ]
+    },
+    "tableId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$"
+    },
+    "statFilter": {
+      "description": "Makes the tile a button that filters the table with this id in the same reply. A tile without id shows all rows. For a table with rows, column and value select the rows whose cell in column shows value. For a table with a source, CALM Hub sends id as the filter query parameter. The tile value stays the figure of the extension.",
+      "type": "object",
+      "properties": {
+        "table": {
+          "$ref": "#/$defs/tableId"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "column": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "table"
+      ],
+      "dependentRequired": {
+        "column": [
+          "id",
+          "value"
+        ],
+        "value": [
+          "column"
+        ]
+      },
+      "additionalProperties": false
+    },
+    "tableRowsReply": {
+      "description": "The reply of a table source route: one page of rows, and total, the number of rows that match the filters.",
+      "type": "object",
+      "properties": {
+        "hubApi": {
+          "const": 0
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cell"
+            }
+          }
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "hubApi",
+        "rows",
+        "total"
+      ],
+      "additionalProperties": false
     }
   }
 }
