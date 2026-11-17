@@ -11,11 +11,13 @@ export const EXTENSION_FILTER_THRESHOLD = 5;
 
 interface ExtensionsTabPanelProps {
     context: ExtensionContext;
+    /** The extension that a link names (`?extension=`). Its section opens. */
+    linkedExtension?: string;
     storage?: Storage;
 }
 
 /** The Extensions tab of an architecture or pattern: per extension, its actions and then its designer tabs. */
-export function ExtensionsTabPanel({ context, storage }: ExtensionsTabPanelProps) {
+export function ExtensionsTabPanel({ context, linkedExtension, storage }: ExtensionsTabPanelProps) {
     const entries = resourceExtensions(useExtensions(), context);
     const [filter, setFilter] = useState('');
     const baseId = useId();
@@ -46,6 +48,7 @@ export function ExtensionsTabPanel({ context, storage }: ExtensionsTabPanelProps
                 <ExtensionSections
                     storageKey={EXTENSIONS_TAB_SECTIONS_KEY}
                     defaultOpenId={entries[0]?.extension.id}
+                    linkedId={linkedExtension}
                     storage={storage}
                     sections={shown.map(({ extension, actions, needsSelection, tabs, tabsNeedSelection }, index) => ({
                         id: extension.id,

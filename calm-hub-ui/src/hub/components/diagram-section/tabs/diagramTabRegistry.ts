@@ -59,6 +59,14 @@ export function lensGroups<T extends DiagramLens>(lenses: readonly T[]): { built
 }
 
 export const DEFAULT_DIAGRAM_TAB_ID = 'diagram';
+export const EXTENSIONS_TAB_ID = 'extensions';
+/** `?extension=<id>` opens the section of that extension in the Extensions tab and the node details. */
+export const EXTENSION_PARAM = 'extension';
+/**
+ * `?exact=1` opens the version in the URL as it is. Without it, the latest version of an architecture with a timeline
+ * opens the timeline's current moment. Typed Hub links and returns add it, so a copied link or a new tab keeps it.
+ */
+export const EXACT_VERSION_PARAM = 'exact';
 export const DEFAULT_DIAGRAM_LENS_ID = 'calm';
 export const JSON_LENS_ID = 'json';
 export const LENS_PARAM = 'lens';

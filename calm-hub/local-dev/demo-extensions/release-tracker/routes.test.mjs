@@ -43,3 +43,23 @@ test('every GET route that a UI contribution names is readOnly', () => {
     assert.ok(gets.length >= 4);
     for (const route of gets) assert.equal(route.readOnly, true, route.id);
 });
+
+test('the screen filters by its status parameter and links each release to its component', () => {
+    const table = get('/screen?status=released').blocks.find((block) => block.type === 'table');
+
+    assert.deepEqual(table.rows.map((row) => row[0]), ['2.3.1', '2.2.0']);
+    assert.deepEqual(table.rows[0][3], {
+        label: 'web-app',
+        hub: { namespace: 'demo', type: 'architectures', id: '1', version: '1.0.0', element: 'web-app' },
+    });
+});
+
+test('the designer tab links to the screen for the same resource and element', () => {
+    const reply = get('/tab/architectures/1?namespace=demo&version=1.0.0&selectedElement=web-app');
+
+    assert.deepEqual(reply.blocks.at(-1).items[0].screen, {
+        extension: 'release-tracker',
+        screen: 'releases',
+        context: { namespace: 'demo', type: 'architectures', id: '1', version: '1.0.0', element: 'web-app' },
+    });
+});

@@ -246,6 +246,8 @@ class TestExtensionManifestLoaderShould {
     void reject_a_lens_param_with_a_reserved_name_a_bad_pattern_or_a_default_it_does_not_allow() {
         JsonObject params = new JsonObject()
                 .put("node", new JsonObject().put("values", new JsonArray().add("a")))
+                .put("extension", new JsonObject().put("values", new JsonArray().add("a")))
+                .put("exact", new JsonObject().put("values", new JsonArray().add("1")))
                 .put("level", new JsonObject().put("values", new JsonArray().add("context")).put("default", "container"))
                 .put("scope", new JsonObject().put("pattern", "^[a-z]+$").put("default", "Shop"))
                 .put("depth", new JsonObject().put("pattern", "(["));
@@ -254,6 +256,8 @@ class TestExtensionManifestLoaderShould {
                 () -> loader.parse(withLens(lens("c4").put("params", params)).encode(), ID, "test"));
 
         assertThat(e.getMessage(), containsString("param 'node' is reserved by CALM Hub"));
+        assertThat(e.getMessage(), containsString("param 'extension' is reserved by CALM Hub"));
+        assertThat(e.getMessage(), containsString("param 'exact' is reserved by CALM Hub"));
         assertThat(e.getMessage(), containsString("param 'level' default is not one of its values"));
         assertThat(e.getMessage(), containsString("param 'scope' default does not match its pattern"));
         assertThat(e.getMessage(), containsString("param 'depth' pattern is not a valid regular expression"));

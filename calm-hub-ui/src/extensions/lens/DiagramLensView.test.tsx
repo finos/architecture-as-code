@@ -1,10 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExtensionSummary } from '../../model/extensions.js';
 import type { DiagramLensContribution, Notation } from '../../model/lens.js';
 import { ExtensionCallError, ExtensionService } from '../../service/extension-service.js';
 import core from '../../../../calm-hub/src/main/resources/META-INF/calm-extensions/notations/core.json' with { type: 'json' };
+import { isExactVersion } from '../../navigation/returnPoints.js';
 import { DiagramLensView, type DiagramLensViewProps } from './DiagramLensView.js';
 
 const lens: DiagramLensContribution = {
@@ -75,6 +76,30 @@ describe('DiagramLensView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Payments' }));
         expect(onSelectElement).toHaveBeenCalledWith('payments');
         expect(onSelectElement).toHaveBeenCalledTimes(1);
+    });
+
+    // A timeline moves a landing on the latest version to its current moment, unless the navigation names the version.
+    it('opens the exact version and node that a Hub link of a node names', async () => {
+        const linked = { ...reply, graph: { ...reply.graph, nodes: [{ id: 'ledger', label: 'Ledger', link: { hub: { namespace: 'finos', type: 'architectures', id: 'ledger', version: '2.0.0', element: 'api' } } }], edges: [] } };
+        call.mockResolvedValue(linked);
+        function Opened() {
+            const location = useLocation();
+            return <p data-testid="opened">{`${location.pathname}${location.search} ${isExactVersion(location)}`}</p>;
+        }
+        const props: DiagramLensViewProps = {
+            extension, lens, context: { namespace: 'finos', resourceType: 'architectures', resourceId: 'shop', version: '1.0.0' },
+            params: {}, onParamsChange: vi.fn(), onSelectElement: vi.fn(),
+        };
+        render(
+            <MemoryRouter initialEntries={['/finos/architectures/shop/1.0.0']}>
+                <Routes>
+                    <Route path="/finos/architectures/shop/1.0.0" element={<DiagramLensView {...props} />} />
+                    <Route path="/finos/architectures/ledger/2.0.0" element={<Opened />} />
+                </Routes>
+            </MemoryRouter>
+        );
+        fireEvent.click(await screen.findByRole('button', { name: 'Ledger' }));
+        expect(screen.getByTestId('opened')).toHaveTextContent('/finos/architectures/ledger/2.0.0?node=api&exact=1 true');
     });
 
     it('marks a selection with no new request when the route does not take it', async () => {

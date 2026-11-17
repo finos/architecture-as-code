@@ -490,6 +490,12 @@ from; it fails if there is none.
 - `ExtensionHubData` builds the body of a `hubData` route, with the scope of the caller: the document, detailed
   architectures in the same namespace only, and conventions only where `permissions.canRead` allows. The proxy
   replaces the caller's body with it before it signs, so `bdh` covers it. Keep both limits (`MAX_*`).
+- `ExtensionDestinations` checks a link that Hub passes on to the UI (a search result, a chat citation) against
+  `blocks.schema.json` `$defs/destination` or `$defs/link`, then the limits that the schema cannot express: 8 screen
+  params and 12 table keys counted apart, 2048 form-encoded characters to the screen route, no control character
+  or lone surrogate, and an `href` whose host and port a browser accepts (an IDN host goes through `IDN.toASCII`).
+  The schema and the UI count lengths in code points. It returns the namespaces that the caller must READ-check. calm-hub-ui
+  `navigation/destinations.ts` has the same limits; change both together
 - `send-identity=false` (`RegisteredExtension.sendsIdentity`) skips the assertion for an open service. The registry
   allows it only when every route is `GET` or `readOnly`, so no audited call goes out without a `jti`.
 - Try it: see `local-dev/extensions/example-services/README.md`. `local-dev/demo-extensions/` holds a demo

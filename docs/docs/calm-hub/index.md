@@ -184,6 +184,7 @@ The Hub UI shows the contributions of an extension, the CLI runs its commands (s
 | [Build and install an extension](../tutorials/advanced/hub-extension.md) | Follow a tutorial from the manifest to the UI, CLI and MCP |
 | [Extension points](extension-points.md) | Find the fields, the context and the limits of each extension point and of commands |
 | [Extension blocks](extension-blocks.md) | Write the JSON that the UI draws |
+| [Extension navigation](extension-navigation.md) | Link to an architecture, a node or an extension screen, and return to the same place |
 | [Decorator views](decorator-views.md) | Draw decorators on the diagram, with no backend |
 | [The C4 extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/c4) | See a diagram lens with its own notation, run as a sidecar |
 | [The ea-layers extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/ea-layers) | See a smaller diagram lens, in the ArchiMate® notation |
@@ -406,4 +407,4 @@ No routes or backend URL are needed. See [Decorator views](decorator-views.md) f
 - [Developer Guide](./developer-guide.md) - test pyramid, storage extension points, running CALM Hub from any data source
 - [MCP & API Reference](./mcp-and-api.md) - Model Context Protocol tools, OpenAPI spec, Swagger UI
 - [Build and install an extension](../tutorials/advanced/hub-extension.md) - tutorial with the release-tracker demo extension
-- [Extension points](./extension-points.md), [Extension blocks](./extension-blocks.md), [Decorator views](./decorator-views.md), [Extension access](./extension-access.md) - extension reference
+- [Extension points](./extension-points.md), [Extension blocks](./extension-blocks.md), [Extension navigation](./extension-navigation.md), [Decorator views](./decorator-views.md), [Extension access](./extension-access.md) - extension reference
