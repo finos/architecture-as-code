@@ -4,7 +4,8 @@ import { expect, test } from '@playwright/test';
 // source and broke `calm validate -p`, which unit tests cannot see because they run unminified.
 test('calm validate -p runs in the production build', async ({ page }) => {
     await page.goto('/?lesson=intermediate-17');
-    await page.getByRole('button', { name: /Write the pattern/ }).click();
+    // The first incomplete step opens by itself: a click would close it.
+    await expect(page.getByRole('button', { name: /Write the pattern/ })).toHaveAttribute('aria-expanded', 'true');
     await page.getByRole('button', { name: 'Show hint' }).first().click();
     const pattern = await page.locator('pre').filter({ hasText: '"prefixItems"' }).first().innerText();
 
