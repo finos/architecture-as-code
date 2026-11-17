@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { NavLink } from 'react-router-dom';
-import { useExtensions } from '../../extensions/ExtensionsContext.js';
+import { useChatProvider, useExtensions } from '../../extensions/ExtensionsContext.js';
 import { extensionNavLinks } from '../../extensions/contributions.js';
 import { ExtensionLogo } from '../../extensions/ExtensionLogo.js';
 
@@ -17,8 +17,9 @@ interface ExtensionMenuGroupProps {
  */
 export function ExtensionMenuGroup({ linkClassName, onNavigate, heading }: ExtensionMenuGroupProps) {
     const id = useId();
+    const chat = useChatProvider();
     const groups = useExtensions()
-        .map((extension) => ({ extension, links: extensionNavLinks(extension) }))
+        .map((extension) => ({ extension, links: extensionNavLinks(extension, chat) }))
         .filter(({ links }) => links.length > 0);
     if (groups.length === 0) return null;
     return (

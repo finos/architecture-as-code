@@ -1,6 +1,6 @@
 # ADR 0011: Extension proxy request handling
 
-**Status**: Accepted. Built (#3707): route scopes, limits, audit and the check for auth off. Not built: streaming replies and their limits (a cap on concurrent streams, an idle-read timeout and a maximum stream duration). The proxy buffers each reply.
+**Status**: Accepted. Built (#3707): route scopes, limits, audit and the check for auth off. Built (#3803): streaming replies and their limits (a cap on concurrent streams, an idle-read timeout and a maximum stream duration). A reply streams only to a caller that accepts `text/event-stream`, and to the chat endpoint `/api/calm/extensions/<id>/chat/<entry>`, which `ReadOnlyRequestFilter` also exempts. Other replies are buffered.
 
 ## Context
 

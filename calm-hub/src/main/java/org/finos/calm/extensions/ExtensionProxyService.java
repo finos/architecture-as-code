@@ -44,6 +44,7 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -51,8 +52,9 @@ import java.util.regex.Pattern;
 /**
  * Calls an extension route for a caller (ADR 0011). The REST proxy and the MCP tools both use this
  * service, so that the same rules apply to each call. Hub builds a new request: no header from the
- * caller reaches the backend except the allow-listed ones, and the caller's token never does. The
- * reply is buffered; streaming is not supported yet.
+ * caller reaches the backend except the allow-listed ones, and the caller's token never does. A
+ * {@code text/event-stream} reply streams to a caller that accepts it, and to each chat call; any other reply is
+ * buffered.
  */
 @ApplicationScoped
 public class ExtensionProxyService {
@@ -72,8 +74,10 @@ public class ExtensionProxyService {
     private final AuditService auditService;
     private final ExtensionHubData hubData;
     private final String authMode;
+    private final ExtensionChat chat;
     private final Map<String, HttpClient> clients = new ConcurrentHashMap<>();
     private final Map<String, Semaphore> concurrentCalls = new ConcurrentHashMap<>();
+    private final Map<String, Semaphore> concurrentStreams = new ConcurrentHashMap<>();
 
     @Inject
     public ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer,
@@ -95,6 +99,7 @@ public class ExtensionProxyService {
         this.auditService = auditService;
         this.hubData = hubData;
         this.authMode = authMode;
+        this.chat = new ExtensionChat(permissions, hubData);
     }
 
     /** The {@code auth} claim: how Hub knows who the caller is. */
@@ -113,33 +118,70 @@ public class ExtensionProxyService {
         authorise(identity, request, null);
     }
 
-    /**
-     * Throws {@link ExtensionProxyException} when Hub refuses the call or the backend fails. Refuses a route that a
-     * dedicated Hub endpoint owns ({@link ExtensionManifest#dedicatedRoutes()}), so a caller cannot skip its checks.
-     */
+    /** Throws {@link ExtensionProxyException} when Hub refuses the call or the backend fails. */
     public ExtensionProxyResponse call(SecurityIdentity identity, ExtensionProxyRequest request) {
-        return call(identity, request, null, null);
+        return call(identity, request, null, null, null);
     }
 
     /**
-     * {@link #call} from the dedicated endpoint that owns {@code routeId}. The request path must match that route.
-     * Hub calls {@code body} after the scope check, in place of reading the request body, so a caller with no scope
-     * cannot learn from the checks of the endpoint, and a refusal that it throws is audited as for any other call.
+     * Calls the route owned by a dedicated endpoint. Builds its body after the scope and concurrency checks;
+     * validation refusals are audited before anything is sent.
      */
     public ExtensionProxyResponse callDedicated(SecurityIdentity identity, ExtensionProxyRequest request, String routeId,
                                                 Supplier<byte[]> body) {
-        return call(identity, request, routeId, body);
+        return call(identity, request, routeId, body, null);
     }
 
+    /**
+     * Sends a chat message to the route of a {@code chat} entry and streams the reply (hubApi 0 chat contract). Hub
+     * checks the message and its context, builds the body, and passes back only the citations that the caller can open.
+     */
+    public ExtensionProxyResponse chat(SecurityIdentity identity, String extensionId, String entryId, String contentType,
+                                       String acceptLanguage, InputStream body) {
+        RegisteredExtension extension = registry.find(extensionId)
+                .orElseThrow(() -> new ExtensionProxyException(404, "There is no such extension"));
+        List<ExtensionManifest.RouteContribution> entries = extension.manifest().contributes().chat();
+        ExtensionManifest.Route route = (entries == null ? List.<ExtensionManifest.RouteContribution>of() : entries).stream()
+                .filter(entry -> entry.id().equals(entryId))
+                .findFirst()
+                .flatMap(entry -> extension.manifest().route(entry.route()))
+                .orElseThrow(() -> new ExtensionProxyException(404, "The extension has no such chat"));
+        ExtensionProxyRequest request = new ExtensionProxyRequest(extensionId, "POST", route.path(), null, contentType,
+                "text/event-stream", acceptLanguage, null);
+        int maxBytes = extension.limits().maxRequestBytes();
+        Supplier<byte[]> message = () -> {
+            byte[] built = chat.body(identity, readBody(body, maxBytes));
+            if (built.length > maxBytes) {
+                throw new ExtensionProxyException(413, "The conversation and its shared context are too large for "
+                        + "this extension. Start a new conversation, or share no context");
+            }
+            return built;
+        };
+        return call(identity, request, route.id(), message,
+                new ExtensionEventStream.Policy(chat.citations(identity), ExtensionChat.TERMINAL_EVENTS));
+    }
+
+    /**
+     * The one path for every call. {@code dedicatedRoute} is the route that a dedicated Hub endpoint calls, or null for
+     * the generic proxy and MCP. {@code body} builds the JSON body of a dedicated call; Hub calls it after the scope
+     * check and the concurrency limits, so a refusal in it is a FAILURE with no jti, and caps what it builds at
+     * max-request-bytes. Without it, Hub sends the caller's body. {@code stream} is null when the caller chooses an event stream with Accept; otherwise the backend must
+     * reply with one, and the policy filters and ends it.
+     */
     private ExtensionProxyResponse call(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute,
-                                        Supplier<byte[]> dedicatedBody) {
+                                        Supplier<byte[]> build, ExtensionEventStream.Policy streamPolicy) {
         Access access = authorise(identity, request, dedicatedRoute);
         RegisteredExtension extension = access.extension();
         ExtensionManifest.Route route = access.route();
         String method = access.method();
         ExtensionLimits limits = extension.limits();
         Semaphore calls = concurrentCalls.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentCalls()));
+        Semaphore streams = concurrentStreams.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentStreams()));
+        boolean stream = streamPolicy != null || acceptsEventStream(request.accept());
         boolean acquired = false;
+        boolean streamAcquired = false;
+        AtomicReference<ExtensionEventStream> opened = new AtomicReference<>();
+        ExtensionProxyResponse reply = null;
         // A refusal after the scope check is a FAILURE with no jti: Hub sent nothing to the backend.
         AuditOutcome outcome = AuditOutcome.FAILURE;
         String sentJti = null;
@@ -147,8 +189,7 @@ public class ExtensionProxyService {
             String query = ExtensionPaths.canonicalQuery(request.rawQuery());
             String pathAndQuery = query.isEmpty() ? access.path() : access.path() + "?" + query;
             URI target = ExtensionPaths.resolve(access.backend(), pathAndQuery);
-            byte[] body = dedicatedBody == null ? readBody(request.body(), limits.maxRequestBytes())
-                    : capped(dedicatedBody.get(), limits.maxRequestBytes());
+            byte[] body = readBody(request.body(), limits.maxRequestBytes());
             if (!acceptsContentType(method, body, request.contentType())) {
                 throw new ExtensionProxyException(415, "The request must be JSON");
             }
@@ -160,6 +201,15 @@ public class ExtensionProxyService {
                 throw new ExtensionProxyException(503, "The extension is busy. Try again later",
                         Map.of("Retry-After", "1"));
             }
+            if (stream) {
+                streamAcquired = streams.tryAcquire();
+                if (!streamAcquired) {
+                    LOG.warn("Extension {} has {} streams open, so Hub refused one more", extension.id(),
+                            limits.maxConcurrentStreams());
+                    throw new ExtensionProxyException(503, "The extension is busy. Try again later",
+                            Map.of("Retry-After", "1"));
+                }
+            }
             String contentType = request.contentType();
             if (route.sendsHubData()) {
                 // Hub sends what it read for the caller, never the caller's body, so the extension can trust it.
@@ -170,6 +220,14 @@ public class ExtensionProxyService {
                             + "The operator can raise its max-request-bytes");
                 }
             }
+            if (build != null) {
+                body = build.get();
+                contentType = "application/json";
+                if (body.length > limits.maxRequestBytes()) {
+                    throw new ExtensionProxyException(413, "The request is too large for this extension. "
+                            + "The operator can raise its max-request-bytes");
+                }
+            }
             String jti = extension.sendsIdentity() ? UUID.randomUUID().toString() : null;
             String assertion = jti == null ? null : signer.sign(new ExtensionAssertion(identity.getPrincipal().getName(),
                     extension.id(), jti, authMode, extension.manifest().hubApi(), route.id(), route.scope(),
@@ -177,13 +235,31 @@ public class ExtensionProxyService {
             HttpRequest outbound = outboundRequest(request, contentType, method, target, body, limits, assertion);
             outcome = AuditOutcome.UNKNOWN;
             sentJti = jti;
-            ExtensionProxyResponse reply = send(extension, route, outbound);
+            ExtensionEventStream.Policy policy = streamPolicy != null ? streamPolicy
+                    : new ExtensionEventStream.Policy(event -> true, Set.of());
+            HttpResponse.BodyHandler<Object> handler = info -> {
+                if (stream && isEventStream(info)) {
+                    ExtensionEventStream opening = new ExtensionEventStream(extension.id(), route.id(), limits,
+                            policy.events(), policy.terminal(), streams::release);
+                    opened.set(opening);
+                    return HttpResponse.BodySubscribers.mapping(opening, s -> s);
+                }
+                return HttpResponse.BodySubscribers.mapping(new CappedBodySubscriber(limits.maxResponseBytes()), b -> b);
+            };
+            reply = send(extension, route, outbound, handler, streamPolicy != null);
             outcome = reply.status() < 400 ? AuditOutcome.SUCCESS
                     : reply.status() == 401 || reply.status() == 403 ? AuditOutcome.DENIED : AuditOutcome.FAILURE;
             return reply;
         } finally {
             if (acquired) {
                 calls.release();
+            }
+            // An open stream frees its own slot when it closes. A stream that Hub does not pass on closes here.
+            ExtensionEventStream started = opened.get();
+            if (started != null && (reply == null || reply.stream() != started)) {
+                started.close();
+            } else if (started == null && streamAcquired) {
+                streams.release();
             }
             if (!route.readOnly()) {
                 audit(identity, method, extension, route, access.namespace(), access.domain(), sentJti, outcome,
@@ -196,7 +272,10 @@ public class ExtensionProxyService {
                           ExtensionManifest.Route route, String namespace, String domain, Map<String, String> parameters) {
     }
 
-    /** {@code dedicatedRoute} is the route of the dedicated endpoint that calls, or null for the generic proxy and MCP. */
+    /**
+     * {@code dedicatedRoute} is the route that a dedicated Hub endpoint calls, or null for the generic proxy and MCP. A
+     * dedicated route answers only its endpoint, so the checks of that endpoint cannot be skipped.
+     */
     private Access authorise(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute) {
         RegisteredExtension extension = registry.find(request.extensionId())
                 .orElseThrow(() -> new ExtensionProxyException(404, "There is no such extension"));
@@ -210,7 +289,6 @@ public class ExtensionProxyService {
                 ExtensionRouteMatcher.match(extension.manifest(), method, path, accepted);
         ExtensionRouteMatcher.rejectEncodedLiterals(match, request.path());
         ExtensionManifest.Route route = match.route();
-        // A dedicated endpoint checks its own input first, so only that endpoint may call its route.
         boolean dedicated = extension.manifest().dedicatedRoutes().contains(route.id());
         if (dedicatedRoute == null ? dedicated : !route.id().equals(dedicatedRoute)) {
             throw new ExtensionProxyException(404, "Call this extension route through its CALM Hub endpoint");
@@ -318,11 +396,11 @@ public class ExtensionProxyService {
         }
     }
 
-    private ExtensionProxyResponse send(RegisteredExtension extension, ExtensionManifest.Route route, HttpRequest outbound) {
+    private ExtensionProxyResponse send(RegisteredExtension extension, ExtensionManifest.Route route, HttpRequest outbound,
+                                        HttpResponse.BodyHandler<Object> handler, boolean streamRequired) {
         ExtensionLimits limits = extension.limits();
-        HttpResponse.BodyHandler<byte[]> capped = info -> new CappedBodySubscriber(limits.maxResponseBytes());
-        CompletableFuture<HttpResponse<byte[]>> future = client(extension).sendAsync(outbound, capped);
-        HttpResponse<byte[]> response;
+        CompletableFuture<HttpResponse<Object>> future = client(extension).sendAsync(outbound, handler);
+        HttpResponse<Object> response;
         try {
             // The request timeout covers the reply headers only, so the whole call has its own limit.
             response = future.get(limits.requestTimeout().toMillis(), TimeUnit.MILLISECONDS);
@@ -340,18 +418,29 @@ public class ExtensionProxyService {
             Thread.currentThread().interrupt();
             throw badGateway();
         }
-        return reply(extension, route, response);
+        return reply(extension, route, response, streamRequired);
     }
 
     private static ExtensionProxyResponse reply(RegisteredExtension extension, ExtensionManifest.Route route,
-                                                HttpResponse<byte[]> response) {
+                                                HttpResponse<Object> response, boolean streamRequired) {
         int status = response.statusCode();
+        if (response.body() instanceof ExtensionEventStream stream) {
+            // Each event goes out when it arrives, so a reverse proxy must not buffer the reply.
+            return new ExtensionProxyResponse(status, Map.of("Content-Type", "text/event-stream; charset=utf-8",
+                    "Cache-Control", "private, no-store", "X-Accel-Buffering", "no"), new byte[0], stream);
+        }
+        byte[] body = (byte[]) response.body();
+        if (streamRequired && status >= 200 && status < 300) {
+            LOG.warn("Extension {} route {} returned status {} without the event stream that its Hub endpoint needs",
+                    extension.id(), route.id(), status);
+            throw badGateway();
+        }
         // A 401 or 407 would start a login in the caller. Hub never passes on Location, because it names the
         // private backend, so a redirect cannot be followed; a 304 needs none.
         boolean passOn = (status >= 200 && status < 300) || status == 304
                 || (status >= 400 && status < 500 && status != 401 && status != 407);
         String contentType = response.headers().firstValue("Content-Type").orElse(null);
-        boolean typeAllowed = contentType == null ? response.body().length == 0
+        boolean typeAllowed = contentType == null ? body.length == 0
                 : REPLY_TYPES.contains(mediaType(contentType)) || (status >= 400 && isJson(contentType));
         if (!passOn || !typeAllowed) {
             LOG.warn("Extension {} route {} returned status {} and content type {}, which Hub does not pass on",
@@ -364,7 +453,7 @@ public class ExtensionProxyService {
             response.headers().firstValue(name).ifPresent(value -> headers.put(name, value));
         }
         headers.put("Cache-Control", privateCacheControl(response.headers().firstValue("Cache-Control").orElse(null)));
-        return new ExtensionProxyResponse(status, headers, response.body());
+        return new ExtensionProxyResponse(status, headers, body);
     }
 
     /**
@@ -432,13 +521,6 @@ public class ExtensionProxyService {
         }
     }
 
-    private static byte[] capped(byte[] body, int maxBytes) {
-        if (body.length > maxBytes) {
-            throw new ExtensionProxyException(413, "The request body is too large for this extension");
-        }
-        return body;
-    }
-
     /**
      * JSON only, so that a cross-site request cannot reach a route with the user's identity. A POST
      * needs a JSON type also with no body: a cross-site form or a bodyless fetch needs no preflight.
@@ -455,6 +537,24 @@ public class ExtensionProxyService {
         }
         String type = mediaType(contentType);
         return type.equals("application/json") || (type.startsWith("application/") && type.endsWith("+json"));
+    }
+
+    /** A caller that names {@code text/event-stream} in {@code Accept} gets an event stream reply as it arrives. */
+    static boolean acceptsEventStream(String accept) {
+        if (accept == null) {
+            return false;
+        }
+        for (String range : accept.split(",")) {
+            if (mediaType(range).equals("text/event-stream")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isEventStream(HttpResponse.ResponseInfo info) {
+        return info.statusCode() >= 200 && info.statusCode() < 300 && info.headers().firstValue("Content-Type")
+                .map(ExtensionProxyService::mediaType).filter("text/event-stream"::equals).isPresent();
     }
 
     private static String mediaType(String contentType) {

@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ExtensionsContext } from '../../extensions/ExtensionsContext.js';
+import { ChatProviderContext, ExtensionsContext } from '../../extensions/ExtensionsContext.js';
 import { ExtensionScreenPage } from '../../extensions/ExtensionScreenPage.js';
-import type { ExtensionSummary } from '../../model/extensions.js';
+import type { ChatProviderRef, ExtensionSummary } from '../../model/extensions.js';
 import { ExtensionService } from '../../service/extension-service.js';
 import { fakeExtension, fakeExtensions, withScreens } from '../../test-support/fake-extensions.js';
 import { fakeImageAssets, logoSvg, svgDataUrl } from '../../test-support/fake-image-assets.js';
@@ -12,10 +12,14 @@ import { ExtensionMenuGroup } from './ExtensionMenuGroup.js';
 vi.mock('./Navbar.js', () => ({ Navbar: () => <nav>Navbar</nav> }));
 afterEach(() => vi.restoreAllMocks());
 
-function renderGroup(extensions: ExtensionSummary[], { heading, onNavigate }: { heading?: string; onNavigate?: () => void } = { heading: 'Extensions' }) {
+function renderGroup(
+    extensions: ExtensionSummary[],
+    { heading, onNavigate, chat }: { heading?: string; onNavigate?: () => void; chat?: ChatProviderRef } = { heading: 'Extensions' }
+) {
     render(
         <MemoryRouter>
             <ExtensionsContext.Provider value={extensions}>
+            <ChatProviderContext.Provider value={chat}>
                 <Routes>
                     <Route
                         path="/"
@@ -28,6 +32,7 @@ function renderGroup(extensions: ExtensionSummary[], { heading, onNavigate }: { 
                     />
                     <Route path="/extensions/:extensionId/:contributionId" element={<ExtensionScreenPage />} />
                 </Routes>
+            </ChatProviderContext.Provider>
             </ExtensionsContext.Provider>
         </MemoryRouter>
     );
@@ -141,6 +146,23 @@ describe('ExtensionMenuGroup', () => {
         renderGroup(fakeExtensions(1), { heading: 'Extensions', onNavigate });
         fireEvent.click(screen.getByRole('link'));
         expect(onNavigate).toHaveBeenCalled();
+    });
+
+    it('adds the chat link to the group of the selected chat provider only, also when it has no screen', () => {
+        renderGroup([fakeExtension(1), fakeExtension(2, ['chat']), fakeExtension(3, ['chat'])], {
+            heading: 'Extensions',
+            chat: { extension: 'ext-2', contribution: 'chat' },
+        });
+        expect(links(screen.getByRole('list', { name: 'Extensions' }))).toEqual([
+            ['screen 1', '/extensions/ext-1/screen'],
+            ['chat 2', '/chat'],
+        ]);
+        expect(screen.queryByText('Extension 3')).not.toBeInTheDocument();
+    });
+
+    it('adds no chat link when the selected chat entry is not in the registry', () => {
+        renderGroup([fakeExtension(2, ['chat'])], { heading: 'Extensions', chat: { extension: 'ext-2', contribution: 'gone' } });
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
 
     it('renders nothing without a screen', () => {

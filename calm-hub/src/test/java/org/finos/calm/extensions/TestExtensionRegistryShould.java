@@ -7,6 +7,7 @@ import io.smallrye.config.SmallRyeConfigBuilder;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.finos.calm.config.ExtensionsConfig;
+import org.finos.calm.domain.extensions.ChatProvider;
 import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -333,6 +334,75 @@ class TestExtensionRegistryShould {
         properties.remove("calm.extensions.\"team-services\".max-concurrent-calls");
         assertThat(registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().limits().maxConcurrentCalls(),
                 equalTo(32));
+    }
+
+    @Test
+    void read_the_stream_limits_with_their_defaults() throws IOException {
+        write("team-services", valid());
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-streams", "2");
+        properties.put("calm.extensions.http.stream-idle-timeout-seconds", "12");
+
+        ExtensionLimits limits = registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().limits();
+
+        assertThat(limits.maxConcurrentStreams(), equalTo(2));
+        assertThat(limits.streamIdleTimeout(), equalTo(Duration.ofSeconds(12)));
+        assertThat(limits.maxStreamDuration(), equalTo(Duration.ofSeconds(300)));
+    }
+
+    @Test
+    void have_no_chat_until_the_operator_chooses_one() throws IOException {
+        write("team-services", TestExtensionManifestLoaderShould.withChat());
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+
+        assertThat(registry(dir(), NO_BUILTINS).chatProvider(), equalTo(Optional.empty()));
+    }
+
+    @Test
+    void choose_the_chat_by_extension_id_or_by_extension_and_entry_id() throws IOException {
+        JsonObject manifest = TestExtensionManifestLoaderShould.withChat();
+        write("team-services", manifest);
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+        properties.put("calm.extensions.chat-provider", "team-services");
+
+        assertThat(registry(dir(), NO_BUILTINS).chatProvider().orElseThrow(),
+                equalTo(new ChatProvider("team-services", "atlas")));
+
+        manifest.getJsonArray("routes").add(TestExtensionManifestLoaderShould.route("chat-2", "POST", "/chat-2", "authenticated")
+                .put("readOnly", true));
+        manifest.getJsonObject("contributes").getJsonArray("chat").add(TestExtensionManifestLoaderShould.contribution("ops", "chat-2"));
+        write("team-services", manifest);
+        properties.put("calm.extensions.chat-provider", "team-services/ops");
+
+        assertThat(registry(dir(), NO_BUILTINS).chatProvider().orElseThrow(), equalTo(new ChatProvider("team-services", "ops")));
+    }
+
+    @Test
+    void refuse_a_chat_provider_that_names_no_chat_entry_of_an_enabled_extension() throws IOException {
+        JsonObject manifest = TestExtensionManifestLoaderShould.withChat();
+        manifest.getJsonArray("routes").add(TestExtensionManifestLoaderShould.route("chat-2", "POST", "/chat-2", "authenticated")
+                .put("readOnly", true));
+        manifest.getJsonObject("contributes").getJsonArray("chat").add(TestExtensionManifestLoaderShould.contribution("ops", "chat-2"));
+        write("team-services", manifest);
+        write("alpha", decoratorViewsOnly("alpha"));
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+
+        Map<String, String> refusals = Map.of(
+                "missing", "must name an enabled extension with a chat entry",
+                "alpha", "must name an enabled extension with a chat entry",
+                "team-services/atlas/x", "must name an enabled extension with a chat entry",
+                "team-services", "must name a chat entry of extension 'team-services', which has more than one",
+                "team-services/unknown", "names a chat entry that extension 'team-services' does not declare");
+        for (Map.Entry<String, String> refusal : refusals.entrySet()) {
+            properties.put("calm.extensions.chat-provider", refusal.getKey());
+            IllegalStateException e = assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS));
+            assertThat(refusal.getKey(), e.getMessage(), containsString(refusal.getValue()));
+        }
+
+        properties.put("calm.extensions.chat-provider", "team-services/atlas");
+        properties.put("calm.extensions.\"team-services\".enabled", "false");
+        assertThat(assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS)).getMessage(),
+                containsString("calm.extensions.chat-provider must name an enabled extension with a chat entry"));
     }
 
     @Test

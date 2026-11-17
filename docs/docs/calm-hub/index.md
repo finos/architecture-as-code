@@ -209,8 +209,12 @@ Put one folder for each extension in `calm.extensions.dir`, with an `extension.j
 | `calm.extensions."<id>".connect-timeout-seconds` | `calm.extensions.http.connect-timeout-seconds` (`5`) | The connect timeout for each call. A value below 1 stops start-up |
 | `calm.extensions."<id>".request-timeout-seconds` | `calm.extensions.http.request-timeout-seconds` (`10`) | The limit for the whole call. A slow backend gets `504`. A value below 1 stops start-up |
 | `calm.extensions."<id>".max-request-bytes` | `calm.extensions.http.max-request-bytes` (`1048576`) | A larger request body gets `413`. A value below 1 stops start-up |
-| `calm.extensions."<id>".max-response-bytes` | `calm.extensions.http.max-response-bytes` (`1048576`) | A larger reply gets `502`. A value below 1 stops start-up |
+| `calm.extensions."<id>".max-response-bytes` | `calm.extensions.http.max-response-bytes` (`1048576`) | A larger reply gets `502`. A larger streamed reply ends with an `error` event. A value below 1 stops start-up |
 | `calm.extensions."<id>".max-concurrent-calls` | `calm.extensions.http.max-concurrent-calls` (`32`) | The calls to the extension at the same time. One more call gets `503` with `Retry-After: 1`, so that a slow backend cannot hold every worker thread. A value below 1 stops start-up |
+| `calm.extensions."<id>".max-concurrent-streams` | `calm.extensions.http.max-concurrent-streams` (`8`) | The streamed replies from the extension at the same time. Each holds a worker thread until it ends. One more stream gets `503` with `Retry-After: 1`. A value below 1 stops start-up |
+| `calm.extensions."<id>".stream-idle-timeout-seconds` | `calm.extensions.http.stream-idle-timeout-seconds` (`30`) | The longest wait for the next part of a streamed reply. A value below 1 stops start-up |
+| `calm.extensions."<id>".max-stream-seconds` | `calm.extensions.http.max-stream-seconds` (`300`) | The longest time that a streamed reply stays open. A value below 1 stops start-up |
+| `calm.extensions.chat-provider` | not set | The [chat](extension-points.md#chat) that the Hub UI shows: `<extension-id>`, or `<extension-id>/<chat-entry-id>` for an extension with more than one `chat` entry. With no setting, there is no chat |
 | `calm.extensions.identity.private-key-location` | not set | The PKCS#8 PEM key that signs the identity assertion: RSA (2048 bits or more, RS256) or P-256 (ES256). Required when an enabled extension has routes. A shared secret (HS256) is refused |
 | `calm.extensions.identity.public-key-locations` | not set | Comma-separated PEM public keys for the JWKS. The first is the public key of the signing key. Required when `private-key-location` is set, and not allowed without it |
 | `calm.extensions.identity.ttl-seconds` | `60` | The lifetime of an assertion, at most `300` |
@@ -236,7 +240,7 @@ The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in 
 
 ### Extension logos
 
-An extension can show a logo beside its name: in the side menu, on its home page card, above the heading of its screens and in its sections of the **Extensions** tab and the node details. The name always shows as text. Without a logo, while the logo loads, or when the logo does not load, CALM Hub shows the generated marker of the extension.
+An extension can show a logo beside its name: in the side menu, on its home page card, above its screen heading, in the diagram-side inspector, and in search and chat. The name always shows as text. Without a logo, while the logo loads, or when the logo does not load, CALM Hub shows the generated marker of the extension.
 
 ```json
 "logo": { "light": "logo.svg", "dark": "logo-dark.svg" }
@@ -275,7 +279,9 @@ CALM Hub proxies each declared route at `/api/calm/extensions/<id>/api/<route pa
 - returns `502` or `504`, with a generic body, when the backend fails, is slow, replies with `5xx`, `401`, `407` or a `3xx` other than `304`, or sends another content type
 - audits every non-`readOnly` call, including `GET`, as entity type `EXTENSION` with the extension id, route id and assertion `jti`. The entry has the namespace only for a `read`, `write` or `admin` route, and the domain only for a `domain_*` route. Outcomes are `SUCCESS`, `DENIED`, `FAILURE` (a refusal after the scope check, such as `400`, `413`, `415` or `503`, or a returned client error), or `UNKNOWN` (an upstream failure or unusable reply; the backend may have completed the call). The entry has the `jti` only when CALM Hub sent the call, and the source IP (the `X-Forwarded-For` header of the REST or MCP request) when `calm.audit.capture-source-ip=true`
 
-Replies are buffered. Streaming is not supported yet.
+A `2xx` `text/event-stream` reply streams to a caller whose `Accept` names `text/event-stream`: CALM Hub sends each event on when it arrives, with only its `event` and `data` lines. Other replies are buffered. The stream limits are `max-concurrent-streams`, `stream-idle-timeout-seconds`, `max-stream-seconds` and `max-response-bytes`. At a limit, CALM Hub ends the stream with an `error` event. When the caller closes the stream, CALM Hub closes the connection to the backend. A `HEAD` request gets the headers of the stream, and CALM Hub then closes the stream at once.
+
+The route of a [`chat`](extension-points.md#chat) entry answers only at `/api/calm/extensions/<id>/chat/<entry>`. The proxy and MCP refuse it with `404`.
 
 A form route is not at this path: it gives `404` there. Hub calls it only from
 `POST /api/calm/extensions/<id>/forms/<form>`, after it checks the target and the input. That endpoint

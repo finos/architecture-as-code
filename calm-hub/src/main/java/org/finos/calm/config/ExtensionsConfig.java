@@ -25,6 +25,12 @@ public interface ExtensionsConfig {
     Optional<String> dir();
 
     /**
+     * The chat that Hub UI shows: {@code <extension-id>}, or {@code <extension-id>/<chat-entry-id>} for an extension
+     * with more than one chat entry. Hub never picks one itself.
+     */
+    Optional<String> chatProvider();
+
+    /**
      * The settings of each extension, {@code calm.extensions."<id>".*}. This map only declares the
      * keys, so that SmallRye does not reject them as unknown. {@code ExtensionRegistry} reads them by
      * full name, because SmallRye cannot map an environment variable to a map key with a dash.
@@ -64,6 +70,12 @@ public interface ExtensionsConfig {
         Optional<String> maxResponseBytes();
 
         Optional<String> maxConcurrentCalls();
+
+        Optional<String> maxConcurrentStreams();
+
+        Optional<String> streamIdleTimeoutSeconds();
+
+        Optional<String> maxStreamSeconds();
     }
 
     interface Identity {
@@ -98,5 +110,17 @@ public interface ExtensionsConfig {
         /** Calls to one extension at the same time, so that a slow backend cannot hold every worker thread. */
         @WithDefault("32")
         int maxConcurrentCalls();
+
+        /** Streamed replies from one extension at the same time. Each holds a worker thread until it ends. */
+        @WithDefault("8")
+        int maxConcurrentStreams();
+
+        /** The longest wait for the next part of a streamed reply. */
+        @WithDefault("30")
+        int streamIdleTimeoutSeconds();
+
+        /** The longest time that a streamed reply stays open. */
+        @WithDefault("300")
+        int maxStreamSeconds();
     }
 }

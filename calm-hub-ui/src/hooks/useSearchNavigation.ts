@@ -5,6 +5,7 @@ import { AdrService } from '../service/adr-service/adr-service.js';
 import { GroupedSearchResults, SearchResult } from '../model/search.js';
 import { pickLatestVersion } from '../model/version.js';
 import { useLinkState } from '../navigation/returnPoints.js';
+import { useOptionalChatSession } from '../extensions/chat/ChatSessionContext.js';
 
 export interface FlatResult {
     type: string;
@@ -57,6 +58,17 @@ interface UseSearchNavigationOptions {
  */
 export function useSearchNavigation({ calmService: calmServiceProp, adrService: adrServiceProp }: UseSearchNavigationOptions = {}) {
     const navigate = useNavigate();
+    const startSearch = useOptionalChatSession()?.startSearch;
+    const submitSearch = useCallback(
+        (query: string) => {
+            const text = query.trim();
+            if (!text) return;
+            // Explicit submission starts afresh even when the query equals the last search.
+            startSearch?.(text);
+            navigate({ pathname: '/search', search: `?q=${encodeURIComponent(text)}` });
+        },
+        [startSearch, navigate]
+    );
     // On a page with a return point, such as the search results, the opened page links back to it.
     const state = useLinkState();
     const calmService = useMemo(() => calmServiceProp ?? new CalmService(), [calmServiceProp]);
@@ -119,5 +131,5 @@ export function useSearchNavigation({ calmService: calmServiceProp, adrService: 
         [navigate, resolveLatestVersion, state]
     );
 
-    return { navigateToResult };
+    return { navigateToResult, submitSearch };
 }

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { IoSearchOutline, IoCloseOutline } from 'react-icons/io5';
 import { SearchService } from '../../service/search-service.js';
 import { CalmService } from '../../service/calm-service.js';
@@ -9,6 +8,8 @@ import { FlatResult, TYPE_LABELS, useSearchNavigation } from '../../hooks/useSea
 import { useCatalogueSearch } from '../../hooks/useCatalogueSearch.js';
 import { useProductName } from '../branding/brand-names.js';
 import { colors } from '../../theme/colors.js';
+import { SearchChatEntry } from '../../extensions/chat/SearchChatEntry.js';
+import { useChatProvider } from '../../extensions/ExtensionsContext.js';
 
 interface GlobalSearchBarProps {
     searchService?: SearchService;
@@ -18,6 +19,7 @@ interface GlobalSearchBarProps {
 
 export function GlobalSearchBar({ searchService, calmService: calmServiceProp, adrService: adrServiceProp }: GlobalSearchBarProps) {
     const productName = useProductName();
+    const chat = useChatProvider();
     const {
         query,
         results,
@@ -35,12 +37,20 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const listboxId = useId();
+    const noticeId = useId();
+    const [dismissed, setDismissed] = useState(false);
+    const resultsOpen = open && !dismissed;
+    const noticeOpen = !!chat && !!query.trim() && !dismissed;
     const optionId = (index: number) => `${listboxId}-option-${index}`;
-    const activeDescendant = open && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
+    const activeDescendant = resultsOpen && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
     const calmService = useMemo(() => calmServiceProp ?? new CalmService(), [calmServiceProp]);
     const adrService = useMemo(() => adrServiceProp ?? new AdrService(), [adrServiceProp]);
-    const { navigateToResult: goToResult } = useSearchNavigation({ calmService, adrService });
-    const navigate = useNavigate();
+    const { navigateToResult: goToResult, submitSearch } = useSearchNavigation({ calmService, adrService });
+
+    const dismiss = useCallback(() => {
+        setDismissed(true);
+        closeDropdown();
+    }, [closeDropdown]);
 
     const navigateToResult = useCallback(
         (flatResult: FlatResult) => {
@@ -55,32 +65,32 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
         const trimmed = query.trim();
         if (!trimmed) return;
         clear();
-        navigate({ pathname: '/search', search: `?q=${encodeURIComponent(trimmed)}` });
-    }, [query, clear, navigate]);
+        submitSearch(trimmed);
+    }, [query, clear, submitSearch]);
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
             if (e.key === 'ArrowDown') {
-                if (!open || flatResults.length === 0) return;
+                if (!resultsOpen || flatResults.length === 0) return;
                 e.preventDefault();
                 moveSelection(1);
             } else if (e.key === 'ArrowUp') {
-                if (!open || flatResults.length === 0) return;
+                if (!resultsOpen || flatResults.length === 0) return;
                 e.preventDefault();
                 moveSelection(-1);
             } else if (e.key === 'Enter') {
                 e.preventDefault();
                 // A highlighted preview result deep-links; otherwise submit the query.
-                if (open && selectedIndex >= 0 && flatResults[selectedIndex]) {
+                if (resultsOpen && selectedIndex >= 0 && flatResults[selectedIndex]) {
                     navigateToResult(flatResults[selectedIndex]);
                 } else {
                     submitQuery();
                 }
             } else if (e.key === 'Escape') {
-                closeDropdown();
+                dismiss();
             }
         },
-        [open, flatResults, selectedIndex, moveSelection, navigateToResult, submitQuery, closeDropdown]
+        [resultsOpen, flatResults, selectedIndex, moveSelection, navigateToResult, submitQuery, dismiss]
     );
 
     const handleClear = useCallback(() => {
@@ -91,13 +101,13 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                closeDropdown();
+                dismiss();
             }
         }
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [closeDropdown]);
+    }, [dismiss]);
 
     const renderGroupedResults = () => {
         if (error) {
@@ -185,14 +195,18 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     placeholder={`Search ${productName}...`}
                     className="bg-transparent border-none outline-none text-sm text-base-content text-ellipsis placeholder:text-base-content/40 w-28 sm:w-48 lg:w-64"
                     value={query}
-                    onChange={handleInputChange}
+                    onChange={(event) => {
+                        setDismissed(false);
+                        handleInputChange(event);
+                    }}
                     onKeyDown={handleKeyDown}
                     aria-label="Search"
                     role="combobox"
-                    aria-expanded={open}
+                    aria-expanded={resultsOpen}
                     aria-haspopup="listbox"
-                    aria-controls={open ? listboxId : undefined}
+                    aria-controls={resultsOpen ? listboxId : undefined}
                     aria-activedescendant={activeDescendant}
+                    aria-describedby={noticeOpen ? noticeId : undefined}
                 />
                 {query && (
                     <button
@@ -207,13 +221,12 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     <span className="loading loading-spinner loading-xs text-base-content/50" />
                 )}
             </div>
-            {open && (
+            {(resultsOpen || noticeOpen) && (
                 <div
-                    id={listboxId}
                     className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-lg shadow-lg z-50"
-                    role="listbox"
                 >
-                    {renderGroupedResults()}
+                    {resultsOpen && <div id={listboxId} role="listbox">{renderGroupedResults()}</div>}
+                    {noticeOpen && <SearchChatEntry id={noticeId} />}
                 </div>
             )}
         </div>

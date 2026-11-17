@@ -26,6 +26,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 
@@ -858,6 +860,277 @@ class TestExtensionProxyServiceShould {
 
         verify(subscription).cancel();
         assertThat(capped.getBody().toCompletableFuture().isCompletedExceptionally(), is(true));
+    }
+
+    private static final ExtensionManifest CHAT_MANIFEST = new ExtensionManifest("team-services", "1.0.0", 0,
+            "Team services", null, null, List.of(
+            new Route("screen", "GET", "/screen", "authenticated", false),
+            new Route("ask", "POST", "/chat", "authenticated", true)),
+            null, new ExtensionManifest.Contributions(null, null, null, null, null, null,
+            List.of(new ExtensionManifest.RouteContribution("assistant", "Ask Atlas", "ask")), null, null, null));
+    private static final String QUESTION = """
+            {"conversationId":"c1","messageId":"m1","messages":[{"role":"user","content":"Which services?"}],"extra":1}""";
+
+    @Test
+    void stream_each_event_to_a_caller_that_accepts_an_event_stream_before_the_backend_ends() throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", List.of(
+                "id: 1\nretry: 10\nevent: delta\ndata: {\"text\":\"Hel\"}\n\n",
+                "data: lo\n\n"), gate));
+
+        ExtensionProxyResponse reply = service.call(alice, eventStream("GET", "/screen"));
+        StringBuffer written = new StringBuffer();
+        CompletableFuture<Void> writing = CompletableFuture.runAsync(() -> reply.stream().writeTo(collect(written)));
+
+        await(() -> written.toString().contains("Hel"));
+        assertThat(written.toString(), is("event: delta\ndata: {\"text\":\"Hel\"}\n\n"));
+        gate.countDown();
+        writing.get(5, TimeUnit.SECONDS);
+        assertThat(written.toString(), is("event: delta\ndata: {\"text\":\"Hel\"}\n\ndata: lo\n\n"));
+        assertThat(reply.status(), is(200));
+        assertThat(reply.headers(), equalTo(Map.of("Content-Type", "text/event-stream; charset=utf-8",
+                "Cache-Control", "private, no-store", "X-Accel-Buffering", "no")));
+    }
+
+    @Test
+    void buffer_an_event_stream_for_a_caller_that_does_not_accept_one() {
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "data: whole\n\n".getBytes(StandardCharsets.UTF_8), 0));
+
+        ExtensionProxyResponse reply = service.call(alice, request("GET", "/screen", null, null));
+
+        assertThat(reply.stream(), nullValue());
+        assertThat(new String(reply.body(), StandardCharsets.UTF_8), is("data: whole\n\n"));
+    }
+
+    @Test
+    void buffer_a_reply_that_is_not_an_event_stream_for_a_caller_that_accepts_one() {
+        backend.reply(FixtureBackend.Reply.json(200, "{\"a\":1}"));
+
+        ExtensionProxyResponse reply = service.call(alice, eventStream("GET", "/screen"));
+
+        assertThat(reply.stream(), nullValue());
+        assertThat(new String(reply.body(), StandardCharsets.UTF_8), is("{\"a\":1}"));
+    }
+
+    @Test
+    void refuse_more_streams_than_the_limit_and_free_the_slot_when_a_stream_closes() throws Exception {
+        register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 32,
+                1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", List.of("data: 1\n\n", "data: 2\n\n"), gate));
+        ExtensionProxyResponse open = service.call(alice, eventStream("GET", "/screen"));
+
+        ExtensionProxyException busy = assertThrows(ExtensionProxyException.class,
+                () -> service.call(alice, eventStream("GET", "/screen")));
+        assertThat(busy.status(), is(503));
+        assertThat(busy.headers(), equalTo(Map.of("Retry-After", "1")));
+        // A buffered call does not need a stream slot.
+        backend.reply(FixtureBackend.Reply.json(200, "{}"));
+        assertThat(service.call(alice, request("GET", "/screen", null, null)).status(), is(200));
+
+        open.stream().close();
+        gate.countDown();
+        backend.stream(FixtureBackend.Stream.events("data: 3\n\n"));
+        ExtensionProxyResponse next = service.call(alice, eventStream("GET", "/screen"));
+        assertThat(next.stream() != null, is(true));
+        next.stream().close();
+    }
+
+    @Test
+    void free_the_stream_slot_when_the_backend_does_not_send_an_event_stream() {
+        register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 32,
+                1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        backend.reply(FixtureBackend.Reply.json(500, "{}"));
+        assertThat(status(eventStream("GET", "/screen")), is(502));
+        backend.reply(FixtureBackend.Reply.json(200, "{}"));
+        assertThat(service.call(alice, eventStream("GET", "/screen")).status(), is(200));
+        backend.stream(FixtureBackend.Stream.events("data: 1\n\n"));
+        ExtensionProxyResponse stream = service.call(alice, eventStream("GET", "/screen"));
+        assertThat(stream.stream() != null, is(true));
+        stream.stream().close();
+    }
+
+    @Test
+    void close_the_backend_connection_when_the_caller_closes_the_stream() throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        List<String> parts = new java.util.ArrayList<>(List.of("data: first\n\n"));
+        for (int i = 0; i < 200; i++) {
+            parts.add("data: " + "x".repeat(1000) + "\n\n");
+        }
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+        ExtensionProxyResponse reply = service.call(alice, eventStream("GET", "/screen"));
+
+        reply.stream().close();
+        gate.countDown();
+
+        await(backend::streamBroken);
+    }
+
+    @Test
+    void refuse_a_chat_route_on_the_generic_proxy_and_mcp_path_without_calling_the_backend() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+
+        ExtensionProxyException refused = assertThrows(ExtensionProxyException.class,
+                () -> service.call(alice, eventStream("POST", "/chat")));
+        assertThat(refused.status(), is(404));
+        assertThat(refused.getMessage(), is("Call this extension route through its CALM Hub endpoint"));
+        assertThat(assertThrows(ExtensionProxyException.class,
+                () -> service.checkAccess(alice, request("POST", "/chat", null, "{}"))).status(), is(404));
+        assertThat(backend.received(), nullValue());
+    }
+
+    @Test
+    void send_the_chat_body_that_hub_built_and_pass_back_only_the_citations_the_caller_can_open() throws Exception {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        when(permissions.canRead(alice, "finos")).thenReturn(true);
+        when(permissions.canRead(alice, "secret")).thenReturn(false);
+        backend.stream(FixtureBackend.Stream.events(
+                "event: delta\ndata: {\"text\":\"See \"}\n\n",
+                "event: citation\ndata: {\"label\":\"Open\",\"hub\":{\"namespace\":\"finos\",\"type\":\"architectures\","
+                        + "\"id\":\"1\",\"version\":\"1.0.0\"}}\n\n"
+                        + "event: citation\ndata: {\"label\":\"Hidden\",\"hub\":{\"namespace\":\"secret\",\"type\":"
+                        + "\"architectures\",\"id\":\"1\",\"version\":\"1.0.0\"}}\n\n"
+                        + "event: done\ndata: {}\n\n"));
+
+        ExtensionProxyResponse reply = service.chat(alice, "team-services", "assistant", "application/json", "en-GB",
+                new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8)));
+        StringBuffer written = new StringBuffer();
+        reply.stream().writeTo(collect(written));
+
+        FixtureBackend.Received received = backend.received();
+        assertThat(received.method(), is("POST"));
+        assertThat(received.pathAndQuery(), is("/base/chat"));
+        assertThat(received.header("Accept"), is("text/event-stream"));
+        assertThat(received.header("Accept-Language"), is("en-GB"));
+        assertThat(MAPPER.readTree(received.body()), equalTo(MAPPER.readTree("""
+                {"hubApi":0,"conversationId":"c1","messageId":"m1","messages":[{"role":"user","content":"Which services?"}]}""")));
+        JsonNode claims = claims(received.header("X-Calm-Hub-Identity"));
+        assertThat(claims.get("route").asText(), is("ask"));
+        assertThat(claims.get("htm").asText(), is("POST"));
+        assertThat(written.toString(), is("event: delta\ndata: {\"text\":\"See \"}\n\n"
+                + "event: citation\ndata: {\"label\":\"Open\",\"hub\":{\"namespace\":\"finos\",\"type\":\"architectures\","
+                + "\"id\":\"1\",\"version\":\"1.0.0\"}}\n\nevent: done\ndata: {}\n\n"));
+        verify(auditService, never()).record(any());
+    }
+
+    @Test
+    void end_a_chat_reply_after_its_terminal_event_and_free_the_stream_slot_while_the_backend_still_sends() throws Exception {
+        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 1,
+                Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        List<String> parts = new java.util.ArrayList<>(List.of("event: error\ndata: {\"message\":\"No model\"}\n\n"));
+        for (int i = 0; i < 200; i++) {
+            parts.add("event: delta\ndata: {\"text\":\"" + "x".repeat(1000) + "\"}\n\n");
+        }
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+        StringBuffer written = new StringBuffer();
+
+        chat(QUESTION).stream().writeTo(collect(written));
+        gate.countDown();
+
+        assertThat(written.toString(), is("event: error\ndata: {\"message\":\"No model\"}\n\n"));
+        await(backend::streamBroken);
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+        assertThat(chat(QUESTION).status(), is(200));
+    }
+
+    @Test
+    void keep_a_generic_event_stream_open_after_an_event_named_done() throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream",
+                List.of("event: done\ndata: {}\n\n", "data: after\n\n"), gate));
+        ExtensionProxyResponse reply = service.call(alice, eventStream("GET", "/screen"));
+        StringBuffer written = new StringBuffer();
+        CompletableFuture<Void> writing = CompletableFuture.runAsync(() -> reply.stream().writeTo(collect(written)));
+
+        await(() -> written.toString().contains("done"));
+        gate.countDown();
+        writing.get(5, TimeUnit.SECONDS);
+        assertThat(written.toString(), is("event: done\ndata: {}\n\ndata: after\n\n"));
+    }
+
+    @Test
+    void return_502_when_a_chat_route_replies_with_success_but_no_event_stream() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.reply(FixtureBackend.Reply.json(200, "{\"answer\":\"buffered\"}"));
+
+        ExtensionProxyException failed = assertThrows(ExtensionProxyException.class, () -> chat(QUESTION));
+
+        assertThat(failed.status(), is(502));
+    }
+
+    @Test
+    void pass_on_a_json_client_error_from_a_chat_route() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.reply(FixtureBackend.Reply.json(429, "{\"message\":\"Slow down\"}"));
+
+        ExtensionProxyResponse reply = chat(QUESTION);
+
+        assertThat(reply.status(), is(429));
+        assertThat(reply.stream(), nullValue());
+    }
+
+    @Test
+    void refuse_a_chat_message_that_is_not_valid_or_too_large_before_calling_the_backend() {
+        registerChat(limits(200, 4096, Duration.ofSeconds(5)));
+
+        assertThat(assertThrows(ExtensionProxyException.class, () -> chat("{\"messages\":[]}")).status(), is(400));
+        String longQuestion = QUESTION.replace("Which services?", "x".repeat(180));
+        assertThat(assertThrows(ExtensionProxyException.class, () -> chat(longQuestion)).status(), is(413));
+        assertThat(backend.received(), nullValue());
+    }
+
+    @Test
+    void refuse_an_unknown_chat_entry_or_extension_with_404() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+
+        assertThat(assertThrows(ExtensionProxyException.class, () -> service.chat(alice, "team-services", "other",
+                "application/json", null, new ByteArrayInputStream(new byte[0]))).status(), is(404));
+        assertThat(assertThrows(ExtensionProxyException.class, () -> service.chat(alice, "missing", "assistant",
+                "application/json", null, new ByteArrayInputStream(new byte[0]))).status(), is(404));
+        register(backend.url("/base"), limits(4096, 4096, Duration.ofSeconds(5)));
+        assertThat(assertThrows(ExtensionProxyException.class, () -> chat(QUESTION)).status(), is(404));
+    }
+
+    private ExtensionProxyResponse chat(String body) {
+        return service.chat(alice, "team-services", "assistant", "application/json", null,
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private void registerChat(ExtensionLimits limits) {
+        when(registry.find("team-services")).thenReturn(Optional.of(
+                new RegisteredExtension(CHAT_MANIFEST, 0, Optional.of(backend.url("/base")), limits)));
+    }
+
+    private static ExtensionProxyRequest eventStream(String method, String path) {
+        boolean post = "POST".equals(method);
+        return new ExtensionProxyRequest("team-services", method, path, null, post ? "application/json" : null,
+                "text/event-stream", null, post ? new ByteArrayInputStream("{}".getBytes(StandardCharsets.UTF_8)) : null);
+    }
+
+    private static OutputStream collect(StringBuffer written) {
+        return new OutputStream() {
+            @Override
+            public void write(int b) {
+                write(new byte[] {(byte) b}, 0, 1);
+            }
+
+            @Override
+            public void write(byte[] bytes, int offset, int length) {
+                written.append(new String(bytes, offset, length, StandardCharsets.UTF_8));
+            }
+        };
+    }
+
+    private static void await(java.util.function.BooleanSupplier condition) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (!condition.getAsBoolean()) {
+            if (System.nanoTime() > deadline) {
+                throw new AssertionError("The condition did not hold within 5 seconds");
+            }
+            Thread.sleep(10);
+        }
     }
 
     static SecurityIdentity identity(String name) {
