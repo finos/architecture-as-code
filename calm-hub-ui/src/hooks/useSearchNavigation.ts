@@ -4,6 +4,7 @@ import { CalmService } from '../service/calm-service.js';
 import { AdrService } from '../service/adr-service/adr-service.js';
 import { GroupedSearchResults, SearchResult } from '../model/search.js';
 import { pickLatestVersion } from '../model/version.js';
+import { useLinkState } from '../navigation/returnPoints.js';
 
 export interface FlatResult {
     type: string;
@@ -56,6 +57,8 @@ interface UseSearchNavigationOptions {
  */
 export function useSearchNavigation({ calmService: calmServiceProp, adrService: adrServiceProp }: UseSearchNavigationOptions = {}) {
     const navigate = useNavigate();
+    // On a page with a return point, such as the search results, the opened page links back to it.
+    const state = useLinkState();
     const calmService = useMemo(() => calmServiceProp ?? new CalmService(), [calmServiceProp]);
     const adrService = useMemo(() => adrServiceProp ?? new AdrService(), [adrServiceProp]);
 
@@ -94,12 +97,12 @@ export function useSearchNavigation({ calmService: calmServiceProp, adrService: 
             const ns = encodeURIComponent(result.namespace);
 
             if (type === 'controls') {
-                navigate(`/${ns}/controls/${encodeURIComponent(result.name)}/detail`);
+                navigate(`/${ns}/controls/${encodeURIComponent(result.name)}/detail`, { state });
                 return;
             }
 
             if (type === 'interfaces') {
-                navigate(`/${ns}/interfaces/${encodeURIComponent(String(result.id))}/detail`);
+                navigate(`/${ns}/interfaces/${encodeURIComponent(String(result.id))}/detail`, { state });
                 return;
             }
 
@@ -107,13 +110,13 @@ export function useSearchNavigation({ calmService: calmServiceProp, adrService: 
             const id = String(result.id);
             resolveLatestVersion(type, result.namespace, id)
                 .then((version) => {
-                    navigate(`/${ns}/${route}/${encodeURIComponent(id)}/${encodeURIComponent(version)}`);
+                    navigate(`/${ns}/${route}/${encodeURIComponent(id)}/${encodeURIComponent(version)}`, { state });
                 })
                 .catch(() => {
-                    navigate(`/${ns}/${route}`);
+                    navigate(`/${ns}/${route}`, { state });
                 });
         },
-        [navigate, resolveLatestVersion]
+        [navigate, resolveLatestVersion, state]
     );
 
     return { navigateToResult };

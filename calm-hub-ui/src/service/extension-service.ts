@@ -4,6 +4,7 @@ import { isBuiltInExtension } from '../extensions/extensionIdentity.js';
 import { ExtensionContext, ExtensionPoint, ExtensionRoute, ExtensionSummary } from '../model/extensions.js';
 import type { FormInput } from '../extensions/forms/formRules.js';
 import type { Notation } from '../model/lens.js';
+import type { ExtensionSearchPage } from '../model/search.js';
 import type { DecoratorView } from '../visualizer/contracts/contracts.js';
 import { authStore } from './utils/auth-store.js';
 
@@ -15,7 +16,7 @@ type RegistryEntry = ExtensionSummary & { contributes: { 'decorator-views'?: unk
 const isObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const UI_POINTS: readonly ExtensionPoint[] = ['screen', 'designer-tab', 'landing-card', 'detail-panel', 'action'];
+const UI_POINTS: readonly ExtensionPoint[] = ['screen', 'designer-tab', 'landing-card', 'detail-panel', 'action', 'search-provider'];
 
 const hasStrings = (value: unknown, fields: readonly string[]) =>
     isObject(value) && fields.every((field) => typeof value[field] === 'string');
@@ -77,6 +78,23 @@ function problemOf(error: unknown): ExtensionCallError['problem'] {
 }
 
 const isSignedOut = (error: unknown) => isAxiosError(error) && error.response?.status === 401;
+
+/** A failed search provider. `timedOut` is true when the provider did not reply in time. */
+export class ExtensionSearchError extends Error {
+    constructor(readonly timedOut: boolean) {
+        super('Error searching with an extension');
+    }
+}
+
+const optionalString = (value: unknown) => value === undefined || typeof value === 'string';
+
+// Hub checked the reply and copied only the fields it knows. The page renders it, so check its shape here too.
+function isSearchPage(value: unknown): value is ExtensionSearchPage {
+    return isObject(value) && Array.isArray(value.results) && optionalString(value.next)
+        && value.results.every((result: unknown) => isObject(result) && hasStrings(result, ['id', 'title'])
+            && optionalString(result.summary) && optionalString(result.namespace)
+            && (result.link === undefined || isObject(result.link)));
+}
 
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
@@ -242,6 +260,25 @@ export class ExtensionService {
                 // No reply: the request may have reached Hub and the backend.
                 console.error('%s', 'Error submitting extension form:', error);
                 return { kind: 'unknown' };
+            });
+    }
+
+    /** One page of results from a search provider. Hub leaves out each result that the caller cannot read. */
+    public async search(id: string, provider: string, query: string, cursor?: string, signal?: AbortSignal): Promise<ExtensionSearchPage> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get<unknown>(`/api/calm/extensions/${encodeURIComponent(id)}/search/${encodeURIComponent(provider)}`, {
+                headers,
+                signal,
+                params: cursor === undefined ? { q: query } : { q: query, cursor },
+            })
+            .then((res) => {
+                if (!isSearchPage(res.data)) throw new Error('The search reply is not valid');
+                return res.data;
+            })
+            .catch((error) => {
+                console.error('%s', `Error searching with ${id} ${provider}:`, error);
+                return Promise.reject(new ExtensionSearchError(isAxiosError(error) && error.response?.status === 504));
             });
     }
 

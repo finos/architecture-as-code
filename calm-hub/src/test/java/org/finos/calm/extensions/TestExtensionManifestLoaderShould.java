@@ -438,8 +438,38 @@ class TestExtensionManifestLoaderShould {
                 invalid("a contribution with an unknown route", m -> m.getJsonObject("contributes").getJsonArray("screen").add(contribution("x", "missing")), "screen 'x' names route 'missing', which is not declared"),
                 invalid("a screen on a POST route", m -> m.getJsonObject("contributes").getJsonArray("screen").add(contribution("x", "add-service")), "screen 'x' must name a GET route"),
                 invalid("a duplicate contribution id", m -> m.getJsonObject("contributes").getJsonArray("screen").add(contribution("services", "screen")), "screen 'services' is declared more than once"),
-                invalid("a duplicate decorator view id", m -> m.getJsonObject("contributes").getJsonArray("decorator-views").add(decoratorView("control-evaluation")), "decorator-views 'control-evaluation' is declared more than once")
+                invalid("a duplicate decorator view id", m -> m.getJsonObject("contributes").getJsonArray("decorator-views").add(decoratorView("control-evaluation")), "decorator-views 'control-evaluation' is declared more than once"),
+                invalid("a search provider on a GET route", m -> searchProvider(m, "screen"),
+                        "search-provider 'find' must name a readOnly POST route with no path parameters and no hubData, but route 'screen' is not"),
+                invalid("a search provider on a route that writes", m -> searchProvider(m, "add-service"),
+                        "search-provider 'find' must name a readOnly POST route"),
+                invalid("a search provider route with a path parameter", m -> {
+                    m.getJsonArray("routes").add(route("search", "POST", "/search/{kind}", "authenticated").put("readOnly", true));
+                    searchProvider(m, "search");
+                }, "search-provider 'find' must name a readOnly POST route with no path parameters"),
+                invalid("a command on a search provider route", m -> {
+                    withSearch(m);
+                    m.getJsonObject("commands").put("find", command(m).copy().put("route", "search")
+                            .put("input", new JsonObject().put("type", "object")));
+                }, "route 'search' is named by search-provider 'find', command 'find'. Only CALM Hub calls this route"),
+                invalid("an action on a search provider route", m -> {
+                    withSearch(m);
+                    m.getJsonObject("contributes").getJsonArray("action").add(contribution("run-search", "search"));
+                }, "route 'search' is named by action 'run-search', search-provider 'find'"),
+                invalid("two search providers on one route", m -> {
+                    withSearch(m);
+                    m.getJsonObject("contributes").getJsonArray("search-provider").add(contribution("again", "search"));
+                }, "route 'search' is named by search-provider 'find', search-provider 'again'")
         );
+    }
+
+    private static void searchProvider(JsonObject manifest, String route) {
+        manifest.getJsonObject("contributes").put("search-provider", new JsonArray().add(contribution("find", route)));
+    }
+
+    private static void withSearch(JsonObject manifest) {
+        manifest.getJsonArray("routes").add(route("search", "POST", "/search", "authenticated").put("readOnly", true));
+        searchProvider(manifest, "search");
     }
 
     private static Arguments invalid(String name, Consumer<JsonObject> change, String expected) {
@@ -600,7 +630,7 @@ class TestExtensionManifestLoaderShould {
         assertThat(manifests.stream().map(ExtensionManifest::id).toList(), contains("release-tracker"));
         ExtensionManifest releases = manifests.get(0);
         assertThat(releases.contributes().byRoutePoint().keySet(),
-                contains("action", "designer-tab", "detail-panel", "landing-card", "screen"));
+                contains("action", "designer-tab", "detail-panel", "landing-card", "screen", "search-provider"));
         assertThat(releases.contributes().decoratorViews(), hasSize(1));
         assertThat(releases.contributes().decoratorViews().get(0).match().type(), equalTo("release-risk"));
     }

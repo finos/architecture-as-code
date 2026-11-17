@@ -22,8 +22,8 @@ An extension manifest lists its extension points in `contributes`, and its CLI a
 | [`form`](#form) | Hub UI, in a `form` block | `POST`, `PUT` or `PATCH` | None, resource, or resource and node |
 | [`decorator-views`](#decorator-views) | Hub UI | No route | Decorators |
 | [`diagram-lens`](#diagram-lens) | Hub UI | `GET` | Resource |
-| [`search-provider`](#search-provider-and-chat) | Nothing yet | Any | — |
-| [`chat`](#search-provider-and-chat) | Nothing yet | Any | — |
+| [`search-provider`](#search-provider) | Hub UI search | `POST`, `readOnly` | The query |
+| [`chat`](#chat) | Nothing yet | Any | — |
 | [`commands`](#commands) | CLI and MCP | Any | Command input |
 
 ## Shared fields
@@ -420,11 +420,103 @@ its `title` and `detail`. When CALM Hub draws the graph:
   can set only the parameters that the lens declares, with allowed values.
 - A click on an entry of the diagram key dims the elements with that tag.
 
-## search-provider and chat
+## search-provider
 
-CALM Hub accepts `search-provider` and `chat` entries in a manifest, with the shared fields. It
-checks that each names a declared route, and lists them in `GET /api/calm/extensions`. The route
-can use any method.
+Adds a group of results from the extension to the CALM Hub search page. The page shows the
+catalogue results first, then one group for each provider, with the entry `title` as its heading.
+
+```json
+"routes": [{ "id": "search", "method": "POST", "path": "/search", "scope": "authenticated", "readOnly": true }],
+"contributes": { "search-provider": [{ "id": "releases", "title": "Releases", "route": "search" }] }
+```
+
+The route must be a `readOnly` `POST` with no path parameters and no `hubData`. Only CALM Hub calls
+it, through `GET /api/calm/extensions/<id>/search/<provider>?q=<query>&cursor=<cursor>`. The generic
+proxy and MCP get `404` for this route, and CALM Hub does not start if a command or another entry
+also names it. Thus a caller cannot skip the checks below. The search endpoint is a `GET`, so it
+also works on a read-only Hub.
+
+CALM Hub sends this body:
+
+| Field | Value |
+|---|---|
+| `hubApi` | The `hubApi` of the manifest |
+| `query` | The search text: 1 to 200 characters, with no control characters |
+| `limit` | `10`. A reply with more results is not valid |
+| `cursor` | The `next` value of the page before. Not sent for the first page. It comes from the browser, so check it |
+
+The provider replies `200` with this body:
+
+```json
+{
+  "hubApi": 0,
+  "results": [{
+    "id": "2.4.0",
+    "title": "Release 2.4.0",
+    "summary": "order-service at 40%",
+    "namespace": "demo",
+    "link": { "hub": { "namespace": "demo", "type": "architectures", "id": "1", "version": "1.0.0" } }
+  }],
+  "next": "10"
+}
+```
+
+| Field | Required | Rule |
+|---|---|---|
+| `hubApi` | Yes | The `hubApi` of the manifest |
+| `results` | Yes | At most 10 results |
+| `next` | No | The cursor of the next page. It must fit in the request for the next page (see below). Leave it out on the last page |
+| `id` | Yes | Unique in the results, at most 256 characters |
+| `title` | Yes | At most 300 characters. It is the text of the link |
+| `summary` | No | At most 1000 characters |
+| `namespace` | No | The CALM Hub namespace of the record |
+| `link` | No | A [destination](extension-navigation.md#destinations) without a label: an `href`, a `hub` page or an extension `screen`. The `title` is its text |
+
+A length counts Unicode code points, as JSON Schema `maxLength` does, so an emoji is one character.
+
+The UI sends `next` back in the URL of the request for the next page,
+`GET /api/calm/extensions/<id>/search/<provider>?q=<query>&cursor=<next>`. That request line can
+have at most 3584 bytes. CALM Hub counts the path, the query and the cursor. Each UTF-8 byte other
+than `A`–`Z`, `a`–`z`, `0`–`9`, `-`, `.` and `_` counts as three, because it can be
+percent-encoded, so '𝄞' counts as 12. A `next` that does not fit, or that has a lone surrogate, makes
+the reply not valid: CALM Hub does not drop `next` and show part of the results. A cursor of at most
+512 characters from that set, such as base64url without padding, fits with any query when the
+extension id and the provider id together have at most 600 characters. A request that is too long
+gets `400`.
+
+CALM Hub checks each result, and leaves out a result:
+
+- that is not valid, or has the same `id` as a result before it. A `link` must pass the
+  [destination checks](extension-navigation.md#links-that-hub-passes-on), the same as the UI;
+- whose `namespace`, `hub.namespace` or `screen.context.namespace` is not a namespace that the
+  caller can read.
+
+It copies only the fields above. If it leaves out all the results of a page, it also leaves out
+`next`, so that the page does not show that hidden results exist. A record with no namespace gets
+no check from CALM Hub: the provider must return only the records that `sub` may see (see
+[What Hub checks](extension-access.md#what-hub-checks)).
+
+Each provider loads on its own, so a slow or failed provider does not hold back the catalogue or
+the other providers:
+
+| Reply | The search page shows |
+|---|---|
+| Not `200` | "… search failed", with **Try again**. The endpoint returns `502` |
+| A body that is not valid, or a `next` that does not fit | The same. The endpoint returns `502` |
+| No reply in the extension `request-timeout-seconds` | "… did not reply in time", with **Try again**. The endpoint returns `504` |
+| No results | "No results from …" |
+| `next` | **Show more**, which gets the next page. The page shows at most 50 results from one provider |
+
+The heading of a group gives the number of results that it shows, with `+` when there are more.
+It gives no total, because only the provider knows its records, and CALM Hub can leave some out.
+A reply for an earlier query is dropped. A provider result and a catalogue result both record the
+search page as the [return point](extension-navigation.md#return-to-the-page), so the page that
+opens shows **Back to search results**.
+
+## chat
+
+CALM Hub accepts `chat` entries in a manifest, with the shared fields. It checks that each names a
+declared route, and lists them in `GET /api/calm/extensions`. The route can use any method.
 
 Nothing uses them yet: the Hub UI, the CLI and MCP do not call these routes. A client can call the
 route through the proxy, as for any declared route.

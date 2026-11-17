@@ -359,6 +359,12 @@ public class ExtensionManifestLoader {
                     if (GET_ONLY_POINTS.contains(point) && !"GET".equals(route.method())) {
                         problems.add(where + " must name a GET route, but route '" + route.id() + "' is " + route.method());
                     }
+                    // Hub sends the query as the body, and the search page has no context for a path parameter.
+                    if ("search-provider".equals(point) && (!"POST".equals(route.method()) || !route.readOnly()
+                            || !pathParams(route.path()).isEmpty() || route.sendsHubData())) {
+                        problems.add(where + " must name a readOnly POST route with no path parameters and no hubData, "
+                                + "but route '" + route.id() + "' is not");
+                    }
                 }, () -> problems.add(where + " names route '" + entry.route() + "', which is not declared"));
             }
         });

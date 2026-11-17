@@ -183,6 +183,30 @@ export function route(method, url, body) {
     if (method === 'GET' && url.pathname === '/deployments') {
         return deploymentPage(q);
     }
+    // The search provider. Hub sends { hubApi, query, limit, cursor } and leaves out a result in a namespace that the
+    // caller cannot read. The cursor comes back from the browser, so it is untrusted input.
+    if (method === 'POST' && url.pathname === '/search') {
+        const query = String(body.query ?? '').toLowerCase();
+        const limit = Math.min(Number(body.limit) || 10, 10);
+        const start = /^\d{1,6}$/.test(String(body.cursor ?? '')) ? Number(body.cursor) : 0;
+        const architecture = { namespace: 'demo', type: 'architectures', id: '1', version: '1.0.0' };
+        const hits = [
+            ...releases.filter((r) => [r.version, r.status, r.owner].some((v) => v.includes(query))).map((r) => ({
+                id: `release-${r.version}`, title: `Release ${r.version}`, summary: `${r.status}, ${r.date}, ${r.owner}`,
+                namespace: 'demo', link: { hub: architecture },
+            })),
+            ...Object.entries(elements).filter(([id, e]) => id.includes(query) || e.owner.includes(query)).map(([id, e]) => ({
+                id: `element-${id}`, title: id, summary: `Last release ${e.lastRelease}, owned by ${e.owner}`,
+                namespace: 'demo', link: { hub: { ...architecture, element: id } },
+            })),
+            ...('release runbook'.includes(query) ? [{
+                id: 'runbook', title: 'Release runbook', summary: 'Review, canary and full rollout',
+                link: { href: 'https://example.org/runbooks/release' },
+            }] : []),
+        ];
+        const end = start + limit;
+        return { hubApi: 0, results: hits.slice(start, end), ...(end < hits.length ? { next: String(end) } : {}) };
+    }
     if (method === 'GET' && url.pathname === '/releases') {
         return { releases: releases.map(({ version, status, date }) => ({ version, status, date })) };
     }
