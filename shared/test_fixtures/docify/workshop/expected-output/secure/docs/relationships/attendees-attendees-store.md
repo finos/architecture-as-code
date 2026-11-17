@@ -31,7 +31,7 @@ title: "Attendees Attendees Store"
 ## Related Nodes
 ```mermaid
 graph TD;
-attendees[Attendees Service] -- Connects --> attendees-store[Attendees Store];
+attendees["Attendees Service"] -- Connects --> attendees-store["Attendees Store"];
 classDef highlight fill:#f2bbae;
 ```
 

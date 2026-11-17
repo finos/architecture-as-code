@@ -25,11 +25,11 @@ classDef system fill:#eef1ff,stroke:#204485,stroke-width:1px,color:#000000;
 
 
     backend[/"⚙️ Backend API"/]:::service
-    db[(🗄️ Database)]:::database
-    frontend[[💻 Frontend App]]:::webclient
+    db[("🗄️ Database")]:::database
+    frontend[["💻 Frontend App"]]:::webclient
 
-    frontend -->|API calls| backend
-    backend -->|Data access| db
+    frontend -->|"API calls"| backend
+    backend -->|"Data access"| db
 
 
 
@@ -62,11 +62,11 @@ classDef system fill:#eef1ff,stroke:#204485,stroke-width:1px,color:#000000;
 
 
     backend[/"⚙️ Backend API"/]:::service
-    db[(🗄️ Database)]:::database
-    frontend[[💻 Frontend App]]:::webclient
+    db[("🗄️ Database")]:::database
+    frontend[["💻 Frontend App"]]:::webclient
 
-    frontend -->|API calls| backend
-    backend -->|Data access| db
+    frontend -->|"API calls"| backend
+    backend -->|"Data access"| db
 
 
 

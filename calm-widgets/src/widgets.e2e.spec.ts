@@ -460,19 +460,26 @@ describe('Widgets E2E - Handlebars Integration', () => {
             expectToBeSameIgnoringLineEndings(result, expected);
         });
 
-        it('renders node names containing parentheses without breaking Mermaid syntax', () => {
+        it('renders node names, containers, and relationship labels containing special characters without entity-encoding them', () => {
             const context = {
                 nodes: [
-                    { 'unique-id': 'ui', 'node-type': 'service', name: 'UI', description: 'User Interface' },
+                    { 'unique-id': 'sys', 'node-type': 'system', name: 'Core "Alpha" (Platform) #123; v1', description: 'Container' },
+                    { 'unique-id': 'ui', 'node-type': 'service', name: '`UI` [Web]', description: 'User Interface' },
                     { 'unique-id': 'user', 'node-type': 'actor', name: 'User (Human)', description: 'A user' },
                 ],
                 relationships: [
+                    {
+                        'unique-id': 'c1',
+                        'relationship-type': {
+                            'composed-of': { container: 'sys', nodes: ['ui'] },
+                        },
+                    },
                     {
                         'unique-id': 'r1',
                         'relationship-type': {
                             connects: { source: { node: 'user' }, destination: { node: 'ui' } },
                         },
-                        description: 'Web browser',
+                        description: 'test "quoted" relationship (with brackets)',
                     },
                 ],
                 metadata: {},
@@ -480,13 +487,21 @@ describe('Widgets E2E - Handlebars Integration', () => {
                 flows: [],
                 adrs: [],
             };
-            const template = '{{block-architecture this}}\n{{block-architecture this render-node-type-shapes=true}}';
+            const template = '{{block-architecture this}}\n{{block-architecture this render-node-type-shapes=true}}\n{{related-nodes this node-id="user"}}';
             const compiled = handlebars.compile(template);
             const result = compiled(context);
-            // Parentheses must be escaped to avoid breaking Mermaid node label syntax
-            expect(result).toContain('User #40;Human#41;');
-            // Raw parentheses must not appear inside a node label
-            expect(result).not.toMatch(/\["[^"]*\([^"]*"/);
+            expect(result).toContain('subgraph sys["Core \'Alpha\' (Platform) #\u200B123; v1"]');
+            expect(result).toContain('ui["\u200B`UI` [Web]"]:::node');
+            expect(result).toContain('user["User (Human)"]:::node');
+            expect(result).toContain('user(["👤 User (Human)"]):::actor');
+            expect(result).toContain('|"test \'quoted\' relationship (with brackets)"|');
+            expect(result).toContain('user["User (Human)"]:::highlight;');
+            expect(result).toContain('user["User (Human)"] -- Connects --> ui["\u200B`UI` [Web]"];');
+            expect(result).not.toContain('#40;');
+            expect(result).not.toContain('#41;');
+            expect(result).not.toContain('#91;');
+            expect(result).not.toContain('#93;');
+            expect(result).not.toContain('#quot;');
         });
     });
 });

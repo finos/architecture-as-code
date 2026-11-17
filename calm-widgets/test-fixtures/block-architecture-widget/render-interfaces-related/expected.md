@@ -29,8 +29,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         payment-service__iface__payment-api["◻ payment-api"]:::iface
         payment-service__iface__audit-log-iface["◻ audit-log-iface"]:::iface
 
-    payment-service__iface__payment-api -->|Payment Service calls Fraud Detection before authorising a transaction| fraud-service__iface__fraud-check-api
-    payment-service__iface__payment-api -->|Payment Service triggers notifications on transaction events| notification-service__iface__email-iface
+    payment-service__iface__payment-api -->|"Payment Service calls Fraud Detection before authorising a transaction"| fraud-service__iface__fraud-check-api
+    payment-service__iface__payment-api -->|"Payment Service triggers notifications on transaction events"| notification-service__iface__email-iface
 
     payment-service -.- payment-service__iface__payment-api
     payment-service -.- payment-service__iface__audit-log-iface
@@ -70,8 +70,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     payment-service["Payment Service"]:::node
         payment-service__iface__payment-api["◻ payment-api"]:::iface
 
-    payment-service__iface__payment-api -->|Payment Service calls Fraud Detection before authorising a transaction| fraud-service__iface__fraud-check-api
-    payment-service__iface__payment-api -->|Payment Service triggers notifications on transaction events| notification-service__iface__email-iface
+    payment-service__iface__payment-api -->|"Payment Service calls Fraud Detection before authorising a transaction"| fraud-service__iface__fraud-check-api
+    payment-service__iface__payment-api -->|"Payment Service triggers notifications on transaction events"| notification-service__iface__email-iface
 
     payment-service -.- payment-service__iface__payment-api
     fraud-service -.- fraud-service__iface__fraud-check-api

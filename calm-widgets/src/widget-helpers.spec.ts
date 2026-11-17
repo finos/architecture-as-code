@@ -188,6 +188,46 @@ describe('Widget Helpers', () => {
         });
     });
 
+    describe('mermaidQuotedText helper', () => {
+        it('preserves parentheses, brackets, braces, pipes, and plain hashes literally', () => {
+            expect(helpers.mermaidQuotedText('(RabbitMQ)')).toBe('(RabbitMQ)');
+            expect(helpers.mermaidQuotedText('test (with brackets)')).toBe('test (with brackets)');
+            expect(helpers.mermaidQuotedText('[array]')).toBe('[array]');
+            expect(helpers.mermaidQuotedText('{object}')).toBe('{object}');
+            expect(helpers.mermaidQuotedText('A | B')).toBe('A | B');
+            expect(helpers.mermaidQuotedText('#tag')).toBe('#tag');
+            expect(helpers.mermaidQuotedText('#1')).toBe('#1');
+            expect(helpers.mermaidQuotedText('C#;')).toBe('C#;');
+        });
+
+        it('breaks Mermaid entity sequences (#word;) with a zero-width space', () => {
+            expect(helpers.mermaidQuotedText('Issue #42; user')).toBe('Issue #\u200B42; user');
+            expect(helpers.mermaidQuotedText('Ticket #123; system')).toBe('Ticket #\u200B123; system');
+            expect(helpers.mermaidQuotedText('#quot;')).toBe('#\u200Bquot;');
+        });
+
+        it('prefixes a leading backtick with a zero-width space so it does not open a markdown string', () => {
+            expect(helpers.mermaidQuotedText('`code` thing')).toBe('\u200B`code` thing');
+            expect(helpers.mermaidQuotedText('`wrapped`')).toBe('\u200B`wrapped`');
+            expect(helpers.mermaidQuotedText('mid `code` ok')).toBe('mid `code` ok');
+        });
+
+        it('replaces double quotes with apostrophes', () => {
+            expect(helpers.mermaidQuotedText('"quoted"')).toBe('\'quoted\'');
+        });
+
+        it('returns empty string for non-string input', () => {
+            expect(helpers.mermaidQuotedText(null)).toBe('');
+            expect(helpers.mermaidQuotedText(undefined)).toBe('');
+            expect(helpers.mermaidQuotedText(123)).toBe('');
+        });
+
+        it('handles empty string and plain text', () => {
+            expect(helpers.mermaidQuotedText('')).toBe('');
+            expect(helpers.mermaidQuotedText('simple text')).toBe('simple text');
+        });
+    });
+
     describe('mermaidText helper', () => {
         it('escapes parentheses', () => {
             expect(helpers.mermaidText('(RabbitMQ)')).toBe('#40;RabbitMQ#41;');
@@ -203,8 +243,10 @@ describe('Widget Helpers', () => {
             expect(helpers.mermaidText('A | B')).toBe('A #124; B');
         });
 
-        it('escapes hash and quote characters', () => {
+        it('escapes hash, semicolon, and quote characters without double-escaping', () => {
             expect(helpers.mermaidText('#tag')).toBe('#35;tag');
+            expect(helpers.mermaidText('a; b')).toBe('a#59; b');
+            expect(helpers.mermaidText('#tag; next')).toBe('#35;tag#59; next');
             expect(helpers.mermaidText('"quoted"')).toBe('#quot;quoted#quot;');
         });
 

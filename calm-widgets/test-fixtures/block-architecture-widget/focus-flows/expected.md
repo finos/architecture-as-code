@@ -51,13 +51,13 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         class ecommerce-platform boundary
 
 
-    web-app -->|HTTP requests| api-gateway
-    api-gateway -->|User operations| user-service
-    api-gateway -->|Order operations| order-service
-    order-service -->|Process payment| payment-service
-    payment-service -->|Payment notification| notification-service
-    user-service -->|Store user data| user-db
-    order-service -->|Store order data| order-db
+    web-app -->|"HTTP requests"| api-gateway
+    api-gateway -->|"User operations"| user-service
+    api-gateway -->|"Order operations"| order-service
+    order-service -->|"Process payment"| payment-service
+    payment-service -->|"Payment notification"| notification-service
+    user-service -->|"Store user data"| user-db
+    order-service -->|"Store order data"| order-db
 
 
 
@@ -89,10 +89,10 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     payment-service["Payment Service"]:::node
     web-app["Web Application"]:::node
 
-    web-app -->|HTTP requests| api-gateway
-    api-gateway -->|Order operations| order-service
-    order-service -->|Process payment| payment-service
-    payment-service -->|Payment notification| notification-service
+    web-app -->|"HTTP requests"| api-gateway
+    api-gateway -->|"Order operations"| order-service
+    order-service -->|"Process payment"| payment-service
+    payment-service -->|"Payment notification"| notification-service
 
 
 
@@ -139,9 +139,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         class ecommerce-platform boundary
 
 
-    web-app -->|HTTP requests| api-gateway
-    api-gateway -->|User operations| user-service
-    user-service -->|Store user data| user-db
+    web-app -->|"HTTP requests"| api-gateway
+    api-gateway -->|"User operations"| user-service
+    user-service -->|"Store user data"| user-db
 
 
 
@@ -199,12 +199,12 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         class ecommerce-platform boundary
 
 
-    web-app -->|HTTP requests| api-gateway
-    api-gateway -->|User operations| user-service
-    api-gateway -->|Order operations| order-service
-    order-service -->|Process payment| payment-service
-    payment-service -->|Payment notification| notification-service
-    user-service -->|Store user data| user-db
+    web-app -->|"HTTP requests"| api-gateway
+    api-gateway -->|"User operations"| user-service
+    api-gateway -->|"Order operations"| order-service
+    order-service -->|"Process payment"| payment-service
+    payment-service -->|"Payment notification"| notification-service
+    user-service -->|"Store user data"| user-db
 
 
 

@@ -45,17 +45,17 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     external-payment-gateway["External Payment Gateway"]:::node
     monitoring-system["Monitoring System"]:::node
 
-    web-client -->|Client connects to API gateway| api-gateway
-    api-gateway -->|API gateway routes to microservices platform| microservices-platform
-    microservices-platform -->|Platform integrates with external payment gateway| external-payment-gateway
-    microservices-platform -->|Platform sends metrics and logs to monitoring| monitoring-system
-    user-service -->|User service stores user data| internal-db
-    auth-service -->|Auth service stores session data| internal-db
-    order-service -->|Order service stores order data| internal-db
-    order-service -->|Order service calls payment service| payment-service
-    payment-service -->|Payment service publishes events| message-bus
-    order-service -->|Order service publishes events| message-bus
-    user-service -->|User service integrates with auth service| auth-service
+    web-client -->|"Client connects to API gateway"| api-gateway
+    api-gateway -->|"API gateway routes to microservices platform"| microservices-platform
+    microservices-platform -->|"Platform integrates with external payment gateway"| external-payment-gateway
+    microservices-platform -->|"Platform sends metrics and logs to monitoring"| monitoring-system
+    user-service -->|"User service stores user data"| internal-db
+    auth-service -->|"Auth service stores session data"| internal-db
+    order-service -->|"Order service stores order data"| internal-db
+    order-service -->|"Order service calls payment service"| payment-service
+    payment-service -->|"Payment service publishes events"| message-bus
+    order-service -->|"Order service publishes events"| message-bus
+    user-service -->|"User service integrates with auth service"| auth-service
 
 
 
@@ -89,9 +89,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     external-payment-gateway["External Payment Gateway"]:::node
     monitoring-system["Monitoring System"]:::node
 
-    api-gateway -->|API gateway routes to microservices platform| microservices-platform
-    microservices-platform -->|Platform integrates with external payment gateway| external-payment-gateway
-    microservices-platform -->|Platform sends metrics and logs to monitoring| monitoring-system
+    api-gateway -->|"API gateway routes to microservices platform"| microservices-platform
+    microservices-platform -->|"Platform integrates with external payment gateway"| external-payment-gateway
+    microservices-platform -->|"Platform sends metrics and logs to monitoring"| monitoring-system
 
 
     class microservices-platform highlight
