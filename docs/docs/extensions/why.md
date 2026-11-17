@@ -22,7 +22,8 @@ architecture stays the single source, and each team sees it in the form that it 
 | Let the CLI and AI assistants use it | [`commands`](../calm-hub/extension-points.md#commands) | `calm hub ext <id> <command>`, and an MCP tool for each command |
 
 One extension can use many extension points. The
-[release-tracker tutorial](../tutorials/advanced/hub-extension.md) uses all of them except `diagram-lens`.
+[release-tracker tutorial](../tutorials/advanced/hub-extension.md) uses `screen`, `designer-tab`, `landing-card`,
+`detail-panel`, `action`, `decorator-views` and `commands`.
 
 ## Why not a fork
 
