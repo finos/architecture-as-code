@@ -249,9 +249,18 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   the selected chat. Add a top-level page there, not in one of them, so the labels and the order stay the same in
   both. Both keep registry order, which is the operator `order`. The extension `id` is the group key; do not add a
   second grouping field to the manifest.
-- Architecture: one `extensions` tab in `DIAGRAM_TABS`, hidden (not unknown) until the registry loads, so a link
-  to it keeps the tab. `resourceExtensions()` decides if it shows.
-- Actions: `ExtensionActionButton`, only in the Extensions tab, so each action runs with a resource context. There
+- Architecture: the inspector beside the diagram (`hub/components/inspector/DiagramInspector`, in Hub's `Sidebar` on a
+  wide screen and `MobileInspector` on a narrow one). `InspectorHandle` on the right edge of the diagram canvas opens
+  it on both widths; do not add a toolbar toggle. Keep the handle in a separate layout column, outside the view's positioned container, so it cannot cover lens notes or tab controls. The handle stays in the page, hidden, while the inspector is open, so
+  focus can go back to it. `InspectorMenu` lists Details first, then individual views grouped by extension name. `resourceExtensions()` decides which extensions show; `inspectorViews()` keeps resource views before node views, in manifest order within each kind. An action-only extension has an Actions entry. `MobileInspector` is a
+  `<dialog>` that opens with `showModal()`, so focus stays in it and the page behind it is inert. It stays in the page
+  when it closes, so slot state stays. Its `cancel` handler ignores the cancel of a dialog in a slot, which closes only
+  that dialog. Hub owns the inspector, so the
+  diagram stays mounted while it opens and closes. `?extension=<id>` (`EXTENSION_PARAM`) opens it on an extension;
+  Details and each extension's chosen view stay in memory only. A fresh `?extension=` link shows the extension's first view. A change of only `extension` keeps the selection. The old
+  `?tab=extensions` redirects to `?extension=` (`DIAGRAM_TAB_REDIRECTS`). Do not add an extension tab to
+  `DIAGRAM_TABS`, and keep diagram lenses (`?lens=`) apart from the inspector.
+- Actions: `ExtensionActionButton`, only in the inspector, so each action runs with a resource context. There
   is no home placement. A route that is not `readOnly` asks in `ConfirmActionDialog`, not
   `window.confirm`. The dialog opens with `showModal()`, gives Cancel the focus, and names the target context. Do not abort a confirmed
   write: the backend can still finish it, so a retry can write twice. The busy state and the last result live in
@@ -286,7 +295,6 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   source tables read `useExtensionRevision()` and load again through `useRefreshingRequest`, which keeps the earlier
   value, shows a value only for the view (context, filters) it was loaded for, and drops a late reply. Do not add a
   second refresh store.
-- Node details: `ExtensionDetailPanels`.
 - Identity: `ExtensionLogo` (`extensions/ExtensionLogo.tsx`) is the mark beside an extension name everywhere, also in
   search and chat attribution. It is the `ExtensionMarker` when the manifest has no `logo`, and while a logo loads or
   after it fails. A logo has loaded when its `img` fires `load` or is `complete`, not when its bytes arrive: Firefox
@@ -310,11 +318,20 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   backend `fields`) with `own()`: a field can be called `constructor` or `toString`. A
   screen form fills its target picker from the slot context. Call `useExtensionRefresh().refresh(id)` only after a 2xx. `formRules.ts` copies the messages of
   `ExtensionForms` in calm-hub, and `formRules.test.ts` reads the shared cases.
-- Both use `ExtensionSections`: the first section is open, a choice is kept in `localStorage` per extension, and a
-  closed section renders nothing, so it sends no request.
-  Give `ExtensionSections` and `ExtensionSlot` a `headingLevel` one below the heading of the place that holds
-  them: `h3`/`h4` in the Extensions tab, `h5`/`h6` in the node details, `h1` on a screen page (nothing else
-  there is an `h1`).
+- `ExtensionInspector` shows one extension at a time; `ExtensionInspectorSection` shows its actions and one chosen resource or node view. Each view mounts when it first shows and stays mounted, hidden, after
+  that, also while the inspector is closed, so slot state stays. `SlotActiveContext` is false for a hidden slot:
+  `ExtensionSlot` and its `SourceTable`s then pass no `load` to `useRefreshingRequest`, so they send no request, and
+  load when they show again if their context, revision or table query changed. A failed request does not load again
+  when it shows: the slot and the table show **Try again**, also for a first load. Keep the inspector's tree the same
+  when it closes, or React remounts the slots.
+- On a wide screen, each selection that the user makes opens the inspector, also a click on the item that is already
+  selected (`selections` in `Hub`). `handleItemSelect` counts it with a functional update, so its identity stays.
+- The `ExtensionSlot` key is the extension and the contribution, not the context, so a change of selection keeps
+  the slot mounted. `useRefreshingRequest` shows a reply only for the context it was loaded for, so a slot shows
+  Loading, never the earlier target's data, beside actions that follow the new context. `ScreenErrorBoundary`
+  takes the context and screen parameters as its `resetKey`. Key a slot in a list as `<point>:<contribution id>`.
+  Give `ExtensionSlot` a `headingLevel` one below the heading of the place that holds it: `h3` in the inspector
+  (the extension name is the `h2`), `h1` on a screen page (nothing else there is an `h1`).
   A block slot shows its title and its named region in every state (loading, failed, a reply it cannot show:
   the error boundary takes a `frame`), and the screen page has
   an `h1` in the same region (`SlotFrame`) before the registry loads, so the outline does not change. The heading is

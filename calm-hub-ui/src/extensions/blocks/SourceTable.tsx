@@ -3,6 +3,7 @@ import { TableBlockValue } from '../../model/extensions.js';
 import { useExtensionService } from '../ExtensionsContext.js';
 import { useExtensionRevision } from '../extensionRefresh.js';
 import { RetryAlert } from '../RetryAlert.js';
+import { useSlotActive } from '../slotActivity.js';
 import { useRefreshingRequest } from '../useRefreshingRequest.js';
 import { BlockScope } from './BlockScope.js';
 import type { TableControls } from './FilteredTable.js';
@@ -19,6 +20,8 @@ export function SourceTable({ block, scope, controls }: { block: TableBlockValue
     const service = useExtensionService();
     const { extension } = scope;
     const revision = useExtensionRevision(extension.id);
+    // A hidden slot sends no request: a refresh or a search waits until the table shows again.
+    const active = useSlotActive();
     const routeId = block.source?.route;
     const route = extension.routes.find((entry) => entry.id === routeId && entry.method === 'GET' && entry.readOnly);
     const pageSize = pageSizeOf(block);
@@ -27,7 +30,7 @@ export function SourceTable({ block, scope, controls }: { block: TableBlockValue
     const filterId = filter?.id;
     const { namespace, resource, resourceType, resourceId, version, selectedElement } = scope.context;
     const load = useMemo(() => {
-        if (!route) return undefined;
+        if (!route || !active) return undefined;
         const query = {
             namespace,
             resource,
@@ -50,6 +53,7 @@ export function SourceTable({ block, scope, controls }: { block: TableBlockValue
         extension.id,
         extension.hubApi,
         route,
+        active,
         namespace,
         resource,
         resourceType,

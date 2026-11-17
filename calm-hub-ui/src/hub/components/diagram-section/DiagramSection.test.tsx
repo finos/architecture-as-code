@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate, useSearchParams, type InitialEntry } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
@@ -8,7 +7,6 @@ import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { saveNodePositions } from '../../../visualizer/services/node-position-service.js';
 import type { Node } from '@xyflow/react';
 import { ExtensionsContext, ExtensionsStatusContext, type ExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
-import { ExtensionService } from '../../../service/extension-service.js';
 import type { ExtensionSummary } from '../../../model/extensions.js';
 import { DestinationLink } from '../../../navigation/DestinationLink.js';
 import { destinationLocation } from '../../../navigation/destinations.js';
@@ -808,13 +806,15 @@ describe('DiagramSection', () => {
             await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?type=deployment'));
         });
 
-        it('keeps an extension tab selected after a click, and does not cancel its request', async () => {
-            const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, title: 'Releases', blocks: [] });
+        it.each([
+            ['/?tab=extensions', '?extension='],
+            ['/?node=node-1&tab=extensions&extension=release-tracker', '?node=node-1&extension=release-tracker'],
+        ])('redirects an old link to the Extensions tab (%s) to the inspector, and keeps the diagram', async (entry, expected) => {
             function SearchProbe() {
                 return <div data-testid="search">{useLocation().search}</div>;
             }
             render(
-                <MemoryRouter>
+                <MemoryRouter initialEntries={[entry]}>
                     <ExtensionsContext.Provider value={[releaseTracker]}>
                         <DiagramSection data={architectureData} />
                         <SearchProbe />
@@ -822,103 +822,29 @@ describe('DiagramSection', () => {
                 </MemoryRouter>
             );
 
-            await userEvent.click(screen.getByRole('tab', { name: 'Extensions' }));
-
-            expect(await screen.findByRole('heading', { name: 'Releases' })).toBeInTheDocument();
-            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions');
-            expect(screen.getByRole('tab', { name: 'Extensions' }).className).toContain('tab-active');
-            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
-            expect((call.mock.calls[0][3] as AbortSignal).aborted).toBe(false);
-            expect(call.mock.calls[0][2]).toMatchObject({
-                namespace: 'arch-namespace',
-                resource: 'architectures/test-arch',
-                resourceType: 'architectures',
-                resourceId: 'test-arch',
-            });
-            call.mockRestore();
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            await waitFor(() => expect(screen.getByTestId('search').textContent).toBe(expected));
         });
 
-        it('keeps the Extensions tab open after a click when its only action needs the selected element', async () => {
-            const scanner: ExtensionSummary = {
-                id: 'scanner',
-                name: 'Scanner',
-                hubApi: 0,
-                routes: [{ id: 'scan', method: 'POST', path: '/scan/{selectedElement}', scope: 'authenticated', readOnly: false }],
-                contributes: { action: [{ id: 'scan', title: 'Scan', route: 'scan' }] },
-            };
-            // Hub clears a clicked selection on any change to the query.
-            function HubLike() {
-                const { search } = useLocation();
-                const [selection, setSelection] = useState<{ id?: string; search: string }>({ search });
-                const selectedElement = selection.search === search ? selection.id : undefined;
-                return (
-                    <>
-                        <button onClick={() => setSelection({ id: 'node-1', search })}>select node</button>
-                        <DiagramSection data={architectureData} selectedElement={selectedElement} />
-                        <div data-testid="search">{search}</div>
-                    </>
-                );
-            }
-            render(
-                <MemoryRouter>
-                    <ExtensionsContext.Provider value={[scanner]}>
-                        <HubLike />
-                    </ExtensionsContext.Provider>
-                </MemoryRouter>
-            );
-
-            expect(screen.getByRole('tab', { name: 'Extensions' })).toBeInTheDocument();
-            await userEvent.click(screen.getByRole('button', { name: 'select node' }));
-            await userEvent.click(screen.getByRole('tab', { name: 'Extensions' }));
-
-            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions');
-            expect(screen.getByRole('tab', { name: 'Extensions' }).className).toContain('tab-active');
-            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Scan' })).toHaveAttribute('aria-disabled', 'true');
-        });
-
-        it('enables an action that needs the selected element when a link names the node', () => {
-            const scanner: ExtensionSummary = {
-                id: 'scanner',
-                name: 'Scanner',
-                hubApi: 0,
-                routes: [{ id: 'scan', method: 'POST', path: '/scan/{selectedElement}', scope: 'authenticated', readOnly: false }],
-                contributes: { action: [{ id: 'scan', title: 'Scan', route: 'scan' }] },
-            };
-            render(
-                <MemoryRouter initialEntries={['/?node=node-1&tab=extensions']}>
-                    <ExtensionsContext.Provider value={[scanner]}>
-                        <DiagramSection data={architectureData} selectedElement="node-1" />
-                    </ExtensionsContext.Provider>
-                </MemoryRouter>
-            );
-            expect(screen.getByRole('button', { name: 'Scan' })).toBeEnabled();
-        });
-
-        it('keeps a link to the Extensions tab until the registry loads, then opens it', async () => {
-            vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, title: 'Releases', blocks: [] });
+        it('keeps the inspector extension on a change of tab or lens', async () => {
             function SearchProbe() {
                 return <div data-testid="search">{useLocation().search}</div>;
             }
-            const page = (extensions: ExtensionSummary[]) => (
-                <MemoryRouter initialEntries={['/?tab=extensions']}>
-                    <ExtensionsContext.Provider value={extensions}>
-                        <DiagramSection data={architectureData} />
-                        <SearchProbe />
-                    </ExtensionsContext.Provider>
+            render(
+                <MemoryRouter initialEntries={['/?extension=release-tracker']}>
+                    <DiagramSection data={architectureData} />
+                    <SearchProbe />
                 </MemoryRouter>
             );
-            const { rerender } = render(page([]));
-            expect(screen.queryByRole('tab', { name: 'Extensions' })).not.toBeInTheDocument();
-            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions');
 
-            rerender(page([releaseTracker]));
+            await userEvent.click(screen.getByRole('tab', { name: 'Decorators' }));
+            expect(screen.getByTestId('search').textContent).toBe('?tab=decorators&extension=release-tracker');
 
-            expect(await screen.findByRole('heading', { name: 'Releases' })).toBeInTheDocument();
-            vi.restoreAllMocks();
+            await userEvent.click(screen.getByRole('tab', { name: 'Diagram' }));
+            expect(screen.getByTestId('search').textContent).toBe('?extension=release-tracker');
         });
 
-        it('shows no extension buttons or tabs in the toolbar, only one Extensions tab', () => {
+        it('shows no extension buttons or tabs in the toolbar', () => {
             const many = Array.from({ length: 10 }, (_, i) => ({
                 ...releaseTracker,
                 id: `ext-${i}`,
@@ -933,8 +859,41 @@ describe('DiagramSection', () => {
                     </ExtensionsContext.Provider>
                 </MemoryRouter>
             );
-            expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Diagram', 'Decorators', 'Extensions']);
+            expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Diagram', 'Decorators']);
             expect(screen.queryByRole('button', { name: /^Act / })).not.toBeInTheDocument();
+        });
+
+        it.each([
+            ['desktop', false],
+            ['mobile', true],
+        ])('shows the inspector handle on the %s canvas only when Hub gives an inspector, and hides it while it is open', async (_, mobile) => {
+            const restore = mobile ? mockMobileViewport() : () => {};
+            try {
+                const onToggle = vi.fn();
+                const page = (inspector?: { open: boolean; controls: string; onToggle: () => void }) => (
+                    <MemoryRouter>
+                        <DiagramSection data={architectureData} inspector={inspector} />
+                    </MemoryRouter>
+                );
+                const { rerender } = render(page());
+                expect(screen.queryByRole('button', { name: 'Details & extensions' })).not.toBeInTheDocument();
+
+                rerender(page({ open: false, controls: 'diagram-inspector', onToggle }));
+                const handle = screen.getByRole('button', { name: 'Details & extensions' });
+                expect(handle).toHaveAttribute('aria-expanded', 'false');
+                expect(handle).toHaveAttribute('aria-controls', 'diagram-inspector');
+                expect(handle.parentElement).toContainElement(screen.getByTestId('drawer'));
+                expect(screen.queryByRole('button', { name: 'Inspector' })).not.toBeInTheDocument();
+                await userEvent.click(handle);
+                expect(onToggle).toHaveBeenCalledTimes(1);
+
+                rerender(page({ open: true, controls: 'diagram-inspector', onToggle }));
+                expect(screen.queryByRole('button', { name: 'Details & extensions' })).not.toBeInTheDocument();
+                expect(handle).toBeInTheDocument();
+                expect(handle).toHaveAttribute('aria-expanded', 'true');
+            } finally {
+                restore();
+            }
         });
 
         it('keeps a known tab that is hidden for now in the URL', () => {
@@ -1455,12 +1414,15 @@ describe('DiagramSection', () => {
             expect(navigate).toHaveBeenCalledTimes(1);
         });
 
-        it('keeps a link to the Extensions tab when it redirects before the extension registry loads', async () => {
+        it.each([
+            ['/?tab=extensions', '?extension='],
+            ['/?extension=release-tracker', '?extension=release-tracker'],
+        ])('keeps the inspector extension when it redirects before the extension registry loads (%s)', async (entry, query) => {
             const navigate = vi.fn();
             vi.mocked(useNavigate).mockReturnValue(navigate);
 
             render(
-                <MemoryRouter initialEntries={['/?tab=extensions']}>
+                <MemoryRouter initialEntries={[entry]}>
                     <ExtensionsStatusContext.Provider value="loading">
                         <ExtensionsContext.Provider value={[]}>
                             <DiagramSection data={latestArchitectureData} />
@@ -1470,19 +1432,19 @@ describe('DiagramSection', () => {
             );
 
             await waitFor(() => {
-                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/1.0.0?tab=extensions', {
+                expect(navigate).toHaveBeenCalledWith(`/arch-namespace/architectures/test-arch/1.0.0${query}`, {
                     replace: true,
                     state: null,
                 });
             });
         });
 
-        it.each(['/?tab=extensions', '/?tab=used-by'])('does not carry a tab that cannot show for the architecture (%s)', async (entry) => {
+        it('does not carry a tab that cannot show for the architecture', async () => {
             const navigate = vi.fn();
             vi.mocked(useNavigate).mockReturnValue(navigate);
 
             render(
-                <MemoryRouter initialEntries={[entry]}>
+                <MemoryRouter initialEntries={['/?tab=used-by']}>
                     <ExtensionsContext.Provider value={[]}>
                         <DiagramSection data={latestArchitectureData} />
                     </ExtensionsContext.Provider>

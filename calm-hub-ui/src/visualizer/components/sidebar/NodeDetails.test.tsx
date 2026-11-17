@@ -1,8 +1,3 @@
-import { ExtensionsContext } from '../../../extensions/ExtensionsContext.js';
-import { ExtensionResourceContext } from '../../../extensions/ExtensionResourceContext.js';
-import { ExtensionService } from '../../../service/extension-service.js';
-import { fakeExtensions } from '../../../test-support/fake-extensions.js';
-import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -203,34 +198,5 @@ describe('NodeDetails', () => {
         expect(screen.getByText('Properties')).toBeInTheDocument();
         expect(screen.getByText('Custom Field')).toBeInTheDocument();
         expect(screen.getByText('custom-value')).toBeInTheDocument();
-    });
-});
-
-
-describe('node extension detail panels', () => {
-    afterEach(() => vi.restoreAllMocks());
-    const extensions = [{ id: 'test', name: 'Test', hubApi: 0, routes: [{ id: 'panel', path: '/panel', method: 'GET', scope: 'authenticated', readOnly: true }], contributes: { 'detail-panel': [{ id: 'panel', title: 'Panel', route: 'panel' }] } }];
-    it('passes the selected node and loaded resource to the proxy', async () => {
-        const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
-        render(<ExtensionsContext.Provider value={extensions}><ExtensionResourceContext.Provider value={{ namespace: 'test', resource: 'architectures/1', version: '1.0.0' }}>
-            <NodeDetails data={baseNode} />
-        </ExtensionResourceContext.Provider></ExtensionsContext.Provider>);
-        expect(await screen.findByRole('heading', { name: 'Panel' })).toBeInTheDocument();
-        expect(call.mock.calls[0][2]).toEqual({ namespace: 'test', resource: 'architectures/1', version: '1.0.0', selectedElement: 'node-001' });
-    });
-    it('groups ten detail panels in one Extensions section, with only the first open', async () => {
-        const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
-        render(<ExtensionsContext.Provider value={fakeExtensions(10, ['detail-panel'])}><ExtensionResourceContext.Provider value={{ namespace: 'test', resource: 'architectures/1', version: '1.0.0' }}>
-            <NodeDetails data={baseNode} storage={createMemoryStorage()} />
-        </ExtensionResourceContext.Provider></ExtensionsContext.Provider>);
-        expect(screen.getAllByText('Extensions')).toHaveLength(1);
-        expect(screen.getAllByTestId('extension-section')).toHaveLength(10);
-        expect(await screen.findByRole('heading', { name: 'detail-panel 1' })).toBeInTheDocument();
-        expect(call).toHaveBeenCalledTimes(1);
-    });
-    it('does not call a resource extension for a local file', () => {
-        const call = vi.spyOn(ExtensionService.prototype, 'call');
-        render(<ExtensionsContext.Provider value={extensions}><NodeDetails data={baseNode} /></ExtensionsContext.Provider>);
-        expect(call).not.toHaveBeenCalled();
     });
 });

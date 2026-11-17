@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useMatch, useNavigate } from 'react-router-dom';
 import { IoCompassOutline } from 'react-icons/io5';
-import { ExtensionResourceContext } from '../extensions/ExtensionResourceContext.js';
 import { RESOURCE_ROUTE } from './routes.js';
 import { ExploreRail } from './components/explore-rail/ExploreRail.js';
 import { CollapsedRail } from './components/explore-rail/CollapsedRail.js';
@@ -29,6 +28,8 @@ import { InterfaceDetailSection } from './components/interface-detail-section/In
 import { DiagramSection } from './components/diagram-section/DiagramSection.js';
 import { Sidebar } from '../visualizer/components/sidebar/Sidebar.js';
 import { NodeSheet } from '../visualizer/components/sidebar/NodeSheet.js';
+import { DiagramInspector, MobileInspector } from './components/inspector/DiagramInspector.js';
+import { INSPECTOR_ID, type InspectorTab } from './components/inspector/inspectorIds.js';
 import { DiagramActionsContext } from '../visualizer/context/DiagramActionsContext.js';
 import { DecoratorsContext, type DecoratorsState } from '../visualizer/context/DecoratorsContext.js';
 import { containersOfContainment } from '../visualizer/overlay/overlayEngine.js';
@@ -40,7 +41,7 @@ import type { CalmNodeSchema } from '@finos/calm-models/types';
 import { authStore } from '../service/utils/auth-store.js';
 import { diagramLenses } from './components/diagram-section/tabs/diagramLenses.js';
 import { useExtensions, useExtensionsStatus } from '../extensions/ExtensionsContext.js';
-import { EXTENSION_PARAM, withoutLens } from './components/diagram-section/tabs/diagramTabRegistry.js';
+import { EXTENSION_PARAM, EXTENSIONS_TAB_ID, inspectorExtension, withoutLens } from './components/diagram-section/tabs/diagramTabRegistry.js';
 import { resourceExtensions } from '../extensions/contributions.js';
 import { ReturnPointProvider } from '../navigation/ReturnPointProvider.js';
 import { carryReturnPoints, type ReturnPage } from '../navigation/returnPoints.js';
@@ -79,7 +80,14 @@ export default function Hub() {
     const extensions = useExtensions();
     const extensionsStatus = useExtensionsStatus();
     const lenses = useMemo(() => diagramLenses(extensions, extensionsStatus), [extensions, extensionsStatus]);
-    const lensFreeQuery = (search: string) => withoutLens(lenses, new URLSearchParams(search)).toString();
+    // The query without the diagram lens and the inspector's extension: a change of only those keeps the selection.
+    const viewFreeQuery = (search: string) => {
+        const query = withoutLens(lenses, new URLSearchParams(search));
+        query.delete(EXTENSION_PARAM);
+        if (query.get('tab') === EXTENSIONS_TAB_ID) query.delete('tab');
+        return query.toString();
+    };
+    const [displayName, setDisplayName] = useState<string>();
     const currentDisplayNameRef = useRef<string | undefined>(undefined);
     const [data, setData] = useState<Data | undefined>();
     const [adrData, setAdrData] = useState<Adr | undefined>();
@@ -88,6 +96,8 @@ export default function Hub() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(true);
     const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
+    // Counts the selections that the user makes, so a click on the item that is already selected opens the inspector.
+    const [selections, setSelections] = useState(0);
     const [showsDroppedFile, setShowsDroppedFile] = useState(false);
     // The selection can be a node of the dropped file, so it goes with the file. Set together, so that no render gives
     // extensions that node with the loaded architecture's context.
@@ -231,16 +241,16 @@ export default function Hub() {
         setResourceLoadFailed(false);
     }
 
-    // Any navigation, a tab change included, closes the node details panel, except the one that
-    // handleItemSelect makes to take `node` out of the URL, and a change of only the diagram lens or its parameters.
+    // Any navigation, a tab change included, clears the selection, except the one that handleItemSelect makes to take
+    // `node` out of the URL, and a change of only the diagram lens, its parameters or the inspector's extension.
     const [nodeRemovedFromUrl, setNodeRemovedFromUrl] = useState<string | null>(null);
     const [selectionLocation, setSelectionLocation] = useState({ key: location.key, search: location.search });
     if (selectionLocation.key !== location.key || selectionLocation.search !== location.search) {
-        const lensChangeOnly = selectionLocation.search !== location.search
-            && lensFreeQuery(selectionLocation.search) === lensFreeQuery(location.search);
+        const viewChangeOnly = selectionLocation.search !== location.search
+            && viewFreeQuery(selectionLocation.search) === viewFreeQuery(location.search);
         setSelectionLocation({ key: location.key, search: location.search });
         setNodeRemovedFromUrl(null);
-        if (!lensChangeOnly && nodeRemovedFromUrl !== location.search) setSelectedItem(null);
+        if (!viewChangeOnly && nodeRemovedFromUrl !== location.search) setSelectedItem(null);
     }
 
     // A link can name a node to open: `#/ns/architectures/1/1.0.0?node=client-ledger`. This comes after
@@ -253,9 +263,6 @@ export default function Hub() {
         const item = findElement(data, linkedNodeId);
         if (item) setSelectedItem({ data: item });
     }
-
-    // The name of the loaded resource, for the label of its return point. Reported by DiagramSection.
-    const [displayName, setDisplayName] = useState<string | undefined>();
 
     const handleDataLoad = useCallback((loaded: Data) => {
         setData(loaded);
@@ -322,6 +329,7 @@ export default function Hub() {
     const handleItemSelect = useCallback(
         (item: SelectedItem) => {
             setSelectedItem(item);
+            if (item) setSelections((count) => count + 1);
             const { pathname, search, hash, state } = locationRef.current;
             const params = new URLSearchParams(search);
             const linked = params.get('node');
@@ -381,11 +389,75 @@ export default function Hub() {
     );
 
     const isDiagramView = data?.calmType === 'Architectures' || data?.calmType === 'Patterns';
-    // Memoised: a new object on each render would re-render each consumer and restart its effects.
-    const resourceContext = useMemo(
-        () => (data && isDiagramView && !showsDroppedFile ? extensionContext(data) : null),
-        [data, isDiagramView, showsDroppedFile]
+    // A dropped file has no resource, so extensions get no context for it.
+    const selectedId = selectedItem?.data['unique-id'];
+    const inspectorContext = useMemo(
+        () => (data && isDiagramView && !showsDroppedFile ? extensionContext(data, selectedId) : null),
+        [data, isDiagramView, showsDroppedFile, selectedId]
     );
+
+    // The inspector beside the diagram. `?extension=<id>` opens it on that extension, so a link and a reload keep it;
+    // Details is open in memory only. Hub owns it, so the diagram stays mounted while it opens and closes.
+    const linkedExtension = inspectorExtension(new URLSearchParams(location.search));
+    const [detailsOpen, setDetailsOpen] = useState(false);
+    const [focusInspector, setFocusInspector] = useState(false);
+    const clearFocusInspector = useCallback(() => setFocusInspector(false), []);
+    const inspectorOpen = !!isDiagramView && (linkedExtension !== null || detailsOpen);
+    const inspectorTab: InspectorTab = linkedExtension !== null ? 'extensions' : 'details';
+    // The tab and the extension shown last, by a link or by the user, so the inspector opens again on them.
+    const [lastInspector, setLastInspector] = useState<{ tab: InspectorTab; extension: string }>({ tab: 'details', extension: '' });
+    if (inspectorOpen && (lastInspector.tab !== inspectorTab || (linkedExtension !== null && linkedExtension !== lastInspector.extension))) {
+        setLastInspector({ tab: inspectorTab, extension: linkedExtension ?? lastInspector.extension });
+    }
+    // On a wide screen a selection opens the inspector, as the node details did, also a click on the item that is
+    // already selected after the inspector closed. A narrow screen shows the sheet.
+    const [openedFor, setOpenedFor] = useState({ id: selectedId, selections });
+    if (openedFor.id !== selectedId || openedFor.selections !== selections) {
+        setOpenedFor({ id: selectedId, selections });
+        if (selectedId !== undefined && !isMobile) setDetailsOpen(true);
+    }
+
+    const setInspectorExtension = useCallback(
+        (extension: string | null) => {
+            const { pathname, search, hash, state } = locationRef.current;
+            const params = new URLSearchParams(search);
+            if (params.get('tab') === EXTENSIONS_TAB_ID) params.delete('tab');
+            if (extension === null) params.delete(EXTENSION_PARAM);
+            else params.set(EXTENSION_PARAM, extension);
+            const query = params.toString();
+            const nextSearch = query ? `?${query}` : '';
+            // Hub loads the resource again on a navigation that leaves the query as it is.
+            if (nextSearch !== search) navigate({ pathname, search: nextSearch, hash }, { replace: true, state });
+        },
+        [navigate]
+    );
+    const selectInspectorTab = useCallback(
+        (tab: InspectorTab, extension = '') => {
+            setDetailsOpen(tab === 'details');
+            setInspectorExtension(tab === 'extensions' ? extension : null);
+        },
+        [setInspectorExtension]
+    );
+    // Focus goes back to the control that opened the inspector, or else to its handle.
+    const inspectorOpener = useRef<HTMLElement | null>(null);
+    const returnFocus = useRef(false);
+    useEffect(() => {
+        if (inspectorOpen || !returnFocus.current) return;
+        returnFocus.current = false;
+        const opener = inspectorOpener.current?.isConnected ? inspectorOpener.current : null;
+        (opener ?? document.querySelector<HTMLElement>(`[aria-controls="${INSPECTOR_ID}"]`))?.focus();
+    }, [inspectorOpen]);
+    const openInspector = () => {
+        inspectorOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        setFocusInspector(true);
+        selectInspectorTab(lastInspector.tab, lastInspector.extension);
+    };
+    const closeInspector = () => {
+        returnFocus.current = true;
+        setDetailsOpen(false);
+        setInspectorExtension(null);
+    };
+    const toggleInspector = () => (inspectorOpen ? closeInspector() : openInspector());
 
     const decoratorsState = useMemo(
         (): DecoratorsState => ({
@@ -473,8 +545,7 @@ export default function Hub() {
           ? { kind: 'search' }
           : undefined;
     const returnQuery = new URLSearchParams(location.search);
-    const selectedId = showsDroppedFile ? undefined : selectedItem?.data['unique-id'];
-    if (selectedId) returnQuery.set('node', selectedId);
+    if (selectedId && !showsDroppedFile) returnQuery.set('node', selectedId);
     const returnSearch = returnQuery.toString() ? `?${returnQuery.toString()}` : '';
     const returnLabel = detailMatch
         ? `${displayName || detailMatch.params.id} ${detailMatch.params.version}`
@@ -534,6 +605,23 @@ export default function Hub() {
         );
     }
 
+    const inspector = data && isDiagramView && (
+        <DiagramInspector
+            data={data}
+            displayName={displayName}
+            selected={selectedItem?.data}
+            context={inspectorContext}
+            open={inspectorOpen}
+            tab={inspectorTab}
+            extensionId={linkedExtension ?? (lastInspector.extension || undefined)}
+            focusOnOpen={focusInspector}
+            onFocused={clearFocusInspector}
+            onSelectTab={selectInspectorTab}
+            onClose={isMobile ? undefined : closeInspector}
+            onClearSelection={closeSidebar}
+        />
+    );
+
     const detailContent = interfaceData ? (
         <InterfaceDetailSection interfaceData={interfaceData} />
     ) : adrData ? (
@@ -550,8 +638,9 @@ export default function Hub() {
             key={`${data.calmType}:${data.name}:${data.id}`}
             data={data}
             onItemSelect={handleItemSelect}
-            hasDetailsPanel={!!selectedItem}
-            selectedElement={selectedItem?.data['unique-id']}
+            hasDetailsPanel={isMobile ? !!selectedItem : inspectorOpen}
+            selectedElement={selectedId}
+            inspector={{ open: inspectorOpen, controls: INSPECTOR_ID, onToggle: toggleInspector }}
             breadcrumbs={breadcrumbs}
             onDisplayNameChange={handleDisplayNameChange}
             onDecoratorsChange={setDecorators}
@@ -600,7 +689,6 @@ export default function Hub() {
 
     return (
         <DiagramActionsContext.Provider value={diagramActions}>
-        <ExtensionResourceContext.Provider value={resourceContext}>
         <DecoratorsContext.Provider value={decoratorsState}>
         <ReturnPointProvider page={returnPage} label={returnLabel} search={returnSearch}>
         <AppLayout>
@@ -667,21 +755,36 @@ export default function Hub() {
                     <div className="flex-1 overflow-auto min-w-0">{content}</div>
                 </div>
 
-                {selectedItem &&
-                    isDiagramView &&
+                {inspector &&
                     (isMobile ? (
-                        // Mobile: bottom-sheet that keeps the diagram peeking above
-                        // (Frame G), replacing the old full-screen takeover.
-                        <NodeSheet selectedData={selectedItem.data} closeSheet={closeSidebar} onPrev={onPrevNode} onNext={onNextNode} />
+                        <>
+                            {/* Mobile: bottom-sheet that keeps the diagram peeking above (Frame G). It hides while
+                                the full-screen inspector is open, and keeps its place, so focus can go back to it. */}
+                            {selectedItem && (
+                                <div hidden={inspectorOpen}>
+                                    <NodeSheet
+                                        selectedData={selectedItem.data}
+                                        closeSheet={closeSidebar}
+                                        onPrev={onPrevNode}
+                                        onNext={onNextNode}
+                                        onOpenInspector={openInspector}
+                                    />
+                                </div>
+                            )}
+                            <MobileInspector open={inspectorOpen} onClose={closeInspector}>
+                                {inspector}
+                            </MobileInspector>
+                        </>
                     ) : (
-                        <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />
+                        <Sidebar id={INSPECTOR_ID} label="Inspector" hidden={!inspectorOpen}>
+                            {inspector}
+                        </Sidebar>
                     ))}
 
             </div>
         </AppLayout>
         </ReturnPointProvider>
         </DecoratorsContext.Provider>
-        </ExtensionResourceContext.Provider>
         </DiagramActionsContext.Provider>
     );
 }

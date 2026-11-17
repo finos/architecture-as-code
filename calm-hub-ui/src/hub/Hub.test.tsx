@@ -1,8 +1,8 @@
 import React from 'react';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import Hub from './Hub.js';
-import { vi, describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { vi, describe, it, expect, afterEach, beforeEach, type MockInstance } from 'vitest';
 import { authStore } from '../service/utils/auth-store.js';
 import { CountsService } from '../service/counts-service.js';
 import { PersonalNamespaceService } from '../service/personal-namespace-service.js';
@@ -11,12 +11,10 @@ import type { ExtensionSummary } from '../model/extensions.js';
 import { ExtensionsContext } from '../extensions/ExtensionsContext.js';
 import { UiConfigContext } from '../components/ui-config/UiConfigContext.js';
 import type { UiNavigation } from '../model/ui-config.js';
+import { ExtensionService } from '../service/extension-service.js';
 import { fakeExtension } from '../test-support/fake-extensions.js';
 import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
-
-// Each value of ExtensionResourceContext that the DiagramSection stub reads, in render order.
-const resourceContexts = vi.hoisted(() => [] as unknown[]);
 
 /**
  * Force `useIsMobile()` (which reads window.matchMedia) to report a mobile
@@ -175,9 +173,7 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
     // Real context, not a mock: the stub consumes Hub's provider exactly like the
     // production tree (CustomNode / NodeDetails) does.
     const { useDiagramActions } = await import('../visualizer/context/DiagramActionsContext.js');
-    const { ExtensionResourceContext } = await import('../extensions/ExtensionResourceContext.js');
     const { DestinationLink } = await import('../navigation/DestinationLink.js');
-    const { useContext } = await import('react');
     const DiagramSection = ({
         data,
         onItemSelect,
@@ -185,6 +181,7 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
         onDisplayNameChange,
         onDecoratorsChange,
         onDroppedFileChange,
+        inspector,
     }: {
         data: { id?: string };
         onItemSelect?: (item: { data: unknown }) => void;
@@ -192,12 +189,17 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
         onDisplayNameChange?: (name: string | undefined) => void;
         onDecoratorsChange?: (decorators: unknown[]) => void;
         onDroppedFileChange?: (dropped: boolean) => void;
+        inspector?: { open: boolean; controls: string; onToggle: () => void };
     }) => {
         const { onNavigateToDetailedArch } = useDiagramActions();
-        resourceContexts.push(useContext(ExtensionResourceContext));
         return (
         <div data-testid="diagram-section">
             Diagram: {data?.id}
+            {inspector && (
+                <button type="button" hidden={inspector.open} aria-expanded={inspector.open} aria-controls={inspector.controls} onClick={inspector.onToggle}>
+                    Details & extensions
+                </button>
+            )}
             {/* Trail from history state, echoed for breadcrumb-accumulation tests. */}
             <div data-testid="breadcrumbs">{JSON.stringify(breadcrumbs ?? [])}</div>
             {/* Simulates the summaries fetch resolving the display name. */}
@@ -450,6 +452,14 @@ const C4_EXTENSION = {
     id: 'c4', name: 'C4 model', hubApi: 0, routes: [],
     contributes: { 'diagram-lens': [{ id: 'c4', title: 'C4', route: 'lens', notation: 'notation.json', params: { level: { values: ['container'] } } }] },
 } as unknown as ExtensionSummary;
+
+// The selection bar above Details also names the selection.
+const details = () => within(screen.getByRole('region', { name: 'Details' }));
+const inspectorSelector = () => screen.getByRole('button', { name: /^Inspector view:/ });
+const chooseInspectorView = (name: string) => {
+    fireEvent.click(inspectorSelector());
+    fireEvent.click(screen.getByRole('menuitemradio', { name }));
+};
 
 const navigateTo = (to: string) => fireEvent.click(screen.getByTestId(`nav-${to}`));
 
@@ -918,7 +928,7 @@ describe('Hub', () => {
 
         it('raises the node bottom-sheet (not a full-screen takeover) when a node is selected (Frame G)', () => {
             const restore = mockMobileViewport(true);
-            const { container } = renderAt('/');
+            renderAt('/');
 
             loadData();
             fireEvent.click(screen.getByTestId('select-node'));
@@ -927,7 +937,7 @@ describe('Hub', () => {
             // full-screen slide-in takeover is gone.
             expect(screen.getByTestId('node-sheet')).toBeInTheDocument();
             expect(screen.getByText('Node One')).toBeInTheDocument();
-            expect(container.querySelector('.animate-slide-in-right')).toBeNull();
+            expect(screen.queryByRole('dialog', { name: 'Inspector' })).not.toBeInTheDocument();
 
             restore();
         });
@@ -1019,39 +1029,132 @@ describe('Hub', () => {
         });
     });
 
-    it('renders the inline Sidebar drawer (not the bottom-sheet) on desktop when a node is selected', () => {
-        // Desktop default matchMedia (matches:false) — the node detail must stay the
-        // inline desktop drawer, never the mobile NodeSheet.
+    it('opens inline inspector Details (not the bottom-sheet) on desktop when a node is selected', () => {
+        // Desktop default matchMedia (matches:false): the node detail is the inline inspector, never the mobile NodeSheet.
         renderAt('/');
         loadData();
         fireEvent.click(screen.getByTestId('select-node'));
         expect(screen.queryByTestId('node-sheet')).not.toBeInTheDocument();
-        // The desktop Sidebar renders the node title in its drawer.
-        expect(screen.getByText('Node One')).toBeInTheDocument();
+        expect(screen.getByRole('complementary', { name: 'Inspector' })).toBeInTheDocument();
+        expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Details');
+        expect(details().getByText('Node One')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Details & extensions' })).not.toBeInTheDocument();
     });
 
-    describe('extension resource context', () => {
-        it('keeps one context object across a render that does not change the resource', () => {
+    describe('the inspector', () => {
+        const toggle = () => screen.getByRole('button', { name: 'Details & extensions' });
+        const inspector = () => screen.queryByRole('complementary', { name: 'Inspector' });
+        const designerTabs = [fakeExtension(1, ['designer-tab']), fakeExtension(2, ['designer-tab'])];
+        let call: MockInstance<ExtensionService['call']>;
+        beforeEach(() => {
+            call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+        });
+        afterEach(() => call.mockRestore());
+
+        it('shows the resource with no selection, keeps the diagram mounted, and gives focus back to its toggle', () => {
             renderAt('/');
-            loadData();
-            const before = resourceContexts.at(-1);
-            expect(before).toMatchObject({ namespace: 'test-namespace', resource: 'patterns/test', version: '1.0' });
-            const renders = resourceContexts.length;
-            fireEvent.click(screen.getByTestId('select-node'));
-            expect(resourceContexts.length).toBeGreaterThan(renders);
-            expect(resourceContexts.at(-1)).toBe(before);
+            loadArchitectureWithNodes();
+            const diagram = screen.getByTestId('diagram-section');
+            expect(inspector()).not.toBeInTheDocument();
+
+            toggle().focus();
+            fireEvent.click(toggle());
+            expect(inspector()).toBeInTheDocument();
+            expect(inspectorSelector()).toHaveFocus();
+            expect(screen.getByText('Whole architecture. Select a node to see its views.')).toBeInTheDocument();
+            expect(details().getByText('Nodes').nextElementSibling).toHaveTextContent('3');
+
+            fireEvent.click(screen.getByRole('button', { name: 'Close inspector' }));
+            expect(inspector()).not.toBeInTheDocument();
+            expect(toggle()).toHaveFocus();
+            expect(screen.getByTestId('diagram-section')).toBe(diagram);
         });
 
-        it('clears a node of a dropped file when the file goes away', () => {
+        it('keeps the selection when it closes, and Clear selection clears it', () => {
             renderAt('/');
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            fireEvent.click(screen.getByRole('button', { name: 'Close inspector' }));
+            expect(inspector()).not.toBeInTheDocument();
+
+            fireEvent.click(toggle());
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
+            expect(inspector()).toBeInTheDocument();
+            expect(screen.getByText('Whole architecture. Select a node to see its views.')).toBeInTheDocument();
+        });
+
+        it('opens again on a click on the selected node after it closed', () => {
+            renderAt('/');
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            fireEvent.click(screen.getByRole('button', { name: 'Close inspector' }));
+            expect(inspector()).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByTestId('select-n2'));
+            expect(inspector()).toBeInTheDocument();
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Details');
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+        });
+
+        it('opens the extension that a link names, and keeps it and the selection while the selection or the extension changes', async () => {
+            renderWithNav('/?extension=ext-1', ['/?extension=ext-2'], designerTabs);
+            loadArchitectureWithNodes();
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 1 — designer-tab 1');
+            await waitFor(() => expect(call).toHaveBeenCalledTimes(1));
+            expect(call.mock.calls[0][2]).toMatchObject({ resource: 'architectures/arch', selectedElement: undefined });
+
+            fireEvent.click(screen.getByTestId('select-n1'));
+            fireEvent.click(screen.getByTestId('select-n2'));
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 1 — designer-tab 1');
+            await waitFor(() => expect(call.mock.calls.at(-1)?.[2]).toMatchObject({ selectedElement: 'n2' }));
+
+            navigateTo('/?extension=ext-2');
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 2 — designer-tab 2');
+            expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
+            await waitFor(() => expect(call.mock.calls.at(-1)?.[0]).toBe('ext-2'));
+            expect(call.mock.calls.at(-1)?.[2]).toMatchObject({ selectedElement: 'n2' });
+        });
+
+        it('returns from Details to an extension and keeps it when the inspector opens again', () => {
+            renderWithNav('/?extension=ext-2', [], designerTabs);
+            loadArchitectureWithNodes();
+            chooseInspectorView('Details');
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Details');
+
+            chooseInspectorView('designer-tab 2');
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 2 — designer-tab 2');
+
+            fireEvent.click(screen.getByRole('button', { name: 'Close inspector' }));
+            fireEvent.click(toggle());
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 2 — designer-tab 2');
+        });
+
+        it('opens the inspector for an old Extensions tab link, and says when no extension applies', () => {
+            renderAt('/?tab=extensions');
+            loadData();
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extensions');
+            expect(screen.getByText('No extension adds a view to this resource.')).toBeInTheDocument();
+        });
+
+        it('sends no request for an extension that a link asks for and that does not apply', () => {
+            renderWithNav('/?extension=missing', [], designerTabs);
+            loadData();
+            expect(screen.getByText('No extension adds a view to this resource.')).toBeInTheDocument();
+            expect(call).not.toHaveBeenCalled();
+        });
+
+        it('gives extensions no context for a dropped file, and clears a node of the file when it goes away', () => {
+            renderWithNav('/?extension=ext-1', [], designerTabs);
             loadData();
             fireEvent.click(screen.getByTestId('drop-file'));
-            expect(resourceContexts.at(-1)).toBeNull();
+            expect(screen.getByText('Extensions need a resource from CALM Hub. A dropped file has none.')).toBeInTheDocument();
             fireEvent.click(screen.getByTestId('select-node'));
-            expect(screen.getByText('Node One')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
+
             fireEvent.click(screen.getByTestId('lose-dropped-file'));
-            expect(resourceContexts.at(-1)).toMatchObject({ namespace: 'test-namespace' });
-            expect(screen.queryByText('Node One')).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
         });
 
         it('keeps a node of the architecture when no file was dropped', () => {
@@ -1059,18 +1162,57 @@ describe('Hub', () => {
             loadData();
             fireEvent.click(screen.getByTestId('select-node'));
             fireEvent.click(screen.getByTestId('lose-dropped-file'));
-            expect(screen.getByText('Node One')).toBeInTheDocument();
+            expect(details().getByText('Node One')).toBeInTheDocument();
         });
 
-        it('gives a new context when the resource changes', () => {
-            renderAt('/');
-            loadData();
-            const first = resourceContexts.at(-1);
-            act(() => {
-                captured?.onDataLoad({ id: 'other', version: '2.0', calmType: 'Patterns', name: 'test-namespace', data: {} } as Data);
-            });
-            expect(resourceContexts.at(-1)).not.toBe(first);
-            expect(resourceContexts.at(-1)).toMatchObject({ resource: 'patterns/other', version: '2.0' });
+        it('opens full screen from the node sheet on a narrow screen, and Back to diagram and Escape go back to the sheet', () => {
+            const restore = mockMobileViewport(true);
+            try {
+                renderAt('/');
+                loadArchitectureWithNodes();
+                fireEvent.click(screen.getByTestId('select-n1'));
+                const openFromSheet = within(screen.getByTestId('node-sheet')).getByRole('button', { name: 'Inspector' });
+                openFromSheet.focus();
+                fireEvent.click(openFromSheet);
+
+                const dialog = screen.getByRole('dialog', { name: 'Inspector' });
+                expect(screen.queryByTestId('node-sheet')).not.toBeVisible();
+                expect(within(dialog).getByRole('button', { name: 'Inspector view: Details' })).toHaveFocus();
+                expect(within(dialog).queryByRole('button', { name: 'Close inspector' })).not.toBeInTheDocument();
+
+                fireEvent.click(within(dialog).getByRole('button', { name: 'Back to diagram' }));
+                expect(screen.queryByRole('dialog', { name: 'Inspector' })).not.toBeInTheDocument();
+                expect(screen.getByTestId('node-sheet')).toBeVisible();
+                expect(openFromSheet).toHaveFocus();
+
+                // Escape: the browser sends cancel to the modal dialog.
+                fireEvent.click(openFromSheet);
+                fireEvent(screen.getByRole('dialog', { name: 'Inspector' }), new Event('cancel', { cancelable: true }));
+                expect(screen.queryByRole('dialog', { name: 'Inspector' })).not.toBeInTheDocument();
+                expect(openFromSheet).toHaveFocus();
+            } finally {
+                restore();
+            }
+        });
+
+        it('opens full screen from the edge handle on a narrow screen with no selection, and gives focus back to the handle', () => {
+            const restore = mockMobileViewport(true);
+            try {
+                renderAt('/');
+                loadArchitectureWithNodes();
+                toggle().focus();
+                fireEvent.click(toggle());
+
+                const dialog = screen.getByRole('dialog', { name: 'Inspector' });
+                expect(within(dialog).getByRole('button', { name: 'Inspector view: Details' })).toHaveFocus();
+                expect(within(dialog).getByText('Whole architecture. Select a node to see its views.')).toBeInTheDocument();
+
+                fireEvent.click(within(dialog).getByRole('button', { name: 'Back to diagram' }));
+                expect(screen.queryByRole('dialog', { name: 'Inspector' })).not.toBeInTheDocument();
+                expect(toggle()).toHaveFocus();
+            } finally {
+                restore();
+            }
         });
     });
 
@@ -1160,7 +1302,7 @@ describe('Hub', () => {
         it('opens the node the link names when the diagram loads', () => {
             renderAt('/?node=n2');
             loadArchitectureWithNodes();
-            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
         });
 
         it('opens the relationship that a link names, as a lens names one', () => {
@@ -1174,21 +1316,21 @@ describe('Hub', () => {
                     },
                 } as unknown as Data);
             });
-            expect(screen.getByText('n1-calls-n2')).toBeInTheDocument();
+            expect(details().getByText('n1-calls-n2')).toBeInTheDocument();
         });
 
         it('selects nothing when the node is not in the diagram', () => {
             renderAt('/?node=missing');
             loadArchitectureWithNodes();
-            expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
         });
 
         it('opens the other node when the link changes to name it', () => {
             renderWithNav('/?node=n1', ['/?node=n2']);
             loadArchitectureWithNodes();
-            expect(screen.getByText('Node One')).toBeInTheDocument();
+            expect(details().getByText('Node One')).toBeInTheDocument();
             navigateTo('/?node=n2');
-            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
             expect(screen.queryByText('Node One')).not.toBeInTheDocument();
         });
 
@@ -1196,14 +1338,14 @@ describe('Hub', () => {
             renderWithNav('/?node=n2', ['/?node=n2&tab=json']);
             loadArchitectureWithNodes();
             navigateTo('/?node=n2&tab=json');
-            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
         });
 
         it('keeps a node the user selects, and stops naming the linked node in the URL', () => {
             renderWithLocation(['/?tab=json&node=n2']);
             loadArchitectureWithNodes();
             fireEvent.click(screen.getByTestId('select-n1'));
-            expect(screen.getByText('Node One')).toBeInTheDocument();
+            expect(details().getByText('Node One')).toBeInTheDocument();
             expect(screen.getByTestId('location-search')).toHaveTextContent(/^\?tab=json$/);
         });
 
@@ -1211,25 +1353,25 @@ describe('Hub', () => {
             renderWithLocation(['/?node=n2']);
             loadArchitectureWithNodes();
             fireEvent.click(screen.getByTestId('select-n2'));
-            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
             expect(screen.getByTestId('location-search')).toHaveTextContent('?node=n2');
         });
 
-        it('stops naming the node in the URL when the user closes the panel', () => {
+        it('stops naming the node in the URL when the user clears the selection', () => {
             renderWithLocation(['/?node=n2']);
             loadArchitectureWithNodes();
-            fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
-            expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
+            expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
             expect(screen.getByTestId('location-search')).toBeEmptyDOMElement();
         });
 
-        it('closes a node the user selected when the query changes', () => {
+        it('clears a node the user selected when the query changes', () => {
             renderWithNav('/', ['/?tab=json']);
             loadArchitectureWithNodes();
             fireEvent.click(screen.getByTestId('select-n1'));
-            expect(screen.getByText('Node One')).toBeInTheDocument();
+            expect(details().getByText('Node One')).toBeInTheDocument();
             navigateTo('/?tab=json');
-            expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
         });
 
         it('keeps a node the user selected when only the diagram lens or its parameters change', () => {
@@ -1239,7 +1381,7 @@ describe('Hub', () => {
             navigateTo('/?lens=c4');
             navigateTo('/?lens=c4&level=container');
             navigateTo('/');
-            expect(screen.getByText('Node One')).toBeInTheDocument();
+            expect(details().getByText('Node One')).toBeInTheDocument();
         });
 
         it('keeps the selection when a lens opens from an explicit Diagram tab link', () => {
@@ -1247,14 +1389,14 @@ describe('Hub', () => {
             loadArchitectureWithNodes();
             fireEvent.click(screen.getByTestId('select-n1'));
             navigateTo('/?lens=c4');
-            expect(screen.getByText('Node One')).toBeInTheDocument();
+            expect(details().getByText('Node One')).toBeInTheDocument();
         });
 
         it('ignores a node query on the page URL outside the hash route', () => {
             window.history.replaceState(null, '', '/?node=n2');
             renderAt('/');
             loadArchitectureWithNodes();
-            expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
         });
     });
 
@@ -1428,7 +1570,7 @@ describe('Hub', () => {
         it('says when the linked extension is not enabled, and not when it applies', () => {
             const view = renderDetail(`${DETAIL}?tab=extensions&extension=ext-1`);
             loadArchitectureWithNodes();
-            expect(screen.getByRole('status')).toHaveTextContent('The extension "ext-1" is not enabled in this Hub');
+            expect(within(screen.getByTestId('return-bar')).getByRole('status')).toHaveTextContent('The extension "ext-1" is not enabled in this Hub');
             view.unmount();
 
             renderDetail(`${DETAIL}?tab=extensions&extension=ext-1`, [fakeExtension(1)]);

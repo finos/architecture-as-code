@@ -54,14 +54,16 @@ export function tabContributions(extension: ExtensionSummary): ExtensionContribu
 export interface ResourceExtension {
     extension: ExtensionSummary;
     actions: ExtensionContribution[];
-    /** Actions that wait for a selected element. They keep the extension listed, so a change of selection does not hide the tab. */
+    /** Actions that wait for a selected element. They keep the extension listed, so a change of selection does not hide it. */
     needsSelection: ExtensionContribution[];
     tabs: ExtensionContribution[];
     /** Designer tabs that wait for a selected element, as `needsSelection` does for actions. */
     tabsNeedSelection: ExtensionContribution[];
+    /** The detail panels that a selected node can fill. They keep the extension listed while no node is selected. */
+    panels: ExtensionContribution[];
 }
 
-/** The extensions that show in a resource's Extensions tab: each with an action or a designer tab for it. */
+/** The extensions that show in a resource's inspector: each with an action, a designer tab or a detail panel for it. */
 export function resourceExtensions(extensions: readonly ExtensionSummary[], context: ExtensionContext): ResourceExtension[] {
     const selected = { ...context, selectedElement: 'selected-element' };
     return extensions
@@ -76,11 +78,12 @@ export function resourceExtensions(extensions: readonly ExtensionSummary[], cont
                 needsSelection: selectionActions(extension, context),
                 tabs: allTabs.filter((contribution) => !tabsNeedSelection.includes(contribution)),
                 tabsNeedSelection,
+                panels: slotContributions(extension, 'detail-panel', selected),
             };
         })
         .filter(
-            ({ actions, needsSelection, tabs, tabsNeedSelection }) =>
-                actions.length + needsSelection.length + tabs.length + tabsNeedSelection.length > 0
+            ({ actions, needsSelection, tabs, tabsNeedSelection, panels }) =>
+                actions.length + needsSelection.length + tabs.length + tabsNeedSelection.length + panels.length > 0
         );
 }
 

@@ -26,7 +26,7 @@ Explore, visualize, and manage CALM architecture models through an interactive w
 - **Diagram & JSON Views**: Toggle between interactive visualization and raw JSON with syntax highlighting
 - **Version Selection**: Browse and switch between architecture revisions
 - **Quick Visualize**: Jump from any document into the full Visualizer workspace
-- **Extension Identity**: An extension's logo, or its generated marker, shows beside its name in the menu, home cards, screen headings and Extensions sections
+- **Extension Identity**: An extension's logo, or its generated marker, shows beside its name in the menu, home cards, screen headings and inspector
 - **Operator Branding**: The operator can set the organisation name, logo and colour, a menu at the side of each page, hidden namespace or control domain sections, and a start page. See [UI Customization](https://calm.finos.org/calm-hub/#ui-customization)
 - **Collapsible Menu**: Collapse the desktop side menu to make more room for the page. The browser remembers the choice; narrow screens still use the menu drawer
 
@@ -54,7 +54,10 @@ Explore, visualize, and manage CALM architecture models through an interactive w
 - **Status Badges**: Visual indicators for approved, deprecated, and other statuses
 
 ### 🔎 Inspector Sidebar
-- **Selection Details**: Click any node or edge to inspect its raw JSON
+- **Edge Handle**: The **Details & extensions** handle opens the inspector from a separate right-edge rail, without covering diagram or tab controls
+- **Selection Details**: Click any node or edge to see its details, readable or as JSON. With no selection, the inspector shows the resource
+- **View Menu**: Details comes first, followed by views grouped under each extension name. Select one view at a time; the extension's actions stay with it. Visited views keep their state without loading in the background. `?extension=<id>` opens the extension's first view on a fresh load; view choices stay in memory
+- **Narrow Screens**: The inspector fills the screen, with **Back to diagram**
 - **Drag & Drop Upload**: Load CALM JSON files directly into the visualizer
 
 ## 🚀 Getting Started

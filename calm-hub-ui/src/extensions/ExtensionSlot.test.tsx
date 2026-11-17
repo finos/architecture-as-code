@@ -4,6 +4,8 @@ import { ExtensionSlot } from './ExtensionSlot.js';
 import { ExtensionService } from '../service/extension-service.js';
 import { ExtensionSummary } from '../model/extensions.js';
 import { ExtensionsProvider } from './ExtensionsContext.js';
+import { SlotActiveContext } from './slotActivity.js';
+import { ExtensionRefresh, ExtensionRefreshContext } from './extensionRefresh.js';
 const contribution = { id: 'summary', title: 'Summary', route: 'summary' };
 const extension: ExtensionSummary = {
     id: 'test',
@@ -147,6 +149,136 @@ it('keeps the named region and its heading when the reply cannot be shown', asyn
     const region = screen.getByRole('region', { name: 'Summary' });
     expect(within(region).getByRole('alert')).toBeInTheDocument();
     expect(within(region).getByRole('heading', { level: 4, name: 'Summary' })).toBeInTheDocument();
+});
+
+describe('ExtensionSlot context and visibility', () => {
+    const reply = (text: string) => ({ hubApi: 0, blocks: [{ type: 'markdown', text }] });
+
+    it('stays mounted when the context changes, and shows Loading, not the blocks of the earlier target, until the new reply', async () => {
+        let complete: (value: unknown) => void = () => {};
+        vi.spyOn(ExtensionService.prototype, 'call')
+            .mockResolvedValueOnce(reply('for a'))
+            .mockImplementationOnce(() => new Promise((resolve) => (complete = resolve)));
+        const view = render(<ExtensionSlot extension={extension} contribution={contribution} context={{ selectedElement: 'a' }} />);
+        expect(await screen.findByText('for a')).toBeInTheDocument();
+        const region = screen.getByRole('region', { name: 'Summary' });
+
+        view.rerender(<ExtensionSlot extension={extension} contribution={contribution} context={{ selectedElement: 'b' }} />);
+        expect(screen.queryByText('for a')).not.toBeInTheDocument();
+        expect(screen.getByRole('status')).toHaveTextContent('Loading extension…');
+        expect(screen.getByRole('region', { name: 'Summary' })).toBe(region);
+
+        await act(async () => complete(reply('for b')));
+        expect(screen.getByText('for b')).toBeInTheDocument();
+    });
+
+    it('sends no request while it is hidden, and loads when it shows again only if its context changed', async () => {
+        const spy = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue(reply('ready'));
+        const slot = (active: boolean, version: string) => (
+            <SlotActiveContext.Provider value={active}>
+                <ExtensionSlot extension={extension} contribution={contribution} context={{ version }} />
+            </SlotActiveContext.Provider>
+        );
+        const view = render(slot(false, '1'));
+        expect(spy).not.toHaveBeenCalled();
+
+        view.rerender(slot(true, '1'));
+        expect(await screen.findByText('ready')).toBeInTheDocument();
+        expect(spy).toHaveBeenCalledTimes(1);
+
+        view.rerender(slot(false, '1'));
+        view.rerender(slot(true, '1'));
+        expect(spy).toHaveBeenCalledTimes(1);
+
+        view.rerender(slot(false, '2'));
+        expect(spy).toHaveBeenCalledTimes(1);
+        view.rerender(slot(true, '2'));
+        await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
+        expect(spy.mock.calls[1][2]).toMatchObject({ version: '2' });
+    });
+
+    it('offers Try again after the first load fails, also when it shows again after it was hidden', async () => {
+        let complete: (value: unknown) => void = () => {};
+        const spy = vi
+            .spyOn(ExtensionService.prototype, 'call')
+            .mockRejectedValueOnce(new Error('502'))
+            .mockImplementationOnce(() => new Promise((resolve) => (complete = resolve)));
+        const slot = (active: boolean) => (
+            <SlotActiveContext.Provider value={active}>
+                <ExtensionSlot extension={extension} contribution={contribution} context={{ version: '1' }} />
+            </SlotActiveContext.Provider>
+        );
+        const view = render(slot(true));
+        expect(await screen.findByRole('alert')).toHaveTextContent('Extension request failed.');
+        // A slot stays mounted while it is hidden, so showing it again does not load it again.
+        view.rerender(slot(false));
+        view.rerender(slot(true));
+        expect(spy).toHaveBeenCalledTimes(1);
+
+        const retry = screen.getByRole('button', { name: 'Try again' });
+        retry.focus();
+        fireEvent.click(retry);
+        expect(spy).toHaveBeenCalledTimes(2);
+        expect(screen.getByRole('button', { name: 'Trying again…' })).toHaveFocus();
+        await act(async () => complete(reply('recovered')));
+        expect(screen.getByText('recovered')).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('loads the rows of a hidden source table only when it shows again, and keeps the search text', async () => {
+        const tableExtension: ExtensionSummary = {
+            ...extension,
+            routes: [...extension.routes, { ...extension.routes[0], id: 'rows', path: '/rows' }],
+        };
+        const blocks = [{ type: 'table', id: 'items', columns: ['Item'], rows: [], source: { route: 'rows' }, search: { label: 'Filter items' } }];
+        const spy = vi
+            .spyOn(ExtensionService.prototype, 'call')
+            .mockImplementation(async (_id, route, query) =>
+                route.id === 'summary' ? { hubApi: 0, blocks } : { hubApi: 0, rows: [[`row ${query.q ?? ''}`.trim()]], total: 1 }
+            );
+        const refresh = new ExtensionRefresh();
+        const slot = (active: boolean) => (
+            <ExtensionRefreshContext.Provider value={refresh}>
+                <SlotActiveContext.Provider value={active}>
+                    <ExtensionSlot extension={tableExtension} contribution={contribution} />
+                </SlotActiveContext.Provider>
+            </ExtensionRefreshContext.Provider>
+        );
+        const routes = () => spy.mock.calls.map((call) => call[1].id);
+        const view = render(slot(true));
+        expect(await screen.findByText('row')).toBeInTheDocument();
+        expect(routes()).toEqual(['summary', 'rows']);
+
+        // A confirmed write while the slot is hidden.
+        view.rerender(slot(false));
+        await act(async () => refresh.refresh(tableExtension.id));
+        expect(routes()).toEqual(['summary', 'rows']);
+        view.rerender(slot(true));
+        await waitFor(() => expect(routes().slice(2).sort()).toEqual(['rows', 'summary']));
+
+        // A search that the user typed just before the slot hid.
+        fireEvent.change(screen.getByRole('searchbox', { name: 'Filter items' }), { target: { value: 'pay' } });
+        view.rerender(slot(false));
+        await act(() => new Promise((resolve) => setTimeout(resolve, 400)));
+        expect(routes()).toHaveLength(4);
+        view.rerender(slot(true));
+        expect(await screen.findByText('row pay')).toBeInTheDocument();
+        expect(routes()).toHaveLength(5);
+        expect(screen.getByRole('searchbox', { name: 'Filter items' })).toHaveValue('pay');
+    });
+
+    it('clears a failure to render when the context changes', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(ExtensionService.prototype, 'call')
+            .mockResolvedValueOnce({ hubApi: 0, blocks: [{ type: 'table', columns: 'bad', rows: [] }] })
+            .mockResolvedValueOnce(reply('fine'));
+        const view = render(<ExtensionSlot extension={extension} contribution={contribution} context={{ selectedElement: 'a' }} />);
+        expect(await screen.findByRole('alert')).toHaveTextContent('cannot show');
+
+        view.rerender(<ExtensionSlot extension={extension} contribution={contribution} context={{ selectedElement: 'b' }} />);
+        expect(await screen.findByText('fine')).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
 });
 
 describe('ExtensionSlot actions', () => {

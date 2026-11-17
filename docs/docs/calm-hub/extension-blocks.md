@@ -41,9 +41,8 @@ signed-in user. CALM Hub does not check a reply against it: the UI checks only `
 
 GitHub-flavoured Markdown. Hub ignores raw HTML, shows an image as its alt text, and shows a link
 that is not `http` or `https` as plain text. Links open in a new tab. A Markdown heading goes
-one level below the slot heading, so `#` in a node details panel is not a page title. HTML has
-no level below `h6`, so in a node details panel, where the slot heading is `h6`, each Markdown
-heading is an `h6`. The text size still follows the Markdown level for `#`, `##` and `###`; `####` to `######` have the size of `###`.
+one level below the slot heading, so `#` in the inspector is not a page title. HTML has
+no level below `h6`, so a Markdown heading that goes below `h6` is an `h6`. The text size still follows the Markdown level for `#`, `##` and `###`; `####` to `######` have the size of `###`.
 
 ### keyValue
 
@@ -257,7 +256,7 @@ the form `id`, so a reply cannot change the fields or the target. A form shows i
 An unknown `tone` shows as the default of its block.
 
 The `keyValue`, `stats` and `cards` blocks set their columns from the width of the slot, not of
-the screen. In a narrow node details panel they show in one or two columns.
+the screen. In the inspector beside the diagram they show in one or two columns.
 
 ## Errors and unknown blocks
 

@@ -1,14 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react';
-import { IoCubeOutline, IoGitNetworkOutline, IoEyeOutline, IoCodeOutline } from 'react-icons/io5';
-import { JsonRenderer } from '../../../hub/components/json-renderer/JsonRenderer.js';
-import { NodeDetails } from './NodeDetails.js';
-import { RelationshipDetails } from './RelationshipDetails.js';
-import { CloseButton } from './CloseButton.js';
-import { isCALMNode, isCALMRelationship } from './calm-type-guards.js';
 import type { SidebarProps } from '../../contracts/visualizer-contracts.js';
 
-/** The details panel's width on wide screens, kept for the session so it survives closing and reopening the panel. */
+/** The inspector panel's width on wide screens, kept for the session so it survives closing and reopening the panel. */
 const WIDTH_KEY = 'calmHub.detailsPanelWidth';
 const DEFAULT_WIDTH = 384;
 const MIN_WIDTH = 320;
@@ -34,12 +28,10 @@ function saveWidth(width: number, storage: Storage) {
     }
 }
 
-export function Sidebar({ selectedData, closeSidebar, storage = sessionStorage }: SidebarProps) {
-    const [activeTab, setActiveTab] = useState<'details' | 'json'>('details');
+/** The resizable panel on the right of a wide screen. Hidden, it keeps its content mounted. */
+export function Sidebar({ children, id, label, hidden, storage = sessionStorage }: SidebarProps) {
     const [width, setWidth] = useState(() => readWidth(storage));
     const drag = useRef<{ startX: number; startWidth: number } | null>(null);
-    const isNode = isCALMNode(selectedData);
-    const isRelationship = isCALMRelationship(selectedData);
 
     const resize = useCallback((next: number) => {
         const clamped = clampWidth(next);
@@ -69,13 +61,14 @@ export function Sidebar({ selectedData, closeSidebar, storage = sessionStorage }
 
     return (
         <div
+            hidden={hidden}
             className="relative h-full w-full lg:w-(--details-width) shrink-0 lg:p-4 lg:pl-2"
             style={{ '--details-width': `${width}px` } as CSSProperties}
         >
             <div
                 role="separator"
                 aria-orientation="vertical"
-                aria-label="Resize details panel"
+                aria-label={`Resize ${label}`}
                 aria-valuenow={width}
                 aria-valuemin={MIN_WIDTH}
                 tabIndex={0}
@@ -90,70 +83,9 @@ export function Sidebar({ selectedData, closeSidebar, storage = sessionStorage }
             >
                 <span className="h-12 w-1 rounded-full bg-base-content/25 group-hover:bg-accent group-focus-visible:bg-accent transition-colors" />
             </div>
-            <div className="h-full bg-base-100 lg:rounded-box lg:shadow-xl flex flex-col overflow-hidden">
-                <div className="bg-base-200 px-6 py-4 border-b border-base-300 flex items-center justify-between">
-                    <h2 className="text-xl font-semibold flex items-center gap-2">
-                        {isNode ? (
-                            <IoCubeOutline className="text-accent" />
-                        ) : isRelationship ? (
-                            <IoGitNetworkOutline className="text-accent" />
-                        ) : null}
-                        {isNode
-                            ? 'Node'
-                            : isRelationship
-                              ? 'Relationship'
-                              : 'Details'}
-                    </h2>
-                    <div className="flex items-center gap-1">
-                        <div className="inline-flex rounded-lg bg-base-300 p-0.5">
-                            <button
-                                role="tab"
-                                aria-label="Details"
-                                onClick={() => setActiveTab('details')}
-                                className={`p-1.5 rounded-md transition-colors ${activeTab === 'details' ? 'bg-accent text-accent-content' : 'text-base-content/50 hover:text-base-content'}`}
-                            >
-                                <IoEyeOutline size={14} />
-                            </button>
-                            <button
-                                role="tab"
-                                aria-label="JSON"
-                                onClick={() => setActiveTab('json')}
-                                className={`p-1.5 rounded-md transition-colors ${activeTab === 'json' ? 'bg-accent text-accent-content' : 'text-base-content/50 hover:text-base-content'}`}
-                            >
-                                <IoCodeOutline size={14} />
-                            </button>
-                        </div>
-                        <CloseButton
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                closeSidebar();
-                            }}
-                        />
-                    </div>
-                </div>
-
-                <div className="flex-1 min-h-0 overflow-hidden">
-                    {activeTab === 'details' ? (
-                        (isNode || isRelationship) ? (
-                            <div className="h-full overflow-auto">
-                                {isNode ? (
-                                    <NodeDetails data={selectedData} />
-                                ) : (
-                                    <RelationshipDetails data={selectedData} />
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-base-content/60">
-                                <p>Unknown Selected Entity</p>
-                            </div>
-                        )
-                    ) : (
-                        <div className="h-full bg-base-200 overflow-auto">
-                            <JsonRenderer json={selectedData} showLineNumbers={false} />
-                        </div>
-                    )}
-                </div>
-            </div>
+            <aside id={id} aria-label={label} className="h-full bg-base-100 lg:rounded-box lg:shadow-xl flex flex-col overflow-hidden">
+                {children}
+            </aside>
         </div>
     );
 }

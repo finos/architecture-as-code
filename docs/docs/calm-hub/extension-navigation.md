@@ -32,7 +32,7 @@ plain text.
 |---|---|---|
 | `namespace`, `type`, `id`, `version` | Yes | The exact resource and version. Not empty, `.` or `..` |
 | `element` | No | The `unique-id` of a node or relationship. Hub selects it and opens its details |
-| `extension` | No | An extension id. Hub opens the section of that extension in the **Extensions** tab |
+| `extension` | No | An extension id. Hub opens the inspector on that extension |
 
 When a plain URL, such as a catalogue link, opens the latest version of an architecture with a
 timeline, Hub opens the current moment of the timeline. The URL of a Hub link has `exact=1`, so Hub

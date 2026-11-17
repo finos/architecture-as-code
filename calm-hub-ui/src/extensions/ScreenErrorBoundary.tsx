@@ -1,14 +1,22 @@
 import { Component, ReactNode } from 'react';
 
+interface ScreenErrorBoundaryProps {
+    children: ReactNode;
+    frame?: (content: ReactNode) => ReactNode;
+    /** A new value clears a failure, so that content for another context can show. */
+    resetKey?: string;
+}
+
 /** Bad data from an extension must not break the Hub page around it. */
-export class ScreenErrorBoundary extends Component<
-    { children: ReactNode; frame?: (content: ReactNode) => ReactNode },
-    { failed: boolean }
-> {
-    state = { failed: false };
+export class ScreenErrorBoundary extends Component<ScreenErrorBoundaryProps, { failed: boolean; resetKey?: string }> {
+    state = { failed: false, resetKey: this.props.resetKey };
 
     static getDerivedStateFromError() {
         return { failed: true };
+    }
+
+    static getDerivedStateFromProps(props: ScreenErrorBoundaryProps, state: { failed: boolean; resetKey?: string }) {
+        return props.resetKey === state.resetKey ? null : { failed: false, resetKey: props.resetKey };
     }
 
     componentDidCatch(error: unknown) {
