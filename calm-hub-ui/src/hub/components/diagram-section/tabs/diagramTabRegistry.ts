@@ -3,6 +3,7 @@ import type { IconType } from 'react-icons';
 import type { Data } from '../../../../model/calm.js';
 import type { ImplementationsState } from '../used-by/usePatternImplementations.js';
 import type { ArchitectureDecoratorsState } from '../decorators/useArchitectureDecorators.js';
+import type { DecoratorView } from '../../../../visualizer/contracts/contracts.js';
 
 /** What is known about the resource before any tab content loads. Visibility depends only on this. */
 export interface DiagramTabScope {
@@ -25,6 +26,8 @@ export interface DiagramTabContext extends DiagramTabScope {
     /** The diagram, built by the section because it owns the layout state. For a tab, the active lens; for a lens, the CALM diagram. */
     diagram: ReactNode;
     decorators: ArchitectureDecoratorsState;
+    /** Opens the Decorators tab on the decorators of one view, as "View all" in the overlay legend does. */
+    openDecoratorView?: (view: DecoratorView) => void;
     usedBy: ImplementationsState;
     /** The tab opened from a control that it replaces, such as "View all", so its content takes focus. */
     focusPanel?: boolean;

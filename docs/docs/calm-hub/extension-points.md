@@ -389,8 +389,12 @@ The route returns JSON that matches
 ```
 
 - `tags` choose the styles of a node, an edge or a group.
-- `calm` names the CALM `unique-id`s that the element stands for. A click
-  selects the first one on the CALM diagram.
+- `calm` names the CALM `unique-id`s that the element stands for: nodes, or
+  relationships for an edge. A click selects the first one on the CALM
+  diagram, and CALM Hub draws the [decorator views](decorator-views.md) of
+  all of them on the element. Name only what the element draws: a decorator of
+  an id in `calm` shows on that element. Leave out an id that is not in the
+  open architecture.
 - A `link` sets view parameters, opens a CALM Hub page or opens an `https` URL. A link to a CALM
   Hub page shows **Back to &lt;page&gt;** on that page.
 - A control can name its `value`: the value that the reply was drawn with,

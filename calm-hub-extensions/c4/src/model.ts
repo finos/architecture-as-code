@@ -94,6 +94,15 @@ export async function buildC4Model(data: HubData, namespace: string, id: string,
     }));
     const expanded = withDetailedArchitectures(architecture, details);
     const model = projectC4(expanded, resolved.mapping, { namespace, architectureName: /^\d+$/.test(id) ? undefined : id });
-    // A node of a detailed architecture is not a node of this one, so the lens cannot select it.
-    return { model, mapping: resolved.source, calmIds: new Set((architecture.nodes ?? []).map((node) => node['unique-id'])) };
+    // An element of a detailed architecture is not an element of this one, so the lens cannot select it or draw its
+    // decorators. Its prefixed id can still equal an id of this architecture, such as "api/db". The projection then
+    // holds the added element under that id, so the id is left out, and a decorator of this architecture does not show
+    // on the wrong element.
+    const own = (list: { 'unique-id': string }[] = []) => list.map((item) => item['unique-id']);
+    const added = new Set([
+        ...own(expanded.nodes).slice(own(architecture.nodes).length),
+        ...own(expanded.relationships).slice(own(architecture.relationships).length),
+    ]);
+    const calmIds = new Set([...own(architecture.nodes), ...own(architecture.relationships)].filter((calmId) => !added.has(calmId)));
+    return { model, mapping: resolved.source, calmIds };
 }

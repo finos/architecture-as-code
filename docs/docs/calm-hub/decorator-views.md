@@ -59,7 +59,13 @@ A view without `overlay` is valid, but the UI draws nothing for it yet.
   `warn` amber.
 - A container shows the results of its `deployed-in` and `composed-of` relationships.
 - Click a badge to see each result, its mapped status, its label and its time.
-- While the diagram, the **Decorators** tab or the details drawer is open, Hub reads the decorators again every 5 seconds. The other tabs do not. The overlays, the **Decorators** tab and the details drawer show the same list. The details drawer lists all the decorators of the element under **All decorators**, also the older ones that a badge does not count.
+- A [diagram lens](extension-points.md#diagram-lens), such as C4, draws the same views. Each lens element shows
+  the results of the CALM elements that its `calm` list names, and nothing else. An element that stands for
+  several CALM elements shows each of their results, and a decorator on two of them counts once. When a
+  decorated element is not in the lens view, the lens says so on the diagram. It does not move the badge
+  to another element, and the view keeps its row in the legend, so you can turn it on there. Badges wrap to
+  the width of their element. An edge shows only `error` and `warn`, as on the CALM diagram.
+- While the diagram, a lens, the **Decorators** tab or the details drawer is open, Hub reads the decorators again every 5 seconds. The other tabs do not. The overlays, the **Decorators** tab and the details drawer show the same list. The details drawer lists all the decorators of the element under **All decorators**, also the older ones that a badge does not count.
 - If the browser cannot load the extension registry, Hub draws only the built-in views. Only the registry tells the browser that an operator turned a built-in view off, so Hub then draws both, also one set to `enabled=false`. The **Decorators** tab still shows the stored data. Hub tries the registry again, and draws the extension views when it loads.
 
 ## Built-in views
