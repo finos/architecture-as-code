@@ -1,5 +1,6 @@
 import { ExtensionContext, ExtensionContribution, ExtensionSummary } from '../model/extensions.js';
 import { extensionRequest } from '../service/extension-service.js';
+import { screenRoutePath } from '../hub/routes.js';
 
 function canFill(extension: ExtensionSummary, contribution: ExtensionContribution, context: ExtensionContext): boolean {
     const route = extension.routes.find((entry) => entry.id === contribution.route);
@@ -84,7 +85,7 @@ export function resourceExtensions(extensions: readonly ExtensionSummary[], cont
 }
 
 export const screenPath = (extension: ExtensionSummary, contribution: ExtensionContribution) =>
-    `/extensions/${encodeURIComponent(extension.id)}/${encodeURIComponent(contribution.id)}`;
+    screenRoutePath(extension.id, contribution.id);
 
 /** The chat provider that the operator selected, as the registry names it. */
 export interface ChatSelection {

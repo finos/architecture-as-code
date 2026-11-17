@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { BlockRenderer } from './BlockRenderer.js';
 import { HubTarget, ScreenBlock } from '../../model/extensions.js';
-import { safeHref } from '../ScreenLink.js';
+import { safeHref } from '../../navigation/destinations.js';
 import { ScreenErrorBoundary } from '../ScreenErrorBoundary.js';
 
 function draw(block: ScreenBlock) {
@@ -47,7 +47,7 @@ describe('extension blocks', () => {
 
     it('encodes Hub target path segments', () => {
         draw({ type: 'links', items: [{ label: 'Hub', hub: { namespace: 'a/b', type: 'architectures', id: '1', version: '1.0.0' } }] });
-        expect(screen.getByRole('link')).toHaveAttribute('href', '/a%2Fb/architectures/1/1.0.0');
+        expect(screen.getByRole('link')).toHaveAttribute('href', '/a%2Fb/architectures/1/1.0.0?exact=1');
     });
 
     it('shows a Hub link with a missing part as text', () => {
@@ -63,12 +63,29 @@ describe('extension blocks', () => {
             { label: 'Fine', hub: { namespace: 'finos', type: 'architectures', id: '..x', version: '1.0.0' } },
         ] });
         expect(screen.getByText('Dot').closest('a')).toBeNull();
-        expect(screen.getByRole('link')).toHaveAttribute('href', '/finos/architectures/..x/1.0.0');
+        expect(screen.getByRole('link')).toHaveAttribute('href', '/finos/architectures/..x/1.0.0?exact=1');
     });
 
     it('shows a placeholder for a future block', () => {
         draw({ type: 'future' } as unknown as ScreenBlock);
         expect(screen.getByText(/block type/)).toBeInTheDocument();
+    });
+
+    it.each([{ length: 2049 }, 42, ['https://example.org']])('shows a link whose href is not a string as text, and keeps the screen (%o)', (href) => {
+        render(
+            <MemoryRouter>
+                <ScreenErrorBoundary>
+                    <p>Useful screen content</p>
+                    <BlockRenderer
+                        block={{ type: 'links', items: [{ label: 'Bad link', href }, { label: 'Runbook', href: 'https://example.org/runbook' }] } as unknown as ScreenBlock}
+                    />
+                </ScreenErrorBoundary>
+            </MemoryRouter>
+        );
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.getByText('Useful screen content')).toBeInTheDocument();
+        expect(screen.getByText('Bad link').closest('a')).toBeNull();
+        expect(screen.getByRole('link', { name: /Runbook/ })).toHaveAttribute('href', 'https://example.org/runbook');
     });
 
     it('contains bad data within the slot boundary', () => {

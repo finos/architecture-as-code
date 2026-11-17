@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { carryReturnPoints } from '../../../navigation/returnPoints.js';
 import { IoArrowBackOutline, IoAlertCircleOutline, IoHomeOutline } from 'react-icons/io5';
 import { BreadcrumbItem } from '../../../model/calm.js';
 
@@ -53,6 +54,7 @@ function resourceNoun(type: string | undefined): string {
 export function ResourceNotFound(props: ResourceNotFoundProps) {
     const { breadcrumbs } = props;
     const navigate = useNavigate();
+    const location = useLocation();
     const parent = breadcrumbs && breadcrumbs.length > 0 ? breadcrumbs[breadcrumbs.length - 1] : undefined;
     const requested = props.kind === 'route' ? `${props.namespace}/${props.id}@${props.version}` : props.refPath;
     const noun = resourceNoun(props.kind === 'route' ? props.type : undefined);
@@ -62,7 +64,7 @@ export function ResourceNotFound(props: ResourceNotFoundProps) {
         // Mirror SectionHeader's breadcrumb click: the trail on the parent entry
         // excludes the parent itself.
         navigate(`/${parent.namespace}/${parent.type}/${parent.id}/${parent.version}`, {
-            state: { breadcrumbs: breadcrumbs!.slice(0, -1) },
+            state: { ...carryReturnPoints(location.state), breadcrumbs: breadcrumbs!.slice(0, -1) },
         });
     };
 

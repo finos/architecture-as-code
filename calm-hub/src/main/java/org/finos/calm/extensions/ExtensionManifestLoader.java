@@ -65,8 +65,8 @@ public class ExtensionManifestLoader {
             "selectedElement");
 
     /** Query parameters that the Diagram tab or the extension context already use. A lens param must not take one. */
-    static final Set<String> RESERVED_LENS_PARAMS = Set.of("tab", "lens", "node", "type", "schema", "q", "namespace",
-            "resource", "resourceType", "resourceId", "version", "selectedElement");
+    static final Set<String> RESERVED_LENS_PARAMS = Set.of("tab", "lens", "node", "extension", "exact", "type", "schema",
+            "q", "namespace", "resource", "resourceType", "resourceId", "version", "selectedElement");
     /** The lenses that ship with Hub UI. */
     static final Set<String> RESERVED_LENS_IDS = Set.of("calm", "json");
     private static final NotationChecker NOTATIONS = NotationChecker.SHARED;

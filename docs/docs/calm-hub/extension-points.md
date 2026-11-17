@@ -81,7 +81,9 @@ together under the extension `name`.
 ```
 
 - The route returns [blocks](extension-blocks.md).
-- A screen gets no context.
+- From the menu or the home page, a screen gets no context. A
+  [screen link](extension-navigation.md#screen) can give it a resource context and view
+  parameters. The route gets them in the query.
 - The side menu has a group for each extension that has a screen, with the extension `name` as its
   label and a link to each screen. The home page card of the extension has the same links.
 - The menu and the home page show the extensions in the order of `calm.extensions."<id>".order`, and
@@ -99,7 +101,8 @@ section, with its actions first and then its designer tabs.
 
 - The route returns blocks.
 - Hub opens the first section and closes the others. It keeps each choice in the browser. A closed
-  section sends no request.
+  section sends no request. A [Hub link](extension-navigation.md#hub) with `extension` opens the
+  section of that extension.
 - The tab does not show for a document that you drop on the page, because it has no resource.
 - The UI hides a designer tab whose route path needs a placeholder other than `namespace`,
   `resourceType`, `resourceId`, `version` and `selectedElement`, such as `{resource}`. CALM Hub logs a
@@ -212,7 +215,7 @@ is a smaller one, in the ArchiMate® notation.
 | `description` | No | The tooltip in the lens list |
 | `route` | Yes | A `GET` route, or a `POST` route with [`hubData`](extension-access.md#let-calm-hub-send-the-data). Its path can use only the parameters that a designer tab can fill |
 | `appliesTo` | No | `resourceTypes`: `architectures`, `patterns` or both. The default is both |
-| `params` | No | The view parameters of the lens, each with `values` or a `pattern`, and an optional `default`. A `pattern` is a regular expression in Unicode mode, so a class such as `\p{Cc}` works. CALM Hub keeps them in the URL and sends them in the query. `tab`, `lens`, `node`, `type`, `schema`, `q` and the context names are reserved |
+| `params` | No | The view parameters of the lens, each with `values` or a `pattern`, and an optional `default`. A `pattern` is a regular expression in Unicode mode, so a class such as `\p{Cc}` works. CALM Hub keeps them in the URL and sends them in the query. `tab`, `lens`, `node`, `extension`, `exact`, `type`, `schema`, `q` and the context names are reserved |
 | `notation` | Yes | The name of a JSON file in the extension folder, next to `extension.json`, with the shapes, edge markers and styles. See below |
 
 ### Notation
@@ -268,7 +271,8 @@ The route returns JSON that matches
 - `tags` choose the styles of a node, an edge or a group.
 - `calm` names the CALM `unique-id`s that the element stands for. A click
   selects the first one on the CALM diagram.
-- A `link` sets view parameters, opens a CALM Hub page or opens an `https` URL.
+- A `link` sets view parameters, opens a CALM Hub page or opens an `https` URL. A link to a CALM
+  Hub page shows **Back to &lt;page&gt;** on that page.
 - A control can name its `value`: the value that the reply was drawn with,
   when the request named none. For example, the C4 service draws the first
   system when the URL names no `scope`, and its list shows that system.

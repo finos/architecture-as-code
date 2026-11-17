@@ -11,6 +11,7 @@ import type { ExtensionSummary } from '../model/extensions.js';
 import { ExtensionsContext } from '../extensions/ExtensionsContext.js';
 import { UiConfigContext } from '../components/ui-config/UiConfigContext.js';
 import type { UiNavigation } from '../model/ui-config.js';
+import { fakeExtension } from '../test-support/fake-extensions.js';
 import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
 
@@ -175,6 +176,7 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
     // production tree (CustomNode / NodeDetails) does.
     const { useDiagramActions } = await import('../visualizer/context/DiagramActionsContext.js');
     const { ExtensionResourceContext } = await import('../extensions/ExtensionResourceContext.js');
+    const { DestinationLink } = await import('../navigation/DestinationLink.js');
     const { useContext } = await import('react');
     const DiagramSection = ({
         data,
@@ -222,6 +224,8 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
                 nodes loaded by `loadArchitectureWithNodes`, so Hub's index resolution
                 and the displayed node name line up). `select-edge` selects a
                 relationship (no `node-type`) to exercise the node-only degradation. */}
+            {/* An extension link from the resource page, such as a designer tab sends. */}
+            <DestinationLink destination={{ screen: { extension: 'assurance', screen: 'reviews' } }}>Open reviews</DestinationLink>
             <button data-testid="drop-file" onClick={() => onDroppedFileChange?.(true)}>
                 drop file
             </button>
@@ -1350,4 +1354,86 @@ describe('Hub', () => {
         });
     });
 
+    describe('return points and links into the page', () => {
+        const DETAIL = '/test-namespace/architectures/arch/1.0';
+
+        function StateProbe() {
+            const location = useLocation();
+            return (
+                <>
+                    <div data-testid="state-pathname">{location.pathname}</div>
+                    <div data-testid="state">{JSON.stringify(location.state)}</div>
+                </>
+            );
+        }
+
+        const renderDetail = (
+            entry: string | { pathname: string; state: unknown },
+            extensions: ExtensionSummary[] = []
+        ) =>
+            render(
+                <ExtensionsContext.Provider value={extensions}>
+                    <MemoryRouter initialEntries={[entry]}>
+                        <Hub />
+                        <StateProbe />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+
+        it('records the resource version and the selected node as the return point of a link', () => {
+            renderDetail(DETAIL);
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('set-display-name'));
+            fireEvent.click(screen.getByTestId('select-n1'));
+            fireEvent.click(screen.getByRole('link', { name: 'Open reviews' }));
+
+            expect(screen.getByTestId('state-pathname')).toHaveTextContent('/extensions/assurance/reviews');
+            expect(JSON.parse(screen.getByTestId('state').textContent!)).toEqual({
+                returnTo: [
+                    {
+                        page: { kind: 'resource', namespace: 'test-namespace', type: 'architectures', id: 'arch', version: '1.0' },
+                        search: '?node=n1',
+                        label: 'Nice Name 1.0',
+                    },
+                ],
+            });
+        });
+
+        it('links back to the list that opened the page, with its filters', () => {
+            renderDetail({
+                pathname: DETAIL,
+                state: { returnTo: [{ page: { kind: 'screen', extension: 'assurance', screen: 'reviews' }, search: '?reviews.filter=needs-review', label: 'Architecture reviews' }] },
+            });
+            expect(screen.getByRole('link', { name: 'Back to Architecture reviews' })).toHaveAttribute(
+                'href',
+                '/extensions/assurance/reviews?reviews.filter=needs-review'
+            );
+        });
+
+        it('keeps the return point through a detailed-architecture hop', () => {
+            const returnTo = [{ page: { kind: 'search' }, search: '?q=pay', label: 'search results' }];
+            renderDetail({ pathname: DETAIL, state: { returnTo } });
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('navigate-detailed-arch'));
+            expect(JSON.parse(screen.getByTestId('state').textContent!).returnTo).toEqual(returnTo);
+        });
+
+        it('says when the linked element is not in this version, and still shows the diagram', () => {
+            renderDetail(`${DETAIL}?node=missing`);
+            loadArchitectureWithNodes();
+            expect(screen.getByRole('status')).toHaveTextContent('The element "missing" is not in version 1.0 of this architecture.');
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+        });
+
+        it('says when the linked extension is not enabled, and not when it applies', () => {
+            const view = renderDetail(`${DETAIL}?tab=extensions&extension=ext-1`);
+            loadArchitectureWithNodes();
+            expect(screen.getByRole('status')).toHaveTextContent('The extension "ext-1" is not enabled in this Hub');
+            view.unmount();
+
+            renderDetail(`${DETAIL}?tab=extensions&extension=ext-1`, [fakeExtension(1)]);
+            loadArchitectureWithNodes();
+            expect(screen.queryByTestId('return-bar')).not.toBeInTheDocument();
+        });
+    });
 });
