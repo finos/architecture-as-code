@@ -473,8 +473,26 @@ from; it fails if there is none.
 - `mcp/tools/ExtensionTools` registers the command tools after `ExtensionRegistry` loads (observer priority).
   `ToolManager` lists them after the `@Tool` methods, in registration order, so it registers them sorted.
   The MCP server does not check arguments against `inputSchema`, so the handler does
-- `ReadOnlyRequestFilter` exempts only `^/api/calm/extensions/[^/]+/api(/|$)`, in normal form. The proxy
+- `ReadOnlyRequestFilter` exempts only `^/api/calm/extensions/[^/]+/(api|forms)(/|$)`, in normal form. The proxy
   then allows a non-GET method only on a `readOnly` route
+- A form route (`contributes.form`) is a dedicated route: `ExtensionManifest.dedicatedRoutes()`. Only
+  `ExtensionFormService` calls it, through `ExtensionProxyService.callDedicated`, after it checks the target and the
+  input. `authorise(..., dedicatedRoute)` refuses it on the generic proxy and MCP with a 404, and
+  `checkDedicatedRoutes` in the loader refuses a command or another contribution that names it. A new endpoint
+  of this kind adds its routes to `dedicatedRoutes()` and calls the proxy with its route id
+- `ExtensionForms` holds the form rules. `calm-hub-ui/src/extensions/forms/formRules.ts` copies its messages, and
+  `extensions-test/form-input.json` holds the cases that both test. Change both, and the cases, together. An `integer`
+  field takes only whole numbers that JavaScript holds exactly (`MAX_SAFE_INTEGER`), and the loader refuses limits and
+  defaults outside that range
+- The loader reads the manifest records from the text, not from the Vert.x `JsonObject`, which holds each decimal as
+  a double. So a form `minimum`, `maximum` and `default` keep their digits, and the loader refuses a number that
+  JavaScript would read as another number. The schema still validates the `JsonObject`
+- `ExtensionForms.javaScriptString` writes a double as JavaScript does. Do not use `Double.toString` or Jackson's
+  Schubfach port for this check: they keep at least two digits and write 4.9E-324 where JavaScript writes 5e-324.
+  `extensions-test/javascript-numbers.json` holds the cases: `formRules.test.ts` checks them against JavaScript, and
+  `TestExtensionFormsShould` against Hub
+- `ExtensionFormResource` sets `Calm-Extension-Dispatch` on each reply: `not-sent`, `sent`, or `unknown` (a proxy
+  502 or 504). The UI reads only the header to tell a Hub refusal from a backend reply, so keep it on every path
 - `ExtensionIdentitySigner` signs with the JDK, not a JWT library. `ExtensionAssertionRejectingMechanism`
   refuses a bearer token with `typ: calm-ext+jwt` in every auth mode, and sends the 401 challenge for it itself, so
   that an OIDC provider that is down cannot make it a 500

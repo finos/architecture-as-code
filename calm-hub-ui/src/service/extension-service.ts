@@ -2,6 +2,7 @@ import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { isBuiltInExtension } from '../extensions/extensionIdentity.js';
 import { ExtensionContext, ExtensionPoint, ExtensionRoute, ExtensionSummary } from '../model/extensions.js';
+import type { FormInput } from '../extensions/forms/formRules.js';
 import type { Notation } from '../model/lens.js';
 import type { DecoratorView } from '../visualizer/contracts/contracts.js';
 import { authStore } from './utils/auth-store.js';
@@ -31,7 +32,10 @@ function isRegistryEntry(value: unknown): value is RegistryEntry {
         })
         && (contributes['diagram-lens'] === undefined || (Array.isArray(contributes['diagram-lens'])
             && contributes['diagram-lens'].every((entry) => isObject(entry) && hasStrings(entry, ['id', 'title', 'route', 'notation'])
-                && (entry.params === undefined || isObject(entry.params)))));
+                && (entry.params === undefined || isObject(entry.params)))))
+        && (contributes.form === undefined || (Array.isArray(contributes.form)
+            && contributes.form.every((entry) => hasStrings(entry, ['id', 'title', 'route', 'target'])
+                && Array.isArray(entry.fields) && entry.fields.every((field: unknown) => hasStrings(field, ['id', 'type', 'label'])))));
 }
 
 // A logo is decoration: a malformed one goes, and the extension stays.
@@ -110,6 +114,42 @@ export function extensionRequest(id: string, route: ExtensionRoute, context: Ext
     return { url: `/api/calm/extensions/${encodeURIComponent(id)}/api${path}`, params: context };
 }
 
+/** The body of a form submission. `context` is the pinned target; `input` holds only the field values. */
+export interface FormSubmission {
+    submission: string;
+    context: ExtensionContext;
+    input: FormInput;
+}
+
+/**
+ * How a submission ended. `failed` means that this request saved nothing: Hub refused it before it sent it
+ * (`sent: false`), or the backend refused it with a 4xx (`sent: true`). `unknown` means that the backend may have acted
+ * on it, such as after a timeout or a 5xx, so the UI must not send it again by itself.
+ */
+export type FormOutcome =
+    | { kind: 'success'; message?: string }
+    | { kind: 'failed'; sent: boolean; message?: string; fields?: Record<string, string> }
+    | { kind: 'unknown' };
+
+/** The header in which Hub says whether it sent a submission to the backend. A backend cannot set it. */
+export const DISPATCH_HEADER = 'calm-extension-dispatch';
+
+const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.slice(0, 500) : undefined);
+
+export function formOutcome(status: number, dispatch: unknown, data: unknown): FormOutcome {
+    if (status >= 200 && status < 300) return { kind: 'success', message: isObject(data) ? text(data.message) : undefined };
+    // Only the header tells a refusal by Hub from a backend reply: a backend can copy the body of a Hub error, not the header.
+    // A 5xx from the backend, or from a proxy in front of Hub, can come after the backend acted.
+    if (dispatch !== 'not-sent' && (dispatch === 'unknown' || status >= 500)) return { kind: 'unknown' };
+    const body = isObject(data) ? data : {};
+    const fields = isObject(body.fields)
+        ? Object.fromEntries(Object.entries(body.fields).flatMap(([id, message]) => (text(message) ? [[id, text(message)!]] : [])))
+        : undefined;
+    const message = [text(body.title) ?? text(body.error), text(body.detail)].filter(Boolean).join(' ') || undefined;
+    // Without the header, the 4xx did not come through Hub's dispatch, such as an auth refusal or a proxy in front of Hub.
+    return { kind: 'failed', sent: dispatch === 'sent', message, fields: fields && Object.keys(fields).length > 0 ? fields : undefined };
+}
+
 export class ExtensionService {
     private readonly ax: AxiosInstance;
     private registry?: Promise<RegistryEntry[]>;
@@ -181,6 +221,28 @@ export class ExtensionService {
                 return Promise.reject(error);
             });
         return this.core;
+    }
+
+    /** Never rejects and never aborts: a write that may have reached the backend must not be sent again by itself. */
+    public async submitForm(id: string, form: string, body: FormSubmission): Promise<FormOutcome> {
+        let headers: Record<string, string>;
+        try {
+            headers = await getAuthHeaders();
+        } catch (error) {
+            console.error('%s', 'Error signing a form submission:', error);
+            return { kind: 'failed', sent: false, message: 'Sign in again, then send the form.' };
+        }
+        return this.ax
+            .post(`/api/calm/extensions/${encodeURIComponent(id)}/forms/${encodeURIComponent(form)}`, body, {
+                headers,
+                validateStatus: () => true,
+            })
+            .then((res) => formOutcome(res.status, res.headers?.[DISPATCH_HEADER], res.data))
+            .catch((error): FormOutcome => {
+                // No reply: the request may have reached Hub and the backend.
+                console.error('%s', 'Error submitting extension form:', error);
+                return { kind: 'unknown' };
+            });
     }
 
     public async call(id: string, route: ExtensionRoute, context: ExtensionQuery, signal?: AbortSignal): Promise<unknown> {

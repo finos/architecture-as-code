@@ -249,6 +249,25 @@
               "items"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A form that the extension declares in contributes.form. Hub draws the fields and sends the input to the form route.",
+            "properties": {
+              "type": {
+                "const": "form"
+              },
+              "form": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$",
+                "description": "The id of a form in contributes.form of the same extension."
+              }
+            },
+            "required": [
+              "type",
+              "form"
+            ],
+            "additionalProperties": false
           }
         ]
       }

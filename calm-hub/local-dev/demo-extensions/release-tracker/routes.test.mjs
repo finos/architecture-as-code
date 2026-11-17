@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { route } from './routes.mjs';
+import { form, route } from './routes.mjs';
 
 const manifest = JSON.parse(readFileSync(new URL('./extension.json', import.meta.url), 'utf8'));
 const get = (path) => route('GET', new URL(path, 'http://localhost'), {});
@@ -92,4 +92,41 @@ test('the deployments route filters the whole dataset, then returns one page', (
 
     const search = get('/deployments?filter=failed&q=user-service&pageSize=3');
     assert.deepEqual([search.total, search.rows.map((row) => row[0])], [2, ['deploy-009', 'deploy-014']]);
+});
+
+const submit = (path, body) => form('POST', new URL(path, 'http://localhost'), body);
+const RESOURCE = { namespace: 'demo', resource: 'architectures/1', resourceType: 'architectures', resourceId: '1', version: '1.0.0' };
+
+test('every form names a route that only the form uses, and a screen, tab or panel reply shows it', () => {
+    const forms = manifest.contributes.form.map((f) => f.route);
+    const others = Object.entries(manifest.contributes).filter(([point]) => point !== 'form').flatMap(([, entries]) => entries.map((c) => c.route));
+    assert.deepEqual(forms.filter((id) => others.includes(id)), []);
+    assert.ok(get('/screen').blocks.some((b) => b.type === 'form' && b.form === 'log-release'));
+    assert.ok(get('/tab/architectures/1?namespace=demo').blocks.some((b) => b.type === 'form' && b.form === 'log-release'));
+    assert.ok(get('/element?selectedElement=database').blocks.some((b) => b.type === 'form' && b.form === 'review-node'));
+});
+
+test('a form submission saves once, and a repeat of its id gets the first reply', () => {
+    const body = { submission: '6f1c1d0e-3b0a-4c43-9d6c-2b0a8f8d1a10', context: RESOURCE, input: { version: '9.0.0', status: 'released' } };
+    const first = submit('/forms/releases', body);
+    assert.equal(first.status, 201);
+    assert.equal(first.body.message, 'Release 9.0.0 logged for architectures/1.');
+
+    const repeat = submit('/forms/releases', body);
+    assert.equal(repeat.status, 201);
+    assert.match(repeat.body.message, /repeat, so nothing changed/);
+    assert.equal(get('/releases').releases.filter((r) => r.version === '9.0.0').length, 1);
+
+    const again = submit('/forms/releases', { ...body, submission: '7f1c1d0e-3b0a-4c43-9d6c-2b0a8f8d1a10' });
+    assert.equal(again.status, 422);
+    assert.deepEqual(again.body.fields, { version: 'Release 9.0.0 is already logged.' });
+});
+
+test('a review of an unknown node is refused, and of a known node opens a review', () => {
+    const refused = submit('/forms/reviews', { submission: 'a', context: { ...RESOURCE, selectedElement: 'nope' }, input: {} });
+    assert.equal(refused.status, 409);
+    const opened = submit('/forms/reviews', { submission: 'b', context: { ...RESOURCE, selectedElement: 'database' }, input: { days: 3 } });
+    assert.equal(opened.status, 201);
+    assert.match(opened.body.message, /opened for database, due in 3 days/);
+    assert.equal(form('GET', new URL('/forms/reviews', 'http://localhost'), {}), null);
 });

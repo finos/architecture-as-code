@@ -97,6 +97,7 @@ export function ExtensionsTabPanel({ context, linkedExtension, storage }: Extens
                                         contribution={contribution}
                                         context={context}
                                         headingLevel={4}
+                                        point="designer-tab"
                                     />
                                 ))}
                                 {tabsNeedSelection.map((contribution) => (

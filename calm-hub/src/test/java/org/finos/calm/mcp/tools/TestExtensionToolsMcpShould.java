@@ -1,6 +1,7 @@
 package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.ToolManager;
+import org.finos.calm.extensions.ExtensionPaths;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
@@ -290,7 +291,7 @@ class TestExtensionToolsMcpShould {
             assertThat(value, result.getBoolean("isError"), is(true));
             assertThat(value, text(result), containsString("Input property 'service' must not be empty or ., or contain"));
             given().urlEncodingEnabled(false)
-                    .when().get("/api/calm/extensions/mcp-test/api/services/" + ExtensionTools.encodePathValue(value))
+                    .when().get("/api/calm/extensions/mcp-test/api/services/" + ExtensionPaths.encodePathValue(value))
                     .then().statusCode(400).body("error", is("The extension path or query is not allowed"));
         }
         assertThat(backend.received(), nullValue());

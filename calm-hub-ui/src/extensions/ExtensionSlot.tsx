@@ -1,5 +1,6 @@
 import { ReactNode, useId, useMemo } from 'react';
 import { ExtensionContext, ExtensionContribution, ExtensionSummary } from '../model/extensions.js';
+import type { FormPoint } from './forms/FormBlock.js';
 import { ExtensionActionButton } from './ExtensionActionButton.js';
 import { Heading, HeadingLevel } from './Heading.js';
 import { ScreenErrorBoundary } from './ScreenErrorBoundary.js';
@@ -19,6 +20,8 @@ interface SlotProps {
     query?: Readonly<Record<string, string>>;
     /** The level of the slot title: one below the heading of the place that holds the slot. */
     headingLevel?: HeadingLevel;
+    /** The extension point of a block slot. A form block shows only in a slot that names it, which keys its draft. */
+    point?: FormPoint;
 }
 
 export type ExtensionSlotProps =
@@ -32,7 +35,7 @@ export type ExtensionSlotProps =
           placement: string;
       });
 
-function SlotContent({ extension, contribution, context = {}, query, action, headingLevel = 2, placement }: ExtensionSlotProps) {
+function SlotContent({ extension, contribution, context = {}, query, action, headingLevel = 2, placement, point }: ExtensionSlotProps) {
     const service = useExtensionService();
     const revision = useExtensionRevision(extension.id);
     const domId = useId();
@@ -106,7 +109,12 @@ function SlotContent({ extension, contribution, context = {}, query, action, hea
             {state ?? (
                 <BlockScopeContext.Provider value={scope ?? null}>
                     {result?.blocks.map((block, index) => (
-                        <BlockRenderer key={index} block={block} headingLevel={headingLevel} />
+                        <BlockRenderer
+                            key={index}
+                            block={block}
+                            headingLevel={headingLevel}
+                            formSlot={point && { extension, point, contributionId: contribution.id, context }}
+                        />
                     ))}
                 </BlockScopeContext.Provider>
             )}

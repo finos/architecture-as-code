@@ -296,6 +296,20 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   same-origin `/api/calm/` path and the image types of `ImageAsset`, and gives a `data:` URL. Never use a `blob:` URL
   or put asset bytes in markup: an SVG opened from a `blob:` URL as a page runs with Hub's origin. Tests inject a
   loader with `ImageAssetContext` (`test-support/fake-image-assets.tsx`).
+- Forms: a `form` block draws `FormBlock` (`extensions/forms/`) from `contributes.form`. It shows only in a slot
+  that passes its `point` (`screen`, `designer-tab`, `detail-panel`), not in a landing card. The draft lives in the
+  provider's `FormDrafts`, keyed by extension, form and `<point>:<contribution id>`, so a remount, a closed section or
+  a page change keeps the input and a submission in flight. Never put form values in the URL, history state or
+  `localStorage`. The first edit pins the target: a change of selection shows a notice and never retargets by
+  itself. `submitForm()` never throws and never aborts. It reads `Calm-Extension-Dispatch`, not the body, to tell a
+  refusal from an unknown outcome. After an unknown outcome, `FormDrafts.submit` sends only a repeat of the same
+  target and input, with the same id, and the form holds changed input until the user changes it back or forgets the
+  earlier submission (`forget`). Do not keep more than one unresolved submission. Only a 2xx, a backend reply
+  (`sent: true`) to that id or `forget` settles it: a Hub refusal before it sent the repeat keeps the warning, the id
+  and the beforeunload prompt, also for input that the user did not edit. Read field-id dictionaries (values, errors,
+  backend `fields`) with `own()`: a field can be called `constructor` or `toString`. A
+  screen form fills its target picker from the slot context. Call `useExtensionRefresh().refresh(id)` only after a 2xx. `formRules.ts` copies the messages of
+  `ExtensionForms` in calm-hub, and `formRules.test.ts` reads the shared cases.
 - Both use `ExtensionSections`: the first section is open, a choice is kept in `localStorage` per extension, and a
   closed section renders nothing, so it sends no request.
   Give `ExtensionSections` and `ExtensionSlot` a `headingLevel` one below the heading of the place that holds

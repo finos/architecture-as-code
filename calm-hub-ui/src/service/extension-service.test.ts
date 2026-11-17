@@ -1,11 +1,12 @@
 import axios from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ExtensionService, extensionRequest } from './extension-service.js';
+import { ExtensionService, extensionRequest, formOutcome } from './extension-service.js';
 import { ExtensionRoute } from '../model/extensions.js';
 import { migrationStore } from './utils/migration-store.js';
 import { authStore } from './utils/auth-store.js';
 import { apiClient } from './utils/api-client.js';
+import { getAuthHeaders } from '../authService.js';
 // One list for the clients and Hub: TestExtensionToolsShould checks it against ExtensionPaths.
 import PATH_VALUES from '../../../calm-hub/src/test/resources/extensions-test/path-values.json' with { type: 'json' };
 vi.mock('../authService.js', () => ({ getAuthHeaders: vi.fn().mockResolvedValue({ Authorization: 'test' }) }));
@@ -233,5 +234,58 @@ describe('ExtensionService', () => {
     });
     it('rejects traversal paths', () => {
         expect(() => extensionRequest('test', { ...route, path: '/../x' }, {})).toThrow('Invalid extension route');
+    });
+});
+
+describe('form submissions', () => {
+    const body = { submission: '0b0e7c1e-6a1d-4a43-9d6c-2b0a8f8d1a10', context: { namespace: 'finos' }, input: { note: 'a' } };
+    const sent = { 'calm-extension-dispatch': 'sent' };
+    const notSent = { 'calm-extension-dispatch': 'not-sent' };
+
+    it.each([
+        ['a 2xx', 201, sent, { message: 'Review 12 opened.' }, { kind: 'success', message: 'Review 12 opened.' }],
+        ['Hub busy before it sent the call', 503, notSent, { error: 'The extension is busy' }, { kind: 'failed', sent: false, message: 'The extension is busy' }],
+        // A backend can copy the body of a Hub refusal. Only the header, which Hub sets, says that Hub did not send it.
+        ['a backend 503 with the body of a Hub refusal', 503, sent, { error: 'The extension is busy' }, { kind: 'unknown' }],
+        ['a backend timeout', 504, { 'calm-extension-dispatch': 'unknown' }, { error: 'The extension did not reply in time' }, { kind: 'unknown' }],
+        ['a 5xx from a proxy in front of Hub', 502, {}, '<html>Bad gateway</html>', { kind: 'unknown' }],
+        // A 4xx without the header did not come through Hub's dispatch, so the backend did not see it.
+        ['a 4xx from a proxy in front of Hub', 413, {}, '', { kind: 'failed', sent: false }],
+        ['a backend refusal', 409, sent, { title: 'A review is already open', detail: 'Review 11 is open.' }, { kind: 'failed', sent: true, message: 'A review is already open Review 11 is open.' }],
+        ['a field error', 422, notSent, { error: 'Check the form', fields: { note: 'Enter a value.', bad: 7 } }, { kind: 'failed', sent: false, message: 'Check the form', fields: { note: 'Enter a value.' } }],
+    ])('reads %s', (_name, status, headers, data, outcome) => {
+        expect(formOutcome(status, (headers as Record<string, string>)['calm-extension-dispatch'], data)).toEqual(outcome);
+    });
+
+    it('posts the submission to the form endpoint of Hub', async () => {
+        mock.onPost('/api/calm/extensions/release%20tracker/forms/request-review').reply(201, { message: 'Done' }, sent);
+        expect(await new ExtensionService(ax).submitForm('release tracker', 'request-review', body)).toEqual({ kind: 'success', message: 'Done' });
+        expect(JSON.parse(mock.history.post[0].data)).toEqual(body);
+    });
+
+    it('reports an unknown outcome when no reply comes back', async () => {
+        mock.onPost('/api/calm/extensions/test/forms/f').networkError();
+        expect(await new ExtensionService(ax).submitForm('test', 'f', body)).toEqual({ kind: 'unknown' });
+        mock.onPost('/api/calm/extensions/test/forms/f').timeout();
+        expect(await new ExtensionService(ax).submitForm('test', 'f', body)).toEqual({ kind: 'unknown' });
+    });
+
+    it('does not send a submission that it cannot sign', async () => {
+        vi.mocked(getAuthHeaders).mockRejectedValueOnce(new Error('expired'));
+        expect(await new ExtensionService(ax).submitForm('test', 'f', body)).toEqual({
+            kind: 'failed',
+            sent: false,
+            message: 'Sign in again, then send the form.',
+        });
+        expect(mock.history.post).toHaveLength(0);
+    });
+
+    it('does not open the global sign-in or outage page', async () => {
+        mock.onPost('/api/calm/extensions/test/forms/f').reply(503, 'Down for maintenance', notSent);
+        const migration = vi.spyOn(migrationStore, 'setMigrationError');
+        const auth = vi.spyOn(authStore, 'setAuthError');
+        expect(await new ExtensionService(ax).submitForm('test', 'f', body)).toEqual({ kind: 'failed', sent: false });
+        expect(migration).not.toHaveBeenCalled();
+        expect(auth).not.toHaveBeenCalled();
     });
 });

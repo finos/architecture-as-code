@@ -45,6 +45,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -109,12 +110,30 @@ public class ExtensionProxyService {
      * the request before {@link #call} uses this first, so that a caller with no scope cannot cause the work.
      */
     public void checkAccess(SecurityIdentity identity, ExtensionProxyRequest request) {
-        authorise(identity, request);
+        authorise(identity, request, null);
     }
 
-    /** Throws {@link ExtensionProxyException} when Hub refuses the call or the backend fails. */
+    /**
+     * Throws {@link ExtensionProxyException} when Hub refuses the call or the backend fails. Refuses a route that a
+     * dedicated Hub endpoint owns ({@link ExtensionManifest#dedicatedRoutes()}), so a caller cannot skip its checks.
+     */
     public ExtensionProxyResponse call(SecurityIdentity identity, ExtensionProxyRequest request) {
-        Access access = authorise(identity, request);
+        return call(identity, request, null, null);
+    }
+
+    /**
+     * {@link #call} from the dedicated endpoint that owns {@code routeId}. The request path must match that route.
+     * Hub calls {@code body} after the scope check, in place of reading the request body, so a caller with no scope
+     * cannot learn from the checks of the endpoint, and a refusal that it throws is audited as for any other call.
+     */
+    public ExtensionProxyResponse callDedicated(SecurityIdentity identity, ExtensionProxyRequest request, String routeId,
+                                                Supplier<byte[]> body) {
+        return call(identity, request, routeId, body);
+    }
+
+    private ExtensionProxyResponse call(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute,
+                                        Supplier<byte[]> dedicatedBody) {
+        Access access = authorise(identity, request, dedicatedRoute);
         RegisteredExtension extension = access.extension();
         ExtensionManifest.Route route = access.route();
         String method = access.method();
@@ -128,7 +147,8 @@ public class ExtensionProxyService {
             String query = ExtensionPaths.canonicalQuery(request.rawQuery());
             String pathAndQuery = query.isEmpty() ? access.path() : access.path() + "?" + query;
             URI target = ExtensionPaths.resolve(access.backend(), pathAndQuery);
-            byte[] body = readBody(request.body(), limits.maxRequestBytes());
+            byte[] body = dedicatedBody == null ? readBody(request.body(), limits.maxRequestBytes())
+                    : capped(dedicatedBody.get(), limits.maxRequestBytes());
             if (!acceptsContentType(method, body, request.contentType())) {
                 throw new ExtensionProxyException(415, "The request must be JSON");
             }
@@ -176,7 +196,8 @@ public class ExtensionProxyService {
                           ExtensionManifest.Route route, String namespace, String domain, Map<String, String> parameters) {
     }
 
-    private Access authorise(SecurityIdentity identity, ExtensionProxyRequest request) {
+    /** {@code dedicatedRoute} is the route of the dedicated endpoint that calls, or null for the generic proxy and MCP. */
+    private Access authorise(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute) {
         RegisteredExtension extension = registry.find(request.extensionId())
                 .orElseThrow(() -> new ExtensionProxyException(404, "There is no such extension"));
         URI backend = extension.backendUrl()
@@ -189,6 +210,11 @@ public class ExtensionProxyService {
                 ExtensionRouteMatcher.match(extension.manifest(), method, path, accepted);
         ExtensionRouteMatcher.rejectEncodedLiterals(match, request.path());
         ExtensionManifest.Route route = match.route();
+        // A dedicated endpoint checks its own input first, so only that endpoint may call its route.
+        boolean dedicated = extension.manifest().dedicatedRoutes().contains(route.id());
+        if (dedicatedRoute == null ? dedicated : !route.id().equals(dedicatedRoute)) {
+            throw new ExtensionProxyException(404, "Call this extension route through its CALM Hub endpoint");
+        }
         if (!accepted.test(route)) {
             String allow = ExtensionRouteMatcher.allowedMethods(extension.manifest(), path, accepted);
             throw new ExtensionProxyException(405, "This CALM Hub instance is read-only", Map.of("Allow", allow));
@@ -404,6 +430,13 @@ public class ExtensionProxyService {
         } catch (IOException e) {
             throw new ExtensionProxyException(400, "The request body cannot be read");
         }
+    }
+
+    private static byte[] capped(byte[] body, int maxBytes) {
+        if (body.length > maxBytes) {
+            throw new ExtensionProxyException(413, "The request body is too large for this extension");
+        }
+        return body;
     }
 
     /**

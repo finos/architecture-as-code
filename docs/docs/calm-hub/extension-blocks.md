@@ -224,6 +224,26 @@ card shows it, see [landing-card](extension-points.md#landing-card).
 
 A row of link buttons, with the same rules as a table link.
 
+### form
+
+```json
+{ "type": "form", "form": "review-node" }
+```
+
+A form that the extension declares in `contributes.form` (see
+[form](extension-points.md#form)). Hub draws its fields and sends the input. The reply gives only
+the form `id`, so a reply cannot change the fields or the target. A form shows in a `screen`,
+`designer-tab` or `detail-panel`, not in a `landing-card`.
+
+- In a `designer-tab` or `detail-panel`, the target is the open resource or the selected node.
+- On a `screen`, a form with a `resource` or `element` target shows a target chooser: namespace,
+  type, resource, version and, for `element`, node. A screen link with a context fills it.
+- The input stays when the slot reloads, its section closes, or the user goes to another page in
+  Hub. The browser asks before it leaves or reloads Hub with unsent input, or with a submission
+  that may have been saved.
+- A form that the manifest does not have, for example a write form on a read-only Hub, shows
+  "This form is not available on this CALM Hub."
+
 ## Tones
 
 | Tone | Colour |
