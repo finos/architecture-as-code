@@ -1,0 +1,3 @@
+control-evaluation/control-evaluation.decorator.standard.json
+deployment/deployment.decorator.standard.json
+deployment/kubernetes.decorator.standard.json

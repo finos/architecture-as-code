@@ -1,4 +1,4 @@
-import type { Viewport } from 'reactflow';
+import type { Viewport } from '@xyflow/react';
 
 /**
  * Remembers the diagram viewport (zoom + pan) for the diagram currently being

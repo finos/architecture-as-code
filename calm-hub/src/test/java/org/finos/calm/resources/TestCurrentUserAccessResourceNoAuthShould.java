@@ -31,5 +31,6 @@ public class TestCurrentUserAccessResourceNoAuthShould {
                 .body(containsString("no-auth"));
 
         verify(mockUserAccessStore, never()).getGrantsForUser(any());
+        verify(mockUserAccessStore, never()).getAllGroupGrants();
     }
 }

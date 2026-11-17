@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ReactFlow, {
+import {
+    ReactFlow,
     Node,
     Edge,
     Background,
@@ -9,9 +10,10 @@ import ReactFlow, {
     useNodesState,
     useEdgesState,
     type Viewport,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { MotionToggleButton } from './MotionToggleButton.js';
+import { ExportButton } from './ExportButton.js';
 import { TextSizeButtons } from './TextSizeButtons.js';
 import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
@@ -277,6 +279,7 @@ export function PatternGraph({
                     >
                         <MotionToggleButton />
                         <TextSizeButtons />
+                        <ExportButton diagramKey={viewportKey} />
                     </Controls>
                 )}
                 {!isMobile && (

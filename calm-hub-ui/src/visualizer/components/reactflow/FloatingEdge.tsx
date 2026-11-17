@@ -1,13 +1,17 @@
 import { memo, useState, useCallback } from 'react';
-import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore, type Node } from 'reactflow';
+import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore } from '@xyflow/react';
 import { getEdgeParams, sameNodeGeometry } from './utils/floatingEdges.js';
+import type { NodeGeometrySource } from './utils/nodeGeometry.js';
 import { THEME } from './theme.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { scalePx, useDiagramTextScale, type DiagramTextScaleStore } from '../../../theme/useDiagramTextScale.js';
 import { calloutRects, calloutShift, coveredNodeTop } from './utils/labelPlacement.js';
-import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
+import { useElementEvaluation, useElementOverlays } from '../../context/DecoratorOverlayContext.js';
+import { OverlayEdgeBadge } from './overlay/OverlayBadge.js';
+import { overlayOutline } from './overlay/overlayStyle.js';
+import { viewKey, worstStatus } from '../../overlay/overlayEngine.js';
 import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
 import { useElementSize } from './hooks/useElementSize.js';
 
@@ -31,13 +35,16 @@ function FloatingEdgeComponent({
 }: FloatingEdgeProps) {
     const [isHovered, setIsHovered] = useState(false);
     const direction = data?.direction;
+    const overlays = useElementOverlays(data?.['unique-id']);
+    // Only views that need attention mark an edge: see OverlayEdgeBadge.
+    const flagged = overlays.filter(({ overlay }) => overlayOutline(overlay.status));
+    const outline = overlayOutline(worstStatus(flagged.map(({ overlay }) => overlay.status)));
     const evaluation = useElementEvaluation(data?.['unique-id']);
-    const notMet = evaluation?.status === 'not-met';
 
     // reactflow gives every node a new object on each node change, for example the z-index change on a hover. Only
     // the geometry is compared, so such a change does not render every edge again.
-    const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]), sameNodeGeometry);
-    const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]), sameNodeGeometry);
+    const sourceNode = useStore(useCallback((store) => store.nodeLookup.get(source), [source]), sameNodeGeometry);
+    const targetNode = useStore(useCallback((store) => store.nodeLookup.get(target), [target]), sameNodeGeometry);
     const { presenting } = usePresentationMode(presentationStore);
     const { scale } = useDiagramTextScale(textScaleStore);
     const path = sourceNode && targetNode
@@ -52,7 +59,7 @@ function FloatingEdgeComponent({
     const coveredTop = useStore(useCallback(
         (store) => (hitX === undefined || hitY === undefined
             ? undefined
-            : coveredNodeTop(store.nodeInternals.values(), hitX, hitY, [source, target])),
+            : coveredNodeTop(store.nodeLookup.values(), hitX, hitY, [source, target])),
         [hitX, hitY, source, target],
     ));
 
@@ -68,7 +75,7 @@ function FloatingEdgeComponent({
             ? 0
             : calloutShift(
                 { x: hitX - labelSize.width / 2, y: hitY - labelSize.height / 2, ...labelSize },
-                calloutRects(store.nodeInternals.values(), calloutSizes),
+                calloutRects(store.nodeLookup.values(), calloutSizes),
             )),
         [shiftForCallouts, hitX, hitY, labelSize, calloutSizes],
     ));
@@ -103,30 +110,30 @@ function FloatingEdgeComponent({
     const hasFlowInfo = flowTransitions.length > 0;
     const hasAIGF = controlsApplied.length > 0 || mitigations.length > 0 || risks.length > 0;
     const badgeStyle = getBadgeStyle(hasFlowInfo);
-    const hasIndicator = Boolean(edgeLabel) || hasFlowInfo || hasAIGF || notMet;
-    const pathStyle = notMet ? { ...style, stroke: THEME.colors.error, strokeWidth: 3.5 } : style;
-    // A not-met relationship's arrowheads turn red with it. The shared markers are coloured per edge type, so this
+    const hasIndicator = Boolean(edgeLabel) || hasFlowInfo || hasAIGF || flagged.length > 0;
+    const pathStyle = outline ? { ...style, stroke: outline, strokeWidth: 3.5 } : style;
+    // A flagged relationship's arrowheads take its colour. The shared markers are coloured per edge type, so this
     // edge draws its own, with an id unique to the edge, and points only the ends that already had one at it.
-    const notMetMarkerId = `control-evaluation-arrow-${id}`;
-    const notMetMarker = `url(#${notMetMarkerId})`;
+    const outlineMarkerId = `overlay-arrow-${id}`;
+    const outlineMarker = `url(#${outlineMarkerId})`;
     // ReactFlow passes an end with no marker as an empty reference, url('#'), which is truthy but draws nothing.
     const endMarker = referencedMarker(markerEnd);
     const startMarker = referencedMarker(markerStart);
-    const pathMarkerEnd = notMet && endMarker ? notMetMarker : endMarker;
-    const pathMarkerStart = notMet && startMarker ? notMetMarker : startMarker;
+    const pathMarkerEnd = outline && endMarker ? outlineMarker : endMarker;
+    const pathMarkerStart = outline && startMarker ? outlineMarker : startMarker;
     // The decision overlay says what a not-met relationship requires, beside its badge.
-    const requirement = showDecisions && notMet
+    const requirement = showDecisions && evaluation?.status === 'not-met'
         ? evaluation?.latest.find((d) => d.data.status === 'not-met' && d.data.findings?.length)?.data.findings?.[0]?.description
         : undefined;
 
     return (
         <>
-            {notMet && (endMarker || startMarker) && (
+            {outline && (endMarker || startMarker) && (
                 <defs>
                     {/* ReactFlow's ArrowClosed geometry, sized in user space to match the 25-wide marker on a
                         2.5px edge, since this edge is drawn thicker. */}
                     <marker
-                        id={notMetMarkerId}
+                        id={outlineMarkerId}
                         className="react-flow__arrowhead"
                         viewBox="-10 -10 20 20"
                         refX="0"
@@ -138,8 +145,8 @@ function FloatingEdgeComponent({
                     >
                         <polyline
                             points="-5,-4 0,0 -5,4 -5,-4"
-                            fill={THEME.colors.error}
-                            stroke={THEME.colors.error}
+                            fill={outline}
+                            stroke={outline}
                             strokeWidth="1"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -190,22 +197,7 @@ function FloatingEdgeComponent({
                                 badgeStyle={badgeStyle}
                             />
                         )}
-                        {notMet && (
-                            <span
-                                data-testid="edge-evaluation-badge"
-                                style={{
-                                    fontSize: scalePx(presenting ? 18 : 11, scale),
-                                    fontWeight: 600,
-                                    padding: presenting ? '3px 8px' : '2px 4px',
-                                    borderRadius: '4px',
-                                    background: THEME.colors.card,
-                                    border: `1px solid ${THEME.colors.error}`,
-                                    color: THEME.colors.errorText,
-                                }}
-                            >
-                                <span aria-hidden="true">✗</span> Not met
-                            </span>
-                        )}
+                        {flagged.map((shown) => <OverlayEdgeBadge key={viewKey(shown.view)} shown={shown} presenting={presenting} scale={scale} />)}
                         {requirement && (
                             <span
                                 data-testid="edge-decision-finding"
@@ -270,8 +262,8 @@ function FloatingEdgeComponent({
 export const FloatingEdge = memo(FloatingEdgeComponent);
 
 function getFloatingEdgePath(
-    sourceNode: Node,
-    targetNode: Node,
+    sourceNode: NodeGeometrySource,
+    targetNode: NodeGeometrySource,
     direction: EdgeData['direction'],
     routing: NonNullable<EdgeData['metadata']>['routing'],
 ) {

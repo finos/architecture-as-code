@@ -1,3 +1,3 @@
 {{#each nodes}}
-{{{mermaidId ../actor}}}[{{{mermaidText (nodeLabel ../actor @root.nodeNames)}}}] -- Interacts --> {{{mermaidId this}}}[{{{mermaidText (nodeLabel this @root.nodeNames)}}}];
+{{{mermaidId ../actor}}}["{{{mermaidQuotedText (nodeLabel ../actor @root.nodeNames)}}}"] -- Interacts --> {{{mermaidId this}}}["{{{mermaidQuotedText (nodeLabel this @root.nodeNames)}}}"];
 {{/each}}

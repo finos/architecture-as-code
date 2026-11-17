@@ -42,6 +42,11 @@ public class CalmContentDetector {
             return Optional.empty();
         }
 
+        // Before the content checks: a convention type's schema URL can contain a keyword such as "flow".
+        if (filePath != null && ConventionFiles.conventionType(filePath).isPresent()) {
+            return Optional.of(RegistryResourceType.CONVENTION);
+        }
+
         String parentDir = getParentDirectoryName(filePath);
 
         if (isTimeline(json)) {

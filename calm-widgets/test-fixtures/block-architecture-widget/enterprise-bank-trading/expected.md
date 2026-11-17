@@ -64,15 +64,15 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         class enterprise-bank boundary
 
 
-    trading-ui -->|User places trades| trade-svc
-    trade-svc -->|Update positions sync| position-svc
-    trade-svc -->|Publish TradeEvent| message-bus
-    message-bus -->|TradeEvent → Position| position-svc
-    message-bus -->|TradeEvent → Accounting| account-svc
-    message-bus -->|TradeEvent → Risk| risk-svc
-    message-bus -->|TradeEvent → Reporting| reporting-svc
-    trade-svc -->|Validate product| product-svc
-    trade-svc -->|Fetch client info| client-svc
+    trading-ui -->|"User places trades"| trade-svc
+    trade-svc -->|"Update positions sync"| position-svc
+    trade-svc -->|"Publish TradeEvent"| message-bus
+    message-bus -->|"TradeEvent → Position"| position-svc
+    message-bus -->|"TradeEvent → Accounting"| account-svc
+    message-bus -->|"TradeEvent → Risk"| risk-svc
+    message-bus -->|"TradeEvent → Reporting"| reporting-svc
+    trade-svc -->|"Validate product"| product-svc
+    trade-svc -->|"Fetch client info"| client-svc
 
 
 
@@ -154,7 +154,7 @@ classDef system fill:#eef1ff,stroke:#204485,stroke-width:1px,color:#000000;
                     trade-svc[/"⚙️ Trade Service"/]:::service
                         trade-svc__iface__trade-api["◻ Trade API"]:::iface
                         trade-svc__iface__trade-events["◻ Trade Events Publisher"]:::iface
-                    trading-ui[[💻 Trading UI]]:::webclient
+                    trading-ui[["💻 Trading UI"]]:::webclient
                         trading-ui__iface__web-ui["◻ Web Interface"]:::iface
                 end
                 class trading-system boundary
@@ -162,15 +162,15 @@ classDef system fill:#eef1ff,stroke:#204485,stroke-width:1px,color:#000000;
         class enterprise-bank boundary
 
 
-    trading-ui__iface__web-ui -->|User places trades| trade-svc__iface__trade-api
-    trade-svc__iface__trade-api -->|Update positions sync| position-svc__iface__position-updates
-    trade-svc__iface__trade-events -->|Publish TradeEvent| message-bus__iface__trade-events-topic
-    message-bus__iface__trade-events-topic -->|TradeEvent → Position| position-svc__iface__position-api
-    message-bus__iface__trade-events-topic -->|TradeEvent → Accounting| account-svc__iface__account-api
-    message-bus__iface__trade-events-topic -->|TradeEvent → Risk| risk-svc__iface__risk-check
-    message-bus__iface__trade-events-topic -->|TradeEvent → Reporting| reporting-svc__iface__reports
-    trade-svc__iface__trade-api -->|Validate product| product-svc__iface__product-lookup
-    trade-svc__iface__trade-api -->|Fetch client info| client-svc__iface__client-info
+    trading-ui__iface__web-ui -->|"User places trades"| trade-svc__iface__trade-api
+    trade-svc__iface__trade-api -->|"Update positions sync"| position-svc__iface__position-updates
+    trade-svc__iface__trade-events -->|"Publish TradeEvent"| message-bus__iface__trade-events-topic
+    message-bus__iface__trade-events-topic -->|"TradeEvent → Position"| position-svc__iface__position-api
+    message-bus__iface__trade-events-topic -->|"TradeEvent → Accounting"| account-svc__iface__account-api
+    message-bus__iface__trade-events-topic -->|"TradeEvent → Risk"| risk-svc__iface__risk-check
+    message-bus__iface__trade-events-topic -->|"TradeEvent → Reporting"| reporting-svc__iface__reports
+    trade-svc__iface__trade-api -->|"Validate product"| product-svc__iface__product-lookup
+    trade-svc__iface__trade-api -->|"Fetch client info"| client-svc__iface__client-info
 
     trading-ui -.- trading-ui__iface__web-ui
     trade-svc -.- trade-svc__iface__trade-api

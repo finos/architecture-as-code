@@ -2,7 +2,7 @@ import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, assertJsonObject, DocumentLoadError, CALM_HUB_PROTOS } from './document-loader';
 import { assertResponseOrigin } from './response-origin.js';
-import { assertNoTraversal, assertSafeRequestPath } from './request-guards.js';
+import { assertNoTraversal, isSafeRequestPath, unsafeRequestPathError } from './request-guards.js';
 import { initLogger, Logger } from '../logger';
 import { AuthPlugin } from '../auth/auth-plugin';
 import type { CalmDocumentType } from '@finos/calm-models/types';
@@ -99,8 +99,10 @@ export class CalmHubDocumentLoader implements DocumentLoader {
         // another loader (which would mask the real reason with an unrelated error).
 
         assertNoTraversal(documentId, 'CalmHubDocumentLoader');
-        const path = url.pathname;
-        assertSafeRequestPath(path, 'CalmHubDocumentLoader');
+        const path = url.pathname && !url.pathname.startsWith('/') ? `/${url.pathname}` : url.pathname;
+        if (!isSafeRequestPath(path)) {
+            throw unsafeRequestPathError(path, 'CalmHubDocumentLoader');
+        }
 
         this.logger.debug(`Loading CALM schema from ${this.calmHubUrl}${path}`);
 

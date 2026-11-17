@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import ReactFlow, {
+import {
+    ReactFlow,
     Node,
     Background,
     Controls,
@@ -8,14 +9,12 @@ import ReactFlow, {
     Panel,
     useNodesState,
     useEdgesState,
-    getBoundsOfRects,
-    getNodesBounds,
     getViewportForBounds,
     type FitViewOptions,
     type ReactFlowInstance,
     type Viewport,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { Gavel, Map as MapIcon, Presentation as PresentationIcon } from 'lucide-react';
 import { MotionToggleButton } from './MotionToggleButton.js';
 import { TextSizeButtons } from './TextSizeButtons.js';
@@ -27,10 +26,13 @@ import { SearchBar } from './SearchBar.js';
 import { presentParam, usePresentationMode } from '../../../theme/usePresentationMode.js';
 import { DecisionOverlayContext, useCalloutSizes, type CalloutSize } from '../../context/DecisionOverlayContext.js';
 import { subjectLabelsFor } from './utils/decisionSummary.js';
-import { calloutRects } from './utils/labelPlacement.js';
+import { diagramBounds } from './utils/diagramExport.js';
+import { ExportButton } from './ExportButton.js';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
+import { OverlayLegend } from './overlay/OverlayLegend.js';
+import { useDecoratorOverlays } from '../../context/DecoratorOverlayContext.js';
 import { parseCALMData } from './utils/calmTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
@@ -201,6 +203,7 @@ export function ArchitectureGraph({
     // `?present=1` in a link turns presentation mode on, and `?present=0` off. It is saved for the session, because a
     // switch between diagram tabs rewrites the query.
     const { presenting, setPresenting } = usePresentationMode(presentationStore);
+    const hasOverlays = useDecoratorOverlays().overlays.length > 0;
 
     // The decision overlay draws each element's latest decision on the diagram. It follows presentation mode until it
     // is switched on its own, and switching presentation mode hands it back.
@@ -327,10 +330,8 @@ export function ArchitectureGraph({
         const instance = flowInstanceRef.current;
         const container = containerRef.current;
         if (!instance || !container) return undefined;
-        const shown = instance.getNodes().filter((node) => !node.hidden);
-        const bounds = calloutRects(shown, callouts).reduce(getBoundsOfRects, getNodesBounds(shown));
         return getViewportForBounds(
-            bounds,
+            diagramBounds(instance.getNodes().map((n) => instance.getInternalNode(n.id) ?? n), callouts),
             container.clientWidth,
             container.clientHeight,
             options.minZoom ?? MIN_ZOOM,
@@ -527,6 +528,7 @@ export function ArchitectureGraph({
                                     color={showDecisions ? colors.redesign.primaryText : THEME.colors.muted}
                                 />
                             </ControlButton>
+                            <ExportButton diagramKey={viewportKey} />
                         </Controls>
                     )}
                     {isMobile && (
@@ -589,6 +591,11 @@ export function ArchitectureGraph({
                             >
                                 This diagram is too large to draw a node in each of its containers. Each node is drawn in one container only.
                             </div>
+                        </Panel>
+                    )}
+                    {hasOverlays && (
+                        <Panel position="bottom-center">
+                            <OverlayLegend />
                         </Panel>
                     )}
                     {!externalSearch && (

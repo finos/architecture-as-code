@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { useState, type ReactNode } from 'react';
-import type { Node } from 'reactflow';
+import { ReactFlowProvider, type Node } from '@xyflow/react';
 import { PatternGraph } from './PatternGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
 
@@ -22,17 +22,16 @@ function MockReactFlow(props: Record<string, unknown>) {
     const [instanceId] = useState(() => ++reactFlowMountCount);
     return (
         <div data-testid="react-flow" data-instance={instanceId}>
-            {props.children as ReactNode}
+            <ReactFlowProvider>{props.children as ReactNode}</ReactFlowProvider>
         </div>
     );
 }
 
-vi.mock('reactflow', async () => {
-    const actual = await vi.importActual<typeof import('reactflow')>('reactflow');
+vi.mock('@xyflow/react', async () => {
+    const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react');
     return {
         ...actual,
-        __esModule: true,
-        default: MockReactFlow,
+        ReactFlow: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
         Controls: ({ children }: { children?: ReactNode }) => (
             <div data-testid="rf-controls">{children}</div>
@@ -81,6 +80,11 @@ describe('PatternGraph', () => {
     it('offers a pause-animation control on desktop', () => {
         render(<PatternGraph patternData={mockPatternData} />);
         expect(screen.getByRole('button', { name: /pause animation/i })).toBeInTheDocument();
+    });
+
+    it('offers an image export on desktop', () => {
+        render(<PatternGraph patternData={mockPatternData} />);
+        expect(screen.getByRole('button', { name: 'Export image' })).toBeInTheDocument();
     });
 
     it('offers text size controls on desktop', () => {

@@ -23,13 +23,15 @@ public class NitriteIntegrationTestProfile implements QuarkusTestProfile {
         return List.of(new TestResourceEntry(NitriteEndToEndResource.class));
     }
 
+    // calm.decorators.reserved.* lets NitriteDecoratorIntegration supersede a decorator, as IntegrationTestProfile does for Mongo.
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.of(
                 "allow.put.operations", "true",
                 "calm.mcp.enabled", "true",
                 "calm.auth.enabled", "false",
-                "calm.hub.base-url", "http://localhost:8080"
+                "calm.hub.base-url", "http://localhost:8080",
+                "calm.decorators.reserved.\"integration-evaluation\".writers", "no-auth"
         );
     }
 }

@@ -1,6 +1,8 @@
 package org.finos.calm.store.github;
 
 import org.finos.calm.domain.Decorator;
+import org.finos.calm.domain.exception.DecoratorNotFoundException;
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistrySnapshot;
@@ -95,6 +97,11 @@ class TestGitHubDecoratorStoreShould {
     }
 
     @Test
+    void refuse_writes_before_any_lookup() {
+        assertThrows(GitHubWriteNotSupportedException.class, () -> store.requireWritable());
+    }
+
+    @Test
     void throw_unsupported_on_create_decorator() {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.createDecorator("finos", "{}"));
@@ -107,8 +114,31 @@ class TestGitHubDecoratorStoreShould {
     }
 
     @Test
-    void throw_unsupported_on_delete_decorator() {
+    void throw_unsupported_on_delete_current_decorator_history() {
         assertThrows(UnsupportedOperationException.class,
-                () -> store.deleteDecorator("finos", 1));
+                () -> store.deleteCurrentDecoratorHistory("finos", 1));
+    }
+
+    @Test
+    void throw_unsupported_on_supersede_decorator() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.supersedeDecorator("finos", 1, "{}"));
+    }
+
+    @Test
+    void throw_decorator_not_found_on_get_decorator_history() {
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of()),
+                Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        assertThrows(DecoratorNotFoundException.class, () -> store.getDecoratorHistory("finos", 1));
+    }
+
+    @Test
+    void throw_namespace_not_found_on_get_decorator_history() {
+        when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getDecoratorHistory("nonexistent", 1));
     }
 }

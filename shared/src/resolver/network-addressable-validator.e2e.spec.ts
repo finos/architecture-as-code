@@ -41,7 +41,7 @@ describe('NetworkAddressableValidator E2E', () => {
         expect(result?.isSchemaDefinition).toBe(false);
         expect(result?.isSchemaImplementation).toBe(false);
         expect(result?.error).toBe(
-            'HTTP request failed for https://calm.finos.org/amazing-website: Request failed with status code 404'
+            'HTTP request failed for https://calm.finos.org/amazing-website: Failed to load document from URL: https://calm.finos.org/amazing-website: Request failed with status code 404'
         );
     });
 

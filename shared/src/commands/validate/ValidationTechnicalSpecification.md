@@ -13,7 +13,7 @@ sub-architectures.
 ## 1. Objectives
 
 - **O1: One authoritative validator in `shared`.** Validation is a library concern, not a CLI
-  concern. The CLI, CALM Hub (upload), CalmStudio, and any future tool call the same
+  concern. The CLI, CALM Hub (upload), and any future tool call the same
   `validate(...)` entry point so guarantees cannot be bypassed by hitting an API directly.
 - **O2: Phased validation.** Run cheap/broad linting (Spectral) and structural schema validation
   (JSON Schema) as distinct phases, plus semantic/model checks (controls, node-details recursion).

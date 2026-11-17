@@ -26,13 +26,21 @@ const ROUTING_OPTIONS: { value: EdgeRouting; label: string }[] = [
     { value: 'straight', label: 'Straight' },
 ];
 
+/** A connects edge whose reverse is drawn as an edge of its own cannot also be bidirectional. */
+export function hasSeparateReverseEdge(edge: Edge, edges: Edge[]): boolean {
+    const isConnects = (e: Edge) => ((e.data?.calmVariant as string | undefined) ?? 'connects') === 'connects';
+    return isConnects(edge) && edges.some((e) => e.id !== edge.id && isConnects(e)
+        && e.source === edge.target && e.target === edge.source);
+}
+
 interface EdgePropertiesProps {
     edge: Edge;
+    hasReverseEdge?: boolean;
     readonlyMode?: boolean;
     onEdgeUpdate?: (edgeId: string, field: string, value: unknown) => void;
 }
 
-export function EdgeProperties({ edge, readonlyMode = false, onEdgeUpdate }: EdgePropertiesProps) {
+export function EdgeProperties({ edge, hasReverseEdge = false, readonlyMode = false, onEdgeUpdate }: EdgePropertiesProps) {
     const data = (edge.data ?? {}) as Record<string, unknown>;
     const relType = (data.calmVariant as string) ?? 'connects';
     const isCustomRelType = !KNOWN_RELATIONSHIP_SET.has(relType);
@@ -50,6 +58,7 @@ export function EdgeProperties({ edge, readonlyMode = false, onEdgeUpdate }: Edg
     const direction = (data.direction as EdgeDirection) ?? 'source-to-target';
     const lineStyle = (data.lineStyle as EdgeLineStyle) ?? 'solid';
     const routing = (data.routing as EdgeRouting) ?? 'bezier';
+    const directionOptions = DIRECTION_OPTIONS.filter((o) => o.value !== 'bidirectional' || !hasReverseEdge || direction === 'bidirectional' || !!data.calmReverseRelId);
 
     useEffect(() => {
         if (edge.id !== lastEdgeId.current) {
@@ -96,7 +105,7 @@ export function EdgeProperties({ edge, readonlyMode = false, onEdgeUpdate }: Edg
             <Field label="Direction">
                 {readonlyMode ? <span style={{ fontSize: '12px' }}>{DIRECTION_OPTIONS.find(o => o.value === direction)?.label}</span> : (
                     <select value={direction} onChange={(e) => onEdgeUpdate?.(edge.id, 'direction', e.target.value)} style={selectStyle}>
-                        {DIRECTION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {directionOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 )}
             </Field>

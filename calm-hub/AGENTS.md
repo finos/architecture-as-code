@@ -340,7 +340,15 @@ CALM Hub includes an experimental [Model Context Protocol](https://modelcontextp
 
 Tool providers are in `src/main/java/org/finos/calm/mcp/tools/`:  
 `ArchitectureTools`, `PatternTools`, `ControlTools`, `DomainTools`, `InterfaceTools`,  
-`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`.
+`NamespaceTools`, `SearchTools`, `StandardTools`, `TimelineTools`, `AdrTools`, `ConventionTools`.  
+`ExtensionTools` registers one `ext_<id>_<command>` tool for each extension command at start-up, with `ToolManager`, only when MCP is on. The Javadoc and `docs/docs/calm-hub/mcp-and-api.md` have the detail. Rules for changes:
+- Command schemas must use the 2020-12 subset that `schemaError` accepts: one schema that the MCP TypeScript SDK cannot compile makes `listTools()` throw. Do not add support for schema identifiers (`$id`, anchors): each review found another case that the SDK refuses.
+- A command that Hub cannot check or register is skipped with a warning, also on a `StackOverflowError`, so a manifest never stops Hub. Rethrow other `VirtualMachineError`s.
+- Order at call time: argument size and depth, request mapping, scope (`ExtensionProxyService.checkAccess`), input schema. Keep the scope check before the input check, which can be slow.
+- vertx must never run java.util.regex on caller input. `InputSchema` moves input patterns into Hub formats that `LinearPatterns` matches with RE2J, within one `EcmaRegex.Budget` per call. Input formats are limited to `LINEAR_FORMATS`.
+- A 2xx reply must match the output schema (`outputValidator`), because SDK clients check `structuredContent` and throw on a mismatch.
+- Trust model: manifests, their schemas and the extension backends are trusted operator configuration. Do not add checks against schemas made to be pathological. Do bound what a caller controls: argument size and depth, linear-time input patterns, scope before the input check.
+`ToolManager` adds a tool before its `ToolAdded` observers run, so a failed tool is removed again. It never registers over, or removes, a tool that has the same name.
 
 Enable for development:
 ```bash
@@ -360,22 +368,50 @@ curl -s -X POST http://localhost:8080/mcp \
 
 ## GitHub Actions — Docker Publish Workflows
 
-| Workflow file | Image tag | Trigger (path filter on `main`) |
-|:-------------|:----------|:-------------------------------|
-| `docker-publish-calm-hub.yml` | `latest` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
-| `docker-publish-calm-hub-native.yml` | `latest-native` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
-| `docker-publish-calm-hub-readonly.yml` | `latest-read-only-static` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
-| `docker-publish-calm-hub-readonly-native.yml` | `latest-read-only-native` | `calm-hub/**` (excl. `calm-hub/ec2/**`), `calm-hub-ui/**` |
+| Workflow file | Tag suffix |
+|:-------------|:-----------|
+| `docker-publish-calm-hub.yml` | (none) |
+| `docker-publish-calm-hub-native.yml` | `-native` |
+| `docker-publish-calm-hub-readonly.yml` | `-read-only-static` |
+| `docker-publish-calm-hub-readonly-native.yml` | `-read-only-native` |
 
-`calm-hub/ec2/**` (the EC2 deployment scripts) is excluded from all four triggers so edits to the on-box install/deploy tooling don't kick off a native multi-arch image rebuild.
+Each workflow pushes different tags for a merge and for a release:
+
+| Run | Tags |
+|:----|:-----|
+| Push to `main` (path filter: `calm-hub/**` excl. `calm-hub/ec2/**`, `calm-hub-ui/**`, `calm-models/**`, `package.json`, `package-lock.json`, `scripts/copy-calm-schemas.mjs`), or `workflow_dispatch` from `main` | `main<suffix>`, `sha-<short><suffix>` |
+| `workflow_call` from `automated-release-calm-hub.yml` | `<version><suffix>`, `<major.minor><suffix>`, `latest<suffix>` |
+
+A version tag is pushed once. `scripts/check-calm-hub-release.sh` fails the release if the tag is
+already in the registry, or if `pom.xml` is not at that version. Security advisories name these
+versions, so never push a version tag by hand.
 
 All four workflows:
-- Support `workflow_dispatch` with a `tag` input (default: the tag above).
 - Run `smoke-test.sh` against a locally loaded single-arch image before pushing to Docker Hub.
 - Use `${{ secrets.DOCKER_USERNAME }}/calm-hub` as the image namespace.
 - Have `cancel-in-progress: false` (a publish in flight is never cancelled).
 
 **Native workflows** (`-native.yml`) use a per-architecture build matrix (`ubuntu-latest` for `amd64`, `ubuntu-24.04-arm` for `arm64`). Each runner builds for its own arch, pushes by digest, and a final merge job assembles the multi-arch manifest via `docker buildx imagetools create`.
+
+The EC2 demo (`ec2/`) runs `main-read-only-native`, so it changes on every merge, not on a release.
+`docker-publish-calm-hub-extensions.yml` publishes each folder of `calm-hub-extensions/` as
+`finos/calm-hub-<id>`, with the `main` and `sha-<short>` tags on each merge. They have no release.
+
+## Releasing
+
+`automated-release-calm-hub.yml` releases CALM Hub every Tuesday, or on demand:
+
+1. semantic-release (`release.config.mjs`) finds the next version from the commits since the last
+   `calm-hub-v*` tag. It releases on the `calm-hub`, `calm-hub-ui` and `deps` scopes, and on unscoped
+   `feat`/`fix`/`perf`/`revert`, but only for commits that changed the paths the image is built from.
+2. It opens a `release/calm-hub-v<version>` PR that sets the `pom.xml` version and adds to
+   `CHANGELOG.md`. Merging the PR approves the release. The shared rules give a breaking change a
+   minor release, so a major release needs `force-release` with `release-type: major`.
+3. On merge, it tags the merge commit `calm-hub-v<version>`, calls the four Docker workflows for
+   that commit, then creates the GitHub release.
+
+The `pom.xml` version changes only in a release PR. The workflow needs a `calm-hub-v*` tag to start
+from; it fails if there is none.
 
 ## Key Concepts
 
@@ -397,6 +433,13 @@ All four workflows:
 - **Gated by `calm.mcp.enabled`** (default `false`): when disabled, every `@Tool`
   method returns a disabled error, though the `/mcp` HTTP endpoint stays reachable
 - Enable with `-Dcalm.mcp.enabled=true` or `CALM_MCP_ENABLED=true`
+- **Read-only mode:** `/mcp` is a Vert.x route, so `ReadOnlyRequestFilter` never sees it. Put
+  `@ReadOnlyHubGuard` on each `*Tools` class: on a read-only Hub it refuses each `@Tool` that needs more
+  than a read scope. Its priority (`PLATFORM_BEFORE`) puts it before the `@PermissionsAllowed` check.
+  `TestMcpToolsReadOnlyShould` fails for a write tool in a class without it. `ReadOnlyHubToolFilter` uses the
+  same rule (`changesData`) to hide those tools from `tools/list` for all users. It does not filter `tools/call`, so
+  the guard still gives the read-only error. This is not the per-user `ToolFilter` that ADR 0014 rejects. A tool
+  registered through `ToolManager` has no method, so it stays listed and must refuse writes itself
 
 ### UI Customization
 - `config/UiConfig` (`@ConfigMapping(prefix = "calm.ui")`) holds the operator values that
@@ -406,10 +449,57 @@ All four workflows:
 - The response leaves out a section that is not configured or not enabled. The server does not
   read `SecurityIdentity` unless `calm.ui.identity.enabled=true`
 
+### Extensions
+- ADRs 0009–0014 in `decisions/` are the design. `ExtensionRegistry` loads manifests at start up from
+  `calm.extensions.dir` and from the classpath index `META-INF/calm-extensions/builtin/index.txt`.
+  `ExtensionManifestLoader` validates them with the schema in `META-INF/calm-extensions/schema/<hubApi>/`
+  (vertx-json-schema) and then does the cross-reference checks. A bad manifest or setting stops start up
+- `ExtensionsConfig` declares the per-id keys (`calm.extensions."<id>".enabled|order|backend-url|allow-http|...`) only
+  so that SmallRye accepts them. The registry reads them by full name, because a map key with a dash
+  does not bind from an environment variable
+- The unknown-id warning matches `ExtensionRegistry.PER_ID_KEYS` in property and environment-variable form. Add a
+  new per-id key there, in `ExtensionsConfig.Extension`, and in the settings table of `docs/docs/calm-hub/index.md`
+- A field change in `domain/extensions/ExtensionManifest` needs the same change in the schema: the
+  schema rejects unknown fields
+- `ExtensionProxyService` holds every rule of a proxied call: route match, path checks, scope, read-only,
+  identity assertion, header allow-lists, limits and audit. `ExtensionProxyResource` and the MCP tools
+  must both call it, because MCP does not pass through the JAX-RS filters (ADR 0011)
+- `mcp/tools/ExtensionTools` registers the command tools after `ExtensionRegistry` loads (observer priority).
+  `ToolManager` lists them after the `@Tool` methods, in registration order, so it registers them sorted.
+  The MCP server does not check arguments against `inputSchema`, so the handler does
+- `ReadOnlyRequestFilter` exempts only `^/api/calm/extensions/[^/]+/api(/|$)`, in normal form. The proxy
+  then allows a non-GET method only on a `readOnly` route
+- `ExtensionIdentitySigner` signs with the JDK, not a JWT library. `ExtensionAssertionRejectingMechanism`
+  refuses a bearer token with `typ: calm-ext+jwt` in every auth mode, and sends the 401 challenge for it itself, so
+  that an OIDC provider that is down cannot make it a 500
+- Tests generate key pairs at run time (`ExtensionTestKeys`); `*.pem` is git-ignored. `FixtureBackend` is a
+  loopback backend for proxy tests
+- `calm-hub-extensions/` holds the extensions we own (`c4`, `ea-layers`): real services, each with its own notation.
+  Each runs as a sidecar and copies its folder to the shared `calm.extensions.dir` volume (`deploy/docker-compose.yml`).
+  `TestExtensionManifestLoaderShould` loads that folder, so a manifest or notation that Hub refuses fails the Java tests
+- `ExtensionHubData` builds the body of a `hubData` route, with the scope of the caller: the document, detailed
+  architectures in the same namespace only, and conventions only where `permissions.canRead` allows. The proxy
+  replaces the caller's body with it before it signs, so `bdh` covers it. Keep both limits (`MAX_*`).
+- `send-identity=false` (`RegisteredExtension.sendsIdentity`) skips the assertion for an open service. The registry
+  allows it only when every route is `GET` or `readOnly`, so no audited call goes out without a `jti`.
+- Try it: see `local-dev/extensions/example-services/README.md`. `local-dev/demo-extensions/` holds a demo
+  (release-tracker) that uses every UI extension point, to test the UI layout.
+  Keep it out of `local-dev/extensions`: it has routes, so a Hub that loads it without its `backend-url` does
+  not start
+
+### Conventions
+- Versioned tool settings at `/api/calm/namespaces/{ns}/conventions/{type}`, with a namespace default that child
+  namespaces inherit (`ConventionService.resolveDefault`). See ADR 0019
+- To add a convention type: put its JSON Schema in `src/main/resources/META-INF/calm-convention-types/` with the `$id`
+  that the new `ConventionType` constant names, and add the constant. `ConventionSchemaValidator` fails start-up if the
+  file is missing or its `$id` differs. Storage, REST, MCP and GitHub mode need no change
+- GitHub mode reads `conventions/<type>/*.json`. `conventions/<type>/default.json` is the namespace default
+
 ### Read-Only Deployment Mode
 - `calm.readonly=true` opens Nitrite with `readOnly(true)` and installs
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
-  on `/calm/*` with `405 Method Not Allowed`
+  on every JAX-RS path with `405 Method Not Allowed`. It checks only the method, not the path. The extension
+  proxy is the one exception: it enforces read-only mode itself. MCP is not JAX-RS, so its tools refuse writes themselves
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
   (Maven package + stage the released meta-schemas from `target/calm-schemas`, controls,
   standards, patterns and interfaces + build `Dockerfile.readonly-static`)
@@ -439,6 +529,14 @@ All four workflows:
   directory, and requires a hub `$id`. Each subdirectory of `mongo/standards/finos.calm/` holds copies
   of the decorator standards of one calm-schema release, with their calm.finos.org `$id`, so
   `create_standards` seeds them through the numeric API instead, `deployment/` first
+- A version write (`POST .../architectures/{id}/versions/{version}`) takes
+  `{name, description, architectureJson: "<document as a JSON string>"}`, not the CALM document
+  itself. Patterns and flows take `patternJson` and `flowJson`. See `init-nitrite.sh`
+- A Standard is a JSON document: a JSON Schema that extends CALM. GitHub mode serves Markdown files
+  as Standards (`GitHubStandardStore.preferMarkdownSibling`, `ResourceRegistry.detectMarkdownType`).
+  That is a bug, #3321: do not extend it or style Markdown as a Standard
+- The `sdlc-control-requirement` Standard stays in the `finos.sdlc-common-controls` namespace with
+  its controls. `finos.calm` holds only the standards that calm-schema releases
 
 ### Integration Tests
 - Located in `src/integration-test/java/`
@@ -618,6 +716,9 @@ pattern. Toggle independently with `calm.audit.store.enabled` / `calm.audit.log.
 `calm.audit.capture-source-ip` (all in `application.properties`). No REST API exposes the
 trail in this iteration — read it via direct DB access or ops tooling.
 
+A request gives one entry, except a decorator `PUT` that supersedes a reserved-type decorator
+(`201`). It gives an `UPDATE` of the old id and a `CREATE` of the new id from `Location`.
+
 GitHub storage mode (`calm.database.mode=github`) has no database, so it does not persist the
 trail: `GitHubAuditLogStore.query()` always returns an empty list, and the structured log line
 is the only record. `GitHubStartupInitializer` logs a warning about this at startup. Route the
@@ -672,6 +773,7 @@ the index list and duplicate-prevention silently disappears. See
 [ADR 0001](decisions/0001-versioned-artefact-storage.md).
 
 - `PERMISSIONS.md` - Per-namespace permission model reference
+- `PERSONAL_NAMESPACES.md` - Personal namespaces (`calm.namespaces.personal.*`, `/api/calm/me/namespace`; ADR 0018)
 - `decisions/` - Architecture Decision Records for calm-hub's own backend
   design (not the CALM ADR resource type). See `decisions/README.md` for
   the format; check each ADR's `Status` field before assuming it describes
@@ -709,6 +811,20 @@ CALM Hub is largely independent - it's a standalone REST API server.
    with this profile ships no UI at all; never use it for a release, Docker image, or CI build
    that needs to serve the UI. It (and `-Dskip.npm`) also skips the meta-schema copy, so after
    `clean` the jar has no bundled meta-schemas and GitHub mode serves none.
+8. **Maven runs `npm install` at the repository root**: the frontend-maven-plugin runs it in the
+   `initialize` phase of every build goal. In a second worktree, do not link `node_modules` to
+   another checkout before you run Maven, or the install changes that checkout's tree. Run
+   `npm ci` in the worktree instead.
+9. **An old UI after a rebuild**: `calm-hub-ui:prod` copies the new bundle with `rsync -a` and does
+   not delete the old hashed files, and browsers cache `index.html`. Check a UI change in a new
+   browser context, or add a query string such as `/?fresh=1`, and make sure that the page loads
+   the newest file in `META-INF/resources/assets/`.
+10. **CodeQL Java barriers**: `java/polynomial-redos` has no length-check barrier, so take the
+    ambiguous regex off the tainted path. A regex check in an early return such as
+    `if (x != null && !P.matcher(x).matches()) return 400;` does not guard the sink, because it is
+    skipped when `x` is null. Put the check in the non-null branch and give the checked value to
+    the sink. Before you push a CodeQL fix, run the same query locally with the CodeQL version CI
+    uses (`--build-mode=none` takes about a minute here).
 
 ## Known Issues
 

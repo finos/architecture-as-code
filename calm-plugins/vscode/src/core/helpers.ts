@@ -6,9 +6,9 @@
  * helpers.ts — Variant accessors over the canonical CALM relationship-type.
  *
  * Operates on the @finos/calm-models nested shape. These helpers are kept
- * local to calm-studio because they encode CalmStudio-specific traversal
+ * local to the extension because they encode editor-specific traversal
  * conventions (e.g. defensive null handling for partial/malformed input
- * that the studio editor may produce mid-keystroke). They are
+ * that the canvas may produce mid-edit). They are
  * intentionally not in calm-models, which models the canonical schema only.
  */
 

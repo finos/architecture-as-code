@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
  * and status transitions within CalmHub namespaces via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class AdrTools {
 
     private static final Logger logger = LoggerFactory.getLogger(AdrTools.class);

@@ -110,6 +110,17 @@ class TestControlToolsShould {
     }
 
     @Test
+    void return_control_json_for_commit_sha_version() throws Exception {
+        when(controlStore.getRequirementForVersion("security", 1, "1e38a517"))
+                .thenReturn("{\"name\":\"BOLA\"}");
+
+        ToolResponse result = controlTools.getControl("security", 1, "1e38a517");
+
+        assertThat(result.isError(), is(false));
+        assertThat(text(result), containsString("BOLA"));
+    }
+
+    @Test
     void return_error_for_missing_control_version() throws Exception {
         when(controlStore.getRequirementForVersion("security", 1, "9.9.9"))
                 .thenThrow(new ControlRequirementVersionNotFoundException());

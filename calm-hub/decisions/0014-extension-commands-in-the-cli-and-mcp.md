@@ -1,6 +1,7 @@
 # ADR 0014: Extension commands in the CLI and MCP
 
-**Status**: Proposed. Not built. Runtime tool registration in a native image is
+**Status**: Accepted. Built: `calm hub extensions` and `calm hub ext` (#3710), and MCP tools
+through `ToolManager` (#3712). Runtime tool registration in a native image is
 not yet tested.
 
 ## Context
@@ -63,6 +64,5 @@ security context fails in a native image, Hub registers two static tools,
   asks the user to confirm.
 - A command that a read-only Hub cannot run is not registered as a tool and is
   not listed by the CLI.
-- How a programmatic tool handler gets the caller's `SecurityIdentity` is not yet
-  known, because `@PermissionsAllowed` cannot be put on a lambda. The spike must
-  answer this before this ADR is accepted.
+- A programmatic tool handler cannot carry `@PermissionsAllowed`. The handler injects
+  `SecurityIdentity`, and `ExtensionProxyService` checks the route scope on each call.

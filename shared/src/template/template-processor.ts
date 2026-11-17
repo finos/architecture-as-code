@@ -13,6 +13,7 @@ import { initLogger, Logger } from '../logger.js';
 import { getErrorMessage } from '../error-utils.js';
 import { FileReferenceResolver, HttpReferenceResolver, MappedReferenceResolver } from '../resolver/calm-reference-resolver.js';
 import { CachingTrackingResolver } from '../resolver/caching-tracking-resolver.js';
+import type { DocumentLoader } from '../document-loader/document-loader.js';
 import { ChainReferenceResolver } from '../resolver/chain-reference-resolver.js';
 import { pathToFileURL } from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
@@ -33,6 +34,7 @@ export class TemplateProcessor {
     private readonly clearOutputDirectory: boolean = false;
     private readonly scaffoldOnly: boolean = false;
     private readonly urlMappingPath?: string;  // Original path for scaffold front-matter
+    private readonly documentLoader?: DocumentLoader;
 
     private static _logger: Logger | undefined;
 
@@ -52,7 +54,8 @@ export class TemplateProcessor {
         supportWidgetEngine: boolean = false,
         clearOutputDirectory: boolean = false,
         scaffoldOnly: boolean = false,
-        urlMappingPath?: string
+        urlMappingPath?: string,
+        documentLoader?: DocumentLoader
     ) {
         this.inputPath = inputPath;
         this.templateBundlePath = templateBundlePath;
@@ -63,6 +66,7 @@ export class TemplateProcessor {
         this.clearOutputDirectory = clearOutputDirectory;
         this.scaffoldOnly = scaffoldOnly;
         this.urlMappingPath = urlMappingPath;
+        this.documentLoader = documentLoader;
     }
 
     public async processTemplate(): Promise<void> {
@@ -108,7 +112,7 @@ export class TemplateProcessor {
             this.validateConfig(config);
 
 
-            const mappedResolver = new MappedReferenceResolver(this.urlToLocalPathMapping, new ChainReferenceResolver([new FileReferenceResolver(), new HttpReferenceResolver()]));
+            const mappedResolver = new MappedReferenceResolver(this.urlToLocalPathMapping, new ChainReferenceResolver([new FileReferenceResolver(), new HttpReferenceResolver(this.documentLoader)]));
             const cachingResolver = new CachingTrackingResolver(mappedResolver);
             const transformer = await this.loadTransformer(config.transformer, resolvedBundlePath);
             const coreModel = CalmCore.fromSchema(JSON.parse(calmJson));

@@ -22,6 +22,11 @@
       "types": "./dist/diff/index.d.ts",
       "import": "./dist/diff/index.js",
       "default": "./dist/diff/index.js"
+    },
+    "./c4": {
+      "types": "./dist/c4/index.d.ts",
+      "import": "./dist/c4/index.js",
+      "default": "./dist/c4/index.js"
     }
   },
   "files": [

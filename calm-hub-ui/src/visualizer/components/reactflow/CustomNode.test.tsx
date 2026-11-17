@@ -8,18 +8,20 @@ import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { createDiagramTextScaleStore, DIAGRAM_TEXT_SCALE_KEY } from '../../../theme/useDiagramTextScale.js';
 import { mockOffsetSize } from '../../../test-support/layout-mocks.js';
 import { THEME, getRiskLevelColor, getNodeTypeColor } from './theme.js';
-import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import { EvaluationOverlayProvider } from '../../../test-support/evaluation-overlay.js';
 import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
+import { DecoratorOverlayContext } from '../../context/DecoratorOverlayContext.js';
+import { fakeElement, fakeView } from '../../../test-support/fake-overlays.js';
 import type { ElementEvaluation, ControlEvaluationDecorator } from '../../contracts/contracts.js';
 
 const { storeNodes } = vi.hoisted(() => ({ storeNodes: new Map<string, object>() }));
 
-vi.mock('reactflow', () => ({
+vi.mock('@xyflow/react', () => ({
     Handle: () => null,
     Position: { Right: 'right', Left: 'left' },
     // The decision callout is drawn in the edge-label layer, from its node's bounds in the store.
     EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <div data-testid="label-renderer">{children}</div>,
-    useStore: (selector: (store: { nodeInternals: Map<string, object> }) => unknown) => selector({ nodeInternals: storeNodes }),
+    useStore: (selector: (store: { nodeLookup: Map<string, object> }) => unknown) => selector({ nodeLookup: storeNodes }),
 }));
 
 function makeNodeProps(details?: Record<string, unknown>, extraData: Record<string, unknown> = {}) {
@@ -29,8 +31,11 @@ function makeNodeProps(details?: Record<string, unknown>, extraData: Record<stri
         selected: false,
         zIndex: 0,
         isConnectable: true,
-        xPos: 0,
-        yPos: 0,
+        selectable: true,
+        deletable: true,
+        draggable: true,
+        positionAbsoluteX: 0,
+        positionAbsoluteY: 0,
         dragging: false,
         data: {
             label: 'Test Node',
@@ -370,9 +375,9 @@ const evaluation = (status: 'met' | 'not-met', extra: Partial<ControlEvaluationD
 
 function renderWithEvaluation(map: Map<string, ElementEvaluation>) {
     return render(
-        <ControlEvaluationContext.Provider value={map}>
+        <EvaluationOverlayProvider value={map}>
             <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} />
-        </ControlEvaluationContext.Provider>
+        </EvaluationOverlayProvider>
     );
 }
 
@@ -381,7 +386,7 @@ describe('control evaluations', () => {
 
     it('shows no badge without an evaluation', () => {
         renderWithEvaluation(new Map());
-        expect(screen.queryByTestId('control-evaluation-badge')).toBeNull();
+        expect(screen.queryByTestId('overlay-badge')).toBeNull();
     });
 
     it('keeps its normal border without an evaluation', () => {
@@ -391,13 +396,13 @@ describe('control evaluations', () => {
 
     it('shows no badge when the evaluations name other elements only', () => {
         const { container } = renderWithEvaluation(new Map([['other-node', evaluation('not-met')]]));
-        expect(screen.queryByTestId('control-evaluation-badge')).toBeNull();
+        expect(screen.queryByTestId('overlay-badge')).toBeNull();
         expect(nodeBorder(container)).toBe(`2px solid ${toRgb(getNodeTypeColor('service'))}`);
     });
 
     it('shows Not met in the error text colour, with a red border', () => {
         const { container } = renderWithEvaluation(new Map([['node-1', evaluation('not-met')]]));
-        const badge = screen.getByTestId('control-evaluation-badge');
+        const badge = screen.getByTestId('overlay-badge');
         expect(badge.textContent).toContain('Not met');
         expect(badge.style.color).toBe(THEME.colors.errorText);
         expect(nodeBorder(container)).toBe(`3px solid ${toRgb(THEME.colors.error)}`);
@@ -405,15 +410,15 @@ describe('control evaluations', () => {
 
     it('shows Met in the success text colour', () => {
         renderWithEvaluation(new Map([['node-1', evaluation('met')]]));
-        const badge = screen.getByTestId('control-evaluation-badge');
+        const badge = screen.getByTestId('overlay-badge');
         expect(badge.textContent).toContain('Met');
         expect(badge.style.color).toBe(THEME.colors.successText);
     });
 
     it('labels the badge for assistive technology, hides its icon, and has no native tooltip', () => {
         renderWithEvaluation(new Map([['node-1', evaluation('not-met')]]));
-        const badge = screen.getByTestId('control-evaluation-badge');
-        expect(badge.getAttribute('aria-label')).toBe('Control evaluation: Not met');
+        const badge = screen.getByTestId('overlay-badge');
+        expect(badge.getAttribute('aria-label')).toBe('Control evaluations · Built-in: Not met');
         expect(badge.hasAttribute('title')).toBe(false);
         expect(badge.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
     });
@@ -444,16 +449,16 @@ describe('control evaluations', () => {
         const store = createPresentationModeStore(createMemoryStorage());
         store.set(true);
         render(
-            <ControlEvaluationContext.Provider value={new Map([['node-1', evaluation('met')]])}>
+            <EvaluationOverlayProvider value={new Map([['node-1', evaluation('met')]])}>
                 <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} presentationStore={store} />
-            </ControlEvaluationContext.Provider>
+            </EvaluationOverlayProvider>
         );
-        expect(screen.getByTestId('control-evaluation-badge').style.fontSize).toBe('18px');
+        expect(screen.getByTestId('overlay-badge').style.fontSize).toBe('18px');
     });
 
     it('shows Met and the approver on hover', () => {
         renderWithEvaluation(new Map([['node-1', evaluation('met', { actors: { approver: 'alice' } })]]));
-        expect(screen.getByTestId('control-evaluation-badge').textContent).toContain('Met');
+        expect(screen.getByTestId('overlay-badge').textContent).toContain('Met');
         fireEvent.mouseEnter(screen.getByTestId('custom-node'));
         expect(screen.getByText(/approved by alice/)).toBeTruthy();
     });
@@ -465,7 +470,7 @@ describe('decision overlay', () => {
     beforeEach(() => {
         reportCalloutSize.mockClear();
         storeNodes.clear();
-        storeNodes.set('node-1', { id: 'node-1', width: 220, height: 80, positionAbsolute: { x: 10, y: 20 } });
+        storeNodes.set('node-1', { id: 'node-1', measured: { width: 220, height: 80 }, internals: { positionAbsolute: { x: 10, y: 20 } } });
     });
 
     afterEach(() => {
@@ -491,13 +496,13 @@ describe('decision overlay', () => {
                     reportCalloutSize,
                 }}
             >
-                <ControlEvaluationContext.Provider value={map}>
+                <EvaluationOverlayProvider value={map}>
                     <CustomNode
                         {...makeNodeProps(undefined, { 'unique-id': 'node-1' })}
                         presentationStore={store}
                         textScaleStore={createDiagramTextScaleStore(textStorage)}
                     />
-                </ControlEvaluationContext.Provider>
+                </EvaluationOverlayProvider>
             </DecisionOverlayContext.Provider>
         );
     }
@@ -555,13 +560,13 @@ describe('decision overlay', () => {
     });
 
     it('is dimmed with its node', () => {
-        storeNodes.set('node-1', { id: 'node-1', width: 220, height: 80, positionAbsolute: { x: 10, y: 20 }, style: { opacity: 0.15 } });
+        storeNodes.set('node-1', { id: 'node-1', measured: { width: 220, height: 80 }, internals: { positionAbsolute: { x: 10, y: 20 } }, style: { opacity: 0.15 } });
         renderOverlay(true, notMet());
         expect(screen.getByTestId('decision-callout').style.opacity).toBe('0.15');
     });
 
     it('waits for the node to be measured', () => {
-        storeNodes.set('node-1', { id: 'node-1', positionAbsolute: { x: 10, y: 20 } });
+        storeNodes.set('node-1', { id: 'node-1', internals: { positionAbsolute: { x: 10, y: 20 } } });
         renderOverlay(true, notMet());
         expect(screen.queryByTestId('decision-callout')).toBeNull();
     });
@@ -585,5 +590,61 @@ describe('decision overlay', () => {
     it('sizes the callout text with the diagram text size', () => {
         renderOverlay(true, notMet(), false, '1.5');
         expect(screen.getByTestId('decision-callout').style.fontSize).toBe('18px');
+    });
+
+    it('sizes the overlay badge with the diagram text size', () => {
+        renderOverlay(true, notMet(), false, '1.5');
+        expect(screen.getByTestId('overlay-badge').style.fontSize).toBe('18px');
+    });
+});
+
+describe('extension overlays', () => {
+    it('draws one badge for each extension when two extensions use the same view id', () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const overlays = ['ext-a', 'ext-b'].map((extension) => ({
+            view: fakeView(extension, 'risk'),
+            elements: new Map([['node-1', fakeElement('warn')]]),
+        }));
+        render(
+            <DecoratorOverlayContext.Provider value={{ overlays, hiddenViews: new Set(), toggleView: vi.fn() }}>
+                <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} />
+            </DecoratorOverlayContext.Provider>
+        );
+        expect(screen.getAllByTestId('overlay-badge')).toHaveLength(2);
+        expect(error.mock.calls.flat().join(' ')).not.toMatch(/same key/);
+        error.mockRestore();
+    });
+});
+
+describe('an operator view with the built-in control-evaluation id', () => {
+    const renderWith = (builtIn: boolean) => {
+        const view = { ...fakeView(builtIn ? 'control-evaluation' : 'ops', 'control-evaluation'), source: {
+            id: builtIn ? 'control-evaluation' : 'ops', name: 'Ops', builtIn,
+        } };
+        const decorator = builtIn
+            ? { uniqueId: 'd1', type: 'control-evaluation', target: [], appliesTo: ['node-1'],
+                data: { status: 'met', control: { 'control-id': 'ctl-1', 'unique-id': 'ctl-1' } } }
+            : { uniqueId: 'd1', type: 'control-evaluation', target: [], appliesTo: ['node-1'], data: { status: 'met' } };
+        const overlays = [{
+            view,
+            elements: new Map([['node-1', fakeElement('ok', [{ decorator, value: 'met', status: 'ok' }] as never)]]),
+        }];
+        render(
+            <DecoratorOverlayContext.Provider value={{ overlays, hiddenViews: new Set(), toggleView: vi.fn() }}>
+                <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} />
+            </DecoratorOverlayContext.Provider>
+        );
+        fireEvent.mouseEnter(screen.getByTestId('custom-node'));
+    };
+
+    it('draws its badge but not the control-evaluation details, which read fields it may not have', () => {
+        renderWith(false);
+        expect(screen.getByTestId('overlay-badge')).toBeTruthy();
+        expect(screen.queryByText('Latest control evaluations:')).toBeNull();
+    });
+
+    it('shows the control-evaluation details for the built-in view', () => {
+        renderWith(true);
+        expect(screen.getByText('Latest control evaluations:')).toBeTruthy();
     });
 });

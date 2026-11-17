@@ -28,6 +28,7 @@ import java.util.Optional;
  * interfaces within CalmHub namespaces via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class InterfaceTools {
 
     private static final Logger logger = LoggerFactory.getLogger(InterfaceTools.class);
@@ -88,12 +89,12 @@ public class InterfaceTools {
     public ToolResponse getInterface(
             @ToolArg(description = "The namespace containing the interface") String namespace,
             @ToolArg(description = "The interface ID (positive integer)") int interfaceId,
-            @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
+            @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> McpValidationHelper.validatePositiveId(interfaceId, "Interface ID"),
-                () -> McpValidationHelper.validateVersion(version));
+                () -> McpValidationHelper.validateSnapshotVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {

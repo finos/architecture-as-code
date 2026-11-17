@@ -36,7 +36,7 @@ final class LocationSegmentParser {
             // .../schemas/{version}/meta
             case SCHEMA -> new LocationIds(segmentBefore(segments, "meta"), null);
             // .../{plural}/{id}/versions/{version}
-            case ARCHITECTURE, PATTERN, FLOW, INTERFACE, STANDARD, DOCUMENT, TIMELINE ->
+            case ARCHITECTURE, PATTERN, FLOW, INTERFACE, STANDARD, DOCUMENT, CONVENTION, TIMELINE ->
                     new LocationIds(
                             segmentBefore(segments, "versions"),
                             segmentAfter(segments, "versions"));
@@ -58,6 +58,10 @@ final class LocationSegmentParser {
             // before reaching this switch. They exist only because the switch is exhaustive
             // over AuditEntityType and LAYOUT/PATTERN_LAYOUT must be handled to compile.
             case LAYOUT, PATTERN_LAYOUT -> new LocationIds(null, null);
+            // ExtensionProxyService records its own entries; the filter never parses one.
+            case EXTENSION -> new LocationIds(null, null);
+            // A default PUT returns 200 and a DELETE 204, with no Location header.
+            case CONVENTION_DEFAULT -> new LocationIds(null, null);
         };
     }
 

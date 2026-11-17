@@ -99,18 +99,18 @@ function dropEmptyPrefixItems(schema: unknown): void {
 }
 
 /**
- * A `oneOf` decision needs exactly one answer. An empty answer drops its slot like any other, so
- * without this check the architecture would pass with no answer.
+ * A `oneOf` decision needs exactly one answer. Narrowing flattens the `oneOf`, so without this
+ * check the architecture would pass with no answer or with several.
  */
-export function unansweredOneOfDecisions(architecture: object, pattern: object): ValidationOutput[] {
-    const unanswered = relationshipsOf(architecture)
+export function oneOfDecisionsWithoutOneAnswer(architecture: object, pattern: object): ValidationOutput[] {
+    const notOneAnswer = relationshipsOf(architecture)
         .map((rel, index) => ({ rel, index }))
-        .filter(({ rel }) => isDecision(rel) && rel['relationship-type']['options'].length === 0);
-    if (unanswered.length === 0) {
+        .filter(({ rel }) => isDecision(rel) && rel['relationship-type']['options'].length !== 1);
+    if (notOneAnswer.length === 0) {
         return [];
     }
     const oneOfIds = new Set(extractOptions(pattern).filter(o => o.optionType === 'oneOf').map(o => o.optionId));
-    return unanswered
+    return notOneAnswer
         .filter(({ rel }) => oneOfIds.has(rel['unique-id']))
         .map(({ rel, index }) => ValidationOutput.error('json-schema',
             `The decision [${rel['unique-id']}] is a oneOf and needs exactly one answer.`,
@@ -134,14 +134,13 @@ function isDecision(rel: JsonObject): boolean {
 export function extractChoicesFromArchitecture(architecture: object): CalmChoice[] {
     return relationshipsOf(architecture)
         .filter(isDecision)
-        // A decision answered with nothing records no choice.
-        .filter((rel) => rel['relationship-type']['options'].length > 0)
-        .map((rel) => rel['relationship-type']['options'][0])
-        .map((rel) => ({
-            description: rel['description'],
-            nodes: rel['nodes'] || [],
-            relationships: rel['relationships'] || []
-        }));
+        // An anyOf decision can have several answers, or none.
+        .flatMap((rel) => rel['relationship-type']['options'].map((answer: JsonObject) => ({
+            description: answer['description'],
+            nodes: answer['nodes'] || [],
+            relationships: answer['relationships'] || [],
+            optionId: rel['unique-id']
+        })));
 }
 
 /**

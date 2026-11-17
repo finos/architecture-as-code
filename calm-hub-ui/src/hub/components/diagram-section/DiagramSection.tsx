@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline, IoGitNetworkOutline } from 'react-icons/io5';
+import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useExtensions, useExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
+import { resourceExtensions } from '../../../extensions/contributions.js';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
-import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
 import { SectionHeader } from '../section-header/SectionHeader.js';
-import { DeploymentPanel } from '../../../visualizer/components/reactflow/DeploymentPanel.js';
 import { SearchBar } from '../../../visualizer/components/reactflow/SearchBar.js';
 import { NodeSearchProvider, type NodeSearchState } from '../../../visualizer/components/reactflow/node-search-context.js';
 import { CompareView } from './compare/CompareView.js';
@@ -27,20 +27,38 @@ import { computeChanges, type VersionChange } from './timeline/perVersionChanges
 import { fetchVersionData, fetchVersionList } from './compare/compareData.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { colors } from '../../../theme/colors.js';
-import type { DeploymentDecorator, SelectedItem } from '../../../visualizer/contracts/contracts.js';
+import type { Decorator, DecoratorView, SelectedItem } from '../../../visualizer/contracts/contracts.js';
 import { useDefaultLayout } from '../../hooks/useDefaultLayout.js';
 import { loadStoredNodePositions, type StoredNodePosition } from '../../../visualizer/services/node-position-service.js';
 import { useUserAccess } from '../../../admin/context/UserAccessContext.js';
 import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
-import { UsedByPanel } from './used-by/UsedByPanel.js';
-import { USED_BY_TOOLTIP, usedByLabel } from './used-by/usedBy.js';
+import { useArchitectureDecorators } from './decorators/useArchitectureDecorators.js';
+import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS, EXTENSIONS_TAB_ID, extensionContext } from './tabs/diagramTabs.js';
+import { diagramLenses } from './tabs/diagramLenses.js';
+import { LensMenu } from './tabs/LensMenu.js';
+import {
+    DEFAULT_DIAGRAM_LENS_ID,
+    DEFAULT_DIAGRAM_TAB_ID,
+    LENS_PARAM,
+    withoutLens,
+    lensGroups,
+    diagramTabLabel,
+    diagramTabQuery,
+    redirectedTabQuery,
+    resolveDiagramTab,
+    visibleDiagramTabs,
+    type DiagramLens,
+    type DiagramTab,
+    type DiagramTabContext,
+} from './tabs/diagramTabRegistry.js';
 
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
     onItemSelect?: (item: SelectedItem) => void;
     hasDetailsPanel?: boolean;
+    selectedElement?: string;
     breadcrumbs?: BreadcrumbItem[];
     /**
      * Mirrors the resolved display name up to Hub, which snapshots it into the
@@ -49,6 +67,12 @@ interface DiagramSectionProps {
      * fetch effect that reports it.
      */
     onDisplayNameChange?: (name: string | undefined) => void;
+    /**
+     * Reports every decorator of the version on screen, so the details drawer can list those of the selected element.
+     * Called with an empty list on unmount. Must be identity-stable.
+     */
+    onDecoratorsChange?: (decorators: Decorator[]) => void;
+    onDroppedFileChange?: (dropped: boolean) => void;
 }
 
 const iconMap = {
@@ -56,21 +80,32 @@ const iconMap = {
     Patterns: IoGridOutline,
 } as const;
 
-type DiagramTabType = 'diagram' | 'json' | 'deployments' | 'used-by';
-
-const NO_DECORATORS: DeploymentDecorator[] = [];
+const NO_DECORATORS: Decorator[] = [];
+// `.tabs-sm` sizes only its direct `.tab` children, so the two halves of the Diagram tab take its size here.
+const JOINED_TAB = '!flex items-center h-8 text-sm whitespace-nowrap shrink-0';
 const NO_MOMENTS: TimelineMoment[] = [];
 
 const subscribeToNothing = () => () => {};
 const getNavbarSlot = () => document.getElementById('navbar-actions');
 const getNoNavbarSlot = () => null;
 
-export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange }: DiagramSectionProps) {
-    const [searchParams, setSearchParams] = useSearchParams();
+/**
+ * The query that keeps a lens that the registry does not list yet, on navigation to another version. Its own
+ * parameters are not known yet, so it keeps all but `node`, `tab` and the parameters of the tabs.
+ */
+function pendingLensQuery(searchParams: URLSearchParams): string {
+    const query = new URLSearchParams(searchParams);
+    for (const name of ['node', 'tab', ...DIAGRAM_TABS.flatMap((tab) => tab.searchParams ?? [])]) query.delete(name);
+    return `?${query.toString()}`;
+}
+
+export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange, onDecoratorsChange, onDroppedFileChange, selectedElement }: DiagramSectionProps) {
+    const [urlSearchParams, setSearchParams] = useSearchParams();
+    // An old tab link opens its replacement at once; the effect below then fixes the URL.
+    const redirectedQuery = redirectedTabQuery(DIAGRAM_TAB_REDIRECTS, urlSearchParams);
+    const searchParams = redirectedQuery ?? urlSearchParams;
     const navigate = useNavigate();
     const location = useLocation();
-    const tabParam = searchParams.get('tab') as DiagramTabType | null;
-    const activeTab: DiagramTabType = tabParam ?? 'diagram';
     const isMobile = useIsMobile();
     const [showTimeline, setShowTimeline] = useState(false);
     const [showViewMenu, setShowViewMenu] = useState(false);
@@ -136,15 +171,16 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     );
     const isArchitecture = data.calmType === 'Architectures';
     const resourceKey = `${data.calmType}|${data.name}|${data.id}`;
-    // Fetched results are kept with the key they were fetched for, so a result for
-    // another resource, version or comparison is never shown.
-    const [loadedDecorators, setLoadedDecorators] = useState<{ source: Data; values: DeploymentDecorator[] } | null>(null);
-    const decorators =
-        isArchitecture && loadedDecorators?.source === data ? loadedDecorators.values : NO_DECORATORS;
+    // A dropped file is not the loaded architecture, so the details drawer must not show its decorators.
+    const [showsDroppedFile, setShowsDroppedFile] = useState(false);
+    useEffect(() => { onDroppedFileChange?.(showsDroppedFile); }, [onDroppedFileChange, showsDroppedFile]);
+    useEffect(() => () => onDroppedFileChange?.(false), [onDroppedFileChange]);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
     const [compareTo, setCompareTo] = useState<string | null>(null);
     const comparing = compareFrom !== null && compareTo !== null;
     const [versions, setVersions] = useState<string[]>([]);
+    // Fetched results are kept with the key they were fetched for, so a result for
+    // another resource, version or comparison is never shown.
     // `doc` is null when the timeline could not be loaded.
     const [loadedTimeline, setLoadedTimeline] = useState<{ key: string; doc: CalmTimelineSchema | null } | null>(null);
     const timelineResult = isArchitecture && loadedTimeline?.key === resourceKey ? loadedTimeline : null;
@@ -191,18 +227,97 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const diffResult = comparison?.diffResult ?? null;
     const compareError = comparison?.error ?? null;
 
-    const setActiveTab = (tab: DiagramTabType) => {
-        setSearchParams({ tab }, { replace: true, state: location.state });
-    };
-
     const urlType = isArchitecture ? 'architectures' : 'patterns';
     const typeLabel = isArchitecture ? 'Architecture' : 'Pattern';
 
     const implementationService = useMemo(() => new PatternImplementationService(), []);
-    const showUsedBy = !isArchitecture && patternName !== undefined;
-    const usedByOpen = showUsedBy && activeTab === 'used-by' && !comparing;
+    const extensions = useExtensions();
+    const extensionCount = useMemo(() => resourceExtensions(extensions, extensionContext(data)).length, [extensions, data]);
+    const hasExtensions = !showsDroppedFile && extensionCount > 0;
+    const tabScope = { isArchitecture, patternName, hasExtensions };
+    const visibleTabs = visibleDiagramTabs(DIAGRAM_TABS, tabScope);
+    const activeTab = resolveDiagramTab(DIAGRAM_TABS, searchParams.get('tab'), tabScope);
+    // The Extensions tab is hidden until the registry loads, so a version change keeps it while the registry loads.
+    const registryStatus = useExtensionsStatus();
+    const registryLoading = registryStatus === 'loading';
+    const carriedTab = registryLoading && searchParams.get('tab') === EXTENSIONS_TAB_ID
+        ? DIAGRAM_TABS.find((tab) => tab.id === EXTENSIONS_TAB_ID) ?? activeTab
+        : activeTab;
+    const lenses = useMemo(() => diagramLenses(extensions, registryStatus), [extensions, registryStatus]);
+    const visibleLenses = visibleDiagramTabs(lenses, tabScope);
+    const activeLens = resolveDiagramTab(lenses, searchParams.get(LENS_PARAM), tabScope, DEFAULT_DIAGRAM_LENS_ID);
+    // An extension lens is known once the registry loads. Until then its link waits, and a version change keeps it.
+    const requestedLens = searchParams.get(LENS_PARAM);
+    const lensPending = registryLoading && requestedLens !== null && !lenses.some((lens) => lens.id === requestedLens);
+    const onDiagramTab = !comparing && activeTab.id === DEFAULT_DIAGRAM_TAB_ID;
+    // The layout controls, the component search and the overlays belong to the CALM lens.
+    const onCalmDiagram = onDiagramTab && activeLens.id === DEFAULT_DIAGRAM_LENS_ID;
+    const tabQuery = lensPending && activeTab.id === DEFAULT_DIAGRAM_TAB_ID
+        ? pendingLensQuery(searchParams)
+        : diagramTabQuery(carriedTab, searchParams, activeLens);
+    const usedByOpen = activeTab.id === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
-    const usedByTabLabel = useMemo(() => usedByLabel(usedBy), [usedBy]);
+    // Polled only while the diagram, the Decorators tab or the details drawer shows them.
+    const showsDecorators = onCalmDiagram || (!comparing && activeTab.id === DECORATORS_TAB_ID) || !!hasDetailsPanel;
+    const decoratorsState = useArchitectureDecorators(calmService, data, isArchitecture, showsDecorators);
+    const allDecorators = decoratorsState.status === 'loaded' ? decoratorsState.decorators : NO_DECORATORS;
+
+    // "View all" opens the Decorators tab and unmounts itself, so the tab takes focus.
+    // The panel reads it on mount only, and clears it once it took focus, so a later visit does not take focus.
+    const [focusPanel, setFocusPanel] = useState(false);
+    const clearFocusPanel = useCallback(() => setFocusPanel(false), []);
+    const setActiveTab = (tab: DiagramTab) => {
+        setFocusPanel(false);
+        setSearchParams({ tab: tab.id }, { replace: true, state: location.state });
+    };
+    const setTabParams = (params: Record<string, string>) => {
+        setSearchParams({ tab: activeTab.id, ...params }, { replace: true, state: location.state });
+    };
+    // A lens change keeps the other parameters, such as `node`, so the selection stays.
+    // From another tab, it starts from a clean URL, as a tab change does.
+    // A node to select goes in the same URL as `node`, which Hub opens as a link does.
+    const setLens = (lens: DiagramLens, params: Record<string, string> = {}, selectNode?: string) => {
+        const next = activeTab.id === DEFAULT_DIAGRAM_TAB_ID ? withoutLens(lenses, searchParams) : new URLSearchParams();
+        next.delete('tab');
+        if (lens.id !== DEFAULT_DIAGRAM_LENS_ID) next.set(LENS_PARAM, lens.id);
+        for (const [name, value] of Object.entries(params)) next.set(name, value);
+        if (selectNode !== undefined) next.set('node', selectNode);
+        // Hub reloads the resource on each navigation that is not a query change, so an unchanged query must not navigate.
+        if (next.toString() === searchParams.toString()) return;
+        setSearchParams(next, { replace: true, state: location.state });
+    };
+    // A choice of the open lens keeps its view parameters, such as the C4 level and scope.
+    const chooseLens = (lens: DiagramLens) => {
+        if (onDiagramTab && lens.id === activeLens.id) return;
+        setLens(lens);
+    };
+    const redirectTo = redirectedQuery?.toString();
+    useEffect(() => {
+        if (redirectTo !== undefined) setSearchParams(new URLSearchParams(redirectTo), { replace: true, state: location.state });
+    }, [redirectTo, setSearchParams, location.state]);
+    const openDecoratorView = useCallback((view: DecoratorView) => {
+        setFocusPanel(true);
+        setSearchParams(
+            { tab: DECORATORS_TAB_ID, ...decoratorFilterParams(view.match.type, view.match.schema) },
+            { replace: true, state: location.state }
+        );
+    }, [setSearchParams, location.state]);
+
+    // A tab id no entry registers is dropped from the URL, so a copied link does not keep it. A hidden tab such as
+    // used-by is kept, because it can become visible when the pattern summary loads.
+    const requestedTab = searchParams.get('tab');
+    const unknownTab = requestedTab !== null && !DIAGRAM_TABS.some((tab) => tab.id === requestedTab);
+    useEffect(() => {
+        if (!unknownTab) return;
+        setSearchParams(
+            (current) => {
+                const next = new URLSearchParams(current);
+                next.delete('tab');
+                return next;
+            },
+            { replace: true, state: location.state }
+        );
+    }, [unknownTab, setSearchParams, location.state]);
 
     // Save/reset the shared default layout — supported for both architectures
     // and patterns (backed by separate resources/collections server-side, see
@@ -232,8 +347,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         setCompareTo(null);
         if (version === data.version) return;
         // Preserve the active tab and breadcrumb state when switching version.
-        const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
-        navigate(`/${data.name}/${urlType}/${data.id}/${version}${query}`, {
+        navigate(`/${data.name}/${urlType}/${data.id}/${version}${tabQuery}`, {
             state: { ...(location.state as object | null), timelineSelection: true },
         });
     };
@@ -372,18 +486,11 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         };
     }, [isArchitecture, calmService, data.name, data.id, resourceKey]);
 
+    const drawerDecorators = showsDroppedFile ? NO_DECORATORS : allDecorators;
     useEffect(() => {
-        if (!isArchitecture) return;
-        let cancelled = false;
-
-        calmService
-            .fetchDeploymentDecoratorsForArchitecture(data.name, data.id, data.version)
-            .then((values) => values as DeploymentDecorator[])
-            .catch((): DeploymentDecorator[] => [])
-            .then((values) => { if (!cancelled) setLoadedDecorators({ source: data, values }); });
-
-        return () => { cancelled = true; };
-    }, [data, isArchitecture, calmService]);
+        onDecoratorsChange?.(drawerDecorators);
+    }, [drawerDecorators, onDecoratorsChange]);
+    useEffect(() => () => onDecoratorsChange?.(NO_DECORATORS), [onDecoratorsChange]);
 
     // When an architecture has an explicit timeline, landing on the latest
     // version (the tree's implicit default) one-shot redirects to the
@@ -410,9 +517,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         // is a deliberate pick (deep-link or manual navigation) we shouldn't override.
         if (data.version !== versions[0]) return;
 
-        const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
         navigate(
-            `/${data.name}/${urlType}/${data.id}/${currentMoment.version}${query}`,
+            `/${data.name}/${urlType}/${data.id}/${currentMoment.version}${tabQuery}`,
             { replace: true, state: location.state }
         );
     }, [
@@ -425,67 +531,115 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         data.id,
         data.version,
         urlType,
-        activeTab,
+        tabQuery,
         navigate,
         location.state,
     ]);
 
     const Icon = iconMap[data.calmType];
 
+    const lensContext: DiagramTabContext = {
+        ...tabScope,
+        data,
+        selectedElement,
+        searchParams,
+        setTabParams: (params, selectNode) => setLens(activeLens, params, selectNode),
+        selectElement: (uniqueId) => {
+            const document = data.data as { nodes?: unknown; relationships?: unknown } | undefined;
+            const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
+            const item = items.find((entry) => (entry as { 'unique-id'?: unknown })?.['unique-id'] === uniqueId);
+            if (item) onItemSelect?.({ data: item });
+        },
+        diagram: (
+            <Drawer
+                data={data}
+                onItemSelect={onItemSelect}
+                viewportKeyOverride={defaultLayoutState.viewportKey}
+                defaultLayout={defaultLayoutState.defaultLayout}
+                layoutEpoch={defaultLayoutState.layoutEpoch}
+                onPositionsChange={handlePositionsChange}
+                onDroppedFileChange={setShowsDroppedFile}
+                decorators={allDecorators}
+                onOpenView={openDecoratorView}
+            />
+        ),
+        decorators: decoratorsState,
+        usedBy,
+    };
+
+    const tabContext: DiagramTabContext = {
+        ...lensContext,
+        setTabParams,
+        diagram: lensPending
+            ? <div className="flex h-full items-center justify-center text-sm text-base-content/60">Loading the lens…</div>
+            : activeLens.render(lensContext),
+        focusPanel,
+        onPanelFocused: clearFocusPanel,
+    };
+
+    // The lenses are listed when more than one applies: in the Diagram tab, and in the mobile View sheet. A lens chosen on another tab opens the Diagram tab.
+    const showLensMenu = !comparing && visibleLenses.length > 1;
+
     // Desktop: inline tabs in the section header (unchanged).
     const tabs = (
         <div role="tablist" className="tabs tabs-boxed tabs-sm bg-base-100">
-            <button
-                role="tab"
-                aria-label="Diagram"
-                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'diagram' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
-                onClick={() => setActiveTab('diagram')}
-            >
-                <IoEyeOutline />
-                <span className="hidden sm:inline">Diagram</span>
-            </button>
-            <button
-                role="tab"
-                aria-label="JSON"
-                className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'json' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
-                onClick={() => setActiveTab('json')}
-            >
-                <IoCodeOutline />
-                <span className="hidden sm:inline">JSON</span>
-            </button>
-            {isArchitecture && (
-                <button
-                    role="tab"
-                    aria-label="Deployments"
-                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'deployments' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
-                    onClick={() => setActiveTab('deployments')}
-                >
-                    <IoRocketOutline />
-                    <span className="hidden sm:inline">Deployments</span>
-                </button>
-            )}
-            {showUsedBy && (
-                <button
-                    role="tab"
-                    aria-label={usedByTabLabel}
-                    title={USED_BY_TOOLTIP}
-                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'used-by' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
-                    onClick={() => setActiveTab('used-by')}
-                >
-                    <IoGitNetworkOutline />
-                    <span className="hidden sm:inline">{usedByTabLabel}</span>
-                </button>
-            )}
+            {visibleTabs.map((tab) => {
+                const active = !comparing && activeTab === tab;
+                const tabClass = `tab gap-1 rounded-lg ${active ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`;
+                if (tab.id === DEFAULT_DIAGRAM_TAB_ID && showLensMenu) {
+                    // The Diagram tab names the open lens, and its chevron lists the lenses. A fixed width keeps the bar still.
+                    const lensLabel = onDiagramTab && activeLens.id !== DEFAULT_DIAGRAM_LENS_ID ? diagramTabLabel(activeLens, lensContext) : diagramTabLabel(tab, tabContext);
+                    const LensIcon = onDiagramTab ? activeLens.icon : tab.icon;
+                    return (
+                        <div key={tab.id} className="flex items-stretch shrink-0">
+                            <button
+                                role="tab"
+                                aria-label={lensLabel}
+                                aria-selected={active}
+                                title={onDiagramTab ? activeLens.title : tab.title}
+                                className={`${tabClass} ${JOINED_TAB} !rounded-r-none !pl-2 !pr-1 min-w-[6rem] !justify-start`}
+                                onClick={() => (onDiagramTab ? undefined : setLens(activeLens))}
+                            >
+                                <LensIcon />
+                                <span className="hidden sm:inline">{lensLabel}</span>
+                            </button>
+                            <LensMenu
+                                lenses={visibleLenses}
+                                activeLensId={onDiagramTab ? activeLens.id : ''}
+                                labelOf={(lens) => diagramTabLabel(lens, lensContext)}
+                                onSelect={chooseLens}
+                                buttonClassName={`${tabClass} ${JOINED_TAB} !rounded-l-none !px-1`}
+                            />
+                        </div>
+                    );
+                }
+                const label = diagramTabLabel(tab, tabContext);
+                const TabIcon = tab.icon;
+                return (
+                    <button
+                        key={tab.id}
+                        role="tab"
+                        aria-label={label}
+                        title={tab.title}
+                        className={tabClass}
+                        onClick={() => setActiveTab(tab)}
+                    >
+                        <TabIcon />
+                        <span className="hidden sm:inline">{label}</span>
+                    </button>
+                );
+            })}
         </div>
     );
 
     // Desktop entry point for the shared default layout (mobile's lives in the
-    // view-options menu below). Only meaningful on the diagram tab, and never
-    // while comparing versions. Not gated on isArchitecture — layout save is
-    // supported for both architectures and patterns.
-    const showLayoutActions = !comparing && activeTab === 'diagram';
-    const layoutActions = showLayoutActions && (
-        <div className="flex items-center gap-1">
+    // view-options menu below). Only meaningful on the CALM lens of the diagram
+    // tab, and never while comparing versions. Not gated on isArchitecture —
+    // layout save is supported for both architectures and patterns.
+    const showLayoutActions = onCalmDiagram;
+    // Another lens keeps their space, so the tabs and the Lens control do not move when the lens changes.
+    const layoutActions = onDiagramTab && (
+        <div className={`flex items-center gap-1 ${showLayoutActions ? '' : 'invisible'}`} aria-hidden={!showLayoutActions} inert={!showLayoutActions}>
             {defaultLayoutState.hasBothSources && (
                 <div className="join" role="group" aria-label="Layout source">
                     <button
@@ -569,10 +723,13 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         </h2>
     );
 
-    const viewModeRow = (tab: DiagramTabType, icon: ReactNode, label: string, onSelect?: () => void) => {
+    const viewModeRow = (tab: DiagramTab, onSelect?: () => void) => {
         const active = !comparing && activeTab === tab;
+        const label = diagramTabLabel(tab, tabContext);
+        const TabIcon = tab.icon;
         return (
             <button
+                key={tab.id}
                 role="tab"
                 aria-label={label}
                 aria-selected={active}
@@ -584,7 +741,9 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                     active ? 'bg-base-200 text-[var(--color-interaction)] font-semibold' : 'text-base-content'
                 }`}
             >
-                <span className={active ? 'text-[var(--color-interaction)]' : 'text-base-content/60'}>{icon}</span>
+                <span className={active ? 'text-[var(--color-interaction)]' : 'text-base-content/60'}>
+                    <TabIcon size={18} />
+                </span>
                 <span className="flex-1 min-w-0 truncate">{label}</span>
                 {active && <IoCheckmarkOutline size={18} className="text-[var(--color-interaction)] shrink-0" />}
             </button>
@@ -593,23 +752,59 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
 
     const renderViewModes = (onSelect?: () => void) => (
         <div role="tablist" className="divide-y divide-base-200 border-b border-base-200">
-            {viewModeRow('diagram', <IoEyeOutline size={18} />, 'Diagram', onSelect)}
-            {viewModeRow('json', <IoCodeOutline size={18} />, 'JSON', onSelect)}
-            {isArchitecture && viewModeRow('deployments', <IoRocketOutline size={18} />, 'Deployments', onSelect)}
-            {showUsedBy && viewModeRow('used-by', <IoGitNetworkOutline size={18} />, usedByTabLabel, onSelect)}
+            {visibleTabs.map((tab) => viewModeRow(tab, onSelect))}
         </div>
     );
 
-    const activeViewIcon =
-        activeTab === 'json' ? (
-            <IoCodeOutline size={20} />
-        ) : activeTab === 'deployments' ? (
-            <IoRocketOutline size={20} />
-        ) : activeTab === 'used-by' ? (
-            <IoGitNetworkOutline size={20} />
-        ) : (
-            <IoEyeOutline size={20} />
+    const lensRow = (lens: DiagramLens, onSelect: () => void) => {
+        const active = onDiagramTab && activeLens === lens;
+        const LensIcon = lens.icon;
+        return (
+            <button
+                key={lens.id}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                    chooseLens(lens);
+                    onSelect();
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-base-200 active:bg-base-200 ${
+                    active ? 'bg-base-200 text-[var(--color-interaction)] font-semibold' : 'text-base-content'
+                }`}
+            >
+                <span className={active ? 'text-[var(--color-interaction)]' : 'text-base-content/60'}>
+                    <LensIcon size={18} />
+                </span>
+                <span className="flex-1 min-w-0 truncate">{diagramTabLabel(lens, lensContext)}</span>
+                {lens.extension && <span className="text-xs font-normal text-base-content/50 truncate max-w-[45%]">{lens.extension.name}</span>}
+                {active && <IoCheckmarkOutline size={18} className="text-[var(--color-interaction)] shrink-0" />}
+            </button>
         );
+    };
+
+    // The lenses that ship with Hub come first. The extension lenses follow under their own heading.
+    const renderLenses = (onSelect: () => void) => {
+        const { builtIn, extension } = lensGroups(visibleLenses);
+        return (
+            <div role="group" aria-labelledby="diagram-lens-heading" className="border-b border-base-200">
+                <div id="diagram-lens-heading" className="px-4 pt-3 pb-1 text-xs font-semibold text-base-content/50 uppercase tracking-wide">
+                    Lens
+                </div>
+                <div className="divide-y divide-base-200">{builtIn.map((lens) => lensRow(lens, onSelect))}</div>
+                {extension.length > 0 && (
+                    <div role="group" aria-labelledby="diagram-extension-lens-heading" className="border-t border-base-200">
+                        <div id="diagram-extension-lens-heading" className="px-4 pt-3 pb-1 text-xs font-semibold text-base-content/50 uppercase tracking-wide">
+                            Extensions
+                        </div>
+                        <div className="divide-y divide-base-200">{extension.map((lens) => lensRow(lens, onSelect))}</div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const ActiveViewIcon = activeTab.icon;
+    const activeViewIcon = <ActiveViewIcon size={20} />;
 
     const viewMenu = (
         <>
@@ -639,6 +834,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                     <div className="flex-1 overflow-auto">
                         {breadcrumb}
                         {renderViewModes(() => setShowViewMenu(false))}
+                        {showLensMenu && renderLenses(() => setShowViewMenu(false))}
                         <div className="divide-y divide-base-200 border-b border-base-200">
                             <button
                                 type="button"
@@ -693,7 +889,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                                 </button>
                             </div>
                         )}
-                        {!comparing && activeTab === 'diagram' && (
+                        {onCalmDiagram && (
                             <div className="p-4">
                                 <div className="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-2">
                                     Search components
@@ -724,28 +920,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             diffResult={diffResult}
             error={compareError}
         />
-    ) : activeTab === 'diagram' ? (
-        <div className="w-full h-full">
-            <Drawer
-                data={data}
-                onItemSelect={onItemSelect}
-                decorators={decorators}
-                viewportKeyOverride={defaultLayoutState.viewportKey}
-                defaultLayout={defaultLayoutState.defaultLayout}
-                layoutEpoch={defaultLayoutState.layoutEpoch}
-                onPositionsChange={handlePositionsChange}
-            />
-        </div>
-    ) : activeTab === 'deployments' && isArchitecture ? (
-        <div className="h-full bg-base-200 overflow-auto p-4">
-            <DeploymentPanel decorators={decorators} />
-        </div>
-    ) : activeTab === 'used-by' && showUsedBy ? (
-        <UsedByPanel state={usedBy} />
     ) : (
-        <div className="h-full bg-base-200 overflow-auto">
-            <JsonRenderer json={data} />
-        </div>
+        activeTab.render(tabContext)
     );
 
     const timelineBar = (

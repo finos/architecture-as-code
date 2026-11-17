@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Node } from 'reactflow';
+import type { Node } from '@xyflow/react';
 import {
     applyPositions,
     applyStoredPositions,
@@ -229,7 +229,7 @@ describe('node-position-service', () => {
             expect(viaStorage).toEqual(viaDirectPositions);
         });
 
-        it('applies width and height when present in positions, without fixing the size of a card', () => {
+        it('restores a card\'s position without fixing its size', () => {
             const parsed: Node[] = [
                 { id: 'node-1', type: 'custom', position: { x: 0, y: 0 }, data: {} },
             ];
@@ -239,9 +239,9 @@ describe('node-position-service', () => {
             const result = applyPositions(parsed, positions);
             const node = result.find((n) => n.id === 'node-1')! as Node & { width?: number; height?: number };
             expect(node.position).toEqual({ x: 50, y: 60 });
-            expect(node.width).toBe(200);
-            expect(node.height).toBe(80);
-            // The card sizes itself, so a change of text size does not leave a stale box.
+            // In React Flow 12, width and height are inputs. Leaving them unset lets the card size itself.
+            expect(node.width).toBeUndefined();
+            expect(node.height).toBeUndefined();
             expect(node.style).toBeUndefined();
         });
 
@@ -305,6 +305,32 @@ describe('node-position-service', () => {
             expect(byId('other')).toMatchObject({ position: { x: 500, y: 0 }, width: 600, height: 400 });
             expect(byId('x').position).toEqual({ x: 200, y: 150 });
             expect(byId('child').position).toEqual({ x: 20, y: 40 });
+        });
+    });
+
+    describe('applyPositions with a new copy below a tall stored card', () => {
+        const padding = GRAPH_LAYOUT.SYSTEM_NODE_PADDING;
+        const parsed: Node[] = [
+            { id: 'group', type: 'group', position: { x: 0, y: 0 }, data: {} },
+            { id: 'child', type: 'custom', position: { x: 0, y: 0 }, data: {}, parentId: 'group' } as Node,
+            { id: 'copy', type: 'custom', position: { x: 20, y: 40 }, data: {}, parentId: 'group' } as Node,
+        ];
+        const positions: StoredNodePosition[] = [
+            { id: 'group', position: { x: 10, y: 10 }, width: 410, height: 460 },
+            { id: 'child', position: { x: 80, y: 80 }, width: 250, height: 300 },
+        ];
+        const result = applyPositions(parsed, positions) as (Node & { height?: number; width?: number })[];
+        const byId = (id: string) => result.find((n) => n.id === id)!;
+
+        it('places the new copy below the tall stored card, not inside it', () => {
+            // Stored card at y=80 with height 300; padding is 80, so the copy goes to y=460.
+            expect(byId('copy').position).toEqual({ x: padding, y: 80 + 300 + padding });
+        });
+
+        it('grows the container to hold the copy', () => {
+            expect(byId('group').height).toBeGreaterThanOrEqual(
+                byId('copy').position.y + GRAPH_LAYOUT.NODE_HEIGHT + padding
+            );
         });
     });
 

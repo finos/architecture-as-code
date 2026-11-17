@@ -1,4 +1,4 @@
-import { Edge } from 'reactflow';
+import { Edge } from '@xyflow/react';
 import { CalmRelationshipSchema } from '@finos/calm-models/types';
 import { createEdge } from './edgeFactory';
 import { extractId } from './calmHelpers';

@@ -1,0 +1,62 @@
+package org.finos.calm.resources;
+
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
+import org.junit.jupiter.api.Test;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.contains;
+
+@QuarkusTest
+class TestExtensionResourceShould {
+
+    @Test
+    void return_401_when_not_authenticated() {
+        given()
+                .when()
+                .get("/api/calm/extensions")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void return_route_less_builtin_views_when_no_extensions_are_configured() {
+        given()
+                .when()
+                .get("/api/calm/extensions")
+                .then()
+                .statusCode(200)
+                .body("values.id", contains("control-evaluation", "deployment"))
+                .body("values[0].routes.size()", equalTo(0))
+                .body("values[0].contributes.decorator-views[0].overlay.hide", contains("not-applicable"))
+                .body("values[0].contributes.decorator-views[0].overlay.key", equalTo("/control/unique-id"))
+                .body("values[1].contributes.decorator-views[0].overlay.time", equalTo("/start-time"));
+    }
+    @Test
+    @TestSecurity(user = "alice")
+    void serve_the_versioned_blocks_schema() {
+        given().when().get("/api/calm/extensions/schema/0/blocks.schema.json")
+                .then().statusCode(200).body("properties.hubApi.const", equalTo(0));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void serve_the_lens_and_notation_schemas_and_the_core_notation() {
+        given().when().get("/api/calm/extensions/schema/0/lens.schema.json")
+                .then().statusCode(200).body("properties.kind.const", equalTo("graph"));
+        given().when().get("/api/calm/extensions/schema/0/notation.schema.json")
+                .then().statusCode(200).body("$id", equalTo("https://calm.finos.org/calm-hub/extensions/hub-api-0/notation.schema.json"));
+        given().when().get("/api/calm/extensions/notations/core")
+                .then().statusCode(200).body("shapes.Box.viewBox", contains(0, 0, 200, 120));
+        given().when().get("/api/calm/extensions/notations/c4-shapes").then().statusCode(404);
+        given().when().get("/api/calm/extensions/control-evaluation/lenses/c4/notation").then().statusCode(404);
+    }
+
+    @Test
+    void protect_the_blocks_schema() {
+        given().when().get("/api/calm/extensions/schema/0/blocks.schema.json")
+                .then().statusCode(401);
+    }
+}

@@ -39,17 +39,17 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     user-actor["User"]:::node
     web-portal["Web Portal"]:::node
 
-    client-app -->|Client connects to API gateway| api-gateway
-    api-gateway -->|Gateway routes authentication requests| auth-service
-    api-gateway -->|Gateway routes business logic requests| business-service
-    business-service -->|Business service accesses data| data-service
-    business-service -->|Business service integrates with payment API| external-api
-    user-actor -->|User interacts with web portal| web-portal
-    admin-actor -->|Admin interacts with admin panel| admin-panel
-    web-portal -->|Portal connects to service A| service-a
-    mobile-client -->|Mobile client connects via WebSocket| edge-gateway
-    edge-gateway -->|Gateway to core service via gRPC| core-service
-    core-service -->|Core service to legacy via message queue| legacy-system
+    client-app -->|"Client connects to API gateway"| api-gateway
+    api-gateway -->|"Gateway routes authentication requests"| auth-service
+    api-gateway -->|"Gateway routes business logic requests"| business-service
+    business-service -->|"Business service accesses data"| data-service
+    business-service -->|"Business service integrates with payment API"| external-api
+    user-actor -->|"User interacts with web portal"| web-portal
+    admin-actor -->|"Admin interacts with admin panel"| admin-panel
+    web-portal -->|"Portal connects to service A"| service-a
+    mobile-client -->|"Mobile client connects via WebSocket"| edge-gateway
+    edge-gateway -->|"Gateway to core service via gRPC"| core-service
+    core-service -->|"Core service to legacy via message queue"| legacy-system
 
 
 
@@ -78,7 +78,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     api-gateway["API Gateway"]:::node
     client-app["Client Application"]:::node
 
-    client-app -->|Client connects to API gateway| api-gateway
+    client-app -->|"Client connects to API gateway"| api-gateway
 
 
 
@@ -108,8 +108,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     auth-service["Authentication Service"]:::node
     business-service["Business Logic Service"]:::node
 
-    api-gateway -->|Gateway routes authentication requests| auth-service
-    api-gateway -->|Gateway routes business logic requests| business-service
+    api-gateway -->|"Gateway routes authentication requests"| auth-service
+    api-gateway -->|"Gateway routes business logic requests"| business-service
 
 
 
@@ -138,7 +138,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     business-service["Business Logic Service"]:::node
     data-service["Data Access Service"]:::node
 
-    business-service -->|Business service accesses data| data-service
+    business-service -->|"Business service accesses data"| data-service
 
 
 
@@ -169,8 +169,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     user-actor["User"]:::node
     web-portal["Web Portal"]:::node
 
-    user-actor -->|User interacts with web portal| web-portal
-    admin-actor -->|Admin interacts with admin panel| admin-panel
+    user-actor -->|"User interacts with web portal"| web-portal
+    admin-actor -->|"Admin interacts with admin panel"| admin-panel
 
 
 

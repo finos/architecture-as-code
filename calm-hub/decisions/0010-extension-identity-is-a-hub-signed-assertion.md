@@ -1,8 +1,10 @@
 # ADR 0010: Extension identity is a Hub-signed, request-bound assertion
 
-**Status**: Proposed. The proof of concept signs a 60-second RS256 token with
-`iss`, `sub`, `aud`, `iat` and `exp`, and publishes one key. The claims, key
-rotation and request binding below are not built.
+**Status**: Accepted. `ExtensionIdentitySigner` signs the assertion with all the
+claims below, including the `htm`, `htp` and `bdh` binding claims. It rotates keys
+through `calm.extensions.identity.public-key-locations` and publishes them at
+`GET /api/calm/auth/jwks`. The proxy that sends the assertion, and the audit entry
+for `jti`, come with [ADR 0011](0011-extension-proxy-request-handling.md).
 
 ## Context
 
@@ -57,6 +59,19 @@ gives the service account the least grants it needs. OAuth 2.0 Token Exchange
 (RFC 8693) cannot be the default, because `no-auth` and `proxy-auth` have no
 token endpoint. It can come later, for the OIDC profiles only.
 
+A read-only route that needs only a Hub resource can instead declare `hubData`.
+Hub reads the resource, and the conventions and links that the route names, with
+the scope of the caller, and sends them as the body. `bdh` covers that body. The
+service then needs no account and no route to Hub, so one service can serve many
+Hubs.
+
+Such a service can be open to any caller: it draws only what it is sent, and a
+signature from an unknown Hub proves nothing. For it, the operator sets
+`calm.extensions."<id>".send-identity=false`, and Hub sends no assertion and needs
+no keys for it. Hub allows this only when every route is a `GET` or `readOnly`
+route, because a service that changes data must know who asked. Hub still checks
+the route scope for the user, and reads `hubData` with that scope.
+
 ## Consequences
 
 - An extension verifies a request in a few lines of code, with the JWKS only. It
@@ -74,5 +89,7 @@ token endpoint. It can come later, for the OIDC profiles only.
   extension this.
 - The `oidc` profile replaces `public.paths`, so each profile that sets
   `public.paths` must also list the JWKS path.
-- `smallrye-jwt-build` becomes a declared dependency. Signing in a native image
-  is not yet tested. The step-0 spike tests it.
+- Hub signs with the JDK (`java.security.Signature`), not with a JWT library such
+  as `smallrye-jwt-build`. A JWT library would have to work in a native image; the
+  JDK signature classes already do. The signer writes only the fixed header and
+  claims above, so a library adds little.

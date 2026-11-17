@@ -1,0 +1,11 @@
+{
+  "id": "builtin-views",
+  "version": "1.0.0",
+  "hubApi": 0,
+  "name": "Built-in views",
+  "contributes": {
+    "decorator-views": [
+      { "id": "deployment", "match": { "type": "deployment" }, "label": "Deployments" }
+    ]
+  }
+}

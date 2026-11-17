@@ -24,7 +24,6 @@
 - [ ] CALM Lab (`calm-lab/`)
 - [ ] CALM Models (`calm-models/`)
 - [ ] CALM Server (`calm-server/`)
-- [ ] CALM Studio (`calm-studio/`)
 - [ ] CALM Widgets (`calm-widgets/`)
 - [ ] CALMGuard (`calm-guard/`)
 - [ ] Documentation (`docs/`)

@@ -1,4 +1,4 @@
-import { ControlButton } from 'reactflow';
+import { ControlButton } from '@xyflow/react';
 import { THEME } from './theme.js';
 import { useDiagramTextScale, type DiagramTextScaleStore } from '../../../theme/useDiagramTextScale.js';
 

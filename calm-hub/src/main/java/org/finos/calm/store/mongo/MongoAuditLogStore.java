@@ -91,7 +91,7 @@ public class MongoAuditLogStore implements AuditLogStore {
     }
 
     private Document toDocument(AuditLogEntry entry) {
-        return new Document("timestamp", toDate(entry.getTimestamp()))
+        Document document = new Document("timestamp", toDate(entry.getTimestamp()))
                 .append("actor", entry.getActor())
                 .append("action", nameOrNull(entry.getAction()))
                 .append("entityType", nameOrNull(entry.getEntityType()))
@@ -101,6 +101,16 @@ public class MongoAuditLogStore implements AuditLogStore {
                 .append("version", entry.getVersion())
                 .append("outcome", nameOrNull(entry.getOutcome()))
                 .append("sourceIp", entry.getSourceIp());
+        // Only extension entries have these, so that other entries keep their shape.
+        appendIfPresent(document, "route", entry.getRoute());
+        appendIfPresent(document, "jti", entry.getJti());
+        return document;
+    }
+
+    private static void appendIfPresent(Document document, String key, String value) {
+        if (value != null) {
+            document.append(key, value);
+        }
     }
 
     private AuditLogEntry toEntry(Document doc) {
@@ -119,6 +129,8 @@ public class MongoAuditLogStore implements AuditLogStore {
         String outcome = doc.getString("outcome");
         entry.setOutcome(outcome == null ? null : AuditOutcome.valueOf(outcome));
         entry.setSourceIp(doc.getString("sourceIp"));
+        entry.setRoute(doc.getString("route"));
+        entry.setJti(doc.getString("jti"));
         return entry;
     }
 

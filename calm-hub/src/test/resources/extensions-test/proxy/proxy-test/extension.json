@@ -1,0 +1,18 @@
+{
+  "id": "proxy-test",
+  "version": "1.0.0",
+  "hubApi": 0,
+  "name": "Proxy test",
+  "description": "Routes for the extension proxy tests",
+  "provider": "CALM Hub tests",
+  "routes": [
+    { "id": "service", "method": "GET", "path": "/services/{service}", "scope": "authenticated" },
+    { "id": "service-admin", "method": "GET", "path": "/services/admin", "scope": "global_admin" },
+    { "id": "screen", "method": "GET", "path": "/screen", "scope": "authenticated" },
+    { "id": "services", "method": "GET", "path": "/namespaces/{namespace}/services", "scope": "read" },
+    { "id": "add-service", "method": "POST", "path": "/namespaces/{namespace}/services", "scope": "write" },
+    { "id": "search", "method": "POST", "path": "/search", "scope": "authenticated", "readOnly": true },
+    { "id": "admin", "method": "GET", "path": "/admin", "scope": "global_admin" },
+    { "id": "domain-services", "method": "GET", "path": "/domains/{domain}/services", "scope": "domain_read" }
+  ]
+}

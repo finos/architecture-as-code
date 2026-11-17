@@ -88,7 +88,7 @@ describe('UserAccessService', () => {
     // grantNamespaceAccess
     // ──────────────────────────────────────────────────
     describe('grantNamespaceAccess', () => {
-        const request: UserAccessRequest = { username: 'alice', permission: 'read' };
+        const request: UserAccessRequest = { username: 'alice', subjectType: 'user', permission: 'read' };
 
         it('posts to the correct endpoint and resolves void on success', async () => {
             mock.onPost(`/api/calm/namespaces/${namespace}/user-access`).reply(201);
@@ -155,7 +155,7 @@ describe('UserAccessService', () => {
     // grantDomainAccess
     // ──────────────────────────────────────────────────
     describe('grantDomainAccess', () => {
-        const request: UserAccessRequest = { username: 'carol', permission: 'admin' };
+        const request: UserAccessRequest = { username: 'carol', subjectType: 'user', permission: 'admin' };
 
         it('posts to the correct endpoint and resolves void on success', async () => {
             mock.onPost(`/api/calm/domains/${domain}/user-access`).reply(201);

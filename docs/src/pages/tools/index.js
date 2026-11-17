@@ -19,6 +19,7 @@ const HUB_LINKS = [
     {to: '/calm-hub/calm-hub-developer-guide', label: 'Developer Guide'},
     {to: '/calm-hub/calm-hub-mcp-api', label: 'MCP & API'},
     {to: '/working-with-calm/calm-hub-entitlements', label: 'Entitlements'},
+    {to: '/extensions', label: 'Extensions'},
 ];
 
 export default function Tools() {

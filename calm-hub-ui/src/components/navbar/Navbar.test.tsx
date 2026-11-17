@@ -176,21 +176,30 @@ describe('Navbar UI config', () => {
 
 // jsdom does no layout, so these guard the classes that set it (#3505).
 describe('Navbar layout', () => {
-    it('keeps the logo in the flex flow below lg, so page actions cannot cover it', () => {
+    it('keeps the logo in the layout flow, so page actions cannot cover it', () => {
         renderNavbar(makeState({}));
         const center = screen.getByRole('link', { name: 'CALM Hub home' }).parentElement;
 
-        expect(center).not.toHaveClass('absolute');
-        expect(center).toHaveClass('lg:absolute', 'max-lg:shrink', 'min-w-0');
+        expect(center).toHaveClass('max-lg:shrink', 'min-w-0');
+        expect(center.className).not.toMatch(/absolute|translate/);
         expect(screen.getByAltText('CALM Logo')).toHaveClass('object-contain');
     });
 
-    it('stops the side groups shrinking under their content below lg', () => {
+    it('stops the side groups shrinking under their content', () => {
         const { container } = renderNavbar(makeState({}));
 
         for (const side of [container.querySelector('.navbar-start'), container.querySelector('.navbar-end')]) {
-            expect(side).toHaveClass('max-lg:w-auto', 'max-lg:flex-1', 'lg:min-w-0');
-            expect(side).not.toHaveClass('min-w-0');
+            expect(side).toHaveClass('w-auto', 'max-lg:flex-1');
+            expect(side?.className).not.toMatch(/min-w-0/);
         }
+    });
+
+    it('uses a three-column grid from lg so a wide side moves the logo instead of covering it', () => {
+        const { container } = renderNavbar(makeState({}));
+
+        expect(container.querySelector('.navbar')).toHaveClass(
+            'lg:grid',
+            'lg:grid-cols-[minmax(auto,1fr)_auto_minmax(auto,1fr)]',
+        );
     });
 });

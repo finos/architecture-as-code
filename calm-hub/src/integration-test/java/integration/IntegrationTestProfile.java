@@ -1,12 +1,11 @@
 package integration;
 
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTestProfile;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@QuarkusTestResource(EndToEndResource.class)
 public class IntegrationTestProfile implements QuarkusTestProfile {
 
     @Override
@@ -32,14 +31,21 @@ public class IntegrationTestProfile implements QuarkusTestProfile {
         // Integration tests run against a real, controlled Mongo container and
         // deliberately need this on — see
         // MongoAuditLogIntegration/MongoAuditLogDeniedIntegration.
+        // calm.decorators.reserved.* reserves a decorator type for the no-auth principal, so that
+        // MongoDecoratorIntegration can supersede and read a decorator history against real Mongo.
         return Map.of(
                 "allow.put.operations", "true",
                 "calm.mcp.enabled", "true",
                 "calm.auth.enabled","false",
                 "calm.hub.base-url", "http://localhost:8080",
                 "calm.audit.store.enabled", "true",
-                "calm.audit.log.enabled", "true"
+                "calm.audit.log.enabled", "true",
+                "calm.decorators.reserved.\"integration-evaluation\".writers", "no-auth"
         );
     }
-}
 
+    @Override
+    public List<TestResourceEntry> testResources() {
+        return List.of(new TestResourceEntry(EndToEndResource.class));
+    }
+}

@@ -5,7 +5,7 @@
 /**
  * Node-type-to-AIGF-risk mappings and lookup functions.
  * Maps AI pack node types to applicable FINOS AIGF v2.0 risks and recommended mitigations.
- * Used for design-time governance in CalmStudio — surfaces relevant risks when an AI node
+ * Used for design-time governance in the canvas — surfaces relevant risks when an AI node
  * is added to the architecture.
  */
 
