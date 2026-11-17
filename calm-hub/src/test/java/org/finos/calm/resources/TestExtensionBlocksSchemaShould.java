@@ -44,6 +44,42 @@ class TestExtensionBlocksSchemaShould {
         assertTrue(validator().validate(reply).getValid());
     }
 
+    @Test
+    void accept_typed_destinations_with_context_and_view_state() throws Exception {
+        var reply = new JsonObject("""
+                {"hubApi":0,"blocks":[{"type":"links","items":[
+                  {"label":"Node","hub":{"namespace":"a","type":"architectures","id":"1","version":"1.0.0","element":"api","extension":"reviews"}},
+                  {"label":"Reviews","screen":{"extension":"reviews","screen":"list",
+                    "context":{"namespace":"a","type":"architectures","id":"1","version":"1.0.0","element":"api"},
+                    "params":{"sort":"due","reviews.filter":"needs-review","reviews.q":"pay","reviews.page":"10000"}}},
+                  {"label":"Bare screen","screen":{"extension":"reviews","screen":"list"}}
+                ]}]}
+                """);
+        assertTrue(validator().validate(reply).getValid());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            // Two kinds in one link.
+            "{\"label\":\"x\",\"href\":\"https://example.com\",\"screen\":{\"extension\":\"e\",\"screen\":\"s\"}}",
+            // A dot segment, or a missing version.
+            "{\"label\":\"x\",\"hub\":{\"namespace\":\"a\",\"type\":\"architectures\",\"id\":\"..\",\"version\":\"1\"}}",
+            "{\"label\":\"x\",\"hub\":{\"namespace\":\"a\",\"type\":\"architectures\",\"id\":\"1\"}}",
+            // An arbitrary internal URL is not a destination.
+            "{\"label\":\"x\",\"hub\":{\"namespace\":\"a\",\"type\":\"architectures\",\"id\":\"1\",\"version\":\"1\",\"path\":\"/admin\"}}",
+            "{\"label\":\"x\",\"screen\":{\"extension\":\"Bad\",\"screen\":\"s\"}}",
+            "{\"label\":\"x\",\"screen\":{\"extension\":\"e\",\"screen\":\"s\",\"context\":{\"namespace\":\"a\"}}}",
+            // A context name, a page out of range, or an unknown table key.
+            "{\"label\":\"x\",\"screen\":{\"extension\":\"e\",\"screen\":\"s\",\"params\":{\"namespace\":\"b\"}}}",
+            "{\"label\":\"x\",\"screen\":{\"extension\":\"e\",\"screen\":\"s\",\"params\":{\"t.page\":\"1\"}}}",
+            "{\"label\":\"x\",\"screen\":{\"extension\":\"e\",\"screen\":\"s\",\"params\":{\"t.page\":\"10001\"}}}",
+            "{\"label\":\"x\",\"screen\":{\"extension\":\"e\",\"screen\":\"s\",\"params\":{\"t.sort\":\"a\"}}}"
+    })
+    void reject_invalid_destinations(String link) throws Exception {
+        var reply = new JsonObject("{\"hubApi\":0,\"blocks\":[{\"type\":\"links\",\"items\":[" + link + "]}]}");
+        assertFalse(validator().validate(reply).getValid());
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
             "{\"hubApi\":1,\"blocks\":[]}",

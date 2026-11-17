@@ -40,7 +40,11 @@ import type { CalmNodeSchema } from '@finos/calm-models/types';
 import { authStore } from '../service/utils/auth-store.js';
 import { diagramLenses } from './components/diagram-section/tabs/diagramLenses.js';
 import { useExtensions, useExtensionsStatus } from '../extensions/ExtensionsContext.js';
-import { withoutLens } from './components/diagram-section/tabs/diagramTabRegistry.js';
+import { EXTENSION_PARAM, withoutLens } from './components/diagram-section/tabs/diagramTabRegistry.js';
+import { resourceExtensions } from '../extensions/contributions.js';
+import { ReturnPointProvider } from '../navigation/ReturnPointProvider.js';
+import { carryReturnPoints, type ReturnPage } from '../navigation/returnPoints.js';
+import { ReturnBar } from './components/return-bar/ReturnBar.js';
 import './Hub.css';
 
 // Breadcrumbs live in history state so Back restores the parent's trail for free,
@@ -59,6 +63,14 @@ function readBreadcrumbs(state: unknown): BreadcrumbItem[] {
             typeof (c as BreadcrumbItem).id === 'string' &&
             typeof (c as BreadcrumbItem).version === 'string'
     );
+}
+
+/** The node or relationship with this unique-id in an architecture or pattern document, if it has one at the top level. */
+function findElement(data: Data | undefined, uniqueId: string | null): CalmNodeSchema | undefined {
+    if (!data || !uniqueId) return undefined;
+    const document = data.data as { nodes?: unknown; relationships?: unknown } | undefined;
+    const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
+    return (items as CalmNodeSchema[]).find((entry) => entry?.['unique-id'] === uniqueId);
 }
 
 export default function Hub() {
@@ -238,13 +250,12 @@ export default function Hub() {
     const [linkSource, setLinkSource] = useState({ data, linkedNodeId, key: location.key });
     if (linkSource.data !== data || linkSource.linkedNodeId !== linkedNodeId || linkSource.key !== location.key) {
         setLinkSource({ data, linkedNodeId, key: location.key });
-        const document = data?.data as { nodes?: unknown; relationships?: unknown } | undefined;
-        const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
-        const item = linkedNodeId
-            ? (items as CalmNodeSchema[]).find((entry) => entry?.['unique-id'] === linkedNodeId)
-            : undefined;
+        const item = findElement(data, linkedNodeId);
         if (item) setSelectedItem({ data: item });
     }
+
+    // The name of the loaded resource, for the label of its return point. Reported by DiagramSection.
+    const [displayName, setDisplayName] = useState<string | undefined>();
 
     const handleDataLoad = useCallback((loaded: Data) => {
         setData(loaded);
@@ -254,6 +265,7 @@ export default function Hub() {
         setSelectedItem(null);
         setIsMobileNavOpen(false);
         currentDisplayNameRef.current = undefined;
+        setDisplayName(undefined);
     }, []);
 
     const handleAdrLoad = useCallback((adr: Adr) => {
@@ -327,11 +339,11 @@ export default function Hub() {
 
     // The resource's display name is fetched by DiagramSection (it owns the
     // summaries fetch) and mirrored here so the crumb pushed on navigation can
-    // carry it. A ref, not state: it is only read imperatively at navigate time,
-    // so Hub need not re-render when it resolves. This handler MUST stay memoised
+    // carry it, and the return point of the page can name it. This handler MUST stay memoised
     // (identity-stable) — DiagramSection lists it in a fetch effect's deps.
     const handleDisplayNameChange = useCallback((name: string | undefined) => {
         currentDisplayNameRef.current = name;
+        setDisplayName(name);
     }, []);
 
     const handleNavigateToDetailedArch = useCallback((ref: string) => {
@@ -347,13 +359,13 @@ export default function Hub() {
         const parsed = parseCALMHubPath(ref);
         if (parsed) {
             navigate(`/${parsed.namespace}/${parsed.type}/${parsed.id}/${parsed.version}`, {
-                state: { breadcrumbs }
+                state: { ...carryReturnPoints(location.state), breadcrumbs }
             });
         } else {
             // A same-host ref the router cannot parse (an 'invalid' resolution,
             // e.g. a missing id segment): land on the in-app not-found view so
             // the broken reference is explained with a recovery path.
-            navigate('/broken-reference', { state: { breadcrumbs, brokenRef: ref } });
+            navigate('/broken-reference', { state: { ...carryReturnPoints(location.state), breadcrumbs, brokenRef: ref } });
         }
     }, [navigate, data, location.state]);
 
@@ -447,6 +459,45 @@ export default function Hub() {
                 : (domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0),
         [domainCounts, domainCountsLoaded, domainCountsFailed, activeDomain]
     );
+
+    // The page that links on it record as their return point, with the selected node, so a return opens it again.
+    const returnPage: ReturnPage | undefined = detailMatch
+        ? {
+              kind: 'resource',
+              namespace: detailMatch.params.namespace!,
+              type: detailMatch.params.type!,
+              id: detailMatch.params.id!,
+              version: detailMatch.params.version!,
+          }
+        : isSearchRoute
+          ? { kind: 'search' }
+          : undefined;
+    const returnQuery = new URLSearchParams(location.search);
+    const selectedId = showsDroppedFile ? undefined : selectedItem?.data['unique-id'];
+    if (selectedId) returnQuery.set('node', selectedId);
+    const returnSearch = returnQuery.toString() ? `?${returnQuery.toString()}` : '';
+    const returnLabel = detailMatch
+        ? `${displayName || detailMatch.params.id} ${detailMatch.params.version}`
+        : 'search results';
+
+    // The parts of a link that this page cannot show. The page itself shows; access is checked when each part loads.
+    const linkNotices: string[] = [];
+    if (data && !showsDroppedFile && isDetailRoute) {
+        if (linkedNodeId && data.calmType === 'Architectures' && !findElement(data, linkedNodeId)) {
+            linkNotices.push(`The element "${linkedNodeId}" is not in version ${data.version} of this architecture.`);
+        }
+        const linkedExtension = new URLSearchParams(location.search).get(EXTENSION_PARAM);
+        if (linkedExtension && isDiagramView) {
+            if (extensionsStatus === 'failed' || extensionsStatus === 'signed-out') {
+                linkNotices.push(`Extensions could not be loaded, so the "${linkedExtension}" view is not shown.`);
+            } else if (
+                extensionsStatus === 'loaded' &&
+                !resourceExtensions(extensions, extensionContext(data)).some(({ extension }) => extension.id === linkedExtension)
+            ) {
+                linkNotices.push(`The extension "${linkedExtension}" is not enabled in this Hub, or has no view for this resource.`);
+            }
+        }
+    }
 
     // Chrome-free intro / front door (`/` with nothing else active): early-returns
     // before Hub's navbar + rail layout. Below every hook above, so none is skipped.
@@ -551,6 +602,7 @@ export default function Hub() {
         <DiagramActionsContext.Provider value={diagramActions}>
         <ExtensionResourceContext.Provider value={resourceContext}>
         <DecoratorsContext.Provider value={decoratorsState}>
+        <ReturnPointProvider page={returnPage} label={returnLabel} search={returnSearch}>
         <AppLayout>
             {isMobile && !isMobileNavOpen && (
                 <button
@@ -611,6 +663,7 @@ export default function Hub() {
                 )}
 
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                    <ReturnBar notices={linkNotices} />
                     <div className="flex-1 overflow-auto min-w-0">{content}</div>
                 </div>
 
@@ -626,6 +679,7 @@ export default function Hub() {
 
             </div>
         </AppLayout>
+        </ReturnPointProvider>
         </DecoratorsContext.Provider>
         </ExtensionResourceContext.Provider>
         </DiagramActionsContext.Provider>
