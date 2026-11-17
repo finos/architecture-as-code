@@ -11,12 +11,15 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -191,7 +194,7 @@ class TestExtensionManifestLoaderShould {
         m.getJsonArray("routes").add(route("hub-lens", "POST", "/hub-lens/{namespace}/{resourceType}/{resourceId}", "read")
                 .put("readOnly", true).put("hubData", new JsonArray().add("document").add("detailed-architectures").add("c4-mapping")));
 
-        ExtensionManifest manifest = loader.parse(m.encode(), ID, "test", Map.of("notation.json", NOTATION.encode())::get);
+        ExtensionManifest manifest = loader.parse(m.encode(), ID, "test", files("notation.json", NOTATION.encode()));
 
         assertThat(manifest.route("hub-lens").orElseThrow().hubData(), contains("document", "detailed-architectures", "c4-mapping"));
         assertThat(manifest.route("lens").orElseThrow().hubData(), nullValue());
@@ -200,7 +203,7 @@ class TestExtensionManifestLoaderShould {
     @Test
     void reject_a_lens_with_the_id_of_a_lens_of_hub() {
         IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> loader.parse(withLens(lens("json")).encode(), ID, "test", Map.of("notation.json", NOTATION.encode())::get));
+                () -> loader.parse(withLens(lens("json")).encode(), ID, "test", files("notation.json", NOTATION.encode())));
 
         assertThat(e.getMessage(), containsString("diagram-lens 'json' has an id that CALM Hub uses for its own lens"));
     }
@@ -260,10 +263,10 @@ class TestExtensionManifestLoaderShould {
     void reject_a_lens_notation_that_is_missing_not_json_or_names_an_unknown_shape() {
         JsonObject bad = new JsonObject().put("styles", new JsonObject().put("elements", new JsonArray()
                 .add(new JsonObject().put("tag", "Person").put("shape", "Person"))));
-        Map<String, String> files = Map.of("bad.json", bad.encode(), "text.json", "not json");
         JsonObject m = withLens(lens("missing"), lens("text").put("notation", "text.json"), lens("bad").put("notation", "bad.json"));
 
-        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test", files::get));
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(m.encode(), ID, "test", files("bad.json", bad.encode(), "text.json", "not json")));
 
         assertThat(e.getMessage(), containsString("diagram-lens 'missing' notation notation.json is not in the extension folder"));
         assertThat(e.getMessage(), containsString("diagram-lens 'text' notation text.json is not a JSON object"));
@@ -278,6 +281,74 @@ class TestExtensionManifestLoaderShould {
         IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test"));
 
         assertThat(e.getMessage(), containsString("/contributes/diagram-lens/0/notation"));
+    }
+
+    @Test
+    void read_and_check_the_logo_files_of_an_operator_manifest() throws IOException {
+        write(ID, valid().put("logo", new JsonObject().put("light", "logo.svg").put("dark", "logo-dark.png")));
+        Files.writeString(tempDir.resolve(ID).resolve("logo.svg"), LOGO_SVG);
+        Files.copy(Path.of("src/test/resources/assets/logo-24x12.png"), tempDir.resolve(ID).resolve("logo-dark.png"));
+
+        ExtensionManifest.Logo logo = loader.loadDirectory(tempDir).getFirst().logo();
+
+        assertThat(logo.light(), equalTo("logo.svg"));
+        assertThat(logo.dark(), equalTo("logo-dark.png"));
+        assertThat(logo.image("light").orElseThrow().mediaType(), equalTo("image/svg+xml"));
+        assertThat(logo.image("dark").orElseThrow().mediaType(), equalTo("image/png"));
+    }
+
+    @Test
+    void keep_a_manifest_without_a_logo_and_a_logo_without_a_dark_file() {
+        assertThat(loader.parse(valid().encode(), ID, "test").logo(), nullValue());
+
+        ExtensionManifest.Logo logo = loader.parse(valid().put("logo", new JsonObject().put("light", "logo.svg")).encode(), ID,
+                "test", files("logo.svg", LOGO_SVG)).logo();
+
+        assertThat(logo.dark(), nullValue());
+        assertThat(logo.image("dark").isEmpty(), is(true));
+        assertThat(logo.image("light").isPresent(), is(true));
+    }
+
+    @Test
+    void reject_a_logo_file_that_is_missing_or_not_a_safe_image() {
+        JsonObject m = valid().put("logo", new JsonObject().put("light", "logo.svg").put("dark", "missing.png"));
+        String script = "<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>";
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(m.encode(), ID, "test", files("logo.svg", script)));
+
+        assertThat(e.getMessage(), containsString("logo light logo.svg has a script element"));
+        assertThat(e.getMessage(), containsString("logo dark missing.png is not in the extension folder"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("logosTheSchemaRefuses")
+    void reject_a_logo_that_the_schema_refuses(JsonObject logo, String location) {
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(valid().put("logo", logo).encode(), ID, "test", files("logo.svg", LOGO_SVG)));
+
+        assertThat(e.getMessage(), containsString(location));
+    }
+
+    static Stream<Arguments> logosTheSchemaRefuses() {
+        return Stream.of(
+                Arguments.of(new JsonObject().put("light", "../logo.svg"), "/logo/light"),
+                Arguments.of(new JsonObject().put("light", "https://example.com/logo.svg"), "/logo/light"),
+                Arguments.of(new JsonObject().put("light", "logo.gif"), "/logo/light"),
+                Arguments.of(new JsonObject().put("dark", "logo.svg"), "/logo"),
+                Arguments.of(new JsonObject().put("light", "logo.svg").put("alt", "Logo"), "/logo"));
+    }
+
+    private static final String LOGO_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>"
+            + "<circle cx='8' cy='8' r='6' fill='#0f766e'/></svg>";
+
+    /** Sibling files by name, as the loader reads them. */
+    private static Function<String, byte[]> files(String... namesAndTexts) {
+        Map<String, byte[]> files = new HashMap<>();
+        for (int i = 0; i < namesAndTexts.length; i += 2) {
+            files.put(namesAndTexts[i], namesAndTexts[i + 1].getBytes(StandardCharsets.UTF_8));
+        }
+        return files::get;
     }
 
     private static JsonObject withLens(JsonObject... lenses) {

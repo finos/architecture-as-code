@@ -41,6 +41,18 @@ class TestExtensionResourceReadOnlyShould {
                 .body("values.id", contains("control-evaluation", "deployment", "example-services"))
                 .body("values[0].contributes.decorator-views.id", contains("control-evaluation"))
                 .body("values.find { it.id == 'example-services' }.routes.id", contains("screen", "namespace-services", "search"))
-                .body("values.find { it.id == 'example-services' }.commands.keySet()", contains("list-services"));
+                .body("values.find { it.id == 'example-services' }.commands.keySet()", contains("list-services"))
+                .body("values.find { it.id == 'example-services' }.logo.keySet()", contains("light", "dark"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void serve_a_logo_on_a_read_only_hub() {
+        given()
+                .when()
+                .get("/api/calm/extensions/example-services/logo/dark")
+                .then()
+                .statusCode(200)
+                .contentType("image/svg+xml");
     }
 }

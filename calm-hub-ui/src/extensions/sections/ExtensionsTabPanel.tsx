@@ -51,6 +51,7 @@ export function ExtensionsTabPanel({ context, storage }: ExtensionsTabPanelProps
                         id: extension.id,
                         title: extension.name,
                         subtitle: extension.provider,
+                        logo: extension.logo,
                         content: () => (
                             <>
                                 {actions.length + needsSelection.length > 0 && (

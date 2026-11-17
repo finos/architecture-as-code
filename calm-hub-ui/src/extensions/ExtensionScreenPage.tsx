@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useExtensions, useExtensionsStatus } from './ExtensionsContext.js';
 import { Navbar } from '../components/navbar/Navbar.js';
 import { ExtensionSlot, SlotFrame } from './ExtensionSlot.js';
+import { ExtensionLogo } from './ExtensionLogo.js';
 
 function ScreenBody() {
     const { extensionId, contributionId } = useParams();
@@ -26,7 +27,17 @@ function ScreenBody() {
             </SlotFrame>
         );
     }
-    return <ExtensionSlot extension={extension} contribution={contribution} headingLevel={1} />;
+    return (
+        <>
+            <p data-testid="extension-screen-owner" className="flex items-center gap-2 min-w-0 mb-2 text-sm font-medium text-base-content/70">
+                <ExtensionLogo extension={extension} size={20} />
+                <span className="min-w-0 truncate" title={extension.name}>
+                    {extension.name}
+                </span>
+            </p>
+            <ExtensionSlot extension={extension} contribution={contribution} headingLevel={1} />
+        </>
+    );
 }
 
 export function ExtensionScreenPage() {

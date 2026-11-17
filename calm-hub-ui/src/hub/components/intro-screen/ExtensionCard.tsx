@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ExtensionSummary } from '../../../model/extensions.js';
 import { colors } from '../../../theme/colors.js';
-import { ExtensionMarker } from '../../../extensions/ExtensionMarker.js';
+import { ExtensionLogo } from '../../../extensions/ExtensionLogo.js';
 import { ScreenErrorBoundary } from '../../../extensions/ScreenErrorBoundary.js';
 import { screenPath, slotContributions } from '../../../extensions/contributions.js';
 import { useExtensionService } from '../../../extensions/ExtensionsContext.js';
@@ -65,7 +65,7 @@ function ExtensionCardContent({ extension }: { extension: ExtensionSummary }) {
     const body = (
         <>
             <span className="flex items-center gap-2 min-w-0">
-                <ExtensionMarker extensionId={extension.id} />
+                <ExtensionLogo extension={extension} size={20} />
                 <span className="min-w-0 line-clamp-2 wrap-anywhere font-medium text-[14px]" title={extension.name}>
                     {extension.name}
                 </span>

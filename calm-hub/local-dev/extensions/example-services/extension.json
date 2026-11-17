@@ -5,6 +5,7 @@
   "name": "Example services",
   "description": "A fixture extension for local development. It lists the services that each namespace owns.",
   "provider": "CALM Hub local development",
+  "logo": { "light": "logo.svg", "dark": "logo-dark.svg" },
   "routes": [
     { "id": "screen", "method": "GET", "path": "/screen", "scope": "authenticated", "readOnly": true },
     { "id": "namespace-services", "method": "GET", "path": "/namespaces/{namespace}/services", "scope": "read" },

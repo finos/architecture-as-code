@@ -2,7 +2,7 @@
 
 A fixture extension for local development. `server.mjs` is its backend: it has no dependencies, and
 it answers only requests that carry a valid CALM Hub identity assertion. `identity.mjs` verifies the
-assertion with the JWKS only.
+assertion with the JWKS only. `logo.svg` and `logo-dark.svg` are its logo for the light and dark themes.
 
 Run it from `calm-hub/`:
 

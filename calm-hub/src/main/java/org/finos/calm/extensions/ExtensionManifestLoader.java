@@ -10,6 +10,7 @@ import io.vertx.json.schema.JsonSchemaOptions;
 import io.vertx.json.schema.OutputFormat;
 import io.vertx.json.schema.OutputUnit;
 import io.vertx.json.schema.Validator;
+import org.finos.calm.assets.ImageAsset;
 import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,7 +128,7 @@ public class ExtensionManifestLoader {
                 throw new IllegalStateException("Built-in extension " + line + " has no classpath resource " + resource);
             }
             String folder = base + line + "/";
-            manifests.add(parse(json, line, "classpath:" + resource, name -> readResource(classLoader, folder + name)));
+            manifests.add(parse(json, line, "classpath:" + resource, name -> readResourceBytes(classLoader, folder + name)));
         }
         return manifests;
     }
@@ -144,7 +145,7 @@ public class ExtensionManifestLoader {
      * @param siblings reads a file next to the manifest by name, or returns null when there is none. The schema
      *                 allows only a plain file name, so a name cannot leave the extension folder.
      */
-    ExtensionManifest parse(String json, String expectedId, String source, Function<String, String> siblings) {
+    ExtensionManifest parse(String json, String expectedId, String source, Function<String, byte[]> siblings) {
         JsonObject raw;
         try {
             raw = new JsonObject(json);
@@ -168,6 +169,7 @@ public class ExtensionManifestLoader {
         }
         List<String> problems = check(manifest, expectedId);
         manifest = withNotations(manifest, siblings, problems);
+        manifest = withLogo(manifest, siblings, problems);
         if (!problems.isEmpty()) {
             throw invalid(source, problems);
         }
@@ -386,7 +388,7 @@ public class ExtensionManifestLoader {
         });
     }
 
-    private static ExtensionManifest withNotations(ExtensionManifest manifest, Function<String, String> siblings,
+    private static ExtensionManifest withNotations(ExtensionManifest manifest, Function<String, byte[]> siblings,
                                                    List<String> problems) {
         List<ExtensionManifest.DiagramLens> lenses = manifest.contributes().diagramLens();
         if (lenses == null) {
@@ -395,7 +397,7 @@ public class ExtensionManifestLoader {
         List<ExtensionManifest.DiagramLens> loaded = new ArrayList<>();
         for (ExtensionManifest.DiagramLens lens : lenses) {
             String where = "diagram-lens '" + lens.id() + "' notation " + lens.notation();
-            String text = siblings.apply(lens.notation());
+            byte[] text = siblings.apply(lens.notation());
             if (text == null) {
                 problems.add(where + " is not in the extension folder");
                 loaded.add(lens);
@@ -403,7 +405,7 @@ public class ExtensionManifestLoader {
             }
             Map<String, Object> notation;
             try {
-                notation = new JsonObject(text).getMap();
+                notation = new JsonObject(new String(text, StandardCharsets.UTF_8)).getMap();
             } catch (DecodeException | ClassCastException e) {
                 problems.add(where + " is not a JSON object");
                 loaded.add(lens);
@@ -413,16 +415,45 @@ public class ExtensionManifestLoader {
             loaded.add(lens.withNotationContent(notation));
         }
         return new ExtensionManifest(manifest.id(), manifest.version(), manifest.hubApi(), manifest.name(),
-                manifest.description(), manifest.provider(), manifest.routes(), manifest.commands(),
+                manifest.description(), manifest.provider(), manifest.logo(), manifest.routes(), manifest.commands(),
                 manifest.contributes().withDiagramLens(loaded));
     }
 
-    private static String readFile(Path file) {
+    /** Reads and checks each logo file, so that the registry serves only images that passed {@link ImageAsset#read}. */
+    private static ExtensionManifest withLogo(ExtensionManifest manifest, Function<String, byte[]> siblings,
+                                              List<String> problems) {
+        ExtensionManifest.Logo logo = manifest.logo();
+        if (logo == null) {
+            return manifest;
+        }
+        return manifest.withLogo(logo.withImages(logoImage(ExtensionManifest.Logo.LIGHT, logo.light(), siblings, problems),
+                logoImage(ExtensionManifest.Logo.DARK, logo.dark(), siblings, problems)));
+    }
+
+    private static ImageAsset logoImage(String variant, String file, Function<String, byte[]> siblings, List<String> problems) {
+        if (file == null) {
+            return null;
+        }
+        String where = "logo " + variant + " " + file;
+        byte[] bytes = siblings.apply(file);
+        if (bytes == null) {
+            problems.add(where + " is not in the extension folder");
+            return null;
+        }
+        try {
+            return ImageAsset.read(file, bytes);
+        } catch (IllegalArgumentException e) {
+            problems.add(where + " " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static byte[] readFile(Path file) {
         if (!Files.isRegularFile(file)) {
             return null;
         }
         try {
-            return Files.readString(file, StandardCharsets.UTF_8);
+            return Files.readAllBytes(file);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + file, e);
         }
@@ -507,8 +538,13 @@ public class ExtensionManifestLoader {
     }
 
     private static String readResource(ClassLoader classLoader, String name) {
+        byte[] bytes = readResourceBytes(classLoader, name);
+        return bytes == null ? null : new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    private static byte[] readResourceBytes(ClassLoader classLoader, String name) {
         try (InputStream in = classLoader.getResourceAsStream(name)) {
-            return in == null ? null : new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            return in == null ? null : in.readAllBytes();
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read classpath resource " + name, e);
         }

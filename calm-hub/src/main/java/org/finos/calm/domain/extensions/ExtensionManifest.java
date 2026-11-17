@@ -7,6 +7,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.json.bind.annotation.JsonbProperty;
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
 import jakarta.json.bind.annotation.JsonbTransient;
+import org.finos.calm.assets.ImageAsset;
 
 import java.util.Collections;
 import java.util.List;
@@ -21,7 +22,7 @@ import java.util.function.Predicate;
  * {@code GET /api/calm/extensions} also returns them, so a null field is left out of the JSON.
  */
 @RegisterForReflection
-@JsonbPropertyOrder({"id", "version", "hubApi", "name", "description", "provider", "routes", "commands", "contributes"})
+@JsonbPropertyOrder({"id", "version", "hubApi", "name", "description", "provider", "logo", "routes", "commands", "contributes"})
 public record ExtensionManifest(
         String id,
         String version,
@@ -29,16 +30,29 @@ public record ExtensionManifest(
         String name,
         String description,
         String provider,
+        Logo logo,
         List<Route> routes,
         Map<String, Command> commands,
         Contributions contributes
 ) {
 
+    @JsonCreator
     public ExtensionManifest {
         routes = routes == null ? List.of() : List.copyOf(routes);
         // Sorted by name, so that the CLI and the MCP tool list have a stable order (ADR 0014).
         commands = commands == null ? Map.of() : Collections.unmodifiableMap(new TreeMap<>(commands));
         contributes = contributes == null ? Contributions.NONE : contributes;
+    }
+
+    public ExtensionManifest(String id, String version, int hubApi, String name, String description, String provider,
+                             List<Route> routes, Map<String, Command> commands, Contributions contributes) {
+        this(id, version, hubApi, name, description, provider, null, routes, commands, contributes);
+    }
+
+    /** A copy with this logo in place of the declared one. */
+    public ExtensionManifest withLogo(Logo replacement) {
+        return new ExtensionManifest(id, version, hubApi, name, description, provider, replacement, routes, commands,
+                contributes);
     }
 
     public Optional<Route> route(String routeId) {
@@ -55,8 +69,33 @@ public record ExtensionManifest(
                 keptCommands.put(name, command);
             }
         });
-        return new ExtensionManifest(id, version, hubApi, name, description, provider, kept, keptCommands,
+        return new ExtensionManifest(id, version, hubApi, name, description, provider, logo, kept, keptCommands,
                 contributes.withRoutes(routeKept));
+    }
+
+    /**
+     * The files of the logo, next to {@code extension.json}: {@code light} for the light theme, and {@code dark}, if
+     * set, for the dark theme. The registry leaves out the images; the UI reads each one from the logo endpoint.
+     */
+    @RegisterForReflection
+    @JsonbPropertyOrder({"light", "dark"})
+    public record Logo(
+            String light,
+            String dark,
+            @JsonIgnore @JsonbTransient ImageAsset lightImage,
+            @JsonIgnore @JsonbTransient ImageAsset darkImage
+    ) {
+        public static final String LIGHT = "light";
+        public static final String DARK = "dark";
+
+        public Logo withImages(ImageAsset light, ImageAsset dark) {
+            return new Logo(this.light, this.dark, light, dark);
+        }
+
+        /** The image of a variant, {@code light} or {@code dark}. Empty when the manifest does not declare it. */
+        public Optional<ImageAsset> image(String variant) {
+            return Optional.ofNullable(DARK.equals(variant) ? darkImage : LIGHT.equals(variant) ? lightImage : null);
+        }
     }
 
     @RegisterForReflection

@@ -13,11 +13,17 @@ export interface ExtensionRoute {
     readOnly: boolean;
 }
 export type ExtensionPoint = 'screen' | 'designer-tab' | 'landing-card' | 'detail-panel' | 'action';
+/** The logo files that the manifest declares. Hub serves them at `/api/calm/extensions/<id>/logo/<light|dark>`. */
+export interface ExtensionLogoFiles {
+    light: string;
+    dark?: string;
+}
 export interface ExtensionSummary {
     id: string;
     name: string;
     description?: string;
     provider?: string;
+    logo?: ExtensionLogoFiles;
     hubApi: number;
     routes: ExtensionRoute[];
     contributes: Partial<Record<ExtensionPoint, ExtensionContribution[]>> & { 'diagram-lens'?: DiagramLensContribution[] };

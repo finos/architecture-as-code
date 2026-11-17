@@ -259,6 +259,15 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   `close()` before its callback, and the button takes focus in an effect after the dialog unmounts. jsdom has no
   modal dialogs, so a test that checks focus must model inertness (see `ExtensionSlot.test.tsx`).
 - Node details: `ExtensionDetailPanels`.
+- Identity: `ExtensionLogo` (`extensions/ExtensionLogo.tsx`) is the mark beside an extension name everywhere, also in
+  search and chat attribution. It is the `ExtensionMarker` when the manifest has no `logo`, and while a logo loads or
+  after it fails. A logo has loaded when its `img` fires `load` or is `complete`, not when its bytes arrive: Firefox
+  draws nothing for a large SVG until then. It is decorative (`aria-hidden`), so keep the name as text beside it. Do
+  not fetch a logo yourself: `useImageAsset()` (`assets/`) reads Hub assets with the user's credentials through
+  `ImageAssetLoader`, which has its own axios instance (a failure must not open the sign-in prompt), accepts only a
+  same-origin `/api/calm/` path and the image types of `ImageAsset`, and gives a `data:` URL. Never use a `blob:` URL
+  or put asset bytes in markup: an SVG opened from a `blob:` URL as a page runs with Hub's origin. Tests inject a
+  loader with `ImageAssetContext` (`test-support/fake-image-assets.tsx`).
 - Both use `ExtensionSections`: the first section is open, a choice is kept in `localStorage` per extension, and a
   closed section renders nothing, so it sends no request.
   Give `ExtensionSections` and `ExtensionSlot` a `headingLevel` one below the heading of the place that holds

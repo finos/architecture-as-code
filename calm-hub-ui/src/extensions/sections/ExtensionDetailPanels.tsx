@@ -23,6 +23,7 @@ export function ExtensionDetailPanels({ context, storage }: { context: Extension
                 sections={extensions.map(({ extension, panels }) => ({
                     id: extension.id,
                     title: extension.name,
+                    logo: extension.logo,
                     content: () =>
                         panels.map((contribution) => (
                             <ExtensionSlot
