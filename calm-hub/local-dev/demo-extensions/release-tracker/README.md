@@ -12,7 +12,7 @@ URL does not start, and the UI then shows "CalmHub failed to load".
 
 | Contribution | Where the UI shows it |
 |---|---|
-| `screen` | Releases and Release calendar: a link to each in the Release tracker group of the side menu, and on the home page card |
+| `screen` | Releases and Release calendar: a link to each in the Release tracker group of the side menu, and on the home page card. The Releases tiles filter the releases table (inline rows) and deployments table (a `source` route, 5 rows a page) |
 | `landing-card` | The home page card: the first 3 figures of its `stats` block |
 | `action`, `designer-tab` | The Extensions tab of an architecture or pattern |
 | `detail-panel` | The Extensions section of the node details |
@@ -41,8 +41,8 @@ The detail panel has data for the nodes `web-app`, `api-gateway`, `user-service`
 `database` and `message-queue`.
 
 The screen and the designer tab show the [navigation links](../../../../docs/docs/calm-hub/extension-navigation.md).
-The screen has a `status` view parameter (the **In progress**, **Released** and **Rolled back** links), and each
-release row links to its component in the demo architecture. The designer tab links to the screen for the same
+The screen tiles filter the releases and deployments tables, and each release row links to its component in the
+demo architecture. The designer tab links to the screen for the same
 architecture and node. Follow a link, then **Back to …**, to check that Hub returns to the same filter or node. To see the overlay, add a decorator of type `release-risk` with
 `data.risk` set to `low`, `medium` or `high`, and `data.summary` set to a short text.
 
