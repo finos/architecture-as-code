@@ -58,7 +58,7 @@ Explore, visualize, and manage CALM architecture models through an interactive w
 - **Edge Handle**: The **Details & extensions** handle opens the inspector from a separate right-edge rail, without covering diagram or tab controls
 - **Selection Details**: Click any node or edge to see its details, readable or as JSON. With no selection, the inspector shows the resource
 - **View Menu**: Details comes first, followed by views grouped under each extension name. Select one view at a time; the extension's actions stay with it. Visited views keep their state without loading in the background. `?extension=<id>` opens the extension's first view on a fresh load; view choices stay in memory
-- **Narrow Screens**: The inspector fills the screen, with **Back to diagram**
+- **Narrow Screens**: The inspector fills the screen, with **Back to diagram**. A change between the wide and the narrow layout, such as a turned tablet, keeps the chosen views, their state and an open confirmation
 - **Drag & Drop Upload**: Load CALM JSON files directly into the visualizer
 
 ## 🚀 Getting Started
