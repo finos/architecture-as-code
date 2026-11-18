@@ -26,6 +26,7 @@ Explore, visualize, and manage CALM architecture models through an interactive w
 - **Diagram & JSON Views**: Toggle between interactive visualization and raw JSON with syntax highlighting
 - **Version Selection**: Browse and switch between architecture revisions
 - **Quick Visualize**: Jump from any document into the full Visualizer workspace
+- **Extension Round Trips**: A resource or extension link keeps the exact namespace, resource, version and selected element, and the next page shows **Back to …**. Browser Back and Forward select again the node that you selected, also when the URL does not name it. See [Extension Navigation](https://calm.finos.org/calm-hub/calm-hub-extension-navigation)
 - **Extension Identity**: An extension's logo, or its generated marker, shows beside its name in the menu, home cards, screen headings and Extensions sections
 - **Operator Branding**: The operator can set the organisation name, logo and colour, a menu at the side of each page, hidden namespace or control domain sections, and a start page. See [UI Customization](https://calm.finos.org/calm-hub/#ui-customization)
 - **Collapsible Menu**: Collapse the desktop side menu to make more room for the page. The browser remembers the choice; narrow screens still use the menu drawer

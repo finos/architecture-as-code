@@ -37,7 +37,8 @@ const isObject = (value: unknown): value is Record<string, unknown> => typeof va
  * Whether a string has at most `max` characters. A length limit counts Unicode code points, as JSON Schema `maxLength`
  * does, not UTF-16 units: a character such as '𝄞' or an emoji is one character and two units.
  */
-const isWithin = (value: string, max: number): boolean => value.length <= max || (value.length <= 2 * max && [...value].length <= max);
+export const isWithin = (value: string, max: number): boolean =>
+    value.length <= max || (value.length <= 2 * max && [...value].length <= max);
 
 /** An extension sends data, so only http and https URLs become external links. */
 export function safeHref(href: unknown): string | undefined {
