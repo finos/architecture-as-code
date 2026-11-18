@@ -45,7 +45,8 @@ function findDeclarations(pattern: SchemaObject, key: string, member: string): S
     return undefined;
 }
 
-function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
+/** The `prefixItems` of `nodes` or `relationships` that the diagram reads. A form's node chooser reads them too. */
+export function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
     return findDeclarations(pattern, key, 'prefixItems')?.['prefixItems'] ?? [];
 }
 

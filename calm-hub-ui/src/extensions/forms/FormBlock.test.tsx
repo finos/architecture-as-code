@@ -460,4 +460,59 @@ describe('FormBlock', () => {
         // A target that the user chose stays for the next submission.
         expect(within(target).getByLabelText('Version')).toHaveValue('1.0.0');
     });
+
+    it('lists the nodes of a pattern as the diagram finds them, and sends the node that the user chooses', async () => {
+        const node = (id: string, name?: string) => ({
+            properties: { 'unique-id': { const: id }, ...(name && { name: { const: name } }) },
+        });
+        const declares = (...nodes: object[]) => ({ properties: { nodes: { prefixItems: nodes } } });
+        const patterns: Record<string, object> = {
+            // Only allOf declares nodes: the first branch that declares them counts, as in the diagram.
+            '7': {
+                allOf: [
+                    { properties: { relationships: { prefixItems: [] } } },
+                    declares(node('gateway', 'API gateway'), node('ledger')),
+                    declares(node('later')),
+                ],
+            },
+            // The root and allOf declare nodes: the root counts.
+            '8': { ...declares(node('root-node')), allOf: [declares(node('branch-node'))] },
+        };
+        vi.spyOn(CalmService.prototype, 'fetchNamespaces').mockResolvedValue(['finos']);
+        vi.spyOn(CalmService.prototype, 'fetchPatternSummaries').mockResolvedValue([
+            { id: 7, name: 'Gateway' },
+            { id: 8, name: 'Mixed' },
+        ] as never);
+        vi.spyOn(CalmService.prototype, 'fetchPatternVersions').mockResolvedValue(['1.0.0']);
+        vi.spyOn(CalmService.prototype, 'fetchPattern').mockImplementation(async (_namespace, id) => ({ data: patterns[id] }) as never);
+        await show(<Slot point="screen" context={{}} />);
+        await fill();
+        const target = screen.getByRole('group', { name: 'Target' });
+        const choose = async (label: string, value: string) => {
+            await waitFor(() => expect(within(target).getByLabelText(label)).toBeEnabled());
+            fireEvent.change(within(target).getByLabelText(label), { target: { value } });
+        };
+        const nodeLabels = () => [...within(target).getByLabelText<HTMLSelectElement>('Node').options].map((option) => option.textContent);
+
+        await choose('Namespace', 'finos');
+        fireEvent.change(within(target).getByLabelText('Type'), { target: { value: 'patterns' } });
+        await choose('Pattern', '8');
+        await choose('Version', '1.0.0');
+        await waitFor(() => expect(within(target).getByLabelText('Node')).toBeEnabled());
+        expect(nodeLabels()).toEqual(['Choose', 'root-node']);
+
+        await choose('Pattern', '7');
+        await choose('Version', '1.0.0');
+        await choose('Node', 'ledger');
+        expect(nodeLabels()).toEqual(['Choose', 'API gateway (gateway)', 'ledger']);
+        await sendConfirmed();
+        expect(submissions[0].context).toEqual({
+            namespace: 'finos',
+            resource: 'patterns/7',
+            resourceType: 'patterns',
+            resourceId: '7',
+            version: '1.0.0',
+            selectedElement: 'ledger',
+        });
+    });
 });
