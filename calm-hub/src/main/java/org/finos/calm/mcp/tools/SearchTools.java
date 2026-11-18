@@ -10,6 +10,7 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.search.GroupedSearchResults;
+import org.finos.calm.domain.search.SearchQuery;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.resources.ReadableScope;
 import org.finos.calm.security.UserAccessValidator;
@@ -54,7 +55,7 @@ public class SearchTools {
     SecurityIdentity identity;
 
     @Authenticated
-    @Tool(description = "Search across all resource types in CalmHub. Performs a global search across architectures, patterns, flows, standards, interfaces, controls, and ADRs. Results are grouped by type.")
+    @Tool(description = "Search across all resource types in CalmHub. Performs a global search across architectures, patterns, flows, standards, interfaces, controls, and ADRs. Results are grouped by type. Qualifiers narrow the search: namespace:<name> (or ns:) and type:<architecture|pattern|flow|standard|interface|control|adr>.")
     public ToolResponse searchHub(
             @ToolArg(description = "The search query string (1-200 characters)") String query) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
@@ -63,7 +64,13 @@ public class SearchTools {
                 () -> McpValidationHelper.validateMaxLength(query, MAX_QUERY_LENGTH, "Search query"));
         if (err.isPresent()) return err.get();
 
-        GroupedSearchResults groupedResults = searchStore.search(query, resolveReadableNamespaces(), resolveReadableDomains());
+        SearchQuery parsed = SearchQuery.parse(query);
+        if (parsed.hasUnknownType()) {
+            return ToolResponse.error("Unknown type. Use one of: " + String.join(", ", SearchQuery.TYPES));
+        }
+        GroupedSearchResults groupedResults = parsed.filterTypes(searchStore.search(parsed.text(),
+                parsed.narrowNamespaces(resolveReadableNamespaces()),
+                parsed.narrowDomains(resolveReadableDomains())));
         Map<String, List<SearchResult>> groups = toGroupMap(groupedResults);
 
         if (groups.values().stream().allMatch(List::isEmpty)) {
