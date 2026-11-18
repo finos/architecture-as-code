@@ -362,6 +362,23 @@ describe('FormBlock', () => {
         expect(submissions).toHaveLength(1);
     });
 
+    it('keeps the input and its target when the user tries a reply that cannot show again', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const { rerender } = await show(<Slot />);
+        await fill();
+        vi.mocked(ExtensionService.prototype.call).mockResolvedValueOnce({ hubApi: 0, blocks: [{ type: 'table', columns: 'bad', rows: [] } as never] });
+        await rerender(<Slot context={DB} />);
+        expect(await screen.findByRole('alert')).toHaveTextContent('cannot show');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+        expect(await screen.findByLabelText(/Note/)).toHaveValue('Check the ledger');
+        expect(screen.getByTestId('retarget-notice')).toHaveTextContent('This form still sends to finos architectures/1 1.0.0, node api.');
+        expect(ExtensionService.prototype.call).toHaveBeenCalledTimes(3);
+        expect(submissions).toHaveLength(0);
+        await sendConfirmed();
+        expect(submissions[0].context.selectedElement).toBe('api');
+    });
+
     it('sends a read-only form without a dialog, and does not refresh after it', async () => {
         const readOnly = { ...extension, routes: extension.routes.map((route) => ({ ...route, readOnly: true })) };
         await show(<Slot ext={readOnly} />);

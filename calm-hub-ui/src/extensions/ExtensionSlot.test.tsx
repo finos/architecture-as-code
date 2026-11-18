@@ -279,6 +279,36 @@ describe('ExtensionSlot context and visibility', () => {
         expect(await screen.findByText('fine')).toBeInTheDocument();
         expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
+
+    // An extension can fix its reply for the same context, so the slot must not stay failed.
+    it('offers Try again for content that cannot show, and then loads the slot again for the same context', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const call = vi
+            .spyOn(ExtensionService.prototype, 'call')
+            .mockResolvedValueOnce({ hubApi: 0, blocks: [{ type: 'table', columns: 'bad', rows: [] }] })
+            .mockResolvedValueOnce(reply('fixed'));
+        const slot = (shown: boolean) => (
+            <SlotActiveContext.Provider value={shown}>
+                <ExtensionSlot extension={extension} contribution={contribution} context={{ selectedElement: 'a' }} />
+            </SlotActiveContext.Provider>
+        );
+        const view = render(slot(true));
+        expect(await screen.findByRole('alert')).toHaveTextContent('cannot show');
+
+        // Hidden and shown again, the slot stays failed and sends no request by itself.
+        view.rerender(slot(false));
+        view.rerender(slot(true));
+        await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+        expect(call).toHaveBeenCalledTimes(1);
+        expect(screen.getByRole('alert')).toHaveTextContent('cannot show');
+
+        fireEvent.click(within(screen.getByRole('region', { name: 'Summary' })).getByRole('button', { name: 'Try again' }));
+        expect(await screen.findByText('fixed')).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(call).toHaveBeenCalledTimes(2);
+        expect(call.mock.calls[1][1]).toBe(extension.routes[0]);
+        expect(call.mock.calls[1][2]).toEqual(call.mock.calls[0][2]);
+    });
 });
 
 describe('ExtensionSlot actions', () => {

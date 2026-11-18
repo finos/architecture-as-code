@@ -155,6 +155,8 @@ export function ExtensionSlot(props: ExtensionSlotProps) {
             key={key}
             // Content that failed to render for one context can render for the next.
             resetKey={props.action ? undefined : JSON.stringify([contextView(props.context ?? {}), props.query])}
+            // The slot content mounts again and loads its reply again for the same context. It sends no write.
+            retry={!props.action}
             frame={
                 props.action
                     ? undefined

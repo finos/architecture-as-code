@@ -335,8 +335,10 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   that, also while the inspector is closed, so slot state stays. `SlotActiveContext` is false for a hidden slot:
   `ExtensionSlot` and its `SourceTable`s then pass no `load` to `useRefreshingRequest`, so they send no request, and
   load when they show again if their context, revision or table query changed. A failed request does not load again
-  when it shows: the slot and the table show **Try again**, also for a first load. Keep the inspector's tree the same
-  when it closes, or React remounts the slots.
+  when it shows: the slot and the table show **Try again**, also for a first load. A reply that cannot render shows
+  **Try again** too (`ScreenErrorBoundary` with `retry`): it mounts the slot content again, which loads the reply again
+  for the same context and sends no write. Form drafts and their targets stay in `FormDrafts`. Give `retry` only where
+  the children load again on mount. Keep the inspector's tree the same when it closes, or React remounts the slots.
 - On a wide screen, each selection that the user makes opens the inspector, also a click on the item that is already
   selected (`selections` in `Hub`). `handleItemSelect` counts it with a functional update, so its identity stays.
   Each link, and each Back or Forward, whose URL names the selected node opens it too, also a link to the URL that
