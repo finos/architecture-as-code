@@ -111,6 +111,16 @@ async function sendConfirmed() {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Send' }));
 }
 
+const targetGroup = () => screen.getByRole('group', { name: 'Target' });
+
+/** Waits until the target picker has loaded the options of a select, then chooses one. */
+async function choose(label: string, value: string) {
+    await waitFor(() => expect(within(targetGroup()).getByLabelText(label)).toBeEnabled());
+    fireEvent.change(within(targetGroup()).getByLabelText(label), { target: { value } });
+}
+
+const nodeLabels = () => [...within(targetGroup()).getByLabelText<HTMLSelectElement>('Node').options].map((option) => option.textContent);
+
 describe('FormBlock', () => {
     it('labels each field and shows a message on each field that fails, without sending', async () => {
         await show(<Slot />);
@@ -459,5 +469,87 @@ describe('FormBlock', () => {
         await reply({ kind: 'success' });
         // A target that the user chose stays for the next submission.
         expect(within(target).getByLabelText('Version')).toHaveValue('1.0.0');
+    });
+
+    it('lists the nodes of an architecture, not the nodes that it declares as a pattern does, and sends the node that the user chooses', async () => {
+        const declares = (id: string) => ({ properties: { nodes: { prefixItems: [{ properties: { 'unique-id': { const: id } } }] } } });
+        vi.spyOn(CalmService.prototype, 'fetchNamespaces').mockResolvedValue(['finos']);
+        vi.spyOn(CalmService.prototype, 'fetchArchitectureSummaries').mockResolvedValue([{ id: 1, name: 'Payments' } as never]);
+        vi.spyOn(CalmService.prototype, 'fetchArchitectureVersions').mockResolvedValue(['1.0.0']);
+        vi.spyOn(CalmService.prototype, 'fetchArchitecture').mockResolvedValue({
+            data: {
+                nodes: [{ 'unique-id': 'web', name: 'Web app' }, { 'unique-id': 'ledger' }],
+                ...declares('declared-at-root'),
+                allOf: [declares('declared-in-allOf')],
+            },
+        } as never);
+        // No node in the context: the user chooses one from the fetched options, not from a fallback option.
+        await show(<Slot point="screen" context={{}} />);
+        await fill();
+
+        await choose('Namespace', 'finos');
+        await choose('Architecture', '1');
+        await choose('Version', '1.0.0');
+        await choose('Node', 'ledger');
+        expect(nodeLabels()).toEqual(['Choose', 'Web app (web)', 'ledger']);
+        await sendConfirmed();
+        expect(submissions[0].context).toEqual({
+            namespace: 'finos',
+            resource: 'architectures/1',
+            resourceType: 'architectures',
+            resourceId: '1',
+            version: '1.0.0',
+            selectedElement: 'ledger',
+        });
+    });
+
+    it('lists the nodes of a pattern as the diagram finds them, and sends the node that the user chooses', async () => {
+        const node = (id: string, name?: string) => ({
+            properties: { 'unique-id': { const: id }, ...(name && { name: { const: name } }) },
+        });
+        const declares = (...nodes: object[]) => ({ properties: { nodes: { prefixItems: nodes } } });
+        const patterns: Record<string, object> = {
+            // Only allOf declares nodes: the first branch that declares them counts, as in the diagram.
+            '7': {
+                allOf: [
+                    { properties: { relationships: { prefixItems: [] } } },
+                    declares(node('gateway', 'API gateway'), node('ledger')),
+                    declares(node('later')),
+                ],
+            },
+            // The root and allOf declare nodes: the root counts.
+            '8': { ...declares(node('root-node')), allOf: [declares(node('branch-node'))] },
+        };
+        vi.spyOn(CalmService.prototype, 'fetchNamespaces').mockResolvedValue(['finos']);
+        vi.spyOn(CalmService.prototype, 'fetchPatternSummaries').mockResolvedValue([
+            { id: 7, name: 'Gateway' },
+            { id: 8, name: 'Mixed' },
+        ] as never);
+        vi.spyOn(CalmService.prototype, 'fetchPatternVersions').mockResolvedValue(['1.0.0']);
+        vi.spyOn(CalmService.prototype, 'fetchPattern').mockImplementation(async (_namespace, id) => ({ data: patterns[id] }) as never);
+        await show(<Slot point="screen" context={{}} />);
+        await fill();
+        const target = targetGroup();
+
+        await choose('Namespace', 'finos');
+        fireEvent.change(within(target).getByLabelText('Type'), { target: { value: 'patterns' } });
+        await choose('Pattern', '8');
+        await choose('Version', '1.0.0');
+        await waitFor(() => expect(within(target).getByLabelText('Node')).toBeEnabled());
+        expect(nodeLabels()).toEqual(['Choose', 'root-node']);
+
+        await choose('Pattern', '7');
+        await choose('Version', '1.0.0');
+        await choose('Node', 'ledger');
+        expect(nodeLabels()).toEqual(['Choose', 'API gateway (gateway)', 'ledger']);
+        await sendConfirmed();
+        expect(submissions[0].context).toEqual({
+            namespace: 'finos',
+            resource: 'patterns/7',
+            resourceType: 'patterns',
+            resourceId: '7',
+            version: '1.0.0',
+            selectedElement: 'ledger',
+        });
     });
 });

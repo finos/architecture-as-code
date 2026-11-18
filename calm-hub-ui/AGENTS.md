@@ -329,7 +329,9 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   (`sent: true`) to that id or `forget` settles it: a Hub refusal before it sent the repeat keeps the warning, the id
   and the beforeunload prompt, also for input that the user did not edit. Read field-id dictionaries (values, errors,
   backend `fields`) with `own()`: a field can be called `constructor` or `toString`. A
-  screen form fills its target picker from the slot context. Call `useExtensionRefresh().refresh(id)` only after a 2xx. `formRules.ts` copies the messages of
+  screen form fills its target picker from the slot context. The picker lists a pattern's nodes with `getPrefixItems()`
+  (`patternTransformer.ts`), so it finds them where the diagram does: at the root, else in the first `allOf` branch
+  that declares them. Call `useExtensionRefresh().refresh(id)` only after a 2xx. `formRules.ts` copies the messages of
   `ExtensionForms` in calm-hub, and `formRules.test.ts` reads the shared cases.
 - `ExtensionInspector` shows one extension at a time; `ExtensionInspectorSection` shows its actions and one chosen resource or node view. Each view mounts when it first shows and stays mounted, hidden, after
   that, also while the inspector is closed, so slot state stays. `SlotActiveContext` is false for a hidden slot:
