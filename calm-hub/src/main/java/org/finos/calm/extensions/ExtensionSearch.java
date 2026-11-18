@@ -150,17 +150,19 @@ public class ExtensionSearch {
 
     /**
      * A copy of a result with only the fields that Hub knows, or null when the result is not valid or names a
-     * namespace that the caller cannot read. Hub cannot check a record with no namespace: the provider must.
+     * namespace that the caller cannot read. Hub cannot check a record with no namespace: the provider must. A summary
+     * that is not valid is left out, and the result stays.
      */
     private static ObjectNode result(JsonNode result, Predicate<String> canRead) {
-        if (!result.isObject() || !isText(result.get("id"), MAX_ID_LENGTH) || !isText(result.get("title"), MAX_TITLE_LENGTH)
-                || !optional(result.get("summary"), MAX_SUMMARY_LENGTH)) {
+        if (!result.isObject() || !isText(result.get("id"), MAX_ID_LENGTH) || !isText(result.get("title"), MAX_TITLE_LENGTH)) {
             return null;
         }
         ObjectNode copy = MAPPER.createObjectNode()
                 .put("id", result.get("id").textValue())
                 .put("title", result.get("title").textValue());
-        copyText(result, copy, "summary");
+        if (isText(result.get("summary"), MAX_SUMMARY_LENGTH)) {
+            copy.put("summary", result.get("summary").textValue());
+        }
         JsonNode namespace = result.get("namespace");
         if (namespace != null && !namespace.isNull()) {
             if (!isNamespace(namespace) || !canRead.test(namespace.textValue())) {
@@ -180,19 +182,8 @@ public class ExtensionSearch {
         return copy;
     }
 
-    private static void copyText(JsonNode from, ObjectNode to, String field) {
-        JsonNode value = from.get(field);
-        if (value != null && value.isTextual()) {
-            to.put(field, value.textValue());
-        }
-    }
-
     private static boolean isNamespace(JsonNode value) {
         return isText(value, MAX_ID_LENGTH) && NAMESPACE.matcher(value.textValue()).matches();
-    }
-
-    private static boolean optional(JsonNode value, int maxLength) {
-        return value == null || value.isNull() || isText(value, maxLength);
     }
 
     private static boolean isText(JsonNode value, int maxLength) {

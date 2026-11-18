@@ -473,9 +473,9 @@ The provider replies `200` with this body:
 | `hubApi` | Yes | The `hubApi` of the manifest |
 | `results` | Yes | At most 10 results |
 | `next` | No | The cursor of the next page. It must fit in the request for the next page (see below). Leave it out on the last page |
-| `id` | Yes | Unique in the results, at most 256 characters |
-| `title` | Yes | At most 300 characters. It is the text of the link |
-| `summary` | No | At most 1000 characters |
+| `id` | Yes | A string of at most 256 code points, unique in the results. CALM Hub leaves out the result when the `id` is missing, not a string, blank (empty or white space only), longer, or has an ASCII control character (U+0000–U+001F or U+007F) |
+| `title` | Yes | A string of at most 300 code points. It is the text of the link. CALM Hub leaves out the result when the `title` is missing, not a string, blank (empty or white space only), longer, or has an ASCII control character (U+0000–U+001F or U+007F) |
+| `summary` | No | A string of at most 1000 code points. When the `summary` is missing, null, not a string, blank (empty or white space only), longer, or has an ASCII control character (U+0000–U+001F or U+007F), CALM Hub keeps the result without a summary. It does not shorten a long summary |
 | `namespace` | No | The CALM Hub namespace of the record |
 | `link` | No | A [destination](extension-navigation.md#destinations) without a label: an `href`, a `hub` page or an extension `screen`. The `title` is its text |
 

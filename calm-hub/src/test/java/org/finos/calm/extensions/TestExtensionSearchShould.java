@@ -162,7 +162,6 @@ class TestExtensionSearchShould {
             "{\"id\":\"x\",\"title\":\" \"}",
             "{\"id\":\"x\",\"title\":\"Line\\nbreak\"}",
             "{\"id\":7,\"title\":\"Number id\"}",
-            "{\"id\":\"x\",\"title\":\"Long summary\",\"summary\":\"SUMMARY\"}",
             "{\"id\":\"x\",\"title\":\"Bad namespace\",\"namespace\":\"fin_os\"}",
             "{\"id\":\"x\",\"title\":\"Number namespace\",\"namespace\":1}",
             "{\"id\":\"x\",\"title\":\"Link is a string\",\"link\":\"https://example.org\"}",
@@ -197,8 +196,7 @@ class TestExtensionSearchShould {
             "{\"id\":\"x\",\"title\":\"Other table key\",\"link\":{\"screen\":{\"extension\":\"reviews\",\"screen\":\"queue\",\"params\":{\"reviews.sort\":\"x\"}}}}"
     })
     void leave_out_a_result_that_is_not_valid_and_keep_the_others(String invalid) {
-        String result = invalid.replace("SUMMARY", "s".repeat(ExtensionSearch.MAX_SUMMARY_LENGTH + 1))
-                .replace("NINE_PARAMS", params(ExtensionDestinations.MAX_SCREEN_PARAMS + 1, ExtensionDestinations.MAX_TABLE_KEYS).toString())
+        String result = invalid.replace("NINE_PARAMS", params(ExtensionDestinations.MAX_SCREEN_PARAMS + 1, ExtensionDestinations.MAX_TABLE_KEYS).toString())
                 .replace("THIRTEEN_KEYS", params(ExtensionDestinations.MAX_SCREEN_PARAMS, ExtensionDestinations.MAX_TABLE_KEYS + 1).toString())
                 .replace("NAME65", "n".repeat(65))
                 .replace("VALUE257", "v".repeat(257))
@@ -209,17 +207,31 @@ class TestExtensionSearchShould {
         assertThat(titles(search.search(alice, "team-services", "services", "pay", null)), contains("Settlement"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "\"\"", "\" \"", "\"\\t\\n \"", "\"SUMMARY\"", "\"Line\\nbreak\"", "\"Bell\\u0007\"",
+            "7", "true", "{\"text\":\"x\"}", "[\"x\"]"})
+    void keep_a_result_without_a_summary_that_is_not_valid(String summary) {
+        reply("{\"hubApi\":0,\"results\":[{\"id\":\"a\",\"title\":\"Order service\",\"summary\":"
+                + summary.replace("SUMMARY", "s".repeat(ExtensionSearch.MAX_SUMMARY_LENGTH + 1)) + "}," + FINOS + "]}");
+
+        ObjectNode page = search.search(alice, "team-services", "services", "pay", null);
+
+        assertThat(titles(page), contains("Order service", "Settlement"));
+        assertThat(page.get("results").get(0).has("summary"), is(false));
+    }
+
     @Test
     void accept_the_largest_valid_values() {
         ObjectNode params = params(ExtensionDestinations.MAX_SCREEN_PARAMS, ExtensionDestinations.MAX_TABLE_KEYS);
         reply("{\"hubApi\":0,\"results\":[{\"id\":\"" + "i".repeat(ExtensionSearch.MAX_ID_LENGTH) + "\",\"title\":\""
-                + "t".repeat(ExtensionSearch.MAX_TITLE_LENGTH) + "\",\"summary\":null,\"namespace\":null,\"link\":{\"screen\":"
+                + "t".repeat(ExtensionSearch.MAX_TITLE_LENGTH) + "\",\"summary\":\"" + "s".repeat(ExtensionSearch.MAX_SUMMARY_LENGTH)
+                + "\",\"namespace\":null,\"link\":{\"screen\":"
                 + "{\"extension\":\"reviews\",\"screen\":\"queue\",\"params\":" + params + "}}}]}");
 
         ObjectNode page = search.search(alice, "team-services", "services", "pay", null);
 
         assertThat(page.get("results").get(0).get("link").get("screen").get("params"), is(params));
-        assertThat(page.get("results").get(0).has("summary"), is(false));
+        assertThat(page.get("results").get(0).get("summary").textValue(), is("s".repeat(ExtensionSearch.MAX_SUMMARY_LENGTH)));
     }
 
     @Test
