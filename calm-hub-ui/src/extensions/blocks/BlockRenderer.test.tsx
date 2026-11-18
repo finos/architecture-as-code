@@ -113,14 +113,14 @@ describe('block tones', () => {
         draw({ type: 'alert', text: 'hello', tone } as unknown as ScreenBlock);
         expect(screen.getByRole('alert').className).toBe('alert alert-info');
         draw({ type: 'table', columns: ['c'], rows: [[{ badge: 'b', tone }]] } as unknown as ScreenBlock);
-        expect(screen.getByText('b').className).toBe('badge badge-sm badge-soft badge-ghost');
+        expect(screen.getByText('b').className).toBe('badge badge-sm badge-soft h-auto badge-ghost');
     });
 
     it('keeps a known tone', () => {
         draw({ type: 'alert', text: 'hello', tone: 'negative' });
         expect(screen.getByRole('alert').className).toBe('alert alert-error');
         draw({ type: 'table', columns: ['c'], rows: [[{ badge: 'b', tone: 'positive' }]] });
-        expect(screen.getByText('b').className).toBe('badge badge-sm badge-soft badge-success');
+        expect(screen.getByText('b').className).toBe('badge badge-sm badge-soft h-auto badge-success');
     });
 });
 

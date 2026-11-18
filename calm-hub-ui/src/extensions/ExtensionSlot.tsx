@@ -1,11 +1,15 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { ExtensionContext, ExtensionContribution, ExtensionScreen, ExtensionSummary } from '../model/extensions.js';
+import { ReactNode, useId, useMemo } from 'react';
+import { ExtensionContext, ExtensionContribution, ExtensionSummary } from '../model/extensions.js';
 import { ExtensionActionButton } from './ExtensionActionButton.js';
 import { Heading, HeadingLevel } from './Heading.js';
 import { ScreenErrorBoundary } from './ScreenErrorBoundary.js';
 import { BlockRenderer } from './blocks/BlockRenderer.js';
+import { BlockScope, BlockScopeContext, useScopeTables, useTableStateStore } from './blocks/BlockScope.js';
 import { isBlocksReply } from './blocks/reply.js';
 import { useExtensionService } from './ExtensionsContext.js';
+import { useExtensionRevision } from './extensionRefresh.js';
+import { RetryAlert } from './RetryAlert.js';
+import { useRefreshingRequest } from './useRefreshingRequest.js';
 
 interface SlotProps {
     extension: ExtensionSummary;
@@ -30,46 +34,87 @@ export type ExtensionSlotProps =
 
 function SlotContent({ extension, contribution, context = {}, query, action, headingLevel = 2, placement }: ExtensionSlotProps) {
     const service = useExtensionService();
+    const revision = useExtensionRevision(extension.id);
+    const domId = useId();
     const route = extension.routes.find((entry) => entry.id === contribution.route);
-    const [result, setResult] = useState<ExtensionScreen>();
-    const [error, setError] = useState(false);
     const { namespace, resource, resourceType, resourceId, version, selectedElement } = context;
     // A string, so a new object with the same values does not load the slot again.
     const queryKey = JSON.stringify(query ?? {});
-    useEffect(() => {
-        if (action || !route) return;
-        if (route.method !== 'GET') return;
-        const controller = new AbortController();
+    const view = JSON.stringify([namespace, resource, resourceType, resourceId, version, selectedElement, queryKey]);
+    // Filters belong to the data of one context, so another context starts without them.
+    const tableState = useTableStateStore(view);
+    const load = useMemo(() => {
+        if (action || !route || route.method !== 'GET') return undefined;
         const params = JSON.parse(queryKey) as Record<string, string>;
-        service
-            .call(extension.id, route, { ...params, namespace, resource, resourceType, resourceId, version, selectedElement }, controller.signal)
-            .then((reply) => {
-                if (!isBlocksReply(reply, extension.hubApi)) throw new Error('Invalid blocks reply');
-                if (!controller.signal.aborted) setResult(reply);
-            })
-            .catch(() => {
-                if (!controller.signal.aborted) setError(true);
-            });
-        return () => controller.abort();
+        return (signal: AbortSignal) =>
+            service
+                .call(extension.id, route, { ...params, namespace, resource, resourceType, resourceId, version, selectedElement }, signal)
+                .then((reply) => {
+                    if (!isBlocksReply(reply, extension.hubApi)) throw new Error('Invalid blocks reply');
+                    return reply;
+                });
     }, [service, extension.id, extension.hubApi, route, action, queryKey, namespace, resource, resourceType, resourceId, version, selectedElement]);
+    // A confirmed write raises the revision: the slot loads again in place, and its tables keep their filters.
+    const { value: result, loading, failed, retrying, retry } = useRefreshingRequest(view, revision, load);
+    const tables = useScopeTables(result?.blocks);
+    const scope = useMemo<BlockScope | undefined>(
+        () =>
+            result && {
+                extension,
+                context: { namespace, resource, resourceType, resourceId, version, selectedElement },
+                blocks: result.blocks,
+                tables,
+                domId,
+                state: tableState,
+            },
+        [result, extension, namespace, resource, resourceType, resourceId, version, selectedElement, tables, domId, tableState]
+    );
     if (action) {
         if (!route) return <p role="alert">Extension route unavailable.</p>;
-        return <ExtensionActionButton service={service} extension={extension} contribution={contribution} route={route} context={context} placement={placement!} />;
+        return (
+            <ExtensionActionButton
+                service={service}
+                extension={extension}
+                contribution={contribution}
+                route={route}
+                context={context}
+                placement={placement!}
+            />
+        );
     }
     // A slot keeps its heading in every state, so the outline does not change (on a screen page, it is the h1).
     const state = !route ? (
         <p role="alert">Extension route unavailable.</p>
-    ) : error ? (
-        <p role="alert">Extension request failed.</p>
     ) : route.method !== 'GET' ? (
         <p role="alert">Block routes must use GET.</p>
+    ) : !result && failed ? (
+        <p role="alert">Extension request failed.</p>
     ) : !result ? (
         <p role="status">Loading extension…</p>
     ) : undefined;
     return (
         <SlotFrame title={contribution.title} level={headingLevel}>
             {result?.title && result.title !== contribution.title && <p className="text-base-content/70">{result.title}</p>}
-            {state ?? result?.blocks.map((block, index) => <BlockRenderer key={index} block={block} headingLevel={headingLevel} />)}
+            {result && (failed || retrying) && (
+                <RetryAlert message="Could not refresh. This shows the data from before." retrying={retrying} onRetry={retry} />
+            )}
+            {result && (
+                <p role="status" className="sr-only">
+                    {loading && !retrying ? 'Refreshing…' : ''}
+                </p>
+            )}
+            {state ?? (
+                <BlockScopeContext.Provider value={scope ?? null}>
+                    {result?.blocks.map((block, index) => (
+                        // A table with filters keeps its search box, and text not sent yet, when a reply moves it.
+                        <BlockRenderer
+                            key={block?.type === 'table' && tables.get(block.id ?? '') === block ? `table ${block.id}` : index}
+                            block={block}
+                            headingLevel={headingLevel}
+                        />
+                    ))}
+                </BlockScopeContext.Provider>
+            )}
         </SlotFrame>
     );
 }
