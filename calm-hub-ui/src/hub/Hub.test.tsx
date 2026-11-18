@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, act, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, Link, MemoryRouter, Route, Routes, UNSAFE_NavigationContext, useLocation, useNavigate } from 'react-router-dom';
 import Hub from './Hub.js';
 import { vi, describe, it, expect, afterEach, beforeEach, type MockInstance } from 'vitest';
 import { authStore } from '../service/utils/auth-store.js';
@@ -15,6 +15,9 @@ import { ExtensionService } from '../service/extension-service.js';
 import { fakeExtension } from '../test-support/fake-extensions.js';
 import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
+import { ReturnLink } from '../navigation/ReturnLink.js';
+import { createMemoryStorage } from '../test-support/memory-storage.js';
+import { INSPECTOR_ID } from './components/inspector/inspectorIds.js';
 
 /**
  * Force `useIsMobile()` (which reads window.matchMedia) to report a mobile
@@ -37,6 +40,105 @@ function mockMobileViewport(isMobile: boolean) {
     };
 }
 
+/** A viewport that can cross the 1024px breakpoint, as a rotated tablet does. Only the width query matches. */
+function resizableViewport(narrow: boolean) {
+    const original = window.matchMedia;
+    const listeners = new Set<() => void>();
+    let current = narrow;
+    window.matchMedia = ((query: string) => ({
+        get matches() {
+            return query.includes('max-width') && current;
+        },
+        media: query,
+        onchange: null,
+        addEventListener: (_: string, listener: () => void) => listeners.add(listener),
+        removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
+        addListener: (listener: () => void) => listeners.add(listener),
+        removeListener: (listener: () => void) => listeners.delete(listener),
+        dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    return {
+        set(next: boolean) {
+            current = next;
+            act(() => listeners.forEach((listener) => listener()));
+        },
+        restore() {
+            window.matchMedia = original;
+        },
+    };
+}
+
+/**
+ * jsdom has no top layer. This models what a browser does with modal dialogs: showModal puts a dialog on top, and it
+ * throws on an open dialog. A removal from the page, also as part of a move, ends the modal state, and the dialog stays
+ * open. While a dialog is modal, focus() outside the top one does nothing, and Escape cancels the top one.
+ */
+function modelTopLayer() {
+    // The modal dialogs, in top layer order.
+    const shown = new Set<HTMLDialogElement>();
+    const top = () => [...shown].at(-1);
+    const removes = (node: Node) => {
+        if (node.isConnected) shown.forEach((dialog) => node.contains(dialog) && shown.delete(dialog));
+    };
+    const { appendChild, insertBefore, removeChild } = Node.prototype;
+    const moves = [
+        vi.spyOn(Node.prototype, 'appendChild').mockImplementation(function <T extends Node>(this: Node, node: T) {
+            removes(node);
+            return appendChild.call(this, node) as T;
+        }),
+        vi.spyOn(Node.prototype, 'insertBefore').mockImplementation(function <T extends Node>(this: Node, node: T, child: Node | null) {
+            removes(node);
+            return insertBefore.call(this, node, child) as T;
+        }),
+        vi.spyOn(Node.prototype, 'removeChild').mockImplementation(function <T extends Node>(this: Node, child: T) {
+            removes(child);
+            return removeChild.call(this, child) as T;
+        }),
+    ];
+    const { matches } = Element.prototype;
+    const focus = HTMLElement.prototype.focus;
+    Object.defineProperties(HTMLDialogElement.prototype, {
+        showModal: {
+            configurable: true,
+            value(this: HTMLDialogElement) {
+                if (this.open) throw new DOMException('The dialog is open.', 'InvalidStateError');
+                this.setAttribute('open', '');
+                shown.add(this);
+            },
+        },
+        close: {
+            configurable: true,
+            value(this: HTMLDialogElement) {
+                this.removeAttribute('open');
+                shown.delete(this);
+            },
+        },
+        matches: {
+            configurable: true,
+            value(this: HTMLDialogElement, selector: string) {
+                return selector === ':modal' ? shown.has(this) : matches.call(this, selector);
+            },
+        },
+    });
+    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, options?: FocusOptions) {
+        const modal = top();
+        if (modal && !modal.contains(this)) return;
+        focus.call(this, options);
+    });
+    return {
+        top,
+        escape() {
+            const modal = top();
+            if (modal && fireEvent(modal, new Event('cancel', { cancelable: true }))) modal.close();
+        },
+        restore() {
+            for (const name of ['showModal', 'close', 'matches']) delete (HTMLDialogElement.prototype as unknown as Record<string, unknown>)[name];
+            focusSpy.mockRestore();
+            moves.forEach((move) => move.mockRestore());
+        },
+    };
+}
+
 // Capture the load callbacks Hub passes to the shared deep-link hook so tests can
 // drive resource loading without a navigation surface owning those callbacks.
 interface CapturedCallbacks {
@@ -48,6 +150,8 @@ interface CapturedCallbacks {
     resourceKey: string;
 }
 let captured: CapturedCallbacks | undefined;
+// The click handler that Hub gives the diagram. The diagram lays out its nodes again when it changes.
+let diagramItemSelect: unknown;
 
 vi.mock('./hooks/useResourceFromRoute', () => ({
     useResourceFromRoute: (opts: CapturedCallbacks) => {
@@ -174,6 +278,7 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
     // production tree (CustomNode / NodeDetails) does.
     const { useDiagramActions } = await import('../visualizer/context/DiagramActionsContext.js');
     const { DestinationLink } = await import('../navigation/DestinationLink.js');
+    const { useEffect } = await import('react');
     const DiagramSection = ({
         data,
         onItemSelect,
@@ -192,6 +297,9 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
         inspector?: { open: boolean; controls: string; onToggle: () => void };
     }) => {
         const { onNavigateToDetailedArch } = useDiagramActions();
+        useEffect(() => {
+            diagramItemSelect = onItemSelect;
+        });
         return (
         <div data-testid="diagram-section">
             Diagram: {data?.id}
@@ -403,10 +511,22 @@ const renderAt = (path: string) =>
         </MemoryRouter>
     );
 
+/** The history of the mounted LocationProbe's router, and the key of the location that the router shows. */
+const routerView: { history: { location: { key: string } } | null; shownKey: string } = { history: null, shownKey: '' };
+
 // Echoes the live pathname so tests can assert where a context-triggered
 // navigation landed. Accepts entry objects so a test can seed history state.
 function LocationProbe() {
     const location = useLocation();
+    // A MemoryRouter's navigator is its memory history, which has the location of each navigation at once.
+    const { navigator } = React.useContext(UNSAFE_NavigationContext);
+    React.useLayoutEffect(() => {
+        routerView.history = navigator as unknown as typeof routerView.history;
+        routerView.shownKey = location.key;
+        return () => {
+            routerView.history = null;
+        };
+    });
     return (
         <>
             <div data-testid="location-pathname">{location.pathname}</div>
@@ -1098,6 +1218,95 @@ describe('Hub', () => {
             expect(details().getByText('Node Two')).toBeInTheDocument();
         });
 
+        // The resource stays loaded, so the selection does not change: only the link opens the inspector.
+        it('opens again on a link that names the selected node, and not on a close that changes the URL', () => {
+            const DETAIL = '/test-namespace/architectures/arch/1.0';
+            render(
+                <ExtensionsContext.Provider value={designerTabs}>
+                    <MemoryRouter initialEntries={[DETAIL]}>
+                        <Hub />
+                        <Link to={`${DETAIL}?node=n2&exact=1`}>Open Node Two</Link>
+                        <Link to={`${DETAIL}?node=n2&extension=ext-1&exact=1`}>Open Extension 1 for Node Two</Link>
+                        <LocationProbe />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            fireEvent.click(screen.getByRole('button', { name: 'Close inspector' }));
+
+            fireEvent.click(screen.getByRole('link', { name: 'Open Node Two' }));
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Details');
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByRole('link', { name: 'Open Extension 1 for Node Two' }));
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 1 — designer-tab 1');
+            fireEvent.click(screen.getByRole('button', { name: 'Close inspector' }));
+            expect(screen.getByTestId('location-search')).toHaveTextContent(/^\?node=n2&exact=1$/);
+            expect(inspector()).not.toBeInTheDocument();
+        });
+
+        // The router gives two entries that the browser made at the same URL the same location.
+        it('opens again on each move to an entry whose URL names the selected node, also at the same URL', async () => {
+            const linked = '/test-namespace/architectures/arch/1.0?node=n2&exact=1';
+            window.history.replaceState(null, '', `#${linked}`);
+            render(
+                <HashRouter>
+                    <Hub storage={createMemoryStorage()} />
+                </HashRouter>
+            );
+            loadArchitectureWithNodes();
+            const close = () => {
+                fireEvent.click(screen.getByRole('button', { name: 'Close inspector' }));
+                expect(inspector()).not.toBeInTheDocument();
+            };
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+            close();
+
+            act(() => {
+                window.history.pushState(null, '', `#${linked}`);
+                window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+            });
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+            close();
+
+            await act(
+                () =>
+                    new Promise<void>((resolve) => {
+                        window.addEventListener('popstate', () => resolve(), { once: true });
+                        window.history.back();
+                    })
+            );
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+        });
+
+        // The browser makes an entry with no history state for a URL that the user edits in the tab. Close then goes back to
+        // the URL of the first visit, which is not a visit to the same URL.
+        it('keeps the loaded resource when the inspector closes after an edit of the URL opened an extension', () => {
+            const first = '/test-namespace/architectures/arch/1.0?exact=1';
+            window.history.replaceState(null, '', `#${first}`);
+            render(
+                <ExtensionsContext.Provider value={designerTabs}>
+                    <HashRouter>
+                        <Hub storage={createMemoryStorage()} />
+                    </HashRouter>
+                </ExtensionsContext.Provider>
+            );
+            loadArchitectureWithNodes();
+            const resource = captured?.resourceKey;
+
+            act(() => {
+                window.history.pushState(null, '', `#${first}&extension=ext-1`);
+                window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+            });
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 1 — designer-tab 1');
+            fireEvent.click(screen.getByRole('button', { name: 'Close inspector' }));
+
+            expect(window.location.hash).toBe(`#${first}`);
+            expect(inspector()).not.toBeInTheDocument();
+            expect(captured?.resourceKey).toBe(resource);
+        });
+
         it('opens the extension that a link names, and keeps it and the selection while the selection or the extension changes', async () => {
             renderWithNav('/?extension=ext-1', ['/?extension=ext-2'], designerTabs);
             loadArchitectureWithNodes();
@@ -1115,6 +1324,23 @@ describe('Hub', () => {
             expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
             await waitFor(() => expect(call.mock.calls.at(-1)?.[0]).toBe('ext-2'));
             expect(call.mock.calls.at(-1)?.[2]).toMatchObject({ selectedElement: 'n2' });
+        });
+
+        // The router shows the new query in a transition, after the click: the inspector must not close for a render.
+        it('stays open and keeps focus on its selector when the user chooses an extension from Details', () => {
+            renderWithNav('/', [], designerTabs);
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            const wrapper = inspector()!.parentElement!;
+            const changes = new MutationObserver(() => undefined);
+            changes.observe(wrapper, { attributes: true, attributeFilter: ['hidden'] });
+
+            inspectorSelector().focus();
+            chooseInspectorView('designer-tab 1');
+            expect(changes.takeRecords()).toEqual([]);
+            changes.disconnect();
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 1 — designer-tab 1');
+            expect(inspectorSelector()).toHaveFocus();
         });
 
         it('returns from Details to an extension and keeps it when the inspector opens again', () => {
@@ -1192,6 +1418,337 @@ describe('Hub', () => {
                 expect(openFromSheet).toHaveFocus();
             } finally {
                 restore();
+            }
+        });
+
+        // Real events with no act, so React renders each event and leaves the router's transition for later. Then it waits
+        // until the router shows the last entry of its history, for no fixed time: with coverage or load, a render can take
+        // longer. The entry must stay for two checks, because Hub's effects for that render can navigate again.
+        const withoutAct = async (run: () => Promise<void>) => {
+            const environment = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+            const actEnvironment = environment.IS_REACT_ACT_ENVIRONMENT;
+            environment.IS_REACT_ACT_ENVIRONMENT = false;
+            try {
+                if (!routerView.history) throw new Error('withoutAct needs a LocationProbe in the router');
+                await run();
+                for (let checks = 0, held = 0; held < 2; checks++) {
+                    if (checks === 600) throw new Error('The router did not show the last entry of its history');
+                    await new Promise((resolve) => setTimeout(resolve, 5));
+                    held = routerView.history?.location.key === routerView.shownKey ? held + 1 : 0;
+                }
+            } finally {
+                environment.IS_REACT_ACT_ENVIRONMENT = actEnvironment;
+            }
+        };
+        // Each one takes longer than a frame while it is slow, so the router's transition yields after it, after Hub.
+        const slowRender = { on: false, entered: false };
+        const renderSlowly = (search: string) => {
+            if (!slowRender.on || !search.includes('extension=ext-1')) return;
+            slowRender.entered = true;
+            const end = performance.now() + 8;
+            while (performance.now() < end);
+        };
+        function SlowAfterHub() {
+            renderSlowly(useLocation().search);
+            return null;
+        }
+
+        // The router shows the extension in a transition. Escape can come before it renders, or after it rendered Hub
+        // and yielded: the close replaces the extension that is on its way.
+        it.each([
+            ['before the router renders the extension', false],
+            ['while the router render of the extension waits', true],
+        ])('stays closed after Escape that comes %s', async (_, yieldsAfterHub) => {
+            const restore = mockMobileViewport(true);
+            try {
+                render(
+                    <ExtensionsContext.Provider value={designerTabs}>
+                        <MemoryRouter initialEntries={['/?node=n1&exact=1']}>
+                            <Hub />
+                            {Array.from({ length: 10 }, (_, index) => (
+                                <SlowAfterHub key={index} />
+                            ))}
+                            <LocationProbe />
+                        </MemoryRouter>
+                    </ExtensionsContext.Provider>
+                );
+                loadArchitectureWithNodes();
+                const openFromSheet = within(screen.getByTestId('node-sheet')).getByRole('button', { name: 'Inspector' });
+                openFromSheet.focus();
+                fireEvent.click(openFromSheet);
+                fireEvent.click(inspectorSelector());
+                const choice = screen.getByRole('menuitemradio', { name: 'designer-tab 1' });
+                const diagram = screen.getByTestId('diagram-section');
+                const resource = captured?.resourceKey;
+
+                await withoutAct(async () => {
+                    slowRender.on = yieldsAfterHub;
+                    slowRender.entered = false;
+                    choice.click();
+                    await Promise.resolve();
+                    for (let tries = 0; yieldsAfterHub && !slowRender.entered && tries < 100; tries++) {
+                        await new Promise((resolve) => setTimeout(resolve, 0));
+                    }
+                    expect(slowRender.entered).toBe(yieldsAfterHub);
+                    expect(screen.getByTestId('location-search')).toHaveTextContent(/^\?node=n1&exact=1$/);
+                    expect(screen.getByRole('dialog', { name: 'Inspector' })).toHaveAttribute('open');
+                    screen.getByRole('dialog', { name: 'Inspector' }).dispatchEvent(new Event('cancel', { cancelable: true }));
+                    slowRender.on = false;
+                });
+
+                await waitFor(() => expect(screen.getByTestId('location-search')).toHaveTextContent(/^\?node=n1&exact=1$/));
+                expect(screen.queryByRole('dialog', { name: 'Inspector' })).not.toBeInTheDocument();
+                expect(openFromSheet).toHaveFocus();
+                // A navigation that leaves the query as it is would load the resource again and clear the selection.
+                expect(screen.getByTestId('diagram-section')).toBe(diagram);
+                expect(captured?.resourceKey).toBe(resource);
+                expect(within(screen.getByTestId('node-sheet')).getByText('Node One')).toBeInTheDocument();
+            } finally {
+                slowRender.on = false;
+                restore();
+            }
+        });
+
+        it('opens on the extension again when it closes and opens before the router shows the extension', async () => {
+            render(
+                <ExtensionsContext.Provider value={designerTabs}>
+                    <MemoryRouter initialEntries={['/?node=n1&exact=1']}>
+                        <Hub />
+                        <LocationProbe />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+            loadArchitectureWithNodes();
+            fireEvent.click(inspectorSelector());
+            const choice = screen.getByRole('menuitemradio', { name: 'designer-tab 1' });
+            const resource = captured?.resourceKey;
+
+            await withoutAct(async () => {
+                choice.click();
+                await Promise.resolve();
+                screen.getByRole('button', { name: 'Close inspector' }).click();
+                await Promise.resolve();
+                screen.getByRole('button', { name: 'Details & extensions' }).click();
+            });
+
+            expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 1 — designer-tab 1');
+            expect(captured?.resourceKey).toBe(resource);
+        });
+
+        // Only Hub's own write of the inspector, known by its id in history state, keeps the user's latest choice. Any
+        // later navigation decides the inspector, also a replace to the URL of that write.
+        it.each([
+            ['a link', '?node=n1&exact=1&extension=ext-1', false],
+            ['a replace to another extension', '?node=n1&exact=1&extension=ext-2', true],
+            ['a replace to the URL of the pending write', '?node=n1&exact=1&extension=ext-1', true],
+        ])('lets %s after a close that waits for the router decide the inspector', async (_, to, replace) => {
+            function OtherNavigation() {
+                const navigate = useNavigate();
+                const location = useLocation();
+                return (
+                    <>
+                        <button onClick={() => navigate(to, { replace, state: { sentinel: 'other', returnTo: [] } })}>Other navigation</button>
+                        <output data-testid="state">{JSON.stringify(location.state)}</output>
+                    </>
+                );
+            }
+            render(
+                <ExtensionsContext.Provider value={designerTabs}>
+                    <MemoryRouter initialEntries={[{ pathname: '/', search: '?node=n1&exact=1', state: { sentinel: 'keep' } }]}>
+                        <Hub />
+                        <OtherNavigation />
+                        <LocationProbe />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+            loadArchitectureWithNodes();
+            fireEvent.click(inspectorSelector());
+            const choice = screen.getByRole('menuitemradio', { name: 'designer-tab 1' });
+
+            await withoutAct(async () => {
+                choice.click();
+                await Promise.resolve();
+                screen.getByRole('button', { name: 'Close inspector' }).click();
+                await Promise.resolve();
+                screen.getByRole('button', { name: 'Other navigation' }).click();
+            });
+
+            expect(screen.getByTestId('location-search').textContent).toBe(to);
+            expect(JSON.parse(screen.getByTestId('state').textContent!)).toEqual({ sentinel: 'other', returnTo: [] });
+            expect(inspectorSelector()).toHaveAccessibleName(
+                to.endsWith('ext-2') ? 'Inspector view: Extension 2 — designer-tab 2' : 'Inspector view: Extension 1 — designer-tab 1'
+            );
+        });
+
+        // A selection of another node takes `node` out of the URL with one of Hub's writes. A view that the user chose
+        // just before it, which the router has not shown yet, goes in that write, and a view chosen just after it waits.
+        it.each([
+            ['an extension chosen just before', '?node=n1&exact=1', 'designer-tab 1', false, ['?exact=1&extension=ext-1']],
+            ['Details chosen just before', '?node=n1&extension=ext-1&exact=1', 'Details', false, ['?exact=1']],
+            ['an extension chosen just after', '?node=n1&exact=1', 'designer-tab 1', true, ['?exact=1', '?exact=1&extension=ext-1']],
+        ])('keeps Node Two selected and %s, before the router shows either', async (_, start, view, selectFirst, writes) => {
+            const end = writes[writes.length - 1];
+            const shown: string[] = [];
+            function StateProbe() {
+                const { search, state } = useLocation();
+                React.useEffect(() => void shown.push(search), [search]);
+                return <output data-testid="state">{JSON.stringify(state)}</output>;
+            }
+            render(
+                <ExtensionsContext.Provider value={designerTabs}>
+                    <MemoryRouter initialEntries={[{ pathname: '/', search: start, state: { sentinel: 'keep', returnTo: [] } }]}>
+                        <Hub />
+                        <StateProbe />
+                        <LocationProbe />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+            loadArchitectureWithNodes();
+            const diagram = screen.getByTestId('diagram-section');
+            const resource = captured?.resourceKey;
+            const handler = diagramItemSelect;
+            fireEvent.click(inspectorSelector());
+            const choice = screen.getByRole('menuitemradio', { name: view });
+
+            await withoutAct(async () => {
+                if (selectFirst) screen.getByTestId('select-n2').click();
+                else choice.click();
+                await Promise.resolve();
+                expect(screen.getByTestId('location-search').textContent).toBe(start);
+                if (selectFirst) choice.click();
+                else screen.getByTestId('select-n2').click();
+            });
+
+            expect(screen.getByTestId('location-search').textContent).toBe(end);
+            // No URL in between names the selection without the view: a copied link or a reload keeps both.
+            expect(shown).toEqual([start, ...writes]);
+            expect(inspectorSelector()).toHaveAccessibleName(
+                view === 'Details' ? 'Inspector view: Details' : 'Inspector view: Extension 1 — designer-tab 1'
+            );
+            // The selection bar above each view names the selection.
+            expect(screen.getByTitle('n2')).toHaveTextContent('Node Two');
+            expect(JSON.parse(screen.getByTestId('state').textContent!)).toMatchObject({ sentinel: 'keep', returnTo: [] });
+            expect(screen.getByTestId('diagram-section')).toBe(diagram);
+            expect(captured?.resourceKey).toBe(resource);
+            expect(diagramItemSelect).toBe(handler);
+        });
+
+        // The inspector moves between the side panel and the full-screen dialog. Its chosen view and the state of its slots
+        // stay, also while it is closed, and it sends no request for the move.
+        it.each([
+            ['a wide screen', false],
+            ['a narrow screen', true],
+        ])('keeps the chosen view and its table filter across the breakpoint, from %s and back', async (_, narrow) => {
+            const viewport = resizableViewport(narrow);
+            try {
+                const twoViews: ExtensionSummary = {
+                    ...fakeExtension(1, []),
+                    contributes: {
+                        'designer-tab': [
+                            { id: 'first', title: 'First view', route: 'data' },
+                            { id: 'second', title: 'Second view', route: 'data' },
+                        ],
+                    },
+                };
+                call.mockResolvedValue({
+                    hubApi: 0,
+                    blocks: [{ type: 'table', id: 'rows', columns: ['Name'], rows: [['alpha'], ['beta']], search: { label: 'Filter rows' } }],
+                });
+                renderWithNav('/?extension=ext-1', [], [twoViews]);
+                loadArchitectureWithNodes();
+                fireEvent.click(inspectorSelector());
+                fireEvent.click(screen.getByRole('menuitemradio', { name: 'Second view' }));
+                const second = await screen.findByRole('region', { name: 'Second view' });
+                fireEvent.change(await within(second).findByRole('searchbox', { name: 'Filter rows' }), { target: { value: 'beta' } });
+                await waitFor(() => expect(within(second).queryByText('alpha')).not.toBeInTheDocument());
+                const requests = call.mock.calls.length;
+                const keptState = () => {
+                    expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 1 — Second view');
+                    const region = screen.getByRole('region', { name: 'Second view' });
+                    expect(within(region).getByRole('searchbox', { name: 'Filter rows' })).toHaveValue('beta');
+                    expect(within(region).getByText('beta')).toBeInTheDocument();
+                    expect(within(region).queryByText('alpha')).not.toBeInTheDocument();
+                };
+
+                viewport.set(!narrow);
+                keptState();
+
+                fireEvent.click(screen.getByRole('button', { name: narrow ? 'Close inspector' : 'Back to diagram' }));
+                viewport.set(narrow);
+                fireEvent.click(toggle());
+                keptState();
+                expect(screen.getAllByTestId('inspector-extension')).toHaveLength(1);
+                expect(call.mock.calls.length).toBe(requests);
+            } finally {
+                viewport.restore();
+            }
+        });
+
+        // A move to the other host ends the modal state of an open confirmation in the browser. It must show on top again,
+        // with focus on Cancel, so that Enter does not send the write and Escape cancels it.
+        const noteForm: ExtensionSummary = {
+            id: 'ext-1',
+            name: 'Extension 1',
+            hubApi: 0,
+            routes: [
+                { id: 'data', method: 'GET', path: '/data', scope: 'authenticated', readOnly: true },
+                { id: 'note', method: 'POST', path: '/note', scope: 'authenticated', readOnly: false },
+            ],
+            contributes: {
+                'designer-tab': [{ id: 'notes', title: 'Notes', route: 'data' }],
+                form: [{ id: 'note', title: 'Add a note', route: 'note', target: 'none', submitLabel: 'Add note', fields: [{ id: 'text', type: 'multiline', label: 'Note', required: true }] }],
+            },
+        };
+        it.each([
+            ['an action', 'a wide', false],
+            ['an action', 'a narrow', true],
+            ['a form', 'a wide', false],
+            ['a form', 'a narrow', true],
+        ])('keeps the confirmation of %s modal, on top and on Cancel across the breakpoint, from %s screen', async (kind, _, narrow) => {
+            const viewport = resizableViewport(narrow);
+            const layer = modelTopLayer();
+            const submitForm = vi.spyOn(ExtensionService.prototype, 'submitForm');
+            try {
+                const action = kind === 'an action';
+                if (!action) call.mockResolvedValue({ hubApi: 0, blocks: [{ type: 'form', form: 'note' }] });
+                // As in the app: StrictMode attaches the ref of a new host twice.
+                render(
+                    <ExtensionsContext.Provider value={[action ? fakeExtension(1, ['designer-tab', 'action']) : noteForm]}>
+                        <MemoryRouter initialEntries={['/?extension=ext-1']}>
+                            <Hub />
+                        </MemoryRouter>
+                    </ExtensionsContext.Provider>,
+                    { reactStrictMode: true }
+                );
+                loadArchitectureWithNodes();
+                if (action) {
+                    fireEvent.click(await screen.findByRole('button', { name: 'Run 1' }));
+                } else {
+                    fireEvent.change(await screen.findByRole('textbox', { name: /^Note\b/ }), { target: { value: 'Keep this note' } });
+                    fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
+                }
+                const confirmation = await screen.findByRole('dialog', { name: action ? 'Confirm action' : 'Confirm submission' });
+                const opener = screen.getByRole('button', { name: action ? 'Run 1' : 'Add note' });
+                const inspectorDialog = () => document.querySelector<HTMLDialogElement>(`dialog#${INSPECTOR_ID}`);
+                await waitFor(() => expect(layer.top()).toBe(confirmation));
+
+                viewport.set(!narrow);
+                expect(screen.getByRole('dialog', { name: action ? 'Confirm action' : 'Confirm submission' })).toBe(confirmation);
+                expect(layer.top()).toBe(confirmation);
+                expect(within(confirmation).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+                if (!narrow) expect(inspectorDialog()?.matches(':modal')).toBe(true);
+
+                layer.escape();
+                expect(confirmation).not.toBeInTheDocument();
+                expect(layer.top()).toBe(narrow ? undefined : inspectorDialog());
+                await waitFor(() => expect(opener).toHaveFocus());
+                if (!action) expect(screen.getByRole('textbox', { name: /^Note\b/ })).toHaveValue('Keep this note');
+                expect(call.mock.calls.filter(([, route]) => route.method === 'POST')).toHaveLength(0);
+                expect(submitForm).not.toHaveBeenCalled();
+            } finally {
+                submitForm.mockRestore();
+                layer.restore();
+                viewport.restore();
             }
         });
 
@@ -1567,6 +2124,74 @@ describe('Hub', () => {
             expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
         });
 
+        // A pattern declares its elements in JSON Schema, as patternTransformer reads them: directly or in an allOf
+        // branch, and as the alternatives of a oneOf or anyOf choice.
+        describe('in a pattern', () => {
+            const PATTERN_DETAIL = '/test-namespace/patterns/pat/1.0';
+            const declared = (id: string, fields: Record<string, unknown> = {}) => ({
+                $ref: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node',
+                properties: Object.fromEntries(Object.entries({ 'unique-id': id, ...fields }).map(([key, value]) => [key, { const: value }])),
+            });
+            const pattern = {
+                type: 'object',
+                properties: {
+                    nodes: {
+                        type: 'array',
+                        prefixItems: [
+                            declared('web', { name: 'Web app', 'node-type': 'webclient', description: 'The front end' }),
+                            { oneOf: [declared('pg', { name: 'Postgres', 'node-type': 'database' }), declared('mongo', { name: 'Mongo', 'node-type': 'database' })] },
+                        ],
+                        items: { anyOf: [declared('cache', { name: 'Cache', 'node-type': 'service' })] },
+                    },
+                },
+                allOf: [
+                    {
+                        properties: {
+                            relationships: {
+                                prefixItems: [
+                                    declared('web-reads-pg', {
+                                        description: 'Reads orders',
+                                        'relationship-type': { connects: { source: { node: 'web' }, destination: { node: 'pg' } } },
+                                    }),
+                                ],
+                            },
+                        },
+                    },
+                ],
+            };
+            const loadPattern = () =>
+                act(() => {
+                    captured?.onDataLoad({ id: 'pat', version: '1.0', calmType: 'Patterns', name: 'test-namespace', data: pattern } as unknown as Data);
+                });
+
+            it.each([
+                ['web', 'Web app'],
+                ['mongo', 'Mongo'],
+                ['cache', 'Cache'],
+            ])('opens the node %s that a link names, with the name that the diagram shows', (id, name) => {
+                renderDetail(`${PATTERN_DETAIL}?node=${id}`);
+                loadPattern();
+                expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
+                expect(details().getByText(name)).toBeInTheDocument();
+                expect(screen.queryByTestId('return-bar')).not.toBeInTheDocument();
+            });
+
+            it('opens the relationship that a link names', () => {
+                renderDetail(`${PATTERN_DETAIL}?node=web-reads-pg`);
+                loadPattern();
+                expect(details().getByText('web-reads-pg')).toBeInTheDocument();
+                expect(details().getByText('Reads orders')).toBeInTheDocument();
+                expect(screen.queryByTestId('return-bar')).not.toBeInTheDocument();
+            });
+
+            it('says when the linked element is not in this version, and selects nothing', () => {
+                renderDetail(`${PATTERN_DETAIL}?node=missing`);
+                loadPattern();
+                expect(screen.getByRole('status')).toHaveTextContent('The element "missing" is not in version 1.0 of this pattern.');
+                expect(screen.queryByRole('button', { name: 'Clear selection' })).not.toBeInTheDocument();
+            });
+        });
+
         it('says when the linked extension is not enabled, and not when it applies', () => {
             const view = renderDetail(`${DETAIL}?tab=extensions&extension=ext-1`);
             loadArchitectureWithNodes();
@@ -1576,6 +2201,278 @@ describe('Hub', () => {
             renderDetail(`${DETAIL}?tab=extensions&extension=ext-1`, [fakeExtension(1)]);
             loadArchitectureWithNodes();
             expect(screen.queryByTestId('return-bar')).not.toBeInTheDocument();
+        });
+    });
+
+    // Hub unmounts on the extension screen and mounts again on Back, as in the app.
+    describe('the selection of a history entry', () => {
+        const DETAIL = '/test-namespace/architectures/arch/1.0';
+        const ScreenPage = () => (
+            <div data-testid="screen-page">
+                <ReturnLink />
+            </div>
+        );
+        function History() {
+            const navigate = useNavigate();
+            const location = useLocation();
+            const replace = (search: string) => navigate({ search }, { replace: true, state: location.state });
+            return (
+                <>
+                    <button onClick={() => navigate(-1)}>Browser back</button>
+                    <button onClick={() => navigate(1)}>Browser forward</button>
+                    <button onClick={() => replace('?tab=json')}>Change tab</button>
+                    <button onClick={() => replace('?lens=c4')}>Change lens</button>
+                    <button onClick={() => navigate('/test-namespace/architectures/other/1.0')}>Open another architecture</button>
+                    <div data-testid="url">{`${location.pathname}${location.search}`}</div>
+                </>
+            );
+        }
+        const renderHistory = (entry = DETAIL) => {
+            const storage = createMemoryStorage();
+            render(
+                <ExtensionsContext.Provider value={[C4_EXTENSION]}>
+                    <MemoryRouter initialEntries={[entry]}>
+                        <Routes>
+                            <Route path="/extensions/:extension/:screen" element={<ScreenPage />} />
+                            <Route path="*" element={<Hub storage={storage} />} />
+                        </Routes>
+                        <History />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+            loadArchitectureWithNodes();
+        };
+        const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
+        const openReviews = () => {
+            fireEvent.click(screen.getByRole('link', { name: 'Open reviews' }));
+            expect(screen.getByTestId('screen-page')).toBeInTheDocument();
+        };
+        const browserBack = () => {
+            click('Browser back');
+            expect(screen.queryByTestId('screen-page')).not.toBeInTheDocument();
+            loadArchitectureWithNodes();
+        };
+        const selection = () => screen.queryByRole('button', { name: 'Clear selection' });
+
+        it('opens the node that the user selected again after browser Back and Forward, with no node in the URL', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            openReviews();
+            browserBack();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+            expect(screen.getByTestId('url')).toHaveTextContent(/^\/test-namespace\/architectures\/arch\/1\.0$/);
+
+            click('Browser forward');
+            expect(screen.getByRole('link', { name: 'Back to arch 1.0' })).toHaveAttribute('href', `${DETAIL}?node=n2&exact=1`);
+            browserBack();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+        });
+
+        it('opens the node that the user selected again after Back from another resource, which keeps Hub mounted', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            click('Open another architecture');
+            loadArchitectureWithNodes();
+            expect(selection()).not.toBeInTheDocument();
+            browserBack();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+        });
+
+        it('opens the node that the user selected again from the explicit Back link', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            openReviews();
+            fireEvent.click(screen.getByRole('link', { name: 'Back to arch 1.0' }));
+            loadArchitectureWithNodes();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+            expect(screen.getByTestId('url')).toHaveTextContent(`${DETAIL}?node=n2&exact=1`);
+        });
+
+        it('opens the node that the user selected in place of a linked node, and keeps the node out of the URL', () => {
+            renderHistory(`${DETAIL}?node=n1`);
+            expect(details().getByText('Node One')).toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            expect(screen.getByTestId('url')).toHaveTextContent(/^\/test-namespace\/architectures\/arch\/1\.0$/);
+            openReviews();
+            browserBack();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+            expect(screen.queryByText('Node One')).not.toBeInTheDocument();
+        });
+
+        it('keeps the node through a change of lens', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            click('Change lens');
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+            openReviews();
+            browserBack();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+            expect(screen.getByTestId('url')).toHaveTextContent(`${DETAIL}?lens=c4`);
+        });
+
+        it.each([
+            ['a change of tab', () => click('Change tab')],
+            ['Clear selection', () => click('Clear selection')],
+        ])('opens no node again after %s', (_, clear) => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            clear();
+            expect(selection()).not.toBeInTheDocument();
+            openReviews();
+            browserBack();
+            expect(selection()).not.toBeInTheDocument();
+        });
+
+        it('keeps the node after a close of the inspector, and opens it again after Back', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            click('Close inspector');
+            expect(screen.queryByRole('complementary', { name: 'Inspector' })).not.toBeInTheDocument();
+            openReviews();
+            browserBack();
+            expect(details().getByText('Node Two')).toBeInTheDocument();
+        });
+
+        it('does not open a node of a dropped file on the architecture', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('drop-file'));
+            fireEvent.click(screen.getByTestId('select-n2'));
+            openReviews();
+            browserBack();
+            expect(selection()).not.toBeInTheDocument();
+        });
+
+        // The browser makes an entry with no history state for a first visit and for a URL that the user pastes, and
+        // React Router gives each of them the key `default`.
+        describe('in the browser history', () => {
+            const renderBrowser = (storage = createMemoryStorage()) => {
+                const view = render(
+                    <ExtensionsContext.Provider value={[C4_EXTENSION]}>
+                        <HashRouter>
+                            <Routes>
+                                <Route path="/extensions/:extension/:screen" element={<ScreenPage />} />
+                                <Route path="*" element={<Hub storage={storage} />} />
+                            </Routes>
+                        </HashRouter>
+                    </ExtensionsContext.Provider>
+                );
+                loadArchitectureWithNodes();
+                return view;
+            };
+            const traverse = (delta: number) =>
+                act(
+                    () =>
+                        new Promise<void>((resolve) => {
+                            window.addEventListener('popstate', () => resolve(), { once: true });
+                            window.history.go(delta);
+                        })
+                );
+            beforeEach(() => window.history.replaceState(null, '', `#${DETAIL}`));
+
+            it('opens nothing on a new visit to the same URL, and keeps the selection of the first visit', async () => {
+                renderBrowser();
+                fireEvent.click(screen.getByTestId('select-n2'));
+                openReviews();
+
+                act(() => {
+                    window.history.pushState(null, '', `#${DETAIL}`);
+                    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+                });
+                loadArchitectureWithNodes();
+                expect(selection()).not.toBeInTheDocument();
+                fireEvent.click(screen.getByTestId('select-n1'));
+                fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
+
+                await traverse(-1);
+                expect(screen.getByTestId('screen-page')).toBeInTheDocument();
+                await traverse(-1);
+                loadArchitectureWithNodes();
+                expect(details().getByText('Node Two')).toBeInTheDocument();
+            });
+
+            // The same path with another query keeps Hub and the loaded resource.
+            it('opens the node again after Back from a new visit to the same resource with another query', async () => {
+                const storage = createMemoryStorage();
+                const view = renderBrowser(storage);
+                fireEvent.click(screen.getByTestId('select-n2'));
+
+                act(() => {
+                    window.history.pushState(null, '', `#${DETAIL}?tab=extensions`);
+                    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+                });
+                expect(selection()).not.toBeInTheDocument();
+
+                await traverse(-1);
+                expect(window.location.hash).toBe(`#${DETAIL}`);
+                expect(details().getByText('Node Two')).toBeInTheDocument();
+                view.unmount();
+
+                renderBrowser(storage);
+                expect(details().getByText('Node Two')).toBeInTheDocument();
+            });
+
+            // React Router gives two entries that the browser made at the same URL the same location, and renders nothing.
+            const visit = (hash: string) =>
+                act(() => {
+                    window.history.pushState(null, '', `#${hash}`);
+                    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+                });
+
+            it('opens the node of each entry at the same URL after a move straight between them', async () => {
+                const storage = createMemoryStorage();
+                const view = renderBrowser(storage);
+                fireEvent.click(screen.getByTestId('select-n2'));
+                visit(`${DETAIL}?tab=extensions`);
+                visit(DETAIL);
+                expect(selection()).not.toBeInTheDocument();
+                fireEvent.click(screen.getByTestId('select-n1'));
+
+                await traverse(-2);
+                expect(details().getByText('Node Two')).toBeInTheDocument();
+                expect(screen.queryByText('Node One')).not.toBeInTheDocument();
+                await traverse(2);
+                expect(details().getByText('Node One')).toBeInTheDocument();
+                await traverse(-2);
+                view.unmount();
+
+                renderBrowser(storage);
+                expect(details().getByText('Node Two')).toBeInTheDocument();
+            });
+
+            it('opens nothing after a move straight to an entry at the same URL that has no selection', async () => {
+                const storage = createMemoryStorage();
+                const view = renderBrowser(storage);
+                visit(`${DETAIL}?tab=extensions`);
+                visit(DETAIL);
+                fireEvent.click(screen.getByTestId('select-n1'));
+
+                await traverse(-2);
+                expect(selection()).not.toBeInTheDocument();
+                view.unmount();
+                renderBrowser(storage);
+                expect(selection()).not.toBeInTheDocument();
+                await traverse(2);
+                expect(details().getByText('Node One')).toBeInTheDocument();
+            });
+
+            it('opens nothing on a new visit that changes only the lens, and the node again after Back', async () => {
+                renderBrowser();
+                fireEvent.click(screen.getByTestId('select-n2'));
+                visit(`${DETAIL}?lens=c4`);
+                expect(selection()).not.toBeInTheDocument();
+                await traverse(-1);
+                expect(details().getByText('Node Two')).toBeInTheDocument();
+            });
+
+            it('opens the node of a first visit again after a reload', () => {
+                const storage = createMemoryStorage();
+                const view = renderBrowser(storage);
+                fireEvent.click(screen.getByTestId('select-n2'));
+                view.unmount();
+
+                renderBrowser(storage);
+                expect(details().getByText('Node Two')).toBeInTheDocument();
+            });
         });
     });
 });

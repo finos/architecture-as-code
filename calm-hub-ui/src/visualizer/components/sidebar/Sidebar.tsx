@@ -11,25 +11,34 @@ const KEY_STEP = 32;
 const maxWidth = () => Math.max(MIN_WIDTH, Math.round(window.innerWidth * 0.6));
 const clampWidth = (width: number) => Math.min(maxWidth(), Math.max(MIN_WIDTH, Math.round(width)));
 
-function readWidth(storage: Storage): number {
+/** Reading the `sessionStorage` global itself throws when site data is blocked. */
+function defaultStorage(): Storage | undefined {
     try {
-        const stored = Number(storage.getItem(WIDTH_KEY));
+        return sessionStorage;
+    } catch {
+        return undefined;
+    }
+}
+
+function readWidth(storage: Storage | undefined): number {
+    try {
+        const stored = Number(storage?.getItem(WIDTH_KEY));
         return stored ? clampWidth(stored) : DEFAULT_WIDTH;
     } catch {
         return DEFAULT_WIDTH;
     }
 }
 
-function saveWidth(width: number, storage: Storage) {
+function saveWidth(width: number, storage: Storage | undefined) {
     try {
-        storage.setItem(WIDTH_KEY, String(width));
+        storage?.setItem(WIDTH_KEY, String(width));
     } catch {
         // Storage can be unavailable (private mode); the width then lasts only as long as the panel.
     }
 }
 
 /** The resizable panel on the right of a wide screen. Hidden, it keeps its content mounted. */
-export function Sidebar({ children, id, label, hidden, storage = sessionStorage }: SidebarProps) {
+export function Sidebar({ children, id, label, hidden, storage = defaultStorage() }: SidebarProps) {
     const [width, setWidth] = useState(() => readWidth(storage));
     const drag = useRef<{ startX: number; startWidth: number } | null>(null);
 

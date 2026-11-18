@@ -103,7 +103,7 @@ public class ExtensionManifestLoader {
             } catch (IOException e) {
                 throw new UncheckedIOException("Cannot read extension manifest " + file, e);
             }
-            manifests.add(parse(json, folder.getFileName().toString(), file.toString(), name -> readFile(folder.resolve(name))));
+            manifests.add(parse(json, folder.getFileName().toString(), file.toString(), name -> openFile(folder.resolve(name))));
         }
         return manifests;
     }
@@ -129,7 +129,7 @@ public class ExtensionManifestLoader {
                 throw new IllegalStateException("Built-in extension " + line + " has no classpath resource " + resource);
             }
             String folder = base + line + "/";
-            manifests.add(parse(json, line, "classpath:" + resource, name -> readResourceBytes(classLoader, folder + name)));
+            manifests.add(parse(json, line, "classpath:" + resource, name -> classLoader.getResourceAsStream(folder + name)));
         }
         return manifests;
     }
@@ -143,10 +143,10 @@ public class ExtensionManifestLoader {
     }
 
     /**
-     * @param siblings reads a file next to the manifest by name, or returns null when there is none. The schema
+     * @param siblings opens a file next to the manifest by name, or returns null when there is none. The schema
      *                 allows only a plain file name, so a name cannot leave the extension folder.
      */
-    ExtensionManifest parse(String json, String expectedId, String source, Function<String, byte[]> siblings) {
+    ExtensionManifest parse(String json, String expectedId, String source, Function<String, InputStream> siblings) {
         JsonObject raw;
         try {
             raw = new JsonObject(json);
@@ -436,7 +436,7 @@ public class ExtensionManifestLoader {
         });
     }
 
-    private static ExtensionManifest withNotations(ExtensionManifest manifest, Function<String, byte[]> siblings,
+    private static ExtensionManifest withNotations(ExtensionManifest manifest, Function<String, InputStream> siblings,
                                                    List<String> problems) {
         List<ExtensionManifest.DiagramLens> lenses = manifest.contributes().diagramLens();
         if (lenses == null) {
@@ -445,7 +445,12 @@ public class ExtensionManifestLoader {
         List<ExtensionManifest.DiagramLens> loaded = new ArrayList<>();
         for (ExtensionManifest.DiagramLens lens : lenses) {
             String where = "diagram-lens '" + lens.id() + "' notation " + lens.notation();
-            byte[] text = siblings.apply(lens.notation());
+            byte[] text;
+            try (InputStream in = siblings.apply(lens.notation())) {
+                text = in == null ? null : in.readAllBytes();
+            } catch (IOException e) {
+                throw new UncheckedIOException("Cannot read " + where, e);
+            }
             if (text == null) {
                 problems.add(where + " is not in the extension folder");
                 loaded.add(lens);
@@ -468,7 +473,7 @@ public class ExtensionManifestLoader {
     }
 
     /** Reads and checks each logo file, so that the registry serves only images that passed {@link ImageAsset#read}. */
-    private static ExtensionManifest withLogo(ExtensionManifest manifest, Function<String, byte[]> siblings,
+    private static ExtensionManifest withLogo(ExtensionManifest manifest, Function<String, InputStream> siblings,
                                               List<String> problems) {
         ExtensionManifest.Logo logo = manifest.logo();
         if (logo == null) {
@@ -478,30 +483,32 @@ public class ExtensionManifestLoader {
                 logoImage(ExtensionManifest.Logo.DARK, logo.dark(), siblings, problems)));
     }
 
-    private static ImageAsset logoImage(String variant, String file, Function<String, byte[]> siblings, List<String> problems) {
+    private static ImageAsset logoImage(String variant, String file, Function<String, InputStream> siblings,
+                                        List<String> problems) {
         if (file == null) {
             return null;
         }
         String where = "logo " + variant + " " + file;
-        byte[] bytes = siblings.apply(file);
-        if (bytes == null) {
-            problems.add(where + " is not in the extension folder");
-            return null;
-        }
-        try {
-            return ImageAsset.read(file, bytes);
+        try (InputStream in = siblings.apply(file)) {
+            if (in == null) {
+                problems.add(where + " is not in the extension folder");
+                return null;
+            }
+            return ImageAsset.read(file, in);
         } catch (IllegalArgumentException e) {
             problems.add(where + " " + e.getMessage());
             return null;
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read " + where, e);
         }
     }
 
-    private static byte[] readFile(Path file) {
+    private static InputStream openFile(Path file) {
         if (!Files.isRegularFile(file)) {
             return null;
         }
         try {
-            return Files.readAllBytes(file);
+            return Files.newInputStream(file);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + file, e);
         }

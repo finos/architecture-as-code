@@ -240,7 +240,7 @@ The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in 
 
 ### Extension logos
 
-An extension can show a logo beside its name: in the side menu, on its home page card, above its screen heading, in the diagram-side inspector, and in search and chat. The name always shows as text. Without a logo, while the logo loads, or when the logo does not load, CALM Hub shows the generated marker of the extension.
+An extension can show a logo beside its name: in the side menu, on its home page card, above the heading of its screens, in the inspector beside the diagram, and in search and chat. The name always shows as text. Without a logo, while the logo loads, or when the logo does not load, CALM Hub shows the generated marker of the extension.
 
 ```json
 "logo": { "light": "logo.svg", "dark": "logo-dark.svg" }
@@ -255,7 +255,7 @@ Each value is a file name in the extension folder, next to `extension.json`: low
 
 - is not a PNG, JPEG, WebP or SVG file, or does not hold the type of its extension (`.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`)
 - is larger than 256 KiB, or is a PNG, JPEG or WebP image with a side larger than 2048 pixels
-- is an SVG file with a DOCTYPE, an entity, a processing instruction, a `script`, `foreignObject` or HTML element, an `on*` attribute, a link or CSS `url()` that is not a `#fragment`, an animated link, a CSS `@import`, `image-set()`, `src()` or escape
+- is an SVG file with a DOCTYPE, an entity, a processing instruction, a `script`, `foreignObject` or HTML element, an `on*` attribute, a link or CSS `url()` that is not a `#fragment`, an `xml:base` attribute, an animated link or `xml:base`, a CSS `@import`, `image-set()`, `src()` or escape
 
 Use a square image that reads at 16 pixels. CALM Hub never fetches a logo from a URL.
 

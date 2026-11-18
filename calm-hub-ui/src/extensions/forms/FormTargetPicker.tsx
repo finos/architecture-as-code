@@ -2,6 +2,7 @@ import axios from 'axios';
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { ExtensionContext } from '../../model/extensions.js';
 import { CalmService } from '../../service/calm-service.js';
+import { getPrefixItems } from '../../visualizer/components/reactflow/utils/patternTransformer.js';
 
 interface Option {
     value: string;
@@ -40,9 +41,9 @@ function useOptions(load: Loader | undefined): Options {
     return { status: current.status, items: current.items, retry: () => setTick((n) => n + 1) };
 }
 
-type Document = { nodes?: unknown; properties?: { nodes?: { prefixItems?: unknown } } };
+type Document = { nodes?: unknown };
 
-/** The nodes of an architecture, or the nodes that a pattern requires. */
+/** The nodes of an architecture, or the nodes that a pattern requires, which the diagram finds at its root or in `allOf`. */
 function nodeOptions(document: unknown): Option[] {
     const doc = (document ?? {}) as Document;
     const options: Option[] = [];
@@ -52,8 +53,11 @@ function nodeOptions(document: unknown): Option[] {
     };
     if (Array.isArray(doc.nodes)) {
         for (const node of doc.nodes as (Record<string, unknown> | null)[]) add(node?.['unique-id'], node?.name);
-    } else if (Array.isArray(doc.properties?.nodes?.prefixItems)) {
-        for (const item of doc.properties.nodes.prefixItems as ({ properties?: Record<string, { const?: unknown }> } | null)[]) {
+        return options;
+    }
+    const items: unknown = getPrefixItems(doc, 'nodes');
+    if (Array.isArray(items)) {
+        for (const item of items as ({ properties?: Record<string, { const?: unknown }> } | null)[]) {
             add(item?.properties?.['unique-id']?.const, item?.properties?.name?.const);
         }
     }

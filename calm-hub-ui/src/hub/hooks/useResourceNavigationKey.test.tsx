@@ -89,5 +89,26 @@ describe('useResourceNavigationKey', () => {
 
             expect(result.current).toBe(first);
         });
+
+        // A query that was edited by hand is the one that shows, so a navigation compares with it, not with the first one.
+        it('keeps the key when a navigation after a query edited by hand goes back to the first query', () => {
+            const { result, rerender } = renderAt(at('/review/architectures/shop/1.0.0', '?lens=links'));
+            const first = result.current;
+
+            rerender({ location: at('/review/architectures/shop/1.0.0', '?lens=links&extension=nav-1') });
+            rerender({ location: { ...at('/review/architectures/shop/1.0.0', '?lens=links'), key: 'close' } });
+
+            expect(result.current).toBe(first);
+        });
+
+        it('changes the key on a navigation to the URL of a query edited by hand', () => {
+            const { result, rerender } = renderAt(at('/review/architectures/shop/1.0.0', '?lens=links'));
+            const first = result.current;
+
+            rerender({ location: at('/review/architectures/shop/1.0.0', '?lens=links&extension=nav-1') });
+            rerender({ location: { ...at('/review/architectures/shop/1.0.0', '?lens=links&extension=nav-1'), key: 'link' } });
+
+            expect(result.current).not.toBe(first);
+        });
     });
 });

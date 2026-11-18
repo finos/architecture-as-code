@@ -8,7 +8,15 @@ interface TableToolbarProps {
     onClear: () => void;
     /** The DOM id of the table. */
     controls: string;
-    search?: { label: string; value: string; resetKey: string; delay: number; onCommit: (text: string) => void };
+    search?: {
+        label: string;
+        value: string;
+        resetKey: string;
+        delay: number;
+        onCommit: (text: string) => void;
+        /** The DOM id of a message that says what is wrong with the search text. */
+        problem?: string;
+    };
     searchRef: Ref<HTMLInputElement>;
     /** The page URL has no room for the filters of this table. */
     overflowed: boolean;
@@ -18,7 +26,7 @@ export function TableToolbar({ summary, filtered, onClear, controls, search, sea
     return (
         <div className="flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <p role="status" className="text-sm text-base-content/70">
+                <p role="status" className="min-w-0 text-sm text-base-content/70 wrap-anywhere">
                     {summary}
                 </p>
                 {filtered && (
@@ -36,6 +44,7 @@ export function TableToolbar({ summary, filtered, onClear, controls, search, sea
                             delay={search.delay}
                             onCommit={search.onCommit}
                             controls={controls}
+                            problem={search.problem}
                         />
                     </div>
                 )}

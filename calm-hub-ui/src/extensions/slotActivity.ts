@@ -9,3 +9,14 @@ export const SlotActiveContext = createContext(true);
 export function useSlotActive(): boolean {
     return useContext(SlotActiveContext);
 }
+
+/**
+ * Names the element that holds a place's slots, such as the side panel or the full-screen dialog of the inspector. A new
+ * value moves the slots in the page and keeps them mounted. The browser then ends the modal state of an open dialog in
+ * a slot, which stays open, so the dialog must show itself modally again.
+ */
+export const SlotHostContext = createContext('');
+
+export function useSlotHost(): string {
+    return useContext(SlotHostContext);
+}

@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { parsePatternData } from './patternTransformer';
+import type { Edge, Node } from '@xyflow/react';
+import { findPatternElement, parsePatternData } from './patternTransformer';
+import { toSidebarEdgeData, toSidebarNodeData } from './patternClickHandlers.js';
 
 // Helper to build a minimal pattern node schema item
 function schemaNode(
@@ -677,5 +679,46 @@ describe('items catalogues', () => {
         };
 
         expect(parsePatternData(pattern).nodes.map((n) => n.id)).toEqual(['a']);
+    });
+});
+
+describe('findPatternElement', () => {
+    const pattern = makePattern(
+        [
+            schemaNode('system', 'System', 'system'),
+            schemaNode('api', 'API', 'service', { description: { const: 'Takes orders' } }),
+            { oneOf: [schemaNode('pg', 'Postgres', 'database'), schemaNode('mongo', 'Mongo', 'database')] },
+        ],
+        [
+            connectsRelationship('api-to-pg', 'api', 'pg', { protocol: { const: 'JDBC' } }),
+            {
+                properties: {
+                    'unique-id': { const: 'system-has-api' },
+                    'relationship-type': { const: { 'composed-of': { container: 'system', nodes: ['api'] } } },
+                },
+            },
+        ]
+    );
+
+    it('gives the data that a click on the diagram gives the details panel', () => {
+        const { nodes, edges } = parsePatternData(pattern);
+        for (const id of ['api', 'mongo', 'system']) {
+            expect(findPatternElement(pattern, id)).toEqual(toSidebarNodeData(nodes.find((node: Node) => node.id === id)!.data));
+        }
+        const edge = edges.find((entry: Edge) => entry.data?.['unique-id'] === 'api-to-pg')!;
+        expect(findPatternElement(pattern, 'api-to-pg')).toEqual(toSidebarEdgeData(edge.data!));
+    });
+
+    it('finds a relationship that the diagram draws as a container, and nothing for another id', () => {
+        expect(findPatternElement(pattern, 'system-has-api')).toEqual({
+            'unique-id': 'system-has-api',
+            description: '',
+            'relationship-type': { 'composed-of': { container: 'system', nodes: ['api'] } },
+        });
+        expect(findPatternElement(pattern, 'missing')).toBeUndefined();
+    });
+
+    it('finds nothing in a pattern that the diagram cannot read', () => {
+        expect(findPatternElement({ properties: { nodes: { prefixItems: 'not a list' } } }, 'api')).toBeUndefined();
     });
 });
