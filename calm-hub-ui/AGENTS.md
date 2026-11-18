@@ -498,11 +498,17 @@ Two defences, and new code needs both:
    `viewportStore.ts` all accept an optional `Storage`, defaulting to `localStorage` /
    `sessionStorage`. In services and utilities take it as an argument; in components take
    it as a `storage?: Storage` prop. Tests pass `createMemoryStorage()` from
-   `src/test-support/memory-storage.ts`.
+   `src/test-support/memory-storage.ts`. In a browser that blocks site data, reading the
+   `localStorage` global itself throws, and a default parameter is read outside any
+   `try`. So resolve a default with a `defaultStorage()` helper that returns `undefined`
+   on failure (see `theme/useMotion.ts`, `theme/useTheme.ts` and `AppLayout`), and treat
+   `undefined` as no storage: the control still works, but the choice is not kept. To
+   test it, make the `localStorage` getter throw (see `AppLayout.test.tsx`).
 2. **The safety net.** `vitest.setup.ts` stubs both globals with `createMemoryStorage()`
    for the whole run via `vi.stubGlobal`, so a test that forgets to inject still sees a
    working Storage rather than a throwing one. Do not rely on this in new code — it exists
-   to stop the failure mode being silent.
+   to stop the failure mode being silent. It also hides a default that reads the global
+   outside a `try`, so test that case as item 1 says.
 
 ### Test both desktop and mobile
 

@@ -13,23 +13,32 @@ function isTheme(value: string | null): value is Theme {
     return value === 'light' || value === 'dark';
 }
 
+/** Reading the `localStorage` global itself throws when site data is blocked. */
+function defaultStorage(): Storage | undefined {
+    try {
+        return localStorage;
+    } catch {
+        return undefined;
+    }
+}
+
 /**
  * The user's explicit choice, or null when they have not made one (in which case
  * the app follows the OS). Storage access throws in Safari's private mode, so a
  * failure is treated the same as "no preference".
  */
-export function readStoredTheme(storage: Storage = localStorage): Theme | null {
+export function readStoredTheme(storage: Storage | undefined = defaultStorage()): Theme | null {
     try {
-        const stored = storage.getItem(THEME_STORAGE_KEY);
+        const stored = storage?.getItem(THEME_STORAGE_KEY) ?? null;
         return isTheme(stored) ? stored : null;
     } catch {
         return null;
     }
 }
 
-function writeStoredTheme(theme: Theme, storage: Storage): void {
+function writeStoredTheme(theme: Theme, storage: Storage | undefined): void {
     try {
-        storage.setItem(THEME_STORAGE_KEY, theme);
+        storage?.setItem(THEME_STORAGE_KEY, theme);
     } catch {
         // A persisted preference is a nicety; losing it must not break the toggle.
     }
@@ -64,7 +73,7 @@ export interface UseThemeResult {
  *
  * @param storage Injected for tests; see the storage note in calm-hub-ui/AGENTS.md.
  */
-export function useTheme(storage: Storage = localStorage): UseThemeResult {
+export function useTheme(storage: Storage | undefined = defaultStorage()): UseThemeResult {
     const [stored, setStored] = useState<Theme | null>(() => readStoredTheme(storage));
     const prefersDark = useMediaQuery(DARK_MEDIA_QUERY);
 
