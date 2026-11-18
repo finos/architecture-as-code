@@ -117,7 +117,7 @@ result line, a **Clear filters** button and, with `search`, a text filter.
 
 | Field | Rule |
 |---|---|
-| Table `id` | Matches `^[a-z][a-z0-9-]{0,63}$`. Unique in the reply: a second table with the same `id` cannot be filtered |
+| Table `id` | Required for a table with `search` or `source`. Matches `^[a-z][a-z0-9-]{0,63}$`. Unique in the reply: a second table with the same `id` cannot be filtered |
 | `filter.table` | The `id` of a table in the same reply. Otherwise the stat shows only its figure |
 | `filter.id` | Names the filter, at most 100 characters. A stat without `id` shows all rows |
 | `filter.column`, `filter.value` | For a table with `rows`: a row matches when the text of its cell in `column` is `value`. The text of a badge is its `badge`, and of a link its `label` |
@@ -160,6 +160,13 @@ filters the whole dataset. Hub never filters a page in the browser.
   `pageSize`. Hub sends `q` when typing stops.
 - A stat filter for a table with a source needs only `table` and `id`.
 - Hub shows `rows` only if it cannot read `source`, such as an older Hub.
+- CALM Hub refuses a request line longer than 4096 characters with HTTP 414. The line holds the
+  method, the path `/api/calm/extensions/<extension id>/api<route path>`, the URL-encoded query and
+  `HTTP/1.1`. A long search with a long context, such as a long selected element, can go over the
+  limit. The UI then does not send the request, and the table says "The search is too long to send
+  to the extension. Shorten it to load the rows." The search text and the filters stay. This limit
+  is for the page request, not for the page address (see
+  [Filters in the page address](#filters-in-the-page-address)).
 
 The route returns one page and the number of rows that match. The blocks schema defines this reply
 as `$defs/tableRowsReply`:
@@ -179,9 +186,10 @@ On a `screen`, Hub keeps the filters of each table in the page address:
 architecture, a reload and a shared link show the same rows. A filter change replaces the address,
 so it adds no history entry.
 
-The address holds at most 12 table keys for all the tables of a screen. A change that needs more
-keeps the filters of that table in the page only, and the table shows "These filters are not kept
-in the page address." A link or Back shows the filters of its address, not those in the page.
+The address holds at most 12 table keys for all the tables of a screen, and a page from 2 to
+10000. A change that needs more keys, or a page above 10000, keeps the filters of that table in the
+page only, and the table shows "These filters are not kept in the page address." A link or Back
+shows the filters of its address, not those in the page.
 
 A `designer-tab` or a `detail-panel` keeps its filters in the page only, while the slot shows.
 
@@ -272,6 +280,7 @@ An error stays in the slot of its extension. It does not break the Hub page arou
 | A reload after a write fails | The earlier reply, with "Could not refresh" and **Try again** |
 | A table `source` names a route that is not a `GET` route with `readOnly` | "Table source route unavailable." in place of the table |
 | A table `source` call fails, or its reply has no `rows` list or no whole `total` | "The rows could not be loaded." with **Try again**. The filters stay |
+| The request for a `source` page would be longer than 4096 characters | "The search is too long to send to the extension. Shorten it to load the rows." (with no search: "The request for these rows is too long to send to the extension."). The UI does not send the request. The filters stay |
 
 An unknown block type is not valid against the schema. Hub shows a placeholder, so that a newer
 backend still works with an older Hub.

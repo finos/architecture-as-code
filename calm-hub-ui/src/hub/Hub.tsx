@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useMatch, useNavigate } from 'react-router-dom';
+import { NavigationType, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom';
 import { IoCompassOutline } from 'react-icons/io5';
 import { RESOURCE_ROUTE } from './routes.js';
 import { ExploreRail } from './components/explore-rail/ExploreRail.js';
@@ -11,6 +11,7 @@ import { IntroScreen } from './components/intro-screen/IntroScreen.js';
 import { SearchResultsPage } from './components/search-results/SearchResultsPage.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
 import { useResourceNavigationKey } from './hooks/useResourceNavigationKey.js';
+import { readEntrySelection, sessionStore, useBrowserEntry, useLinkKey, writeEntrySelection } from './hooks/entrySelection.js';
 import { PersonalNamespaceControl, usePersonalNamespace } from './hooks/usePersonalNamespace.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { BreadcrumbItem, Data, Adr } from '../model/calm.js';
@@ -37,7 +38,8 @@ import { ResourceNotFound } from './components/resource-not-found/ResourceNotFou
 import { extensionContext } from './components/diagram-section/tabs/diagramTabs.js';
 import { parseCALMHubPath } from '../visualizer/components/reactflow/utils/calmHelpers.js';
 import type { Decorator, SelectedItem } from '../visualizer/contracts/contracts.js';
-import type { CalmNodeSchema } from '@finos/calm-models/types';
+import type { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
+import { findPatternElement, type SchemaObject } from '../visualizer/components/reactflow/utils/patternTransformer.js';
 import { authStore } from '../service/utils/auth-store.js';
 import { diagramLenses } from './components/diagram-section/tabs/diagramLenses.js';
 import { useExtensions, useExtensionsStatus } from '../extensions/ExtensionsContext.js';
@@ -66,15 +68,54 @@ function readBreadcrumbs(state: unknown): BreadcrumbItem[] {
     );
 }
 
-/** The node or relationship with this unique-id in an architecture or pattern document, if it has one at the top level. */
-function findElement(data: Data | undefined, uniqueId: string | null): CalmNodeSchema | undefined {
+/**
+ * The node or relationship with this unique-id in an architecture or pattern, as the details panel shows it. A pattern
+ * declares its elements in JSON Schema, which patternTransformer reads for the diagram too.
+ */
+function findElement(data: Data | undefined, uniqueId: string | null): CalmNodeSchema | CalmRelationshipSchema | undefined {
     if (!data || !uniqueId) return undefined;
+    if (data.calmType === 'Patterns') return data.data ? findPatternElement(data.data as SchemaObject, uniqueId) : undefined;
     const document = data.data as { nodes?: unknown; relationships?: unknown } | undefined;
     const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
     return (items as CalmNodeSchema[]).find((entry) => entry?.['unique-id'] === uniqueId);
 }
 
-export default function Hub() {
+/** The query with the inspector open on `extension`, or closed for null. An old `?tab=extensions` link loses its tab. */
+function inspectorQuery(search: string, extension: string | null): string {
+    const params = new URLSearchParams(search);
+    if (params.get('tab') === EXTENSIONS_TAB_ID) params.delete('tab');
+    if (extension === null) params.delete(EXTENSION_PARAM);
+    else params.set(EXTENSION_PARAM, extension);
+    const query = params.toString();
+    return query ? `?${query}` : '';
+}
+
+/** A replace by Hub of the page's query: the inspector's part, or `node` that a selection takes out. Its id goes in the history state. */
+interface InspectorWrite {
+    id: string;
+    pathname: string;
+    search: string;
+}
+
+const INSPECTOR_WRITE = 'inspectorWrite';
+
+/** The history state with the id of a write. A state that is not an object stays as it is, with no id. */
+function withInspectorWrite(state: unknown, id: string): unknown {
+    if (state === null || state === undefined) return { [INSPECTOR_WRITE]: id };
+    return typeof state === 'object' && !Array.isArray(state) ? { ...state, [INSPECTOR_WRITE]: id } : state;
+}
+
+const inspectorWriteOf = (state: unknown) =>
+    state !== null && typeof state === 'object' ? (state as Record<string, unknown>)[INSPECTOR_WRITE] : undefined;
+
+const newWriteId = () => Math.random().toString(36).slice(2, 12);
+
+interface HubProps {
+    /** Where the selection of each history entry is kept. Injected for tests; defaults to `sessionStorage`. */
+    storage?: Storage;
+}
+
+export default function Hub({ storage }: HubProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const extensions = useExtensions();
@@ -124,6 +165,7 @@ export default function Hub() {
     const isMobile = useIsMobile();
     const navigation = useNavigationSettings();
     const showExplore = navigation.showNamespaces || navigation.showControlDomains;
+    const selectionStorage = storage ?? sessionStore();
 
     // Route-first content selection (redesign problem #4): the same <Hub/> element
     // is reused across `/`, `/namespace/:ns`, `/domain/:domain` and the detail
@@ -243,24 +285,36 @@ export default function Hub() {
 
     // Any navigation, a tab change included, clears the selection, except the one that handleItemSelect makes to take
     // `node` out of the URL, and a change of only the diagram lens, its parameters or the inspector's extension.
+    // Back, Forward and a URL that the user opens go to another history entry, which has its own selection: a view
+    // change keeps a selection only in the page. A browser move can keep the location (useBrowserEntry).
+    const navigationType = useNavigationType();
+    const browserEntry = useBrowserEntry();
     const [nodeRemovedFromUrl, setNodeRemovedFromUrl] = useState<string | null>(null);
-    const [selectionLocation, setSelectionLocation] = useState({ key: location.key, search: location.search });
-    if (selectionLocation.key !== location.key || selectionLocation.search !== location.search) {
-        const viewChangeOnly = selectionLocation.search !== location.search
-            && viewFreeQuery(selectionLocation.search) === viewFreeQuery(location.search);
-        setSelectionLocation({ key: location.key, search: location.search });
+    const [selectionLocation, setSelectionLocation] = useState({ key: location.key, search: location.search, entry: browserEntry.entry });
+    const locationChanged = selectionLocation.key !== location.key || selectionLocation.search !== location.search;
+    if (locationChanged || selectionLocation.entry !== browserEntry.entry) {
+        const otherEntry = selectionLocation.entry !== browserEntry.entry || navigationType === NavigationType.Pop;
+        const viewChangeOnly =
+            !otherEntry &&
+            selectionLocation.search !== location.search &&
+            viewFreeQuery(selectionLocation.search) === viewFreeQuery(location.search);
+        setSelectionLocation({ key: location.key, search: location.search, entry: browserEntry.entry });
         setNodeRemovedFromUrl(null);
         if (!viewChangeOnly && nodeRemovedFromUrl !== location.search) setSelectedItem(null);
     }
 
     // A link can name a node to open: `#/ns/architectures/1/1.0.0?node=client-ledger`. This comes after
     // the clear above, so a link to another node replaces the cleared selection. A lens can name a relationship
-    // there too, because a lens element can stand for one.
+    // there too, because a lens element can stand for one. Without a node in the URL, Back or Forward to a history
+    // entry opens the node that the user selected on it, which the URL does not name. This runs on each new location
+    // and each browser move, the changes that the effect which keeps the selection runs on, so the effect keeps the
+    // selection that opens here. The key alone is no such change: the router gives every entry that the browser made
+    // the key `default`.
     const linkedNodeId = new URLSearchParams(location.search).get('node');
-    const [linkSource, setLinkSource] = useState({ data, linkedNodeId, key: location.key });
-    if (linkSource.data !== data || linkSource.linkedNodeId !== linkedNodeId || linkSource.key !== location.key) {
-        setLinkSource({ data, linkedNodeId, key: location.key });
-        const item = findElement(data, linkedNodeId);
+    const [linkSource, setLinkSource] = useState({ data, location, entry: browserEntry.entry });
+    if (linkSource.data !== data || linkSource.location !== location || linkSource.entry !== browserEntry.entry) {
+        setLinkSource({ data, location, entry: browserEntry.entry });
+        const item = findElement(data, linkedNodeId ?? readEntrySelection(selectionStorage, location) ?? null);
         if (item) setSelectedItem({ data: item });
     }
 
@@ -324,27 +378,6 @@ export default function Hub() {
         locationRef.current = location;
     });
 
-    // When the user selects another item or closes the panel, the URL stops naming the linked node, so a
-    // copied link or a reload does not open it again.
-    const handleItemSelect = useCallback(
-        (item: SelectedItem) => {
-            setSelectedItem(item);
-            if (item) setSelections((count) => count + 1);
-            const { pathname, search, hash, state } = locationRef.current;
-            const params = new URLSearchParams(search);
-            const linked = params.get('node');
-            if (!linked || item?.data['unique-id'] === linked) return;
-            params.delete('node');
-            const query = params.toString();
-            const nextSearch = query ? `?${query}` : '';
-            setNodeRemovedFromUrl(nextSearch);
-            navigate({ pathname, search: nextSearch, hash }, { replace: true, state });
-        },
-        [navigate]
-    );
-
-    const closeSidebar = useCallback(() => handleItemSelect(null), [handleItemSelect]);
-
     // The resource's display name is fetched by DiagramSection (it owns the
     // summaries fetch) and mirrored here so the crumb pushed on navigation can
     // carry it, and the return point of the page can name it. This handler MUST stay memoised
@@ -398,7 +431,32 @@ export default function Hub() {
 
     // The inspector beside the diagram. `?extension=<id>` opens it on that extension, so a link and a reload keep it;
     // Details is open in memory only. Hub owns it, so the diagram stays mounted while it opens and closes.
-    const linkedExtension = inspectorExtension(new URLSearchParams(location.search));
+    // The router shows a replace in a transition, so a close or another choice can come before it shows, also while a
+    // render of it waits. The user's latest choice shows at once. Each choice is a whole value: an update that reads the
+    // state can see a render that has not shown. A choice holds until a navigation that is not Hub's write of the
+    // inspector shows (`foreign` counts them); that navigation decides with its URL.
+    const [inspectorChoice, setInspectorChoice] = useState<{ extension: string | null; id: string; foreign: number } | null>(null);
+    // Hub sends one write at a time, and knows it by the id in its history state, not by its URL. It never sends a write
+    // to the URL that shows: that loads the resource again. A choice that goes back to that URL waits for the write before.
+    const [inspectorTrack, setInspectorTrack] = useState<{ location: typeof location; entry: number; foreign: number; write: InspectorWrite | null }>(
+        { location, entry: browserEntry.entry, foreign: 0, write: null }
+    );
+    let track = inspectorTrack;
+    if (track.location !== location || track.entry !== browserEntry.entry) {
+        const own =
+            track.write !== null &&
+            track.entry === browserEntry.entry &&
+            navigationType === NavigationType.Replace &&
+            inspectorWriteOf(location.state) === track.write.id;
+        track = { location, entry: browserEntry.entry, foreign: own ? track.foreign : track.foreign + 1, write: null };
+    }
+    const choice = inspectorChoice?.foreign === track.foreign ? inspectorChoice : null;
+    if (choice && !track.write) {
+        const search = inspectorQuery(location.search, choice.extension);
+        if (search !== location.search) track = { ...track, write: { id: choice.id, pathname: location.pathname, search } };
+    }
+    if (track !== inspectorTrack) setInspectorTrack(track);
+    const linkedExtension = choice ? choice.extension : inspectorExtension(new URLSearchParams(location.search));
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [focusInspector, setFocusInspector] = useState(false);
     const clearFocusInspector = useCallback(() => setFocusInspector(false), []);
@@ -410,27 +468,59 @@ export default function Hub() {
         setLastInspector({ tab: inspectorTab, extension: linkedExtension ?? lastInspector.extension });
     }
     // On a wide screen a selection opens the inspector, as the node details did, also a click on the item that is
-    // already selected after the inspector closed. A narrow screen shows the sheet.
-    const [openedFor, setOpenedFor] = useState({ id: selectedId, selections });
-    if (openedFor.id !== selectedId || openedFor.selections !== selections) {
-        setOpenedFor({ id: selectedId, selections });
-        if (selectedId !== undefined && !isMobile) setDetailsOpen(true);
+    // already selected after the inspector closed, and a link or a browser move whose URL names it, also to the URL that
+    // shows. A replace that changes the URL, such as closing the inspector, is not a link. A narrow screen shows the sheet.
+    const linkKey = useLinkKey(browserEntry.entry);
+    const [openedFor, setOpenedFor] = useState({ id: selectedId, selections, linkKey });
+    if (openedFor.id !== selectedId || openedFor.selections !== selections || openedFor.linkKey !== linkKey) {
+        const opens = openedFor.id !== selectedId || openedFor.selections !== selections || selectedId === linkedNodeId;
+        setOpenedFor({ id: selectedId, selections, linkKey });
+        if (opens && selectedId !== undefined && !isMobile) setDetailsOpen(true);
     }
 
+    const foreignNavigations = inspectorTrack.foreign;
     const setInspectorExtension = useCallback(
-        (extension: string | null) => {
-            const { pathname, search, hash, state } = locationRef.current;
-            const params = new URLSearchParams(search);
-            if (params.get('tab') === EXTENSIONS_TAB_ID) params.delete('tab');
-            if (extension === null) params.delete(EXTENSION_PARAM);
-            else params.set(EXTENSION_PARAM, extension);
-            const query = params.toString();
-            const nextSearch = query ? `?${query}` : '';
-            // Hub loads the resource again on a navigation that leaves the query as it is.
-            if (nextSearch !== search) navigate({ pathname, search: nextSearch, hash }, { replace: true, state });
-        },
-        [navigate]
+        (extension: string | null) => setInspectorChoice({ extension, id: newWriteId(), foreign: foreignNavigations }),
+        [foreignNavigations]
     );
+    // Each write goes to the router once, with the fields of the history state of the page.
+    const inspectorWrite = inspectorTrack.write;
+    const sentWrite = useRef<InspectorWrite | null>(null);
+    useLayoutEffect(() => {
+        if (!inspectorWrite || inspectorWrite === sentWrite.current) return;
+        sentWrite.current = inspectorWrite;
+        const { hash, state } = locationRef.current;
+        navigate(
+            { pathname: inspectorWrite.pathname, search: inspectorWrite.search, hash },
+            { replace: true, state: withInspectorWrite(state, inspectorWrite.id) }
+        );
+    }, [inspectorWrite, navigate]);
+
+    // The choice and the write of the last render, for handleItemSelect, which must not change with them.
+    const shownInspector = useRef({ choice, track: inspectorTrack });
+    useLayoutEffect(() => {
+        shownInspector.current = { choice, track: inspectorTrack };
+    });
+
+    // When the user selects another item or closes the panel, the URL stops naming the linked node, so a
+    // copied link or a reload does not open it again. That replace is one of Hub's writes. It keeps the inspector's
+    // latest choice, and it takes the place and the id of a write that the router has not shown yet.
+    const handleItemSelect = useCallback((item: SelectedItem) => {
+        setSelectedItem(item);
+        if (item) setSelections((count) => count + 1);
+        const { pathname, search } = locationRef.current;
+        const params = new URLSearchParams(search);
+        const linked = params.get('node');
+        if (!linked || item?.data['unique-id'] === linked) return;
+        params.delete('node');
+        const query = params.toString();
+        const { choice, track } = shownInspector.current;
+        const nextSearch = choice ? inspectorQuery(query, choice.extension) : query ? `?${query}` : '';
+        setNodeRemovedFromUrl(nextSearch);
+        setInspectorTrack({ ...track, write: { id: track.write?.id ?? newWriteId(), pathname, search: nextSearch } });
+    }, []);
+
+    const closeSidebar = useCallback(() => handleItemSelect(null), [handleItemSelect]);
     const selectInspectorTab = useCallback(
         (tab: InspectorTab, extension = '') => {
             setDetailsOpen(tab === 'details');
@@ -545,7 +635,17 @@ export default function Hub() {
           ? { kind: 'search' }
           : undefined;
     const returnQuery = new URLSearchParams(location.search);
-    if (selectedId && !showsDroppedFile) returnQuery.set('node', selectedId);
+    // A node of a dropped file is not the resource's.
+    const resourceSelection = showsDroppedFile ? undefined : selectedId;
+    if (resourceSelection) returnQuery.set('node', resourceSelection);
+    // Only once the resource has loaded: until then the entry keeps the selection that the load opens again. A node that
+    // the URL names opens from the URL. After a browser move, only the render that opens the selection of the new entry
+    // keeps one for it. `hasMoved` changes on each move.
+    const { hasMoved } = browserEntry;
+    useEffect(() => {
+        if (!data || !isDiagramView || hasMoved()) return;
+        writeEntrySelection(selectionStorage, location, resourceSelection === linkedNodeId ? undefined : resourceSelection);
+    }, [selectionStorage, location, hasMoved, data, isDiagramView, resourceSelection, linkedNodeId]);
     const returnSearch = returnQuery.toString() ? `?${returnQuery.toString()}` : '';
     const returnLabel = detailMatch
         ? `${displayName || detailMatch.params.id} ${detailMatch.params.version}`
@@ -554,8 +654,9 @@ export default function Hub() {
     // The parts of a link that this page cannot show. The page itself shows; access is checked when each part loads.
     const linkNotices: string[] = [];
     if (data && !showsDroppedFile && isDetailRoute) {
-        if (linkedNodeId && data.calmType === 'Architectures' && !findElement(data, linkedNodeId)) {
-            linkNotices.push(`The element "${linkedNodeId}" is not in version ${data.version} of this architecture.`);
+        if (linkedNodeId && isDiagramView && !findElement(data, linkedNodeId)) {
+            const kind = data.calmType === 'Patterns' ? 'pattern' : 'architecture';
+            linkNotices.push(`The element "${linkedNodeId}" is not in version ${data.version} of this ${kind}.`);
         }
         const linkedExtension = new URLSearchParams(location.search).get(EXTENSION_PARAM);
         if (linkedExtension && isDiagramView) {

@@ -257,7 +257,16 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   when it closes, so slot state stays. Its `cancel` handler ignores the cancel of a dialog in a slot, which closes only
   that dialog. Hub owns the inspector, so the
   diagram stays mounted while it opens and closes. `?extension=<id>` (`EXTENSION_PARAM`) opens it on an extension;
-  Details and each extension's chosen view stay in memory only. A fresh `?extension=` link shows the extension's first view. A change of only `extension` keeps the selection. The old
+  Details and each extension's chosen view stay in memory only. A fresh `?extension=` link shows the extension's first view. A change of only `extension` keeps the selection.
+  The router shows a replace in a transition, so a close can come before the choice before it shows, also while a
+  render of it waits. Hub shows the latest choice at once (`inspectorChoice`) and sends one replace at a time. It never
+  sends a replace to the URL that shows: that loads the resource again and clears the selection. Set each choice as a
+  whole value, not with an update that reads the state: a render that has not shown can change what React reads. Each
+  replace adds its id (`inspectorWrite`) to the history state. A location is Hub's replace only if it is a replace in
+  the same browser entry with that id. Never compare URLs: another navigation can have the URL of the replace. Every
+  other navigation drops the choice, and its URL decides the inspector. A selection that takes `node` out of the URL
+  (`handleItemSelect`) is one of these replaces: it takes the latest choice, and the place and the id of a replace that
+  has not shown. It reads them from a ref, so its identity stays. The old
   `?tab=extensions` redirects to `?extension=` (`DIAGRAM_TAB_REDIRECTS`). Do not add an extension tab to
   `DIAGRAM_TABS`, and keep diagram lenses (`?lens=`) apart from the inspector.
 - Actions: `ExtensionActionButton`, only in the inspector, so each action runs with a resource context. There
@@ -273,17 +282,21 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   dialog. While the dialog is modal the page is inert and `focus()` outside it does nothing: the dialog calls
   `close()` before its callback, and the button takes focus in an effect after the dialog unmounts. jsdom has no
   modal dialogs, so a test that checks focus must model inertness (see `ExtensionSlot.test.tsx`).
-- Stat tiles and tables: a stat `filter` names a table `id` in the same reply. `ExtensionSlot` gives the reply to its
-  blocks through `BlockScopeContext` (`blocks/BlockScope.tsx`); outside a slot a tile is a figure and a table has no
-  filters. `blocks/tableFilters.ts` holds the rules. Inline `rows` are the whole dataset, so the browser filters them; a
-  table with a `source` gets each page from a `GET` `readOnly` route and never filters a page. Tile figures are the
-  extension's numbers, never recounted. `UrlTableState` (screen page only) keeps `<table>.filter|q|page` in the URL with
-  `replace: true` and the fields of the current `location.state`, at most 12 such keys (the limit #3799's return points
-  keep); over that, the table keeps its filters in memory and says so. Other slots keep them in memory: a query change
-  on an architecture page closes the node details. The router shows a navigation in a transition, so the page can show a
-  query late: `UrlTableState` keeps the newest filters in its own state, the tables read them there, and
-  `update(tableId, change)` changes them. Of the changes in one render, only the last goes to the router. Each write
-  adds its id (`tableStateWrite`, unique to the page load, the mounted store and the write) to the history state, and
+- Stat tiles and tables: a stat `filter` names a table `id` in the same reply; the schema requires an `id` with
+  `search` or `source`. `ExtensionSlot` gives the reply to its blocks through `BlockScopeContext`
+  (`blocks/BlockScope.tsx`) and keys each filterable table by its `id`, so a reply that moves a table keeps its search
+  box with it, also text not sent yet; outside a slot a tile is a figure and a table has no filters.
+  `blocks/tableFilters.ts` holds the rules. Inline `rows` are the whole dataset, so the browser filters them; a table
+  with a `source` gets each page from a `GET` `readOnly` route and never filters a page. It sends no page request over
+  Hub's request-line limit (`fitsRequestLine`, `MAX_REQUEST_LINE` 4096, after the browser's own URL encoding): it says
+  the search is too long and keeps it. Tile figures are the extension's numbers, never recounted. `UrlTableState`
+  (screen page only) keeps `<table>.filter|q|page` in the URL with `replace: true` and the fields of the current
+  `location.state`, at most 12 such keys (the limit #3799's return points keep); over that, or with a value that
+  `isTableStateEntry` refuses (page 10001), the table keeps its filters in memory and says so. Other slots keep them in
+  memory for one context (`useTableStateStore(view)`): a query change on an architecture page clears the selection.
+  The router shows a navigation in a transition, so the page can show a query late: `UrlTableState` keeps the newest
+  filters in its own state, the tables read them there, and `update(tableId, change)` changes them. Of the changes in
+  one render, only the last goes to the router. Each write adds its id (`tableStateWrite`, unique to the page load, the mounted store and the write) to the history state, and
   the store keeps a list of the writes it sent. A location is a write of the store only if it is a replace on the same
   page with the id of a write that has not shown yet (`showLocation`). Never compare queries: another navigation can
   have the query of a write. It knows a location by its key, path and query, because React Router keys every location
@@ -326,6 +339,11 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   when it closes, or React remounts the slots.
 - On a wide screen, each selection that the user makes opens the inspector, also a click on the item that is already
   selected (`selections` in `Hub`). `handleItemSelect` counts it with a functional update, so its identity stays.
+  Each link, and each Back or Forward, whose URL names the selected node opens it too, also a link to the URL that
+  shows (`useLinkKey()` in `hooks/entrySelection.ts`: a count of the new `location` values and the browser moves of
+  `useBrowserEntry()`). A replace that changes the URL, such as closing the inspector or Hub taking `node` out when
+  the user selects another node, updates the page in place and is not a link: the open extension, its chosen view and
+  the slots stay. React Router makes a link to the URL that shows a replace, so a replace that keeps the URL is a link.
 - The `ExtensionSlot` key is the extension and the contribution, not the context, so a change of selection keeps
   the slot mounted. `useRefreshingRequest` shows a reply only for the context it was loaded for, so a slot shows
   Loading, never the earlier target's data, beside actions that follow the new context. `ScreenErrorBoundary`
@@ -369,7 +387,9 @@ URL: a page, its query and a label. A page declares itself with `ReturnPointProv
 resource pages and `/search`; the chat view adds `{ kind: 'chat' }`). `ReturnLink` shows **Back to …**. A navigation
 that is not a new destination, such as a breadcrumb or a detailed-architecture hop, keeps the points with
 `carryReturnPoints(location.state)`, and a URL state change uses `{ replace: true, state: location.state }`. Pass the
-target to `useLinkState(to)`: a link to the same page, such as a filter, keeps the points and adds none. A typed
+target to `useLinkState(to)`: a link to the same page, such as a filter, keeps the points and adds none. A link whose
+target is known only on a click, such as a lens node, reads `const here = useContext(ReturnPointContext)` during render
+and calls `linkState(here, to)` in the click handler. A typed
 Hub link (`destinationLocation()`) and a return to a resource (`returnPointLocation()`) add `exact=1`
 (`EXACT_VERSION_PARAM`) to the URL, so DiagramSection's timeline redirect (`isExactVersion(location)`) leaves the
 version, also for a copied link. A plain latest-version URL keeps the redirect; a timeline pick still uses
@@ -377,7 +397,19 @@ version, also for a copied link. A plain latest-version URL keeps the redirect; 
 cannot take the name. `boundLabel()` shortens a label to 200 code points on write and
 read; a long title never costs the return point. `safeHref()` takes `unknown`: extension data is untyped at run time. Form
 input never goes in a URL, a param or a return point. `ReturnBar` shows the return link and the notices for a linked
-`node` that is not in the version or a linked `extension` that does not apply.
+`node` that is not in the version or a linked `extension` that does not apply. Hub finds a linked `node` of a pattern
+with `findPatternElement()` (`patternTransformer.ts`), which gives the data that a diagram click gives the details
+panel. A node that the user selects is not in the URL: Hub keeps it per history entry (`hooks/entrySelection.ts`,
+session storage keyed by `location.key`), so browser Back and Forward select it again. The browser makes an entry with
+no state for a first visit or a pasted URL, and the router gives each one the key `default`: such an entry gets its own
+id in `history.state` (`calmHubEntry`, next to the router's fields), which a reload keeps. Do not detect an entry
+change with the key or the `location` value alone: the router gives two entries that the browser made at the same URL
+the same `location` and does not render again. `useBrowserEntry()` counts the `popstate` events and sets its count in
+a transition, as the router sets its location, so one render gets both. After Back, Forward or a URL that the user
+opens, the entry decides: Hub opens its kept selection or none. A lens change keeps the selection only on the page. Hub
+reads the selection on each new `location` value and each browser move, and the effect that keeps it waits while
+`hasMoved()`, so a restore comes before a write. A `node` in the URL comes first, and a node of a dropped file is
+never kept.
 
 ### Namespace conventions
 
@@ -581,11 +613,17 @@ Two defences, and new code needs both:
    `viewportStore.ts` all accept an optional `Storage`, defaulting to `localStorage` /
    `sessionStorage`. In services and utilities take it as an argument; in components take
    it as a `storage?: Storage` prop. Tests pass `createMemoryStorage()` from
-   `src/test-support/memory-storage.ts`.
+   `src/test-support/memory-storage.ts`. In a browser that blocks site data, reading the
+   `localStorage` global itself throws, and a default parameter is read outside any
+   `try`. So resolve a default with a `defaultStorage()` helper that returns `undefined`
+   on failure (see `theme/useMotion.ts`, `theme/useTheme.ts` and `AppLayout`), and treat
+   `undefined` as no storage: the control still works, but the choice is not kept. To
+   test it, make the `localStorage` getter throw (see `AppLayout.test.tsx`).
 2. **The safety net.** `vitest.setup.ts` stubs both globals with `createMemoryStorage()`
    for the whole run via `vi.stubGlobal`, so a test that forgets to inject still sees a
    working Storage rather than a throwing one. Do not rely on this in new code — it exists
-   to stop the failure mode being silent.
+   to stop the failure mode being silent. It also hides a default that reads the global
+   outside a `try`, so test that case as item 1 says.
 
 ### Test both desktop and mobile
 

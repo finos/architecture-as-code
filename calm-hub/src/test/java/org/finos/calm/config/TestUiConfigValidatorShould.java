@@ -7,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -145,6 +146,21 @@ class TestUiConfigValidatorShould {
                 containsString("calm.ui.branding.logo.dark (" + empty + ")")));
         IllegalStateException error = assertThrows(IllegalStateException.class, () -> new BrandingLogos(config));
         assertThat(error.getMessage(), containsString("Invalid calm.ui configuration: logo " + dir.resolve("missing.png")));
+    }
+
+    @Test
+    void reject_a_logo_over_the_size_limit_without_reading_all_of_it(@TempDir Path dir) throws IOException {
+        Path large = dir.resolve("large.svg");
+        // Sparse, and larger than a Java array can be, so a read of all of it fails.
+        try (RandomAccessFile file = new RandomAccessFile(large.toFile(), "rw")) {
+            file.setLength(3L * 1024 * 1024 * 1024);
+        }
+        UiConfig config = valid();
+        when(config.branding().logo().light()).thenReturn(Optional.of(large.toString()));
+
+        assertThat(UiConfigValidator.validate(config), contains(
+                containsString("calm.ui.branding.logo.light (" + large + ") is more than the limit of 262144 bytes")));
+        assertThrows(IllegalStateException.class, () -> new BrandingLogos(config));
     }
 
     @Test

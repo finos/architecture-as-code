@@ -123,9 +123,14 @@ function changeFilters(store: UrlStore, tableId: string, change: (state: TableFi
     const query = new URLSearchParams(store.query);
     const state = change(store.memory.get(tableId) ?? readTableState(query, tableId));
     const next = writeTableState(query, tableId, state);
-    // Over the budget of the navigation contract, the table's keys leave the URL, so that the URL never holds filters it
-    // does not show. Return points keep at most these keys.
-    const fits = tableKeyCount(next) <= SCREEN_STATE_LIMITS.tableKeys;
+    // Over the budget of the navigation contract, or with a value that it refuses, such as page 10001, the table's keys
+    // leave the URL, so that the URL never holds filters it does not show. Return points keep at most these keys.
+    const kept = readTableState(next, tableId);
+    const fits =
+        tableKeyCount(next) <= SCREEN_STATE_LIMITS.tableKeys &&
+        kept.filter === state.filter &&
+        kept.q === state.q &&
+        kept.page === state.page;
     const memory = withTable(store.memory, tableId, fits ? undefined : state);
     return { ...store, memory, query: (fits ? next : writeTableState(query, tableId, NO_FILTERS)).toString() };
 }
