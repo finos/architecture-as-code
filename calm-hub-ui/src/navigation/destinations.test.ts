@@ -19,7 +19,7 @@ describe('destinationLocation', () => {
 
     it('names the element and the extension view of a resource', () => {
         expect(where({ hub: { ...resource, element: 'payments api', extension: 'assurance' } })).toBe(
-            '/northstar.payments/architectures/payments/2.4.0?node=payments+api&tab=extensions&extension=assurance&exact=1'
+            '/northstar.payments/architectures/payments/2.4.0?node=payments+api&extension=assurance&exact=1'
         );
     });
 

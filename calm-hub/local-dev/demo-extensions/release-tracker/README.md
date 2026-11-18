@@ -14,10 +14,10 @@ URL does not start, and the UI then shows "CalmHub failed to load".
 |---|---|
 | `screen` | Releases and Release calendar: a link to each in the Release tracker group of the side menu, and on the home page card. The Releases tiles filter the releases table (inline rows) and deployments table (a `source` route, 5 rows a page) |
 | `landing-card` | The home page card: the first 3 figures of its `stats` block |
-| `action`, `designer-tab` | The Extensions tab of an architecture or pattern |
-| `detail-panel` | The Extensions section of the node details |
+| `action`, `designer-tab` | The inspector beside the diagram of an architecture or pattern |
+| `detail-panel` | The inspector, for the selected node |
 | `decorator-views` | Badges on the diagram for `release-risk` decorators |
-| `form` | `log-release` on the screen (with a target chooser) and the designer tab; `review-node` in the node details |
+| `form` | `log-release` on the screen (with a target chooser) and the designer tab; `review-node` in the inspector, for the selected node |
 
 Run it from `calm-hub/`, with the keys from the [example-services README](../../extensions/example-services/README.md):
 

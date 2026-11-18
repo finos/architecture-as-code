@@ -22,9 +22,9 @@ It uses each UI extension point and one command:
 |---|---|
 | `screen` | The **Releases** and **Release calendar** pages, in the **Release tracker** group of the side menu |
 | `landing-card` | A **Release tracker** card on the home page |
-| `designer-tab`, `action` | The **Extensions** tab of an architecture |
-| `detail-panel` | The **Extensions** section of the node details |
-| `form` | A **Log a release** form on the screen and the tab, and a **Request a node review** form in the node details |
+| `designer-tab`, `action` | The **Releases** view and **Request release review** action in the inspector beside the architecture diagram |
+| `detail-panel` | The **Release info** view in the inspector, for the selected node |
+| `form` | A **Log a release** form on the screen and in the inspector, and a **Request a node review** form for the selected node |
 | `decorator-views` | **Release risk** badges on the diagram |
 | `commands` | `calm hub ext release-tracker list-releases`, and the MCP tool `ext_release-tracker_list-releases` |
 
@@ -85,7 +85,6 @@ parameter cannot contain a slash, so the route cannot use `{resource}` (`archite
 | `routes` | Every call that CALM Hub can send to the backend. CALM Hub refuses all other paths. `scope` is the permission that the caller must have. When two routes match a path, the route with more literal segments wins. CALM Hub does not start if they have the same number |
 | `commands` | Commands for the CLI and MCP. Each names a route |
 | `contributes` | What the Hub UI shows. Each entry names a route, except `decorator-views` |
-| `logo` | Optional. Image files in the extension folder that the UI shows beside the extension name. See [Extension logos](../../calm-hub/index.md#extension-logos) |
 | `readOnly` | `true` when the route changes nothing. CALM Hub does not audit it, and a read-only Hub still allows it. A `GET` route must change nothing in any case: see [Write the routes](../../calm-hub/extension-access.md#write-the-routes) |
 
 CALM Hub does not start if the manifest is not valid. The error names the file and the field.
@@ -315,8 +314,8 @@ The decorator `target` writes the version with `-`, not `.`. Do not send `creati
 |---|---|
 | Home page | The **Release tracker** card with two figures, and a link to each screen |
 | Side menu, **Release tracker** | **Releases**: filter tiles, releases and deployments tables, the **Log a release** form with a target chooser, text and links. **Release calendar**: an alert and a table of planned releases |
-| Architecture `demo` / `1`, **Extensions** tab | A **Release tracker** section with the **Request release review** button and the **Releases** tab content, with the **Log a release** form for this architecture. The button and the form ask you to confirm, because their routes are not `readOnly` |
-| Click the `order-service` node | The **Extensions** section of the node details, with the owner, last release, risk and the **Request a node review** form |
+| Architecture `demo` / `1`, the **Details & extensions** handle, then **Releases** under **Release tracker** in the view menu | The **Request release review** button and the **Releases** view, with the **Log a release** form for this architecture. The button and the form ask you to confirm, because their routes are not `readOnly` |
+| Click the `order-service` node, then choose **Release info** under **Release tracker** in the view menu | The **Release info** view, with the owner, last release, risk and the **Request a node review** form |
 | Diagram | An amber **Medium** badge on `order-service`, and a **Release risk · Release tracker** row in the legend |
 
 To see an unknown outcome, put `#slow` in a form text field. The demo saves the input, then replies

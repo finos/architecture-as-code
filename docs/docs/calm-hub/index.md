@@ -236,7 +236,7 @@ The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in 
 
 ### Extension logos
 
-An extension can show a logo beside its name: in the side menu, on its home page card, above the heading of its screens and in its sections of the **Extensions** tab and the node details. The name always shows as text. Without a logo, while the logo loads, or when the logo does not load, CALM Hub shows the generated marker of the extension.
+An extension can show a logo beside its name: in the side menu, on its home page card, above the heading of its screens and in the inspector beside the diagram. The name always shows as text. Without a logo, while the logo loads, or when the logo does not load, CALM Hub shows the generated marker of the extension.
 
 ```json
 "logo": { "light": "logo.svg", "dark": "logo-dark.svg" }

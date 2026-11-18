@@ -10,6 +10,7 @@ import { isBlocksReply } from './blocks/reply.js';
 import { useExtensionService } from './ExtensionsContext.js';
 import { useExtensionRevision } from './extensionRefresh.js';
 import { RetryAlert } from './RetryAlert.js';
+import { useSlotActive } from './slotActivity.js';
 import { useRefreshingRequest } from './useRefreshingRequest.js';
 
 interface SlotProps {
@@ -35,9 +36,14 @@ export type ExtensionSlotProps =
           placement: string;
       });
 
+const contextView = ({ namespace, resource, resourceType, resourceId, version, selectedElement }: ExtensionContext) =>
+    JSON.stringify([namespace, resource, resourceType, resourceId, version, selectedElement]);
+
 function SlotContent({ extension, contribution, context = {}, query, action, headingLevel = 2, placement, point }: ExtensionSlotProps) {
     const service = useExtensionService();
     const revision = useExtensionRevision(extension.id);
+    // A hidden slot sends no request. It loads when it shows again, if its context or revision changed.
+    const active = useSlotActive();
     const domId = useId();
     const route = extension.routes.find((entry) => entry.id === contribution.route);
     const { namespace, resource, resourceType, resourceId, version, selectedElement } = context;
@@ -47,7 +53,7 @@ function SlotContent({ extension, contribution, context = {}, query, action, hea
     // Filters belong to the data of one context, so another context starts without them.
     const tableState = useTableStateStore(view);
     const load = useMemo(() => {
-        if (action || !route || route.method !== 'GET') return undefined;
+        if (action || !active || !route || route.method !== 'GET') return undefined;
         const params = JSON.parse(queryKey) as Record<string, string>;
         return (signal: AbortSignal) =>
             service
@@ -56,8 +62,10 @@ function SlotContent({ extension, contribution, context = {}, query, action, hea
                     if (!isBlocksReply(reply, extension.hubApi)) throw new Error('Invalid blocks reply');
                     return reply;
                 });
-    }, [service, extension.id, extension.hubApi, route, action, queryKey, namespace, resource, resourceType, resourceId, version, selectedElement]);
-    // A confirmed write raises the revision: the slot loads again in place, and its tables keep their filters.
+    }, [service, extension.id, extension.hubApi, route, action, active, queryKey, namespace, resource, resourceType, resourceId, version, selectedElement]);
+    // A confirmed write raises the revision: the slot loads again in place, and its tables keep their filters. A reply
+    // shows only for the context it was loaded for, so after a change of selection the slot shows Loading, never the
+    // earlier target's data.
     const { value: result, loading, failed, retrying, retry } = useRefreshingRequest(view, revision, load);
     const tables = useScopeTables(result?.blocks);
     const scope = useMemo<BlockScope | undefined>(
@@ -90,8 +98,9 @@ function SlotContent({ extension, contribution, context = {}, query, action, hea
         <p role="alert">Extension route unavailable.</p>
     ) : route.method !== 'GET' ? (
         <p role="alert">Block routes must use GET.</p>
-    ) : !result && failed ? (
-        <p role="alert">Extension request failed.</p>
+    ) : !result && (failed || retrying) ? (
+        // The slot stays mounted while it is hidden, so only Try again loads a failed request again.
+        <RetryAlert message="Extension request failed." retrying={retrying} onRetry={retry} />
     ) : !result ? (
         <p role="status">Loading extension…</p>
     ) : undefined;
@@ -139,11 +148,13 @@ export function SlotFrame({ title, level, children }: { title: string; level: He
 }
 
 export function ExtensionSlot(props: ExtensionSlotProps) {
-    // An action keeps its state when the context changes, so a change of selection does not reset a running write.
-    const key = JSON.stringify([props.extension.id, props.contribution.id, props.action ? null : [props.context, props.query]]);
+    // A change of context keeps the slot mounted, so its state, such as a running write or a table filter, stays.
+    const key = JSON.stringify([props.extension.id, props.contribution.id]);
     return (
         <ScreenErrorBoundary
             key={key}
+            // Content that failed to render for one context can render for the next.
+            resetKey={props.action ? undefined : JSON.stringify([contextView(props.context ?? {}), props.query])}
             frame={
                 props.action
                     ? undefined

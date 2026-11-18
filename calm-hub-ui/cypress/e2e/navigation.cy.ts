@@ -41,6 +41,30 @@ describe('Navigation menu on a narrow screen', () => {
   })
 })
 
+describe('Inspector edge handle', () => {
+  it('keeps decorator controls clickable and retains their state across inspector visits', () => {
+    cy.intercept("/api/calm/auth/config", { oidc: { enabled: false }, databaseMode: "standalone" });
+    cy.intercept("/api/calm/ui/config", {});
+    cy.intercept("/api/calm/extensions", { values: [] });
+    cy.intercept("/calm/namespaces", { values: namespaceInfos });
+    cy.intercept("/api/calm/namespaces/finos/architectures", { values: [{ id: 1, name: "Three tier" }] });
+    cy.intercept("/api/calm/namespaces/finos/architectures/1/versions", { values: ["1.0.0"] });
+    cy.intercept("/api/calm/namespaces/finos/architectures/1/versions/1.0.0", { fixture: "three-tier-calm.json" });
+    cy.intercept("/api/calm/namespaces/finos/decorators/values*", {
+      values: [{ uniqueId: "deployment-1", type: "deployment", appliesTo: ["web-client"], data: { status: "Failed" } }],
+    });
+    cy.viewport(390, 844);
+    cy.visit("/#/finos/architectures/1/1.0.0?tab=decorators&exact=1");
+
+    cy.findByRole("button", { name: "JSON" }).click("right").should("have.attr", "aria-pressed", "true");
+    cy.findByRole("dialog", { name: "Inspector" }).should("not.exist");
+    cy.findByRole("button", { name: "Details & extensions" }).click();
+    cy.findByRole("dialog", { name: "Inspector" }).findByRole("button", { name: "Back to diagram" }).click();
+    cy.focused().should("contain.text", "Details & extensions");
+    cy.findByRole("button", { name: "JSON" }).should("have.attr", "aria-pressed", "true");
+  });
+});
+
 describe('Navbar brand', () => {
   it('keeps the longest names inside the centre of the navbar on a 1024px screen', () => {
     cy.intercept("/api/calm/auth/config", { "oidc": { "enabled": false }, "databaseMode": "standalone" })

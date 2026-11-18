@@ -1,5 +1,4 @@
-import { IoAppsOutline, IoEyeOutline, IoGitNetworkOutline, IoPricetagsOutline } from 'react-icons/io5';
-import { ExtensionsTabPanel } from '../../../../extensions/sections/ExtensionsTabPanel.js';
+import { IoEyeOutline, IoGitNetworkOutline, IoPricetagsOutline } from 'react-icons/io5';
 import { DecoratorsPanel } from '../decorators/DecoratorsPanel.js';
 import { UsedByPanel } from '../used-by/UsedByPanel.js';
 import { USED_BY_TOOLTIP, usedByLabel } from '../used-by/usedBy.js';
@@ -19,10 +18,14 @@ export const decoratorFilterParams = (type: string | null | undefined, schema: s
     ...(schema ? { [DECORATOR_SCHEMA_PARAM]: schema } : {}),
 });
 
-/** Old `?tab=` values, and the query that replaces each. Deployments became a decorator view, and JSON a lens. */
+/**
+ * Old `?tab=` values, and the query that replaces each. Deployments became a decorator view, JSON a lens, and the
+ * Extensions tab the inspector beside the diagram.
+ */
 export const DIAGRAM_TAB_REDIRECTS: Readonly<Record<string, Record<string, string>>> = {
     deployments: { tab: DECORATORS_TAB_ID, [DECORATOR_TYPE_PARAM]: 'deployment' },
     json: { tab: DEFAULT_DIAGRAM_TAB_ID, [LENS_PARAM]: JSON_LENS_ID },
+    [EXTENSIONS_TAB_ID]: { tab: DEFAULT_DIAGRAM_TAB_ID, [EXTENSION_PARAM]: '' },
 };
 
 export const extensionContext = (data: Data, selectedElement?: string): ExtensionContext => {
@@ -74,20 +77,5 @@ export const DIAGRAM_TABS: readonly DiagramTab[] = [
         icon: IoGitNetworkOutline,
         isVisible: ({ isArchitecture, patternName }) => !isArchitecture && patternName !== undefined,
         render: ({ usedBy }) => <UsedByPanel state={usedBy} />,
-    },
-    {
-        id: EXTENSIONS_TAB_ID,
-        label: 'Extensions',
-        icon: IoAppsOutline,
-        // Hidden, not unknown, until the registry loads, so a link to the tab keeps it.
-        isVisible: ({ hasExtensions }) => !!hasExtensions,
-        searchParams: [EXTENSION_PARAM],
-        render: ({ data, selectedElement, searchParams, linkKey }) => (
-            <ExtensionsTabPanel
-                context={extensionContext(data, selectedElement)}
-                linkedExtension={searchParams.get(EXTENSION_PARAM) ?? undefined}
-                linkKey={linkKey}
-            />
-        ),
     },
 ];

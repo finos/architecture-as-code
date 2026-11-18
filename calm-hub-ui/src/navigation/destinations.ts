@@ -1,6 +1,6 @@
 import type { Path } from 'react-router-dom';
 import { resourcePath, screenRoutePath } from '../hub/routes.js';
-import { EXACT_VERSION_PARAM, EXTENSION_PARAM, EXTENSIONS_TAB_ID } from '../hub/components/diagram-section/tabs/diagramTabRegistry.js';
+import { EXACT_VERSION_PARAM, EXTENSION_PARAM } from '../hub/components/diagram-section/tabs/diagramTabRegistry.js';
 import type { Destination, ExtensionContext, HubTarget, ResourceTarget, ScreenTarget } from '../model/extensions.js';
 import { isQueryValue } from '../service/extension-service.js';
 
@@ -172,10 +172,7 @@ export function destinationLocation(destination: Destination): Path | undefined 
         const { element, extension } = destination.hub;
         const query = new URLSearchParams();
         if (element !== undefined) query.set('node', element);
-        if (extension !== undefined) {
-            query.set('tab', EXTENSIONS_TAB_ID);
-            query.set(EXTENSION_PARAM, extension);
-        }
+        if (extension !== undefined) query.set(EXTENSION_PARAM, extension);
         // A Hub link names its version, so a timeline must not move it, also when the link is copied.
         query.set(EXACT_VERSION_PARAM, '1');
         return location(resourcePath(destination.hub), query);

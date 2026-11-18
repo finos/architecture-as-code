@@ -60,7 +60,7 @@ hides an action whose path gets such a value. Thus use `resource` only as a quer
 | `resourceType` | `architectures` or `patterns` | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
 | `resourceId` | The resource id, for example `1` | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
 | `version` | The version on screen, for example `1.0.0` | `designer-tab`, `diagram-lens`, `detail-panel`, `action` |
-| `selectedElement` | The `unique-id` of the selected node | `detail-panel`, when you click a node. A link that names a node with `?node=<unique-id>` also sends it to `designer-tab` and `action`. A tab change clears a clicked selection. `diagram-lens` gets it only when its route path names `{selectedElement}`, because the lens marks a selection with no request |
+| `selectedElement` | The `unique-id` of the selected node or relationship | `designer-tab` and `action`, when you select an element or a link names one with `?node=<unique-id>`. `detail-panel`, for a selected node only. A change of tab or version clears a clicked selection. `diagram-lens` gets it only when its route path names `{selectedElement}`, because the lens marks a selection with no request |
 
 CALM Hub checks the format of a `{namespace}` or `{domain}` path value, and checks the route `scope`
 against the value that the scope needs. It checks no other path value. A user can send any value,
@@ -93,20 +93,44 @@ together under the extension `name`.
 - The page address keeps the filters of its tables, so Back, a reload and a link show the same rows
   (see [Filters in the page address](extension-blocks.md#filters-in-the-page-address)).
 
+## The inspector
+
+Actions, designer tabs and detail panels show in the **inspector** beside the diagram of an
+architecture or a pattern. Open it with the **Details & extensions** handle on the right edge of the
+diagram. The handle has its own rail and does not cover view controls. On a wide screen, a click on a node also opens it, and the close button closes it. On a narrow screen, it fills the screen, and **Back to diagram** or Escape closes it.
+The diagram, its viewport and the selection stay when the inspector opens and closes.
+
+The inspector has one view menu, with **Details** first. Each extension name groups its resource
+views (`designer-tab`), then its node views (`detail-panel`), in manifest order within each kind.
+The menu has a filter when there are more than five extension views. Select one view at a time;
+the extension's actions stay above it. An extension with only actions has an **Actions** entry.
+The chosen view of each extension stays in memory while the inspector is mounted, not in the URL.
+
+- With no selection, the inspector shows the whole resource. **Clear selection** goes back to it.
+- A view sends no request until it shows. A view that you leave, and a closed inspector,
+  keep their state and send no request. They load again when they show, if the context changed or an
+  action changed their data.
+- When the selection changes, the visible view loads again. It shows "Loading" until the new reply, not
+  the data of the element that you selected before.
+- A view that fails shows its error and **Try again** in its own section. The other views stay.
+- The inspector shows no extension for a document that you drop on the page, because it has no
+  resource.
+- A link opens the inspector on an extension with `?extension=<extension id>`, or on the first
+  extension with `?extension=`. A fresh load shows its first view. Hub changes an old `?tab=extensions` link to `?extension=`, and keeps
+  the other parameters, such as `node`.
+- On a wide screen, each link that names the selected node with `node`, and Back or Forward to one,
+  opens the inspector again, also a link to the page that shows. Closing the inspector and selecting
+  another node keep the open extension and its chosen view.
+
 ## designer-tab
 
-Content in the **Extensions** tab of an architecture or a pattern. Each extension has a collapsible
-section, with its actions first and then its designer tabs.
+A view of the resource in the [inspector](#the-inspector).
 
 ```json
 "contributes": { "designer-tab": [{ "id": "releases", "title": "Releases", "route": "tab" }] }
 ```
 
-- The route returns blocks.
-- Hub opens the first section and closes the others. It keeps each choice in the browser. A closed
-  section sends no request. A [Hub link](extension-navigation.md#hub) with `extension` opens the
-  section of that extension.
-- The tab does not show for a document that you drop on the page, because it has no resource.
+- The route returns blocks. It gets the selected node or relationship, if there is one.
 - The UI hides a designer tab whose route path needs a placeholder other than `namespace`,
   `resourceType`, `resourceId`, `version` and `selectedElement`, such as `{resource}`. CALM Hub logs a
   warning for such a tab at start up.
@@ -132,8 +156,8 @@ A compact card in the **Extensions** section of the home page.
 
 ## detail-panel
 
-Content in the **Extensions** section of the node details, when you click a node on the diagram.
-Each extension has a collapsible sub-section.
+A view of the selected node in the [inspector](#the-inspector). With no node selected, the panel
+shows its title and a hint to select a node.
 
 ```json
 "contributes": { "detail-panel": [{ "id": "release", "title": "Release info", "route": "element" }] }
@@ -144,7 +168,7 @@ Each extension has a collapsible sub-section.
 
 ## action
 
-A button in the extension's section of the **Extensions** tab of an architecture or pattern. Actions show only there, not on the home page, so each call has a resource context.
+A button in the extension's section of the [inspector](#the-inspector). Actions show only there, not on the home page, so each call has a resource context.
 
 ```json
 "routes": [{ "id": "request-review", "method": "POST", "path": "/reviews", "scope": "authenticated" }],
@@ -160,13 +184,11 @@ A button in the extension's section of the **Extensions** tab of an architecture
 - Hub does not cancel a confirmed call when the user changes the selection or leaves the page. The
   button stays disabled until the call ends, also when its section closes and opens again.
 - The action shows only when the context gives a value for each placeholder in the route path.
-  An action that needs only `{selectedElement}` shows disabled until a link names a node. It also shows disabled when Hub refuses the node id in a path, for example an id with `/`, `@` or `%`.
+  An action that needs only `{selectedElement}` shows disabled, with a hint, until you select a node. It also shows disabled when Hub refuses the node id in a path, for example an id with `/`, `@` or `%`.
 - An action does not accept user input, and Hub does not show its reply. For user input, use a
   [form](#form). A call in flight
   shows `<title>: running…`. A call that succeeds
-  shows `<title>: done.`, and a failed call shows "Extension request failed." After a write that
-  succeeds, Hub loads the blocks of the extension again, with the same table filters (see
-  [Refresh after a write](extension-blocks.md#refresh-after-a-write)). The message stays
+  shows `<title>: done.`, and a failed call shows "Extension request failed." The message stays
   when the section closes and opens again. For a `readOnly` route, it goes when the context changes.
   For a write, it stays until the action runs again, and names its target when the context has
   changed, for example `Request release review: done (demo architectures/1 1.0.0).`

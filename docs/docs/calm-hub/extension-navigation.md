@@ -32,7 +32,7 @@ plain text.
 |---|---|---|
 | `namespace`, `type`, `id`, `version` | Yes | The exact resource and version. Not empty, `.` or `..` |
 | `element` | No | The `unique-id` of a node or relationship. Hub selects it and opens its details. In a pattern, it is a node or relationship that the pattern declares, also as one choice of a `oneOf` or `anyOf` |
-| `extension` | No | An extension id. Hub opens the section of that extension in the **Extensions** tab, and clears an extension filter that hides it. Each link, and Back or Forward to one, opens it again, also a link to the extension that is open |
+| `extension` | No | An extension id. Hub opens the inspector on that extension |
 
 When a plain URL, such as a catalogue link, opens the latest version of an architecture with a
 timeline, Hub opens the current moment of the timeline. The URL of a Hub link has `exact=1`, so Hub
@@ -90,10 +90,10 @@ was: the filters, sort and page of a list, or the tab, lens and selected node of
   version that it shows, changes only the view. It keeps the return points and adds none.
 - Back and Forward to an architecture or pattern page select the node that the user selected there
   again. Hub keeps that selection for each history entry in the session storage of the browser tab,
-  not in the URL. A change of tab and a close of the details clear it. A change of lens on the page
-  keeps it. A new visit to the same URL, such as a pasted link, is a new history entry and selects
-  nothing. Back, Forward and a jump of more than one entry select only the node of the entry that
-  they open, also between two entries at the same URL.
+  not in the URL. A change of tab and **Clear selection** in the inspector clear it. Closing the
+  inspector and a change of lens on the page keep it. A new visit to the same URL, such as a pasted
+  link, is a new history entry and selects nothing. Back, Forward and a jump of more than one entry
+  select only the node of the entry that they open, also between two entries at the same URL.
 - A Hub link and a return to an architecture or a pattern open the exact version. Their URL has
   `exact=1`, so a copied link, a new tab and a refresh also open that version.
 - The page name in **Back to** has at most 200 characters. Hub shortens a longer title.

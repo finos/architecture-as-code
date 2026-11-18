@@ -57,14 +57,15 @@ describe('extension contributions', () => {
         expect(actionContributions(extension, {})).toEqual([]);
     });
 
-    it('lists the extensions with an action or a designer tab for the resource', () => {
+    it('lists the extensions with an action, a designer tab or a detail panel for the resource, and not a screen', () => {
         const entries = resourceExtensions(
-            [fakeExtension(1, ['designer-tab']), fakeExtension(2, ['action']), fakeExtension(3, ['screen', 'detail-panel'])],
+            [fakeExtension(1, ['designer-tab']), fakeExtension(2, ['action']), fakeExtension(3, ['screen', 'detail-panel']), fakeExtension(4, ['screen'])],
             { namespace: 'ns' }
         );
-        expect(entries.map(({ extension, actions, tabs }) => [extension.id, actions.length, tabs.length])).toEqual([
-            ['ext-1', 0, 1],
-            ['ext-2', 1, 0],
+        expect(entries.map(({ extension, actions, tabs, panels }) => [extension.id, actions.length, tabs.length, panels.length])).toEqual([
+            ['ext-1', 0, 1, 0],
+            ['ext-2', 1, 0, 0],
+            ['ext-3', 0, 0, 1],
         ]);
     });
 

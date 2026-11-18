@@ -249,9 +249,27 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   the selected chat. Add a top-level page there, not in one of them, so the labels and the order stay the same in
   both. Both keep registry order, which is the operator `order`. The extension `id` is the group key; do not add a
   second grouping field to the manifest.
-- Architecture: one `extensions` tab in `DIAGRAM_TABS`, hidden (not unknown) until the registry loads, so a link
-  to it keeps the tab. `resourceExtensions()` decides if it shows.
-- Actions: `ExtensionActionButton`, only in the Extensions tab, so each action runs with a resource context. There
+- Architecture: the inspector beside the diagram (`hub/components/inspector/DiagramInspector`, in Hub's `Sidebar` on a
+  wide screen and `MobileInspector` on a narrow one). `InspectorHandle` on the right edge of the diagram canvas opens
+  it on both widths; do not add a toolbar toggle. Keep the handle in a separate layout column, outside the view's positioned container, so it cannot cover lens notes or tab controls. The handle stays in the page, hidden, while the inspector is open, so
+  focus can go back to it. `InspectorMenu` lists Details first, then individual views grouped by extension name. `resourceExtensions()` decides which extensions show; `inspectorViews()` keeps resource views before node views, in manifest order within each kind. An action-only extension has an Actions entry. `MobileInspector` is a
+  `<dialog>` that opens with `showModal()`, so focus stays in it and the page behind it is inert. It stays in the page
+  when it closes, so slot state stays. Its `cancel` handler ignores the cancel of a dialog in a slot, which closes only
+  that dialog. Hub owns the inspector, so the
+  diagram stays mounted while it opens and closes. `?extension=<id>` (`EXTENSION_PARAM`) opens it on an extension;
+  Details and each extension's chosen view stay in memory only. A fresh `?extension=` link shows the extension's first view. A change of only `extension` keeps the selection.
+  The router shows a replace in a transition, so a close can come before the choice before it shows, also while a
+  render of it waits. Hub shows the latest choice at once (`inspectorChoice`) and sends one replace at a time. It never
+  sends a replace to the URL that shows: that loads the resource again and clears the selection. Set each choice as a
+  whole value, not with an update that reads the state: a render that has not shown can change what React reads. Each
+  replace adds its id (`inspectorWrite`) to the history state. A location is Hub's replace only if it is a replace in
+  the same browser entry with that id. Never compare URLs: another navigation can have the URL of the replace. Every
+  other navigation drops the choice, and its URL decides the inspector. A selection that takes `node` out of the URL
+  (`handleItemSelect`) is one of these replaces: it takes the latest choice, and the place and the id of a replace that
+  has not shown. It reads them from a ref, so its identity stays. The old
+  `?tab=extensions` redirects to `?extension=` (`DIAGRAM_TAB_REDIRECTS`). Do not add an extension tab to
+  `DIAGRAM_TABS`, and keep diagram lenses (`?lens=`) apart from the inspector.
+- Actions: `ExtensionActionButton`, only in the inspector, so each action runs with a resource context. There
   is no home placement. A route that is not `readOnly` asks in `ConfirmActionDialog`, not
   `window.confirm`. The dialog opens with `showModal()`, gives Cancel the focus, and names the target context. Do not abort a confirmed
   write: the backend can still finish it, so a retry can write twice. The busy state and the last result live in
@@ -275,10 +293,10 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   (screen page only) keeps `<table>.filter|q|page` in the URL with `replace: true` and the fields of the current
   `location.state`, at most 12 such keys (the limit #3799's return points keep); over that, or with a value that
   `isTableStateEntry` refuses (page 10001), the table keeps its filters in memory and says so. Other slots keep them in
-  memory: a query change on an architecture page closes the node details. The router shows a navigation in a transition, so the page can show a
-  query late: `UrlTableState` keeps the newest filters in its own state, the tables read them there, and
-  `update(tableId, change)` changes them. Of the changes in one render, only the last goes to the router. Each write
-  adds its id (`tableStateWrite`, unique to the page load, the mounted store and the write) to the history state, and
+  memory for one context (`useTableStateStore(view)`): a query change on an architecture page clears the selection.
+  The router shows a navigation in a transition, so the page can show a query late: `UrlTableState` keeps the newest
+  filters in its own state, the tables read them there, and `update(tableId, change)` changes them. Of the changes in
+  one render, only the last goes to the router. Each write adds its id (`tableStateWrite`, unique to the page load, the mounted store and the write) to the history state, and
   the store keeps a list of the writes it sent. A location is a write of the store only if it is a replace on the same
   page with the id of a write that has not shown yet (`showLocation`). Never compare queries: another navigation can
   have the query of a write. It knows a location by its key, path and query, because React Router keys every location
@@ -290,7 +308,6 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   source tables read `useExtensionRevision()` and load again through `useRefreshingRequest`, which keeps the earlier
   value, shows a value only for the view (context, filters) it was loaded for, and drops a late reply. Do not add a
   second refresh store.
-- Node details: `ExtensionDetailPanels`.
 - Identity: `ExtensionLogo` (`extensions/ExtensionLogo.tsx`) is the mark beside an extension name everywhere, also in
   search and chat attribution. It is the `ExtensionMarker` when the manifest has no `logo`, and while a logo loads or
   after it fails. A logo has loaded when its `img` fires `load` or is `complete`, not when its bytes arrive: Firefox
@@ -314,16 +331,25 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   backend `fields`) with `own()`: a field can be called `constructor` or `toString`. A
   screen form fills its target picker from the slot context. Call `useExtensionRefresh().refresh(id)` only after a 2xx. `formRules.ts` copies the messages of
   `ExtensionForms` in calm-hub, and `formRules.test.ts` reads the shared cases.
-- Both use `ExtensionSections`: the first section is open, a choice is kept in `localStorage` per extension, and a
-  closed section renders nothing, so it sends no request. In the Extensions tab, each link and each Back or Forward
-  that names an extension, also the same one again, opens its section, clears a filter that hides it and keeps one
-  that shows it (`linkKey` from DiagramSection, a count of the new `location` values and the browser moves of
-  `useBrowserEntry()`). A replace that changes the URL, such as Hub taking `node` out when the details close, updates
-  the page in place: the filter and the sections stay. React Router makes a link to the URL that shows a replace, so a
-  replace that keeps the URL is a link. Typing in the filter never clears it.
-  Give `ExtensionSections` and `ExtensionSlot` a `headingLevel` one below the heading of the place that holds
-  them: `h3`/`h4` in the Extensions tab, `h5`/`h6` in the node details, `h1` on a screen page (nothing else
-  there is an `h1`).
+- `ExtensionInspector` shows one extension at a time; `ExtensionInspectorSection` shows its actions and one chosen resource or node view. Each view mounts when it first shows and stays mounted, hidden, after
+  that, also while the inspector is closed, so slot state stays. `SlotActiveContext` is false for a hidden slot:
+  `ExtensionSlot` and its `SourceTable`s then pass no `load` to `useRefreshingRequest`, so they send no request, and
+  load when they show again if their context, revision or table query changed. A failed request does not load again
+  when it shows: the slot and the table show **Try again**, also for a first load. Keep the inspector's tree the same
+  when it closes, or React remounts the slots.
+- On a wide screen, each selection that the user makes opens the inspector, also a click on the item that is already
+  selected (`selections` in `Hub`). `handleItemSelect` counts it with a functional update, so its identity stays.
+  Each link, and each Back or Forward, whose URL names the selected node opens it too, also a link to the URL that
+  shows (`useLinkKey()` in `hooks/entrySelection.ts`: a count of the new `location` values and the browser moves of
+  `useBrowserEntry()`). A replace that changes the URL, such as closing the inspector or Hub taking `node` out when
+  the user selects another node, updates the page in place and is not a link: the open extension, its chosen view and
+  the slots stay. React Router makes a link to the URL that shows a replace, so a replace that keeps the URL is a link.
+- The `ExtensionSlot` key is the extension and the contribution, not the context, so a change of selection keeps
+  the slot mounted. `useRefreshingRequest` shows a reply only for the context it was loaded for, so a slot shows
+  Loading, never the earlier target's data, beside actions that follow the new context. `ScreenErrorBoundary`
+  takes the context and screen parameters as its `resetKey`. Key a slot in a list as `<point>:<contribution id>`.
+  Give `ExtensionSlot` a `headingLevel` one below the heading of the place that holds it: `h3` in the inspector
+  (the extension name is the `h2`), `h1` on a screen page (nothing else there is an `h1`).
   A block slot shows its title and its named region in every state (loading, failed, a reply it cannot show:
   the error boundary takes a `frame`), and the screen page has
   an `h1` in the same region (`SlotFrame`) before the registry loads, so the outline does not change. The heading is

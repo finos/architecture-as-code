@@ -1,5 +1,5 @@
 import { startTransition, useCallback, useLayoutEffect, useRef, useState } from 'react';
-import type { Location } from 'react-router-dom';
+import { NavigationType, useLocation, useNavigationType, type Location } from 'react-router-dom';
 
 const KEY = 'calm-hub-entry-selection';
 const MAX_ENTRIES = 50;
@@ -110,4 +110,23 @@ export function writeEntrySelection(
     } catch {
         // A full or blocked storage only loses the selection for Back and Forward.
     }
+}
+
+/**
+ * A number that changes on each link and on each browser move (`entry` of useBrowserEntry), also to the URL that shows.
+ * A link pushes a history entry and Back or Forward pops one. A replace that changes the URL, such as closing the
+ * inspector, updates the page in place and keeps the number. React Router makes a link to the URL that shows a replace
+ * too. The router gives each entry that the browser made the key `default`, and two of them at the same URL the same
+ * location, so a count of these changes and of the browser moves tells each link apart.
+ */
+export function useLinkKey(browserEntry: number): number {
+    const location = useLocation();
+    const navigationType = useNavigationType();
+    const url = `${location.pathname}${location.search}`;
+    const [link, setLink] = useState({ location, browserEntry, url, linkKey: 0 });
+    if (link.location === location && link.browserEntry === browserEntry) return link.linkKey;
+    const isLink = link.browserEntry !== browserEntry || navigationType !== NavigationType.Replace || link.url === url;
+    const next = { location, browserEntry, url, linkKey: link.linkKey + (isLink ? 1 : 0) };
+    setLink(next);
+    return next.linkKey;
 }
