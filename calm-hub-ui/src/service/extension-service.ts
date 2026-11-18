@@ -9,6 +9,12 @@ import { authStore } from './utils/auth-store.js';
 /** The extension contract version this UI reads. The registry and each blocks reply give theirs. */
 export const SUPPORTED_HUB_API = 0;
 
+/**
+ * Hub refuses a longer request line (the method, the target with its query, and HTTP/1.1) with 414. The MCP tools
+ * apply the same Vert.x limit (`ExtensionTools.MAX_REQUEST_LINE_LENGTH`).
+ */
+export const MAX_REQUEST_LINE = 4096;
+
 type RegistryEntry = ExtensionSummary & { contributes: { 'decorator-views'?: unknown } };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -181,6 +187,21 @@ export class ExtensionService {
                 return Promise.reject(error);
             });
         return this.core;
+    }
+
+    /**
+     * The request line of the call is within `MAX_REQUEST_LINE`. It counts the target as the browser sends it, after
+     * the browser's own encoding. A call that is not valid fits: `call` refuses it.
+     */
+    public fitsRequestLine(id: string, route: ExtensionRoute, context: ExtensionQuery): boolean {
+        let uri: string;
+        try {
+            uri = this.ax.getUri({ ...extensionRequest(id, route, context), method: route.method });
+        } catch {
+            return true;
+        }
+        const { pathname, search } = new URL(uri, window.location.href);
+        return `${route.method} ${pathname}${search} HTTP/1.1`.length <= MAX_REQUEST_LINE;
     }
 
     public async call(id: string, route: ExtensionRoute, context: ExtensionQuery, signal?: AbortSignal): Promise<unknown> {
