@@ -9,7 +9,10 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,6 +22,7 @@ import java.util.stream.Stream;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
@@ -41,6 +45,7 @@ class TestImageAssetShould {
                 <linearGradient id="g"><stop offset="0" stop-color="#0f766e"/></linearGradient>
                 <path id="p" d="M2 2h20v20H2z"/>
               </defs>
+              <filter id="f"><feTurbulence baseFrequency="0.1"><animate attributeName="baseFrequency" to="0.2"/></feTurbulence></filter>
               <style>.mark { fill: url(#g); }</style>
               <use href="#p" class="mark"/>
               <use xlink:href="#p" fill="url( '#g' )" style="stroke: url(#g)"/>
@@ -52,7 +57,11 @@ class TestImageAssetShould {
     }
 
     private static ImageAsset svg(String text) {
-        return ImageAsset.read("logo.svg", text.getBytes(StandardCharsets.UTF_8));
+        try {
+            return ImageAsset.read("logo.svg", new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static String svgProblem(String text) {
@@ -122,7 +131,38 @@ class TestImageAssetShould {
         String atLimit = start + "x".repeat(ImageAsset.MAX_BYTES - start.length() - end.length()) + end;
 
         assertThat(svg(atLimit).bytes().length, equalTo(ImageAsset.MAX_BYTES));
-        assertThat(svgProblem(atLimit.replace("<!--", "<!-- ")), equalTo("is 262145 bytes, more than the limit of 262144"));
+        assertThat(svgProblem(atLimit.replace("<!--", "<!-- ")), equalTo("is more than the limit of 262144 bytes"));
+    }
+
+    @Test
+    void read_no_more_than_the_size_limit_and_one_byte_of_a_large_file() {
+        long[] read = {0};
+        InputStream large = new InputStream() {
+            private long left = 64L * 1024 * 1024;
+
+            @Override
+            public int read() {
+                byte[] one = new byte[1];
+                return read(one, 0, 1) < 0 ? -1 : one[0];
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) {
+                if (left == 0) {
+                    return -1;
+                }
+                int n = (int) Math.min(len, left);
+                Arrays.fill(b, off, off + n, (byte) ' ');
+                left -= n;
+                read[0] += n;
+                return n;
+            }
+        };
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> ImageAsset.read("logo.svg", large));
+
+        assertThat(e.getMessage(), equalTo("is more than the limit of 262144 bytes"));
+        assertThat(read[0], lessThanOrEqualTo(ImageAsset.MAX_BYTES + 1L));
     }
 
     @ParameterizedTest
@@ -176,6 +216,16 @@ class TestImageAssetShould {
                 Arguments.of(open + "<image href='data:image/svg+xml;base64,PHN2Zy8+'/></svg>", "has an href that is not a #fragment"),
                 Arguments.of(open + "<a><set attributeName='href' to='javascript:alert(1)'/></a></svg>", "animates an href"),
                 Arguments.of(open + "<a><animate attributeName='xlink:href' values='javascript:alert(1)'/></a></svg>", "animates an href"),
+                // xml:base turns a #fragment link into a link to another document, at any depth and on any element.
+                Arguments.of("<svg xmlns='http://www.w3.org/2000/svg' xml:base='https://tracker.test/s.svg'><use href='#mark'/></svg>",
+                        "has an xml:base attribute"),
+                Arguments.of(open + "<g><g xml:base='https://tracker.test/s.svg'><use xlink:href='#mark'/></g></g></svg>",
+                        "has an xml:base attribute"),
+                Arguments.of(open + "<g xml:base='#a'><rect fill='url(#g)'/></g></svg>", "has an xml:base attribute"),
+                Arguments.of(open + "<metadata><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' "
+                        + "xml:base='https://tracker.test/'/></metadata></svg>", "has an xml:base attribute"),
+                Arguments.of(open + "<g><set attributeName='xml:base' to='https://tracker.test/s.svg'/><use href='#mark'/></g></svg>",
+                        "animates an xml:base"),
                 Arguments.of(open + "<rect fill='url(https://tracker.test/f)'/></svg>", "has a url() that is not a #fragment"),
                 Arguments.of(open + "<rect style=\"fill: URL('//tracker.test/f')\"/></svg>", "has a url() that is not a #fragment"),
                 Arguments.of(open + "<style>rect { fill: url(#ok) } circle { fill: url(\"https://tracker.test/f\") }</style></svg>",
