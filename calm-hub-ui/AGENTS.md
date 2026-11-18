@@ -264,14 +264,18 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   dialog. While the dialog is modal the page is inert and `focus()` outside it does nothing: the dialog calls
   `close()` before its callback, and the button takes focus in an effect after the dialog unmounts. jsdom has no
   modal dialogs, so a test that checks focus must model inertness (see `ExtensionSlot.test.tsx`).
-- Stat tiles and tables: a stat `filter` names a table `id` in the same reply. `ExtensionSlot` gives the reply to its
-  blocks through `BlockScopeContext` (`blocks/BlockScope.tsx`); outside a slot a tile is a figure and a table has no
-  filters. `blocks/tableFilters.ts` holds the rules. Inline `rows` are the whole dataset, so the browser filters them; a
-  table with a `source` gets each page from a `GET` `readOnly` route and never filters a page. Tile figures are the
-  extension's numbers, never recounted. `UrlTableState` (screen page only) keeps `<table>.filter|q|page` in the URL with
-  `replace: true` and the fields of the current `location.state`, at most 12 such keys (the limit #3799's return points
-  keep); over that, the table keeps its filters in memory and says so. Other slots keep them in memory: a query change
-  on an architecture page closes the node details. The router shows a navigation in a transition, so the page can show a
+- Stat tiles and tables: a stat `filter` names a table `id` in the same reply; the schema requires an `id` with
+  `search` or `source`. `ExtensionSlot` gives the reply to its blocks through `BlockScopeContext`
+  (`blocks/BlockScope.tsx`) and keys each filterable table by its `id`, so a reply that moves a table keeps its search
+  box with it, also text not sent yet; outside a slot a tile is a figure and a table has no filters.
+  `blocks/tableFilters.ts` holds the rules. Inline `rows` are the whole dataset, so the browser filters them; a table
+  with a `source` gets each page from a `GET` `readOnly` route and never filters a page. It sends no page request over
+  Hub's request-line limit (`fitsRequestLine`, `MAX_REQUEST_LINE` 4096, after the browser's own URL encoding): it says
+  the search is too long and keeps it. Tile figures are the extension's numbers, never recounted. `UrlTableState`
+  (screen page only) keeps `<table>.filter|q|page` in the URL with `replace: true` and the fields of the current
+  `location.state`, at most 12 such keys (the limit #3799's return points keep); over that, or with a value that
+  `isTableStateEntry` refuses (page 10001), the table keeps its filters in memory and says so. Other slots keep them in
+  memory: a query change on an architecture page closes the node details. The router shows a navigation in a transition, so the page can show a
   query late: `UrlTableState` keeps the newest filters in its own state, the tables read them there, and
   `update(tableId, change)` changes them. Of the changes in one render, only the last goes to the router. Each write
   adds its id (`tableStateWrite`, unique to the page load, the mounted store and the write) to the history state, and
