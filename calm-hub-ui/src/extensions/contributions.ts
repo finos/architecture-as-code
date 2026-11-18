@@ -117,3 +117,17 @@ export function extensionNavLinks(extension: ExtensionSummary, chat?: ChatSelect
     }
     return links;
 }
+
+export interface SearchProvider {
+    extension: ExtensionSummary;
+    provider: ExtensionContribution;
+}
+
+/** The search providers of the enabled extensions, in registry order. One whose route the registry left out is left out. */
+export function searchProviders(extensions: readonly ExtensionSummary[]): SearchProvider[] {
+    return extensions.flatMap((extension) =>
+        (extension.contributes['search-provider'] ?? [])
+            .filter((provider) => extension.routes.some((route) => route.id === provider.route))
+            .map((provider) => ({ extension, provider }))
+    );
+}

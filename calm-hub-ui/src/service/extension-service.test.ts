@@ -120,6 +120,7 @@ describe('ExtensionService', () => {
         await expect(service.fetchDecoratorViews()).rejects.toThrow();
         await expect(service.fetchExtensions()).rejects.toThrow();
         await expect(service.call('test', route, { namespace: 'ns' })).rejects.toThrow();
+        await expect(service.search('test', 'records', 'q')).rejects.toThrow();
         shared.restore();
         expect(migrationStore.getMigrationError()).toBeNull();
         expect(authStore.getAuthError()).toBeNull();
@@ -162,9 +163,11 @@ describe('ExtensionService', () => {
             entry('good-lens', { contributes: { 'diagram-lens': [{ id: 'l', title: 'L', route: 'r', notation: 'n.json', params: {} }] } }),
             entry('lens-no-notation', { contributes: { 'diagram-lens': [{ id: 'l', title: 'L', route: 'r' }] } }),
             entry('lens-list-params', { contributes: { 'diagram-lens': [{ id: 'l', title: 'L', route: 'r', notation: 'n.json', params: [] }] } }),
+            entry('good-search', { contributes: { 'search-provider': [{ id: 's', title: 'S', route: 'r' }] } }),
+            entry('search-no-title', { contributes: { 'search-provider': [{ id: 's', route: 'r' }] } }),
         ] });
         const service = new ExtensionService(ax);
-        expect((await service.fetchExtensions()).map((e) => e.id)).toEqual(['good', 'good-views', 'good-screen', 'good-lens']);
+        expect((await service.fetchExtensions()).map((e) => e.id)).toEqual(['good', 'good-views', 'good-screen', 'good-lens', 'good-search']);
         expect((await service.fetchDecoratorViews()).map((v) => v.id)).toEqual(['risk']);
     });
     it('keeps a logo, and drops only a malformed logo, not its extension', async () => {
@@ -205,6 +208,35 @@ describe('ExtensionService', () => {
             entry('good', views({ id: 'audit' })),
         ] });
         expect((await new ExtensionService(ax).fetchDecoratorViews()).map((v) => v.id)).toEqual(['audit']);
+    });
+    it('searches with a provider through its Hub endpoint, with the query and the cursor', async () => {
+        const page = { results: [{ id: 'a', title: 'Payments', summary: 'S', namespace: 'finos', link: { href: 'https://example.org' } }], next: 'p2' };
+        mock.onGet('/api/calm/extensions/release%2Ftracker/search/records').reply(200, page);
+        expect(await new ExtensionService(ax).search('release/tracker', 'records', 'pay ments', 'p1')).toEqual(page);
+        expect(mock.history.get[0].params).toEqual({ q: 'pay ments', cursor: 'p1' });
+        expect(mock.history.get[0].headers?.Authorization).toBe('test');
+
+        mock.resetHistory();
+        await new ExtensionService(ax).search('release/tracker', 'records', 'pay');
+        expect(mock.history.get[0].params).toEqual({ q: 'pay' });
+    });
+    it.each([
+        ['a reply with no results list', { next: 'x' }],
+        ['a result with no title', { results: [{ id: 'a' }] }],
+        ['a result that is not an object', { results: ['a'] }],
+        ['a link that is not an object', { results: [{ id: 'a', title: 'T', link: 'https://example.org' }] }],
+        ['a cursor that is not text', { results: [], next: 2 }],
+    ])('rejects %s', async (_name, reply) => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        mock.onGet('/api/calm/extensions/x/search/y').reply(200, reply);
+        await expect(new ExtensionService(ax).search('x', 'y', 'q')).rejects.toMatchObject({ timedOut: false });
+    });
+    it('reports a search that timed out apart from one that failed', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        mock.onGet('/api/calm/extensions/x/search/y').replyOnce(504, { error: 'The extension did not reply in time' });
+        await expect(new ExtensionService(ax).search('x', 'y', 'q')).rejects.toMatchObject({ timedOut: true });
+        mock.onGet('/api/calm/extensions/x/search/y').replyOnce(502, { error: 'The search provider failed' });
+        await expect(new ExtensionService(ax).search('x', 'y', 'q')).rejects.toMatchObject({ timedOut: false });
     });
     it('rejects missing route context', () => {
         expect(() => extensionRequest('test', route, {})).toThrow('Missing extension context');
