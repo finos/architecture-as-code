@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExtensionSummary } from '../../model/extensions.js';
 import type { DiagramLensContribution, Notation } from '../../model/lens.js';
 import { ExtensionCallError, ExtensionService } from '../../service/extension-service.js';
 import core from '../../../../calm-hub/src/main/resources/META-INF/calm-extensions/notations/core.json' with { type: 'json' };
-import { isExactVersion } from '../../navigation/returnPoints.js';
+import { isExactVersion, MAX_RETURN_POINTS, readReturnPoints } from '../../navigation/returnPoints.js';
+import { ReturnPointProvider } from '../../navigation/ReturnPointProvider.js';
 import { DiagramLensView, type DiagramLensViewProps } from './DiagramLensView.js';
 
 const lens: DiagramLensContribution = {
@@ -100,6 +101,50 @@ describe('DiagramLensView', () => {
         );
         fireEvent.click(await screen.findByRole('button', { name: 'Ledger' }));
         expect(screen.getByTestId('opened')).toHaveTextContent('/finos/architectures/ledger/2.0.0?node=api&exact=1 true');
+    });
+
+    // A link to the page that shows the lens changes only its view, as a same-page DestinationLink does.
+    it('keeps the way back when a node links to the same version, and adds this page for another version', async () => {
+        const target = { namespace: 'finos', type: 'architectures', id: 'shop' };
+        call.mockResolvedValue({
+            ...reply,
+            graph: {
+                nodes: [
+                    { id: 'same', label: 'Same version', link: { hub: { ...target, version: '1.0.0', element: 'payments' } } },
+                    { id: 'other', label: 'Other version', link: { hub: { ...target, version: '2.0.0' } } },
+                ],
+                edges: [],
+            },
+        });
+        const list = { page: { kind: 'screen', extension: 'reviews', screen: 'list' }, search: '?reviews.page=2', label: 'Reviews' };
+        function Page() {
+            const { version = '' } = useParams();
+            const location = useLocation();
+            return (
+                <ReturnPointProvider page={{ kind: 'resource', ...target, version }} label={`shop ${version}`}>
+                    <DiagramLensView extension={extension} lens={lens} params={{}} onParamsChange={vi.fn()} onSelectElement={vi.fn()}
+                        context={{ namespace: 'finos', resourceType: 'architectures', resourceId: 'shop', version }} />
+                    <p data-testid="return-to">{readReturnPoints(location.state).map((point) => point.label).join(' > ')}</p>
+                    <p data-testid="url">{`${location.pathname}${location.search}`}</p>
+                </ReturnPointProvider>
+            );
+        }
+        render(
+            <MemoryRouter initialEntries={[{ pathname: '/finos/architectures/shop/1.0.0', state: { returnTo: [list] } }]}>
+                <Routes>
+                    <Route path="/finos/architectures/shop/:version" element={<Page />} />
+                </Routes>
+            </MemoryRouter>
+        );
+        for (let click = 0; click < MAX_RETURN_POINTS + 1; click++) {
+            fireEvent.click(await screen.findByRole('button', { name: 'Same version' }));
+        }
+        expect(screen.getByTestId('url')).toHaveTextContent('/finos/architectures/shop/1.0.0?node=payments&exact=1');
+        expect(screen.getByTestId('return-to')).toHaveTextContent(/^Reviews$/);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Other version' }));
+        expect(screen.getByTestId('url')).toHaveTextContent('/finos/architectures/shop/2.0.0?exact=1');
+        expect(screen.getByTestId('return-to')).toHaveTextContent(/^Reviews > shop 1\.0\.0$/);
     });
 
     it('marks a selection with no new request when the route does not take it', async () => {

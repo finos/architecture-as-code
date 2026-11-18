@@ -27,18 +27,29 @@ interface ExtensionSectionsProps {
     headingLevel?: HeadingLevel;
     /** The section that a link names: open, and scrolled into view. */
     linkedId?: string;
+    /** A new value is a new link to `linkedId`, also to the same section, which opens and scrolls into view again. */
+    linkKey?: number;
 }
 
 /** One collapsible section per extension. The default section is open until the user chooses. */
-export function ExtensionSections({ sections, storageKey, storage, compact, headingLevel = 3, defaultOpenId, linkedId }: ExtensionSectionsProps) {
-    const { isOpen, setSectionOpen } = useOpenSections(storageKey, storage, linkedId);
+export function ExtensionSections({
+    sections,
+    storageKey,
+    storage,
+    compact,
+    headingLevel = 3,
+    defaultOpenId,
+    linkedId,
+    linkKey,
+}: ExtensionSectionsProps) {
+    const { isOpen, setSectionOpen } = useOpenSections(storageKey, storage, linkedId, linkKey);
     const baseId = useId();
     const linkedRef = useRef<HTMLElement>(null);
     const hasLinked = sections.some((section) => section.id === linkedId);
     useEffect(() => {
         // jsdom has no scrollIntoView.
         if (hasLinked) linkedRef.current?.scrollIntoView?.({ block: 'nearest' });
-    }, [linkedId, hasLinked]);
+    }, [linkedId, linkKey, hasLinked]);
     return (
         <div className="flex flex-col divide-y divide-base-300 rounded-box border border-base-300">
             {sections.map((section, index) => {

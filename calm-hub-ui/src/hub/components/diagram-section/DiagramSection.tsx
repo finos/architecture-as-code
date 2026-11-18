@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { createSearchParams, useNavigate, useSearchParams, useLocation, type SetURLSearchParams } from 'react-router-dom';
+import {
+    createSearchParams,
+    NavigationType,
+    useNavigate,
+    useNavigationType,
+    useSearchParams,
+    useLocation,
+    type SetURLSearchParams,
+} from 'react-router-dom';
 import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useBrowserEntry } from '../../hooks/entrySelection.js';
 import { useExtensions, useExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
 import { resourceExtensions } from '../../../extensions/contributions.js';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
@@ -120,6 +129,19 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const searchParams = redirectedQuery ?? urlSearchParams;
     const navigate = useNavigate();
     const location = useLocation();
+    // A link pushes a history entry and Back or Forward pops one. A replace that changes the URL updates the page in
+    // place, as Hub does when the details close. React Router makes a link to the URL that shows a replace too. The
+    // router gives each entry that the browser made the key `default`, and two of them at the same URL the same
+    // location, so a count of these changes and of the browser moves tells each link apart.
+    const navigationType = useNavigationType();
+    const { entry: browserEntry } = useBrowserEntry();
+    const url = `${location.pathname}${location.search}`;
+    const [linkNavigation, setLinkNavigation] = useState({ location, browserEntry, url, linkKey: 0 });
+    if (linkNavigation.location !== location || linkNavigation.browserEntry !== browserEntry) {
+        const isLink =
+            linkNavigation.browserEntry !== browserEntry || navigationType !== NavigationType.Replace || linkNavigation.url === url;
+        setLinkNavigation({ location, browserEntry, url, linkKey: linkNavigation.linkKey + (isLink ? 1 : 0) });
+    }
     const isMobile = useIsMobile();
     const [showTimeline, setShowTimeline] = useState(false);
     const [showViewMenu, setShowViewMenu] = useState(false);
@@ -557,6 +579,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         data,
         selectedElement,
         searchParams,
+        linkKey: linkNavigation.linkKey,
         setTabParams: (params, selectNode) => setLens(activeLens, params, selectNode),
         selectElement: (uniqueId) => {
             const document = data.data as { nodes?: unknown; relationships?: unknown } | undefined;

@@ -271,7 +271,7 @@ An operator can install extensions (see [Extensions](../calm-hub/index.md#extens
 
 * **Home page:** a card for each extension with a landing card or a top-level page, with its name, provider and a link to each page. A card can also show up to three figures or one line of text. A card without a page has no link.
 * **Side menu:** pages grouped under their extension name, in the same order as the cards.
-* **Architecture and pattern pages:** one **Extensions** tab. Each extension has a collapsible section with its actions and its tab content. Actions show only here, not on the home page, and each runs with the context of the architecture or pattern. An action or a tab that needs a selected node shows a hint until a node is selected. With more than five extensions, a filter shows above the sections.
+* **Architecture and pattern pages:** one **Extensions** tab. Each extension has a collapsible section with its actions and its tab content. Actions show only here, not on the home page, and each runs with the context of the architecture or pattern. An action or a tab that needs a selected node shows a hint until a node is selected. With more than five extensions, a filter shows above the sections. A link to the view of an extension that the filter hides clears the filter and opens its section, also when the URL already names that extension. Closing the node details or selecting another node keeps the filter and the open sections.
 * **Node details:** one **Extensions** section, with a collapsible part for each extension.
 * **Diagram overlays:** each extension has a colour marker on its badges and legend rows. Click a node's badge to see what it means.
 

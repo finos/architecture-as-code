@@ -7,9 +7,11 @@ import io.vertx.json.schema.JsonSchemaOptions;
 import io.vertx.json.schema.Validator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.charset.StandardCharsets;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,15 +44,44 @@ class TestExtensionLensSchemaShould {
         assertTrue(validator().validate(new JsonObject(REPLY)).getValid());
     }
 
+    // The same element and extension as a Hub destination of blocks.schema.json. A length counts code points.
+    static Stream<String> elements() {
+        return Stream.of("orders-api", "e".repeat(256), "\uD834\uDD1E".repeat(256));
+    }
+
+    @ParameterizedTest
+    @MethodSource("elements")
+    void accept_a_hub_link_that_names_an_element_and_an_extension_view(String element) throws Exception {
+        JsonObject reply = new JsonObject(REPLY);
+        JsonObject hub = new JsonObject().put("namespace", "finos").put("type", "architectures").put("id", "shop")
+                .put("version", "1.0.0").put("element", element).put("extension", "c4-model");
+        reply.getJsonObject("graph").getJsonArray("nodes").getJsonObject(1).put("link", new JsonObject().put("hub", hub));
+
+        assertTrue(validator().validate(reply).getValid());
+    }
+
+    @Test
+    void accept_a_hub_link_with_no_version_as_before() throws Exception {
+        JsonObject reply = new JsonObject(REPLY);
+        JsonObject hub = new JsonObject().put("namespace", "finos").put("type", "patterns").put("id", "shop");
+        reply.getJsonObject("graph").getJsonArray("nodes").getJsonObject(1).put("link", new JsonObject().put("hub", hub));
+
+        assertTrue(validator().validate(reply).getValid());
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
+            "/graph/nodes/1/link|{\"hub\":{\"namespace\":\"finos\",\"type\":\"architectures\",\"id\":\"shop\",\"element\":\"\"}}",
+            "/graph/nodes/1/link|{\"hub\":{\"namespace\":\"finos\",\"type\":\"architectures\",\"id\":\"shop\",\"element\":\"%s\"}}",
+            "/graph/nodes/1/link|{\"hub\":{\"namespace\":\"finos\",\"type\":\"architectures\",\"id\":\"shop\",\"extension\":\"C4\"}}",
+            "/graph/nodes/1/link|{\"hub\":{\"namespace\":\"finos\",\"type\":\"architectures\",\"id\":\"shop\",\"tab\":\"json\"}}",
             "/graph/nodes/1/link|{\"href\":\"javascript:alert(1)\"}",
             "/graph/nodes/1/link|{\"params\":{\"a\":\"b\"},\"href\":\"https://example.org\"}",
             "/graph/nodes/0/style|\"Person\"",
             "/kind|\"sequence\"",
             "/graph/nodes/0/html|\"<b>x</b>\""})
     void reject_a_reply_outside_the_contract(String change) throws Exception {
-        String[] parts = change.split("\\|", 2);
+        String[] parts = change.replace("%s", "e".repeat(257)).split("\\|", 2);
         JsonObject reply = new JsonObject(REPLY);
         String[] path = parts[0].substring(1).split("/");
         Object target = reply;
