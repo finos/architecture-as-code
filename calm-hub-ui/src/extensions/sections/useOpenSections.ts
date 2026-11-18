@@ -24,14 +24,15 @@ function defaultStorage(): Storage | undefined {
  * Which collapsible sections are open, by section id. Without a stored choice only `defaultOpenId` is open: give the
  * first id of the full list, not of a filtered one, so a filter does not close a section.
  * A choice is kept in storage under `storageKey`. `linkedId`, the section that a link names, is open until the user
- * opens or closes it, and is not stored.
+ * opens or closes it, and is not stored. A new `linkKey`, such as a new link to the same section, opens it again.
  */
-export function useOpenSections(storageKey: string, storage: Storage | undefined = defaultStorage(), linkedId?: string) {
+export function useOpenSections(storageKey: string, storage: Storage | undefined = defaultStorage(), linkedId?: string, linkKey?: number) {
     const [open, setOpen] = useState<OpenState>(() => read(storage, storageKey));
     // Only a choice is written: a visit that changes nothing leaves storage as it is.
     const chosen = useRef(false);
-    const [linked, setLinked] = useState({ from: linkedId, open: linkedId });
-    if (linked.from !== linkedId) setLinked({ from: linkedId, open: linkedId });
+    const [linked, setLinked] = useState({ from: linkedId, key: linkKey, open: linkedId });
+    const current = linked.from === linkedId && linked.key === linkKey;
+    if (!current) setLinked({ from: linkedId, key: linkKey, open: linkedId });
 
     // In an effect, not in the state updater, which React can call more than one time.
     useEffect(() => {
@@ -43,7 +44,7 @@ export function useOpenSections(storageKey: string, storage: Storage | undefined
         }
     }, [open, storage, storageKey]);
 
-    const linkedOpen = linked.from === linkedId ? linked.open : linkedId;
+    const linkedOpen = current ? linked.open : linkedId;
     const isOpen = useCallback(
         (id: string, defaultOpenId: string | undefined) => id === linkedOpen || (open[id] ?? id === defaultOpenId),
         [open, linkedOpen],

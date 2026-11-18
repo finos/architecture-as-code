@@ -5,6 +5,7 @@ import jakarta.inject.Inject;
 import org.finos.calm.config.UiConfig;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -38,7 +39,9 @@ public class BrandingLogos {
             if (!Files.isRegularFile(file)) {
                 throw new IllegalArgumentException("is not a readable file");
             }
-            return ImageAsset.read(file.getFileName().toString(), Files.readAllBytes(file));
+            try (InputStream in = Files.newInputStream(file)) {
+                return ImageAsset.read(file.getFileName().toString(), in);
+            }
         } catch (InvalidPathException | IOException e) {
             throw new IllegalArgumentException("is not a readable file");
         }

@@ -373,7 +373,9 @@ The route returns JSON that matches
 - `calm` names the CALM `unique-id`s that the element stands for. A click
   selects the first one on the CALM diagram.
 - A `link` sets view parameters, opens a CALM Hub page or opens an `https` URL. A link to a CALM
-  Hub page shows **Back to &lt;page&gt;** on that page.
+  Hub page opens only with a `version`. It can also name an `element` and an `extension`, as a
+  [Hub destination](extension-navigation.md#hub) does. A link to another page shows
+  **Back to &lt;page&gt;** on that page.
 - A control can name its `value`: the value that the reply was drawn with,
   when the request named none. For example, the C4 service draws the first
   system when the URL names no `scope`, and its list shows that system.

@@ -109,8 +109,9 @@ function SlotContent({ extension, contribution, context = {}, query, action, hea
             {state ?? (
                 <BlockScopeContext.Provider value={scope ?? null}>
                     {result?.blocks.map((block, index) => (
+                        // A table with filters keeps its search box, and text not sent yet, when a reply moves it.
                         <BlockRenderer
-                            key={index}
+                            key={block?.type === 'table' && tables.get(block.id ?? '') === block ? `table ${block.id}` : index}
                             block={block}
                             headingLevel={headingLevel}
                             formSlot={point && { extension, point, contributionId: contribution.id, context }}

@@ -109,7 +109,7 @@
                 "const": "table"
               },
               "id": {
-                "description": "Names the table, so that a stat filter can select it. Unique in the reply. CALM Hub keeps the filters of the table in the screen URL as <id>.filter, <id>.q and <id>.page.",
+                "description": "Names the table, so that a stat filter can select it. Unique in the reply. Required with search or source. CALM Hub keeps the filters of the table in the screen URL as <id>.filter, <id>.q and <id>.page.",
                 "$ref": "#/$defs/tableId"
               },
               "columns": {
@@ -170,6 +170,14 @@
               "columns",
               "rows"
             ],
+            "dependentRequired": {
+              "search": [
+                "id"
+              ],
+              "source": [
+                "id"
+              ]
+            },
             "additionalProperties": false
           },
           {
