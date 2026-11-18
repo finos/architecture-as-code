@@ -5,6 +5,20 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.74.0](https://github.com/finos/architecture-as-code/compare/cli-v1.73.0...cli-v1.74.0) (2026-11-18)
+
+### 🚀 Features
+
+* add a c4-diagram widget and --c4-mapping to docify ([#3750](https://github.com/finos/architecture-as-code/issues/3750)) ([b6d71d5](https://github.com/finos/architecture-as-code/commit/b6d71d5294897cff0c112000e79c1d65e8a43368))
+* deprecate C4Model ([#3751](https://github.com/finos/architecture-as-code/issues/3751)) ([82ad819](https://github.com/finos/architecture-as-code/commit/82ad819052c04db702a430d43c9ddfca7e1c15bc))
+
+### 🐛 Bug Fixes
+
+* apply a decision answer only to its own decision ([#3786](https://github.com/finos/architecture-as-code/issues/3786)) ([e4ae68c](https://github.com/finos/architecture-as-code/commit/e4ae68c5cf5de841ff3ea3e2e9f8c4be809032bc))
+* quote Mermaid flowchart labels instead of entity-escaping special characters ([#3792](https://github.com/finos/architecture-as-code/issues/3792)) ([fb6b445](https://github.com/finos/architecture-as-code/commit/fb6b44568af202b3eb45fe258ce78be07ff54ea5))
+* report inline control config errors under /config ([#3781](https://github.com/finos/architecture-as-code/issues/3781)) ([35ee5f0](https://github.com/finos/architecture-as-code/commit/35ee5f0f6a62e4cf81c145fe093529bd5a738ebd))
+* treat a namespace below this one as the same team in C4 rule E3 ([#3784](https://github.com/finos/architecture-as-code/issues/3784)) ([a42dff1](https://github.com/finos/architecture-as-code/commit/a42dff1ced87a92ed387be7a90a444953db3e2c9))
+
 ## [1.73.0](https://github.com/finos/architecture-as-code/compare/cli-v1.72.0...cli-v1.73.0) (2026-11-16)
 
 ### 🚀 Features
