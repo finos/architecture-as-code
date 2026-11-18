@@ -38,7 +38,12 @@ links. It seeds only a database with no namespaces: to start again, delete the d
 (`~/.calm-hub/data` by default).
 
 The detail panel has data for the nodes `web-app`, `api-gateway`, `user-service`, `order-service`,
-`database` and `message-queue`. To see the overlay, add a decorator of type `release-risk` with
+`database` and `message-queue`.
+
+The screen and the designer tab show the [navigation links](../../../../docs/docs/calm-hub/extension-navigation.md).
+The screen has a `status` view parameter (the **In progress**, **Released** and **Rolled back** links), and each
+release row links to its component in the demo architecture. The designer tab links to the screen for the same
+architecture and node. Follow a link, then **Back to …**, to check that Hub returns to the same filter or node. To see the overlay, add a decorator of type `release-risk` with
 `data.risk` set to `low`, `medium` or `high`, and `data.summary` set to a short text.
 
 Test the backend with `node --test local-dev/demo-extensions/release-tracker/server.test.mjs`, from

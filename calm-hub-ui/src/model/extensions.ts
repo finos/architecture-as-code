@@ -28,7 +28,8 @@ export interface ExtensionSummary {
     routes: ExtensionRoute[];
     contributes: Partial<Record<ExtensionPoint, ExtensionContribution[]>> & { 'diagram-lens'?: DiagramLensContribution[] };
 }
-export interface ExtensionContext {
+// A type, not an interface: an interface has no index signature, so it would not match ExtensionQuery.
+export type ExtensionContext = {
     namespace?: string;
     /** `type/id`, for a query or a body only: a path placeholder cannot take a slash. */
     resource?: string;
@@ -36,22 +37,50 @@ export interface ExtensionContext {
     resourceId?: string;
     version?: string;
     selectedElement?: string;
-}
+};
 
 export type Tone = 'positive' | 'negative' | 'warning' | 'info' | 'neutral';
 
-export interface HubTarget {
+/** One version of a Hub resource, and optionally the CALM `unique-id` of a node or relationship in it. */
+export interface ResourceTarget {
     namespace: string;
     type: string;
     id: string;
     version: string;
+    element?: string;
 }
 
-/** Exactly one of `href` (an external http or https URL) or `hub` (a Hub page) is set. */
+/** A Hub resource page. `extension` opens the contextual view of that extension with the resource. */
+export interface HubTarget extends ResourceTarget {
+    extension?: string;
+}
+
+/**
+ * A top-level extension screen. `context` is the resource that the screen is for; the route gets it as the usual
+ * context. `params` are view parameters, such as filters, sort and page: they stay in the URL and go to the route.
+ */
+export interface ScreenTarget {
+    extension: string;
+    screen: string;
+    context?: ResourceTarget;
+    params?: Record<string, string>;
+}
+
+/**
+ * Where a link goes: exactly one of `href` (an external http or https URL), `hub` (a Hub resource page) or `screen`
+ * (an extension screen). Blocks, search results and chat citations all use this shape, never an internal URL.
+ */
+export type Destination =
+    | { href: string; hub?: never; screen?: never }
+    | { hub: HubTarget; href?: never; screen?: never }
+    | { screen: ScreenTarget; href?: never; hub?: never };
+
+/** A link in a block: a destination and its label. */
 export interface ScreenLinkValue {
     label: string;
     href?: string;
     hub?: HubTarget;
+    screen?: ScreenTarget;
 }
 
 export interface BadgeValue {

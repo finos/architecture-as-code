@@ -1,12 +1,13 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ExtensionsContext } from '../ExtensionsContext.js';
 import type { ExtensionSummary } from '../../model/extensions.js';
 import { ExtensionService } from '../../service/extension-service.js';
 import { createMemoryStorage } from '../../test-support/memory-storage.js';
 import { fakeExtensions } from '../../test-support/fake-extensions.js';
-import { ExtensionsTabPanel } from './ExtensionsTabPanel.js';
+import { EXTENSIONS_TAB_SECTIONS_KEY, ExtensionsTabPanel } from './ExtensionsTabPanel.js';
 
 const context = { namespace: 'demo', resource: 'architectures/1', version: '1.0.0', selectedElement: 'web-app' };
 
@@ -21,6 +22,22 @@ function renderPanel(extensions: ExtensionSummary[], storage = createMemoryStora
 afterEach(() => vi.restoreAllMocks());
 
 describe('ExtensionsTabPanel', () => {
+    it('opens the section of the extension that a link names, until the user closes it', () => {
+        vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+        const storage = createMemoryStorage();
+        storage.setItem(EXTENSIONS_TAB_SECTIONS_KEY, JSON.stringify({ 'ext-3': false }));
+        render(
+            <ExtensionsContext.Provider value={fakeExtensions(3)}>
+                <ExtensionsTabPanel context={context} linkedExtension="ext-3" storage={storage} />
+            </ExtensionsContext.Provider>
+        );
+        const toggle = () => screen.getByRole('button', { name: /Extension 3/ });
+        expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+        fireEvent.click(toggle());
+        expect(toggle()).toHaveAttribute('aria-expanded', 'false');
+        expect(JSON.parse(storage.getItem(EXTENSIONS_TAB_SECTIONS_KEY)!)).toEqual({ 'ext-3': false });
+    });
+
     it('shows actions above the designer tab of the open extension, and loads only that tab', async () => {
         const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
         renderPanel(fakeExtensions(10));
@@ -145,6 +162,44 @@ it('puts each extension at h3 and its designer tab title at h4, below the h2 of 
     renderPanel(fakeExtensions(1));
     expect(screen.getByRole('heading', { name: /Extension 1/, level: 3 })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'designer-tab 1', level: 4 })).toBeInTheDocument();
+});
+
+// A link from one extension to the view of another, on the same resource, keeps this panel mounted.
+it('shows the extension that a link opens when the filter hides it, and keeps a filter that shows it', async () => {
+    const resource = { namespace: 'demo', type: 'architectures', id: '1', version: '1.0.0' };
+    vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({
+        hubApi: 0,
+        blocks: [{ type: 'links', items: [2, 7].map((n) => ({ label: `Open Extension ${n}`, hub: { ...resource, extension: `ext-${n}` } })) }],
+    });
+    function ResourcePage() {
+        const [params] = useSearchParams();
+        return <ExtensionsTabPanel context={context} linkedExtension={params.get('extension') ?? undefined} storage={createMemoryStorage()} />;
+    }
+    render(
+        <ExtensionsContext.Provider value={fakeExtensions(7)}>
+            <MemoryRouter initialEntries={['/demo/architectures/1/1.0.0?tab=extensions&extension=ext-2']}>
+                <Routes>
+                    <Route path="/:namespace/:type/:id/:version" element={<ResourcePage />} />
+                </Routes>
+            </MemoryRouter>
+        </ExtensionsContext.Provider>
+    );
+    const filter = screen.getByRole('searchbox', { name: 'Filter extensions' });
+    const section = (id: string) => screen.queryAllByTestId('extension-section').find((entry) => entry.dataset.extension === id);
+    const follow = async (from: string, to: string) =>
+        fireEvent.click(await within(section(from)!).findByRole('link', { name: `Open Extension ${to.slice(4)}` }));
+
+    fireEvent.change(filter, { target: { value: 'Provider' } });
+    await follow('ext-2', 'ext-7');
+    expect(filter).toHaveValue('Provider');
+    expect(within(section('ext-7')!).getAllByRole('button')[0]).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.change(filter, { target: { value: 'Provider 7' } });
+    expect(screen.getAllByTestId('extension-section').map((entry) => entry.dataset.extension)).toEqual(['ext-7']);
+    await follow('ext-7', 'ext-2');
+    expect(filter).toHaveValue('');
+    expect(screen.getAllByTestId('extension-section')).toHaveLength(7);
+    expect(within(section('ext-2')!).getAllByRole('button')[0]).toHaveAttribute('aria-expanded', 'true');
 });
 
 it('keeps the default open section of the full list when a filter changes', async () => {

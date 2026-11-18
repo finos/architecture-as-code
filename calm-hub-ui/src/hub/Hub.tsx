@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useMatch, useNavigate } from 'react-router-dom';
+import { NavigationType, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom';
 import { IoCompassOutline } from 'react-icons/io5';
 import { ExtensionResourceContext } from '../extensions/ExtensionResourceContext.js';
 import { RESOURCE_ROUTE } from './routes.js';
@@ -12,6 +12,7 @@ import { IntroScreen } from './components/intro-screen/IntroScreen.js';
 import { SearchResultsPage } from './components/search-results/SearchResultsPage.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
 import { useResourceNavigationKey } from './hooks/useResourceNavigationKey.js';
+import { readEntrySelection, sessionStore, useBrowserEntry, writeEntrySelection } from './hooks/entrySelection.js';
 import { PersonalNamespaceControl, usePersonalNamespace } from './hooks/usePersonalNamespace.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { BreadcrumbItem, Data, Adr } from '../model/calm.js';
@@ -36,11 +37,16 @@ import { ResourceNotFound } from './components/resource-not-found/ResourceNotFou
 import { extensionContext } from './components/diagram-section/tabs/diagramTabs.js';
 import { parseCALMHubPath } from '../visualizer/components/reactflow/utils/calmHelpers.js';
 import type { Decorator, SelectedItem } from '../visualizer/contracts/contracts.js';
-import type { CalmNodeSchema } from '@finos/calm-models/types';
+import type { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
+import { findPatternElement, type SchemaObject } from '../visualizer/components/reactflow/utils/patternTransformer.js';
 import { authStore } from '../service/utils/auth-store.js';
 import { diagramLenses } from './components/diagram-section/tabs/diagramLenses.js';
 import { useExtensions, useExtensionsStatus } from '../extensions/ExtensionsContext.js';
-import { withoutLens } from './components/diagram-section/tabs/diagramTabRegistry.js';
+import { EXTENSION_PARAM, withoutLens } from './components/diagram-section/tabs/diagramTabRegistry.js';
+import { resourceExtensions } from '../extensions/contributions.js';
+import { ReturnPointProvider } from '../navigation/ReturnPointProvider.js';
+import { carryReturnPoints, type ReturnPage } from '../navigation/returnPoints.js';
+import { ReturnBar } from './components/return-bar/ReturnBar.js';
 import './Hub.css';
 
 // Breadcrumbs live in history state so Back restores the parent's trail for free,
@@ -61,7 +67,24 @@ function readBreadcrumbs(state: unknown): BreadcrumbItem[] {
     );
 }
 
-export default function Hub() {
+/**
+ * The node or relationship with this unique-id in an architecture or pattern, as the details panel shows it. A pattern
+ * declares its elements in JSON Schema, which patternTransformer reads for the diagram too.
+ */
+function findElement(data: Data | undefined, uniqueId: string | null): CalmNodeSchema | CalmRelationshipSchema | undefined {
+    if (!data || !uniqueId) return undefined;
+    if (data.calmType === 'Patterns') return data.data ? findPatternElement(data.data as SchemaObject, uniqueId) : undefined;
+    const document = data.data as { nodes?: unknown; relationships?: unknown } | undefined;
+    const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
+    return (items as CalmNodeSchema[]).find((entry) => entry?.['unique-id'] === uniqueId);
+}
+
+interface HubProps {
+    /** Where the selection of each history entry is kept. Injected for tests; defaults to `sessionStorage`. */
+    storage?: Storage;
+}
+
+export default function Hub({ storage }: HubProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const extensions = useExtensions();
@@ -102,6 +125,7 @@ export default function Hub() {
     const isMobile = useIsMobile();
     const navigation = useNavigationSettings();
     const showExplore = navigation.showNamespaces || navigation.showControlDomains;
+    const selectionStorage = storage ?? sessionStore();
 
     // Route-first content selection (redesign problem #4): the same <Hub/> element
     // is reused across `/`, `/namespace/:ns`, `/domain/:domain` and the detail
@@ -221,30 +245,41 @@ export default function Hub() {
 
     // Any navigation, a tab change included, closes the node details panel, except the one that
     // handleItemSelect makes to take `node` out of the URL, and a change of only the diagram lens or its parameters.
+    // Back, Forward and a URL that the user opens go to another history entry, which has its own selection: a lens
+    // change keeps a selection only in the page. A browser move can keep the location (useBrowserEntry).
+    const navigationType = useNavigationType();
+    const browserEntry = useBrowserEntry();
     const [nodeRemovedFromUrl, setNodeRemovedFromUrl] = useState<string | null>(null);
-    const [selectionLocation, setSelectionLocation] = useState({ key: location.key, search: location.search });
-    if (selectionLocation.key !== location.key || selectionLocation.search !== location.search) {
-        const lensChangeOnly = selectionLocation.search !== location.search
-            && lensFreeQuery(selectionLocation.search) === lensFreeQuery(location.search);
-        setSelectionLocation({ key: location.key, search: location.search });
+    const [selectionLocation, setSelectionLocation] = useState({ key: location.key, search: location.search, entry: browserEntry.entry });
+    const locationChanged = selectionLocation.key !== location.key || selectionLocation.search !== location.search;
+    if (locationChanged || selectionLocation.entry !== browserEntry.entry) {
+        const otherEntry = selectionLocation.entry !== browserEntry.entry || navigationType === NavigationType.Pop;
+        const lensChangeOnly =
+            !otherEntry &&
+            selectionLocation.search !== location.search &&
+            lensFreeQuery(selectionLocation.search) === lensFreeQuery(location.search);
+        setSelectionLocation({ key: location.key, search: location.search, entry: browserEntry.entry });
         setNodeRemovedFromUrl(null);
         if (!lensChangeOnly && nodeRemovedFromUrl !== location.search) setSelectedItem(null);
     }
 
     // A link can name a node to open: `#/ns/architectures/1/1.0.0?node=client-ledger`. This comes after
     // the clear above, so a link to another node replaces the cleared selection. A lens can name a relationship
-    // there too, because a lens element can stand for one.
+    // there too, because a lens element can stand for one. Without a node in the URL, Back or Forward to a history
+    // entry opens the node that the user selected on it, which the URL does not name. This runs on each new location
+    // and each browser move, the changes that the effect which keeps the selection runs on, so the effect keeps the
+    // selection that opens here. The key alone is no such change: the router gives every entry that the browser made
+    // the key `default`.
     const linkedNodeId = new URLSearchParams(location.search).get('node');
-    const [linkSource, setLinkSource] = useState({ data, linkedNodeId, key: location.key });
-    if (linkSource.data !== data || linkSource.linkedNodeId !== linkedNodeId || linkSource.key !== location.key) {
-        setLinkSource({ data, linkedNodeId, key: location.key });
-        const document = data?.data as { nodes?: unknown; relationships?: unknown } | undefined;
-        const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
-        const item = linkedNodeId
-            ? (items as CalmNodeSchema[]).find((entry) => entry?.['unique-id'] === linkedNodeId)
-            : undefined;
+    const [linkSource, setLinkSource] = useState({ data, location, entry: browserEntry.entry });
+    if (linkSource.data !== data || linkSource.location !== location || linkSource.entry !== browserEntry.entry) {
+        setLinkSource({ data, location, entry: browserEntry.entry });
+        const item = findElement(data, linkedNodeId ?? readEntrySelection(selectionStorage, location) ?? null);
         if (item) setSelectedItem({ data: item });
     }
+
+    // The name of the loaded resource, for the label of its return point. Reported by DiagramSection.
+    const [displayName, setDisplayName] = useState<string | undefined>();
 
     const handleDataLoad = useCallback((loaded: Data) => {
         setData(loaded);
@@ -254,6 +289,7 @@ export default function Hub() {
         setSelectedItem(null);
         setIsMobileNavOpen(false);
         currentDisplayNameRef.current = undefined;
+        setDisplayName(undefined);
     }, []);
 
     const handleAdrLoad = useCallback((adr: Adr) => {
@@ -327,11 +363,11 @@ export default function Hub() {
 
     // The resource's display name is fetched by DiagramSection (it owns the
     // summaries fetch) and mirrored here so the crumb pushed on navigation can
-    // carry it. A ref, not state: it is only read imperatively at navigate time,
-    // so Hub need not re-render when it resolves. This handler MUST stay memoised
+    // carry it, and the return point of the page can name it. This handler MUST stay memoised
     // (identity-stable) — DiagramSection lists it in a fetch effect's deps.
     const handleDisplayNameChange = useCallback((name: string | undefined) => {
         currentDisplayNameRef.current = name;
+        setDisplayName(name);
     }, []);
 
     const handleNavigateToDetailedArch = useCallback((ref: string) => {
@@ -347,13 +383,13 @@ export default function Hub() {
         const parsed = parseCALMHubPath(ref);
         if (parsed) {
             navigate(`/${parsed.namespace}/${parsed.type}/${parsed.id}/${parsed.version}`, {
-                state: { breadcrumbs }
+                state: { ...carryReturnPoints(location.state), breadcrumbs }
             });
         } else {
             // A same-host ref the router cannot parse (an 'invalid' resolution,
             // e.g. a missing id segment): land on the in-app not-found view so
             // the broken reference is explained with a recovery path.
-            navigate('/broken-reference', { state: { breadcrumbs, brokenRef: ref } });
+            navigate('/broken-reference', { state: { ...carryReturnPoints(location.state), breadcrumbs, brokenRef: ref } });
         }
     }, [navigate, data, location.state]);
 
@@ -447,6 +483,54 @@ export default function Hub() {
                 : (domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0),
         [domainCounts, domainCountsLoaded, domainCountsFailed, activeDomain]
     );
+
+    // The page that links on it record as their return point, with the selected node, so a return opens it again.
+    const returnPage: ReturnPage | undefined = detailMatch
+        ? {
+              kind: 'resource',
+              namespace: detailMatch.params.namespace!,
+              type: detailMatch.params.type!,
+              id: detailMatch.params.id!,
+              version: detailMatch.params.version!,
+          }
+        : isSearchRoute
+          ? { kind: 'search' }
+          : undefined;
+    const returnQuery = new URLSearchParams(location.search);
+    const selectedId = showsDroppedFile ? undefined : selectedItem?.data['unique-id'];
+    if (selectedId) returnQuery.set('node', selectedId);
+    // Only once the resource has loaded: until then the entry keeps the selection that the load opens again. A node of
+    // a dropped file is not the resource's, and a node that the URL names opens from the URL. After a browser move, only
+    // the render that opens the selection of the new entry keeps one for it. `hasMoved` changes on each move.
+    const { hasMoved } = browserEntry;
+    useEffect(() => {
+        if (!data || !isDiagramView || hasMoved()) return;
+        writeEntrySelection(selectionStorage, location, selectedId === linkedNodeId ? undefined : selectedId);
+    }, [selectionStorage, location, hasMoved, data, isDiagramView, selectedId, linkedNodeId]);
+    const returnSearch = returnQuery.toString() ? `?${returnQuery.toString()}` : '';
+    const returnLabel = detailMatch
+        ? `${displayName || detailMatch.params.id} ${detailMatch.params.version}`
+        : 'search results';
+
+    // The parts of a link that this page cannot show. The page itself shows; access is checked when each part loads.
+    const linkNotices: string[] = [];
+    if (data && !showsDroppedFile && isDetailRoute) {
+        if (linkedNodeId && isDiagramView && !findElement(data, linkedNodeId)) {
+            const kind = data.calmType === 'Patterns' ? 'pattern' : 'architecture';
+            linkNotices.push(`The element "${linkedNodeId}" is not in version ${data.version} of this ${kind}.`);
+        }
+        const linkedExtension = new URLSearchParams(location.search).get(EXTENSION_PARAM);
+        if (linkedExtension && isDiagramView) {
+            if (extensionsStatus === 'failed' || extensionsStatus === 'signed-out') {
+                linkNotices.push(`Extensions could not be loaded, so the "${linkedExtension}" view is not shown.`);
+            } else if (
+                extensionsStatus === 'loaded' &&
+                !resourceExtensions(extensions, extensionContext(data)).some(({ extension }) => extension.id === linkedExtension)
+            ) {
+                linkNotices.push(`The extension "${linkedExtension}" is not enabled in this Hub, or has no view for this resource.`);
+            }
+        }
+    }
 
     // Chrome-free intro / front door (`/` with nothing else active): early-returns
     // before Hub's navbar + rail layout. Below every hook above, so none is skipped.
@@ -551,6 +635,7 @@ export default function Hub() {
         <DiagramActionsContext.Provider value={diagramActions}>
         <ExtensionResourceContext.Provider value={resourceContext}>
         <DecoratorsContext.Provider value={decoratorsState}>
+        <ReturnPointProvider page={returnPage} label={returnLabel} search={returnSearch}>
         <AppLayout>
             {isMobile && !isMobileNavOpen && (
                 <button
@@ -611,6 +696,7 @@ export default function Hub() {
                 )}
 
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                    <ReturnBar notices={linkNotices} />
                     <div className="flex-1 overflow-auto min-w-0">{content}</div>
                 </div>
 
@@ -626,6 +712,7 @@ export default function Hub() {
 
             </div>
         </AppLayout>
+        </ReturnPointProvider>
         </DecoratorsContext.Provider>
         </ExtensionResourceContext.Provider>
         </DiagramActionsContext.Provider>

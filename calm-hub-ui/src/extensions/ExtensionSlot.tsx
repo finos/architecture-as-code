@@ -11,6 +11,8 @@ interface SlotProps {
     extension: ExtensionSummary;
     contribution: ExtensionContribution;
     context?: ExtensionContext;
+    /** View parameters of a screen, sent with the context. A change loads the slot again. */
+    query?: Readonly<Record<string, string>>;
     /** The level of the slot title: one below the heading of the place that holds the slot. */
     headingLevel?: HeadingLevel;
 }
@@ -26,18 +28,21 @@ export type ExtensionSlotProps =
           placement: string;
       });
 
-function SlotContent({ extension, contribution, context = {}, action, headingLevel = 2, placement }: ExtensionSlotProps) {
+function SlotContent({ extension, contribution, context = {}, query, action, headingLevel = 2, placement }: ExtensionSlotProps) {
     const service = useExtensionService();
     const route = extension.routes.find((entry) => entry.id === contribution.route);
     const [result, setResult] = useState<ExtensionScreen>();
     const [error, setError] = useState(false);
     const { namespace, resource, resourceType, resourceId, version, selectedElement } = context;
+    // A string, so a new object with the same values does not load the slot again.
+    const queryKey = JSON.stringify(query ?? {});
     useEffect(() => {
         if (action || !route) return;
         if (route.method !== 'GET') return;
         const controller = new AbortController();
+        const params = JSON.parse(queryKey) as Record<string, string>;
         service
-            .call(extension.id, route, { namespace, resource, resourceType, resourceId, version, selectedElement }, controller.signal)
+            .call(extension.id, route, { ...params, namespace, resource, resourceType, resourceId, version, selectedElement }, controller.signal)
             .then((reply) => {
                 if (!isBlocksReply(reply, extension.hubApi)) throw new Error('Invalid blocks reply');
                 if (!controller.signal.aborted) setResult(reply);
@@ -46,7 +51,7 @@ function SlotContent({ extension, contribution, context = {}, action, headingLev
                 if (!controller.signal.aborted) setError(true);
             });
         return () => controller.abort();
-    }, [service, extension.id, extension.hubApi, route, action, namespace, resource, resourceType, resourceId, version, selectedElement]);
+    }, [service, extension.id, extension.hubApi, route, action, queryKey, namespace, resource, resourceType, resourceId, version, selectedElement]);
     if (action) {
         if (!route) return <p role="alert">Extension route unavailable.</p>;
         return <ExtensionActionButton service={service} extension={extension} contribution={contribution} route={route} context={context} placement={placement!} />;
@@ -86,7 +91,7 @@ export function SlotFrame({ title, level, children }: { title: string; level: He
 
 export function ExtensionSlot(props: ExtensionSlotProps) {
     // An action keeps its state when the context changes, so a change of selection does not reset a running write.
-    const key = JSON.stringify([props.extension.id, props.contribution.id, props.action ? null : props.context]);
+    const key = JSON.stringify([props.extension.id, props.contribution.id, props.action ? null : [props.context, props.query]]);
     return (
         <ScreenErrorBoundary
             key={key}

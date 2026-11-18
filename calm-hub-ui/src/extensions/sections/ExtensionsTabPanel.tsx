@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { useExtensions } from '../ExtensionsContext.js';
-import { ExtensionContext } from '../../model/extensions.js';
+import type { ExtensionContext, ExtensionSummary } from '../../model/extensions.js';
 import { resourceExtensions } from '../contributions.js';
 import { ExtensionSlot, SlotFrame } from '../ExtensionSlot.js';
 import { ExtensionSections } from './ExtensionSections.js';
@@ -11,22 +11,34 @@ export const EXTENSION_FILTER_THRESHOLD = 5;
 
 interface ExtensionsTabPanelProps {
     context: ExtensionContext;
+    /** The extension that a link names (`?extension=`). Its section opens. */
+    linkedExtension?: string;
+    /** A new value is a new link to `linkedExtension`, also to the same extension, or Back or Forward to one. */
+    linkKey?: number;
     storage?: Storage;
 }
 
+const matches = (extension: ExtensionSummary, needle: string) =>
+    [extension.name, extension.id, extension.provider ?? ''].some((text) => text.toLowerCase().includes(needle));
+
 /** The Extensions tab of an architecture or pattern: per extension, its actions and then its designer tabs. */
-export function ExtensionsTabPanel({ context, storage }: ExtensionsTabPanelProps) {
+export function ExtensionsTabPanel({ context, linkedExtension, linkKey, storage }: ExtensionsTabPanelProps) {
     const entries = resourceExtensions(useExtensions(), context);
     const [filter, setFilter] = useState('');
     const baseId = useId();
     const filterShown = entries.length > EXTENSION_FILTER_THRESHOLD;
     // A filter whose input is hidden would hide extensions with no way to clear it.
     const needle = filterShown ? filter.trim().toLowerCase() : '';
-    const shown = needle
-        ? entries.filter(({ extension }) =>
-              [extension.name, extension.id, extension.provider ?? ''].some((text) => text.toLowerCase().includes(needle))
-          )
-        : entries;
+    // A link to an extension on this resource keeps the panel, also a link to the same extension again. A filter that
+    // hides the linked extension goes, so its section can open; a filter that shows it stays. Typing and an in-place
+    // replace, such as closing the details, are not links.
+    const [linked, setLinked] = useState({ id: linkedExtension, key: linkKey });
+    if (linked.id !== linkedExtension || linked.key !== linkKey) {
+        setLinked({ id: linkedExtension, key: linkKey });
+        const target = entries.find(({ extension }) => extension.id === linkedExtension);
+        if (needle && target && !matches(target.extension, needle)) setFilter('');
+    }
+    const shown = needle ? entries.filter(({ extension }) => matches(extension, needle)) : entries;
 
     return (
         <div className="h-full overflow-auto p-4 flex flex-col gap-3" data-testid="extensions-tab">
@@ -46,6 +58,8 @@ export function ExtensionsTabPanel({ context, storage }: ExtensionsTabPanelProps
                 <ExtensionSections
                     storageKey={EXTENSIONS_TAB_SECTIONS_KEY}
                     defaultOpenId={entries[0]?.extension.id}
+                    linkedId={linkedExtension}
+                    linkKey={linkKey}
                     storage={storage}
                     sections={shown.map(({ extension, actions, needsSelection, tabs, tabsNeedSelection }, index) => ({
                         id: extension.id,

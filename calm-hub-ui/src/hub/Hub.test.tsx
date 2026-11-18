@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Hub from './Hub.js';
 import { vi, describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { authStore } from '../service/utils/auth-store.js';
@@ -11,8 +11,11 @@ import type { ExtensionSummary } from '../model/extensions.js';
 import { ExtensionsContext } from '../extensions/ExtensionsContext.js';
 import { UiConfigContext } from '../components/ui-config/UiConfigContext.js';
 import type { UiNavigation } from '../model/ui-config.js';
+import { fakeExtension } from '../test-support/fake-extensions.js';
 import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
+import { ReturnLink } from '../navigation/ReturnLink.js';
+import { createMemoryStorage } from '../test-support/memory-storage.js';
 
 // Each value of ExtensionResourceContext that the DiagramSection stub reads, in render order.
 const resourceContexts = vi.hoisted(() => [] as unknown[]);
@@ -175,6 +178,7 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
     // production tree (CustomNode / NodeDetails) does.
     const { useDiagramActions } = await import('../visualizer/context/DiagramActionsContext.js');
     const { ExtensionResourceContext } = await import('../extensions/ExtensionResourceContext.js');
+    const { DestinationLink } = await import('../navigation/DestinationLink.js');
     const { useContext } = await import('react');
     const DiagramSection = ({
         data,
@@ -222,6 +226,8 @@ vi.mock('./components/diagram-section/DiagramSection', async () => {
                 nodes loaded by `loadArchitectureWithNodes`, so Hub's index resolution
                 and the displayed node name line up). `select-edge` selects a
                 relationship (no `node-type`) to exercise the node-only degradation. */}
+            {/* An extension link from the resource page, such as a designer tab sends. */}
+            <DestinationLink destination={{ screen: { extension: 'assurance', screen: 'reviews' } }}>Open reviews</DestinationLink>
             <button data-testid="drop-file" onClick={() => onDroppedFileChange?.(true)}>
                 drop file
             </button>
@@ -1350,4 +1356,416 @@ describe('Hub', () => {
         });
     });
 
+    describe('return points and links into the page', () => {
+        const DETAIL = '/test-namespace/architectures/arch/1.0';
+
+        function StateProbe() {
+            const location = useLocation();
+            return (
+                <>
+                    <div data-testid="state-pathname">{location.pathname}</div>
+                    <div data-testid="state">{JSON.stringify(location.state)}</div>
+                </>
+            );
+        }
+
+        const renderDetail = (
+            entry: string | { pathname: string; state: unknown },
+            extensions: ExtensionSummary[] = []
+        ) =>
+            render(
+                <ExtensionsContext.Provider value={extensions}>
+                    <MemoryRouter initialEntries={[entry]}>
+                        <Hub />
+                        <StateProbe />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+
+        it('records the resource version and the selected node as the return point of a link', () => {
+            renderDetail(DETAIL);
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('set-display-name'));
+            fireEvent.click(screen.getByTestId('select-n1'));
+            fireEvent.click(screen.getByRole('link', { name: 'Open reviews' }));
+
+            expect(screen.getByTestId('state-pathname')).toHaveTextContent('/extensions/assurance/reviews');
+            expect(JSON.parse(screen.getByTestId('state').textContent!)).toEqual({
+                returnTo: [
+                    {
+                        page: { kind: 'resource', namespace: 'test-namespace', type: 'architectures', id: 'arch', version: '1.0' },
+                        search: '?node=n1',
+                        label: 'Nice Name 1.0',
+                    },
+                ],
+            });
+        });
+
+        it('links back to the list that opened the page, with its filters', () => {
+            renderDetail({
+                pathname: DETAIL,
+                state: { returnTo: [{ page: { kind: 'screen', extension: 'assurance', screen: 'reviews' }, search: '?reviews.filter=needs-review', label: 'Architecture reviews' }] },
+            });
+            expect(screen.getByRole('link', { name: 'Back to Architecture reviews' })).toHaveAttribute(
+                'href',
+                '/extensions/assurance/reviews?reviews.filter=needs-review'
+            );
+        });
+
+        it('keeps the return point through a detailed-architecture hop', () => {
+            const returnTo = [{ page: { kind: 'search' }, search: '?q=pay', label: 'search results' }];
+            renderDetail({ pathname: DETAIL, state: { returnTo } });
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('navigate-detailed-arch'));
+            expect(JSON.parse(screen.getByTestId('state').textContent!).returnTo).toEqual(returnTo);
+        });
+
+        it('says when the linked element is not in this version, and still shows the diagram', () => {
+            renderDetail(`${DETAIL}?node=missing`);
+            loadArchitectureWithNodes();
+            expect(screen.getByRole('status')).toHaveTextContent('The element "missing" is not in version 1.0 of this architecture.');
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+        });
+
+        // A pattern declares its elements in JSON Schema, as patternTransformer reads them: directly or in an allOf
+        // branch, and as the alternatives of a oneOf or anyOf choice.
+        describe('in a pattern', () => {
+            const PATTERN_DETAIL = '/test-namespace/patterns/pat/1.0';
+            const declared = (id: string, fields: Record<string, unknown> = {}) => ({
+                $ref: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node',
+                properties: Object.fromEntries(Object.entries({ 'unique-id': id, ...fields }).map(([key, value]) => [key, { const: value }])),
+            });
+            const pattern = {
+                type: 'object',
+                properties: {
+                    nodes: {
+                        type: 'array',
+                        prefixItems: [
+                            declared('web', { name: 'Web app', 'node-type': 'webclient', description: 'The front end' }),
+                            { oneOf: [declared('pg', { name: 'Postgres', 'node-type': 'database' }), declared('mongo', { name: 'Mongo', 'node-type': 'database' })] },
+                        ],
+                        items: { anyOf: [declared('cache', { name: 'Cache', 'node-type': 'service' })] },
+                    },
+                },
+                allOf: [
+                    {
+                        properties: {
+                            relationships: {
+                                prefixItems: [
+                                    declared('web-reads-pg', {
+                                        description: 'Reads orders',
+                                        'relationship-type': { connects: { source: { node: 'web' }, destination: { node: 'pg' } } },
+                                    }),
+                                ],
+                            },
+                        },
+                    },
+                ],
+            };
+            const loadPattern = () =>
+                act(() => {
+                    captured?.onDataLoad({ id: 'pat', version: '1.0', calmType: 'Patterns', name: 'test-namespace', data: pattern } as unknown as Data);
+                });
+
+            it.each([
+                ['web', 'Web app'],
+                ['mongo', 'Mongo'],
+                ['cache', 'Cache'],
+            ])('opens the node %s that a link names, with the name that the diagram shows', (id, name) => {
+                renderDetail(`${PATTERN_DETAIL}?node=${id}`);
+                loadPattern();
+                expect(screen.getByRole('button', { name: 'Close details' })).toBeInTheDocument();
+                expect(screen.getByText(name)).toBeInTheDocument();
+                expect(screen.queryByTestId('return-bar')).not.toBeInTheDocument();
+            });
+
+            it('opens the relationship that a link names', () => {
+                renderDetail(`${PATTERN_DETAIL}?node=web-reads-pg`);
+                loadPattern();
+                expect(screen.getByText('web-reads-pg')).toBeInTheDocument();
+                expect(screen.getByText('Reads orders')).toBeInTheDocument();
+                expect(screen.queryByTestId('return-bar')).not.toBeInTheDocument();
+            });
+
+            it('says when the linked element is not in this version, and selects nothing', () => {
+                renderDetail(`${PATTERN_DETAIL}?node=missing`);
+                loadPattern();
+                expect(screen.getByRole('status')).toHaveTextContent('The element "missing" is not in version 1.0 of this pattern.');
+                expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+            });
+        });
+
+        it('says when the linked extension is not enabled, and not when it applies', () => {
+            const view = renderDetail(`${DETAIL}?tab=extensions&extension=ext-1`);
+            loadArchitectureWithNodes();
+            expect(screen.getByRole('status')).toHaveTextContent('The extension "ext-1" is not enabled in this Hub');
+            view.unmount();
+
+            renderDetail(`${DETAIL}?tab=extensions&extension=ext-1`, [fakeExtension(1)]);
+            loadArchitectureWithNodes();
+            expect(screen.queryByTestId('return-bar')).not.toBeInTheDocument();
+        });
+    });
+
+    // Hub unmounts on the extension screen and mounts again on Back, as in the app.
+    describe('the selection of a history entry', () => {
+        const DETAIL = '/test-namespace/architectures/arch/1.0';
+        const ScreenPage = () => (
+            <div data-testid="screen-page">
+                <ReturnLink />
+            </div>
+        );
+        function History() {
+            const navigate = useNavigate();
+            const location = useLocation();
+            const replace = (search: string) => navigate({ search }, { replace: true, state: location.state });
+            return (
+                <>
+                    <button onClick={() => navigate(-1)}>Browser back</button>
+                    <button onClick={() => navigate(1)}>Browser forward</button>
+                    <button onClick={() => replace('?tab=json')}>Change tab</button>
+                    <button onClick={() => replace('?lens=c4')}>Change lens</button>
+                    <button onClick={() => navigate('/test-namespace/architectures/other/1.0')}>Open another architecture</button>
+                    <div data-testid="url">{`${location.pathname}${location.search}`}</div>
+                </>
+            );
+        }
+        const renderHistory = (entry = DETAIL) => {
+            const storage = createMemoryStorage();
+            render(
+                <ExtensionsContext.Provider value={[C4_EXTENSION]}>
+                    <MemoryRouter initialEntries={[entry]}>
+                        <Routes>
+                            <Route path="/extensions/:extension/:screen" element={<ScreenPage />} />
+                            <Route path="*" element={<Hub storage={storage} />} />
+                        </Routes>
+                        <History />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+            loadArchitectureWithNodes();
+        };
+        const click = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
+        const openReviews = () => {
+            fireEvent.click(screen.getByRole('link', { name: 'Open reviews' }));
+            expect(screen.getByTestId('screen-page')).toBeInTheDocument();
+        };
+        const browserBack = () => {
+            click('Browser back');
+            expect(screen.queryByTestId('screen-page')).not.toBeInTheDocument();
+            loadArchitectureWithNodes();
+        };
+        const details = () => screen.queryByRole('button', { name: 'Close details' });
+
+        it('opens the node that the user selected again after browser Back and Forward, with no node in the URL', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            openReviews();
+            browserBack();
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(screen.getByTestId('url')).toHaveTextContent(/^\/test-namespace\/architectures\/arch\/1\.0$/);
+
+            click('Browser forward');
+            expect(screen.getByRole('link', { name: 'Back to arch 1.0' })).toHaveAttribute('href', `${DETAIL}?node=n2&exact=1`);
+            browserBack();
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+        });
+
+        it('opens the node that the user selected again after Back from another resource, which keeps Hub mounted', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            click('Open another architecture');
+            loadArchitectureWithNodes();
+            expect(details()).not.toBeInTheDocument();
+            browserBack();
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+        });
+
+        it('opens the node that the user selected again from the explicit Back link', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            openReviews();
+            fireEvent.click(screen.getByRole('link', { name: 'Back to arch 1.0' }));
+            loadArchitectureWithNodes();
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(screen.getByTestId('url')).toHaveTextContent(`${DETAIL}?node=n2&exact=1`);
+        });
+
+        it('opens the node that the user selected in place of a linked node, and keeps the node out of the URL', () => {
+            renderHistory(`${DETAIL}?node=n1`);
+            expect(screen.getByText('Node One')).toBeInTheDocument();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            expect(screen.getByTestId('url')).toHaveTextContent(/^\/test-namespace\/architectures\/arch\/1\.0$/);
+            openReviews();
+            browserBack();
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(screen.queryByText('Node One')).not.toBeInTheDocument();
+        });
+
+        it('keeps the node through a change of lens', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            click('Change lens');
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            openReviews();
+            browserBack();
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(screen.getByTestId('url')).toHaveTextContent(`${DETAIL}?lens=c4`);
+        });
+
+        it.each([
+            ['a change of tab', () => click('Change tab')],
+            ['a close of the details', () => click('Close details')],
+        ])('opens no node again after %s', (_, clear) => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            clear();
+            expect(details()).not.toBeInTheDocument();
+            openReviews();
+            browserBack();
+            expect(details()).not.toBeInTheDocument();
+        });
+
+        it('does not open a node of a dropped file on the architecture', () => {
+            renderHistory();
+            fireEvent.click(screen.getByTestId('drop-file'));
+            fireEvent.click(screen.getByTestId('select-n2'));
+            openReviews();
+            browserBack();
+            expect(details()).not.toBeInTheDocument();
+        });
+
+        // The browser makes an entry with no history state for a first visit and for a URL that the user pastes, and
+        // React Router gives each of them the key `default`.
+        describe('in the browser history', () => {
+            const renderBrowser = (storage = createMemoryStorage()) => {
+                const view = render(
+                    <ExtensionsContext.Provider value={[C4_EXTENSION]}>
+                        <HashRouter>
+                            <Routes>
+                                <Route path="/extensions/:extension/:screen" element={<ScreenPage />} />
+                                <Route path="*" element={<Hub storage={storage} />} />
+                            </Routes>
+                        </HashRouter>
+                    </ExtensionsContext.Provider>
+                );
+                loadArchitectureWithNodes();
+                return view;
+            };
+            const traverse = (delta: number) =>
+                act(
+                    () =>
+                        new Promise<void>((resolve) => {
+                            window.addEventListener('popstate', () => resolve(), { once: true });
+                            window.history.go(delta);
+                        })
+                );
+            beforeEach(() => window.history.replaceState(null, '', `#${DETAIL}`));
+
+            it('opens nothing on a new visit to the same URL, and keeps the selection of the first visit', async () => {
+                renderBrowser();
+                fireEvent.click(screen.getByTestId('select-n2'));
+                openReviews();
+
+                act(() => {
+                    window.history.pushState(null, '', `#${DETAIL}`);
+                    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+                });
+                loadArchitectureWithNodes();
+                expect(details()).not.toBeInTheDocument();
+                fireEvent.click(screen.getByTestId('select-n1'));
+                fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
+
+                await traverse(-1);
+                expect(screen.getByTestId('screen-page')).toBeInTheDocument();
+                await traverse(-1);
+                loadArchitectureWithNodes();
+                expect(screen.getByText('Node Two')).toBeInTheDocument();
+            });
+
+            // The same path with another query keeps Hub and the loaded resource.
+            it('opens the node again after Back from a new visit to the same resource with another query', async () => {
+                const storage = createMemoryStorage();
+                const view = renderBrowser(storage);
+                fireEvent.click(screen.getByTestId('select-n2'));
+
+                act(() => {
+                    window.history.pushState(null, '', `#${DETAIL}?tab=extensions`);
+                    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+                });
+                expect(details()).not.toBeInTheDocument();
+
+                await traverse(-1);
+                expect(window.location.hash).toBe(`#${DETAIL}`);
+                expect(screen.getByText('Node Two')).toBeInTheDocument();
+                view.unmount();
+
+                renderBrowser(storage);
+                expect(screen.getByText('Node Two')).toBeInTheDocument();
+            });
+
+            // React Router gives two entries that the browser made at the same URL the same location, and renders nothing.
+            const visit = (hash: string) =>
+                act(() => {
+                    window.history.pushState(null, '', `#${hash}`);
+                    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+                });
+
+            it('opens the node of each entry at the same URL after a move straight between them', async () => {
+                const storage = createMemoryStorage();
+                const view = renderBrowser(storage);
+                fireEvent.click(screen.getByTestId('select-n2'));
+                visit(`${DETAIL}?tab=extensions`);
+                visit(DETAIL);
+                expect(details()).not.toBeInTheDocument();
+                fireEvent.click(screen.getByTestId('select-n1'));
+
+                await traverse(-2);
+                expect(screen.getByText('Node Two')).toBeInTheDocument();
+                expect(screen.queryByText('Node One')).not.toBeInTheDocument();
+                await traverse(2);
+                expect(screen.getByText('Node One')).toBeInTheDocument();
+                await traverse(-2);
+                view.unmount();
+
+                renderBrowser(storage);
+                expect(screen.getByText('Node Two')).toBeInTheDocument();
+            });
+
+            it('opens nothing after a move straight to an entry at the same URL that has no selection', async () => {
+                const storage = createMemoryStorage();
+                const view = renderBrowser(storage);
+                visit(`${DETAIL}?tab=extensions`);
+                visit(DETAIL);
+                fireEvent.click(screen.getByTestId('select-n1'));
+
+                await traverse(-2);
+                expect(details()).not.toBeInTheDocument();
+                view.unmount();
+                renderBrowser(storage);
+                expect(details()).not.toBeInTheDocument();
+                await traverse(2);
+                expect(screen.getByText('Node One')).toBeInTheDocument();
+            });
+
+            it('opens nothing on a new visit that changes only the lens, and the node again after Back', async () => {
+                renderBrowser();
+                fireEvent.click(screen.getByTestId('select-n2'));
+                visit(`${DETAIL}?lens=c4`);
+                expect(details()).not.toBeInTheDocument();
+                await traverse(-1);
+                expect(screen.getByText('Node Two')).toBeInTheDocument();
+            });
+
+            it('opens the node of a first visit again after a reload', () => {
+                const storage = createMemoryStorage();
+                const view = renderBrowser(storage);
+                fireEvent.click(screen.getByTestId('select-n2'));
+                view.unmount();
+
+                renderBrowser(storage);
+                expect(screen.getByText('Node Two')).toBeInTheDocument();
+            });
+        });
+    });
 });
