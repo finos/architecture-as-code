@@ -51,6 +51,12 @@ Explore, visualize, and manage CALM architecture models through an interactive w
 - **Revision Browsing**: Switch between ADR versions
 - **Status Badges**: Visual indicators for approved, deprecated, and other statuses
 
+### 🧩 Extensions
+- **Home Page Cards**: One card for each extension, with its name, provider, landing card figures and a link to each of its screens
+- **Grouped Menu**: The side menu groups the screens of each extension under the extension name, in the same order as the cards
+- **Architecture Extensions**: Extension tabs, actions, node details panels, decorator overlays and diagram lenses
+- See the [extension point reference](../docs/docs/calm-hub/extension-points.md) for where each contribution shows
+
 ### 🔎 Inspector Sidebar
 - **Selection Details**: Click any node or edge to inspect its raw JSON
 - **Drag & Drop Upload**: Load CALM JSON files directly into the visualizer

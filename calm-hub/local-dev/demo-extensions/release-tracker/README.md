@@ -1,6 +1,6 @@
 # release-tracker
 
-A demo extension for local development. It uses every UI extension point: a screen, a landing card,
+A demo extension for local development. It uses every UI extension point: two screens, a landing card,
 an action, a designer tab, a detail panel and a decorator view. Use it to check the CALM Hub UI
 layout. `server.mjs` is its backend: it has no dependencies, and it uses the identity verifier of
 [example-services](../../extensions/example-services/identity.mjs). The data is made up. The designer tab
@@ -12,7 +12,7 @@ URL does not start, and the UI then shows "CalmHub failed to load".
 
 | Contribution | Where the UI shows it |
 |---|---|
-| `screen` | The Extensions group of the side menu, and the home page card |
+| `screen` | Releases and Release calendar: a link to each in the Release tracker group of the side menu, and on the home page card |
 | `landing-card` | The home page card: the first 3 figures of its `stats` block |
 | `action`, `designer-tab` | The Extensions tab of an architecture or pattern |
 | `detail-panel` | The Extensions section of the node details |

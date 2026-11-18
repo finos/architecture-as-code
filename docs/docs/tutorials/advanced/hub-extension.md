@@ -20,7 +20,7 @@ It uses each UI extension point and one command:
 
 | Part | What you see |
 |---|---|
-| `screen` | A **Releases** page in the **Extensions** group of the side menu |
+| `screen` | The **Releases** and **Release calendar** pages, in the **Release tracker** group of the side menu |
 | `landing-card` | A **Release tracker** card on the home page |
 | `designer-tab`, `action` | The **Extensions** tab of an architecture |
 | `detail-panel` | The **Extensions** section of the node details |
@@ -54,6 +54,7 @@ at start-up. The folder name must equal the `id`.
   "provider": "Demo",
   "routes": [
     { "id": "screen", "method": "GET", "path": "/screen", "scope": "authenticated", "readOnly": true },
+    { "id": "calendar", "method": "GET", "path": "/calendar", "scope": "authenticated", "readOnly": true },
     { "id": "card", "method": "GET", "path": "/card", "scope": "authenticated", "readOnly": true },
     { "id": "releases", "method": "GET", "path": "/releases", "scope": "authenticated", "readOnly": true }
   ],
@@ -65,7 +66,10 @@ at start-up. The folder name must equal the `id`.
     }
   },
   "contributes": {
-    "screen": [{ "id": "releases", "title": "Releases", "route": "screen" }],
+    "screen": [
+      { "id": "releases", "title": "Releases", "route": "screen" },
+      { "id": "calendar", "title": "Release calendar", "route": "calendar" }
+    ],
     "landing-card": [{ "id": "releases", "title": "Release health", "route": "card" }]
   }
 }
@@ -303,8 +307,8 @@ The decorator `target` writes the version with `-`, not `.`. Do not send `creati
 
 | Where | What you see |
 |---|---|
-| Home page | The **Release tracker** card with two figures. Click it to open the screen |
-| Side menu, **Extensions** | **Releases**: an alert, figures, a table of releases, text and links |
+| Home page | The **Release tracker** card with two figures, and a link to each screen |
+| Side menu, **Release tracker** | **Releases**: an alert, figures, a table of releases, text and links. **Release calendar**: an alert and a table of planned releases |
 | Architecture `demo` / `1`, **Extensions** tab | A **Release tracker** section with the **Request release review** button and the **Releases** tab content. The button asks you to confirm, because its route is not `readOnly` |
 | Click the `order-service` node | The **Extensions** section of the node details, with the owner, last release and risk |
 | Diagram | An amber **Medium** badge on `order-service`, and a **Release risk · Release tracker** row in the legend |

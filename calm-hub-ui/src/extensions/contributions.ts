@@ -85,3 +85,31 @@ export function resourceExtensions(extensions: readonly ExtensionSummary[], cont
 
 export const screenPath = (extension: ExtensionSummary, contribution: ExtensionContribution) =>
     `/extensions/${encodeURIComponent(extension.id)}/${encodeURIComponent(contribution.id)}`;
+
+/** The chat provider that the operator selected, as the registry names it. */
+export interface ChatSelection {
+    extension: string;
+    contribution: Pick<ExtensionContribution, 'id' | 'title'>;
+}
+
+export interface ExtensionNavLink {
+    key: string;
+    title: string;
+    to: string;
+}
+
+/**
+ * The top-level pages of an extension: its screens in manifest order, then the chat if it is the selected chat
+ * provider. Its menu group and its home page card show this list, so both have the same labels in the same order.
+ */
+export function extensionNavLinks(extension: ExtensionSummary, chat?: ChatSelection): ExtensionNavLink[] {
+    const links = (extension.contributes.screen ?? []).map((contribution) => ({
+        key: `screen/${contribution.id}`,
+        title: contribution.title,
+        to: screenPath(extension, contribution),
+    }));
+    if (chat?.extension === extension.id) {
+        links.push({ key: `chat/${chat.contribution.id}`, title: chat.contribution.title, to: '/chat' });
+    }
+    return links;
+}

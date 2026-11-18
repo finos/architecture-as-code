@@ -240,9 +240,15 @@ mean "no extension", for example `ExtensionScreenPage` on a deep link.
 Each contribution kind has one place (see `docs/docs/calm-hub/extension-points.md`). Do not add a
 per-extension toolbar button or tab: it does not scale to many extensions.
 
-- Home: `IntroBrowse` shows an `ExtensionCard` per extension with a `landing-card` or a `screen`.
-  `cardHeadline()` (`extensions/landingCard.ts`) picks what the card shows.
-- Menu: `ExtensionMenuGroup` in the navbar drawer.
+- Home: `IntroBrowse` shows an `ExtensionCard` per extension with a `landing-card` or a top-level page.
+  `cardHeadline()` (`extensions/landingCard.ts`) picks what the card shows. The card is not a link: it lists a link
+  to each page, so a card with no page has no destination.
+- Menu: `ExtensionMenuGroup` in the navbar drawer: a group for each extension with a top-level page, labelled by the
+  extension `name`, under an optional `heading`. It omits an extension with no page.
+- Both list the pages from `extensionNavLinks()` (`extensions/contributions.ts`): the screens in manifest order, then
+  the selected chat. Add a top-level page there, not in one of them, so the labels and the order stay the same in
+  both. Both keep registry order, which is the operator `order`. The extension `id` is the group key; do not add a
+  second grouping field to the manifest.
 - Architecture: one `extensions` tab in `DIAGRAM_TABS`, hidden (not unknown) until the registry loads, so a link
   to it keeps the tab. `resourceExtensions()` decides if it shows.
 - Actions: `ExtensionActionButton`, only in the Extensions tab, so each action runs with a resource context. There

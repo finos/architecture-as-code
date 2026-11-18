@@ -1,7 +1,47 @@
 import { describe, expect, it } from 'vitest';
-import { actionContributions, resourceExtensions, screenPath, selectionActions, slotContributions, TAB_PATH_PARAMETERS } from './contributions.js';
+import {
+    actionContributions,
+    extensionNavLinks,
+    resourceExtensions,
+    screenPath,
+    selectionActions,
+    slotContributions,
+    TAB_PATH_PARAMETERS,
+} from './contributions.js';
 import DESIGNER_TAB_PARAMS from '../../../calm-hub/src/test/resources/extensions-test/designer-tab-params.json' with { type: 'json' };
-import { fakeExtension } from '../test-support/fake-extensions.js';
+import { fakeExtension, withScreens } from '../test-support/fake-extensions.js';
+
+describe('extensionNavLinks', () => {
+    const assurance = withScreens(fakeExtension(1, ['landing-card']), ['Reviews', 'Exceptions', 'Archive']);
+    const chat = { extension: 'ext-1', contribution: { id: 'ask', title: 'Ask Atlas' } };
+
+    it('lists the screens in manifest order', () => {
+        expect(extensionNavLinks(assurance)).toEqual([
+            { key: 'screen/reviews', title: 'Reviews', to: '/extensions/ext-1/reviews' },
+            { key: 'screen/exceptions', title: 'Exceptions', to: '/extensions/ext-1/exceptions' },
+            { key: 'screen/archive', title: 'Archive', to: '/extensions/ext-1/archive' },
+        ]);
+    });
+
+    it('has no link for an extension without a screen', () => {
+        expect(extensionNavLinks(fakeExtension(2, ['landing-card', 'detail-panel']))).toEqual([]);
+    });
+
+    it('puts the chat after the screens of the selected chat provider only', () => {
+        expect(extensionNavLinks(assurance, chat).map(({ title, to }) => [title, to])).toEqual([
+            ['Reviews', '/extensions/ext-1/reviews'],
+            ['Exceptions', '/extensions/ext-1/exceptions'],
+            ['Archive', '/extensions/ext-1/archive'],
+            ['Ask Atlas', '/chat'],
+        ]);
+        expect(extensionNavLinks(fakeExtension(2), chat).map(({ to }) => to)).toEqual(['/extensions/ext-2/screen']);
+    });
+
+    it('gives a chat provider with no screen its chat link', () => {
+        const knowledge = fakeExtension(3, ['landing-card']);
+        expect(extensionNavLinks(knowledge, { ...chat, extension: 'ext-3' })).toEqual([{ key: 'chat/ask', title: 'Ask Atlas', to: '/chat' }]);
+    });
+});
 
 describe('extension contributions', () => {
     it('shows an action only when the context gives its path parameters', () => {

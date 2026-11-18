@@ -267,8 +267,8 @@ Selecting a control from a **Control Domain** (e.g. `security` or `ai-governance
 An operator can install extensions (see [Extensions](../calm-hub/index.md#extensions), and the
 [extension tutorial](../tutorials/advanced/hub-extension.md)). The UI groups what they add:
 
-* **Home page:** an **Extensions** section under **Namespaces**, with one card per extension. A card shows the extension name, its provider and up to three figures, or one line of text. If the extension has a screen, click the card to open it.
-* **Side menu:** an **Extensions** group with one entry per extension screen.
+* **Home page:** a card for each extension with a landing card or a top-level page, with its name, provider and a link to each page. A card can also show up to three figures or one line of text. A card without a page has no link.
+* **Side menu:** pages grouped under their extension name, in the same order as the cards.
 * **Architecture and pattern pages:** one **Extensions** tab. Each extension has a collapsible section with its actions and its tab content. Actions show only here, not on the home page, and each runs with the context of the architecture or pattern. An action or a tab that needs a selected node shows a hint until a node is selected. With more than five extensions, a filter shows above the sections.
 * **Node details:** one **Extensions** section, with a collapsible part for each extension.
 * **Diagram overlays:** each extension has a colour marker on its badges and legend rows. Click a node's badge to see what it means.

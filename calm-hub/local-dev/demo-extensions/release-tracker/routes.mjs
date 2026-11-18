@@ -7,6 +7,11 @@ const releases = [
     { version: '2.2.0', status: 'released', date: '2026-10-08', owner: 'platform-team' },
 ];
 const tone = { released: 'positive', 'in-progress': 'info', 'rolled-back': 'negative' };
+const calendar = [
+    { version: '2.4.0', window: '2026-11-18 to 2026-11-20', stage: 'Full rollout', owner: 'orders-team' },
+    { version: '2.5.0', window: '2026-12-02', stage: 'Review', owner: 'payments-team' },
+    { version: '2.6.0', window: '2026-12-16', stage: 'Planned', owner: 'platform-team' },
+];
 const elements = {
     'web-app': { owner: 'web-team', lastRelease: '2.3.1', risk: 'Low', oncall: 'Priya' },
     'api-gateway': { owner: 'platform-team', lastRelease: '2.3.1', risk: 'Medium', oncall: 'Sam' },
@@ -38,6 +43,13 @@ export function route(method, url, body) {
                 { label: 'Release runbook', href: 'https://example.org/runbooks/release' },
                 { label: 'Demo architecture', hub: { namespace: 'demo', type: 'architectures', id: '1', version: '1.0.0' } },
             ] },
+        ]);
+    }
+    if (method === 'GET' && url.pathname === '/calendar') {
+        return screen('Release calendar', [
+            { type: 'alert', tone: 'info', text: 'Change freeze from 2026-12-21 to 2027-01-04.' },
+            { type: 'table', columns: ['Version', 'Window', 'Stage', 'Owner'],
+                rows: calendar.map((r) => [r.version, r.window, r.stage, r.owner]) },
         ]);
     }
     // Hub refuses %2F in a path, so the route takes the resource as {resourceType}/{resourceId}.
