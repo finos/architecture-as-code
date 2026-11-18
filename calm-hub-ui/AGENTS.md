@@ -368,7 +368,9 @@ per-extension toolbar button or tab: it does not scale to many extensions.
 - Search: `SearchResultsPage` shows the catalogue groups, then a `ProviderResults` group per `search-provider`
   (`searchProviders()`). Each group has its own `useProviderSearch` state, so a slow or failed provider does not hold
   back the catalogue or another provider. A generation guard drops a stale reply and aborts its request. Show only
-  what Hub returns: do not add a total or a count of hidden results.
+  what Hub returns: do not add a total or a count of hidden results. A catalogue result (`useSearchNavigation`, also
+  in the navbar search) calls `linkState(here, to)` with the path that it opens. Any version of the resource on show
+  is the same page, as for a version change: its latest version can redirect back to the current moment.
 - Overlays: `fetchDecoratorViews()` adds `source` (the extension) to each view. Key a view with `viewKey()`, never
   `view.id` alone. Hub does not start when two enabled extensions declare the same view id, but a disabled one frees
   its id for another extension, and a stored legend choice must not move to it.

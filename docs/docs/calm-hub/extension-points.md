@@ -518,7 +518,8 @@ The heading of a group gives the number of results that it shows, with `+` when 
 It gives no total, because only the provider knows its records, and CALM Hub can leave some out.
 A reply for an earlier query is dropped. A provider result and a catalogue result both record the
 search page as the [return point](extension-navigation.md#return-to-the-page), so the page that
-opens shows **Back to search results**.
+opens shows **Back to search results**. A catalogue result for the resource that is open, at any
+version, keeps the return points and adds none, as a change of version does.
 
 ## chat
 
