@@ -23,10 +23,10 @@ import static org.hamcrest.Matchers.startsWith;
 class TestExtensionEventStreamShould {
 
     private final AtomicInteger released = new AtomicInteger();
-    private final Subscription subscription = new Subscription();
+    private final RecordingSubscription subscription = new RecordingSubscription();
 
     /** Counts the parts that the stream asks for, and whether it cancelled the backend call. */
-    private static final class Subscription implements Flow.Subscription {
+    private static final class RecordingSubscription implements Flow.Subscription {
         private volatile int requested;
         private volatile boolean cancelled;
 
