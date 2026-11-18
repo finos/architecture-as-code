@@ -7,13 +7,13 @@ interface PatternEntry { id: string; name: string; description: string; category
 
 interface PatternPickerProps {
     visible: boolean;
-    mode: 'new' | 'apply';
+    mode?: 'new' | 'apply';
     patterns: PatternEntry[];
     onApply: (arch: any, patternId: string) => void;
     onClose: () => void;
 }
 
-export function PatternPicker({ visible, mode, patterns, onApply, onClose }: PatternPickerProps) {
+export function PatternPicker({ visible, mode = 'apply', patterns, onApply, onClose }: PatternPickerProps) {
     const [search, setSearch] = useState('');
     if (!visible) return null;
 

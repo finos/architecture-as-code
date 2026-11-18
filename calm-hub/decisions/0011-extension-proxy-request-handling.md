@@ -1,8 +1,6 @@
 # ADR 0011: Extension proxy request handling
 
-**Status**: Proposed. The proof of concept proxies one fixed `screen` route and
-checks only the `authenticated` and `global_admin` scopes. The generic proxy
-below is not built.
+**Status**: Accepted. Built (#3707): route scopes, limits, audit and the check for auth off. Not built: streaming replies and their limits (a cap on concurrent streams, an idle-read timeout and a maximum stream duration). The proxy buffers each reply.
 
 ## Context
 

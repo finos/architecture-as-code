@@ -62,7 +62,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         class system-a boundary
 
 
-    svc1 -->|Service 1 calls Service 2| svc2
+    svc1 -->|"Service 1 calls Service 2"| svc2
 
 
     class system-a highlight
@@ -101,8 +101,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         class system-b boundary
 
 
-    svc1 -->|Service 1 calls Service 2| svc2
-    svc2 -->|Service 2 integrates with Service 3| svc3
+    svc1 -->|"Service 1 calls Service 2"| svc2
+    svc2 -->|"Service 2 integrates with Service 3"| svc3
 
 
     class system-a highlight
@@ -141,8 +141,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         class system-b boundary
 
 
-    svc1 -->|Service 1 calls Service 2| svc2
-    svc2 -->|Service 2 integrates with Service 3| svc3
+    svc1 -->|"Service 1 calls Service 2"| svc2
+    svc2 -->|"Service 2 integrates with Service 3"| svc3
 
 
 

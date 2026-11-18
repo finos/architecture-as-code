@@ -1,6 +1,6 @@
 # CALM Hub — EC2 deployment.
 #
-# Runs the self-contained finos/calm-hub:latest-read-only-native image (NitriteDB
+# Runs the self-contained finos/calm-hub:main-read-only-native image (NitriteDB
 # baked in, no external database, no auth) behind Watchtower, which polls Docker
 # Hub and automatically recreates the calm-hub container whenever a new image is
 # published. The image swap is not zero-downtime (the old container is stopped
@@ -13,7 +13,7 @@
 
 services:
   calm-hub:
-    image: ${CALM_HUB_IMAGE:-finos/calm-hub:latest-read-only-native}
+    image: ${CALM_HUB_IMAGE:-finos/calm-hub:main-read-only-native}
     container_name: calm-hub
     restart: unless-stopped
     ports:

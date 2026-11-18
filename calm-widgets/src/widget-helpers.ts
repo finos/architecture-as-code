@@ -113,21 +113,31 @@ export function registerGlobalTemplateHelpers(): Record<string, (...args: unknow
                 : 'elk';
             return `%%{init: {"layout": "${layout}", "flowchart": {"htmlLabels": false}}}%%`;
         },
+        mermaidQuotedText: (text: unknown): string => {
+            if (typeof text !== 'string') return '';
+            // Mermaid still decodes #\w+; entities inside quotes, opens a markdown string on "` ,
+            // and leaves #quot; as &quot; on edges and subgraphs when htmlLabels is false.
+            return text
+                .replace(/^`/, '\u200B`')
+                .replace(/#(?=\w+;)/g, '#\u200B')
+                .replace(/"/g, '\'');
+        },
         mermaidText: (text: unknown): string => {
             if (typeof text !== 'string') return '';
-            // Escape characters that have special meaning in Mermaid text/labels
-            // Mermaid uses # followed by character code and semicolon for escaping
-            // See: https://mermaid.js.org/syntax/flowchart.html
-            return text
-                .replace(/#/g, '#35;')
-                .replace(/\(/g, '#40;')
-                .replace(/\)/g, '#41;')
-                .replace(/\[/g, '#91;')
-                .replace(/\]/g, '#93;')
-                .replace(/\{/g, '#123;')
-                .replace(/\}/g, '#125;')
-                .replace(/\|/g, '#124;')
-                .replace(/"/g, '#quot;');
+            // Escape characters that have special meaning in unquoted Mermaid text (e.g. sequenceDiagram)
+            const escapes: Record<string, string> = {
+                '#': '#35;',
+                ';': '#59;',
+                '(': '#40;',
+                ')': '#41;',
+                '[': '#91;',
+                ']': '#93;',
+                '{': '#123;',
+                '}': '#125;',
+                '|': '#124;',
+                '"': '#quot;',
+            };
+            return text.replace(/[#;()[\]{}|"]/g, ch => escapes[ch]);
         },
         ne: (a: unknown, b: unknown): boolean => a !== b,
         nodeLabel: (id: unknown, nodeNames: unknown): string => {

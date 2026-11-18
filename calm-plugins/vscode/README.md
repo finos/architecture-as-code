@@ -169,6 +169,9 @@ Set `calm.canvas.enabledFeatures` to an array of feature IDs to enable only thos
 features, or to `[]` to disable all optional features. The extension manifest
 does not enumerate feature IDs.
 
+Clear Canvas remains available in editable mode when optional features are
+disabled. It asks for confirmation, clears the whole document, and supports Undo.
+
 ## Development and contributions
 
 See [AGENTS.md](./AGENTS.md) for the current source layout and workspace commands,

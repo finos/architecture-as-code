@@ -4,8 +4,26 @@ import { AuthPlugin } from '../auth/auth-plugin';
 import { initLogger, Logger } from '../logger';
 import { DocumentMetadata, extractDocumentMetadata, validateDocumentId } from './document-id-utils';
 import { ResourceType } from './resource-types.js';
+import { buildExtensionRequest, extensionProxyPath, HubExtension, HubExtensionRequest, HubExtensionRoute } from './extensions.js';
 
 export { ResourceType, RESOURCE_TYPES, isValidResourceType } from './resource-types.js';
+export type { HubExtension, HubExtensionCommand, HubExtensionRoute, HubExtensionRequest } from './extensions.js';
+export { buildExtensionRequest, extensionProxyPath, numberText } from './extensions.js';
+
+export interface HubExtensionResponse {
+    status: number;
+    contentType?: string;
+    /** Parsed JSON for a JSON reply, else the text as sent. */
+    data: unknown;
+}
+
+export interface HubExtensionCallOptions {
+    /**
+     * How long to wait for the reply, in milliseconds. The default 0 sets no client limit, because CALM Hub ends
+     * each call at the `request-timeout-seconds` of the extension, which can be longer than the 30 s of other calls.
+     */
+    timeoutMs?: number;
+}
 
 export interface CalmHubOptions {
     calmHubUrl?: string;
@@ -23,6 +41,19 @@ export interface HubCreateResult {
 
 export interface HubNamespaceCreateResult {
     name: string;
+    location: string;
+}
+
+/** The caller's personal namespace, from `/api/calm/me/namespace`. */
+export interface HubPersonalNamespace {
+    name: string;
+    exists: boolean;
+    owned: boolean;
+}
+
+export interface HubPersonalNamespaceCreateResult {
+    name: string;
+    created: boolean;
     location: string;
 }
 
@@ -53,17 +84,45 @@ export interface NarrativeDocumentVersion {
     documentMarkdown: string;
 }
 
+export interface HubConventionSummary {
+    id: number;
+    name: string;
+    description?: string;
+    versionCount: number;
+}
+
+export interface HubConventionRequest {
+    name: string;
+    description?: string;
+    /** The convention JSON, as a string. Hub validates it against the schema of its type. */
+    conventionJson: string;
+}
+
+/** The default convention that applies to a namespace: its own, or that of its nearest ancestor. */
+export interface HubNamespaceDefaultConvention {
+    conventionType: string;
+    /** The namespace that sets the default. */
+    namespace: string;
+    conventionId: number;
+    version: string;
+    /** True when an ancestor of the requested namespace sets the default. */
+    inherited: boolean;
+    convention: object;
+}
+
 export class HubClientError extends Error {
     /**
      * Creates a normalized Hub client error.
      * @param status HTTP status code or 0 for non-HTTP failures.
      * @param error Error message.
      * @param request Request label that failed.
+     * @param body Response body, when the caller must show it as Hub sent it.
      */
     constructor(
         public readonly status: number,
         public readonly error: string,
-        public readonly request: string
+        public readonly request: string,
+        public readonly body?: unknown
     ) {
         super(`Hub error ${status} on ${request}: ${error}`);
         this.name = 'HubClientError';
@@ -122,6 +181,36 @@ export class CalmHubClient {
             const response = await this.ax.post('/api/calm/namespaces', { name, description });
             const location = (response.headers['location'] as string | undefined) ?? `/api/calm/namespaces/${name}`;
             return { name, location };
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    /**
+     * Gets the caller's personal namespace. Hub returns 404 when personal namespaces are off,
+     * and 422 when the caller's user name cannot be a namespace segment.
+     */
+    async getPersonalNamespace(): Promise<HubPersonalNamespace> {
+        const endpoint = 'GET /api/calm/me/namespace';
+        try {
+            const response = await this.ax.get('/api/calm/me/namespace');
+            return response.data as HubPersonalNamespace;
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    /**
+     * Creates the caller's personal namespace. `created` is false when the caller already owns it.
+     * Hub returns 409 when another user holds the name.
+     */
+    async createPersonalNamespace(): Promise<HubPersonalNamespaceCreateResult> {
+        const endpoint = 'PUT /api/calm/me/namespace';
+        try {
+            const response = await this.ax.put('/api/calm/me/namespace');
+            const { name } = response.data as HubPersonalNamespace;
+            const location = (response.headers['location'] as string | undefined) ?? `/api/calm/namespaces/${name}`;
+            return { name, created: response.status === 201, location };
         } catch (err) {
             throw this.wrapError(err, endpoint);
         }
@@ -213,6 +302,113 @@ export class CalmHubClient {
         }
     }
 
+    // ── Conventions ──────────────────────────────────────────────────────────────
+
+    async listConventions(namespace: string, conventionType: string): Promise<HubConventionSummary[]> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return this.extractValues<HubConventionSummary>(response.data, `GET ${endpoint}`);
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /**
+     * Creates a convention at version 1.0.0.
+     * @returns The location of the new version.
+     */
+    async createConvention(namespace: string, conventionType: string, request: HubConventionRequest): Promise<string> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}`;
+        return this.postConvention(endpoint, request);
+    }
+
+    async createConventionVersion(namespace: string, conventionType: string, id: number, version: string, request: HubConventionRequest): Promise<string> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions/${version}`;
+        return this.postConvention(endpoint, request);
+    }
+
+    /** Returns the versions of a convention, oldest first. */
+    async getConventionVersions(namespace: string, conventionType: string, id: number): Promise<string[]> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return this.extractValues<string>(response.data, `GET ${endpoint}`);
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    async getConventionVersion(namespace: string, conventionType: string, id: number, version: string): Promise<object> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/${id}/versions/${version}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            return this.requireObject(response.data, `GET ${endpoint}`);
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /**
+     * Returns the default convention that applies to a namespace, which it can inherit from an ancestor.
+     * @returns The default, or undefined when Hub returns 204 because no namespace in the chain sets one.
+     * @throws HubClientError with status 404 when the namespace does not exist.
+     */
+    async getNamespaceDefaultConvention(namespace: string, conventionType: string): Promise<HubNamespaceDefaultConvention | undefined> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/default`;
+        try {
+            const response = await this.ax.get(endpoint);
+            if (response.status === 204) {
+                return undefined;
+            }
+            const body = this.requireObject(response.data, `GET ${endpoint}`) as HubNamespaceDefaultConvention;
+            if (typeof body.conventionId !== 'number' || typeof body.version !== 'string' || !body.convention || typeof body.convention !== 'object') {
+                throw new HubClientError(0, 'Response does not contain conventionId, version and convention', `GET ${endpoint}`);
+            }
+            return body;
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /** Names a convention version in the namespace as its default for the type. Needs ADMIN on the namespace. */
+    async setNamespaceDefaultConvention(namespace: string, conventionType: string, conventionId: number, version: string): Promise<void> {
+        const endpoint = `/api/calm/namespaces/${namespace}/conventions/${conventionType}/default`;
+        try {
+            await this.ax.put(endpoint, { conventionId, version });
+        } catch (err) {
+            throw this.wrapError(err, `PUT ${endpoint}`);
+        }
+    }
+
+    private async postConvention(endpoint: string, request: HubConventionRequest): Promise<string> {
+        try {
+            const response = await this.ax.post(endpoint, request);
+            const location = response.headers.location as string | undefined;
+            if (!location) {
+                throw new HubClientError(0, 'Response does not include Location header', `POST ${endpoint}`);
+            }
+            return location;
+        } catch (err) {
+            const error = this.wrapError(err, `POST ${endpoint}`);
+            const fieldErrors = axios.isAxiosError(err) ? err.response?.data?.errors : undefined;
+            if (!Array.isArray(fieldErrors) || fieldErrors.length === 0) {
+                throw error;
+            }
+            const details = fieldErrors.map((e: { location?: string; error?: string }) => `${e.location || '/'}: ${e.error}`).join('; ');
+            const moreErrors = axios.isAxiosError(err) ? err.response?.data?.moreErrors : undefined;
+            const more = typeof moreErrors === 'number' && moreErrors > 0 ? `; and ${moreErrors} more` : '';
+            throw new HubClientError(error.status, `${error.error}: ${details}${more}`, error.request);
+        }
+    }
+
+    private requireObject(data: unknown, endpoint: string): object {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+            throw new HubClientError(0, 'Unexpected response body from CALM Hub: expected a JSON object', endpoint);
+        }
+        return data;
+    }
+
     /**
      * Lists namespaces.
      * @returns Namespace summaries.
@@ -223,6 +419,76 @@ export class CalmHubClient {
             const response = await this.ax.get('/api/calm/namespaces');
             return this.extractValues<HubNamespaceSummary>(response.data, endpoint);
         } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    // ── Extensions ───────────────────────────────────────────────────────────
+
+    /**
+     * Lists the extensions that this CALM Hub enabled, in order.
+     * @returns The extensions, with only the routes and commands that this Hub can run.
+     */
+    async listExtensions(): Promise<HubExtension[]> {
+        const endpoint = 'GET /api/calm/extensions';
+        try {
+            const response = await this.ax.get('/api/calm/extensions');
+            return this.extractValues<HubExtension>(response.data, endpoint);
+        } catch (err) {
+            throw this.wrapError(err, endpoint);
+        }
+    }
+
+    /**
+     * Calls a route of an extension through the Hub proxy. On an error reply, the thrown
+     * HubClientError carries the reply body as Hub sent it.
+     * @param extension The extension, as listExtensions returns it. Its routes keep a filled path from calling another route.
+     * @param route The route that the command names.
+     * @param input The command input object.
+     * @param options The client timeout. When it ends a write, CALM Hub and the extension can still complete the write.
+     * @returns The reply status, content type and body.
+     */
+    async callExtension(
+        extension: Pick<HubExtension, 'id' | 'routes'>,
+        route: HubExtensionRoute,
+        input: Record<string, unknown>,
+        options: HubExtensionCallOptions = {}
+    ): Promise<HubExtensionResponse> {
+        let request: HubExtensionRequest;
+        try {
+            request = buildExtensionRequest(extension.id, route, input, extension.routes);
+        } catch (err) {
+            throw new HubClientError(0, (err as Error).message, `${route.method.toUpperCase()} ${extensionProxyPath(extension.id, route.path)}`);
+        }
+        const endpoint = `${request.method} ${request.path}`;
+        try {
+            const response = await this.ax.request({
+                method: request.method,
+                url: request.path,
+                params: request.query.length > 0 ? new URLSearchParams(request.query) : undefined,
+                data: request.body,
+                // Hub refuses a POST with no JSON Content-Type, also with no body (CSRF).
+                headers: request.method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
+                responseType: 'text',
+                transformResponse: (data: unknown) => data,
+                timeout: options.timeoutMs ?? 0,
+            });
+            const contentType = contentTypeOf(response.headers);
+            return { status: response.status, contentType, data: parseReply(response.data, contentType) };
+        } catch (err) {
+            if (axios.isAxiosError(err) && err.response) {
+                const status = err.response.status;
+                const body = parseReply(err.response.data, contentTypeOf(err.response.headers));
+                // An auth gateway can send an empty 401 or 403.
+                if (body === '' || body === undefined) {
+                    throw new HubClientError(status, EMPTY_REPLY_MESSAGES[status] ?? err.message, endpoint);
+                }
+                throw new HubClientError(status, replyMessage(body, err.message), endpoint, body);
+            }
+            if (axios.isAxiosError(err) && WRITE_UNKNOWN_CODES.has(err.code ?? '') && request.method !== 'GET') {
+                throw new HubClientError(0, `${err.message}. CALM Hub and the extension can still complete the call, `
+                    + 'so check whether the write happened before you send it again', endpoint);
+            }
             throw this.wrapError(err, endpoint);
         }
     }
@@ -543,4 +809,42 @@ export class CalmHubClient {
         }
         return new HubClientError(0, err instanceof Error ? err.message : String(err), endpoint);
     }
+}
+
+function contentTypeOf(headers: unknown): string | undefined {
+    const value = (headers as Record<string, unknown> | undefined)?.['content-type'];
+    return typeof value === 'string' ? value : undefined;
+}
+
+function parseReply(data: unknown, contentType: string | undefined): unknown {
+    if (typeof data !== 'string' || !contentType || !/[/+]json\b/i.test(contentType)) {
+        return data;
+    }
+    try {
+        return JSON.parse(data);
+    } catch {
+        return data;
+    }
+}
+
+// The client stopped waiting, or the connection dropped, after it sent the request.
+const WRITE_UNKNOWN_CODES = new Set(['ECONNABORTED', 'ETIMEDOUT', 'ECONNRESET']);
+
+const EMPTY_REPLY_MESSAGES: Record<number, string> = {
+    401: 'Authentication is required, or the credentials are not valid',
+    403: 'Access is denied',
+    // Vert.x refuses a request line that is too long with an empty 414. MCP checks the same limit.
+    414: 'The path and query are too long for CALM Hub',
+};
+
+// Hub sends { error }. An extension can pass through an RFC 9457 problem+json body with a title and a detail.
+function replyMessage(body: unknown, fallback: string): string {
+    if (typeof body === 'string' && body.trim() !== '') return body;
+    if (body && typeof body === 'object') {
+        const { error, title, detail } = body as { error?: unknown, title?: unknown, detail?: unknown };
+        if (typeof error === 'string') return error;
+        const parts = [title, detail].filter((part): part is string => typeof part === 'string' && part !== '');
+        if (parts.length > 0) return parts.join(': ');
+    }
+    return fallback;
 }

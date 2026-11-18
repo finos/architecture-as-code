@@ -10,6 +10,7 @@ import { JsonViewerWidget } from './widgets/json-viewer';
 import { FlowSequenceWidget } from './widgets/flow-sequence';
 import { RelatedNodesWidget } from './widgets/related-nodes';
 import { BlockArchitectureWidget } from './widgets/block-architecture';
+import { C4DiagramWidget } from './widgets/c4-diagram';
 
 export type WidgetOptions = Record<string, unknown>;
 export type WidgetsOptions = Record<string, WidgetOptions>;
@@ -91,6 +92,10 @@ export class WidgetEngine {
             {
                 widget: BlockArchitectureWidget as CalmWidget<unknown, object, unknown>,
                 folder: __dirname + '/widgets/block-architecture',
+            },
+            {
+                widget: C4DiagramWidget as CalmWidget<unknown, object, unknown>,
+                folder: __dirname + '/widgets/c4-diagram',
             },
             {
                 widget: FlowSequenceWidget as CalmWidget<unknown, object, unknown>,

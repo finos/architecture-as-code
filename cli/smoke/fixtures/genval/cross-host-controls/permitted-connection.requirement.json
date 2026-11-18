@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "http://smoke-controls.localhost:8090/permitted-connection.requirement.json",
+  "$id": "http://smoke-controls.test:8090/permitted-connection.requirement.json",
   "title": "Permits a connection between two components in the architecture",
   "type": "object",
   "allOf": [

@@ -3,6 +3,7 @@ package org.finos.calm.mcp.tools;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkiverse.mcp.server.ToolResponse;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -11,6 +12,8 @@ import java.util.stream.Collectors;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 /**
@@ -87,11 +90,39 @@ final class McpValidationHelper {
      * @return error string, or {@code null} if valid
      */
     static String validateVersion(String version) {
+        return validateVersionAgainst(version, VERSION_REGEX, "semantic version (e.g. '1.0.0')");
+    }
+
+    /**
+     * Validates a version for a read tool whose REST endpoint accepts
+     * {@code VERSION_OR_SHA_REGEX}. GitHub mode uses commit SHAs as versions.
+     *
+     * @param version the version string to validate
+     * @return error string, or {@code null} if valid
+     */
+    static String validateVersionOrSha(String version) {
+        return validateVersionAgainst(version, VERSION_OR_SHA_REGEX,
+                "semantic version (e.g. '1.0.0') or a commit SHA (7-40 hex characters)");
+    }
+
+    /**
+     * Validates a version for a read tool whose REST endpoint accepts
+     * {@code SNAPSHOT_VERSION_OR_SHA_REGEX}.
+     *
+     * @param version the version string to validate
+     * @return error string, or {@code null} if valid
+     */
+    static String validateSnapshotVersionOrSha(String version) {
+        return validateVersionAgainst(version, SNAPSHOT_VERSION_OR_SHA_REGEX,
+                "semantic version (e.g. '1.0.0' or '1.0.0-SNAPSHOT') or a commit SHA (7-40 hex characters)");
+    }
+
+    private static String validateVersionAgainst(String version, String regex, String expected) {
         if (version == null || version.isBlank()) {
             return "Error: Version must not be blank.";
         }
-        if (!version.matches(VERSION_REGEX)) {
-            return "Error: Invalid version format '" + version + "'. Expected semantic version (e.g. '1.0.0').";
+        if (!version.matches(regex)) {
+            return "Error: Invalid version format '" + version + "'. Expected " + expected + ".";
         }
         return null;
     }
@@ -244,6 +275,24 @@ final class McpValidationHelper {
     static String validateMaxLength(String value, int maxLen, String fieldName) {
         if (value != null && value.length() > maxLen) {
             return "Error: " + fieldName + " must not exceed " + maxLen + " characters.";
+        }
+        return null;
+    }
+
+    /**
+     * Validates that an optional string value does not exceed the maximum number of UTF-8 bytes.
+     * Null values are accepted.
+     *
+     * @param value     the value to check (may be null)
+     * @param maxBytes  maximum permitted number of UTF-8 bytes
+     * @param fieldName human-readable field name for the error message
+     * @return error string, or {@code null} if valid
+     */
+    static String validateMaxBytes(String value, int maxBytes, String fieldName) {
+        // A char is at least one UTF-8 byte, so a long string is refused without a copy.
+        if (value != null && (value.length() > maxBytes
+                || value.getBytes(StandardCharsets.UTF_8).length > maxBytes)) {
+            return "Error: " + fieldName + " must not exceed " + maxBytes + " bytes.";
         }
         return null;
     }

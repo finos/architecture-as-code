@@ -41,9 +41,10 @@ export function validateCanvas({ nodes, edges, documentControls, flows, standard
     });
 
     const architecture = flowToCalm(effectiveNodes, edges, documentControls, flows);
+    const architectureNodes = architecture.nodes ?? [];
     const issues = validateArchitecture(architecture);
     let controlCount = Object.keys((architecture.controls as Record<string, unknown>) ?? {}).length;
-    for (const node of architecture.nodes) {
+    for (const node of architectureNodes) {
         const controls = node.controls as Record<string, unknown> | undefined;
         if (controls) controlCount += Object.keys(controls).length;
     }
@@ -52,8 +53,8 @@ export function validateCanvas({ nodes, edges, documentControls, flows, standard
         issues.push({
             severity: 'info',
             message: controlCount === 0
-                ? `Valid — ${architecture.nodes.length} node(s), but 0 controls found. Drop a standard node that defines controls (e.g. "Microservice") onto a node, then Validate.`
-                : `Valid — checked ${architecture.nodes.length} node(s) and ${controlCount} control(s); all requirements satisfied.`,
+                ? `Valid — ${architectureNodes.length} node(s), but 0 controls found. Drop a standard node that defines controls (e.g. "Microservice") onto a node, then Validate.`
+                : `Valid — checked ${architectureNodes.length} node(s) and ${controlCount} control(s); all requirements satisfied.`,
         });
     }
 

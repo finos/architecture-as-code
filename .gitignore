@@ -57,8 +57,6 @@ cli/test_fixtures/getting-started/actual-output/
 .next/
 next-env.d.ts
 
-# SvelteKit
-.svelte-kit/
 **/build/
 
 # Docusaurus (sub-projects)

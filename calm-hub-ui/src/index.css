@@ -124,7 +124,7 @@ code {
     animation: none;
 }
 
-/* `reactflow/dist/style.css` defines these same selectors and is bundled after this
+/* `@xyflow/react/dist/style.css` defines these same selectors and is bundled after this
  * file, so an unqualified rule here would lose the source-order tie. Scoping under
  * `.react-flow` adds a class and wins on specificity instead. */
 .react-flow .react-flow__controls-button {
@@ -157,7 +157,7 @@ code {
     max-height: 18px;
 }
 
-/* Also defined by reactflow's stylesheet — same specificity note as above. */
+/* Also defined by @xyflow/react's stylesheet — same specificity note as above. */
 .react-flow .react-flow__minimap {
     background: var(--calm-bg-secondary);
     border: 1px solid var(--calm-border-default);

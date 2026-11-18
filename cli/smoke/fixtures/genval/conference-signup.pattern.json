@@ -232,10 +232,10 @@
                           "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/control-detail",
                           "properties": {
                             "requirement-url": {
-                              "const": "http://smoke-controls.localhost:8090/micro-segmentation.requirement.json"
+                              "const": "http://smoke-controls.test:8090/micro-segmentation.requirement.json"
                             },
                             "config-url": {
-                              "const": "http://smoke-controls.localhost:8090/micro-segmentation.config.json"
+                              "const": "http://smoke-controls.test:8090/micro-segmentation.config.json"
                             }
                           }
                         }
@@ -296,10 +296,10 @@
                           "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/control-detail",
                           "properties": {
                             "requirement-url": {
-                              "const": "http://smoke-controls.localhost:8090/permitted-connection.requirement.json"
+                              "const": "http://smoke-controls.test:8090/permitted-connection.requirement.json"
                             },
                             "config-url": {
-                              "const": "http://smoke-controls.localhost:8090/permitted-connection-http.config.json"
+                              "const": "http://smoke-controls.test:8090/permitted-connection-http.config.json"
                             }
                           }
                         }
@@ -357,10 +357,10 @@
                           "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/control-detail",
                           "properties": {
                             "requirement-url": {
-                              "const": "http://smoke-controls.localhost:8090/permitted-connection.requirement.json"
+                              "const": "http://smoke-controls.test:8090/permitted-connection.requirement.json"
                             },
                             "config-url": {
-                              "const": "http://smoke-controls.localhost:8090/permitted-connection-http.config.json"
+                              "const": "http://smoke-controls.test:8090/permitted-connection-http.config.json"
                             }
                           },
                           "required": [
@@ -421,10 +421,10 @@
                           "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/control-detail",
                           "properties": {
                             "requirement-url": {
-                              "const": "http://smoke-controls.localhost:8090/permitted-connection.requirement.json"
+                              "const": "http://smoke-controls.test:8090/permitted-connection.requirement.json"
                             },
                             "config-url": {
-                              "const": "http://smoke-controls.localhost:8090/permitted-connection-http.config.json"
+                              "const": "http://smoke-controls.test:8090/permitted-connection-http.config.json"
                             }
                           }
                         }

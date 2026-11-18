@@ -4,6 +4,7 @@ import dagre from '@dagrejs/dagre';
 import type { CalmArchitecture } from './calm-editor-transformer';
 import type { CalmFlow } from '../../core/types';
 import { getDetailNodeVisual, DEFAULT_DETAIL_NODE_VISUAL } from '../canvas/nodes/nodeVisuals';
+import { splitEdgeMetadata } from './edge-metadata';
 
 export interface ParsedCALMData {
     nodes: Node[];
@@ -29,6 +30,8 @@ const CONTAINER_CHILD_HEIGHT_INCREMENT = 120;
 
 /** Copies above which a node in several containers is drawn in its last container only. */
 const MAX_COPIES = 1000;
+
+interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; sourceHandle?: string; targetHandle?: string; metaDirection?: string; edgeMetadata: Record<string, unknown> }
 
 export function parseCALMData(
     arch: CalmArchitecture,
@@ -218,7 +221,6 @@ export function parseCALMData(
     }
 
     // Build edges from non-containment relationships
-    interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; sourceHandle?: string; targetHandle?: string; metaDirection?: string; edgeMetadata: Record<string, unknown> }
     const connectsList: ConnectsEntry[] = [];
     for (const rel of arch.relationships ?? []) {
         const rt = rel['relationship-type'] as
@@ -242,30 +244,14 @@ export function parseCALMData(
                 const description = (rel as any).description as
                     | string
                     | undefined;
-                const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
-                const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
-                const routing = (relMeta?.['routing'] as string) ?? 'bezier';
-                const sourceHandle = relMeta?.['source-handle'] as string | undefined;
-                const targetHandle = relMeta?.['target-handle'] as string | undefined;
-                const metaDirection = relMeta?.['direction'] as string | undefined;
-                const edgeMetaKeys = new Set(['line-style', 'routing', 'source-handle', 'target-handle', 'direction']);
-                const edgeMetadata: Record<string, unknown> = {};
-                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (!edgeMetaKeys.has(k)) edgeMetadata[k] = v; } }
+                const { lineStyle, routing, sourceHandle, targetHandle, direction: metaDirection, edgeMetadata } = splitEdgeMetadata(rel.metadata);
                 connectsList.push({ relId, src, dst, protocol, description, controls: (rel as any).controls, lineStyle, routing, sourceHandle, targetHandle, metaDirection, edgeMetadata });
             }
         } else if (interacts) {
             const actor = interacts.actor;
             const protocol = (rel as any).protocol as string | undefined;
             const description = (rel as any).description as string | undefined;
-            const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
-            const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
-            const routing = (relMeta?.['routing'] as string) ?? 'bezier';
-            const sourceHandle = relMeta?.['source-handle'] as string | undefined;
-            const targetHandle = relMeta?.['target-handle'] as string | undefined;
-            const metaDirection = (relMeta?.['direction'] as string) ?? 'source-to-target';
-            const edgeMetaKeys = new Set(['line-style', 'routing', 'source-handle', 'target-handle', 'direction']);
-            const edgeMetadata: Record<string, unknown> = {};
-            if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (!edgeMetaKeys.has(k)) edgeMetadata[k] = v; } }
+            const { lineStyle, routing, sourceHandle, targetHandle, direction: metaDirection = 'source-to-target', edgeMetadata } = splitEdgeMetadata(rel.metadata);
             for (const target of interacts.nodes ?? []) {
                 if (actor && target) {
                     edges.push({
@@ -304,15 +290,7 @@ export function parseCALMData(
             if (src && dst) {
                 const protocol = (rel as any).protocol as string | undefined;
                 const description = (rel as any).description as string | undefined;
-                const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
-                const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
-                const routing = (relMeta?.['routing'] as string) ?? 'bezier';
-                const srcHandle = relMeta?.['source-handle'] as string | undefined;
-                const tgtHandle = relMeta?.['target-handle'] as string | undefined;
-                const customDirection = (relMeta?.['direction'] as string) ?? 'source-to-target';
-                const edgeMetaKeys = new Set(['line-style', 'routing', 'source-handle', 'target-handle', 'direction']);
-                const edgeMetadata: Record<string, unknown> = {};
-                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (!edgeMetaKeys.has(k)) edgeMetadata[k] = v; } }
+                const { lineStyle, routing, sourceHandle: srcHandle, targetHandle: tgtHandle, direction: customDirection = 'source-to-target', edgeMetadata } = splitEdgeMetadata(rel.metadata);
                 edges.push({
                     id: relId,
                     source: src,
@@ -340,22 +318,37 @@ export function parseCALMData(
         }
     }
 
-    // Detect bidirectional connects pairs (A→B + B→A) and merge into single edge
+    // Merge a connects pair (A→B + B→A) into one bidirectional edge only when the canvas would
+    // write the same data back to both; otherwise each relationship keeps its own edge
+    const editableData = new Map(connectsList.map((e) =>
+        [e, JSON.stringify([e.protocol, e.description, e.controls, e.lineStyle, e.routing, e.edgeMetadata])]));
+    const pairKey = (src: string, dst: string, e: ConnectsEntry) => JSON.stringify([src, dst]) + editableData.get(e);
+    const byPairKey = new Map<string, ConnectsEntry[]>();
+    for (const e of connectsList) {
+        const key = pairKey(e.src, e.dst, e);
+        byPairKey.set(key, [...(byPairKey.get(key) ?? []), e]);
+    }
     const consumed = new Set<string>();
+    const drawnEnds = new Set<string>();
     for (const entry of connectsList) {
         if (consumed.has(entry.relId)) continue;
-        const reverse = connectsList.find(
-            (e) => !consumed.has(e.relId) && e.relId !== entry.relId && e.src === entry.dst && e.dst === entry.src
-        );
+        const reverse = byPairKey.get(pairKey(entry.dst, entry.src, entry))
+            ?.find((e) => !consumed.has(e.relId) && e.relId !== entry.relId
+                && e.sourceHandle === entry.targetHandle && e.targetHandle === entry.sourceHandle
+                && (e.metaDirection ?? 'source-to-target') === 'source-to-target'
+                && (entry.metaDirection ?? 'source-to-target') === 'source-to-target');
         const isBidi = !!reverse;
         if (reverse) consumed.add(reverse.relId);
         consumed.add(entry.relId);
 
-const directionValue = entry.metaDirection === 'none' || entry.metaDirection === 'target-to-source' || entry.metaDirection === 'bidirectional'
+        const directionValue = entry.metaDirection === 'none' || entry.metaDirection === 'target-to-source' || entry.metaDirection === 'bidirectional'
             ? entry.metaDirection : isBidi ? 'bidirectional' : 'source-to-target';
         const arrowMarker = { type: MarkerType.ArrowClosed, width: 15, height: 15 };
         const markerEnd = (directionValue === 'source-to-target' || directionValue === 'bidirectional') ? arrowMarker : undefined;
         const markerStart = (directionValue === 'target-to-source' || directionValue === 'bidirectional') ? arrowMarker : undefined;
+        // The second edge of an unmerged pair uses the other target handle, so that the two do not draw over each other
+        const overlapsReverse = drawnEnds.has(JSON.stringify([entry.dst, entry.src]));
+        drawnEnds.add(JSON.stringify([entry.src, entry.dst]));
 
         edges.push({
             id: entry.relId,
@@ -363,7 +356,7 @@ const directionValue = entry.metaDirection === 'none' || entry.metaDirection ===
             target: entry.dst,
             label: truncate(entry.protocol || entry.description, MAX_LABEL_LENGTH) || undefined,
             ...(entry.sourceHandle ? { sourceHandle: entry.sourceHandle } : {}),
-            ...(entry.targetHandle ? { targetHandle: entry.targetHandle } : {}),
+            ...(entry.targetHandle ? { targetHandle: entry.targetHandle } : overlapsReverse ? { targetHandle: 'left-target' } : {}),
             data: {
                 calmVariant: 'connects',
                 calmRelId: entry.relId,
@@ -375,6 +368,7 @@ const directionValue = entry.metaDirection === 'none' || entry.metaDirection ===
                 lineStyle: entry.lineStyle,
                 routing: entry.routing,
                 edgeMetadata: entry.edgeMetadata,
+                ...(overlapsReverse && !entry.targetHandle ? { _autoTargetHandle: 'left-target' } : {}),
             },
             type: 'tooltip',
             markerEnd,

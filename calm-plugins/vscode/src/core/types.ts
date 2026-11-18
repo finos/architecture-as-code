@@ -4,10 +4,10 @@
 
 /**
  * types.ts — Canonical CALM type re-exports from @finos/calm-models with
- * backwards-compatible aliases for CalmStudio consumers.
+ * backwards-compatible aliases for existing consumers.
  *
  * Per https://github.com/finos/architecture-as-code/pull/2553 review:
- * calm-studio reuses the canonical types maintained in calm-models rather
+ * this module reuses the canonical types maintained in calm-models rather
  * than maintaining a parallel vendored copy. Schema drift and feature drift
  * (e.g. interface-level endpoint refs on connects relationships) are
  * eliminated by depending on calm-models directly.
@@ -45,8 +45,6 @@ export type {
 import type {
   CalmArchitectureSchema,
   CalmDecoratorSchema as CalmDecorator,
-  CalmNodeSchema,
-  CalmRelationshipSchema,
 } from '@finos/calm-models/types';
 
 import type { CalmNodeInterfaceSchema } from '@finos/calm-models/types';
@@ -70,34 +68,19 @@ export type CalmRelationshipVariant =
   | 'composed-of'
   | 'options';
 
-// ─── CalmStudio-only extensions (not in calm-models) ────────────────────────
+// ─── Extensions not in calm-models ──────────────────────────────────────────
 
 /**
- * CalmStudio architecture model: the canonical CALM 1.2 core schema with
- * two studio-specific tightenings:
- *
- *   - `nodes` and `relationships` are required (never undefined). The
- *     canonical `CalmCoreSchema` makes both optional because architectures
- *     mid-construction may have neither; CalmStudio's producers always
- *     populate both arrays (empty if the diagram is blank), so promoting
- *     them to required keeps `exactOptionalPropertyTypes: true` happy and
- *     removes a flood of `arch.nodes is possibly undefined` errors.
- *
- *   - `decorators?: CalmDecorator[]` extension used by the AIGF
- *     governance overlay and the threat-model overlay (#2551). The CALM
- *     core schema has no `decorators` property.
+ * The canonical CALM architecture, plus the `decorators` extension used by the
+ * AIGF governance overlay and the threat-model overlay (#2551). The CALM core
+ * schema has no `decorators` property.
  */
-export type CalmArchitecture = Omit<
-  CalmArchitectureSchema,
-  'nodes' | 'relationships'
-> & {
-  nodes: CalmNodeSchema[];
-  relationships: CalmRelationshipSchema[];
+export type CalmArchitecture = CalmArchitectureSchema & {
   decorators?: CalmDecorator[];
 };
 
 /**
- * CALM 1.2 evidence — links a control to evidence of compliance. Studio
+ * CALM 1.2 evidence — links a control to evidence of compliance. The editor
  * supports the type for round-trip completeness only.
  */
 export interface CalmEvidence {

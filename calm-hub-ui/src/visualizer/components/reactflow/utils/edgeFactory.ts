@@ -1,4 +1,4 @@
-import { Edge, MarkerType } from 'reactflow';
+import { Edge, MarkerType } from '@xyflow/react';
 
 /**
  * Configuration for creating a ReactFlow edge

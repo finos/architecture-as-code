@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MarkerType } from 'reactflow';
+import { MarkerType } from '@xyflow/react';
 import { createEdge, EdgeConfig } from './edgeFactory';
 
 describe('createEdge', () => {

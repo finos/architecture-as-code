@@ -6,6 +6,8 @@
 
 /calm-server/ @rocketstack-matt @markscott-ms
 
+/calm-hub-extensions/ @rocketstack-matt @markscott-ms
+
 /cli/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels @LeighFinegold @markscott-ms @byrash
 
 /shared/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels @LeighFinegold @markscott-ms @byrash
@@ -13,7 +15,6 @@
 /calm-plugins/vscode @byrash @rocketstack-matt @markscott-ms
 
 /calm-guard/ @gjs-opsflo @eddie-knight @rocketstack-matt @markscott-ms @jpgough-ms
-/calm-studio/ @gjs-opsflo @eddie-knight @rocketstack-matt @markscott-ms @jpgough-ms
 
 # Ownership for dependency-related files at the root level
 /package.json @finos/architecture-as-code-maintainers

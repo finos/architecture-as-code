@@ -61,7 +61,7 @@ describe('osv-fix-npm.sh', () => {
             finding('package-lock.json', 'npm', 'next', '15.5.25', 'GHSA-4jqv-mc3x-m676', { cvss: '6.3', ghsa: 'MODERATE' }),
             finding('package-lock.json', 'npm', 'next', '15.5.25', 'GHSA-mcj8-r9mp-w47p', { cvss: '6.3', ghsa: 'MODERATE' }),
             finding('package-lock.json', 'npm', 'katex', '0.16.47', 'GHSA-238p-pmpm-9mq7', { cvss: '2.1', ghsa: 'LOW' }),
-            finding('calm-studio/apps/studio/src-tauri/Cargo.lock', 'crates.io', 'anyhow', '1.0.102', 'RUSTSEC-2026-0190', { cvss: '7.5' }),
+            finding('example/Cargo.lock', 'crates.io', 'anyhow', '1.0.102', 'RUSTSEC-2026-0190', { cvss: '7.5' }),
         ]);
 
         const result = run(FIX_SCRIPT, results);
@@ -112,7 +112,7 @@ describe('osv-threshold.sh', () => {
     it('passes when every finding is below the threshold or unscored', () => {
         const results = writeResults([
             finding('package-lock.json', 'npm', 'katex', '0.16.47', 'GHSA-238p-pmpm-9mq7', { cvss: '2.1', ghsa: 'LOW' }),
-            finding('calm-studio/apps/studio/src-tauri/Cargo.lock', 'crates.io', 'anyhow', '1.0.102', 'RUSTSEC-2026-0190'),
+            finding('example/Cargo.lock', 'crates.io', 'anyhow', '1.0.102', 'RUSTSEC-2026-0190'),
         ]);
 
         const result = run(THRESHOLD_SCRIPT, results);

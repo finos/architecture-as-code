@@ -33,7 +33,7 @@ cd architecture-as-code
 npm ci
 ```
 
-This installs all workspaces (calm-guard, calm-studio, cli, server, etc.) from the root `package-lock.json`.
+This installs all workspaces (calm-guard, cli, server, etc.) from the root `package-lock.json`.
 
 ### 3. Configure environment variables
 

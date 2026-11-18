@@ -167,6 +167,12 @@
     color: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 60%, var(--calm-text));
 }
 
+.fid-toolbar-btn--danger {
+    padding: 3px 7px;
+    color: var(--vscode-editorError-foreground, #f14c4c);
+    border: 1px solid var(--vscode-editorError-foreground, #f14c4c);
+}
+
 .fid-toolbar-sep {
     width: 1px;
     height: 18px;

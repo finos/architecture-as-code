@@ -42,7 +42,8 @@ Welcome to the CALM learning path! These tutorials take you from zero CALM knowl
 │                          │                                                  │
 │                          ▼                                                  │
 │   ADVANCED TUTORIALS                                                        │
-│   └── Architecture Discovery Skill                                          │
+│   ├── Architecture Discovery Skill                                          │
+│   └── Build a CALM Hub Extension                                            │
 │                          │                                                  │
 │                          ▼                                                  │
 │   🛠️ PRACTITIONER TUTORIAL                                                  │
@@ -184,3 +185,11 @@ By completing this tutorial, you'll see how to use the CALM AI Assistant to:
 ✅ **Learn** best practices in working with CALM architectures  
 
 [Start Building a CALM Architecture →](./build-a-calm-architecture/)
+
+---
+
+## Advanced: Extend CALM Hub
+
+**[Build and install a CALM Hub extension](./advanced/hub-extension)** — Write a manifest and a backend, configure CALM Hub, and see the extension in the Hub UI, the CLI and MCP.
+
+**Prerequisites:** Node.js 26, JDK 21 and a clone of this repository. No CALM modelling knowledge is needed.

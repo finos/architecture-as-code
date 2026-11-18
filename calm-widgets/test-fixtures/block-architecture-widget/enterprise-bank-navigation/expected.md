@@ -30,9 +30,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     trading-db["Trading DB"]:::node
     trading-ui["Trading UI"]:::node
 
-    trading-ui -->|Place Trade| trade-svc
-    trade-svc -->|Persist| trading-db
-    trade-svc -->|Publish Events| message-bus
+    trading-ui -->|"Place Trade"| trade-svc
+    trade-svc -->|"Persist"| trading-db
+    trade-svc -->|"Publish Events"| message-bus
 
 
     class trade-svc highlight
@@ -85,9 +85,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     trading-ui["Trading UI"]:::node
         trading-ui__iface__web-ui["◻ Web Interface"]:::iface
 
-    trading-ui__iface__web-ui -->|Place Trade| trade-svc__iface__api
-    trade-svc__iface__jdbc -->|Persist| trading-db__iface__sql
-    trade-svc__iface__events -->|Publish Events| message-bus__iface__trade-events-topic
+    trading-ui__iface__web-ui -->|"Place Trade"| trade-svc__iface__api
+    trade-svc__iface__jdbc -->|"Persist"| trading-db__iface__sql
+    trade-svc__iface__events -->|"Publish Events"| message-bus__iface__trade-events-topic
 
     trading-ui -.- trading-ui__iface__web-ui
     trade-svc -.- trade-svc__iface__api

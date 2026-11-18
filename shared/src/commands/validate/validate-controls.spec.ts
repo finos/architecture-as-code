@@ -105,10 +105,10 @@ describe('validateAllControls', () => {
         const result = await validateAllControls(arch, undefined, makeSchemaDirectory(), false);
         expect(result.hasErrors).toBe(true);
         expect(result.jsonSchemaOutputs).toHaveLength(1);
-        expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/controls/security/requirements/0/name');
+        expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/controls/security/requirements/0/config/name');
     });
 
-    it('uses controlPath as path when instancePath is empty (root error)', async () => {
+    it('uses the inline config path when instancePath is empty (root error)', async () => {
         mocks.jsonSchemaValidate.mockReturnValue([{
             instancePath: '',
             schemaPath: '#/required',
@@ -118,7 +118,7 @@ describe('validateAllControls', () => {
         }]);
         const arch = architectureWithNodeControl({ 'control-id': 'sec-001' });
         const result = await validateAllControls(arch, undefined, makeSchemaDirectory(), false);
-        expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/controls/security/requirements/0');
+        expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/controls/security/requirements/0/config');
     });
 
     it('assigns correct path prefix for relationship controls', async () => {
@@ -142,7 +142,7 @@ describe('validateAllControls', () => {
             }]
         };
         const result = await validateAllControls(arch, undefined, makeSchemaDirectory(), false);
-        expect(result.jsonSchemaOutputs[0].path).toBe('/relationships/0/controls/auth/requirements/0');
+        expect(result.jsonSchemaOutputs[0].path).toBe('/relationships/0/controls/auth/requirements/0/config');
     });
 
     it('assigns correct path prefix for flow controls', async () => {
@@ -168,7 +168,7 @@ describe('validateAllControls', () => {
             }]
         };
         const result = await validateAllControls(arch, undefined, makeSchemaDirectory(), false);
-        expect(result.jsonSchemaOutputs[0].path).toBe('/flows/0/controls/data/requirements/0');
+        expect(result.jsonSchemaOutputs[0].path).toBe('/flows/0/controls/data/requirements/0/config');
     });
 
     it('assigns correct path prefix for top-level controls', async () => {
@@ -188,7 +188,7 @@ describe('validateAllControls', () => {
             }
         };
         const result = await validateAllControls(arch, undefined, makeSchemaDirectory(), false);
-        expect(result.jsonSchemaOutputs[0].path).toBe('/controls/global/requirements/0');
+        expect(result.jsonSchemaOutputs[0].path).toBe('/controls/global/requirements/0/config');
     });
 
     it('resolves requirement-url starting with # as JSON pointer into pattern', async () => {
@@ -249,6 +249,38 @@ describe('validateAllControls', () => {
         const result = await validateAllControls(arch, undefined, schemaDir, false);
         expect(result.hasErrors).toBe(false);
         expect(schemaDir.loadDocument).toHaveBeenCalledWith('https://example.com/config.json', 'control');
+    });
+
+    it('does not add /config to the path when the config comes from config-url', async () => {
+        mocks.jsonSchemaValidate.mockReturnValue([{
+            instancePath: '',
+            schemaPath: '#/required',
+            keyword: 'required',
+            params: {},
+            message: 'missing required'
+        }]);
+        const schemaDir = makeSchemaDirectory(requirementSchema);
+        (schemaDir.loadDocument as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ 'control-id': 'sec-001' });
+        const arch = {
+            nodes: [{
+                'unique-id': 'node-1',
+                'node-type': 'service',
+                name: 'N',
+                description: 'D',
+                controls: {
+                    security: {
+                        description: 'Security',
+                        requirements: [{
+                            'requirement-url': 'https://example.com/requirement.json',
+                            'config-url': 'https://example.com/config.json'
+                        }]
+                    }
+                }
+            }]
+        };
+        const result = await validateAllControls(arch, undefined, schemaDir, false);
+        expect(result.hasErrors).toBe(true);
+        expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/controls/security/requirements/0');
     });
 
     it('skips control detail when neither config nor config-url is present', async () => {
@@ -415,7 +447,7 @@ describe('validateAllControls', () => {
         const arch = architectureWithNodeControl(inlineConfig);
         const result = await validateAllControls(arch, undefined, makeSchemaDirectory(), false);
         expect(result.hasErrors).toBe(true);
-        expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/controls/security/requirements/0');
+        expect(result.jsonSchemaOutputs[0].path).toBe('/nodes/0/controls/security/requirements/0/config');
         expect(result.jsonSchemaOutputs[0].message).toBe('');
     });
 

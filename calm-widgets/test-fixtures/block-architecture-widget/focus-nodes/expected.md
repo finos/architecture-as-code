@@ -21,7 +21,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     api-gateway["API Gateway"]:::node
     web-app["Web Application"]:::node
 
-    web-app -->|Web app connects to API gateway| api-gateway
+    web-app -->|"Web app connects to API gateway"| api-gateway
 
 
     class web-app highlight
@@ -58,10 +58,10 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     load-balancer["Load Balancer"]:::node
     web-app["Web Application"]:::node
 
-    web-app -->|Web app connects to API gateway| api-gateway
-    api-gateway -->|Gateway routes to user service| user-service
-    api-gateway -->|Gateway routes to order service| order-service
-    load-balancer -->|Load balancer routes to API gateway| api-gateway
+    web-app -->|"Web app connects to API gateway"| api-gateway
+    api-gateway -->|"Gateway routes to user service"| user-service
+    api-gateway -->|"Gateway routes to order service"| order-service
+    load-balancer -->|"Load balancer routes to API gateway"| api-gateway
 
 
     class api-gateway highlight
@@ -99,12 +99,12 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     notification-service["Notification Service"]:::node
     database["PostgreSQL Database"]:::node
 
-    api-gateway -->|Gateway routes to user service| user-service
-    api-gateway -->|Gateway routes to order service| order-service
-    order-service -->|Order service calls payment service| payment-service
-    order-service -->|Order service triggers notifications| notification-service
-    user-service -->|User service connects to database| database
-    order-service -->|Order service connects to database| database
+    api-gateway -->|"Gateway routes to user service"| user-service
+    api-gateway -->|"Gateway routes to order service"| order-service
+    order-service -->|"Order service calls payment service"| payment-service
+    order-service -->|"Order service triggers notifications"| notification-service
+    user-service -->|"User service connects to database"| database
+    order-service -->|"Order service connects to database"| database
 
 
     class user-service highlight
@@ -140,8 +140,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
     database["PostgreSQL Database"]:::node
 
-    user-service -->|User service connects to database| database
-    order-service -->|Order service connects to database| database
+    user-service -->|"User service connects to database"| database
+    order-service -->|"Order service connects to database"| database
 
 
     class database highlight
@@ -180,13 +180,13 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     database["PostgreSQL Database"]:::node
     redis-cache["Redis Cache"]:::node
 
-    api-gateway -->|Gateway routes to user service| user-service
-    api-gateway -->|Gateway routes to order service| order-service
-    order-service -->|Order service calls payment service| payment-service
-    order-service -->|Order service triggers notifications| notification-service
-    user-service -->|User service connects to database| database
-    order-service -->|Order service connects to database| database
-    payment-service -->|Payment service uses cache| redis-cache
+    api-gateway -->|"Gateway routes to user service"| user-service
+    api-gateway -->|"Gateway routes to order service"| order-service
+    order-service -->|"Order service calls payment service"| payment-service
+    order-service -->|"Order service triggers notifications"| notification-service
+    user-service -->|"User service connects to database"| database
+    order-service -->|"Order service connects to database"| database
+    payment-service -->|"Payment service uses cache"| redis-cache
 
 
     class backend-container highlight

@@ -59,10 +59,10 @@ title: "Attendees Service"
 ## Related Nodes
 ```mermaid
 graph TD;
-attendees[Attendees Service]:::highlight;
-load-balancer[Load Balancer] -- Connects --> attendees[Attendees Service];
-attendees[Attendees Service] -- Connects --> attendees-store[Attendees Store];
-attendees[Attendees Service] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
+attendees["Attendees Service"]:::highlight;
+load-balancer["Load Balancer"] -- Connects --> attendees["Attendees Service"];
+attendees["Attendees Service"] -- Connects --> attendees-store["Attendees Store"];
+attendees["Attendees Service"] -- Deployed In --> k8s-cluster["Kubernetes Cluster"];
 classDef highlight fill:#f2bbae;
 ```
 

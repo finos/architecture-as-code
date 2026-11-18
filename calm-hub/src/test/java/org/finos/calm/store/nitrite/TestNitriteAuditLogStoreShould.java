@@ -10,6 +10,7 @@ import org.finos.calm.domain.audit.AuditLogQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -57,6 +58,29 @@ public class TestNitriteAuditLogStoreShould {
         store.record(entry);
 
         verify(mockCollection).insert(any(Document.class));
+    }
+
+    @Test
+    void store_and_read_back_the_route_and_jti_of_an_extension_entry() {
+        AuditLogEntry entry = new AuditLogEntry.AuditLogEntryBuilder()
+                .setTimestamp(LocalDateTime.of(2026, 1, 1, 10, 30))
+                .setActor("alice")
+                .setRoute("add-service")
+                .setJti("jti-1")
+                .build();
+
+        store.record(entry);
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(mockCollection).insert(captor.capture());
+        assertThat(captor.getValue().get("route", String.class), is("add-service"));
+        assertThat(captor.getValue().get("jti", String.class), is("jti-1"));
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.iterator()).thenReturn(List.of(captor.getValue()).iterator());
+        when(mockCollection.find()).thenReturn(cursor);
+
+        assertThat(store.query(new AuditLogQuery()).get(0), is(entry));
     }
 
     @Test

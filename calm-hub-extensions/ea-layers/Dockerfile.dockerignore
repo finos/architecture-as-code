@@ -1,0 +1,10 @@
+# For a build from the repository root with this Dockerfile.
+*
+!package.json
+!package-lock.json
+!.npmrc
+!tsconfig.base.json
+!calm-hub-extensions/ea-layers/
+**/node_modules
+**/dist
+**/coverage

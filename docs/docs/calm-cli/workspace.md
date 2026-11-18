@@ -121,7 +121,8 @@ Contributors run `calm workspace bump` on their branch, and they commit the resu
 ```json
 {
   "push": { "failIfModified": true },
-  "bump": { "defaultIncrement": "MINOR" }
+  "bump": { "defaultIncrement": "MINOR" },
+  "c4": { "mapping": "c4/acme.c4-mapping.json" }
 }
 ```
 
@@ -129,6 +130,7 @@ Contributors run `calm workspace bump` on their branch, and they commit the resu
 |---|---|---|---|
 | `push.failIfModified` | `true`, `false` | `false` | When `true`, `push` fails if a document has changed but CALM Hub already has its version. When `false`, `push` skips the document |
 | `bump.defaultIncrement` | `MAJOR`, `MINOR`, `PATCH` | `MINOR` | The bump type that `bump` uses when you do not supply one |
+| `c4.mapping` | A path relative to the git root, or a URL | None | The C4 mapping that `calm docify` uses when you do not supply `--c4-mapping` |
 
 ## Narrative Documents
 

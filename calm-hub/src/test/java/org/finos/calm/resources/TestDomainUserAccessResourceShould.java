@@ -17,6 +17,7 @@ import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -335,5 +336,44 @@ public class TestDomainUserAccessResourceShould {
                 .body(containsString("Invalid domain provided: unknown"));
 
         verify(mockUserAccessStore, never()).deleteUserAccessForDomain(any(), any());
+    }
+
+    @Test
+    void pass_a_group_grant_to_the_store_for_a_domain() {
+        UserAccess created = new UserAccess.UserAccessBuilder()
+                .setDomain("security")
+                .setUsername("security-team")
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setPermission(UserAccess.Permission.admin)
+                .setUserAccessId(42)
+                .build();
+        when(mockUserAccessStore.createUserAccessForDomain(any(UserAccess.class))).thenReturn(created);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"security-team\",\"subjectType\":\"group\",\"permission\":\"admin\"}")
+                .when()
+                .post("/api/calm/domains/security/user-access")
+                .then()
+                .statusCode(201);
+
+        verify(mockUserAccessStore).createUserAccessForDomain(argThat(ua ->
+                ua.getSubjectType() == UserAccess.SubjectType.group
+                        && "security-team".equals(ua.getUsername())
+                        && "security".equals(ua.getDomain())));
+    }
+
+    @Test
+    void return_400_when_wildcard_group_grant_is_requested_on_domain() {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"username\":\"*\",\"subjectType\":\"group\",\"permission\":\"read\"}")
+                .when()
+                .post("/api/calm/domains/security/user-access")
+                .then()
+                .statusCode(400)
+                .body(containsString("The '*' wildcard is not a valid group name"));
+
+        verify(mockUserAccessStore, never()).createUserAccessForDomain(any());
     }
 }

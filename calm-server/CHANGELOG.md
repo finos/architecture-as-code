@@ -5,11 +5,45 @@ All notable changes to the CALM Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.10.0...calm-server-v0.11.0) (2026-11-17)
+
+### 🚀 Features
+
+* add a C4 projection from the C4 mapping standard ([#3748](https://github.com/finos/architecture-as-code/issues/3748)) ([f06ab1f](https://github.com/finos/architecture-as-code/commit/f06ab1f070ee81a3675b3dcbcff43bd16cab41e5))
+* deprecate C4Model ([#3751](https://github.com/finos/architecture-as-code/issues/3751)) ([82ad819](https://github.com/finos/architecture-as-code/commit/82ad819052c04db702a430d43c9ddfca7e1c15bc))
+
+### 🐛 Bug Fixes
+
+* apply a decision answer only to its own decision ([#3786](https://github.com/finos/architecture-as-code/issues/3786)) ([e4ae68c](https://github.com/finos/architecture-as-code/commit/e4ae68c5cf5de841ff3ea3e2e9f8c4be809032bc))
+* apply every answer of a decision in validate, as generate does ([#3768](https://github.com/finos/architecture-as-code/issues/3768)) ([06715e4](https://github.com/finos/architecture-as-code/commit/06715e43a3521a31b1d88ec52e5c3633d201ed7a))
+* report inline control config errors under /config ([#3781](https://github.com/finos/architecture-as-code/issues/3781)) ([35ee5f0](https://github.com/finos/architecture-as-code/commit/35ee5f0f6a62e4cf81c145fe093529bd5a738ebd))
+* treat a namespace below this one as the same team in C4 rule E3 ([#3784](https://github.com/finos/architecture-as-code/issues/3784)) ([a42dff1](https://github.com/finos/architecture-as-code/commit/a42dff1ced87a92ed387be7a90a444953db3e2c9))
+
+## [0.10.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.9.0...calm-server-v0.10.0) (2026-11-14)
+
+### 🚀 Features
+
+* validate interface config against its definition-url ([#3618](https://github.com/finos/architecture-as-code/issues/3618)) ([cb419bd](https://github.com/finos/architecture-as-code/commit/cb419bd6a551aa3652cc14eddbb3cfe80b6c633e)), closes [#1994](https://github.com/finos/architecture-as-code/issues/1994)
+
+### 🐛 Bug Fixes
+
+* do not send calm: requests outside the CALM Hub base path ([#3638](https://github.com/finos/architecture-as-code/issues/3638)) ([33adfc9](https://github.com/finos/architecture-as-code/commit/33adfc93e84bc71e6a5c44de82a3ca4c740da151)), closes [#3627](https://github.com/finos/architecture-as-code/issues/3627)
+* refuse *.localhost and IPv4-mapped private hosts for direct URLs ([db7a4ab](https://github.com/finos/architecture-as-code/commit/db7a4abb660db58ed9bf571089ecea7edd6a9763))
+
+### ♻️ Code Refactoring
+
+* test the request path inline so CodeQL sees the guard ([#3724](https://github.com/finos/architecture-as-code/issues/3724)) ([4b2146e](https://github.com/finos/architecture-as-code/commit/4b2146ebbd4c8aa1c4a2ac8e9848a9ea772a6d6c))
+
 ## [0.9.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.8.0...calm-server-v0.9.0) (2026-11-10)
 
 ### 🚀 Features
 
 * resolve CURIEs in control requirement-url during validate ([#3592](https://github.com/finos/architecture-as-code/issues/3592)) ([9716348](https://github.com/finos/architecture-as-code/commit/9716348d6fb8c4b868ad30ed689aceab7e179c0f))
+
+### 🐛 Bug Fixes
+
+* never read a local file that a request references ([0626cea](https://github.com/finos/architecture-as-code/commit/0626cea3235928ff70da740ed87e350fe15a11d1))
+* resolve Spectral $ref through the document loader ([0626cea](https://github.com/finos/architecture-as-code/commit/0626cea3235928ff70da740ed87e350fe15a11d1))
 
 ## [0.8.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.7.0...calm-server-v0.8.0) (2026-11-10)
 

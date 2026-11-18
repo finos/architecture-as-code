@@ -11,6 +11,7 @@ export interface CurrentUserAccessState {
     isGlobalAdmin: boolean;
     canAdminNamespace: (namespace: string) => boolean;
     canWriteNamespace: (namespace: string) => boolean;
+    canWriteDomain: (domain: string) => boolean;
 }
 
 export function useCurrentUserAccess(service?: UserAccessService): CurrentUserAccessState {
@@ -64,5 +65,14 @@ export function useCurrentUserAccess(service?: UserAccessService): CurrentUserAc
         [grants, isGlobalAdmin]
     );
 
-    return { grants, loading, error, isGlobalAdmin, canAdminNamespace, canWriteNamespace };
+    // Mirrors CalmHubPermissionChecker.canWriteByDomain: domain access is flat, so only a grant
+    // on that exact domain counts. Cosmetic only, like canWriteNamespace.
+    const canWriteDomain = useCallback(
+        (domain: string) =>
+            isGlobalAdmin ||
+            grants.some((g) => (g.permission === 'write' || g.permission === 'admin') && g.domain === domain),
+        [grants, isGlobalAdmin]
+    );
+
+    return { grants, loading, error, isGlobalAdmin, canAdminNamespace, canWriteNamespace, canWriteDomain };
 }

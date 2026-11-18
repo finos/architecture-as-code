@@ -20,18 +20,19 @@ describe('Pattern Tests', () => {
         cy.findByText(/1.0.0/i).click();
 
         cy.findByRole("tab", { name: /diagram/i }).should("exist");
-        cy.findByRole("tab", { name: /json/i }).should("exist");
+        cy.findByRole("button", { name: "Choose a lens" }).should("exist");
         cy.get('canvas').should("exist");
     })
 
-    it("Switches to JSON tab and displays pattern content", () => {
+    it("Switches to the JSON lens and displays pattern content", () => {
         cy.visit("/");
         cy.findByText(expectedNamespace.name).click();
         cy.findByText(/patterns/i).click();
         cy.findByText(/1/i).click();
         cy.findByText(/1.0.0/i).click();
 
-        cy.findByRole("tab", { name: /json/i }).click();
+        cy.findByRole("button", { name: "Choose a lens" }).click();
+        cy.findByRole("list", { name: "Lenses" }).findByRole("button", { name: "JSON" }).click();
 
         cy.fixture('conference-signup-pattern').then(data => {
             cy.contains(/\$schema/i).should("exist");

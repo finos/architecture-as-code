@@ -1,0 +1,441 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/calm-hub/extensions/hub-api-0/extension.schema.json",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "hubApi": {
+      "type": "integer",
+      "const": 0
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "provider": {
+      "type": "string",
+      "minLength": 1
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/route"
+      }
+    },
+    "commands": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9-]*$": {
+          "$ref": "#/$defs/command"
+        }
+      },
+      "additionalProperties": false
+    },
+    "contributes": {
+      "type": "object",
+      "properties": {
+        "screen": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "designer-tab": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "landing-card": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "detail-panel": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "action": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "search-provider": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "chat": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeContribution"
+          }
+        },
+        "decorator-views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decoratorView"
+          }
+        },
+        "diagram-lens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/diagramLens"
+          }
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "hubApi",
+    "name"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "route": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ]
+        },
+        "path": {
+          "description": "The route path. A {name} segment takes one value, which must not contain a slash, because CALM Hub refuses %2F. For a CALM Hub resource, use {resourceType}/{resourceId}. Use {resource} (type/id) only in a query or a body.",
+          "type": "string",
+          "pattern": "^/(?:[A-Za-z0-9._~-]+|\\{[A-Za-z][A-Za-z0-9_-]*\\})(?:/(?:[A-Za-z0-9._~-]+|\\{[A-Za-z][A-Za-z0-9_-]*\\}))*$|^/$"
+        },
+        "scope": {
+          "enum": [
+            "authenticated",
+            "read",
+            "write",
+            "admin",
+            "domain_read",
+            "domain_write",
+            "domain_admin",
+            "global_admin"
+          ]
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        },
+        "hubData": {
+          "description": "The data that CALM Hub reads, with the scope of the caller, and sends as the body of a POST route: document (the resource version in the path, which needs a version query parameter), detailed-architectures (the detailed architectures that its nodes link to, in the same namespace), or the name of a convention type (the namespace default, with each CALM Hub convention that it extends). The route must be a readOnly POST with the read scope and {namespace}/{resourceType}/{resourceId} in its path. The service then needs no account and no route back to CALM Hub.",
+          "type": "array",
+          "items": {
+            "enum": [
+              "document",
+              "detailed-architectures",
+              "c4-mapping"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "method",
+        "path",
+        "scope"
+      ],
+      "additionalProperties": false
+    },
+    "command": {
+      "type": "object",
+      "properties": {
+        "route": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "object"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        "output": {
+          "type": "object"
+        },
+        "destructive": {
+          "type": "boolean"
+        },
+        "idempotent": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "route",
+        "description",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    "routeContribution": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "route"
+      ],
+      "additionalProperties": false
+    },
+    "match": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "required": [
+            "schema"
+          ]
+        }
+      ]
+    },
+    "overlay": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "map": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "ok",
+              "warn",
+              "error",
+              "info"
+            ]
+          }
+        },
+        "default": {
+          "enum": [
+            "ok",
+            "warn",
+            "error",
+            "info"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "hide": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        },
+        "time": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+        }
+      },
+      "required": [
+        "status",
+        "map"
+      ],
+      "additionalProperties": false
+    },
+    "decoratorView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "match": {
+          "$ref": "#/$defs/match"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overlay": {
+          "$ref": "#/$defs/overlay"
+        }
+      },
+      "required": [
+        "id",
+        "match",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "diagramLens": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "type": "string",
+          "minLength": 1
+        },
+        "appliesTo": {
+          "type": "object",
+          "properties": {
+            "resourceTypes": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "architectures",
+                  "patterns"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "params": {
+          "description": "The view parameters that the lens owns. Hub keeps them in the URL, checks them, and sends them to the route.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/lensParam"
+          },
+          "maxProperties": 8
+        },
+        "notation": {
+          "description": "A JSON file in the extension folder, next to extension.json, that matches notation.schema.json: the shapes, markers and styles of the lens.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}\\.json$"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "route",
+        "notation"
+      ],
+      "additionalProperties": false
+    },
+    "lensParam": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "default": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "values"
+          ]
+        },
+        {
+          "required": [
+            "pattern"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}

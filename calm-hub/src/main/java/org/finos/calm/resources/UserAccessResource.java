@@ -67,6 +67,7 @@ public class UserAccessResource {
         UserAccess userAccess = new UserAccess.UserAccessBuilder()
                 .setNamespace(namespace)
                 .setUsername(request.getUsername())
+                .setSubjectType(request.getSubjectType())
                 .setPermission(request.getPermission())
                 .build();
         userAccess.setCreationDateTime(LocalDateTime.now());

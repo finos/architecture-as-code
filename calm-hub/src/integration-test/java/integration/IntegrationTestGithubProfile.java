@@ -16,12 +16,10 @@ import java.util.List;
  *
  * <p>{@link #testResources()} (rather than a class-level {@code @QuarkusTestResource}
  * annotation) is what actually scopes {@link GitHubFixtureResource} to tests using this
- * profile - a class-level annotation on the profile itself is not restricted to it the
- * same way. {@link #disableGlobalTestResources()} additionally stops OTHER modules'
- * globally-scoped resources (the Mongo and Keycloak containers other integration test
- * profiles use, neither declared with any scoping of their own) from starting
- * alongside this one - observed directly when an early version of this profile still
- * had both containers spin up for a run that only selected this profile's test class.
+ * profile - a class-level annotation on a profile makes the resource global, so it starts
+ * on every Quarkus boot, unit tests included. All integration profiles use
+ * {@code testResources()} for this reason. {@link #disableGlobalTestResources()} is a
+ * guard in case a global resource is added again.
  */
 public class IntegrationTestGithubProfile implements QuarkusTestProfile {
 

@@ -31,6 +31,7 @@ import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.services.CountsService;
 import org.finos.calm.services.NamespaceService;
+import org.finos.calm.services.PersonalNamespaceService;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -55,6 +56,9 @@ public class NamespaceResource {
 
     @Inject
     CalmHubPermissionChecker permissionChecker;
+
+    @Inject
+    PersonalNamespaceService personalNamespaceService;
 
     @Inject
     @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
@@ -125,6 +129,12 @@ public class NamespaceResource {
         if (CalmHubPermissionChecker.GLOBAL_ACCESS.equalsIgnoreCase(name)) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("{\"error\":\"'GLOBAL' is a reserved namespace name\"}")
+                    .build();
+        }
+
+        if (personalNamespaceService.isReserved(name)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\":\"Personal namespaces are created only through /api/calm/me/namespace\"}")
                     .build();
         }
 

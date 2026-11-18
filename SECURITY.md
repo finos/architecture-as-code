@@ -31,7 +31,7 @@ Critical and high severity vulnerabilities in a runtime dependency must be fixed
 
 When an OSV Scanner run on `main` fails, the `OSV Fix` workflow (`.github/workflows/osv-fix.yml`) runs `npm update --package-lock-only` for each blocking npm finding and opens a pull request with the lockfile change for review. It never changes a manifest or adds a suppression. A finding it cannot fix in this way needs a maintainer.
 
-All SCA findings above these thresholds must be addressed before any release of the affected component, and the release is blocked until each finding is fixed or declared non-exploitable as described below. The CLI, CALM Server and VS Code extension release workflows enforce this automatically: they publish only when the OSV Scanner run for the commit being released has passed. For every other component, the releasing maintainer must confirm that the latest OSV Scanner run on `main` passed before the release. CALM Lab has no release step: it is deployed from `main` when a change to it or to its dependencies merges, and `s3-lab-sync.yml` deploys only when the OSV Scanner run for that commit has passed. A finding disclosed after deployment must be fixed within the time limits above.
+All SCA findings above these thresholds must be addressed before any release of the affected component, and the release is blocked until each finding is fixed or declared non-exploitable as described below. The CLI, CALM Server, CALM Hub and VS Code extension release workflows enforce this automatically: they publish only when the OSV Scanner run for the commit being released has passed. For every other component, the releasing maintainer must confirm that the latest OSV Scanner run on `main` passed before the release. CALM Lab has no release step: it is deployed from `main` when a change to it or to its dependencies merges, and `s3-lab-sync.yml` deploys only when the OSV Scanner run for that commit has passed. A finding disclosed after deployment must be fixed within the time limits above.
 
 A finding may be suppressed only when a maintainer declares it non-exploitable for this project. The suppression must be an entry in `osv-scanner.toml`, added through a reviewed pull request, with the written justification in `reason` and a re-review date in `ignoreUntil`. A Dependabot alert for the same finding is dismissed with the same justification recorded on the alert. A suppression must be removed when the dependency is upgraded or reviewed again when its re-review date passes. Each suppression must also be published as a `not_affected` statement, with the same justification, in the OpenVEX document [`vex/calm.openvex.json`](vex/calm.openvex.json), and both files must be changed in the same pull request.
 
@@ -47,13 +47,13 @@ Maintainers are expected to protect their own GitHub accounts with two-factor au
 
 Releases are produced only by the automated release workflows in this repository. No maintainer publishes a package or image from a personal machine.
 
-**npm packages** `@finos/calm-cli` and `@finos/calm-server` are published with `npm publish --provenance`. `@finos/calm-shared`, `@finos/calm-models` and `@finos/calm-widgets` are bundled into the CLI and are not published to npm. The CALM Studio release workflow can also publish `@calmstudio/calm-core` and `@calmstudio/mcp` with provenance; it has not published a release yet. Each version carries a [SLSA provenance attestation](https://slsa.dev/provenance/v1) signed through Sigstore that names this repository, the release workflow and the commit that built it. To verify a package you have installed:
+**npm packages** `@finos/calm-cli` and `@finos/calm-server` are published with `npm publish --provenance`. `@finos/calm-shared`, `@finos/calm-models` and `@finos/calm-widgets` are bundled into the CLI and are not published to npm. Each version carries a [SLSA provenance attestation](https://slsa.dev/provenance/v1) signed through Sigstore that names this repository, the release workflow and the commit that built it. To verify a package you have installed:
 
 ```bash
 npm audit signatures
 ```
 
-The command reports `verified attestations` for each `@finos` package whose registry signature and provenance attestation are valid. To confirm who published a version, open the package's version page on npmjs.com and check that the *Provenance* panel names `finos/architecture-as-code` and the workflow `.github/workflows/automated-release.yml` (`automated-release-calm-server.yml` for `@finos/calm-server`, `automated-release-calm-studio.yml` for the CALM Studio packages). To compare a downloaded tarball with the registry, check its integrity hash against `npm view @finos/calm-cli@<version> dist.integrity`.
+The command reports `verified attestations` for each `@finos` package whose registry signature and provenance attestation are valid. To confirm who published a version, open the package's version page on npmjs.com and check that the *Provenance* panel names `finos/architecture-as-code` and the workflow `.github/workflows/automated-release.yml` (`automated-release-calm-server.yml` for `@finos/calm-server`). To compare a downloaded tarball with the registry, check its integrity hash against `npm view @finos/calm-cli@<version> dist.integrity`.
 
 **GitHub releases** for the CLI and CALM Server attach the published tarball and a CycloneDX software bill of materials (`*.cdx.json`) describing its runtime dependencies. The release workflow publishes that same tarball to npm, so its integrity hash matches the registry value above.
 
@@ -70,7 +70,7 @@ The provenance names the GitHub Actions workflow and commit that produced the im
 
 **CALM Lab** is a static site that `s3-lab-sync.yml` builds from `main` and deploys to https://lab.calm.finos.org. Users do not install it, so there is no artifact to verify. Requests over HTTP are redirected to HTTPS.
 
-**Experimental components.** CALM Studio (its npm packages and desktop builds), CALMGuard and `experimental/` are experimental, as stated in [SUPPORT.md](SUPPORT.md). The release controls in this section apply to them once they are promoted out of experimental status.
+**Experimental components.** CALMGuard and `experimental/` are experimental, as stated in [SUPPORT.md](SUPPORT.md). The release controls in this section apply to them once they are promoted out of experimental status.
 
 ## CRA Escalation (For Maintainers)
 

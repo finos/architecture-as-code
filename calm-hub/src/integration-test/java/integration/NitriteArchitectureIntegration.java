@@ -1,10 +1,15 @@
 package integration;
 
+import io.quarkus.arc.ClientProxy;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
+import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.nitrite.NitriteArchitectureStore;
 import org.junit.jupiter.api.*;
 
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
@@ -14,9 +19,19 @@ public class NitriteArchitectureIntegration {
 
     public static final String ARCHITECTURE = "{\"name\": \"demo-pattern\"}";
 
+    @Inject
+    ArchitectureStore architectureStore;
+
     @BeforeEach
     public void setup() {
         NitriteSetup.namespaceSetup();
+    }
+
+    // Hub falls back to MongoDB when calm.database.mode does not reach it, and every Nitrite suite still passes.
+    @Test
+    @Order(0)
+    void run_on_the_nitrite_store() {
+        assertInstanceOf(NitriteArchitectureStore.class, ClientProxy.unwrap(architectureStore));
     }
 
     @Test

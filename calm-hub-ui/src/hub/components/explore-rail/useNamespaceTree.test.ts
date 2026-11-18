@@ -118,4 +118,33 @@ describe('useNamespaceTree', () => {
         renderHook(() => useNamespaceTree({ namespaceCounts: [], needle: '', storage }));
         expect(JSON.parse(storage.getItem(COLLAPSED_KEY)!)).toEqual(['finos']);
     });
+
+    it('shows only namespaces that canEdit accepts, with their ancestors', () => {
+        const counts = [nc('a', 1), nc('a.b', 1), nc('a.c', 1), nc('z', 1)];
+        const { result } = renderHook(() =>
+            useNamespaceTree({ namespaceCounts: counts, needle: '', canEdit: (p) => p === 'a.c', storage: createMemoryStorage() })
+        );
+        expect(result.current.filtering).toBe(true);
+        expect(result.current.rows.map((r) => r.node.path)).toEqual(['a', 'a.c']);
+    });
+
+    it('requires a row to match both the needle and canEdit', () => {
+        const counts = [nc('a', 1), nc('a.b', 1), nc('a.c', 1)];
+        const { result } = renderHook(() =>
+            useNamespaceTree({ namespaceCounts: counts, needle: 'b', canEdit: (p) => p === 'a.c', storage: createMemoryStorage() })
+        );
+        expect(result.current.rows).toEqual([]);
+    });
+
+    it('does not show a grouping-only ancestor on its own when canEdit accepts its path', () => {
+        const { result } = renderHook(() =>
+            useNamespaceTree({
+                namespaceCounts: [nc('platform.payments', 1)],
+                needle: '',
+                canEdit: (p) => p === 'platform',
+                storage: createMemoryStorage(),
+            })
+        );
+        expect(result.current.rows).toEqual([]);
+    });
 });

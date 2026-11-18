@@ -67,4 +67,53 @@ public class TestUserAccessShould {
 
         assertThat(userAccess1.equals(userAccess2), is(false));
     }
+
+    @Test
+    void default_subject_type_to_user() {
+        assertThat(new UserAccess().getSubjectType(), is(UserAccess.SubjectType.user));
+        assertThat(new UserAccess("test_user", UserAccess.Permission.read, "finos").getSubjectType(),
+                is(UserAccess.SubjectType.user));
+        assertThat(new UserAccess.UserAccessBuilder().build().getSubjectType(), is(UserAccess.SubjectType.user));
+    }
+
+    @Test
+    void build_a_group_grant() {
+        UserAccess actual = new UserAccess.UserAccessBuilder()
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setUsername("architects")
+                .build();
+
+        assertThat(actual.getSubjectType(), is(UserAccess.SubjectType.group));
+    }
+
+    @Test
+    void treat_a_null_subject_type_as_user() {
+        UserAccess userAccess = new UserAccess();
+        userAccess.setSubjectType(UserAccess.SubjectType.group);
+        userAccess.setSubjectType(null);
+
+        assertThat(userAccess.getSubjectType(), is(UserAccess.SubjectType.user));
+        assertThat(new UserAccess.UserAccessBuilder().setSubjectType(null).build().getSubjectType(),
+                is(UserAccess.SubjectType.user));
+    }
+
+    @Test
+    void return_false_for_user_and_group_grants_with_the_same_name() {
+        UserAccess user = new UserAccess.UserAccessBuilder()
+                .setUserAccessId(100)
+                .setNamespace("finos")
+                .setUsername("architects")
+                .setPermission(UserAccess.Permission.read)
+                .build();
+
+        UserAccess group = new UserAccess.UserAccessBuilder()
+                .setUserAccessId(100)
+                .setNamespace("finos")
+                .setUsername("architects")
+                .setPermission(UserAccess.Permission.read)
+                .setSubjectType(UserAccess.SubjectType.group)
+                .build();
+
+        assertThat(user.equals(group), is(false));
+    }
 }

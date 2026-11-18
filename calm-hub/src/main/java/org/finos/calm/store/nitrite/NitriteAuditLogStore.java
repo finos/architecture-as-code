@@ -106,7 +106,7 @@ public class NitriteAuditLogStore implements AuditLogStore {
     }
 
     private Document toDocument(AuditLogEntry entry) {
-        return Document.createDocument()
+        Document document = Document.createDocument()
                 .put("timestamp", toEpochMilli(entry.getTimestamp()))
                 .put("actor", entry.getActor())
                 .put("action", nameOrNull(entry.getAction()))
@@ -117,6 +117,14 @@ public class NitriteAuditLogStore implements AuditLogStore {
                 .put("version", entry.getVersion())
                 .put("outcome", nameOrNull(entry.getOutcome()))
                 .put("sourceIp", entry.getSourceIp());
+        // Only extension entries have these, so that other entries keep their shape.
+        if (entry.getRoute() != null) {
+            document.put("route", entry.getRoute());
+        }
+        if (entry.getJti() != null) {
+            document.put("jti", entry.getJti());
+        }
+        return document;
     }
 
     private AuditLogEntry toEntry(Document doc) {
@@ -136,6 +144,8 @@ public class NitriteAuditLogStore implements AuditLogStore {
         String outcome = doc.get("outcome", String.class);
         entry.setOutcome(outcome == null ? null : AuditOutcome.valueOf(outcome));
         entry.setSourceIp(doc.get("sourceIp", String.class));
+        entry.setRoute(doc.get("route", String.class));
+        entry.setJti(doc.get("jti", String.class));
         return entry;
     }
 

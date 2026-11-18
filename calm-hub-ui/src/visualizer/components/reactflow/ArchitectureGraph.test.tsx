@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import { useState, type ReactNode } from 'react';
-import { getViewportForBounds, ReactFlowProvider, type Node, type Viewport } from 'reactflow';
+import { getViewportForBounds, ReactFlowProvider, type Node, type Viewport } from '@xyflow/react';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
 import { createPresentationModeStore, PRESENTATION_MODE_KEY, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { useDecisionOverlay, type DecisionOverlay } from '../../context/DecisionOverlayContext.js';
+import { EvaluationOverlayProvider } from '../../../test-support/evaluation-overlay.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -50,15 +51,14 @@ function MockReactFlow(props: Record<string, unknown>) {
     );
 }
 
-vi.mock('reactflow', async () => {
+vi.mock('@xyflow/react', async () => {
     // Keep the real hooks (useNodesState/useEdgesState/useStore) so the graph's
     // node state populates as it does in production; stub only the heavy,
     // DOM-measuring view components and capture their props.
-    const actual = await vi.importActual<typeof import('reactflow')>('reactflow');
+    const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react');
     return {
         ...actual,
-        __esModule: true,
-        default: MockReactFlow,
+        ReactFlow: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
         Controls: (props: { children?: ReactNode }) => {
             onControlsRender(props);
@@ -98,8 +98,8 @@ const mockCalmData: CalmArchitectureSchema = {
 
 // Two nodes span x 0 to 300 and y 0 to 100. A callout that reaches 160 below node-1 takes the content down to y 260.
 const measuredNodes = [
-    { id: 'node-1', position: { x: 0, y: 0 }, positionAbsolute: { x: 0, y: 0 }, width: 200, height: 100 },
-    { id: 'node-2', position: { x: 100, y: 0 }, positionAbsolute: { x: 100, y: 0 }, width: 200, height: 100 },
+    { id: 'node-1', position: { x: 0, y: 0 }, internals: { positionAbsolute: { x: 0, y: 0 } }, measured: { width: 200, height: 100 } },
+    { id: 'node-2', position: { x: 100, y: 0 }, internals: { positionAbsolute: { x: 100, y: 0 } }, measured: { width: 200, height: 100 } },
 ];
 const contentWithCallout = { x: 0, y: 0, width: 300, height: 260 };
 
@@ -107,7 +107,7 @@ const contentWithCallout = { x: 0, y: 0, width: 300, height: 260 };
 function initMeasuredFlow() {
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(800);
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600);
-    const instance = { fitView: vi.fn(), getNodes: () => measuredNodes, setViewport: vi.fn() };
+    const instance = { fitView: vi.fn(), getNodes: () => measuredNodes, getInternalNode: (id: string) => measuredNodes.find((n) => n.id === id), setViewport: vi.fn() };
     (reactFlowProps()?.onInit as (i: unknown) => void)(instance);
     return instance;
 }
@@ -155,6 +155,23 @@ describe('ArchitectureGraph', () => {
     it('wires onInit on desktop too, so a later desktop→mobile crossing can re-fit', () => {
         render(<ArchitectureGraph jsonData={mockCalmData} />);
         expect(typeof reactFlowProps()?.onInit).toBe('function');
+    });
+
+    it('shows the overlay legend only when a decorator view draws on the diagram', () => {
+        const { unmount } = render(<ArchitectureGraph jsonData={mockCalmData} />);
+        expect(screen.queryByTestId('overlay-legend')).not.toBeInTheDocument();
+        unmount();
+
+        const latest = [{
+            uniqueId: 'e1', type: 'control-evaluation', target: [], appliesTo: ['node-1'],
+            data: { control: { 'unique-id': 'c1', 'requirement-url': 'https://example.org/r' }, status: 'met' as const, 'evaluated-at': '2026-11-04T15:00:00Z' },
+        }];
+        render(
+            <EvaluationOverlayProvider value={new Map([['node-1', { status: 'met', latest }]])}>
+                <ArchitectureGraph jsonData={mockCalmData} />
+            </EvaluationOverlayProvider>
+        );
+        expect(screen.getByTestId('overlay-legend')).toHaveTextContent('Control evaluations');
     });
 
     it('tells the viewer when each node is drawn in one container only', () => {

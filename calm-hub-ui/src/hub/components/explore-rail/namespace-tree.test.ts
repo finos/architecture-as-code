@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ancestorPathsOf, buildNamespaceTree, filterNamespaceTree, flattenNamespaceTree, splitOnMatch, type NamespaceTreeNode, INDENT_STEP, indentFor, isNamespace } from './namespace-tree.js';
+import { ancestorPathsOf, buildNamespaceTree, collectVisiblePaths, flattenNamespaceTree, splitOnMatch, type NamespaceTreeNode, INDENT_STEP, indentFor, isNamespace } from './namespace-tree.js';
 import type { NamespaceCounts } from '../../../model/counts.js';
 
 function nc(namespace: string, total: number): NamespaceCounts {
@@ -83,24 +83,26 @@ describe('ancestorPathsOf', () => {
     });
 });
 
-describe('filterNamespaceTree', () => {
+describe('collectVisiblePaths', () => {
     const tree = buildNamespaceTree([nc('finos', 10), nc('finos.calm', 5), nc('finos.wave', 3), nc('traderx', 9)]);
+    const byText = (needle: string) => (node: NamespaceTreeNode) => node.path.includes(needle);
 
     it('matches at any depth and marks strict ancestors visible', () => {
-        const visible = filterNamespaceTree(tree, 'wave');
-        expect(visible).toEqual(new Set(['finos.wave', 'finos']));
+        expect(collectVisiblePaths(tree, byText('wave'))).toEqual(new Set(['finos.wave', 'finos']));
     });
 
-    it('brings a matching parent’s subtree along for free', () => {
-        const visible = filterNamespaceTree(tree, 'finos');
-        expect(visible.has('finos')).toBe(true);
-        expect(visible.has('finos.calm')).toBe(true);
-        expect(visible.has('finos.wave')).toBe(true);
-        expect(visible.has('traderx')).toBe(false);
+    it('brings a matching parent’s subtree along for a text match', () => {
+        const visible = collectVisiblePaths(tree, byText('finos'));
+        expect(visible).toEqual(new Set(['finos', 'finos.calm', 'finos.wave']));
     });
 
-    it('returns an empty set for an empty needle', () => {
-        expect(filterNamespaceTree(tree, '')).toEqual(new Set());
+    it('does not bring a matching parent’s siblings or children that do not match', () => {
+        const abc = buildNamespaceTree([nc('a', 1), nc('a.b', 1), nc('a.c', 1)]);
+        expect(collectVisiblePaths(abc, (node) => node.path === 'a.c')).toEqual(new Set(['a', 'a.c']));
+    });
+
+    it('returns an empty set when nothing matches', () => {
+        expect(collectVisiblePaths(tree, () => false)).toEqual(new Set());
     });
 });
 

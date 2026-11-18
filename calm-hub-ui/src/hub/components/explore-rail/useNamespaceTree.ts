@@ -3,8 +3,9 @@ import { NamespaceCounts } from '../../../model/counts.js';
 import {
     ancestorPathsOf,
     buildNamespaceTree,
-    filterNamespaceTree,
+    collectVisiblePaths,
     flattenNamespaceTree,
+    isNamespace,
     type NamespaceRow,
 } from './namespace-tree.js';
 
@@ -27,6 +28,8 @@ interface UseNamespaceTreeOptions {
     namespaceCounts: NamespaceCounts[];
     /** Trimmed, lower-cased filter text — empty string means browse mode. */
     needle: string;
+    /** When set, show only namespaces it accepts (plus their ancestors), combined with `needle`. */
+    canEdit?: (namespace: string) => boolean;
     /** The namespace the current route resolves to, if any — reveals its ancestors on navigate. */
     activeNamespace?: string;
     /** Storage instance for persisting the collapsed set. Defaults to localStorage. Inject a fake in tests. */
@@ -40,12 +43,12 @@ interface UseNamespaceTreeResult {
 }
 
 /**
- * Composes {@link buildNamespaceTree}/{@link filterNamespaceTree}/{@link flattenNamespaceTree}
+ * Composes {@link buildNamespaceTree}/{@link collectVisiblePaths}/{@link flattenNamespaceTree}
  * into a render-ready row list, with the collapsed set persisted across
  * sessions. Filtering never reads or writes the collapsed set — see
  * `namespace-tree.ts`'s `flattenNamespaceTree`.
  */
-export function useNamespaceTree({ namespaceCounts, needle, activeNamespace, storage = localStorage }: UseNamespaceTreeOptions): UseNamespaceTreeResult {
+export function useNamespaceTree({ namespaceCounts, needle, canEdit, activeNamespace, storage = localStorage }: UseNamespaceTreeOptions): UseNamespaceTreeResult {
     const [collapsed, setCollapsed] = useState<Set<string>>(() => readCollapsed(storage));
 
     // Reveal-on-navigate: reopen any ancestor of the newly active namespace.
@@ -81,8 +84,16 @@ export function useNamespaceTree({ namespaceCounts, needle, activeNamespace, sto
     }, []);
 
     const tree = useMemo(() => buildNamespaceTree(namespaceCounts), [namespaceCounts]);
-    const filtering = needle.length > 0;
-    const visible = useMemo(() => (filtering ? filterNamespaceTree(tree, needle) : new Set<string>()), [tree, needle, filtering]);
+    const filtering = needle.length > 0 || canEdit !== undefined;
+    const visible = useMemo(() => {
+        if (!filtering) return new Set<string>();
+        return collectVisiblePaths(
+            tree,
+            (node) =>
+                (needle === '' || node.path.toLowerCase().includes(needle)) &&
+                (canEdit === undefined || (isNamespace(node) && canEdit(node.path)))
+        );
+    }, [tree, needle, canEdit, filtering]);
     const rows = useMemo(() => flattenNamespaceTree(tree, { collapsed, filtering, visible }), [tree, collapsed, filtering, visible]);
 
     return { rows, filtering, toggleCollapsed };

@@ -1,14 +1,29 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { saveNodePositions } from '../../../visualizer/services/node-position-service.js';
-import type { Node } from 'reactflow';
+import type { Node } from '@xyflow/react';
+import { ExtensionsContext, ExtensionsStatusContext, type ExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
+import { ExtensionService } from '../../../service/extension-service.js';
+import type { ExtensionSummary } from '../../../model/extensions.js';
+
+const releaseTracker: ExtensionSummary = {
+    id: 'release-tracker',
+    name: 'Release tracker',
+    hubApi: 0,
+    routes: [{ id: 'tab', method: 'GET', path: '/tab', scope: 'authenticated', readOnly: false }],
+    contributes: { 'designer-tab': [{ id: 'releases', title: 'Releases', route: 'tab' }] },
+};
+
+const DECORATOR_TARGET = '/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0';
 
 const calmServiceMock = {
-    fetchDeploymentDecoratorsForArchitecture: vi.fn().mockResolvedValue([]),
+    resolveArchitectureVersionTarget: vi.fn().mockResolvedValue(DECORATOR_TARGET),
+    fetchDecoratorsForTarget: vi.fn().mockResolvedValue([]),
     fetchVersionsByCustomId: vi.fn().mockResolvedValue(['1.0.0', '2.0.0']),
     fetchArchitectureTimeline: vi.fn().mockRejectedValue(new Error('no timeline')),
     fetchArchitectureSummaries: vi
@@ -49,18 +64,52 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
     // simulate a drag without pulling in the full ReactFlow tree.
     Drawer: ({
         data,
+        decorators,
         onPositionsChange,
+        onDroppedFileChange,
+        onOpenView,
     }: {
         data: Data;
+        decorators?: { uniqueId: string }[];
         onPositionsChange?: (positions: { id: string; position: { x: number; y: number } }[]) => void;
+        onDroppedFileChange?: (dropped: boolean) => void;
+        onOpenView?: (view: { id: string; label: string; match: { type?: string; schema?: string } }) => void;
     }) => (
         <div data-testid="drawer">
             Drawer for {data.id}
+            <span data-testid="drawer-decorators">{decorators?.map((d) => d.uniqueId).join(' ') || '(none)'}</span>
             <button
                 onClick={() => onPositionsChange?.([{ id: 'node-1', position: { x: 1, y: 2 } }])}
             >
                 simulate-drag-report
             </button>
+            <button onClick={() => onDroppedFileChange?.(true)}>simulate-file-drop</button>
+            <button onClick={() => onOpenView?.({ id: 'deployment', label: 'Deployments', match: { type: 'deployment' } })}>
+                simulate-open-view
+            </button>
+            <button onClick={() => onOpenView?.({ id: 'scan', label: 'Scans', match: { schema: 'https://example.org/scan.json' } })}>
+                simulate-open-schema-view
+            </button>
+            <button
+                onClick={() => onOpenView?.({ id: 'scan', label: 'Scans', match: { type: 'observability', schema: 'https://example.org/scan.json' } })}
+            >
+                simulate-open-type-and-schema-view
+            </button>
+        </div>
+    ),
+}));
+
+vi.mock('../../../extensions/lens/DiagramLensView.js', () => ({
+    DiagramLensView: ({ context, params, onParamsChange, onSelectElement }: {
+        context: { selectedElement?: string; version?: string };
+        params: Record<string, string | undefined>;
+        onParamsChange: (params: Record<string, string>, select?: string) => void;
+        onSelectElement: (uniqueId: string) => void;
+    }) => (
+        <div data-testid="c4-lens" data-selected={context.selectedElement ?? ''} data-params={JSON.stringify(params)}>
+            <button onClick={() => onParamsChange({ level: 'container', scope: 'shop' })}>open-container</button>
+            <button onClick={() => onParamsChange({ level: 'container', scope: 'shop' }, 'shop')}>open-shop</button>
+            <button onClick={() => onSelectElement('api')}>select-api</button>
         </div>
     ),
 }));
@@ -96,7 +145,8 @@ vi.mock('./timeline/TimelineBar.js', () => ({
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(function () { return {
-        fetchDeploymentDecoratorsForArchitecture: calmServiceMock.fetchDeploymentDecoratorsForArchitecture,
+        resolveArchitectureVersionTarget: calmServiceMock.resolveArchitectureVersionTarget,
+        fetchDecoratorsForTarget: calmServiceMock.fetchDecoratorsForTarget,
         fetchVersionsByCustomId: calmServiceMock.fetchVersionsByCustomId,
         fetchArchitectureTimeline: calmServiceMock.fetchArchitectureTimeline,
         fetchArchitectureSummaries: calmServiceMock.fetchArchitectureSummaries,
@@ -139,10 +189,35 @@ const patternData: Data & { calmType: 'Patterns' } = {
     data: undefined,
 };
 
+// Desktop: the chevron of the Diagram tab lists the lenses. Mobile: the Lens group of the View sheet.
+const openLensMenu = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole('button', { name: 'Choose a lens' }));
+// An extension lens row also shows the extension name, so a lens is found by the start of its name.
+const menuLens = (name: string) =>
+    within(screen.getByRole('button', { name: 'Choose a lens' }).parentElement!).getByRole('button', { name: new RegExp(`^${name}`) });
+const menuLensNames = (list = 'Lenses') => within(screen.getByRole('list', { name: list })).getAllByRole('button').map((b) => b.textContent);
+const C4_EXTENSION: ExtensionSummary = {
+    id: 'c4',
+    name: 'C4 model',
+    hubApi: 0,
+    routes: [{ id: 'lens', method: 'POST', path: '/lens/{namespace}/{resourceType}/{resourceId}', scope: 'read', readOnly: true }],
+    contributes: {
+        'diagram-lens': [{
+            id: 'c4', title: 'C4', description: 'C4 context, container, component and deployment diagrams', route: 'lens',
+            notation: 'notation.json', appliesTo: { resourceTypes: ['architectures'] },
+            params: { level: { values: ['context', 'container', 'component'], default: 'context' }, scope: { pattern: '^[a-z]+$' } },
+        }],
+    },
+};
+const chooseLens = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+    await openLensMenu(user);
+    await user.click(menuLens(name));
+};
+
 describe('DiagramSection', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        calmServiceMock.fetchDeploymentDecoratorsForArchitecture.mockResolvedValue([]);
+        calmServiceMock.resolveArchitectureVersionTarget.mockResolvedValue(DECORATOR_TARGET);
+        calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([]);
         calmServiceMock.fetchVersionsByCustomId.mockResolvedValue(['1.0.0', '2.0.0']);
         calmServiceMock.fetchArchitectureTimeline.mockRejectedValue(new Error('no timeline'));
         implementationServiceMock.fetchImplementations.mockResolvedValue([]);
@@ -369,6 +444,510 @@ describe('DiagramSection', () => {
         });
     });
 
+    describe('decorators tab', () => {
+        const deployment = {
+            uniqueId: 'dep-1',
+            type: 'deployment',
+            target: ['/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0'],
+            appliesTo: ['api'],
+            data: { status: 'completed', 'start-time': '2026-03-01T10:15:00Z' },
+        };
+        const observability = {
+            uniqueId: 'obs-1',
+            type: 'observability',
+            target: ['/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0'],
+            appliesTo: ['api', 'db'],
+            data: { dashboard: 'https://grafana.example.com/d/abc' },
+        };
+        const scan = {
+            uniqueId: 'scan-1',
+            type: 'observability',
+            schema: 'https://example.org/scan.json',
+            target: ['/api/calm/namespaces/arch-namespace/architectures/42/versions/1-0-0'],
+            appliesTo: ['api'],
+            data: { result: 'clean' },
+        };
+
+        function LocationProbe() {
+            const location = useLocation();
+            return <div data-testid="location">{location.search}</div>;
+        }
+
+        function renderArchitecture(entry = '/', props: Partial<Parameters<typeof DiagramSection>[0]> = {}) {
+            return render(
+                <MemoryRouter initialEntries={[entry]}>
+                    <DiagramSection data={architectureData} {...props} />
+                    <LocationProbe />
+                </MemoryRouter>
+            );
+        }
+
+        beforeEach(() => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability]);
+        });
+
+        it('shows the tab for an architecture, not for a pattern', () => {
+            const { unmount } = renderArchitecture();
+            expect(screen.getByRole('tab', { name: 'Decorators' })).toBeInTheDocument();
+            unmount();
+
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={patternData} />
+                </MemoryRouter>
+            );
+            expect(screen.queryByRole('tab', { name: 'Decorators' })).not.toBeInTheDocument();
+        });
+
+        it('lists decorators of every type when the tab opens, and writes the tab to the URL', async () => {
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByRole('tab', { name: 'Decorators' }));
+
+            expect(await screen.findByRole('article', { name: 'deployment decorator dep-1' })).toBeInTheDocument();
+            expect(screen.getByRole('article', { name: 'observability decorator obs-1' })).toBeInTheDocument();
+            expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators');
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+        });
+
+        it('reads the type filter from the URL', async () => {
+            renderArchitecture('/?tab=decorators&type=observability');
+
+            expect(await screen.findByRole('article', { name: 'observability decorator obs-1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'deployment decorator dep-1' })).not.toBeInTheDocument();
+            expect(screen.getByRole('combobox')).toHaveValue('observability');
+        });
+
+        it('writes the type filter to the URL, and removes it for all types', async () => {
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators');
+
+            await user.selectOptions(await screen.findByRole('combobox'), 'deployment');
+            expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators&type=deployment');
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-1' })).not.toBeInTheDocument();
+
+            await user.selectOptions(screen.getByRole('combobox'), '');
+            expect(screen.getByTestId('location').textContent).toBe('?tab=decorators');
+        });
+
+        it('drops the type filter when a lens opens', async () => {
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators&type=deployment');
+
+            await chooseLens(user, 'JSON');
+
+            expect(screen.getByTestId('location').textContent).toBe('?lens=json');
+        });
+
+        it('keeps the tab and the type filter on navigation to another version', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators&type=deployment&node=api');
+
+            await user.click(screen.getByText('nav-2.0.0'));
+
+            expect(navigate).toHaveBeenCalledWith(
+                '/arch-namespace/architectures/test-arch/2.0.0?tab=decorators&type=deployment',
+                expect.anything()
+            );
+        });
+
+        it('says so when the decorators cannot be loaded', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockRejectedValue(new Error('boom'));
+            renderArchitecture('/?tab=decorators');
+
+            expect(await screen.findByText(/^Could not load decorators\./)).toBeInTheDocument();
+        });
+
+        it('redirects the old Deployments tab to the Decorators tab filtered to deployment', async () => {
+            renderArchitecture('/?tab=deployments');
+
+            expect(screen.getByRole('tab', { name: 'Decorators' }).className).toContain('tab-active');
+            await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators&type=deployment'));
+            expect(await screen.findByText(/dep-1/)).toBeInTheDocument();
+            expect(screen.queryByText(/obs-1/)).not.toBeInTheDocument();
+        });
+
+        it('opens the Decorators tab filtered to a view from the overlay legend', async () => {
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-view'));
+            expect(screen.getByTestId('location')).toHaveTextContent('?tab=decorators&type=deployment');
+            expect(await screen.findByText(/dep-1/)).toBeInTheDocument();
+        });
+
+        it('opens the Decorators tab filtered to the $schema of a view that matches on $schema', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability, scan]);
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-schema-view'));
+            expect(new URLSearchParams(screen.getByTestId('location').textContent ?? '').get('schema')).toBe('https://example.org/scan.json');
+            expect(await screen.findByRole('article', { name: 'observability decorator scan-1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-1' })).not.toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'deployment decorator dep-1' })).not.toBeInTheDocument();
+        });
+
+        it('moves focus to the Decorators tab content after View all, but not after a tab click', async () => {
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-view'));
+            expect(await screen.findByRole('region', { name: 'Decorators' })).toHaveFocus();
+
+            await user.click(screen.getByRole('tab', { name: 'Diagram' }));
+            await user.click(screen.getByRole('tab', { name: 'Decorators' }));
+            expect(screen.getByRole('region', { name: 'Decorators' })).not.toHaveFocus();
+        });
+
+        it('does not move focus again when the Decorators tab is reached some other way after View all', async () => {
+            function QueryLinks() {
+                const [, setSearchParams] = useSearchParams();
+                return (
+                    <>
+                        <button onClick={() => setSearchParams({ tab: 'diagram' })}>link-diagram</button>
+                        <button onClick={() => setSearchParams({ tab: 'decorators' })}>link-decorators</button>
+                    </>
+                );
+            }
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                    <QueryLinks />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByText('simulate-open-view'));
+            expect(await screen.findByRole('region', { name: 'Decorators' })).toHaveFocus();
+
+            await user.click(screen.getByText('link-diagram'));
+            await user.click(screen.getByText('link-decorators'));
+            expect(await screen.findByRole('region', { name: 'Decorators' })).not.toHaveFocus();
+        });
+
+        it('filters on both the type and the $schema of a view that matches on both', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability, scan]);
+            const user = userEvent.setup();
+            renderArchitecture();
+
+            await user.click(screen.getByText('simulate-open-type-and-schema-view'));
+            const query = new URLSearchParams(screen.getByTestId('location').textContent ?? '');
+            expect([query.get('type'), query.get('schema')]).toEqual(['observability', 'https://example.org/scan.json']);
+            expect(await screen.findByRole('article', { name: 'observability decorator scan-1' })).toBeInTheDocument();
+            expect(screen.queryByRole('article', { name: 'observability decorator obs-1' })).not.toBeInTheDocument();
+        });
+
+        it('keeps the $schema filter when the type changes, and drops it on "Show all schemas"', async () => {
+            calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, observability, scan]);
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators&schema=https%3A%2F%2Fexample.org%2Fscan.json');
+
+            await user.selectOptions(await screen.findByRole('combobox'), 'observability');
+            let query = new URLSearchParams(screen.getByTestId('location').textContent ?? '');
+            expect([query.get('type'), query.get('schema')]).toEqual(['observability', 'https://example.org/scan.json']);
+
+            await user.click(screen.getByRole('button', { name: 'Show all schemas' }));
+            query = new URLSearchParams(screen.getByTestId('location').textContent ?? '');
+            expect([query.get('type'), query.get('schema')]).toEqual(['observability', null]);
+            expect(await screen.findByRole('article', { name: 'observability decorator obs-1' })).toBeInTheDocument();
+        });
+
+        it('offers the tab in the mobile view menu, selected when active', async () => {
+            const restore = mockMobileViewport();
+            const user = userEvent.setup();
+            renderArchitecture('/?tab=decorators');
+
+            await user.click(screen.getByRole('button', { name: /view options/i }));
+            expect(await screen.findByRole('tab', { name: 'Decorators' })).toHaveAttribute('aria-selected', 'true');
+            restore();
+        });
+
+        it('reports the decorators for the details drawer, and an empty list on unmount', async () => {
+            const onDecoratorsChange = vi.fn();
+            const { unmount } = renderArchitecture('/', { onDecoratorsChange });
+
+            await waitFor(() => expect(onDecoratorsChange).toHaveBeenLastCalledWith([deployment, observability]));
+
+            unmount();
+            expect(onDecoratorsChange).toHaveBeenLastCalledWith([]);
+        });
+
+        it('reports an empty list while a dropped file replaces the architecture', async () => {
+            const user = userEvent.setup();
+            const onDecoratorsChange = vi.fn();
+            renderArchitecture('/', { onDecoratorsChange });
+            await waitFor(() => expect(onDecoratorsChange).toHaveBeenLastCalledWith([deployment, observability]));
+
+            await user.click(screen.getByText('simulate-file-drop'));
+
+            expect(onDecoratorsChange).toHaveBeenLastCalledWith([]);
+        });
+
+        it('gives the diagram, the tab and the details drawer one polled list, with one request per refresh', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            try {
+                const onDecoratorsChange = vi.fn();
+                renderArchitecture('/', { onDecoratorsChange });
+                await waitFor(() => expect(screen.getByTestId('drawer-decorators')).toHaveTextContent('dep-1 obs-1'));
+                // The report is a passive effect, which can run after the commit that waitFor saw.
+                await waitFor(() => expect(onDecoratorsChange).toHaveBeenLastCalledWith([deployment, observability]));
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
+
+                const newer = { ...deployment, uniqueId: 'dep-2' };
+                calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, newer]);
+                await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(2);
+                expect(screen.getByTestId('drawer-decorators')).toHaveTextContent('dep-1 dep-2');
+                await waitFor(() => expect(onDecoratorsChange).toHaveBeenLastCalledWith([deployment, newer]));
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it.each([
+            ['the JSON tab', '/?tab=json', false, 0],
+            ['the JSON tab with the details drawer open', '/?tab=json', true, 2],
+            ['the Decorators tab', '/?tab=decorators', false, 2],
+            ['the diagram', '/', false, 2],
+        ])('polls the decorators on %s only if something there shows them', async (_name, entry, hasDetailsPanel, calls) => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            try {
+                renderArchitecture(entry, { hasDetailsPanel });
+                await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+                await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(calls);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('loads the decorators at once when the CALM lens opens from another lens', async () => {
+            const user = userEvent.setup();
+            renderArchitecture('/?lens=json');
+            expect(calmServiceMock.fetchDecoratorsForTarget).not.toHaveBeenCalled();
+
+            await chooseLens(user, 'CALM');
+            await waitFor(() => expect(screen.getByTestId('drawer-decorators')).toHaveTextContent('dep-1 obs-1'));
+            expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
+        });
+
+        it('keeps the list when a refresh fails', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+            try {
+                renderArchitecture('/?tab=decorators');
+                expect(await screen.findByRole('article', { name: 'deployment decorator dep-1' })).toBeInTheDocument();
+
+                calmServiceMock.fetchDecoratorsForTarget.mockRejectedValue(new Error('boom'));
+                await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(2);
+                expect(screen.getByRole('article', { name: 'deployment decorator dep-1' })).toBeInTheDocument();
+                expect(screen.queryByText(/^Could not load decorators\./)).not.toBeInTheDocument();
+            } finally {
+                error.mockRestore();
+                vi.useRealTimers();
+            }
+        });
+
+        it('reports an empty list for a pattern', async () => {
+            const onDecoratorsChange = vi.fn();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={patternData} onDecoratorsChange={onDecoratorsChange} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(onDecoratorsChange).toHaveBeenCalledWith([]));
+            expect(calmServiceMock.fetchDecoratorsForTarget).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('unknown tab', () => {
+        it('falls back to the diagram for an unknown tab value', () => {
+            render(
+                <MemoryRouter initialEntries={['/?tab=no-such-tab']}>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Diagram' }).className).toContain('tab-active');
+        });
+
+        it('falls back to the diagram for a tab the resource does not have', () => {
+            render(
+                <MemoryRouter initialEntries={['/?tab=deployments']}>
+                    <DiagramSection data={patternData} />
+                </MemoryRouter>
+            );
+
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+        });
+
+        it('drops an unknown tab from the URL, and keeps the other parameters', async () => {
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            render(
+                <MemoryRouter initialEntries={['/?tab=no-such-tab&type=deployment']}>
+                    <DiagramSection data={architectureData} />
+                    <SearchProbe />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(screen.getByTestId('search').textContent).toBe('?type=deployment'));
+        });
+
+        it('keeps an extension tab selected after a click, and does not cancel its request', async () => {
+            const call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, title: 'Releases', blocks: [] });
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            render(
+                <MemoryRouter>
+                    <ExtensionsContext.Provider value={[releaseTracker]}>
+                        <DiagramSection data={architectureData} />
+                        <SearchProbe />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+
+            await userEvent.click(screen.getByRole('tab', { name: 'Extensions' }));
+
+            expect(await screen.findByRole('heading', { name: 'Releases' })).toBeInTheDocument();
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions');
+            expect(screen.getByRole('tab', { name: 'Extensions' }).className).toContain('tab-active');
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect((call.mock.calls[0][3] as AbortSignal).aborted).toBe(false);
+            expect(call.mock.calls[0][2]).toMatchObject({
+                namespace: 'arch-namespace',
+                resource: 'architectures/test-arch',
+                resourceType: 'architectures',
+                resourceId: 'test-arch',
+            });
+            call.mockRestore();
+        });
+
+        it('keeps the Extensions tab open after a click when its only action needs the selected element', async () => {
+            const scanner: ExtensionSummary = {
+                id: 'scanner',
+                name: 'Scanner',
+                hubApi: 0,
+                routes: [{ id: 'scan', method: 'POST', path: '/scan/{selectedElement}', scope: 'authenticated', readOnly: false }],
+                contributes: { action: [{ id: 'scan', title: 'Scan', route: 'scan' }] },
+            };
+            // Hub clears a clicked selection on any change to the query.
+            function HubLike() {
+                const { search } = useLocation();
+                const [selection, setSelection] = useState<{ id?: string; search: string }>({ search });
+                const selectedElement = selection.search === search ? selection.id : undefined;
+                return (
+                    <>
+                        <button onClick={() => setSelection({ id: 'node-1', search })}>select node</button>
+                        <DiagramSection data={architectureData} selectedElement={selectedElement} />
+                        <div data-testid="search">{search}</div>
+                    </>
+                );
+            }
+            render(
+                <MemoryRouter>
+                    <ExtensionsContext.Provider value={[scanner]}>
+                        <HubLike />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+
+            expect(screen.getByRole('tab', { name: 'Extensions' })).toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: 'select node' }));
+            await userEvent.click(screen.getByRole('tab', { name: 'Extensions' }));
+
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions');
+            expect(screen.getByRole('tab', { name: 'Extensions' }).className).toContain('tab-active');
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Scan' })).toHaveAttribute('aria-disabled', 'true');
+        });
+
+        it('enables an action that needs the selected element when a link names the node', () => {
+            const scanner: ExtensionSummary = {
+                id: 'scanner',
+                name: 'Scanner',
+                hubApi: 0,
+                routes: [{ id: 'scan', method: 'POST', path: '/scan/{selectedElement}', scope: 'authenticated', readOnly: false }],
+                contributes: { action: [{ id: 'scan', title: 'Scan', route: 'scan' }] },
+            };
+            render(
+                <MemoryRouter initialEntries={['/?node=node-1&tab=extensions']}>
+                    <ExtensionsContext.Provider value={[scanner]}>
+                        <DiagramSection data={architectureData} selectedElement="node-1" />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+            expect(screen.getByRole('button', { name: 'Scan' })).toBeEnabled();
+        });
+
+        it('keeps a link to the Extensions tab until the registry loads, then opens it', async () => {
+            vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, title: 'Releases', blocks: [] });
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            const page = (extensions: ExtensionSummary[]) => (
+                <MemoryRouter initialEntries={['/?tab=extensions']}>
+                    <ExtensionsContext.Provider value={extensions}>
+                        <DiagramSection data={architectureData} />
+                        <SearchProbe />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+            const { rerender } = render(page([]));
+            expect(screen.queryByRole('tab', { name: 'Extensions' })).not.toBeInTheDocument();
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions');
+
+            rerender(page([releaseTracker]));
+
+            expect(await screen.findByRole('heading', { name: 'Releases' })).toBeInTheDocument();
+            vi.restoreAllMocks();
+        });
+
+        it('shows no extension buttons or tabs in the toolbar, only one Extensions tab', () => {
+            const many = Array.from({ length: 10 }, (_, i) => ({
+                ...releaseTracker,
+                id: `ext-${i}`,
+                name: `Extension ${i}`,
+                routes: [...releaseTracker.routes, { id: 'act', method: 'POST', path: '/act', scope: 'authenticated', readOnly: false }],
+                contributes: { ...releaseTracker.contributes, action: [{ id: 'act', title: `Act ${i}`, route: 'act' }] },
+            }));
+            render(
+                <MemoryRouter>
+                    <ExtensionsContext.Provider value={many}>
+                        <DiagramSection data={architectureData} />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+            expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Diagram', 'Decorators', 'Extensions']);
+            expect(screen.queryByRole('button', { name: /^Act / })).not.toBeInTheDocument();
+        });
+
+        it('keeps a known tab that is hidden for now in the URL', () => {
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            render(
+                <MemoryRouter initialEntries={['/?tab=decorators']}>
+                    <DiagramSection data={patternData} />
+                    <SearchProbe />
+                </MemoryRouter>
+            );
+
+            expect(screen.getByTestId('search').textContent).toBe('?tab=decorators');
+        });
+    });
+
     describe('with architecture data', () => {
         it('renders title with namespace, type and resolved name but not the version segment', async () => {
             render(
@@ -397,7 +976,7 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('drawer')).toHaveTextContent('Drawer for test-arch');
         });
 
-        it('fetches deployment decorators via the shared service method with namespace, id and version', async () => {
+        it('fetches the decorators of every type with namespace, id and version', async () => {
             render(
                 <MemoryRouter>
                     <DiagramSection data={architectureData} />
@@ -406,11 +985,8 @@ describe('DiagramSection', () => {
 
             await screen.findByTestId('drawer');
 
-            expect(calmServiceMock.fetchDeploymentDecoratorsForArchitecture).toHaveBeenCalledWith(
-                'arch-namespace',
-                'test-arch',
-                '1.0.0'
-            );
+            await waitFor(() => expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledWith('arch-namespace', DECORATOR_TARGET));
+            expect(calmServiceMock.resolveArchitectureVersionTarget).toHaveBeenCalledWith('arch-namespace', 'test-arch', '1.0.0');
         });
 
     });
@@ -442,6 +1018,259 @@ describe('DiagramSection', () => {
         });
     });
 
+    describe('diagram lenses', () => {
+        function LocationProbe() {
+            const location = useLocation();
+            return <div data-testid="location" data-key={location.key}>{location.search}</div>;
+        }
+
+        function renderAt(
+            entry: string,
+            data: Data & { calmType: 'Architectures' | 'Patterns' } = architectureData,
+            selectedElement?: string,
+            registry: { extensions?: ExtensionSummary[]; status?: ExtensionsStatus } = {},
+        ) {
+            return render(
+                <ExtensionsStatusContext.Provider value={registry.status ?? 'loaded'}>
+                    <ExtensionsContext.Provider value={registry.extensions ?? [C4_EXTENSION]}>
+                        <MemoryRouter initialEntries={[entry]}>
+                            <DiagramSection data={data} selectedElement={selectedElement} />
+                            <LocationProbe />
+                        </MemoryRouter>
+                    </ExtensionsContext.Provider>
+                </ExtensionsStatusContext.Provider>
+            );
+        }
+
+        const lens = (name: string) => within(screen.getByRole('group', { name: 'Lens' })).getByRole('button', { name: new RegExp(`^${name}`) });
+
+        it('shows the CALM lens first and selected, with the layout controls', async () => {
+            const user = userEvent.setup();
+            renderAt('/');
+
+            expect(screen.getByRole('tab', { name: 'Diagram' }).className).toContain('tab-active');
+            await openLensMenu(user);
+            expect(menuLensNames()).toEqual(['CALM', 'JSON']);
+            expect(menuLensNames('Extensions')).toEqual(['C4C4 model']);
+            expect(menuLens('CALM')).toHaveAttribute('aria-current', 'true');
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Reset to default layout' })).toBeInTheDocument();
+        });
+
+        it('lists no C4 lens when the operator turns off the c4 extension, and opens the CALM lens for a C4 link', async () => {
+            renderAt('/?lens=c4', architectureData, undefined, { extensions: [] });
+
+            expect(screen.queryByTestId('c4-lens')).not.toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Diagram' }).className).toContain('tab-active');
+            await openLensMenu(userEvent.setup());
+            expect(menuLensNames()).toEqual(['CALM', 'JSON']);
+            expect(screen.queryByRole('list', { name: 'Extensions' })).not.toBeInTheDocument();
+        });
+
+        it('keeps a link to an extension lens while the registry loads, and opens the CALM lens when it fails', () => {
+            const loading = renderAt('/?lens=c4&level=container', architectureData, undefined, { extensions: [], status: 'loading' });
+            expect(screen.getByText('Loading the lens…')).toBeInTheDocument();
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4&level=container$/);
+            loading.unmount();
+
+            renderAt('/?lens=c4', architectureData, undefined, { extensions: [], status: 'failed' });
+            expect(screen.queryByTestId('c4-lens')).not.toBeInTheDocument();
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+        });
+
+        it('sends the lens its view parameters from the URL, and selects the CALM element that the lens names', async () => {
+            const onItemSelect = vi.fn();
+            const user = userEvent.setup();
+            render(
+                <ExtensionsContext.Provider value={[C4_EXTENSION]}>
+                    <MemoryRouter initialEntries={['/?lens=c4&level=component&scope=orders&type=x']}>
+                        <DiagramSection
+                            data={{ ...architectureData, data: { nodes: [{ 'unique-id': 'api', 'node-type': 'service', name: 'API', description: '' }], relationships: [] } as never }}
+                            onItemSelect={onItemSelect}
+                        />
+                    </MemoryRouter>
+                </ExtensionsContext.Provider>
+            );
+
+            expect(JSON.parse(screen.getByTestId('c4-lens').dataset.params!)).toEqual({ level: 'component', scope: 'orders' });
+            await user.click(screen.getByText('select-api'));
+            expect(onItemSelect).toHaveBeenCalledWith({ data: expect.objectContaining({ 'unique-id': 'api' }) });
+        });
+
+        it('lists no C4 lens for a pattern, no lens while comparing, and draws no lens on another tab', async () => {
+            const { unmount } = renderAt('/', patternData);
+            await openLensMenu(userEvent.setup());
+            expect(menuLensNames()).toEqual(['CALM', 'JSON']);
+            expect(screen.queryByRole('list', { name: 'Extensions' })).not.toBeInTheDocument();
+            unmount();
+
+            const decorators = renderAt('/?tab=decorators&lens=c4');
+            expect(screen.queryByTestId('c4-lens')).not.toBeInTheDocument();
+            decorators.unmount();
+
+            renderAt('/?lens=c4');
+            await userEvent.setup().click(screen.getByText('compare'));
+            expect(screen.queryByRole('button', { name: 'Choose a lens' })).not.toBeInTheDocument();
+            expect(screen.getByTestId('compare-view')).toBeInTheDocument();
+        });
+
+        it('opens the C4 lens in place of the CALM diagram, and keeps the selection and the node link', async () => {
+            const user = userEvent.setup();
+            renderAt('/?node=api', architectureData, 'api');
+
+            await chooseLens(user, 'C4');
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=api&lens=c4$/);
+            expect(screen.getByTestId('c4-lens')).toHaveAttribute('data-selected', 'api');
+            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
+            expect(screen.queryByRole('list', { name: 'Lenses' })).not.toBeInTheDocument();
+            // The Diagram tab names the open lens.
+            expect(screen.getByRole('tab', { name: 'C4' }).className).toContain('tab-active');
+            expect(screen.queryByRole('button', { name: 'Reset to default layout' })).not.toBeInTheDocument();
+            // Hidden, not removed, so the header keeps its width and the Lens control does not move.
+            expect(screen.getByRole('button', { name: 'Reset to default layout', hidden: true })).toBeInTheDocument();
+        });
+
+        it('keeps the lens and the node link when the lens changes its own parameters', async () => {
+            const user = userEvent.setup();
+            renderAt('/?node=api&lens=c4&level=component&scope=orders');
+
+            await user.click(screen.getByText('open-container'));
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=api&lens=c4&level=container&scope=shop$/);
+        });
+
+        it('selects a node and opens its link in one navigation, so the link does not bring back the old node', async () => {
+            const user = userEvent.setup();
+            renderAt('/?lens=c4&node=api');
+
+            await user.click(screen.getByText('open-shop'));
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=shop&lens=c4&level=container&scope=shop$/);
+        });
+
+        it('does not navigate when the open lens is chosen again, and keeps its view parameters', async () => {
+            const user = userEvent.setup();
+            renderAt('/?lens=c4&level=component&scope=orders');
+            const key = screen.getByTestId('location').dataset.key;
+
+            await chooseLens(user, 'C4');
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4&level=component&scope=orders$/);
+            expect(screen.getByTestId('location').dataset.key).toBe(key);
+        });
+
+        it('drops the lens and its parameters on a return to the CALM lens', async () => {
+            const user = userEvent.setup();
+            renderAt('/?node=api&lens=c4&level=container&scope=shop');
+
+            await chooseLens(user, 'CALM');
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=api$/);
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+        });
+
+        it('redirects the old JSON tab to the JSON lens, and keeps the node link', async () => {
+            renderAt('/?tab=json&node=api', architectureData, 'api');
+
+            expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'JSON' }).className).toContain('tab-active');
+            await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\?node=api&lens=json$/));
+        });
+
+        it('filters the lenses, and opens the first match on Enter', async () => {
+            const user = userEvent.setup();
+            renderAt('/');
+
+            await openLensMenu(user);
+            await user.type(screen.getByRole('searchbox', { name: 'Filter lenses' }), 'c4');
+            expect(screen.queryByRole('list', { name: 'Lenses' })).not.toBeInTheDocument();
+            expect(menuLensNames('Extensions')).toEqual(['C4C4 model']);
+            await user.type(screen.getByRole('searchbox', { name: 'Filter lenses' }), 'x');
+            expect(screen.getByText('No lens matches the filter.')).toBeInTheDocument();
+
+            await user.type(screen.getByRole('searchbox', { name: 'Filter lenses' }), '{Backspace}{Enter}');
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4$/);
+        });
+
+        it('opens a lens from another tab without the parameters of that tab', async () => {
+            const user = userEvent.setup();
+            renderAt('/?tab=decorators&type=deployment');
+
+            await chooseLens(user, 'C4');
+
+            expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4$/);
+            expect(screen.getByTestId('c4-lens')).toBeInTheDocument();
+        });
+
+        it('falls back to the CALM lens for an unknown lens, and for C4 on a pattern', async () => {
+            const { unmount } = renderAt('/?lens=no-such-lens');
+            await openLensMenu(userEvent.setup());
+            expect(menuLens('CALM')).toHaveAttribute('aria-current', 'true');
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            unmount();
+
+            renderAt('/?lens=c4', patternData);
+            expect(screen.getByTestId('drawer')).toBeInTheDocument();
+            expect(screen.queryByTestId('c4-lens')).not.toBeInTheDocument();
+        });
+
+        it('keeps the lens and its parameters on navigation to another version', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+            const user = userEvent.setup();
+            renderAt('/?lens=c4&level=container&scope=shop&node=api&type=x');
+
+            await user.click(screen.getByText('nav-2.0.0'));
+
+            expect(navigate).toHaveBeenCalledWith(
+                '/arch-namespace/architectures/test-arch/2.0.0?lens=c4&level=container&scope=shop',
+                expect.anything()
+            );
+        });
+
+        it('keeps a lens that the registry does not list yet on navigation to another version, but not the node or a tab filter', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+            const user = userEvent.setup();
+            renderAt('/?lens=c4&scope=shop&node=api&type=x', architectureData, undefined, { extensions: [], status: 'loading' });
+
+            await user.click(screen.getByText('nav-2.0.0'));
+
+            expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/2.0.0?lens=c4&scope=shop', expect.anything());
+        });
+
+        it('lists the lenses in the mobile View sheet, and closes the sheet on a choice', async () => {
+            const restore = mockMobileViewport();
+            try {
+                const user = userEvent.setup();
+                renderAt('/');
+
+                await user.click(screen.getByRole('button', { name: /view options/i }));
+                await user.click(lens('C4'));
+
+                expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=c4$/);
+                expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+                expect(screen.getByTestId('c4-lens')).toBeInTheDocument();
+
+                await user.click(screen.getByRole('button', { name: /view options/i }));
+                expect(lens('C4')).toHaveAttribute('aria-pressed', 'true');
+                expect(screen.queryByText('Search components')).not.toBeInTheDocument();
+
+                // From another tab, a lens opens the Diagram tab.
+                await user.click(screen.getByRole('tab', { name: 'Decorators' }));
+                await user.click(screen.getByRole('button', { name: /view options/i }));
+                expect(lens('C4')).toHaveAttribute('aria-pressed', 'false');
+                await user.click(lens('JSON'));
+                expect(screen.getByTestId('location')).toHaveTextContent(/^\?lens=json$/);
+                expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+            } finally {
+                restore();
+            }
+        });
+    });
+
     describe('tab behavior', () => {
         it('renders tabs with icons', () => {
             render(
@@ -451,8 +1280,9 @@ describe('DiagramSection', () => {
             );
 
             expect(screen.getByRole('tab', { name: /diagram/i })).toBeInTheDocument();
-            expect(screen.getByRole('tab', { name: /json/i })).toBeInTheDocument();
-            expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
+            expect(screen.queryByRole('tab', { name: /json/i })).not.toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Decorators' })).toBeInTheDocument();
+            expect(screen.queryByRole('tab', { name: /deployments/i })).not.toBeInTheDocument();
         });
 
         it('paints the active view tab with the redesign brand blue, not the old accent (#8)', () => {
@@ -470,36 +1300,6 @@ describe('DiagramSection', () => {
             expect(activeTab.className).not.toContain('bg-accent');
         });
 
-        it('renders Deployments tab only for architectures, not patterns', () => {
-            const { rerender } = render(
-                <MemoryRouter>
-                    <DiagramSection data={architectureData} />
-                </MemoryRouter>
-            );
-            expect(screen.getByRole('tab', { name: /deployments/i })).toBeInTheDocument();
-
-            rerender(
-                <MemoryRouter>
-                    <DiagramSection data={patternData} />
-                </MemoryRouter>
-            );
-            expect(screen.queryByRole('tab', { name: /deployments/i })).not.toBeInTheDocument();
-        });
-
-        it('switches to Deployments tab when clicked', async () => {
-            const user = userEvent.setup();
-            render(
-                <MemoryRouter>
-                    <DiagramSection data={architectureData} />
-                </MemoryRouter>
-            );
-
-            await user.click(screen.getByRole('tab', { name: /deployments/i }));
-
-            expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
-            expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
-        });
-
         it('shows diagram tab by default', () => {
             render(
                 <MemoryRouter>
@@ -511,7 +1311,7 @@ describe('DiagramSection', () => {
             expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
         });
 
-        it('switches to JSON tab when clicked', async () => {
+        it('opens the JSON lens from the lens list', async () => {
             const user = userEvent.setup();
             render(
                 <MemoryRouter>
@@ -519,13 +1319,13 @@ describe('DiagramSection', () => {
                 </MemoryRouter>
             );
 
-            await user.click(screen.getByRole('tab', { name: /json/i }));
+            await chooseLens(user, 'JSON');
 
             expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
             expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
         });
 
-        it('switches back to diagram tab when clicked', async () => {
+        it('switches back to the CALM lens', async () => {
             const user = userEvent.setup();
             render(
                 <MemoryRouter>
@@ -533,10 +1333,10 @@ describe('DiagramSection', () => {
                 </MemoryRouter>
             );
 
-            await user.click(screen.getByRole('tab', { name: /json/i }));
+            await chooseLens(user, 'JSON');
             expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
 
-            await user.click(screen.getByRole('tab', { name: /diagram/i }));
+            await chooseLens(user, 'CALM');
             expect(screen.getByTestId('drawer')).toBeInTheDocument();
             expect(screen.queryByTestId('monaco-editor')).not.toBeInTheDocument();
         });
@@ -550,14 +1350,14 @@ describe('DiagramSection', () => {
             );
 
             const diagramTab = screen.getByRole('tab', { name: /diagram/i });
-            const jsonTab = screen.getByRole('tab', { name: /json/i });
+            const decoratorsTab = screen.getByRole('tab', { name: 'Decorators' });
 
             expect(diagramTab).toHaveClass('tab-active');
-            expect(jsonTab).not.toHaveClass('tab-active');
+            expect(decoratorsTab).not.toHaveClass('tab-active');
 
-            await user.click(jsonTab);
+            await user.click(decoratorsTab);
 
-            expect(jsonTab).toHaveClass('tab-active');
+            expect(decoratorsTab).toHaveClass('tab-active');
             expect(diagramTab).not.toHaveClass('tab-active');
         });
     });
@@ -604,7 +1404,7 @@ describe('DiagramSection', () => {
             );
 
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
-            await user.click(screen.getByRole('tab', { name: /json/i }));
+            await user.click(screen.getByRole('tab', { name: 'Decorators' }));
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
         });
     });
@@ -649,6 +1449,48 @@ describe('DiagramSection', () => {
                 });
             });
             expect(navigate).toHaveBeenCalledTimes(1);
+        });
+
+        it('keeps a link to the Extensions tab when it redirects before the extension registry loads', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+
+            render(
+                <MemoryRouter initialEntries={['/?tab=extensions']}>
+                    <ExtensionsStatusContext.Provider value="loading">
+                        <ExtensionsContext.Provider value={[]}>
+                            <DiagramSection data={latestArchitectureData} />
+                        </ExtensionsContext.Provider>
+                    </ExtensionsStatusContext.Provider>
+                </MemoryRouter>
+            );
+
+            await waitFor(() => {
+                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/1.0.0?tab=extensions', {
+                    replace: true,
+                    state: null,
+                });
+            });
+        });
+
+        it.each(['/?tab=extensions', '/?tab=used-by'])('does not carry a tab that cannot show for the architecture (%s)', async (entry) => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+
+            render(
+                <MemoryRouter initialEntries={[entry]}>
+                    <ExtensionsContext.Provider value={[]}>
+                        <DiagramSection data={latestArchitectureData} />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+
+            await waitFor(() => {
+                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/1.0.0', {
+                    replace: true,
+                    state: null,
+                });
+            });
         });
 
         it('marks a timeline selection in navigation state and keeps the existing state', async () => {
@@ -736,7 +1578,7 @@ describe('DiagramSection', () => {
             );
 
             await user.click(screen.getByRole('button', { name: /view options/i }));
-            // Opening reveals the view-mode list (Diagram / JSON / Deployments rows).
+            // Opening reveals the view-mode list (Diagram / JSON / Decorators rows).
             expect(screen.getByRole('button', { name: /close view options/i })).toBeInTheDocument();
             restore();
         });
@@ -755,7 +1597,7 @@ describe('DiagramSection', () => {
 
             // Desktop ships the inline view-mode tabs...
             expect(screen.getByRole('tab', { name: /diagram/i })).toBeInTheDocument();
-            expect(screen.getByRole('tab', { name: /json/i })).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Decorators' })).toBeInTheDocument();
             // ...and never the mobile "View options" pill (a button, distinct from
             // the role="tab" view-mode buttons).
             expect(screen.queryByRole('button', { name: /view options/i })).not.toBeInTheDocument();

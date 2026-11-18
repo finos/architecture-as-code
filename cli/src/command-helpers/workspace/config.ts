@@ -21,11 +21,16 @@ export interface WorkspaceConfig {
     bump: {
         defaultIncrement: ResourceChangeType;
     };
+    c4: {
+        /** The C4 mapping that `calm docify` uses: a path relative to the git root, or a URL. */
+        mapping?: string;
+    };
 }
 
 export const DEFAULT_WORKSPACE_CONFIG: WorkspaceConfig = {
     push: { failIfModified: false },
     bump: { defaultIncrement: 'MINOR' },
+    c4: {},
 };
 
 const VALID_INCREMENTS: ResourceChangeType[] = ['MAJOR', 'MINOR', 'PATCH'];
@@ -55,6 +60,7 @@ export async function loadWorkspaceConfig(gitRoot: string): Promise<WorkspaceCon
 
         const failIfModified = parsed?.push?.failIfModified;
         const defaultIncrement = parsed?.bump?.defaultIncrement;
+        const c4Mapping = parsed?.c4?.mapping;
 
         return {
             push: {
@@ -67,6 +73,7 @@ export async function loadWorkspaceConfig(gitRoot: string): Promise<WorkspaceCon
                     ? (defaultIncrement as ResourceChangeType)
                     : DEFAULT_WORKSPACE_CONFIG.bump.defaultIncrement,
             },
+            c4: typeof c4Mapping === 'string' && c4Mapping !== '' ? { mapping: c4Mapping } : {},
         };
     } catch {
         return DEFAULT_WORKSPACE_CONFIG;

@@ -14,9 +14,12 @@ public enum AuditEntityType {
     INTERFACE,
     STANDARD,
     DOCUMENT,
+    CONVENTION,
+    CONVENTION_DEFAULT,
     TIMELINE,
     USER_ACCESS,
     SCHEMA,
     LAYOUT,
-    PATTERN_LAYOUT
+    PATTERN_LAYOUT,
+    EXTENSION
 }

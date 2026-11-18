@@ -1,12 +1,11 @@
 package integration;
 
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTestProfile;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@QuarkusTestResource(EndToEndResource.class)
 public class IntegrationTestOidcProfile implements QuarkusTestProfile {
 
     @Override
@@ -33,5 +32,10 @@ public class IntegrationTestOidcProfile implements QuarkusTestProfile {
                 "quarkus.oidc.token.audience", "oidc-profile-integration-test",
                 "quarkus.oidc.token.issuer", "https://example.invalid/oidc-test-issuer"
         );
+    }
+
+    @Override
+    public List<TestResourceEntry> testResources() {
+        return List.of(new TestResourceEntry(EndToEndResource.class));
     }
 }

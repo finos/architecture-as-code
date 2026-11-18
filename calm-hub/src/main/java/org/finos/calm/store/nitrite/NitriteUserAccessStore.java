@@ -18,10 +18,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static org.dizitart.no2.filters.Filter.and;
 import static org.dizitart.no2.filters.FluentFilter.where;
 import io.quarkus.arc.lookup.LookupIfProperty;
 
@@ -37,6 +39,8 @@ public class NitriteUserAccessStore implements UserAccessStore {
     private static final Logger LOG = LoggerFactory.getLogger(NitriteUserAccessStore.class);
     private static final String COLLECTION_NAME = "userAccess";
     private static final String USERNAME_FIELD = "username";
+    private static final String SUBJECT_TYPE_FIELD = "subjectType";
+    private static final String GROUP = UserAccess.SubjectType.group.name();
     private static final String NAMESPACE_FIELD = "namespace";
     private static final String DOMAIN_FIELD = "domain";
     private static final String PERMISSION_FIELD = "permission";
@@ -73,6 +77,7 @@ public class NitriteUserAccessStore implements UserAccessStore {
 
             Document userAccessDoc = Document.createDocument()
                     .put(USERNAME_FIELD, userAccess.getUsername())
+                    .put(SUBJECT_TYPE_FIELD, userAccess.getSubjectType().name())
                     .put(PERMISSION_FIELD, userAccess.getPermission().name())
                     .put(NAMESPACE_FIELD, userAccess.getNamespace())
                     .put(CREATED_AT_FIELD, userAccess.getCreationDateTime())
@@ -89,6 +94,7 @@ public class NitriteUserAccessStore implements UserAccessStore {
                     .setNamespace(userAccess.getNamespace())
                     .setPermission(userAccess.getPermission())
                     .setUsername(userAccess.getUsername())
+                    .setSubjectType(userAccess.getSubjectType())
                     .build();
         } finally {
             lock.unlock();
@@ -97,7 +103,7 @@ public class NitriteUserAccessStore implements UserAccessStore {
 
     @Override
     public List<UserAccess> getUserAccessForUsername(String username) throws UserAccessNotFoundException {
-        Filter filter = where(USERNAME_FIELD).eq(username);
+        Filter filter = and(where(USERNAME_FIELD).eq(username), notGroup());
         List<UserAccess> userAccessList = new ArrayList<>();
         
         for (Document doc : userAccessCollection.find(filter)) {
@@ -113,12 +119,45 @@ public class NitriteUserAccessStore implements UserAccessStore {
 
     @Override
     public List<UserAccess> getGrantsForUser(String username) {
-        Filter filter = where(USERNAME_FIELD).in(username, "*");
+        Filter filter = and(where(USERNAME_FIELD).in(username, "*"), notGroup());
         List<UserAccess> grants = new ArrayList<>();
         for (Document doc : userAccessCollection.find(filter)) {
             grants.add(buildUserAccessFromDocument(doc));
         }
         return grants;
+    }
+
+    @Override
+    public List<UserAccess> getGroupGrantsForNamespaces(Collection<String> namespaces) {
+        if (namespaces.isEmpty()) {
+            return List.of();
+        }
+        return findGroupGrants(where(NAMESPACE_FIELD).in(namespaces.toArray(new Comparable[0])));
+    }
+
+    @Override
+    public List<UserAccess> getGroupGrantsForDomain(String domain) {
+        return findGroupGrants(where(DOMAIN_FIELD).eq(domain));
+    }
+
+    @Override
+    public List<UserAccess> getAllGroupGrants() {
+        return findGroupGrants(null);
+    }
+
+    private List<UserAccess> findGroupGrants(Filter scopeFilter) {
+        Filter isGroup = where(SUBJECT_TYPE_FIELD).eq(GROUP);
+        Filter filter = scopeFilter == null ? isGroup : and(isGroup, scopeFilter);
+        List<UserAccess> grants = new ArrayList<>();
+        for (Document doc : userAccessCollection.find(filter)) {
+            grants.add(buildUserAccessFromDocument(doc));
+        }
+        return grants;
+    }
+
+    // notEq also matches rows written before subjectType existed, which are user grants.
+    private static Filter notGroup() {
+        return where(SUBJECT_TYPE_FIELD).notEq(GROUP);
     }
 
     @Override
@@ -162,6 +201,7 @@ public class NitriteUserAccessStore implements UserAccessStore {
 
             Document userAccessDoc = Document.createDocument()
                     .put(USERNAME_FIELD, userAccess.getUsername())
+                    .put(SUBJECT_TYPE_FIELD, userAccess.getSubjectType().name())
                     .put(PERMISSION_FIELD, userAccess.getPermission().name())
                     .put(DOMAIN_FIELD, userAccess.getDomain())
                     .put(CREATED_AT_FIELD, userAccess.getCreationDateTime())
@@ -178,6 +218,7 @@ public class NitriteUserAccessStore implements UserAccessStore {
                     .setDomain(userAccess.getDomain())
                     .setPermission(userAccess.getPermission())
                     .setUsername(userAccess.getUsername())
+                    .setSubjectType(userAccess.getSubjectType())
                     .build();
         } finally {
             lock.unlock();
@@ -269,9 +310,14 @@ public class NitriteUserAccessStore implements UserAccessStore {
         }
     }
 
+    private static UserAccess.SubjectType parseSubjectType(String value) {
+        return value == null ? UserAccess.SubjectType.user : UserAccess.SubjectType.valueOf(value);
+    }
+
     private UserAccess buildUserAccessFromDocument(Document doc) {
         return new UserAccess.UserAccessBuilder()
                 .setUsername(doc.get(USERNAME_FIELD, String.class))
+                .setSubjectType(parseSubjectType(doc.get(SUBJECT_TYPE_FIELD, String.class)))
                 .setPermission(UserAccess.Permission.valueOf(doc.get(PERMISSION_FIELD, String.class)))
                 .setNamespace(doc.get(NAMESPACE_FIELD, String.class))
                 .setDomain(doc.get(DOMAIN_FIELD, String.class))
