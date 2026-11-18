@@ -2,6 +2,7 @@ package org.finos.calm.extensions;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.finos.calm.assets.ImageAsset;
 import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -10,11 +11,15 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +41,8 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -321,6 +328,76 @@ class TestExtensionManifestLoaderShould {
         assertThat(e.getMessage(), containsString("logo dark missing.png is not in the extension folder"));
     }
 
+    @Test
+    void refuse_a_logo_file_over_the_size_limit_without_reading_all_of_it_but_not_limit_a_notation_file() throws IOException {
+        write(ID, withLens(lens("c4")).put("logo", new JsonObject().put("light", "logo.svg").put("dark", "logo-dark.svg")));
+        Path dir = tempDir.resolve(ID);
+        Files.writeString(dir.resolve("notation.json"), NOTATION.encode() + " ".repeat(ImageAsset.MAX_BYTES));
+        String start = "<svg xmlns='http://www.w3.org/2000/svg'><!--";
+        String end = "--></svg>";
+        Files.writeString(dir.resolve("logo.svg"), start + "x".repeat(ImageAsset.MAX_BYTES - start.length() - end.length()) + end);
+        // Sparse, and larger than a Java array can be, so a read of all of it fails.
+        try (RandomAccessFile file = new RandomAccessFile(dir.resolve("logo-dark.svg").toFile(), "rw")) {
+            file.setLength(3L * 1024 * 1024 * 1024);
+        }
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.loadDirectory(tempDir));
+
+        assertThat(e.getMessage(), containsString("logo dark logo-dark.svg is more than the limit of 262144 bytes"));
+        assertThat(e.getMessage(), not(containsString("logo light")));
+        assertThat(e.getMessage(), not(containsString("notation")));
+    }
+
+    @Test
+    void read_no_more_of_a_built_in_logo_than_the_size_limit_and_one_byte() {
+        long[] read = {0};
+        boolean[] closed = {false};
+        InputStream large = new InputStream() {
+            private long left = 16L * 1024 * 1024;
+
+            @Override
+            public int read() {
+                byte[] one = new byte[1];
+                return read(one, 0, 1) < 0 ? -1 : one[0];
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) {
+                if (left == 0) {
+                    return -1;
+                }
+                int n = (int) Math.min(len, left);
+                Arrays.fill(b, off, off + n, (byte) ' ');
+                left -= n;
+                read[0] += n;
+                return n;
+            }
+
+            @Override
+            public void close() {
+                closed[0] = true;
+            }
+        };
+        String manifest = valid().put("logo", new JsonObject().put("light", "logo.svg")).encode();
+        ClassLoader builtins = new ClassLoader(null) {
+            @Override
+            public InputStream getResourceAsStream(String name) {
+                return switch (name) {
+                    case "large/index.txt" -> new ByteArrayInputStream(ID.getBytes(StandardCharsets.UTF_8));
+                    case "large/" + ID + "/extension.json" -> new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8));
+                    case "large/" + ID + "/logo.svg" -> large;
+                    default -> null;
+                };
+            }
+        };
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.loadClasspath(builtins, "large/"));
+
+        assertThat(e.getMessage(), containsString("logo light logo.svg is more than the limit of 262144 bytes"));
+        assertThat(read[0], lessThanOrEqualTo(ImageAsset.MAX_BYTES + 1L));
+        assertThat(closed[0], is(true));
+    }
+
     @ParameterizedTest
     @MethodSource("logosTheSchemaRefuses")
     void reject_a_logo_that_the_schema_refuses(JsonObject logo, String location) {
@@ -343,12 +420,12 @@ class TestExtensionManifestLoaderShould {
             + "<circle cx='8' cy='8' r='6' fill='#0f766e'/></svg>";
 
     /** Sibling files by name, as the loader reads them. */
-    private static Function<String, byte[]> files(String... namesAndTexts) {
+    private static Function<String, InputStream> files(String... namesAndTexts) {
         Map<String, byte[]> files = new HashMap<>();
         for (int i = 0; i < namesAndTexts.length; i += 2) {
             files.put(namesAndTexts[i], namesAndTexts[i + 1].getBytes(StandardCharsets.UTF_8));
         }
-        return files::get;
+        return name -> files.containsKey(name) ? new ByteArrayInputStream(files.get(name)) : null;
     }
 
     private static JsonObject withLens(JsonObject... lenses) {

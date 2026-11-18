@@ -224,7 +224,7 @@ Each value is a file name in the extension folder, next to `extension.json`: low
 
 - is not a PNG, JPEG, WebP or SVG file, or does not hold the type of its extension (`.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`)
 - is larger than 256 KiB, or is a PNG, JPEG or WebP image with a side larger than 2048 pixels
-- is an SVG file with a DOCTYPE, an entity, a processing instruction, a `script`, `foreignObject` or HTML element, an `on*` attribute, a link or CSS `url()` that is not a `#fragment`, an animated link, a CSS `@import`, `image-set()`, `src()` or escape
+- is an SVG file with a DOCTYPE, an entity, a processing instruction, a `script`, `foreignObject` or HTML element, an `on*` attribute, a link or CSS `url()` that is not a `#fragment`, an `xml:base` attribute, an animated link or `xml:base`, a CSS `@import`, `image-set()`, `src()` or escape
 
 Use a square image that reads at 16 pixels. CALM Hub never fetches a logo from a URL.
 
