@@ -107,7 +107,9 @@ class TestExtensionBlocksSchemaShould {
                   ]},
                   {"type":"table","id":"reviews","columns":["Name","Status"],"rows":[["a","b"]],
                    "search":{"label":"Filter by name","columns":["Name"]}},
-                  {"type":"table","id":"deploys","columns":["Name"],"rows":[],"source":{"route":"deploy-rows","pageSize":50}}
+                  {"type":"table","id":"deploys","columns":["Name"],"rows":[],"source":{"route":"deploy-rows","pageSize":50}},
+                  {"type":"table","columns":["Name"],"rows":[["shown as it is"]]},
+                  {"type":"table","id":"plain","columns":["Name"],"rows":[["a"]]}
                 ]}
                 """);
         assertTrue(validator().validate(reply).getValid());
@@ -120,8 +122,11 @@ class TestExtensionBlocksSchemaShould {
             "{\"type\":\"stats\",\"items\":[{\"label\":\"x\",\"value\":1,\"filter\":{\"table\":\"t\",\"column\":\"Status\",\"value\":\"x\"}}]}",
             "{\"type\":\"stats\",\"items\":[{\"label\":\"x\",\"value\":1,\"filter\":{\"table\":\"t\",\"id\":\"\"}}]}",
             "{\"type\":\"table\",\"id\":\"Reviews\",\"columns\":[],\"rows\":[]}",
-            "{\"type\":\"table\",\"columns\":[],\"rows\":[],\"source\":{\"route\":\"rows\",\"pageSize\":0}}",
-            "{\"type\":\"table\",\"columns\":[],\"rows\":[],\"source\":{\"pageSize\":10}}"
+            "{\"type\":\"table\",\"id\":\"t\",\"columns\":[],\"rows\":[],\"source\":{\"route\":\"rows\",\"pageSize\":0}}",
+            "{\"type\":\"table\",\"id\":\"t\",\"columns\":[],\"rows\":[],\"source\":{\"pageSize\":10}}",
+            // A search or a source needs the id that keeps the table's filters.
+            "{\"type\":\"table\",\"columns\":[],\"rows\":[],\"search\":{\"label\":\"Filter\"}}",
+            "{\"type\":\"table\",\"columns\":[],\"rows\":[],\"source\":{\"route\":\"rows\"}}"
     })
     void reject_invalid_filters(String block) throws Exception {
         assertFalse(validator().validate(new JsonObject("{\"hubApi\":0,\"blocks\":[" + block + "]}")).getValid());

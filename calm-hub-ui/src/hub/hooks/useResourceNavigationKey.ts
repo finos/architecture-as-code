@@ -22,7 +22,11 @@ export function useResourceNavigationKey(location: Location, loadFailed: boolean
         search: location.search,
         resourceKey: id,
     });
-    if (last.id === id) return last.resourceKey;
+    if (last.id === id) {
+        // A query edited by hand keeps the id `default`, and is the query that a later navigation compares with.
+        if (last.search !== location.search) setLast({ ...last, search: location.search });
+        return last.resourceKey;
+    }
 
     const keepsResource = !loadFailed && location.pathname === last.pathname && location.search !== last.search;
     const next = {

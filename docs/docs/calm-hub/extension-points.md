@@ -104,7 +104,9 @@ The inspector has one view menu, with **Details** first. Each extension name gro
 views (`designer-tab`), then its node views (`detail-panel`), in manifest order within each kind.
 The menu has a filter when there are more than five extension views. Select one view at a time;
 the extension's actions stay above it. An extension with only actions has an **Actions** entry.
-The chosen view of each extension stays in memory while the inspector is mounted, not in the URL.
+The chosen view of each extension stays in memory, not in the URL. The chosen views and the state of each view
+also stay when the screen changes between the wide and the narrow layout, for example when you turn a tablet. An open
+confirmation stays open on top, with focus on **Cancel**.
 
 - With no selection, the inspector shows the whole resource. **Clear selection** goes back to it.
 - A view sends no request until it shows. A view that you leave, and a closed inspector,
@@ -118,6 +120,9 @@ The chosen view of each extension stays in memory while the inspector is mounted
 - A link opens the inspector on an extension with `?extension=<extension id>`, or on the first
   extension with `?extension=`. A fresh load shows its first view. Hub changes an old `?tab=extensions` link to `?extension=`, and keeps
   the other parameters, such as `node`.
+- On a wide screen, each link that names the selected node with `node`, and Back or Forward to one,
+  opens the inspector again, also a link to the page that shows. Closing the inspector and selecting
+  another node keep the open extension and its chosen view.
 
 ## designer-tab
 
@@ -392,7 +397,9 @@ The route returns JSON that matches
 - `calm` names the CALM `unique-id`s that the element stands for. A click
   selects the first one on the CALM diagram.
 - A `link` sets view parameters, opens a CALM Hub page or opens an `https` URL. A link to a CALM
-  Hub page shows **Back to &lt;page&gt;** on that page.
+  Hub page opens only with a `version`. It can also name an `element` and an `extension`, as a
+  [Hub destination](extension-navigation.md#hub) does. A link to another page shows
+  **Back to &lt;page&gt;** on that page.
 - A control can name its `value`: the value that the reply was drawn with,
   when the request named none. For example, the C4 service draws the first
   system when the URL names no `scope`, and its list shows that system.

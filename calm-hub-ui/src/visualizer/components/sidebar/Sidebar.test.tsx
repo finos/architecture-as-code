@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 
 describe('Sidebar Component', () => {
+    const panelWidth = (container: HTMLElement) => (container.firstChild as HTMLElement).style.getPropertyValue('--details-width');
     const panel = (storage = createMemoryStorage(), hidden = false) => (
         <Sidebar id="inspector" label="Inspector" hidden={hidden} storage={storage}>
             <input aria-label="Draft" />
@@ -30,8 +31,6 @@ describe('Sidebar Component', () => {
     });
 
     describe('resizing', () => {
-        const panelWidth = (container: HTMLElement) => (container.firstChild as HTMLElement).style.getPropertyValue('--details-width');
-
         it('widens the panel when its handle is dragged left, and keeps the width when it is opened again', () => {
             const storage = createMemoryStorage();
             const { container, unmount } = render(panel(storage));
@@ -61,6 +60,65 @@ describe('Sidebar Component', () => {
             const handle = screen.getByRole('separator', { name: 'Resize Inspector' });
             fireEvent.keyDown(handle, { key: 'ArrowLeft' });
             expect(panelWidth(container)).toBe('416px');
+        });
+    });
+
+    describe('with the default storage', () => {
+        const WIDTH_KEY = 'calmHub.detailsPanelWidth';
+        const defaultPanel = (hidden = false) => (
+            <Sidebar id="inspector" label="Inspector" hidden={hidden}>
+                <input aria-label="Draft" />
+            </Sidebar>
+        );
+
+        /** When the browser blocks site data, reading the `sessionStorage` global itself throws. */
+        function blockSessionStorage() {
+            const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+            Object.defineProperty(globalThis, 'sessionStorage', {
+                configurable: true,
+                get() {
+                    throw new DOMException('denied', 'SecurityError');
+                },
+            });
+            return () => {
+                if (descriptor) Object.defineProperty(globalThis, 'sessionStorage', descriptor);
+            };
+        }
+
+        it('mounts hidden, keeps its content, and resizes without keeping the width, when reading sessionStorage throws', () => {
+            const restore = blockSessionStorage();
+            try {
+                expect(() => sessionStorage).toThrow(DOMException);
+                const { container, rerender, unmount } = render(defaultPanel(true));
+                expect(screen.queryByRole('complementary', { name: 'Inspector' })).not.toBeInTheDocument();
+
+                rerender(defaultPanel());
+                fireEvent.change(screen.getByRole('textbox', { name: 'Draft' }), { target: { value: 'kept' } });
+                fireEvent.keyDown(screen.getByRole('separator', { name: 'Resize Inspector' }), { key: 'ArrowLeft' });
+                expect(panelWidth(container)).toBe('416px');
+                rerender(defaultPanel(true));
+                rerender(defaultPanel());
+                expect(screen.getByRole('textbox', { name: 'Draft' })).toHaveValue('kept');
+                expect(panelWidth(container)).toBe('416px');
+                unmount();
+
+                expect(panelWidth(render(defaultPanel()).container)).toBe('384px');
+            } finally {
+                restore();
+            }
+        });
+
+        it('keeps the width in sessionStorage when the browser allows it', () => {
+            try {
+                const { unmount } = render(defaultPanel());
+                fireEvent.keyDown(screen.getByRole('separator', { name: 'Resize Inspector' }), { key: 'ArrowLeft' });
+                expect(sessionStorage.getItem(WIDTH_KEY)).toBe('416');
+                unmount();
+
+                expect(panelWidth(render(defaultPanel()).container)).toBe('416px');
+            } finally {
+                sessionStorage.removeItem(WIDTH_KEY);
+            }
         });
     });
 });

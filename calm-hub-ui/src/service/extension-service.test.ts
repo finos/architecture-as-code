@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ExtensionService, extensionRequest, formOutcome } from './extension-service.js';
+import { ExtensionService, extensionRequest, formOutcome, MAX_REQUEST_LINE } from './extension-service.js';
 import { ExtensionRoute } from '../model/extensions.js';
 import { migrationStore } from './utils/migration-store.js';
 import { authStore } from './utils/auth-store.js';
@@ -266,6 +266,19 @@ describe('ExtensionService', () => {
     });
     it('rejects traversal paths', () => {
         expect(() => extensionRequest('test', { ...route, path: '/../x' }, {})).toThrow('Invalid extension route');
+    });
+    it('measures the request line as the browser sends it, with the path, the query and its own encoding', () => {
+        const service = new ExtensionService(ax);
+        // `GET /api/calm/extensions/test/api/summary/ns?namespace=ns&q=<q> HTTP/1.1`
+        const room = MAX_REQUEST_LINE - 'GET /api/calm/extensions/test/api/summary/ns?namespace=ns&q= HTTP/1.1'.length;
+        const fits = (q: string) => service.fitsRequestLine('test', route, { namespace: 'ns', q });
+        expect(fits('a'.repeat(room))).toBe(true);
+        expect(fits('a'.repeat(room + 1))).toBe(false);
+        // axios leaves ' as it is, and the browser sends it as %27.
+        expect(fits(`${'a'.repeat(room - 3)}'`)).toBe(true);
+        expect(fits(`${'a'.repeat(room - 1)}'`)).toBe(false);
+        // A call that is not valid fits here, and `call` refuses it.
+        expect(service.fitsRequestLine('test', route, {})).toBe(true);
     });
 });
 

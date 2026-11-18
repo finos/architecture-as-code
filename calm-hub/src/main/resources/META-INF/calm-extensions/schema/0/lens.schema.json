@@ -73,12 +73,24 @@
           "maxProperties": 8
         },
         "hub": {
+          "description": "A Hub resource page. Hub opens it only with a version. element and extension are as in a Hub destination of blocks.schema.json.",
           "type": "object",
           "properties": {
             "namespace": { "type": "string" },
             "type": { "enum": ["architectures", "patterns", "flows", "standards", "adrs", "interfaces"] },
             "id": { "type": "string" },
-            "version": { "type": "string" }
+            "version": { "type": "string" },
+            "element": {
+              "description": "The CALM unique-id of a node or relationship in that version. Hub selects it.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "extension": {
+              "description": "An extension id. Hub opens the view of that extension for the resource.",
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
           },
           "required": ["namespace", "type", "id"],
           "additionalProperties": false
