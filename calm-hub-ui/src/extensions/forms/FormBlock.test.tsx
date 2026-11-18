@@ -111,6 +111,16 @@ async function sendConfirmed() {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Send' }));
 }
 
+const targetGroup = () => screen.getByRole('group', { name: 'Target' });
+
+/** Waits until the target picker has loaded the options of a select, then chooses one. */
+async function choose(label: string, value: string) {
+    await waitFor(() => expect(within(targetGroup()).getByLabelText(label)).toBeEnabled());
+    fireEvent.change(within(targetGroup()).getByLabelText(label), { target: { value } });
+}
+
+const nodeLabels = () => [...within(targetGroup()).getByLabelText<HTMLSelectElement>('Node').options].map((option) => option.textContent);
+
 describe('FormBlock', () => {
     it('labels each field and shows a message on each field that fails, without sending', async () => {
         await show(<Slot />);
@@ -461,6 +471,38 @@ describe('FormBlock', () => {
         expect(within(target).getByLabelText('Version')).toHaveValue('1.0.0');
     });
 
+    it('lists the nodes of an architecture, not the nodes that it declares as a pattern does, and sends the node that the user chooses', async () => {
+        const declares = (id: string) => ({ properties: { nodes: { prefixItems: [{ properties: { 'unique-id': { const: id } } }] } } });
+        vi.spyOn(CalmService.prototype, 'fetchNamespaces').mockResolvedValue(['finos']);
+        vi.spyOn(CalmService.prototype, 'fetchArchitectureSummaries').mockResolvedValue([{ id: 1, name: 'Payments' } as never]);
+        vi.spyOn(CalmService.prototype, 'fetchArchitectureVersions').mockResolvedValue(['1.0.0']);
+        vi.spyOn(CalmService.prototype, 'fetchArchitecture').mockResolvedValue({
+            data: {
+                nodes: [{ 'unique-id': 'web', name: 'Web app' }, { 'unique-id': 'ledger' }],
+                ...declares('declared-at-root'),
+                allOf: [declares('declared-in-allOf')],
+            },
+        } as never);
+        // No node in the context: the user chooses one from the fetched options, not from a fallback option.
+        await show(<Slot point="screen" context={{}} />);
+        await fill();
+
+        await choose('Namespace', 'finos');
+        await choose('Architecture', '1');
+        await choose('Version', '1.0.0');
+        await choose('Node', 'ledger');
+        expect(nodeLabels()).toEqual(['Choose', 'Web app (web)', 'ledger']);
+        await sendConfirmed();
+        expect(submissions[0].context).toEqual({
+            namespace: 'finos',
+            resource: 'architectures/1',
+            resourceType: 'architectures',
+            resourceId: '1',
+            version: '1.0.0',
+            selectedElement: 'ledger',
+        });
+    });
+
     it('lists the nodes of a pattern as the diagram finds them, and sends the node that the user chooses', async () => {
         const node = (id: string, name?: string) => ({
             properties: { 'unique-id': { const: id }, ...(name && { name: { const: name } }) },
@@ -487,12 +529,7 @@ describe('FormBlock', () => {
         vi.spyOn(CalmService.prototype, 'fetchPattern').mockImplementation(async (_namespace, id) => ({ data: patterns[id] }) as never);
         await show(<Slot point="screen" context={{}} />);
         await fill();
-        const target = screen.getByRole('group', { name: 'Target' });
-        const choose = async (label: string, value: string) => {
-            await waitFor(() => expect(within(target).getByLabelText(label)).toBeEnabled());
-            fireEvent.change(within(target).getByLabelText(label), { target: { value } });
-        };
-        const nodeLabels = () => [...within(target).getByLabelText<HTMLSelectElement>('Node').options].map((option) => option.textContent);
+        const target = targetGroup();
 
         await choose('Namespace', 'finos');
         fireEvent.change(within(target).getByLabelText('Type'), { target: { value: 'patterns' } });
