@@ -6,6 +6,7 @@ import type { NamespaceCounts, DomainControlCount } from '../../../model/counts.
 import { colors } from '../../../theme/colors.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { UserAccessProvider } from '../../../admin/context/UserAccessContext.js';
+import { UiConfigContext } from '../../../components/ui-config/UiConfigContext.js';
 import type { UserAccess } from '../../../model/user-access.js';
 import type { UserAccessService } from '../../../service/user-access-service.js';
 
@@ -103,6 +104,19 @@ describe('MobileNavMenu', () => {
         expect(screen.getByText('Control Domains')).toBeInTheDocument();
         // No back button at the root.
         expect(screen.queryByLabelText('Back')).not.toBeInTheDocument();
+    });
+
+    it('leaves out a root row that the operator hides', () => {
+        render(
+            <UiConfigContext.Provider value={{ navigation: { layout: 'menu', showNamespaces: false, showControlDomains: true } }}>
+                <MemoryRouter>
+                    <MobileNavMenu {...props} />
+                </MemoryRouter>
+            </UiConfigContext.Provider>
+        );
+
+        expect(screen.queryByText('Namespaces')).not.toBeInTheDocument();
+        expect(screen.getByText('Control Domains')).toBeInTheDocument();
     });
 
     it('drills into namespaces and shows resource types', async () => {

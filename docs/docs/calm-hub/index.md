@@ -120,13 +120,39 @@ The resulting image carries the seeded database as a read-only filesystem layer.
 
 ## UI Customization
 
-An operator can add deployment-specific information to CALM Hub UI with configuration only. Each `calm.ui.*` property can also be set as an environment variable.
+An operator can brand CALM Hub UI, choose what its menus show and add deployment-specific information, with configuration only. Each `calm.ui.*` property can also be set as an environment variable. If you set none of them, CALM Hub UI uses the CALM name, logo and colours.
 
 | Item | Where it shows | Properties |
 |:-----|:---------------|:-----------|
+| Organisation and application names | Header, home page, browser tab, search boxes | `calm.ui.branding.organisation-name`, `calm.ui.branding.application-name` |
+| Logo | Header and home page, in place of the CALM logo | `calm.ui.branding.logo.light`, `calm.ui.branding.logo.dark` |
+| Brand colour | Links, active tabs and rows, filled badges, focus rings | `calm.ui.branding.colour`, `calm.ui.branding.colour-dark` |
+| Menu layout | `menu` (default): the hamburger menu. `sidebar`: a collapsible menu at the left of each page on a wide screen. The browser remembers the collapse choice | `calm.ui.navigation.layout` |
+| Built-in sections | Explore sidebar, home page | `calm.ui.navigation.show-namespaces`, `calm.ui.navigation.show-control-domains` |
+| Extensions heading | Menu and home page | `calm.ui.navigation.extensions-heading` |
+| Start page | The page that opens at the root URL | `calm.ui.navigation.start-page` |
 | Environment pill | Header, on every page | `calm.ui.environment.name`, `calm.ui.environment.colour` |
-| Signed-in identity | Hamburger menu | `calm.ui.identity.enabled`, `calm.ui.identity.show-roles` |
-| Values and links | Hamburger menu | `calm.ui.items[n].label`, `.value`, `.url` |
+| Signed-in identity | Menu | `calm.ui.identity.enabled`, `calm.ui.identity.show-roles` |
+| Values and links | Menu | `calm.ui.items[n].label`, `.value`, `.url` |
+
+```bash
+CALM_UI_BRANDING_ORGANISATION_NAME="Northstar Financial"
+CALM_UI_BRANDING_APPLICATION_NAME="Architecture Hub"
+CALM_UI_BRANDING_COLOUR=#0f766e           # #rrggbb; COLOUR_DARK sets another colour for the dark theme
+CALM_UI_BRANDING_LOGO_LIGHT=/config/branding/logo.svg
+CALM_UI_BRANDING_LOGO_DARK=/config/branding/logo-dark.svg
+CALM_UI_NAVIGATION_LAYOUT=sidebar         # menu | sidebar
+CALM_UI_NAVIGATION_SHOW_CONTROL_DOMAINS=false
+CALM_UI_NAVIGATION_START_PAGE=/extensions/release-tracker/releases
+```
+
+- Names can have at most 64 characters, and the extensions heading at most 40.
+- CALM Hub reads each logo from a local file one time, at start up. It does not get images from other servers. A logo is a PNG, JPEG, WebP or SVG file of at most 256 KiB. The file extension must agree with the content. A PNG, JPEG or WebP image can be at most 2048 pixels on each side. An SVG must not have scripts, event attributes, or links to other files or pages. A dark logo needs a light logo. Without a dark logo, the dark theme shows the light logo on a white plate. If the browser cannot show a logo, the UI shows the names, or the CALM logo if you set no name.
+- The UI makes the brand colour darker or lighter where it must, so that text in it has a contrast of 4.5:1 in each theme. Without `colour-dark`, the dark theme uses `colour`.
+- To hide a section changes only the menus and the home page. It does not change access: a link to a hidden namespace or control domain still opens for a user who can read it.
+- The extensions heading is "Extensions". If you hide namespaces and control domains, the menu and home page show no heading unless you set one.
+- The start page is `/`, `/search`, `/namespace/<namespace>`, `/domain/<domain>`, `/extensions/<extension-id>/<screen-id>` or `/chat`. The UI opens it only when a user opens the root URL. If the extension screen or chat is not available, or the UI cannot get its settings or the extension list within 3 seconds, the UI shows the home page.
+- The UI gets the logos from `GET /api/calm/ui/branding/logo/{light|dark}`, which requires authentication.
 
 ```bash
 CALM_UI_ENVIRONMENT_NAME=UAT
@@ -140,7 +166,7 @@ CALM_UI_ITEMS_1__VALUE=2026.10.1
 
 - Each item needs a `label` and a `value`, a `url`, or both. With both, the `value` is the link text.
 - Use a short environment name, for example `DEV`, `QA` or `PROD`. The header cuts a long name to fit, and cuts it most on a narrow screen. Tap or click the pill to see the full name.
-- CALM Hub does not start if a colour or URL is not valid. URLs must be absolute `http` or `https` URLs.
+- CALM Hub does not start if a name, colour, logo, layout, start page or URL is not valid. URLs must be absolute `http` or `https` URLs.
 - Identity and roles are off by default. Turn on `show-roles` only if your role names are safe to show to users.
 - The UI gets these values from `GET /api/calm/ui/config`, which requires authentication.
 

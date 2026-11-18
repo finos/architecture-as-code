@@ -20,7 +20,8 @@ import { InterfaceData } from '../model/interface.js';
 import { NamespaceCounts, DomainControlCount } from '../model/counts.js';
 import { CountsService } from '../service/counts-service.js';
 import { hideEmptyPersonalRoot } from '../model/personal-namespace.js';
-import { Navbar } from '../components/navbar/Navbar.js';
+import { AppLayout } from '../components/navigation/AppLayout.js';
+import { useNavigationSettings } from '../components/navigation/navigation-settings.js';
 import { AdrRenderer } from './components/adr-renderer/AdrRenderer.js';
 import { DocumentDetailSection } from './components/document-detail-section/DocumentDetailSection.js';
 import { ControlPanel } from './components/control-detail-section/ControlPanel.js';
@@ -99,6 +100,8 @@ export default function Hub() {
     // Mirrors namespaceCountsFailed above — a failed fetch means "unknown", not "zero".
     const [domainCountsFailed, setDomainCountsFailed] = useState(false);
     const isMobile = useIsMobile();
+    const navigation = useNavigationSettings();
+    const showExplore = navigation.showNamespaces || navigation.showControlDomains;
 
     // Route-first content selection (redesign problem #4): the same <Hub/> element
     // is reused across `/`, `/namespace/:ns`, `/domain/:domain` and the detail
@@ -179,6 +182,12 @@ export default function Hub() {
     if (isSearchRoute !== wasSearchRoute) {
         setWasSearchRoute(isSearchRoute);
         if (isSearchRoute) setIsMobileNavOpen(false);
+    }
+    // Without namespaces and control domains the drill-down has only its search, so it does not open by itself.
+    const [exploreShown, setExploreShown] = useState(true);
+    if (showExplore !== exploreShown) {
+        setExploreShown(showExplore);
+        if (!showExplore) setIsMobileNavOpen(false);
     }
 
     useEffect(() => {
@@ -452,6 +461,19 @@ export default function Hub() {
         !controlData &&
         !interfaceData
     ) {
+        // The sidebar layout keeps its navigation on the home page too.
+        if (navigation.layout === 'sidebar') {
+            return (
+                <AppLayout>
+                    <IntroScreen
+                        embedded
+                        namespaceCounts={visibleNamespaceCounts}
+                        domainCounts={domainCounts}
+                        personalNamespace={personalNamespace}
+                    />
+                </AppLayout>
+            );
+        }
         return (
             <IntroScreen
                 namespaceCounts={visibleNamespaceCounts}
@@ -529,8 +551,7 @@ export default function Hub() {
         <DiagramActionsContext.Provider value={diagramActions}>
         <ExtensionResourceContext.Provider value={resourceContext}>
         <DecoratorsContext.Provider value={decoratorsState}>
-        <div className="flex flex-col h-screen overflow-hidden">
-            <Navbar />
+        <AppLayout>
             {isMobile && !isMobileNavOpen && (
                 <button
                     aria-label="Explore"
@@ -542,8 +563,8 @@ export default function Hub() {
                 </button>
             )}
             <div className="relative flex flex-row flex-1 overflow-hidden bg-base-300">
-                {/* Desktop: inline, collapsible browse rail. */}
-                {!isMobile && (
+                {/* Desktop: inline, collapsible browse rail. Hidden when the operator hides both of its sections. */}
+                {!isMobile && showExplore && (
                     <div className={`h-full shrink-0 ${isSidebarOpen ? '' : 'w-12'} transition-all duration-300`}>
                         {isSidebarOpen ? (
                             <ExploreRail
@@ -556,7 +577,10 @@ export default function Hub() {
                                 onCollapse={() => setIsSidebarOpen(false)}
                             />
                         ) : (
-                            <CollapsedRail namespaceCounts={visibleNamespaceCounts} onExpand={() => setIsSidebarOpen(true)} />
+                            <CollapsedRail
+                                namespaceCounts={navigation.showNamespaces ? visibleNamespaceCounts : []}
+                                onExpand={() => setIsSidebarOpen(true)}
+                            />
                         )}
                     </div>
                 )}
@@ -601,7 +625,7 @@ export default function Hub() {
                     ))}
 
             </div>
-        </div>
+        </AppLayout>
         </DecoratorsContext.Provider>
         </ExtensionResourceContext.Provider>
         </DiagramActionsContext.Provider>

@@ -569,8 +569,8 @@ export function ArchitectureGraph({
                             }}
                             // Faint tinted node chips so the map reads as a soft field,
                             // not solid accent on every node.
-                            nodeColor={`${colors.redesign.primary}40`}
-                            nodeStrokeColor={`${colors.redesign.primary}66`}
+                            nodeColor={`color-mix(in srgb, ${colors.redesign.primary} 25%, transparent)`}
+                            nodeStrokeColor={`color-mix(in srgb, ${colors.redesign.primary} 40%, transparent)`}
                             // The ~25% mask that keeps the surrounding field faint is applied
                             // in index.css via `.calm-minimap-mask-surface`: `maskColor` lands
                             // in an SVG `fill` attribute, which `var()` cannot reach.

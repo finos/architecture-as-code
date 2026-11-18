@@ -61,8 +61,7 @@ describe('TimelineBar', () => {
             const activeMarker = screen.getByLabelText('Moment 1.5.0');
             const dot = activeMarker.querySelector('[data-active="true"]') as HTMLElement;
             expect(dot).toBeTruthy();
-            // redesign.primary #2563EB → rgb(37, 99, 235)
-            expect(dot).toHaveStyle({ backgroundColor: 'rgb(37, 99, 235)' });
+            expect(dot).toHaveStyle({ backgroundColor: 'var(--color-interaction)' });
         });
     });
 

@@ -25,6 +25,7 @@ import { MobileNamespaceRow } from './MobileNamespaceRow.js';
 import { EditScopeMenuButton } from '../explore-rail/EditScopeMenuButton.js';
 import { EditScopeChip } from '../explore-rail/EditScopeChip.js';
 import { useEditScope } from '../explore-rail/useEditScope.js';
+import { useNavigationSettings } from '../../../components/navigation/navigation-settings.js';
 
 const RESOURCE_TYPES: TypeInUI[] = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
 
@@ -119,6 +120,7 @@ export function MobileNavMenu({
     const adrService = useMemo(() => new AdrService(), []);
 
     const [view, setView] = useState<View>({ level: 'root' });
+    const { showNamespaces, showControlDomains } = useNavigationSettings();
     const [leafItems, setLeafItems] = useState<LeafItem[]>([]);
     const [leafLoading, setLeafLoading] = useState(false);
     const [searching, setSearching] = useState(false);
@@ -286,8 +288,12 @@ export function MobileNavMenu({
         switch (view.level) {
             case 'root':
                 return [
-                    { key: 'namespaces', label: 'Namespaces', isLeaf: false, onClick: () => setView({ level: 'namespaces' }) },
-                    { key: 'domains', label: 'Control Domains', isLeaf: false, onClick: () => setView({ level: 'domains' }) },
+                    ...(showNamespaces
+                        ? [{ key: 'namespaces', label: 'Namespaces', isLeaf: false, onClick: () => setView({ level: 'namespaces' }) }]
+                        : []),
+                    ...(showControlDomains
+                        ? [{ key: 'domains', label: 'Control Domains', isLeaf: false, onClick: () => setView({ level: 'domains' }) }]
+                        : []),
                 ];
             // Namespaces render as a nested tree via `namespaceRows`, not a flat Row list.
             case 'namespaces':
@@ -365,7 +371,7 @@ export function MobileNavMenu({
                         <IoChevronBackOutline size={20} />
                     </button>
                 ) : (
-                    <IoCompassOutline className="text-accent ml-2" size={20} />
+                    <IoCompassOutline className="ml-2" size={20} style={{ color: colors.redesign.primaryText }} />
                 )}
                 <h2 className="text-lg font-semibold flex-1 min-w-0 truncate">{title}</h2>
                 {scopeLevel && showScopeControl && <EditScopeMenuButton scope={scope} onChange={setScope} size={32} />}

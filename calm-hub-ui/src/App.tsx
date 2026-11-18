@@ -9,6 +9,8 @@ import { DomainsPanel } from './admin/panels/DomainsPanel.js';
 import { EntitlementsPanel } from './admin/panels/EntitlementsPanel.js';
 import { UserAccessProvider } from './admin/context/UserAccessContext.js';
 import { UiConfigProvider } from './components/ui-config/UiConfigContext.js';
+import { BrandTheme } from './components/branding/BrandTheme.js';
+import { StartPageRedirect } from './components/navigation/StartPageRedirect.js';
 
 function App() {
     //TODO: The artifacts route will eventually need to be changed/replaced once we create a unique identifier for resources that can be used across CalmHubs.
@@ -17,27 +19,30 @@ function App() {
     return (
         <UserAccessProvider>
             <UiConfigProvider>
+                <BrandTheme />
                 <ExtensionsProvider>
                 <Router>
-                    <Routes>
-                        <Route path="/extensions/:extensionId/:contributionId" element={<ExtensionScreenPage />} />
-                        <Route path="/" element={<Hub />} />
-                        <Route path="/search" element={<Hub />} />
-                        {/* The standalone /visualizer page was removed; redirect old links to the hub. */}
-                        <Route path="/visualizer" element={<Navigate to="/" replace />} />
-                        <Route path="/namespace/:ns" element={<Hub />} />
-                        <Route path="/domain/:domain" element={<Hub />} />
-                        {/* Landing page for malformed detailed-architecture refs; the
-                            broken ref itself travels in history state (brokenRef). */}
-                        <Route path="/broken-reference" element={<Hub />} />
-                        <Route path={RESOURCE_ROUTE} element={<Hub />} />
-                        <Route path="/admin" element={<AdminPage />}>
-                            <Route index element={<Navigate to="entitlements" replace />} />
-                            <Route path="namespaces" element={<NamespacesPanel />} />
-                            <Route path="domains" element={<DomainsPanel />} />
-                            <Route path="entitlements" element={<EntitlementsPanel />} />
-                        </Route>
-                    </Routes>
+                    <StartPageRedirect>
+                        <Routes>
+                            <Route path="/extensions/:extensionId/:contributionId" element={<ExtensionScreenPage />} />
+                            <Route path="/" element={<Hub />} />
+                            <Route path="/search" element={<Hub />} />
+                            {/* The standalone /visualizer page was removed; redirect old links to the hub. */}
+                            <Route path="/visualizer" element={<Navigate to="/" replace />} />
+                            <Route path="/namespace/:ns" element={<Hub />} />
+                            <Route path="/domain/:domain" element={<Hub />} />
+                            {/* Landing page for malformed detailed-architecture refs; the
+                                broken ref itself travels in history state (brokenRef). */}
+                            <Route path="/broken-reference" element={<Hub />} />
+                            <Route path={RESOURCE_ROUTE} element={<Hub />} />
+                            <Route path="/admin" element={<AdminPage />}>
+                                <Route index element={<Navigate to="entitlements" replace />} />
+                                <Route path="namespaces" element={<NamespacesPanel />} />
+                                <Route path="domains" element={<DomainsPanel />} />
+                                <Route path="entitlements" element={<EntitlementsPanel />} />
+                            </Route>
+                        </Routes>
+                    </StartPageRedirect>
                 </Router>
                 </ExtensionsProvider>
             </UiConfigProvider>

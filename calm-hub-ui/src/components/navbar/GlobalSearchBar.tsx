@@ -7,6 +7,7 @@ import { AdrService } from '../../service/adr-service/adr-service.js';
 import { SearchResult } from '../../model/search.js';
 import { FlatResult, TYPE_LABELS, useSearchNavigation } from '../../hooks/useSearchNavigation.js';
 import { useCatalogueSearch } from '../../hooks/useCatalogueSearch.js';
+import { useProductName } from '../branding/brand-names.js';
 import { colors } from '../../theme/colors.js';
 
 interface GlobalSearchBarProps {
@@ -16,6 +17,7 @@ interface GlobalSearchBarProps {
 }
 
 export function GlobalSearchBar({ searchService, calmService: calmServiceProp, adrService: adrServiceProp }: GlobalSearchBarProps) {
+    const productName = useProductName();
     const {
         query,
         results,
@@ -180,8 +182,8 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                 <input
                     ref={inputRef}
                     type="text"
-                    placeholder="Search CALM Hub..."
-                    className="bg-transparent border-none outline-none text-sm text-base-content placeholder:text-base-content/40 w-28 sm:w-48 lg:w-64"
+                    placeholder={`Search ${productName}...`}
+                    className="bg-transparent border-none outline-none text-sm text-base-content text-ellipsis placeholder:text-base-content/40 w-28 sm:w-48 lg:w-64"
                     value={query}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}

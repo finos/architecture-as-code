@@ -183,6 +183,16 @@ This is how the published `latest-read-only-static` and `latest-read-only-native
 | `calm.standalone.database-name` | `CALM_STANDALONE_DATABASE_NAME` | `calmSchemas` | NitriteDB database filename |
 | `calm.mcp.enabled` | `CALM_MCP_ENABLED` | `false` | Enable MCP tool invocations |
 | `calm.decorators.reserved."<type>".writers` | (use the property) | (none) | Principals that may write decorators of a reserved type. See [Decorator Write Rules](mcp-and-api.md#decorator-write-rules) |
+| `calm.ui.branding.organisation-name` | `CALM_UI_BRANDING_ORGANISATION_NAME` | (none) | Organisation name in the UI header, home page and browser tab. At most 64 characters |
+| `calm.ui.branding.application-name` | `CALM_UI_BRANDING_APPLICATION_NAME` | (none) | Application name under the organisation name. At most 64 characters |
+| `calm.ui.branding.colour` | `CALM_UI_BRANDING_COLOUR` | (CALM colours) | Brand colour, `#rrggbb` |
+| `calm.ui.branding.colour-dark` | `CALM_UI_BRANDING_COLOUR_DARK` | `colour` | Brand colour for the dark theme, `#rrggbb` |
+| `calm.ui.branding.logo.light` / `.dark` | `CALM_UI_BRANDING_LOGO_LIGHT` / `_DARK` | (CALM logo) | Local PNG, JPEG, WebP or SVG file of at most 256 KiB. See [UI Customization](index.md#ui-customization) |
+| `calm.ui.navigation.layout` | `CALM_UI_NAVIGATION_LAYOUT` | `menu` | `menu` (hamburger menu) or `sidebar` (collapsible menu at the left on a wide screen; the browser remembers the choice) |
+| `calm.ui.navigation.show-namespaces` | `CALM_UI_NAVIGATION_SHOW_NAMESPACES` | `true` | Show namespaces in the explore sidebar and on the home page. Access does not change |
+| `calm.ui.navigation.show-control-domains` | `CALM_UI_NAVIGATION_SHOW_CONTROL_DOMAINS` | `true` | Show control domains in the explore sidebar and on the home page. Access does not change |
+| `calm.ui.navigation.extensions-heading` | `CALM_UI_NAVIGATION_EXTENSIONS_HEADING` | `Extensions` | Heading of the extension entries. At most 40 characters |
+| `calm.ui.navigation.start-page` | `CALM_UI_NAVIGATION_START_PAGE` | `/` | The page that opens at the root URL |
 | `calm.ui.environment.name` | `CALM_UI_ENVIRONMENT_NAME` | (none) | Environment pill text in the UI header. No pill if not set |
 | `calm.ui.environment.colour` | `CALM_UI_ENVIRONMENT_COLOUR` | `warning` | `info`, `success`, `warning`, `error`, `neutral` or `#rrggbb` |
 | `calm.ui.identity.enabled` | `CALM_UI_IDENTITY_ENABLED` | `false` | Show the signed-in principal name in the UI menu |

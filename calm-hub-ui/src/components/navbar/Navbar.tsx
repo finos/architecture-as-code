@@ -1,31 +1,18 @@
 import './Navbar.css';
-import { useContext, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { IoMenuOutline } from 'react-icons/io5';
+import { KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { IoCloseOutline, IoMenuOutline } from 'react-icons/io5';
 import { GlobalSearchBar } from './GlobalSearchBar.js';
 import { ThemeToggle } from './ThemeToggle.js';
 import { useTheme } from '../../theme/useTheme.js';
-import { UserAccessContext } from '../../admin/context/UserAccessContext.js';
 import { UserMenu } from '../user-menu/UserMenu.js';
 import { isAuthServiceEnabled } from '../../authService.js';
 import { useUiConfig } from '../ui-config/UiConfigContext.js';
 import { EnvironmentPill } from './EnvironmentPill.js';
-import { MenuInfo } from './MenuInfo.js';
-import { ExtensionMenuGroup } from './ExtensionMenuGroup.js';
-
-/**
- * The navy-and-blue lockup is unreadable on a dark base, so dark gets a white one.
- * Both are navbar lockups — icon + CALM wordmark, no tagline — and share an aspect
- * ratio, so the logo does not resize when the theme is toggled.
- */
-const LOGO_SRC = {
-    light: '/brand/Horizontal/2025_CALM_Horizontal_Navbar_Logo.svg',
-    dark: '/brand/Horizontal/2025_CALM_Horizontal_Navbar_Logo_WHT.svg',
-} as const;
-
-function menuNavClass({ isActive }: { isActive: boolean }) {
-    return `w-full flex items-center px-4 py-3 text-left hover:bg-base-200 active:bg-base-200${isActive ? ' bg-base-200 font-semibold' : ''}`;
-}
+import { BrandLockup } from '../branding/BrandLockup.js';
+import { useProductName } from '../branding/brand-names.js';
+import { NavigationMenu } from '../navigation/NavigationMenu.js';
+import { usePersistentNavigation } from '../navigation/navigation-settings.js';
 
 interface NavbarProps {
     /** Injected for tests; see the storage note in calm-hub-ui/AGENTS.md. */
@@ -33,13 +20,47 @@ interface NavbarProps {
 }
 
 export function Navbar({ storage }: NavbarProps = {}) {
-    const { loading, isGlobalAdmin, grants } = useContext(UserAccessContext);
-    const showAdminLink = !loading && (isGlobalAdmin || grants.some((g) => g.permission === 'admin'));
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { theme, toggleTheme } = useTheme(storage);
-    const { environment, identity, items } = useUiConfig();
+    const { environment } = useUiConfig();
+    const productName = useProductName();
+    // In the sidebar layout on a wide screen, AppLayout shows the menu, so the navbar has no drawer.
+    const persistent = usePersistentNavigation();
+    if (persistent && isMenuOpen) setIsMenuOpen(false);
 
     const closeMenu = () => setIsMenuOpen(false);
+
+    // The drawer is a modal dialog, so the page and the rest of the navbar are inert while it is open: a click
+    // outside it only closes it. It gives the focus to its close button, and back to the menu button when it closes.
+    const menuButtonRef = useRef<HTMLButtonElement>(null);
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const drawerRef = useRef<HTMLDialogElement>(null);
+    useEffect(() => {
+        const drawer = drawerRef.current;
+        if (!drawer || drawer.open === isMenuOpen) return;
+        // jsdom does not have showModal or close.
+        if (isMenuOpen) {
+            if (typeof drawer.showModal === 'function') drawer.showModal();
+            else drawer.setAttribute('open', '');
+            closeButtonRef.current?.focus();
+        } else {
+            if (typeof drawer.close === 'function') drawer.close();
+            else drawer.removeAttribute('open');
+            menuButtonRef.current?.focus();
+        }
+    }, [isMenuOpen]);
+
+    function onDrawerKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
+        if (event.key === 'Tab') {
+            const controls = event.currentTarget.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (document.activeElement === (event.shiftKey ? first : last)) {
+                event.preventDefault();
+                (event.shiftKey ? last : first).focus();
+            }
+        }
+    }
 
     return (
         <div className="navbar bg-base-100 border-b-2 border-base-200 text-primary-content gap-1 lg:grid lg:grid-cols-[minmax(auto,1fr)_auto_minmax(auto,1fr)]">
@@ -48,19 +69,23 @@ export function Navbar({ storage }: NavbarProps = {}) {
                 the bar pushes it aside. Below lg this is flex-1, from lg a grid
                 (daisyUI's 50% side width and min-w-0 would let the sides overlap it). */}
             <div className="navbar-start flex items-center gap-1 w-auto max-lg:flex-1">
-                <button
-                    // Narrower on mobile with a pill, which must fit beside the centred logo.
-                    className={`btn btn-ghost gap-2 text-primary shrink-0${environment ? ' px-2 lg:px-4' : ''}`}
-                    onClick={() => setIsMenuOpen((v) => !v)}
-                    aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
-                >
-                    <IoMenuOutline className="h-5 w-5" />
-                </button>
+                {!persistent && (
+                    <button
+                        ref={menuButtonRef}
+                        // Narrower on mobile with a pill, which must fit beside the centred logo.
+                        className={`btn btn-ghost gap-2 text-primary shrink-0${environment ? ' px-2 lg:px-4' : ''}`}
+                        onClick={() => setIsMenuOpen(true)}
+                        aria-label="Open menu"
+                        aria-expanded={isMenuOpen}
+                    >
+                        <IoMenuOutline className="h-5 w-5" />
+                    </button>
+                )}
                 {environment && <EnvironmentPill environment={environment} />}
             </div>
             <div className="navbar-center min-w-0 max-lg:shrink">
-                <Link to="/" className="btn btn-ghost min-w-0 px-1 max-lg:shrink" aria-label="CALM Hub home">
-                    <img src={LOGO_SRC[theme]} alt="CALM Logo" className="h-10 logo min-w-0 object-contain" />
+                <Link to="/" className="btn btn-ghost min-w-0 max-w-full px-1 max-lg:shrink" aria-label={`${productName} home`}>
+                    <BrandLockup theme={theme} size="navbar" />
                 </Link>
             </div>
             <div className="navbar-end flex items-center gap-1 shrink-0 w-auto max-lg:flex-1">
@@ -74,38 +99,32 @@ export function Navbar({ storage }: NavbarProps = {}) {
                 {isAuthServiceEnabled() && <UserMenu />}
             </div>
 
-            {/* Backdrop — dims the page behind the drawer; tap to close */}
-            <div
-                className={`fixed inset-x-0 bottom-0 top-16 z-40 bg-black/30 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                aria-hidden="true"
-                onClick={closeMenu}
-            />
-
-            {/* Destinations drawer — slides in from the left */}
-            <div
-                className={`fixed left-0 bottom-0 top-16 z-40 w-64 bg-base-100 text-base-content flex flex-col shadow-xl transition-transform duration-300 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'}`}
-                role="dialog"
-                aria-modal={isMenuOpen}
-                aria-hidden={!isMenuOpen}
-                inert={!isMenuOpen}
-            >
-                <ul className="flex-1 overflow-auto divide-y divide-base-200">
-                    <li>
-                        <NavLink to="/" className={menuNavClass} onClick={closeMenu} end>
-                            Hub
-                        </NavLink>
-                    </li>
-                    {showAdminLink && (
-                        <li>
-                            <NavLink to="/admin" className={menuNavClass} onClick={closeMenu}>
-                                Admin
-                            </NavLink>
-                        </li>
-                    )}
-                    <ExtensionMenuGroup heading="Extensions" linkClassName={menuNavClass} onNavigate={closeMenu} />
-                </ul>
-                <MenuInfo identity={identity} items={items} />
-            </div>
+            {!persistent && (
+                <dialog
+                    ref={drawerRef}
+                    aria-label="Menu"
+                    className="navbar-drawer fixed left-0 top-16 bottom-0 m-0 h-auto max-h-none w-64 max-w-none border-0 p-0 bg-base-100 text-base-content shadow-xl"
+                    // Escape. preventDefault keeps the state in charge; the browser can still close the dialog itself.
+                    onCancel={(event) => {
+                        event.preventDefault();
+                        closeMenu();
+                    }}
+                    onClose={closeMenu}
+                    // The content fills the dialog, so only a click on the backdrop has the dialog as its target.
+                    onClick={(event) => event.target === event.currentTarget && closeMenu()}
+                    onKeyDown={onDrawerKeyDown}
+                >
+                    <div className="flex h-full flex-col">
+                        <div className="flex items-center gap-2 border-b border-base-200 py-2 pl-4 pr-2">
+                            <h2 className="flex-1 font-semibold">Menu</h2>
+                            <button ref={closeButtonRef} aria-label="Close menu" className="btn btn-ghost btn-sm btn-circle" onClick={closeMenu}>
+                                <IoCloseOutline size={22} />
+                            </button>
+                        </div>
+                        <NavigationMenu onNavigate={closeMenu} />
+                    </div>
+                </dialog>
+            )}
         </div>
     );
 }

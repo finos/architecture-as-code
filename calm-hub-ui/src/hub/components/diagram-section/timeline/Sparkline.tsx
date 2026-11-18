@@ -226,7 +226,9 @@ export function Sparkline({
                                                     border: isActive
                                                         ? `2px solid ${colors.redesign.primary}`
                                                         : `1.5px solid ${colors.ink[400]}`,
-                                                    boxShadow: isActive ? `0 0 0 4px ${colors.redesign.primary}33` : 'none',
+                                                    boxShadow: isActive
+                                                        ? `0 0 0 4px color-mix(in srgb, ${colors.redesign.primary} 20%, transparent)`
+                                                        : 'none',
                                                 }}
                                             />
                                         </button>

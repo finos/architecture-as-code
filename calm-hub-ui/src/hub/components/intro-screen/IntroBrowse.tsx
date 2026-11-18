@@ -8,6 +8,7 @@ import { ShowMoreToggle } from '../show-more/ShowMoreToggle.js';
 import { useExtensions } from '../../../extensions/ExtensionsContext.js';
 import { extensionNavLinks } from '../../../extensions/contributions.js';
 import { ExtensionCard } from './ExtensionCard.js';
+import { extensionsHeading, useNavigationSettings } from '../../../components/navigation/navigation-settings.js';
 
 interface BrowseCardProps {
     label: string;
@@ -69,7 +70,7 @@ function BrowseCard({ label, count, to, testId, description }: BrowseCardProps) 
 }
 
 interface BrowseSectionProps {
-    title: string;
+    title?: string;
     children: React.ReactNode;
     gridClassName?: string;
 }
@@ -77,12 +78,14 @@ interface BrowseSectionProps {
 function BrowseSection({ title, children, gridClassName = 'grid-cols-2 sm:grid-cols-3' }: BrowseSectionProps) {
     return (
         <section className="w-full">
-            <div
-                className="font-mono-jb text-[11px] uppercase tracking-[0.1em] mb-3"
-                style={{ color: colors.redesign.faintAlt }}
-            >
-                {title}
-            </div>
+            {title && (
+                <div
+                    className="font-mono-jb text-[11px] uppercase tracking-[0.1em] mb-3"
+                    style={{ color: colors.redesign.faintAlt }}
+                >
+                    {title}
+                </div>
+            )}
             <div data-testid="browse-grid" className={`grid ${gridClassName} gap-3`}>
                 {children}
             </div>
@@ -98,19 +101,23 @@ interface IntroBrowseProps {
 /**
  * The intro's browse affordance: every namespace and control domain as a clickable
  * tile (the same routes the explore rail uses), so the sidebar's targets are
- * reachable from the hero, and each extension with a landing card or a top-level page. Renders nothing when all are empty.
+ * reachable from the hero, and each extension with a landing card or a top-level page. The operator can hide
+ * namespaces and control domains. Renders nothing when all are empty or hidden.
  */
 export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps) {
+    const navigation = useNavigationSettings();
+    const namespaces = navigation.showNamespaces ? namespaceCounts : [];
+    const domains = navigation.showControlDomains ? domainCounts : [];
     const extensions = useExtensions()
         .map((extension) => ({ extension, links: extensionNavLinks(extension) }))
         .filter(({ extension, links }) => (extension.contributes['landing-card'] ?? []).length > 0 || links.length > 0);
-    if (namespaceCounts.length === 0 && domainCounts.length === 0 && extensions.length === 0) return null;
+    if (namespaces.length === 0 && domains.length === 0 && extensions.length === 0) return null;
 
     return (
         <div className="w-full max-w-[640px] flex flex-col gap-10">
-            {namespaceCounts.length > 0 && (
+            {namespaces.length > 0 && (
                 <BrowseSection title="Namespaces">
-                    {namespaceCounts.map((nc) => (
+                    {namespaces.map((nc) => (
                         <BrowseCard
                             key={nc.namespace}
                             label={nc.namespace}
@@ -125,16 +132,16 @@ export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps)
 
             {extensions.length > 0 && (
                 // Wider cards than the tiles, so that the figures stay readable on a phone.
-                <BrowseSection title="Extensions" gridClassName="grid-cols-1 sm:grid-cols-2">
+                <BrowseSection title={extensionsHeading(navigation)} gridClassName="grid-cols-1 sm:grid-cols-2">
                     {extensions.map(({ extension, links }) => (
                         <ExtensionCard key={extension.id} extension={extension} links={links} />
                     ))}
                 </BrowseSection>
             )}
 
-            {domainCounts.length > 0 && (
+            {domains.length > 0 && (
                 <BrowseSection title="Control domains">
-                    {domainCounts.map((dc) => (
+                    {domains.map((dc) => (
                         <BrowseCard
                             key={dc.domain}
                             label={dc.domain}

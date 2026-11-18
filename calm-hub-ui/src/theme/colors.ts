@@ -163,9 +163,10 @@ export const colors = {
     // style, so `--color-interaction` is declared alongside the rest in theme.css.
     // Light values are exactly the spec's hex.
     redesign: {
-        // Brand / interaction. `primary` stays hex: it is alpha-concatenated and fed
-        // to ReactFlow SVG attributes. Use `primaryText` for a text or icon role.
-        primary: '#2563EB', // active states, selection, links, focus, primary
+        // Brand / interaction. `primary` follows the operator brand colour, so mix it
+        // with `color-mix()` for transparency, never by appending hex alpha.
+        // Use `primaryText` for a text or icon role.
+        primary: 'var(--color-interaction)', // active states, selection, links, focus, primary
         primaryText: 'var(--calm-interaction-text)', // `primary` as text / icon
         activeText: 'var(--calm-redesign-active-text)', // active tab / rail text
         tintBg: 'var(--calm-redesign-tint-bg)', // selected rail row, icon tile, active pill bg
