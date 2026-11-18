@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useExtensions } from '../../extensions/ExtensionsContext.js';
 import { screenPath } from '../../extensions/contributions.js';
-import { ExtensionMarker } from '../../extensions/ExtensionMarker.js';
+import { ExtensionLogo } from '../../extensions/ExtensionLogo.js';
 
 interface ExtensionMenuGroupProps {
     linkClassName: (state: { isActive: boolean }) => string;
@@ -27,7 +27,7 @@ export function ExtensionMenuGroup({ linkClassName, onNavigate }: ExtensionMenuG
                     <li key={`${extension.id}/${contribution.id}`}>
                         <NavLink to={screenPath(extension, contribution)} className={linkClassName} onClick={onNavigate}>
                             <span className="flex items-center gap-2 min-w-0">
-                                <ExtensionMarker extensionId={extension.id} />
+                                <ExtensionLogo extension={extension} />
                                 <span className="flex flex-col min-w-0">
                                     <span className="truncate">{contribution.title}</span>
                                     {contribution.title !== extension.name && (

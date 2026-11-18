@@ -6,17 +6,21 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Request;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.ValueWrapper;
+import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.finos.calm.extensions.ExtensionRegistry;
 import org.finos.calm.extensions.NotationChecker;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @Tag(name = "Extensions", description = "Extensions that the operator enabled on this CALM Hub")
@@ -74,6 +78,24 @@ public class ExtensionResource {
                 .filter(entry -> entry.id().equals(lens))
                 .findFirst()
                 .map(entry -> Response.ok(entry.notationContent()).build())
+                .orElse(Response.status(Response.Status.NOT_FOUND).build());
+    }
+
+    @GET
+    @Path("{id}/logo/{variant: light|dark}")
+    @Produces({"image/png", "image/jpeg", "image/webp", "image/svg+xml"})
+    @Authenticated
+    @Operation(summary = "Get a logo of an extension",
+            description = "The light or dark theme logo that the manifest declares. CALM Hub checked the image at start up. "
+                    + "The reply is private, and a browser checks it again with its ETag.")
+    public Response logo(@PathParam("id") String id, @PathParam("variant") String variant, @Context Request request) {
+        return registry.available().stream()
+                .filter(manifest -> manifest.id().equals(id))
+                .map(ExtensionManifest::logo)
+                .filter(Objects::nonNull)
+                .flatMap(logo -> logo.image(variant).stream())
+                .findFirst()
+                .map(image -> image.response(request, null))
                 .orElse(Response.status(Response.Status.NOT_FOUND).build());
     }
 

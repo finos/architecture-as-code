@@ -476,6 +476,11 @@ from; it fails if there is none.
 - `calm-hub-extensions/` holds the extensions we own (`c4`, `ea-layers`): real services, each with its own notation.
   Each runs as a sidecar and copies its folder to the shared `calm.extensions.dir` volume (`deploy/docker-compose.yml`).
   `TestExtensionManifestLoaderShould` loads that folder, so a manifest or notation that Hub refuses fails the Java tests
+- A manifest `logo` names image files next to `extension.json`. `ExtensionManifestLoader` reads each one with
+  `assets/ImageAsset.read`, which checks the type from the bytes, the size and the pixel size, and refuses active or
+  external SVG content. `ExtensionResource` serves the result at `{id}/logo/{light|dark}`. `ImageAsset` is shared with
+  organisation branding: use it for every image that Hub serves, and do not add a remote image fetch. Give
+  `ImageAsset.read` an `InputStream`, not the whole file, so that it stops reading at the size limit
 - `ExtensionHubData` builds the body of a `hubData` route, with the scope of the caller: the document, detailed
   architectures in the same namespace only, and conventions only where `permissions.canRead` allows. The proxy
   replaces the caller's body with it before it signs, so `bdh` covers it. Keep both limits (`MAX_*`).

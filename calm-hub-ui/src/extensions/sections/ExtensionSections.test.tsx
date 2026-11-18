@@ -1,8 +1,9 @@
 import { StrictMode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryStorage } from '../../test-support/memory-storage.js';
+import { fakeImageAssets, logoSvg, svgDataUrl } from '../../test-support/fake-image-assets.js';
 import { ExtensionSections } from './ExtensionSections.js';
 
 const sections = (count: number, content = vi.fn((id: string) => <p>{`content ${id}`}</p>)) =>
@@ -21,6 +22,15 @@ describe('ExtensionSections', () => {
         // aria-controls names only a body that is in the page.
         expect(document.getElementById(toggle('Extension 1').getAttribute('aria-controls')!)).toHaveTextContent('content ext-1');
         expect(toggle('Extension 2')).not.toHaveAttribute('aria-controls');
+    });
+
+    it('shows the logo of an extension in its section toggle, which keeps the extension name as its name', async () => {
+        const assets = fakeImageAssets({ '/api/calm/extensions/ext-1/logo/light': logoSvg('#0f766e') });
+        const [first, second] = sections(2);
+        render(assets.wrap(<ExtensionSections sections={[{ ...first, logo: { light: 'logo.svg' } }, second]} storageKey="k" storage={createMemoryStorage()} />));
+        await waitFor(() => expect(toggle('Extension 1').querySelector('img')).toHaveAttribute('src', svgDataUrl(logoSvg('#0f766e'))));
+        expect(screen.getByRole('button', { name: 'Extension 1' })).toBe(toggle('Extension 1'));
+        expect(toggle('Extension 2').querySelector('[data-testid="extension-marker"]')).toBeInTheDocument();
     });
 
     it('remembers each choice per extension', async () => {

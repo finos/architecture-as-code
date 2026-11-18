@@ -80,6 +80,7 @@ parameter cannot contain a slash, so the route cannot use `{resource}` (`archite
 | `routes` | Every call that CALM Hub can send to the backend. CALM Hub refuses all other paths. `scope` is the permission that the caller must have. When two routes match a path, the route with more literal segments wins. CALM Hub does not start if they have the same number |
 | `commands` | Commands for the CLI and MCP. Each names a route |
 | `contributes` | What the Hub UI shows. Each entry names a route, except `decorator-views` |
+| `logo` | Optional. Image files in the extension folder that the UI shows beside the extension name. See [Extension logos](../../calm-hub/index.md#extension-logos) |
 | `readOnly` | `true` when the route changes nothing. CALM Hub does not audit it, and a read-only Hub still allows it. A `GET` route must change nothing in any case: see [Write the routes](../../calm-hub/extension-access.md#write-the-routes) |
 
 CALM Hub does not start if the manifest is not valid. The error names the file and the field.

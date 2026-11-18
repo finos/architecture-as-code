@@ -27,6 +27,22 @@
       "type": "string",
       "minLength": 1
     },
+    "logo": {
+      "description": "The logo of the extension: image files in the extension folder, next to extension.json. CALM Hub shows light in the light theme, and dark, if set, in the dark theme. It checks each file at start up (see ImageAsset).",
+      "type": "object",
+      "properties": {
+        "light": {
+          "$ref": "#/$defs/imageFile"
+        },
+        "dark": {
+          "$ref": "#/$defs/imageFile"
+        }
+      },
+      "required": [
+        "light"
+      ],
+      "additionalProperties": false
+    },
     "routes": {
       "type": "array",
       "items": {
@@ -436,6 +452,11 @@
         }
       ],
       "additionalProperties": false
+    },
+    "imageFile": {
+      "description": "A PNG, JPEG, WebP or SVG file name in the extension folder. The file must hold the type of its extension.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}\\.(png|jpg|jpeg|webp|svg)$"
     }
   }
 }

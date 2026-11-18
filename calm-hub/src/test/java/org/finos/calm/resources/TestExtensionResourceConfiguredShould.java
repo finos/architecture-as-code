@@ -6,13 +6,21 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.extensions.ExtensionTestKeys;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
@@ -58,8 +66,69 @@ class TestExtensionResourceConfiguredShould {
                 .body("values.find { it.id == 'example-services' }.contributes.decorator-views[0].overlay.default", equalTo("info"))
                 .body("values.find { it.id == 'example-services' }.contributes.keySet()", contains("screen", "search-provider", "decorator-views"))
                 .body("values.find { it.id == 'example-services' }.contributes.decorator-views[0].overlay.keySet()", contains("status", "map", "default", "label"))
+                .body("values.find { it.id == 'example-services' }.logo.light", equalTo("logo.svg"))
+                .body("values.find { it.id == 'example-services' }.logo.keySet()", contains("light", "dark"))
                 .body("values.find { it.id == 'example-services' }.keySet()", contains("id", "version", "hubApi", "name", "description", "provider",
-                        "routes", "commands", "contributes"));
+                        "logo", "routes", "commands", "contributes"))
+                .body("values.find { it.id == 'control-evaluation' }.keySet()", not(hasItem("logo")));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"light", "dark"})
+    @TestSecurity(user = "alice")
+    void serve_each_logo_file_as_an_svg_image_that_cannot_run_or_be_sniffed(String variant) throws IOException {
+        String file = variant.equals("light") ? "logo.svg" : "logo-dark.svg";
+        byte[] expected = Files.readAllBytes(Path.of("local-dev/extensions/example-services", file));
+
+        byte[] body = given()
+                .when()
+                .get("/api/calm/extensions/example-services/logo/" + variant)
+                .then()
+                .statusCode(200)
+                .contentType("image/svg+xml")
+                .header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+                .header("X-Content-Type-Options", "nosniff")
+                .header("Cache-Control", "private, no-cache")
+                .header("ETag", matchesPattern("\"[0-9a-f]{16}\""))
+                .extract().asByteArray();
+
+        assertThat(body, equalTo(expected));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void answer_a_logo_request_with_the_current_etag_with_304() {
+        String etag = given().get("/api/calm/extensions/example-services/logo/light").then().statusCode(200)
+                .extract().header("ETag");
+
+        given()
+                .header("If-None-Match", etag)
+                .when()
+                .get("/api/calm/extensions/example-services/logo/light")
+                .then()
+                .statusCode(304)
+                .header("ETag", etag);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"unknown/logo/light", "control-evaluation/logo/light", "example-services/logo/blue",
+            "example-services/logo/light.svg"})
+    @TestSecurity(user = "alice")
+    void give_404_for_a_logo_that_no_enabled_extension_declares(String path) {
+        given()
+                .when()
+                .get("/api/calm/extensions/" + path)
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void require_a_signed_in_user_for_a_logo() {
+        given()
+                .when()
+                .get("/api/calm/extensions/example-services/logo/light")
+                .then()
+                .statusCode(401);
     }
 
     @Test

@@ -26,6 +26,7 @@ Explore, visualize, and manage CALM architecture models through an interactive w
 - **Diagram & JSON Views**: Toggle between interactive visualization and raw JSON with syntax highlighting
 - **Version Selection**: Browse and switch between architecture revisions
 - **Quick Visualize**: Jump from any document into the full Visualizer workspace
+- **Extension Identity**: An extension's logo, or its generated marker, shows beside its name in the menu, home cards, screen headings and Extensions sections
 
 ### 🔍 Search & Filtering
 - **Node Search**: Find nodes by name, unique-id, or node-type

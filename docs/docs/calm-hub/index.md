@@ -197,7 +197,7 @@ CALM_EXTENSIONS__TEAM_SERVICES__ORDER=10
 
 The manifest declares:
 
-- `id`, `version`, `hubApi` (now `0`), `name`, and optional `description` and `provider`.
+- `id`, `version`, `hubApi` (now `0`), `name`, and optional `description`, `provider` and `logo` (see [Extension logos](#extension-logos)).
 - `routes`: every call that the extension can receive, each with an `id`, `method`, `path`, `scope`, and optional `readOnly` and `hubData` (the data that CALM Hub reads for the user and sends as the body, see [Let CALM Hub send the data](extension-access.md#let-calm-hub-send-the-data)). A `read`, `write` or `admin` scope needs a `{namespace}` in the path. A `domain_*` scope needs a `{domain}`. A path parameter cannot contain a slash, so a route for a CALM Hub resource uses `{resourceType}/{resourceId}`, not `{resource}`. When two routes with the same method match a path, the route with more literal segments wins. CALM Hub does not start if two such routes have the same number, for example `GET /{namespace}/report` and `GET /public/{id}`.
 - `commands`: CLI and MCP commands, keyed by name. Each names a route by `id`.
 - `contributes`: the UI extension points `screen`, `designer-tab`, `landing-card`, `detail-panel`, `action`, `search-provider` and `chat`, which name a route by `id`, `decorator-views`, which CALM Hub draws from decorators with no route, and `diagram-lens`, a picture of an architecture that CALM Hub draws from a graph reply and a notation. A decorator view `id` and a lens `id` must each be unique in all enabled extensions.
@@ -206,6 +206,29 @@ The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in 
 
 - CALM Hub does not start if a manifest or a setting is not valid. The error names the file or the setting.
 - `GET /api/calm/extensions` lists the enabled extensions, for any signed-in user. It never shows the backend URL. On a read-only CALM Hub it leaves out write routes that are not `readOnly`, and the commands and contributions that use them.
+
+### Extension logos
+
+An extension can show a logo beside its name: in the side menu, on its home page card, above the heading of its screens and in its sections of the **Extensions** tab and the node details. The name always shows as text. Without a logo, while the logo loads, or when the logo does not load, CALM Hub shows the generated marker of the extension.
+
+```json
+"logo": { "light": "logo.svg", "dark": "logo-dark.svg" }
+```
+
+| Field | Required | Rule |
+|---|---|---|
+| `light` | Yes | The logo for the light theme. In the dark theme, CALM Hub shows it on a light plate when there is no `dark` file |
+| `dark` | No | The logo for the dark theme |
+
+Each value is a file name in the extension folder, next to `extension.json`: lowercase letters, digits, `.`, `_` and `-`, with no path. CALM Hub reads each file at start up and does not start if a file:
+
+- is not a PNG, JPEG, WebP or SVG file, or does not hold the type of its extension (`.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`)
+- is larger than 256 KiB, or is a PNG, JPEG or WebP image with a side larger than 2048 pixels
+- is an SVG file with a DOCTYPE, an entity, a processing instruction, a `script`, `foreignObject` or HTML element, an `on*` attribute, a link or CSS `url()` that is not a `#fragment`, an `xml:base` attribute, an animated link or `xml:base`, a CSS `@import`, `image-set()`, `src()` or escape
+
+Use a square image that reads at 16 pixels. CALM Hub never fetches a logo from a URL.
+
+The UI reads a logo from `GET /api/calm/extensions/<id>/logo/<light|dark>`, which needs a signed-in user. The reply has the exact image type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`, an `ETag` and `Cache-Control: private, no-cache`. The UI shows the image only in an `img` element, from a `data:` URL. A browser runs no script and loads no other resource in an SVG image. A `data:` URL has an opaque origin, so an SVG file that is opened as a page cannot read CALM Hub data. If you set a `Content-Security-Policy` for CALM Hub UI, allow `img-src data:`. Without it, the UI shows the markers.
 
 ### Calling an extension
 

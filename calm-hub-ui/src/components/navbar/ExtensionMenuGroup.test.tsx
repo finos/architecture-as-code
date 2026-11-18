@@ -1,9 +1,10 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { ExtensionsContext } from '../../extensions/ExtensionsContext.js';
 import type { ExtensionSummary } from '../../model/extensions.js';
-import { fakeExtensions } from '../../test-support/fake-extensions.js';
+import { fakeExtension, fakeExtensions } from '../../test-support/fake-extensions.js';
+import { fakeImageAssets, logoSvg, svgDataUrl } from '../../test-support/fake-image-assets.js';
 import { ExtensionMenuGroup } from './ExtensionMenuGroup.js';
 
 function renderGroup(extensions: ExtensionSummary[], onNavigate = vi.fn()) {
@@ -37,6 +38,28 @@ describe('ExtensionMenuGroup', () => {
         const onNavigate = renderGroup(fakeExtensions(1));
         screen.getByRole('link').click();
         expect(onNavigate).toHaveBeenCalled();
+    });
+
+    it('shows the logo of an extension that has one, and keeps the link name and the marker of the others', async () => {
+        const assets = fakeImageAssets({ '/api/calm/extensions/ext-1/logo/light': logoSvg('#0f766e') });
+        render(
+            assets.wrap(
+                <MemoryRouter>
+                    <ExtensionsContext.Provider value={[{ ...fakeExtension(1), logo: { light: 'logo.svg' } }, fakeExtension(2)]}>
+                        <ul>
+                            <ExtensionMenuGroup linkClassName={() => 'item'} />
+                        </ul>
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            )
+        );
+        const [withLogo, withoutLogo] = within(screen.getByRole('list', { name: 'Extensions' })).getAllByRole('link');
+        await waitFor(() => expect(withLogo.querySelector('img')).toHaveAttribute('src', svgDataUrl(logoSvg('#0f766e'))));
+        // The logo adds nothing to the link name: it is the visible text only.
+        expect(withLogo).toHaveAccessibleName(withLogo.textContent!);
+        expect(withLogo.textContent).toContain('Extension 1');
+        expect(within(withoutLogo).getByTestId('extension-marker')).toBeInTheDocument();
+        expect(withoutLogo).toHaveAccessibleName(withoutLogo.textContent!);
     });
 
     it('renders nothing without a screen', () => {

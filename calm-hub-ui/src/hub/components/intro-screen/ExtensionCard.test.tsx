@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ExtensionsContext } from '../../../extensions/ExtensionsContext.js';
 import type { ExtensionSummary } from '../../../model/extensions.js';
 import { ExtensionService } from '../../../service/extension-service.js';
 import { fakeExtension, fakeExtensions } from '../../../test-support/fake-extensions.js';
+import { fakeImageAssets, logoSvg, svgDataUrl } from '../../../test-support/fake-image-assets.js';
 import { ExtensionCard } from './ExtensionCard.js';
 import { IntroBrowse } from './IntroBrowse.js';
 
@@ -39,6 +40,30 @@ describe('ExtensionCard', () => {
         expect(await screen.findByText('Reviews')).toBeInTheDocument();
         expect(screen.queryByText('Hidden')).not.toBeInTheDocument();
         expect(screen.queryByText('Not on the card')).not.toBeInTheDocument();
+    });
+
+    it('shows the logo beside the name, and keeps the card usable when the logo fails', async () => {
+        vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const assets = fakeImageAssets({
+            '/api/calm/extensions/ext-1/logo/light': logoSvg('#0f766e'),
+            '/api/calm/extensions/ext-2/logo/light': 500,
+        });
+        render(
+            assets.wrap(
+                <MemoryRouter>
+                    <ExtensionCard extension={{ ...fakeExtension(1), logo: { light: 'logo.svg' } }} />
+                    <ExtensionCard extension={{ ...fakeExtension(2), logo: { light: 'logo.svg' } }} />
+                </MemoryRouter>
+            )
+        );
+        const [loaded, failed] = screen.getAllByTestId('browse-extension');
+        await waitFor(() => expect(loaded.querySelector('img')).toHaveAttribute('src', svgDataUrl(logoSvg('#0f766e'))));
+        await waitFor(() => expect(within(failed).getByTestId('extension-logo')).toHaveAttribute('data-state', 'failed'));
+        expect(within(failed).getByTestId('extension-marker')).toBeInTheDocument();
+        expect(failed).toHaveAttribute('href', '/extensions/ext-2/screen');
+        expect(loaded).toHaveAccessibleName(/^Extension 1/);
+        expect(failed).toHaveAccessibleName(/^Extension 2/);
     });
 
     it('uses the first landing card whose path needs no context value', async () => {

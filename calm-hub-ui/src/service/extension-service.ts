@@ -34,6 +34,14 @@ function isRegistryEntry(value: unknown): value is RegistryEntry {
                 && (entry.params === undefined || isObject(entry.params)))));
 }
 
+// A logo is decoration: a malformed one goes, and the extension stays.
+function withValidLogo(entry: RegistryEntry): RegistryEntry {
+    const { logo } = entry as { logo?: unknown };
+    const valid = logo === undefined
+        || (hasStrings(logo, ['light']) && ((logo as { dark?: unknown }).dark === undefined || hasStrings(logo, ['dark'])));
+    return valid ? entry : { ...entry, logo: undefined };
+}
+
 function keepRegistryEntry(value: unknown): value is RegistryEntry {
     if (isRegistryEntry(value)) return true;
     const id = isObject(value) && typeof value.id === 'string' ? value.id : undefined;
@@ -116,7 +124,7 @@ export class ExtensionService {
         this.registry ??= getAuthHeaders()
             .then((headers) => this.ax.get<{ values?: unknown }>('/api/calm/extensions', { headers }))
             .then((res) => (Array.isArray(res.data?.values) ? (res.data.values as unknown[]) : []))
-            .then((values) => values.filter(keepRegistryEntry))
+            .then((values) => values.filter(keepRegistryEntry).map(withValidLogo))
             .catch((error) => {
                 this.registry = undefined;
                 // The registry is a Hub call, so a 401 means the Hub session ended. An extension call keeps its 401 in its slot.

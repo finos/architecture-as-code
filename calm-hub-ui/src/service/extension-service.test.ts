@@ -166,6 +166,26 @@ describe('ExtensionService', () => {
         expect((await service.fetchExtensions()).map((e) => e.id)).toEqual(['good', 'good-views', 'good-screen', 'good-lens']);
         expect((await service.fetchDecoratorViews()).map((v) => v.id)).toEqual(['risk']);
     });
+    it('keeps a logo, and drops only a malformed logo, not its extension', async () => {
+        mock.onGet('/api/calm/extensions').reply(200, {
+            values: [
+                entry('both', { logo: { light: 'logo.svg', dark: 'logo-dark.png' } }),
+                entry('light', { logo: { light: 'logo.svg' } }),
+                entry('no-light', { logo: { dark: 'logo.svg' } }),
+                entry('bad-dark', { logo: { light: 'logo.svg', dark: 7 } }),
+                entry('not-object', { logo: 'https://images.example.com/logo.svg' }),
+            ],
+        });
+        const extensions = await new ExtensionService(ax).fetchExtensions();
+        expect(extensions.map((e) => [e.id, e.logo])).toEqual([
+            ['both', { light: 'logo.svg', dark: 'logo-dark.png' }],
+            ['light', { light: 'logo.svg' }],
+            ['no-light', undefined],
+            ['bad-dark', undefined],
+            ['not-object', undefined],
+        ]);
+    });
+
     it('logs one warning for each dropped registry entry, with its id if it has one', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         mock.onGet('/api/calm/extensions').reply(200, { values: [entry('good'), entry('bad', { routes: {} }), null] });

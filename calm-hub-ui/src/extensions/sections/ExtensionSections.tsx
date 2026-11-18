@@ -1,6 +1,7 @@
 import { ReactNode, useId } from 'react';
 import { IoChevronDownOutline, IoChevronForwardOutline } from 'react-icons/io5';
-import { ExtensionMarker } from '../ExtensionMarker.js';
+import type { ExtensionLogoFiles } from '../../model/extensions.js';
+import { ExtensionLogo } from '../ExtensionLogo.js';
 import { Heading, HeadingLevel } from '../Heading.js';
 import { useOpenSections } from './useOpenSections.js';
 
@@ -9,6 +10,7 @@ export interface ExtensionSectionItem {
     id: string;
     title: string;
     subtitle?: string;
+    logo?: ExtensionLogoFiles;
     /** Called only while the section is open, so a closed section sends no extension request. */
     content: () => ReactNode;
 }
@@ -46,7 +48,7 @@ export function ExtensionSections({ sections, storageKey, storage, compact, head
                                 onClick={() => setSectionOpen(section.id, !open)}
                             >
                                 <Chevron aria-hidden="true" className="shrink-0" />
-                                <ExtensionMarker extensionId={section.id} />
+                                <ExtensionLogo extension={section} />
                                 <span className="font-semibold truncate">{section.title}</span>
                                 {section.subtitle && (
                                     <span className="text-xs text-base-content/60 truncate">{section.subtitle}</span>
