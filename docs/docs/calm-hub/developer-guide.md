@@ -76,7 +76,7 @@ cd calm-hub
 
 Located in `src/integration-test/java/`. These run the full Quarkus application against a real database using `@QuarkusTest`.
 
-- **MongoDB tests** spin up a `mongo:4.4.3` container via TestContainers (`EndToEndResource`). The container connection string is injected into the Quarkus configuration at runtime.
+- **MongoDB tests** spin up a `mongo:5.0` container via TestContainers (`EndToEndResource`), the oldest MongoDB that CALM Hub supports: MongoDB 4.4 refuses a `$`-prefixed key in an update, so it cannot store a decorator that has a `$schema`. Deploy uses `mongo:latest`, so also run them with `-Dcalm.it.mongo-image=mongo:8`. The container connection string is injected into the Quarkus configuration at runtime.
 - **Nitrite tests** start the application in `standalone` profile. No Docker container is needed for the database, but Docker must be available for TestContainers infrastructure.
 - Tests exercise the full HTTP round-trip (create namespace → post artefact → retrieve → compare) using REST Assured.
 
@@ -182,12 +182,19 @@ This is how the published `latest-read-only-static` and `latest-read-only-native
 | `calm.standalone.data-directory` | `CALM_STANDALONE_DATA_DIRECTORY` | `~/.calm-hub/data` | NitriteDB file location |
 | `calm.standalone.database-name` | `CALM_STANDALONE_DATABASE_NAME` | `calmSchemas` | NitriteDB database filename |
 | `calm.mcp.enabled` | `CALM_MCP_ENABLED` | `false` | Enable MCP tool invocations |
+| `calm.decorators.reserved."<type>".writers` | (use the property) | (none) | Principals that may write decorators of a reserved type. See [Decorator Write Rules](mcp-and-api.md#decorator-write-rules) |
 | `calm.ui.environment.name` | `CALM_UI_ENVIRONMENT_NAME` | (none) | Environment pill text in the UI header. No pill if not set |
 | `calm.ui.environment.colour` | `CALM_UI_ENVIRONMENT_COLOUR` | `warning` | `info`, `success`, `warning`, `error`, `neutral` or `#rrggbb` |
 | `calm.ui.identity.enabled` | `CALM_UI_IDENTITY_ENABLED` | `false` | Show the signed-in principal name in the UI menu |
 | `calm.ui.identity.show-roles` | `CALM_UI_IDENTITY_SHOW_ROLES` | `false` | Also show the principal's roles |
 | `calm.ui.items[n].label` / `.value` / `.url` | `CALM_UI_ITEMS_n__LABEL` / `__VALUE` / `__URL` | (none) | Values and `http`/`https` links in the UI menu |
 | `quarkus.mongodb.connection-string` | `QUARKUS_MONGODB_CONNECTION_STRING` | `mongodb://localhost:27017` | MongoDB connection |
+
+---
+
+## Upgrade and Rollback Notes
+
+- **Audit log values:** the audit log stores each enum value by name. The extensions release ([#3396](https://github.com/finos/architecture-as-code/issues/3396)) adds the action `READ`, the entity type `EXTENSION` and the outcomes `FAILURE` and `UNKNOWN`. An older CALM Hub fails when it reads an entry that has one of these values. Before you roll back, delete or archive these entries in the `auditLogs` collection (MongoDB) or store (NitriteDB).
 
 ---
 

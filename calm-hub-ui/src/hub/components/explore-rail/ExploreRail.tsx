@@ -9,6 +9,9 @@ import { RailSectionLabel } from './RailSectionLabel.js';
 import { LoadingSpinner } from '../LoadingSpinner.js';
 import { NamespaceRailItem } from './NamespaceRailItem.js';
 import { useNamespaceTree } from './useNamespaceTree.js';
+import { EditScopeMenuButton } from './EditScopeMenuButton.js';
+import { EditScopeChip } from './EditScopeChip.js';
+import { useEditScope } from './useEditScope.js';
 
 interface ExploreRailProps {
     /** Per-namespace counts, fetched once by {@link Hub} and passed down. */
@@ -41,6 +44,18 @@ function RailEmpty({ children }: { children: ReactNode }) {
     return <div className="px-2 py-6 text-center text-base-content/50 text-sm">{children}</div>;
 }
 
+function emptyNamespacesMessage(hasNamespaces: boolean, needle: string, editableOnly: boolean): string {
+    if (hasNamespaces && needle !== '') return 'No namespaces match your filter';
+    if (hasNamespaces && editableOnly) return 'You cannot edit any namespaces';
+    return 'Nothing here';
+}
+
+function emptyDomainsMessage(hasDomains: boolean, needle: string, editableOnly: boolean): string {
+    if (hasDomains && needle !== '') return 'No control domains match your filter';
+    if (hasDomains && editableOnly) return 'You cannot edit any control domains';
+    return 'Nothing here';
+}
+
 type RailRouteParams = { ns?: string; domain?: string; namespace?: string };
 
 /**
@@ -69,12 +84,22 @@ export function ExploreRail({
     const activeNamespace = ns ?? namespace;
 
     const [filter, setFilter] = useState('');
+    const { scope, setScope, showScopeControl, editableOnly, canEditNamespace, isContextOnly, filterDomains } = useEditScope(storage);
 
     const needle = filter.trim().toLowerCase();
-    const { rows, filtering, toggleCollapsed } = useNamespaceTree({ namespaceCounts, needle, activeNamespace, storage });
+    const { rows, filtering, toggleCollapsed } = useNamespaceTree({
+        namespaceCounts,
+        needle,
+        canEdit: canEditNamespace,
+        activeNamespace,
+        storage,
+    });
     const descriptions = useMemo(
         () => new Map(namespaceCounts.map((nc) => [nc.namespace, nc.description])),
         [namespaceCounts]
+    );
+    const visibleDomains = filterDomains(domainCounts, (dc) => dc.domain).filter((dc) =>
+        dc.domain.toLowerCase().includes(needle)
     );
 
     return (
@@ -102,16 +127,26 @@ export function ExploreRail({
                 )}
             </div>
 
-            <div className="px-3">
-                <input
-                    type="text"
-                    aria-label="Filter namespaces"
-                    placeholder="Filter namespaces"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    className="w-full h-8 px-2 text-[13px] rounded-[7px] outline-none focus:ring-1"
+            <div className="px-3 flex flex-col gap-2">
+                <div
+                    className="flex items-center h-8 pr-1 rounded-[7px] focus-within:ring-1"
                     style={{ border: `1px solid ${colors.redesign.borderStrong}` }}
-                />
+                >
+                    <input
+                        type="text"
+                        aria-label="Filter"
+                        placeholder="Filter"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        className="min-w-0 flex-1 h-full px-2 text-[13px] bg-transparent outline-none"
+                    />
+                    {showScopeControl && <EditScopeMenuButton scope={scope} onChange={setScope} />}
+                </div>
+                {editableOnly && (
+                    <div className="flex">
+                        <EditScopeChip onClear={() => setScope('all')} />
+                    </div>
+                )}
             </div>
 
             <div className="flex-1 overflow-auto pb-3">
@@ -122,11 +157,7 @@ export function ExploreRail({
                     ) : namespacesFailed ? (
                         <RailEmpty>Couldn&apos;t load namespaces</RailEmpty>
                     ) : rows.length === 0 ? (
-                        <RailEmpty>
-                            {needle !== '' && namespaceCounts.length > 0
-                                ? 'No namespaces match your filter'
-                                : 'Nothing here'}
-                        </RailEmpty>
+                        <RailEmpty>{emptyNamespacesMessage(namespaceCounts.length > 0, needle, editableOnly)}</RailEmpty>
                     ) : (
                         rows.map((row) => (
                             <NamespaceRailItem
@@ -140,6 +171,7 @@ export function ExploreRail({
                                 active={row.node.path === activeNamespace}
                                 filtering={filtering}
                                 needle={needle}
+                                contextOnly={isContextOnly(row.node.path)}
                                 onToggleCollapsed={toggleCollapsed}
                             />
                         ))
@@ -152,10 +184,10 @@ export function ExploreRail({
                         <RailSpinner label="Loading control domains" />
                     ) : domainsFailed ? (
                         <RailEmpty>Couldn&apos;t load control domains</RailEmpty>
-                    ) : domainCounts.length === 0 ? (
-                        <RailEmpty>Nothing here</RailEmpty>
+                    ) : visibleDomains.length === 0 ? (
+                        <RailEmpty>{emptyDomainsMessage(domainCounts.length > 0, needle, editableOnly)}</RailEmpty>
                     ) : (
-                        domainCounts.map((dc) => (
+                        visibleDomains.map((dc) => (
                             <RailItem
                                 key={dc.domain}
                                 label={dc.domain}

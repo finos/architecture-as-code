@@ -90,8 +90,8 @@ title: "Conference Website"
 ## Related Nodes
 ```mermaid
 graph TD;
-conference-website[Conference Website]:::highlight;
-conference-website[Conference Website] -- Connects --> load-balancer[Load Balancer];
+conference-website["Conference Website"]:::highlight;
+conference-website["Conference Website"] -- Connects --> load-balancer["Load Balancer"];
 classDef highlight fill:#f2bbae;
 ```
 

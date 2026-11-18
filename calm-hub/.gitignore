@@ -126,6 +126,10 @@ META-INF/
 # The generated META-INF/resources/ (UI + brand assets) stays ignored.
 !src/main/resources/META-INF/
 src/main/resources/META-INF/*
+!src/main/resources/META-INF/calm-extensions/
+!src/main/resources/META-INF/calm-extensions/**
+!src/main/resources/META-INF/calm-convention-types/
+!src/main/resources/META-INF/calm-convention-types/**
 !src/main/resources/META-INF/native-image/
 !src/main/resources/META-INF/native-image/**
 # ...and the hand-authored calm-schemas index files (versions.txt / files.txt) that
@@ -336,3 +340,9 @@ sketch
 **/*.pem
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,react,node,java,maven
+
+# Hand-authored decorator Standards index.
+!src/main/resources/META-INF/decorator-standards/
+!src/main/resources/META-INF/decorator-standards/files.txt
+# Published extension blocks contract
+!src/main/resources/META-INF/calm-extensions/schema/0/blocks.schema.json

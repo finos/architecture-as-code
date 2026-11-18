@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,6 +26,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -178,6 +180,18 @@ class TestTimelineToolsShould {
 
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("events"));
+    }
+
+    @Test
+    void return_timeline_json_for_commit_sha_version() throws Exception {
+        when(timelineStore.getTimelineForVersion(any())).thenReturn("{\"events\":[]}");
+
+        ToolResponse result = timelineTools.getTimeline("workshop", 1, "1e38a517");
+
+        assertThat(result.isError(), is(false));
+        ArgumentCaptor<Timeline> captor = ArgumentCaptor.forClass(Timeline.class);
+        verify(timelineStore).getTimelineForVersion(captor.capture());
+        assertThat(captor.getValue().getDotVersion(), is("1e38a517"));
     }
 
     @Test

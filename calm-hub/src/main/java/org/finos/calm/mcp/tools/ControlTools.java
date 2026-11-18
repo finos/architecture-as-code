@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
  * on control requirements within CalmHub domains via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class ControlTools {
 
     private static final Logger logger = LoggerFactory.getLogger(ControlTools.class);
@@ -64,12 +65,12 @@ public class ControlTools {
     public ToolResponse getControl(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
             @ToolArg(description = "The control ID (positive integer)") int controlId,
-            @ToolArg(description = "The version string (e.g. '1.0.0')") String version) {
+            @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateDomain(domain),
                 () -> McpValidationHelper.validatePositiveId(controlId, "Control ID"),
-                () -> McpValidationHelper.validateVersion(version));
+                () -> McpValidationHelper.validateVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {

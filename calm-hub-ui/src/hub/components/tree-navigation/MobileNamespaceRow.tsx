@@ -9,6 +9,10 @@ interface MobileNamespaceRowProps {
     row: NamespaceRow;
     description?: string;
     active: boolean;
+    /** Filter mode ignores the collapsed set, so the chevron is hidden. */
+    filtering?: boolean;
+    /** Shown only as the parent of a match, so the label is muted. */
+    contextOnly?: boolean;
     onToggleCollapsed: (path: string) => void;
     onOpen: (namespace: string) => void;
 }
@@ -19,13 +23,22 @@ interface MobileNamespaceRowProps {
  * types) are separate 44px-tall tap targets, split by a hairline divider —
  * a `<button>` inside a `<button>` is invalid, and the two do different things.
  */
-export function MobileNamespaceRow({ row, description, active, onToggleCollapsed, onOpen }: MobileNamespaceRowProps) {
+export function MobileNamespaceRow({
+    row,
+    description,
+    active,
+    filtering = false,
+    contextOnly = false,
+    onToggleCollapsed,
+    onOpen,
+}: MobileNamespaceRowProps) {
     const { node, hasChildren, collapsed, depth, descendantTotal } = row;
     const namespaceRow = isNamespace(node);
+    const labelColor = active ? colors.redesign.activeText : contextOnly ? colors.redesign.faintAlt : undefined;
 
     return (
         <div className="flex items-stretch" style={{ paddingLeft: indentFor(depth) }}>
-            {hasChildren ? (
+            {hasChildren && !filtering ? (
                 <button
                     type="button"
                     aria-expanded={!collapsed}
@@ -62,7 +75,7 @@ export function MobileNamespaceRow({ row, description, active, onToggleCollapsed
                     <span className="flex-1 min-w-0 flex flex-col">
                         <span
                             className={`truncate ${active ? 'font-semibold' : ''}`}
-                            style={active ? { color: colors.redesign.activeText } : undefined}
+                            style={labelColor ? { color: labelColor } : undefined}
                         >
                             {node.segment}
                         </span>

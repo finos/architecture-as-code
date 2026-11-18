@@ -29,6 +29,7 @@ import java.util.Set;
  * and returns grouped results via the Quarkiverse MCP server.
  */
 @ApplicationScoped
+@ReadOnlyHubGuard
 public class SearchTools {
 
     private static final Logger logger = LoggerFactory.getLogger(SearchTools.class);

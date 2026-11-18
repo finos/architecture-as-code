@@ -160,11 +160,154 @@ Instead, place `HeaderSection` and `BodySection` in their own files and import t
 - Use `useCallback` for functions referenced in `useEffect` dependency arrays
 - **Never suppress** `react-hooks/exhaustive-deps` — fix the dependency array properly
 
+### Diagram tabs and decorators
+
+`DiagramSection` draws its tabs from `DIAGRAM_TABS` (`diagram-section/tabs/`). A tab has an id (the
+`?tab=` value), a label, an icon, an optional visibility rule and a render function. An unknown or
+hidden tab falls back to `diagram`. An unknown tab id is also dropped from the URL. A tab that keeps state in the URL lists its parameters in
+`searchParams`, so a version change keeps them. Add a tab there, not as a new branch in
+`DiagramSection`.
+
+### Diagram lenses
+
+A different picture of the same architecture is a **lens** of the Diagram tab, not a tab. A lens has the same
+shape as a `DIAGRAM_TABS` entry (`diagram-section/tabs/diagramLenses.tsx`). Hub's own lenses are `calm`, the CALM
+diagram, and `json` (`?tab=json` redirects to it) (`HUB_LENSES`). An extension adds a lens with a `diagram-lens`
+entry in its manifest, such as the `c4` extension, and `DiagramLensView` draws its graph reply with its notation.
+`diagramLenses()` lists Hub's lenses, then the lenses of the enabled extensions from the registry. Until the
+registry loads, or if it fails, it lists only Hub's lenses, and `DiagramSection` keeps an unknown `?lens=` while the
+registry loads. The backend refuses a lens id that two extensions declare, or `calm` or `json`. Do not add a
+lens drawing for one extension: extension code must not run in Hub's origin (ADR 0013).
+
+The URL is `?lens=<id>` plus the lens's own `searchParams`, with no `tab`. An unknown or hidden lens falls back to
+`calm`. A version change keeps the lens and its parameters (`diagramTabQuery`). A lens change keeps the other query
+parameters, such as `node`, and Hub keeps the selection when only the lens or its parameters change
+(`withoutLens`). A lens click that selects a node and changes the lens parameters is one navigation that names the
+node (`setLens`): two navigations from one click both start from the old URL, so the second undoes the first. A
+choice that leaves the query as it is does not navigate, because Hub reloads the resource on a new location key.
+Each lens fits its own view. The layout controls, the component search, decorator overlays and the
+version compare belong to the `calm` lens. An extension lens draws its controls on its canvas (`LensToolbar`). On desktop,
+the Diagram tab names the open lens, and its chevron opens `LensMenu`: the lenses, with a text filter, so many
+lenses take no more space in the header. The list and the mobile View sheet show Hub's lenses first, then the
+extension lenses (`DiagramLens.extension`) under an "Extensions" heading, with the extension name on each row
+(`lensGroups`). The layout controls keep their space (`invisible`) on another lens, so the tabs do not move when the
+lens changes.
+
+`src/decorator-renderer/` renders any decorator by the shape of its `data`. It must not import Hub
+code, so that it can move to a package that the VS Code extension shares. The UI calls them
+"Decorators", never "Metadata", which is the CALM `metadata` field (`MetadataPanel` is the panel
+under the diagram). Hub gets the decorators from `DiagramSection` (`onDecoratorsChange`) and gives
+them to the details drawer through `DecoratorsContext`, with the containment map that the overlays use, so a
+container lists each decorator that its badges count. The API does not require any decorator field, so guard each
+read. A missing type shows as "(no type)". A card is keyed by `decoratorKeys()`: the `uniqueId`, or the list index when the id is missing or
+not unique, so a shift in the list does not remount a card. The details drawer heads its list "All decorators": a badge can count only
+the newest decorator of each key. The card's
+JSON view uses the write field names (`writableDecorator`) and leaves out the Hub-owned times, so it can be copied into
+a `PUT`.
+
+### Decorator overlays
+
+One engine (`visualizer/overlay/`) draws decorators on the diagram from `decorator-views` entries that have an
+`overlay` (types in `visualizer/contracts/decorator-view-contracts.ts`). Status values map to the fixed scale
+`ok`, `warn`, `error`, `info`. The built-in views for `control-evaluation` and `deployment` come from classpath manifests through
+`GET /api/calm/extensions`. If the registry is unavailable, `useDecoratorViews()` returns the bundled copy in
+`builtinDecoratorViews.ts`; its test keeps it the same as the manifests. It reads the views again when `useExtensionsStatus()`
+becomes `loaded`, so a retry that succeeds brings back the extension views. Only the registry says that an operator turned a
+built-in off (`calm.extensions."<id>".enabled=false`), so the fallback draws both built-ins. `DiagramSection` polls all decorators of
+the version every 5 s while the diagram, the Decorators tab or the details drawer shows (`useArchitectureDecorators`, one request;
+after three failures in a row it backs off to 30 s, also when the view shows again) and gives the one list to the Decorators tab, the
+details drawer and `Drawer`. Do not add a second request. `Drawer` gives the overlays to the diagram through
+`DecoratorOverlayContext`. Nodes and
+edges read `useElementOverlays(id)`; do not add a type-specific badge. The badge details are a portal, but React still sends their events up to the node, so the details root
+stops a click, a double click and a key (it handles Escape itself). The decision callouts, the hover list and the
+Evaluations panel read control-evaluation fields, so they use `isControlEvaluationView()`: the id and
+`source.builtIn`: when the built-in extension is disabled, an operator view can take its id.
+
+`ExtensionService` uses its own axios instance, not `apiClient`, so a registry or extension call failure does not
+open the global auth or outage page. The exception is a registry `401`: the registry is a Hub call, so it opens
+the sign-in prompt. `ExtensionsProvider` (`extensions/ExtensionsContext.tsx`) owns the one `ExtensionService`.
+Get it with `useExtensionService()`, not `new ExtensionService()` or a module singleton: the registry, the
+decorator views and the slots then share one registry request, and a test can inject a service. The service
+drops registry entries whose `hubApi` the UI does not support, and malformed entries (no string `id`, no list of routes, no
+`contributes` object, or a UI extension point that is not a list of entries), for both paths. A `decorator-views` value
+that is not a list gives no views, and the other views stay. After a failed load the provider
+tries again with a backoff (5 s, doubled, up to 60 s; a new service starts it again), but not after a `401`.
+`useExtensionsStatus()` gives `loading`, `loaded`, `failed` or `signed-out`. Use it where an empty list must not
+mean "no extension", for example `ExtensionScreenPage` on a deep link.
+
+### Extension UI layout
+
+Each contribution kind has one place (see `docs/docs/calm-hub/extension-points.md`). Do not add a
+per-extension toolbar button or tab: it does not scale to many extensions.
+
+- Home: `IntroBrowse` shows an `ExtensionCard` per extension with a `landing-card` or a top-level page.
+  `cardHeadline()` (`extensions/landingCard.ts`) picks what the card shows. The card is not a link: it lists a link
+  to each page, so a card with no page has no destination.
+- Menu: `ExtensionMenuGroup` in the navbar drawer: a group for each extension with a top-level page, labelled by the
+  extension `name`, under an optional `heading`. It omits an extension with no page.
+- Both list the pages from `extensionNavLinks()` (`extensions/contributions.ts`): the screens in manifest order, then
+  the selected chat. Add a top-level page there, not in one of them, so the labels and the order stay the same in
+  both. Both keep registry order, which is the operator `order`. The extension `id` is the group key; do not add a
+  second grouping field to the manifest.
+- Architecture: one `extensions` tab in `DIAGRAM_TABS`, hidden (not unknown) until the registry loads, so a link
+  to it keeps the tab. `resourceExtensions()` decides if it shows.
+- Actions: `ExtensionActionButton`, only in the Extensions tab, so each action runs with a resource context. There
+  is no home placement. A route that is not `readOnly` asks in `ConfirmActionDialog`, not
+  `window.confirm`. The dialog opens with `showModal()`, gives Cancel the focus, and names the target context. Do not abort a confirmed
+  write: the backend can still finish it, so a retry can write twice. The busy state and the last result live in
+  the provider's `ActionRuns` (`extensions/actionRuns.ts`), not in the button, so a remount cannot enable a write
+  in flight or lose its result. A call in flight disables each button of the action (key: extension and
+  contribution); a result shows only on the button that ran it (key: also the `placement` prop, which must be
+  stable across a remount). An action slot must name its `placement`: there is no default that two places could share.
+  The button says `<title>: running…` in a live region that is always in the page. An action slot key leaves out the context, so a change of selection does not remount
+  it. A change of context clears the result. The button uses `aria-disabled`, not `disabled`, so focus can go back to it after the
+  dialog. While the dialog is modal the page is inert and `focus()` outside it does nothing: the dialog calls
+  `close()` before its callback, and the button takes focus in an effect after the dialog unmounts. jsdom has no
+  modal dialogs, so a test that checks focus must model inertness (see `ExtensionSlot.test.tsx`).
+- Node details: `ExtensionDetailPanels`.
+- Identity: `ExtensionLogo` (`extensions/ExtensionLogo.tsx`) is the mark beside an extension name everywhere, also in
+  search and chat attribution. It is the `ExtensionMarker` when the manifest has no `logo`, and while a logo loads or
+  after it fails. A logo has loaded when its `img` fires `load` or is `complete`, not when its bytes arrive: Firefox
+  draws nothing for a large SVG until then. It is decorative (`aria-hidden`), so keep the name as text beside it. Do
+  not fetch a logo yourself: `useImageAsset()` (`assets/`) reads Hub assets with the user's credentials through
+  `ImageAssetLoader`, which has its own axios instance (a failure must not open the sign-in prompt), accepts only a
+  same-origin `/api/calm/` path and the image types of `ImageAsset`, and gives a `data:` URL. Never use a `blob:` URL
+  or put asset bytes in markup: an SVG opened from a `blob:` URL as a page runs with Hub's origin. Tests inject a
+  loader with `ImageAssetContext` (`test-support/fake-image-assets.tsx`).
+- Both use `ExtensionSections`: the first section is open, a choice is kept in `localStorage` per extension, and a
+  closed section renders nothing, so it sends no request.
+  Give `ExtensionSections` and `ExtensionSlot` a `headingLevel` one below the heading of the place that holds
+  them: `h3`/`h4` in the Extensions tab, `h5`/`h6` in the node details, `h1` on a screen page (nothing else
+  there is an `h1`).
+  A block slot shows its title and its named region in every state (loading, failed, a reply it cannot show:
+  the error boundary takes a `frame`), and the screen page has
+  an `h1` in the same region (`SlotFrame`) before the registry loads, so the outline does not change. The heading is
+  the contribution title; a reply `title` shows under it.
+- Overlays: `fetchDecoratorViews()` adds `source` (the extension) to each view. Key a view with `viewKey()`, never
+  `view.id` alone. Hub does not start when two enabled extensions declare the same view id, but a disabled one frees
+  its id for another extension, and a stored legend choice must not move to it.
+  `extensionMarkerColour()` gives the marker colour.
+  When there is no stored choice, `useOverlayVisibility` switches on the built-in views and the first 3 extension
+  views in registry order. It takes the registered views, not the views drawn, so a default is the same on each diagram.
+- Diagram lens: `DiagramLensView` (`extensions/lens/`) draws a `diagram-lens`. `parseLensReply()` checks the reply
+  and the limits, `layoutLens()` runs ELK in a web worker (`elk.ts`; tests have no `Worker`, so ELK runs in the
+  test), and `LensCanvas` draws SVG elements built from the notation data. Never put notation or reply text into
+  markup or a style sheet. Node sizes come from `textWidth()`, an estimate, so layout is the same in every browser
+  and in jsdom. An element that takes a click has `data-clickable`: a press on it must not start a drag-pan,
+  because pointer capture would send the click to the pane.
+
+### Namespace conventions
+
+`NamespaceConventions` (`namespace-page/`) lists the namespace's conventions (such as `c4-mapping`) under the type
+tabs, one group per type from `GET /api/calm/convention-types`, with the default that applies to the namespace.
+Conventions are not a `TypeInUI`: they have no tab, no count and no detail route. The list is read-only.
+
 ### Operator UI config
 
 `UiConfigProvider` (`components/ui-config/`) loads `GET /api/calm/ui/config` one time.
 `useUiConfig()` returns only the sections the operator configured, or `{}` if the request
-fails. The `EnvironmentPill` shows in the `Navbar` and on the `IntroScreen`, which has no navbar.
+fails. The `EnvironmentPill` shows in the `Navbar` and on the `IntroScreen`, which has no navbar. A tap shows a truncated
+name in full, because a touch screen has no hover for its `title`. The pill is a button only while the name is truncated.
 Identity and items show at the bottom of the navbar drawer (`MenuInfo`). The drawer identity is
 the server's principal, not the OIDC token profile that `UserMenu` shows.
 
@@ -211,7 +354,7 @@ aesthetic choice:
    pass theme colours through those props — omit them and style
    `.react-flow__background circle`, `.react-flow__minimap-mask` etc. in `index.css`,
    where a CSS *property* beats the attribute.
-2. **`reactflow/dist/style.css` is bundled after `index.css`.** It defines
+2. **`@xyflow/react/dist/style.css` is bundled after `index.css`.** It defines
    `.react-flow__controls-button`, `.react-flow__minimap` and `.react-flow__attribution a`,
    so an unqualified override here silently loses the source-order tie. Scope ours under
    `.react-flow` to win on specificity.
@@ -310,6 +453,11 @@ Reference components for the patterns above: `hub/Hub.tsx`, `components/navbar/N
 - All new components and services must have tests
 - Mock services at the module level with `vi.mock` and class constructor patterns
 - E2E tests are in `cypress/`
+- A test that fails only on CI with `Number of calls: 0` just after `await screen.findBy…` is
+  usually an effect that has not run yet. To reproduce it, stub `performance.now` to add 10 ms on
+  each call before `render`. Fix it with `await waitFor(...)` around the assertion.
+- React Flow 11 gives a custom edge `url('#')` for an unset marker. Treat it as no marker (see
+  `referencedMarker` in `FloatingEdge.tsx`), and test marker changes through a real `<ReactFlow>`.
 
 ### Storage must be injected, never taken from the global
 

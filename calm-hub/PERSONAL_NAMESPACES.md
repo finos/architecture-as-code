@@ -1,6 +1,6 @@
 # Personal Namespaces
 
-> **Status: the Hub API is built. The Hub UI card is not built.**
+> **Status: everything is built: the Hub API, the Hub UI card, the CLI and the starter architecture.**
 > [ADR 0018](decisions/0018-personal-namespaces.md) records the decisions that are
 > hard to change later. Tracked in
 > [#3075](https://github.com/finos/architecture-as-code/issues/3075).
@@ -15,6 +15,7 @@ users.
 |---|---|---|
 | `calm.namespaces.personal.enabled` | `false` | Turns the feature on |
 | `calm.namespaces.personal.root` | `users` | The parent namespace of all personal namespaces. It must match the namespace pattern |
+| `calm.namespaces.personal.starter-architecture` | `true` | Gives each new personal namespace the [starter architecture](#starter-architecture) |
 
 Hub ignores `enabled=true`, and logs a warning, when:
 
@@ -60,7 +61,7 @@ Returns the caller's personal namespace and whether it is theirs.
 
 | Case | Status | Body |
 |---|---|---|
-| Not created yet | 200 | `exists: false`, `owned: false` |
+| Not created yet, or left with no grants by the caller's own failed create | 200 | `exists: false`, `owned: false`. A `PUT` creates or claims it |
 | Created by the caller | 200 | `exists: true`, `owned: true` |
 | Taken by a different principal | 200 | `exists: true`, `owned: false` |
 | Principal cannot be made into a segment | 422 | Error |
@@ -87,10 +88,28 @@ On create, Hub:
 1. creates the namespace with the description `Personal namespace for <principal>`.
 2. gives the caller `admin` on the namespace.
 3. does not add the `*` read grant that `NamespaceService.createNamespace` adds.
+4. writes the [starter architecture](#starter-architecture), unless the operator turns it off.
 
 The path has no `{namespace}` parameter, so `AuditRequestFilter` cannot find the
 entity from the path. The resource stages an `AuditContext` for NAMESPACE CREATE,
 as `NamespaceResource.createNamespace` does.
+
+## Starter architecture
+
+When Hub creates a personal namespace, it also writes version `1.0.0` of
+`my-architecture` in it (#3689). The owner then has a valid CALM document to open,
+pull and push.
+
+| Part | Content |
+|---|---|
+| `$schema` | The newest release in `META-INF/calm-schemas/versions.txt` |
+| Nodes | An `actor` named after the user (`unique-id` `user-<segment>`, in lower case), `CALM CLI` (`service`), `CALM Hub UI` (`webclient`) and `CALM Hub API` (`service`) |
+| Relationships | The actor `interacts` with the CLI and the UI. The CLI and the UI each `connects` to the API over HTTPS |
+| Flows | Create the namespace with the CLI, and in the UI. Pull and push an architecture with the CLI. Browse architectures in the UI |
+
+Hub writes it through the same path as `POST /calm`. If the write fails, Hub logs a
+warning and still returns 201, because the namespace is the main result. A `PUT`
+that returns 200 does not write it again, so an owner who deletes it keeps it deleted.
 
 ## Grants
 
@@ -150,23 +169,25 @@ When the feature is off, the root is a normal namespace and none of these change
   - If the caller owns it, the card shows the name, a link to the namespace, and a
     copy button for the CLI.
   - If it is taken, the card says so and tells the user to ask an admin.
-- The namespace list hides the root when it has no content of its own.
+- The browse grid and the explore rail hide the root when it has no content of its own and
+  the user can see none of its children.
+- After a create, the UI loads the namespace counts again, so the new namespace shows at once.
 
 ## CLI
 
-No CLI change is planned yet. A user copies the namespace name from the UI and
-uses it with `calm hub push`. Later work can add:
+| Command | Calls |
+|---|---|
+| `calm hub whoami` | `GET /api/calm/me/namespace`. Shows the name and its state |
+| `calm hub create my-namespace` | `PUT /api/calm/me/namespace` |
 
-- `calm hub whoami`, which prints the principal and the personal namespace.
-- A `@me` value for the namespace option of `calm hub push`, which calls the `PUT`
-  first.
+`calm hub push` takes the namespace from the document's `$id`, so the user puts the
+personal namespace name there. There is no `@me` placeholder.
 
 ## Out of scope
 
 | Item | Where |
 |---|---|
-| Share links for documents in a private namespace | A separate issue, as agreed on #3075 |
-| A starter `my-architecture` in a new personal namespace | [#3689](https://github.com/finos/architecture-as-code/issues/3689) |
+| Share links for documents in a private namespace | [#3719](https://github.com/finos/architecture-as-code/issues/3719) |
 | Archive, and move documents out of a personal namespace | [#2856](https://github.com/finos/architecture-as-code/issues/2856) |
 | Personal domains | Not planned |
 | Clean-up when a user leaves | Not planned. An admin deletes the content and the namespace |

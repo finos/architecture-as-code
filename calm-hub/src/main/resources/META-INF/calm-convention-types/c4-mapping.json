@@ -1,0 +1,111 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/standards/c4/1.0/c4-mapping.json",
+    "title": "CALM C4 Mapping",
+    "description": "Maps CALM node types to C4 kinds, so that tools show the C4 model of an architecture in the same way. A node type that no mapping names gets its kind from the structural rules in the README of this standard.",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "format": "uri",
+            "description": "The schema of this document, for example https://calm.finos.org/standards/c4/1.0/c4-mapping.json"
+        },
+        "$id": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL where the mapping is published, for a mapping that other mappings extend"
+        },
+        "unique-id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The identifier of the mapping"
+        },
+        "description": {
+            "type": "string",
+            "description": "What the mapping is for"
+        },
+        "extends": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL of the mapping that this mapping extends, usually https://calm.finos.org/standards/c4/1.0/calm-default.c4-mapping.json. The entries of this mapping replace the entries of that mapping. A mapping with no extends replaces the default mapping"
+        },
+        "node-types": {
+            "type": "object",
+            "description": "A map from a CALM node-type to its C4 kind",
+            "propertyNames": {
+                "minLength": 1
+            },
+            "additionalProperties": {
+                "oneOf": [
+                    {
+                        "$ref": "#/$defs/kind"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "kind": {
+                                "$ref": "#/$defs/kind"
+                            },
+                            "external": {
+                                "type": "boolean",
+                                "default": false,
+                                "description": "When true, every node of this type is outside the enterprise. Permitted only with the kinds person, software-system, container and component"
+                            }
+                        },
+                        "required": [
+                            "kind"
+                        ],
+                        "additionalProperties": false,
+                        "if": {
+                            "properties": {
+                                "external": {
+                                    "const": true
+                                }
+                            },
+                            "required": [
+                                "external"
+                            ]
+                        },
+                        "then": {
+                            "properties": {
+                                "kind": {
+                                    "enum": [
+                                        "person",
+                                        "software-system",
+                                        "container",
+                                        "component"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "nesting": {
+            "enum": [
+                "demote",
+                "strict"
+            ],
+            "description": "What a tool does when a mapped node is at the level of its parent or above it. demote: the node shows one level below its parent, so a container inside a container shows as a component. strict: the node keeps its mapped kind and the tool reports a conflict. A mapping that does not set nesting uses the nesting of the mapping it extends. When no mapping in the chain sets it, nesting is demote"
+        }
+    },
+    "required": [
+        "unique-id"
+    ],
+    "additionalProperties": false,
+    "$defs": {
+        "kind": {
+            "enum": [
+                "person",
+                "software-system",
+                "container",
+                "component",
+                "deployment-node",
+                "enterprise-boundary",
+                "hidden"
+            ],
+            "description": "A C4 kind. See the README of this standard for the meaning of each kind"
+        }
+    }
+}

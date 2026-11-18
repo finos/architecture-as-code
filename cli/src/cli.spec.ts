@@ -6,6 +6,9 @@ import {
     DocumentLoader
 } from '@finos/calm-shared';
 import { Command } from 'commander';
+import { mkdtemp, rm, writeFile } from 'fs/promises';
+import os from 'os';
+import path from 'path';
 import { MockInstance } from 'vitest';
 
 let calmShared: typeof import('@finos/calm-shared');
@@ -431,6 +434,42 @@ describe('CLI Commands', () => {
 
             expect(buildDocumentLoaderSpy).toHaveBeenCalledWith(expect.objectContaining({ calmHubUrl: 'http://localhost:8080', allowedRemoteHosts: ['hub.example.com'] }));
             expect(docifierConstructorSpy.mock.calls[0][11]).toBe(documentLoader);
+        });
+
+        it('gives the widgets the mapping from --c4-mapping', async () => {
+            const dir = await mkdtemp(path.join(os.tmpdir(), 'docify-c4-'));
+            const file = path.join(dir, 'acme.json');
+            await writeFile(file, JSON.stringify({ 'unique-id': 'acme', 'node-types': { 'aws:lambda': 'container' } }));
+            const setC4MappingSpy = vi.spyOn(calmShared, 'setC4Mapping');
+
+            await program.parseAsync(['node', 'cli.js', 'docify', '--architecture', 'model.json', '--output', 'outDir', '--c4-mapping', file]);
+
+            expect(setC4MappingSpy).toHaveBeenCalledWith(expect.objectContaining({ 'unique-id': 'acme' }));
+            expect(docifierConstructorSpy).toHaveBeenCalled();
+            await rm(dir, { recursive: true, force: true });
+        });
+
+        it('gives the document loader the --url-to-local-file-mapping', async () => {
+            const urlMap = new Map([['https://example.com/c4-mapping.json', '/local/c4-mapping.json']]);
+            vi.mocked(templateModule.getUrlToLocalFileMap).mockReturnValue(urlMap);
+
+            await program.parseAsync(['node', 'cli.js', 'docify', '--architecture', 'model.json', '--output', 'outDir', '--url-to-local-file-mapping', 'url-map.json']);
+
+            expect(templateModule.getUrlToLocalFileMap).toHaveBeenCalledWith('url-map.json');
+            expect(calmShared.buildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({ urlToLocalMap: urlMap }));
+        });
+
+        it('stops when the --c4-mapping cannot be loaded', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => { throw new Error(`exit ${code}`); }) as never);
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            await expect(program.parseAsync(['node', 'cli.js', 'docify', '--architecture', 'model.json', '--output', 'outDir', '--c4-mapping', 'no-such-mapping.json']))
+                .rejects.toThrow('exit 1');
+
+            expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ Cannot load the C4 mapping:'));
+            expect(docifierConstructorSpy).not.toHaveBeenCalled();
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
         });
 
         it('should honour --clear-output-directory', async () => {
@@ -983,6 +1022,46 @@ describe('CLI Commands', () => {
         });
     });
 
+    describe('whoami command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runWhoami').mockResolvedValue(undefined);
+        });
+
+        it('calls runWhoami with hub url and format', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'whoami',
+                '--calm-hub-url', 'http://hub',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runWhoami).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+                format: 'pretty',
+            }));
+        });
+    });
+
+    describe('create my-namespace command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runCreateMyNamespace').mockResolvedValue(undefined);
+        });
+
+        it('calls runCreateMyNamespace with hub url and format', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'create', 'my-namespace',
+                '--calm-hub-url', 'http://hub',
+                '--format', 'pretty',
+            ]);
+
+            expect(hubCommandsModule.runCreateMyNamespace).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+                format: 'pretty',
+            }));
+        });
+    });
+
     describe('create domain command', () => {
         beforeEach(async () => {
             hubCommandsModule = await import('./command-helpers/hub-commands');
@@ -1255,6 +1334,56 @@ describe('CLI Commands', () => {
             }));
         });
 
+    });
+
+    describe('convention commands', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPushConvention').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runPullConvention').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runListConventions').mockResolvedValue(undefined);
+        });
+
+        it('passes the type, file, namespace, change type and --set-default to runPushConvention', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'convention', 'c4-mapping', 'acme.json',
+                '--namespace', 'org', '--change-type', 'minor', '--set-default', '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushConvention).toHaveBeenCalledWith(expect.objectContaining({
+                conventionType: 'c4-mapping',
+                file: 'acme.json',
+                namespace: 'org',
+                changeType: 'MINOR',
+                setDefault: true,
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+            }));
+        });
+
+        it('passes the type, namespace, ID and version to runPullConvention', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'convention', 'c4-mapping',
+                '--namespace', 'org.team', '--id', '3', '--ver', '1.0.0', '--output', 'out.json',
+            ]);
+
+            expect(hubCommandsModule.runPullConvention).toHaveBeenCalledWith(expect.objectContaining({
+                conventionType: 'c4-mapping',
+                namespace: 'org.team',
+                id: '3',
+                version: '1.0.0',
+                output: 'out.json',
+            }));
+        });
+
+        it('passes the type and namespace to runListConventions', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'list', 'conventions', 'c4-mapping', '--namespace', 'org', '--format', 'pretty']);
+
+            expect(hubCommandsModule.runListConventions).toHaveBeenCalledWith(expect.objectContaining({
+                conventionType: 'c4-mapping',
+                namespace: 'org',
+                format: 'pretty',
+            }));
+        });
     });
 
     describe('push pattern command', () => {
@@ -1808,6 +1937,82 @@ describe('CLI Commands', () => {
             ])).rejects.toThrow(/directUrlAuth\.module must be a non-empty string/);
 
             expect(saveCliConfig).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('hub extensions commands', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runListExtensions').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runDescribeExtension').mockResolvedValue(undefined);
+            vi.spyOn(hubCommandsModule, 'runExtensionCommand').mockResolvedValue(undefined);
+        });
+
+        it('calls runListExtensions with the hub url and format', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'extensions', 'list', '-c', 'http://hub', '-f', 'pretty']);
+
+            expect(hubCommandsModule.runListExtensions).toHaveBeenCalledWith({
+                calmHubOptions: { calmHubUrl: 'http://hub' }, format: 'pretty',
+            });
+        });
+
+        it('calls runDescribeExtension without a command', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'extensions', 'describe', 'example']);
+
+            expect(hubCommandsModule.runDescribeExtension).toHaveBeenCalledWith({
+                calmHubOptions: { calmHubUrl: undefined }, id: 'example', command: undefined, format: 'json',
+            });
+        });
+
+        it('calls runDescribeExtension with a command', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'extensions', 'describe', 'example', 'list-services']);
+
+            expect(hubCommandsModule.runDescribeExtension).toHaveBeenCalledWith(expect.objectContaining({
+                id: 'example', command: 'list-services',
+            }));
+        });
+
+        it('calls runExtensionCommand with the input and every --arg', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'ext', 'example', 'add-service',
+                '--input', '-', '--arg', 'namespace=finos', '--arg', 'name=a=b', '--timeout', '90', '-c', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runExtensionCommand).toHaveBeenCalledWith({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                id: 'example',
+                command: 'add-service',
+                input: '-',
+                args: ['namespace=finos', 'name=a=b'],
+                timeout: '90',
+                format: 'json',
+            });
+        });
+
+        it('passes no args when --arg is not given', async () => {
+            await program.parseAsync(['node', 'cli.js', 'hub', 'ext', 'example', 'list-services']);
+
+            expect(hubCommandsModule.runExtensionCommand).toHaveBeenCalledWith(expect.objectContaining({ input: undefined, args: undefined }));
+        });
+
+        it('prints help for ext without a CALM Hub', async () => {
+            let help = '';
+            const ext = program.commands.find(c => c.name() === 'hub')!.commands.find(c => c.name() === 'ext')!;
+            ext.exitOverride().configureOutput({ writeOut: (text) => { help += text; } });
+
+            await expect(program.parseAsync(['node', 'cli.js', 'hub', 'ext', '--help'])).rejects.toMatchObject({ code: 'commander.helpDisplayed' });
+
+            expect(help).toContain('--input <file>');
+            expect(help).toContain('--arg <key=value>');
+            expect(help).toContain('--timeout <seconds>');
+            expect(cliConfigModule.loadCliConfig).not.toHaveBeenCalled();
+            expect(hubCommandsModule.runExtensionCommand).not.toHaveBeenCalled();
+        });
+
+        it('keeps extension commands out of the built-in hub command names', () => {
+            const hub = program.commands.find(c => c.name() === 'hub')!;
+
+            expect(hub.commands.map(c => c.name()).sort()).toEqual(['create', 'ext', 'extensions', 'list', 'pull', 'push', 'whoami']);
         });
     });
 

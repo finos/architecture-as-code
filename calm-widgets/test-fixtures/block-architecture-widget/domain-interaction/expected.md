@@ -24,10 +24,10 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     inventory-domain["Inventory Domain"]:::node
     order-domain["Order Domain"]:::node
 
-    order-domain -->|Needs product data| catalog-domain
-    order-domain -->|Needs customer profile| customer-domain
-    order-domain -->|Reserves inventory| inventory-domain
-    order-domain -->|Requests payment authorization| billing-domain
+    order-domain -->|"Needs product data"| catalog-domain
+    order-domain -->|"Needs customer profile"| customer-domain
+    order-domain -->|"Reserves inventory"| inventory-domain
+    order-domain -->|"Requests payment authorization"| billing-domain
 
 
     class order-domain highlight
@@ -90,15 +90,15 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         class commerce-platform boundary
 
 
-    order-ui -->|User places order| order-svc
-    order-svc -->|Fetch product details| catalog-svc
-    order-svc -->|Retrieve customer profile| customer-svc
-    order-svc -->|Reserve inventory| inventory-svc
-    checkout-svc -->|Authorize payment| billing-svc
-    order-domain -->|Needs product data| catalog-domain
-    order-domain -->|Needs customer profile| customer-domain
-    order-domain -->|Reserves inventory| inventory-domain
-    order-domain -->|Requests payment authorization| billing-domain
+    order-ui -->|"User places order"| order-svc
+    order-svc -->|"Fetch product details"| catalog-svc
+    order-svc -->|"Retrieve customer profile"| customer-svc
+    order-svc -->|"Reserve inventory"| inventory-svc
+    checkout-svc -->|"Authorize payment"| billing-svc
+    order-domain -->|"Needs product data"| catalog-domain
+    order-domain -->|"Needs customer profile"| customer-domain
+    order-domain -->|"Reserves inventory"| inventory-domain
+    order-domain -->|"Requests payment authorization"| billing-domain
 
 
 

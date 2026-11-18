@@ -12,8 +12,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -21,6 +28,9 @@ class TestCalmHubPermissionCheckerShould {
 
     @Mock
     UserAccessStore mockUserAccessStore;
+
+    @Mock
+    GroupMembershipResolver mockGroupMembershipResolver;
 
     @Mock
     SecurityIdentity mockIdentity;
@@ -32,7 +42,7 @@ class TestCalmHubPermissionCheckerShould {
 
     @BeforeEach
     void setUp() {
-        checker = new CalmHubPermissionChecker(mockUserAccessStore);
+        checker = new CalmHubPermissionChecker(mockUserAccessStore, new GroupGrants(mockGroupMembershipResolver));
         checker.authEnabled = true;
     }
 
@@ -662,5 +672,279 @@ class TestCalmHubPermissionCheckerShould {
         when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(List.of(wildcardGlobal));
 
         assertFalse(checker.hasGlobalAdmin(mockIdentity));
+    }
+
+    // --- Group grants ---
+
+    private UserAccess groupGrant(String group, UserAccess.Permission permission, String namespace) {
+        return new UserAccess.UserAccessBuilder()
+                .setUsername(group)
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setPermission(permission)
+                .setNamespace(namespace)
+                .build();
+    }
+
+    private UserAccess groupDomainGrant(String group, UserAccess.Permission permission, String domain) {
+        return new UserAccess.UserAccessBuilder()
+                .setUsername(group)
+                .setSubjectType(UserAccess.SubjectType.group)
+                .setPermission(permission)
+                .setDomain(domain)
+                .build();
+    }
+
+    private UserAccess domainGrant(String username, UserAccess.Permission permission, String domain) {
+        UserAccess grant = new UserAccess(username, permission, null);
+        grant.setDomain(domain);
+        return grant;
+    }
+
+    @Test
+    void not_look_up_groups_when_user_grants_allow() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice"))
+                .thenReturn(List.of(grant("alice", UserAccess.Permission.read, "foo")));
+
+        assertTrue(checker.canRead(mockIdentity, "foo"));
+        verify(mockUserAccessStore, never()).getGroupGrantsForNamespaces(anyCollection());
+        verifyNoInteractions(mockGroupMembershipResolver);
+    }
+
+    @Test
+    void not_call_the_resolver_when_no_group_grants_match() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("foo", "GLOBAL"))).thenReturn(List.of());
+
+        assertFalse(checker.canRead(mockIdentity, "foo"));
+        verifyNoInteractions(mockGroupMembershipResolver);
+    }
+
+    @Test
+    void group_read_grant_allows_read_for_a_member() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("foo", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("architects", UserAccess.Permission.read, "foo")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("architects"))).thenReturn(Set.of("architects"));
+
+        assertTrue(checker.canRead(mockIdentity, "foo"));
+    }
+
+    @Test
+    void group_read_grant_denies_read_for_a_non_member() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("foo", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("architects", UserAccess.Permission.read, "foo")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("architects"))).thenReturn(Set.of());
+
+        assertFalse(checker.canRead(mockIdentity, "foo"));
+    }
+
+    @Test
+    void ask_the_resolver_once_with_all_distinct_groups() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("org", "org.ab", "GLOBAL")))
+                .thenReturn(List.of(
+                        groupGrant("architects", UserAccess.Permission.read, "org"),
+                        groupGrant("architects", UserAccess.Permission.read, "org.ab"),
+                        groupGrant("reviewers", UserAccess.Permission.read, "org.ab")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("architects", "reviewers")))
+                .thenReturn(Set.of("architects"));
+
+        assertTrue(checker.canRead(mockIdentity, "org.ab"));
+        verify(mockGroupMembershipResolver, times(1)).memberGroups(anyString(), anyCollection());
+        verify(mockGroupMembershipResolver).memberGroups("alice", Set.of("architects", "reviewers"));
+    }
+
+    @Test
+    void combine_user_and_group_grants_for_the_read_ancestor_rule() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice"))
+                .thenReturn(List.of(grant("alice", UserAccess.Permission.read, "org")));
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("org", "org.ab", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("architects", UserAccess.Permission.read, "org.ab")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("architects"))).thenReturn(Set.of("architects"));
+
+        assertTrue(checker.canRead(mockIdentity, "org.ab"));
+    }
+
+    @Test
+    void group_grant_on_child_alone_does_not_satisfy_the_read_ancestor_rule() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("org", "org.ab", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("architects", UserAccess.Permission.read, "org.ab")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("architects"))).thenReturn(Set.of("architects"));
+
+        assertFalse(checker.canRead(mockIdentity, "org.ab"));
+    }
+
+    @Test
+    void group_write_grant_on_ancestor_allows_write() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("org", "org.ab", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("architects", UserAccess.Permission.write, "org")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("architects"))).thenReturn(Set.of("architects"));
+
+        assertTrue(checker.canWrite(mockIdentity, "org.ab"));
+    }
+
+    @Test
+    void group_read_grant_does_not_allow_write() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("foo", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("architects", UserAccess.Permission.read, "foo")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("architects"))).thenReturn(Set.of("architects"));
+
+        assertFalse(checker.canWrite(mockIdentity, "foo"));
+    }
+
+    @Test
+    void group_global_admin_grant_allows_global_admin() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("GLOBAL")))
+                .thenReturn(List.of(groupGrant("hub-admins", UserAccess.Permission.admin, "GLOBAL")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("hub-admins"))).thenReturn(Set.of("hub-admins"));
+
+        assertTrue(checker.hasGlobalAdmin(mockIdentity));
+    }
+
+    @Test
+    void group_global_admin_grant_denies_global_admin_for_a_non_member() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("GLOBAL")))
+                .thenReturn(List.of(groupGrant("hub-admins", UserAccess.Permission.admin, "GLOBAL")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("hub-admins"))).thenReturn(Set.of());
+
+        assertFalse(checker.hasGlobalAdmin(mockIdentity));
+    }
+
+    @Test
+    void group_global_admin_grant_allows_namespace_admin() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("foo", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("hub-admins", UserAccess.Permission.admin, "GLOBAL")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("hub-admins"))).thenReturn(Set.of("hub-admins"));
+
+        assertTrue(checker.allowNamespaceAdmin(mockIdentity, "foo"));
+    }
+
+    @Test
+    void deny_when_the_resolver_throws() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("foo", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("architects", UserAccess.Permission.read, "foo")));
+        when(mockGroupMembershipResolver.memberGroups(anyString(), anyCollection()))
+                .thenThrow(new IllegalStateException("directory unavailable"));
+
+        assertFalse(checker.canRead(mockIdentity, "foo"));
+    }
+
+    @Test
+    void deny_when_the_resolver_returns_null() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("foo", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("architects", UserAccess.Permission.read, "foo")));
+        when(mockGroupMembershipResolver.memberGroups(anyString(), anyCollection())).thenReturn(null);
+
+        assertFalse(checker.canRead(mockIdentity, "foo"));
+    }
+
+    @Test
+    void ignore_a_returned_group_that_has_no_matching_grant() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("foo", "GLOBAL")))
+                .thenReturn(List.of(groupGrant("architects", UserAccess.Permission.read, "foo")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("architects"))).thenReturn(Set.of("operators"));
+
+        assertFalse(checker.canRead(mockIdentity, "foo"));
+    }
+
+    @Test
+    void group_domain_read_grant_allows_domain_read() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForDomain("security"))
+                .thenReturn(List.of(groupDomainGrant("security-team", UserAccess.Permission.read, "security")));
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("GLOBAL"))).thenReturn(List.of());
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("security-team"))).thenReturn(Set.of("security-team"));
+
+        assertTrue(checker.canReadByDomain(mockIdentity, "security"));
+    }
+
+    @Test
+    void group_domain_admin_grant_allows_domain_admin() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice"))
+                .thenReturn(List.of(domainGrant("alice", UserAccess.Permission.read, "security")));
+        when(mockUserAccessStore.getGroupGrantsForDomain("security"))
+                .thenReturn(List.of(groupDomainGrant("security-team", UserAccess.Permission.admin, "security")));
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("GLOBAL"))).thenReturn(List.of());
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("security-team"))).thenReturn(Set.of("security-team"));
+
+        assertTrue(checker.allowDomainAdmin(mockIdentity, "security"));
+    }
+
+    @Test
+    void group_domain_grant_denies_a_non_member() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForDomain("security"))
+                .thenReturn(List.of(groupDomainGrant("security-team", UserAccess.Permission.write, "security")));
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("GLOBAL"))).thenReturn(List.of());
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("security-team"))).thenReturn(Set.of());
+
+        assertFalse(checker.canWriteByDomain(mockIdentity, "security"));
+    }
+
+    @Test
+    void group_global_admin_grant_allows_domain_admin() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForDomain("security")).thenReturn(List.of());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("GLOBAL")))
+                .thenReturn(List.of(groupGrant("hub-admins", UserAccess.Permission.admin, "GLOBAL")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("hub-admins"))).thenReturn(Set.of("hub-admins"));
+
+        assertTrue(checker.allowDomainAdmin(mockIdentity, "security"));
+    }
+
+    @Test
+    void group_grant_on_another_domain_does_not_allow_domain_read() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForDomain("security")).thenReturn(List.of());
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("GLOBAL")))
+                .thenReturn(List.of(groupGrant("readers", UserAccess.Permission.admin, "GLOBAL")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("readers"))).thenReturn(Set.of());
+
+        assertFalse(checker.canReadByDomain(mockIdentity, "security"));
+    }
+
+    @Test
+    void ask_the_resolver_once_with_domain_and_global_groups_together() {
+        givenAuthenticatedUser("alice");
+        when(mockUserAccessStore.getGrantsForUser("alice")).thenReturn(Collections.emptyList());
+        when(mockUserAccessStore.getGroupGrantsForDomain("security"))
+                .thenReturn(List.of(groupDomainGrant("security-team", UserAccess.Permission.read, "security")));
+        when(mockUserAccessStore.getGroupGrantsForNamespaces(List.of("GLOBAL")))
+                .thenReturn(List.of(groupGrant("hub-admins", UserAccess.Permission.admin, "GLOBAL")));
+        when(mockGroupMembershipResolver.memberGroups("alice", Set.of("security-team", "hub-admins")))
+                .thenReturn(Set.of("security-team"));
+
+        assertTrue(checker.canReadByDomain(mockIdentity, "security"));
+        verify(mockGroupMembershipResolver, times(1)).memberGroups(anyString(), anyCollection());
     }
 }

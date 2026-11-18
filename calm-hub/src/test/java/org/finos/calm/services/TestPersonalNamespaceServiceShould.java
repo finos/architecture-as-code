@@ -53,6 +53,9 @@ class TestPersonalNamespaceServiceShould {
     @Mock
     UserAccessStore mockUserAccessStore;
 
+    @Mock
+    StarterArchitectureService mockStarterArchitectureService;
+
     @BeforeEach
     void setUp() {
         when(mockConfig.enabled()).thenReturn(true);
@@ -72,6 +75,7 @@ class TestPersonalNamespaceServiceShould {
 
     private PersonalNamespaceService service(boolean authEnabled, boolean allowPublicRead, boolean readOnly, String mode) {
         return new PersonalNamespaceService(mockConfig, mockNamespaceService, mockNamespaceStore, mockUserAccessStore,
+                mockStarterArchitectureService,
                 authEnabled, allowPublicRead, readOnly, mode);
     }
 
@@ -178,6 +182,27 @@ class TestPersonalNamespaceServiceShould {
     }
 
     @Test
+    void report_a_namespace_the_caller_can_claim_as_not_created() throws Exception {
+        when(mockNamespaceStore.namespaceExists("users.alice")).thenReturn(true);
+        when(mockUserAccessStore.getUserAccessForNamespace("users.alice")).thenReturn(List.of());
+        when(mockNamespaceStore.getNamespaces()).thenReturn(List.of(
+                new NamespaceInfo("users.alice", "Personal namespace for alice")));
+
+        assertThat(activeService().get("alice"), is(Optional.of(new PersonalNamespace("users.alice", false, false))));
+    }
+
+    @Test
+    void report_a_namespace_with_no_grants_created_by_another_principal_as_taken() throws Exception {
+        when(mockNamespaceStore.namespaceExists("users.mark-scott")).thenReturn(true);
+        when(mockUserAccessStore.getUserAccessForNamespace("users.mark-scott")).thenReturn(List.of());
+        when(mockNamespaceStore.getNamespaces()).thenReturn(List.of(
+                new NamespaceInfo("users.mark-scott", "Personal namespace for mark.scott")));
+
+        assertThat(activeService().get("mark-scott"),
+                is(Optional.of(new PersonalNamespace("users.mark-scott", true, false))));
+    }
+
+    @Test
     void not_count_a_write_grant_as_ownership() throws Exception {
         when(mockNamespaceStore.namespaceExists("users.alice")).thenReturn(true);
         when(mockUserAccessStore.getUserAccessForNamespace("users.alice"))
@@ -204,6 +229,7 @@ class TestPersonalNamespaceServiceShould {
         assertThat(grant.getNamespace(), is("users.alice"));
         verify(mockUserAccessStore, times(1)).createUserAccessForNamespace(any());
         verifyNoInteractions(mockNamespaceService);
+        verify(mockStarterArchitectureService).create("users.alice", "alice");
     }
 
     @Test
@@ -214,6 +240,7 @@ class TestPersonalNamespaceServiceShould {
 
         assertThat(activeService().create("alice"), is(Optional.of(CreateOutcome.ALREADY_OWNED)));
         verify(mockUserAccessStore, never()).createUserAccessForNamespace(any());
+        verifyNoInteractions(mockStarterArchitectureService);
     }
 
     @Test

@@ -20,6 +20,7 @@ CALM Hub exposes a RESTful HTTP API that powers both the [CALM Hub UI](../workin
 | **Namespace-scoped artefact store** | Architectures, patterns, flows, standards, interfaces, ADRs, and controls organised under user-defined namespaces |
 | **Versioned resources** | Every artefact carries an incrementing version history; compare any two versions via the timeline UI |
 | **Multiple storage backends** | MongoDB (production), NitriteDB embedded (standalone/development), or a baked-in read-only database (static distribution) |
+| **Conventions** | Versioned tool settings, such as a C4 mapping, checked against the schema of their type. A namespace names a default, and child namespaces inherit it. See [Conventions](./mcp-and-api.md#conventions) |
 | **Read-only mode** | Serves a pre-seeded, immutable CALM dataset with no external database dependency; mutating requests are rejected with HTTP 405 |
 | **Scope-based access control** | Fine-grained OAuth2 scopes (e.g. `architectures:read`, `architectures:all`, `namespace:admin`) enforced per endpoint |
 | **OpenAPI / Swagger UI** | Auto-generated API documentation always available at `/q/swagger-ui` |
@@ -46,12 +47,12 @@ CALM Hub is published as four container image variants, each combining a **JVM r
 
 | Mode | Backend | External dependency | Mutating writes |
 |:-----|:--------|:-------------------|:----------------|
-| **MongoDB** (default) | External MongoDB 4.4+ | Yes — `QUARKUS_MONGODB_CONNECTION_STRING` | ✅ Yes |
+| **MongoDB** (default) | External MongoDB 5.0+ | Yes — `QUARKUS_MONGODB_CONNECTION_STRING` | ✅ Yes |
 | **Standalone** (NitriteDB) | Embedded file-based DB | No | ✅ Yes (file persisted at `CALM_STANDALONE_DATA_DIRECTORY`) |
 | **Read-only** | Pre-seeded NitriteDB | No | ❌ No — HTTP 405 for POST/PUT/DELETE/PATCH |
 | **GitHub** (`calm.database.mode=github`) | Cloned GitHub repositories | Yes — GitHub API | ❌ No — read-only from Git |
 
-In GitHub mode, CALM Hub classifies `.json` and `.md` files in each configured repository from content signals (`moments` or `$schema`) and from parent directory names (`architectures/`, `patterns/`, `standards/` or `standard-nodes/`, `flows/`, `interfaces/`, `controls/`, `adrs/`, `timelines/`, `decorators/`).
+In GitHub mode, CALM Hub classifies `.json` and `.md` files in each configured repository from content signals (`moments` or `$schema`) and from parent directory names (`architectures/`, `patterns/`, `standards/` or `standard-nodes/`, `flows/`, `interfaces/`, `controls/`, `adrs/`, `timelines/`, `decorators/`). See [GitHub Storage Mode](./github-storage.md) for configuration, sync, versions and access control.
 
 ### The Four Image Variants
 
@@ -74,6 +75,8 @@ When `CALM_READONLY=true` is set:
 
 1. **`ReadOnlyRequestFilter`** intercepts every inbound request before routing. Any HTTP method that mutates state (`POST`, `PUT`, `DELETE`, `PATCH`) is rejected immediately with `HTTP 405 Method Not Allowed` and a `Allow: GET, HEAD, OPTIONS` response header.
 2. **NitriteDB** is opened with `.readOnly(true).autoCommit(false)`, preventing any accidental writes to the embedded database file.
+
+The MCP endpoint (`/mcp`) does not go through that filter. Each MCP tool that changes data returns a tool error on a read-only Hub. Hub does this check before the permission check, so a caller without the scope also gets the read-only error. A tool that needs only a read scope still runs, and so do the extension commands that a read-only Hub can run. `tools/list` does not show the tools that change data, and a read-only Hub registers no extension command for a write route. This applies to all users of a read-only Hub. It is not a filter by user or scope, which Hub does not do (see ADR 0014).
 
 ```bash
 # Run the read-only JVM image — no external dependencies needed
@@ -136,16 +139,151 @@ CALM_UI_ITEMS_1__VALUE=2026.10.1
 ```
 
 - Each item needs a `label` and a `value`, a `url`, or both. With both, the `value` is the link text.
-- Use a short environment name, for example `DEV`, `QA` or `PROD`. On narrow screens the UI truncates long names.
+- Use a short environment name, for example `DEV`, `QA` or `PROD`. The header cuts a long name to fit, and cuts it most on a narrow screen. Tap or click the pill to see the full name.
 - CALM Hub does not start if a colour or URL is not valid. URLs must be absolute `http` or `https` URLs.
 - Identity and roles are off by default. Turn on `show-roles` only if your role names are safe to show to users.
 - The UI gets these values from `GET /api/calm/ui/config`, which requires authentication.
 
 ---
 
+## Extensions
+
+An extension adds features to CALM Hub without a fork. It is an HTTP service that CALM Hub calls. The operator installs it with a manifest. CALM Hub reads the manifests at start up. No API adds an extension.
+
+The Hub UI shows the contributions of an extension, the CLI runs its commands (see [Running extension commands](../calm-cli/hub.md#running-extension-commands)), and MCP makes a tool for each command (see [Extension tools](mcp-and-api.md#extension-tools)).
+
+| Page | Read it to |
+|:-----|:-----------|
+| [Extensions](pathname:///extensions) | Find an extension and install it |
+| [Build and install an extension](../tutorials/advanced/hub-extension.md) | Follow a tutorial from the manifest to the UI, CLI and MCP |
+| [Extension points](extension-points.md) | Find the fields, the context and the limits of each extension point and of commands |
+| [Extension blocks](extension-blocks.md) | Write the JSON that the UI draws |
+| [Decorator views](decorator-views.md) | Draw decorators on the diagram, with no backend |
+| [The C4 extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/c4) | See a diagram lens with its own notation, run as a sidecar |
+| [The ea-layers extension](https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions/ea-layers) | See a smaller diagram lens, in the ArchiMate® notation |
+| [Extension access](extension-access.md) | Learn the scopes, the identity assertion and the trust model |
+
+Put one folder for each extension in `calm.extensions.dir`, with an `extension.json` in it. The folder name must equal the manifest `id`. Hub skips hidden folders and warns about folders without a manifest. A per-id setting for an unknown extension id gives a warning at start up, as a property or as an environment variable.
+
+```text
+/etc/calm-hub/extensions/
+└── team-services/
+    └── extension.json
+```
+
+| Setting | Default | Purpose |
+|:--------|:--------|:--------|
+| `calm.extensions.dir` | not set | The folder of manifests. When it is not set, CALM Hub loads only the built-in [decorator views](decorator-views.md) |
+| `calm.extensions."<id>".enabled` | `true` | Set `false` to turn off an extension |
+| `calm.extensions."<id>".order` | `0` | Lower values come first in the list. Equal values sort by id |
+| `calm.extensions."<id>".backend-url` | not set | The base URL of the extension service. Required for an enabled extension with routes |
+| `calm.extensions."<id>".allow-http` | `false` | Allows a plain `http` backend that is not on loopback, such as a cluster-internal host. Otherwise the backend must use `https`, or `http` on `localhost`, `127.x.x.x` or `[::1]` |
+| `calm.extensions."<id>".send-identity` | `true` | `false` sends no identity assertion to the extension, for an open service that answers any caller. CALM Hub then needs no identity keys for it. Allowed only when every route of the extension is a `GET` or `readOnly` route. CALM Hub still checks the route scope for the user |
+| `calm.extensions."<id>".connect-timeout-seconds` | `calm.extensions.http.connect-timeout-seconds` (`5`) | The connect timeout for each call. A value below 1 stops start-up |
+| `calm.extensions."<id>".request-timeout-seconds` | `calm.extensions.http.request-timeout-seconds` (`10`) | The limit for the whole call. A slow backend gets `504`. A value below 1 stops start-up |
+| `calm.extensions."<id>".max-request-bytes` | `calm.extensions.http.max-request-bytes` (`1048576`) | A larger request body gets `413`. A value below 1 stops start-up |
+| `calm.extensions."<id>".max-response-bytes` | `calm.extensions.http.max-response-bytes` (`1048576`) | A larger reply gets `502`. A value below 1 stops start-up |
+| `calm.extensions."<id>".max-concurrent-calls` | `calm.extensions.http.max-concurrent-calls` (`32`) | The calls to the extension at the same time. One more call gets `503` with `Retry-After: 1`, so that a slow backend cannot hold every worker thread. A value below 1 stops start-up |
+| `calm.extensions.identity.private-key-location` | not set | The PKCS#8 PEM key that signs the identity assertion: RSA (2048 bits or more, RS256) or P-256 (ES256). Required when an enabled extension has routes. A shared secret (HS256) is refused |
+| `calm.extensions.identity.public-key-locations` | not set | Comma-separated PEM public keys for the JWKS. The first is the public key of the signing key. Required when `private-key-location` is set, and not allowed without it |
+| `calm.extensions.identity.ttl-seconds` | `60` | The lifetime of an assertion, at most `300` |
+| `calm.extensions.allow-without-auth` | `false` | Allows enabled extensions with routes when `calm.auth.enabled=false`. Only for local development: every caller is then a global admin |
+
+```bash
+CALM_EXTENSIONS_DIR=/etc/calm-hub/extensions
+CALM_EXTENSIONS__TEAM_SERVICES__BACKEND_URL=https://team-services.internal
+CALM_EXTENSIONS__TEAM_SERVICES__ORDER=10
+```
+
+The manifest declares:
+
+- `id`, `version`, `hubApi` (now `0`), `name`, and optional `description`, `provider` and `logo` (see [Extension logos](#extension-logos)).
+- `routes`: every call that the extension can receive, each with an `id`, `method`, `path`, `scope`, and optional `readOnly` and `hubData` (the data that CALM Hub reads for the user and sends as the body, see [Let CALM Hub send the data](extension-access.md#let-calm-hub-send-the-data)). A `read`, `write` or `admin` scope needs a `{namespace}` in the path. A `domain_*` scope needs a `{domain}`. A path parameter cannot contain a slash, so a route for a CALM Hub resource uses `{resourceType}/{resourceId}`, not `{resource}`. When two routes with the same method match a path, the route with more literal segments wins. CALM Hub does not start if two such routes have the same number, for example `GET /{namespace}/report` and `GET /public/{id}`.
+- `commands`: CLI and MCP commands, keyed by name. Each names a route by `id`.
+- `contributes`: the UI extension points `screen`, `designer-tab`, `landing-card`, `detail-panel`, `action`, `search-provider` and `chat`, which name a route by `id`, `decorator-views`, which CALM Hub draws from decorators with no route, and `diagram-lens`, a picture of an architecture that CALM Hub draws from a graph reply and a notation. A decorator view `id` and a lens `id` must each be unique in all enabled extensions.
+
+The JSON Schema is `META-INF/calm-extensions/schema/0/extension.schema.json` in the CALM Hub jar. Unknown fields are errors. See [the example manifest](https://github.com/finos/architecture-as-code/blob/main/calm-hub/local-dev/extensions/example-services/extension.json).
+
+- CALM Hub does not start if a manifest or a setting is not valid. The error names the file or the setting.
+- `GET /api/calm/extensions` lists the enabled extensions, for any signed-in user. It never shows the backend URL. On a read-only CALM Hub it leaves out write routes that are not `readOnly`, and the commands and contributions that use them.
+
+### Extension logos
+
+An extension can show a logo beside its name: in the side menu, on its home page card, above the heading of its screens and in its sections of the **Extensions** tab and the node details. The name always shows as text. Without a logo, while the logo loads, or when the logo does not load, CALM Hub shows the generated marker of the extension.
+
+```json
+"logo": { "light": "logo.svg", "dark": "logo-dark.svg" }
+```
+
+| Field | Required | Rule |
+|---|---|---|
+| `light` | Yes | The logo for the light theme. In the dark theme, CALM Hub shows it on a light plate when there is no `dark` file |
+| `dark` | No | The logo for the dark theme |
+
+Each value is a file name in the extension folder, next to `extension.json`: lowercase letters, digits, `.`, `_` and `-`, with no path. CALM Hub reads each file at start up and does not start if a file:
+
+- is not a PNG, JPEG, WebP or SVG file, or does not hold the type of its extension (`.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`)
+- is larger than 256 KiB, or is a PNG, JPEG or WebP image with a side larger than 2048 pixels
+- is an SVG file with a DOCTYPE, an entity, a processing instruction, a `script`, `foreignObject` or HTML element, an `on*` attribute, a link or CSS `url()` that is not a `#fragment`, an `xml:base` attribute, an animated link or `xml:base`, a CSS `@import`, `image-set()`, `src()` or escape
+
+Use a square image that reads at 16 pixels. CALM Hub never fetches a logo from a URL.
+
+The UI reads a logo from `GET /api/calm/extensions/<id>/logo/<light|dark>`, which needs a signed-in user. The reply has the exact image type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`, an `ETag` and `Cache-Control: private, no-cache`. The UI shows the image only in an `img` element, from a `data:` URL. A browser runs no script and loads no other resource in an SVG image. A `data:` URL has an opaque origin, so an SVG file that is opened as a page cannot read CALM Hub data. If you set a `Content-Security-Policy` for CALM Hub UI, allow `img-src data:`. Without it, the UI shows the markers.
+
+### Calling an extension
+
+CALM Hub proxies each declared route at `/api/calm/extensions/<id>/api/<route path>`. A route with the path `/` is at `/api/calm/extensions/<id>/api/`, with the trailing slash. Without it, CALM Hub gives `404`, also on a CALM Hub that is not read-only. For each call, CALM Hub:
+
+- refuses an encoded slash (`%2F`, in any case, or double-encoded) with `400`, and does not call the backend. A backend that decodes `%2F` before routing would see a path other than the one CALM Hub checked. For the same reason, it refuses an encoded look-alike of `/` or `\` (U+2044, U+2215, U+2216, U+29F5 and U+29F8), each code point whose NFKC form contains `/` or `\` (U+2100, U+2101, U+2105, U+2106, U+FE68, U+FF0F and U+FF3C), and each code point whose NFKC form is only `.`, `%`, `@` or `;` (U+037E, U+2024 to U+2026, U+FE14, U+FE19, U+FE30, U+FE52, U+FE54, U+FE6A, U+FE6B, U+FF05, U+FF0E, U+FF1B and U+FF20). For example, NFKC makes U+2025 `..` and U+2100 `a/c`
+- refuses a matrix parameter (`;name=value`) with `400`, and does not drop it
+- decodes percent-encoded unreserved characters and uppercases other escapes before matching and forwarding. Percent-encoding in a matched literal segment gets `400`
+- on a read-only CALM Hub, gives `405`, not `400`, to a `POST`, `PUT`, `PATCH` or `DELETE` with `%2F`, `%2E`, `%5C`, `%25`, `%40`, `..`, `\`, `//`, `@`, `;` or an encoded look-alike of `/`, `\`, `.`, `%`, `@` or `;` in the path. CALM Hub refuses such a path before it finds the route
+- gives `415`, before it signs the assertion, to a `POST` that has no `application/json` or other `+json` `Content-Type`, also when it has no body. A `PUT`, `PATCH` or `DELETE` gets `415` only for a body of another type. Thus a cross-site form or fetch cannot call a route as the user. Those three methods need a CORS preflight, which CALM Hub does not allow cross-site
+- matches the path against the declared routes only, and refuses `..`, `%2e`, `\`, `//`, `@` and their encoded forms
+- checks the route `scope` with the same rules as the rest of CALM Hub. The namespace or domain comes only from the path
+- on a read-only CALM Hub, allows a method other than `GET` only on a `readOnly` route. Its `405`, and the `405` for a method that the route does not declare, has an `Allow` header. It lists only the methods that CALM Hub accepts on that path now, and `HEAD` with `GET`, because CALM Hub answers `HEAD` with the `GET` route
+- sends only `Content-Type`, `Accept`, `Accept-Language`, `If-Match`, `If-None-Match` and its own `X-Calm-Hub-Identity` assertion. A header value with a line break gets `400`. The caller's token and cookies never go to the extension
+- returns only `Content-Type` (`application/json`, `text/plain` or `text/event-stream`, and for a `4xx` reply also `application/problem+json` and other `+json` types), `Cache-Control`, `ETag`, `Retry-After` and `Vary`, and adds `Content-Security-Policy: sandbox; default-src 'none'`. It returns them only on a reply that it passes on: a backend `503` becomes `502` without `Retry-After`. It passes on a `304`. It does not follow redirects, and does not return `Location`, because that would name the private backend
+- marks each reply `Cache-Control: private`, because the reply is for one user. It removes `public`, and keeps the other directives of the backend. Its own error replies are also `private`
+- returns `502` or `504`, with a generic body, when the backend fails, is slow, replies with `5xx`, `401`, `407` or a `3xx` other than `304`, or sends another content type
+- audits every non-`readOnly` call, including `GET`, as entity type `EXTENSION` with the extension id, route id and assertion `jti`. The entry has the namespace only for a `read`, `write` or `admin` route, and the domain only for a `domain_*` route. Outcomes are `SUCCESS`, `DENIED`, `FAILURE` (a refusal after the scope check, such as `400`, `413`, `415` or `503`, or a returned client error), or `UNKNOWN` (an upstream failure or unusable reply; the backend may have completed the call). The entry has the `jti` only when CALM Hub sent the call, and the source IP (the `X-Forwarded-For` header of the REST or MCP request) when `calm.audit.capture-source-ip=true`
+
+Replies are buffered. Streaming is not supported yet.
+
+CALM Hub does not audit a call that it refuses before the scope check: a `404`, a `400` for the path, the namespace or the domain, or a `405`.
+
+CALM Hub does not start with an enabled extension that has routes when `calm.auth.enabled=false`, because every caller is then a global admin. Set `calm.extensions.allow-without-auth=true` only for local development.
+
+### Identity keys
+
+CALM Hub signs a short-lived JWT for each call, and publishes the public keys at `GET /api/calm/auth/jwks`. This endpoint is public. Set `calm.hub.base-url` to the URL that the backends expect in `iss`. When it is not set, `iss` is `http://localhost:8080`, and CALM Hub gives a warning at start up if an enabled extension has routes. Create a key pair:
+
+```bash
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out hub-private.pem
+openssl pkey -in hub-private.pem -pubout -out hub-public.pem
+```
+
+To change the key with no outage, put the new key first and keep the old public key in the list for at least `ttl-seconds`:
+
+```bash
+CALM_EXTENSIONS_IDENTITY_PRIVATE_KEY_LOCATION=/keys/new-private.pem
+CALM_EXTENSIONS_IDENTITY_PUBLIC_KEY_LOCATIONS=/keys/new-public.pem,/keys/old-public.pem
+```
+
+In `proxy-auth` mode, any client that reaches CALM Hub directly can set `Remote-User`. Make CALM Hub listen only on loopback or behind the proxy.
+
+### For extension authors
+
+Verify `X-Calm-Hub-Identity` on each request, and return only what the user may see. See [Extension access](extension-access.md) for the claims, the checks and the trust model, and [the example backend](https://github.com/finos/architecture-as-code/blob/main/calm-hub/local-dev/extensions/example-services/).
+
+---
+
 ## Docker Hub Images
 
 All images are published to Docker Hub at [finos/calm-hub](https://hub.docker.com/r/finos/calm-hub/tags).
+The `latest` tags point to the most recent release. Each release also has its own tags, for example
+`0.8.0` and `0.8.0-native`, which never change. The changes in each release are in the
+[CALM Hub changelog](https://github.com/finos/architecture-as-code/blob/main/calm-hub/CHANGELOG.md).
 
 ```bash
 docker pull finos/calm-hub:latest
@@ -200,8 +338,46 @@ cd calm-hub && ../mvnw quarkus:dev
 
 ---
 
+### Show your decorators in Hub
+
+An external service can write decorators with its own service account and ship a
+views-only manifest. Hub draws the results; the service supplies no browser code.
+
+1. Give the service account write access to the target namespace. Use that account's
+   credentials with the decorator API, not a user's token. If the decorator type is
+   reserved, the operator must also allow this principal to write that type.
+2. Write decorators with a stable `type`, architecture version URLs in `target`,
+   element ids in `applies-to`, and results in `data`. A known `$schema` is validated on write. For a reserved type, `PUT` the new
+   result to the current decorator id (the id that the last write returned). Hub stores it as a new decorator and keeps the old one in the history.
+3. Put this manifest at `<calm.extensions.dir>/scanner/extension.json`, then restart Hub:
+
+```json
+{
+  "id": "scanner",
+  "version": "1.0.0",
+  "hubApi": 0,
+  "name": "Security scan",
+  "contributes": {
+    "decorator-views": [{
+      "id": "security-scan",
+      "match": { "type": "security-scan" },
+      "label": "Security scan",
+      "overlay": {
+        "status": "/result",
+        "map": { "safe": "ok", "unsafe": "error" },
+        "default": "info"
+      }
+    }]
+  }
+}
+```
+
+No routes or backend URL are needed. See [Decorator views](decorator-views.md) for the fields, how Hub draws a view, the legend, and the built-in `control-evaluation` and `deployment` views.
+
 ## Further Reading
 
 - [UI Walkthrough](../working-with-calm/calm-hub.md) - visual interface guide (namespace explorer, diagram canvas, timeline, compare mode)
 - [Developer Guide](./developer-guide.md) - test pyramid, storage extension points, running CALM Hub from any data source
 - [MCP & API Reference](./mcp-and-api.md) - Model Context Protocol tools, OpenAPI spec, Swagger UI
+- [Build and install an extension](../tutorials/advanced/hub-extension.md) - tutorial with the release-tracker demo extension
+- [Extension points](./extension-points.md), [Extension blocks](./extension-blocks.md), [Decorator views](./decorator-views.md), [Extension access](./extension-access.md) - extension reference

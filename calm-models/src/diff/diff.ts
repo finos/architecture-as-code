@@ -4,6 +4,7 @@ import type {
     CalmControlDetailSchema,
     CalmControlSchema,
     CalmControlsSchema,
+    CalmFlowSchema,
     CalmMetadataSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
@@ -18,6 +19,8 @@ import type {
     ArchitectureDiffResult,
     ControlDiffResult,
     ControlItemDiffResult,
+    FlowChange,
+    FlowDiffResult,
     ChangeType,
     MetadataDiffResult,
     MetadataItemDiffResult,
@@ -164,6 +167,7 @@ export function diffArchitectures(
     const adrDiff = diffAdrs(archA.adrs ?? [], archB.adrs ?? []);
 
     const controlsDiff = diffControls(archA.controls ?? {}, archB.controls ?? {});
+    const flowsDiff = diffFlows(archA.flows ?? [], archB.flows ?? []);
 
     const metadataDiff = diffMetadata(archA.metadata ?? {}, archB.metadata ?? {});
 
@@ -171,7 +175,48 @@ export function diffArchitectures(
         ...nodesAndRelationshipsDiff,
         ...adrDiff,
         ...controlsDiff,
-        ...metadataDiff
+        ...flowsDiff,
+        ...metadataDiff,
+        invalidItems: {
+            nodes: nodesAndRelationshipsDiff.invalidItems?.nodes ?? [],
+            relationships: nodesAndRelationshipsDiff.invalidItems?.relationships ?? [],
+            flows: flowsDiff.invalidItems?.flows ?? [],
+        },
+    };
+}
+
+/**
+ * Core diff function for CALM flow arrays. Flows are matched by `unique-id`
+ * and classified as added, removed, modified or unchanged. Items missing an
+ * ID are surfaced via `invalidItems` rather than silently dropped.
+ */
+export function diffFlows(flowsA: CalmFlowSchema[], flowsB: CalmFlowSchema[]): FlowDiffResult {
+    const validFlowsA = flowsA.filter((flow) => flow['unique-id']);
+    const validFlowsB = flowsB.filter((flow) => flow['unique-id']);
+    const invalidFlows = [
+        ...flowsA.filter((flow) => !flow['unique-id']),
+        ...flowsB.filter((flow) => !flow['unique-id']),
+    ];
+    const flowsByIdA = new Map(validFlowsA.map((flow) => [flow['unique-id'], flow]));
+    const flowsByIdB = new Map(validFlowsB.map((flow) => [flow['unique-id'], flow]));
+    const flowsAdded = [...flowsByIdB.values()].filter((flow) => !flowsByIdA.has(flow['unique-id']));
+    const flowsRemoved = [...flowsByIdA.values()].filter((flow) => !flowsByIdB.has(flow['unique-id']));
+    const flowsModified: FlowChange[] = [];
+    const flowsSame: CalmFlowSchema[] = [];
+
+    for (const [id, flowA] of flowsByIdA) {
+        const flowB = flowsByIdB.get(id);
+        if (!flowB) continue;
+        if (valuesEqual(flowA, flowB)) {
+            flowsSame.push(flowA);
+        } else {
+            flowsModified.push({ original: flowA, updated: flowB });
+        }
+    }
+
+    return {
+        flowsAdded, flowsRemoved, flowsModified, flowsSame,
+        invalidItems: { nodes: [], relationships: [], flows: invalidFlows },
     };
 }
 

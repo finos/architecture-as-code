@@ -50,6 +50,7 @@ architecture-as-code/
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
 ├── calm-hub-ui/               # React frontend for CALM Hub
+├── calm-hub-extensions/       # The CALM Hub extensions we own, one folder per manifest id (see its README)
 ├── calm-lab/                  # Standalone learning lab app (lab.calm.finos.org)
 ├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
@@ -123,6 +124,23 @@ rm -rf node_modules package-lock.json && npm install
 **Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile`
 CI workflow checks that all expected platform variants are present in `package-lock.json`.
 
+To change only a few packages, for example in a security fix, run
+`npm update <pkg>... --package-lock-only`, then `npm ci`, then `npm ls <pkg>` to check the result.
+This does not read `node_modules`, so it keeps the platform variants, and it does not move
+unrelated packages. A full regeneration can move many unrelated packages. It also applies each
+scoped override strictly, which can show a break that `main` does not. After a full regeneration,
+also run `npm run package --workspace calm-plugins/vscode`.
+
+Rules for `overrides` in the root `package.json`:
+
+- Write each value as a caret range (`^X.Y.Z`), not `>=X.Y.Z`. Copilot Autofix changes open ranges
+  in `package.json` only, so the lockfile goes out of sync. An open range can also move across a
+  major version at the next regeneration.
+- If the tree holds a package at more than one major version, use a version-scoped key, for
+  example `"brace-expansion@^1.0.0": "^1.1.16"`. A plain key forces all copies to one major.
+- `postUpdateOptions: ["npmDedupe"]` in `renovate.json` is intentional. Do not remove it to fix a
+  Renovate lockfile failure.
+
 ## CALM Schema Updates
 
 The tools get the CALM schema from the `@finos/calm-schema` npm package. The root `package.json`
@@ -149,6 +167,10 @@ schema.
 
 calm-hub fails for each new `major.minor` release until its schema index files list the release
 (see [calm-hub/AGENTS.md](calm-hub/AGENTS.md)).
+
+The calm-models types (`calm-models/src/types/`) and canonical model (`toCanonicalSchema()`)
+follow the schema. Do not add a field to them until a calm-schema release adds it. Nodes allow
+additional properties, so a tool can carry an extra key without a model change.
 
 To test a tool locally, run `node scripts/calm-schema-compat.mjs use <version>`, then
 `node scripts/calm-schema-compat.mjs test <tool>`. The `use` command changes `package.json` and
@@ -204,6 +226,7 @@ TypeScript packages (npm workspaces) build in order:
                                      ↳ calm-lab
   calm-models → calm-diagram → calm-docusaurus-plugin → docs
                              ↳ calm-plugins/vscode
+  calm-models → calm-hub-extensions/c4 (bundled into its dist)
 ```
 
 Always build dependencies before dependent packages. The Maven reactor works this out for itself:
@@ -253,12 +276,15 @@ Run `npm run commit` for an interactive prompt. Stage your changes first.
 Type and scope drive the automated release, so neither is cosmetic: `cli/release.config.mjs` releases
 on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule
 also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. `calm-server/release.config.mjs`
-does the same for its own scopes. The VS Code extension releases on the changes that touched
+does the same for its own scopes. `calm-hub/release.config.mjs` releases on `calm-hub`, `calm-hub-ui`
+and `deps`, but only for the commits that changed what goes into the image. The VS Code extension releases on the changes that touched
 `calm-plugins/vscode` or `calm-diagram/src/packs`, whatever their scope (see
 [calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md#releasing)). Check these files before
 assuming a commit is release-neutral. A
 merged PR with a conventional title is released on its title alone, so give the PR the type and scope
-of its most significant change. A plain `git revert` does not release.
+of its most significant change. A plain `git revert` does not release. GitHub merges a security
+advisory's private fork as one commit titled "Merge commit from fork", which you cannot change. The
+release tools read each commit that it holds, so give those commits conventional messages.
 
 ## Pre-Commit Checklist
 
@@ -268,7 +294,10 @@ Before considering any code change ready:
 - [ ] **All new code has tests** (unit and/or integration tests)
 - [ ] **Linting passes**: `npm run lint` (0 errors)
 - [ ] **Code builds successfully**: `npm run build` AND `./mvnw clean install`
-- [ ] **Documentation updated** if behavior changed
+- [ ] **Docs match the change**: when a change alters behaviour, a command, a config option, an
+  API or a workflow, update every doc that describes it in the same PR: the docs site
+  (`docs/docs/`), the package README, and the AGENTS.md that covers it. Search the repo for the
+  old name or behaviour to find them.
 - [ ] **Test coverage meets requirements** (>80% for new code)
 - [ ] **Commit message follows Conventional Commits** (enforced by husky)
 
@@ -277,6 +306,9 @@ Before considering any code change ready:
 **CRITICAL:** Always create a feature branch for your changes and submit a pull request. Never commit directly to the main branch—direct commits will be rejected.
 
 **CRITICAL:** Always use the repository PR template in `.github/pull_request_template.md` when creating or updating a pull request. Do not submit ad-hoc PR descriptions when a template exists; populate each section with accurate status.
+
+When a PR changes `security-insights.yml`, set `header.last-updated` to the current date. Change
+`header.last-reviewed` only in a security review.
 
 Branch names are descriptive and conventional-commit-flavoured (`feat/add-caching`,
 `fix/mongodb-timeout`). Work through the pre-commit checklist above before pushing, follow the

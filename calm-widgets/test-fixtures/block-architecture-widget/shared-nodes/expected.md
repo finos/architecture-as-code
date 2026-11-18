@@ -52,10 +52,10 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
     customer["Customer"]:::node
 
-    customer -->|Places order| orders-svc__in__ns-orders__in__prod-eu
-    customer -->|Places order| orders-svc__in__ns-orders__in__prod-us
-    orders-svc__in__ns-orders__in__prod-eu -->|Charges card| payments-svc__in__ns-payments__in__prod-eu
-    orders-svc__in__ns-orders__in__prod-us -->|Charges card| payments-svc__in__ns-payments__in__prod-us
+    customer -->|"Places order"| orders-svc__in__ns-orders__in__prod-eu
+    customer -->|"Places order"| orders-svc__in__ns-orders__in__prod-us
+    orders-svc__in__ns-orders__in__prod-eu -->|"Charges card"| payments-svc__in__ns-payments__in__prod-eu
+    orders-svc__in__ns-orders__in__prod-us -->|"Charges card"| payments-svc__in__ns-payments__in__prod-us
 
 
         click prod "#prod" "Jump to Production"

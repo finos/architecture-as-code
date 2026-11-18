@@ -9,6 +9,7 @@ import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.container.ResourceInfo;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.Provider;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -18,6 +19,7 @@ import org.finos.calm.domain.audit.AuditLogEntry;
 import org.finos.calm.domain.audit.AuditOutcome;
 import org.finos.calm.resources.AdrResource;
 import org.finos.calm.resources.ArchitectureResource;
+import org.finos.calm.resources.ConventionResource;
 import org.finos.calm.resources.ControlResource;
 import org.finos.calm.resources.CoreSchemaResource;
 import org.finos.calm.resources.DecoratorResource;
@@ -174,6 +176,7 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             Map.entry(InterfaceResource.class, AuditEntityType.INTERFACE),
             Map.entry(StandardResource.class, AuditEntityType.STANDARD),
             Map.entry(DocumentResource.class, AuditEntityType.DOCUMENT),
+            Map.entry(ConventionResource.class, AuditEntityType.CONVENTION),
             Map.entry(TimelineResource.class, AuditEntityType.TIMELINE),
             Map.entry(AdrResource.class, AuditEntityType.ADR),
             Map.entry(DecoratorResource.class, AuditEntityType.DECORATOR),
@@ -192,6 +195,9 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             Map.entry(AuditEntityType.INTERFACE, "interfaceId"),
             Map.entry(AuditEntityType.STANDARD, "standardId"),
             Map.entry(AuditEntityType.DOCUMENT, "id"),
+            Map.entry(AuditEntityType.CONVENTION, "id"),
+            // A namespace has one default per convention type, so the type identifies it.
+            Map.entry(AuditEntityType.CONVENTION_DEFAULT, "conventionType"),
             Map.entry(AuditEntityType.TIMELINE, "timelineId"),
             Map.entry(AuditEntityType.ADR, "adrId"),
             Map.entry(AuditEntityType.DECORATOR, "id"),
@@ -255,20 +261,32 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             return;
         }
 
-        AuditLogEntry entry = new AuditLogEntry.AuditLogEntryBuilder()
+        auditService.record(entry(resolved, resolved.action(), resolved.entityId(), outcome, requestContext));
+
+        // A reserved-type decorator PUT keeps the old decorator and creates a successor, which Location names.
+        if (resolved.entityType() == AuditEntityType.DECORATOR && "PUT".equals(method)
+                && responseContext.getStatus() == Response.Status.CREATED.getStatusCode()) {
+            String successorId = LocationSegmentParser.parse(AuditEntityType.DECORATOR, locationPath(responseContext)).entityId();
+            if (successorId != null) {
+                auditService.record(entry(resolved, AuditAction.CREATE, successorId, outcome, requestContext));
+            }
+        }
+    }
+
+    private AuditLogEntry entry(AuditContext context, AuditAction action, String entityId, AuditOutcome outcome,
+                                ContainerRequestContext requestContext) {
+        return new AuditLogEntry.AuditLogEntryBuilder()
                 .setTimestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .setActor(resolveActor())
-                .setAction(resolved.action())
-                .setEntityType(resolved.entityType())
-                .setNamespace(resolved.namespace())
-                .setDomain(resolved.domain())
-                .setEntityId(resolved.entityId())
-                .setVersion(resolved.version())
+                .setAction(action)
+                .setEntityType(context.entityType())
+                .setNamespace(context.namespace())
+                .setDomain(context.domain())
+                .setEntityId(entityId)
+                .setVersion(context.version())
                 .setOutcome(outcome)
                 .setSourceIp(captureSourceIp ? requestContext.getHeaderString("X-Forwarded-For") : null)
                 .build();
-
-        auditService.record(entry);
     }
 
     private static AuditOutcome resolveOutcome(int status) {
@@ -295,6 +313,9 @@ public class AuditRequestFilter implements ContainerResponseFilter {
         }
         if (resourceClass == MappingControllerResource.class) {
             return resolveMappingController(methodName, uriInfo, outcome, responseContext);
+        }
+        if (resourceClass == ConventionResource.class && ("setDefault".equals(methodName) || "deleteDefault".equals(methodName))) {
+            return resolveGeneric(AuditEntityType.CONVENTION_DEFAULT, uriInfo, method, outcome, responseContext);
         }
 
         AuditEntityType entityType = RESOURCE_CLASS_TO_ENTITY_TYPE.get(resourceClass);

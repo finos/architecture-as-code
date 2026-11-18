@@ -25,11 +25,11 @@ classDef system fill:#2f2f2f,stroke:#9cb4ff,stroke-width:1px,color:#ffffff;
 
 
     backend[/"⚙️ Backend API"/]:::service
-    db[(🗄️ Database)]:::database
-    frontend[[💻 Frontend App]]:::webclient
+    db[("🗄️ Database")]:::database
+    frontend[["💻 Frontend App"]]:::webclient
 
-    frontend -->|API calls| backend
-    backend -->|Data access| db
+    frontend -->|"API calls"| backend
+    backend -->|"Data access"| db
 
 
 

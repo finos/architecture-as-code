@@ -2,6 +2,7 @@ import type { Node, Edge } from 'reactflow';
 import { MarkerType } from 'reactflow';
 import dagre from '@dagrejs/dagre';
 import type { CalmArchitecture } from './calm-editor-transformer';
+import { splitEdgeMetadata } from './edge-metadata';
 
 export interface ParsedCALMData {
     nodes: Node[];
@@ -19,6 +20,8 @@ const CONTAINER_CHILD_HEIGHT_INCREMENT = 120;
 
 /** Copies above which a node in several containers is drawn in its last container only. */
 const MAX_COPIES = 1000;
+
+interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; edgeMetadata: Record<string, unknown> }
 
 export function parseCALMData(
     arch: CalmArchitecture,
@@ -204,7 +207,6 @@ export function parseCALMData(
     }
 
     // Build edges from non-containment relationships
-    interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; edgeMetadata: Record<string, unknown> }
     const connectsList: ConnectsEntry[] = [];
     for (const rel of arch.relationships ?? []) {
         const rt = rel['relationship-type'] as
@@ -228,22 +230,14 @@ export function parseCALMData(
                 const description = (rel as any).description as
                     | string
                     | undefined;
-                const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
-                const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
-                const routing = (relMeta?.['routing'] as string) ?? 'bezier';
-                const edgeMetadata: Record<string, unknown> = {};
-                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
+                const { lineStyle, routing, edgeMetadata } = splitEdgeMetadata((rel as any).metadata);
                 connectsList.push({ relId, src, dst, protocol, description, controls: (rel as any).controls, lineStyle, routing, edgeMetadata });
             }
         } else if (interacts) {
             const actor = interacts.actor;
             const protocol = (rel as any).protocol as string | undefined;
             const description = (rel as any).description as string | undefined;
-            const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
-            const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
-            const routing = (relMeta?.['routing'] as string) ?? 'bezier';
-            const edgeMetadata: Record<string, unknown> = {};
-            if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
+            const { lineStyle, routing, edgeMetadata } = splitEdgeMetadata((rel as any).metadata);
             for (const target of interacts.nodes ?? []) {
                 if (actor && target) {
                     edges.push({
@@ -279,11 +273,7 @@ export function parseCALMData(
             if (src && dst) {
                 const protocol = (rel as any).protocol as string | undefined;
                 const description = (rel as any).description as string | undefined;
-                const relMeta = (rel as any).metadata as Record<string, unknown> | undefined;
-                const lineStyle = (relMeta?.['line-style'] as string) ?? 'solid';
-                const routing = (relMeta?.['routing'] as string) ?? 'bezier';
-                const edgeMetadata: Record<string, unknown> = {};
-                if (relMeta) { for (const [k, v] of Object.entries(relMeta)) { if (k !== 'line-style' && k !== 'routing') edgeMetadata[k] = v; } }
+                const { lineStyle, routing, edgeMetadata } = splitEdgeMetadata((rel as any).metadata);
                 edges.push({
                     id: relId,
                     source: src,
@@ -308,13 +298,22 @@ export function parseCALMData(
         }
     }
 
-    // Detect bidirectional connects pairs (A→B + B→A) and merge into single edge
+    // Merge a connects pair (A→B + B→A) into one bidirectional edge only when the canvas would
+    // write the same data back to both; otherwise each relationship keeps its own edge
+    const editableData = new Map(connectsList.map((e) =>
+        [e, JSON.stringify([e.protocol, e.description, e.controls, e.lineStyle, e.routing, e.edgeMetadata])]));
+    const pairKey = (src: string, dst: string, e: ConnectsEntry) => JSON.stringify([src, dst]) + editableData.get(e);
+    const byPairKey = new Map<string, ConnectsEntry[]>();
+    for (const e of connectsList) {
+        const key = pairKey(e.src, e.dst, e);
+        byPairKey.set(key, [...(byPairKey.get(key) ?? []), e]);
+    }
     const consumed = new Set<string>();
+    const drawnEnds = new Set<string>();
     for (const entry of connectsList) {
         if (consumed.has(entry.relId)) continue;
-        const reverse = connectsList.find(
-            (e) => !consumed.has(e.relId) && e.relId !== entry.relId && e.src === entry.dst && e.dst === entry.src
-        );
+        const reverse = byPairKey.get(pairKey(entry.dst, entry.src, entry))
+            ?.find((e) => !consumed.has(e.relId) && e.relId !== entry.relId);
         const isBidi = !!reverse;
         if (reverse) consumed.add(reverse.relId);
         consumed.add(entry.relId);
@@ -322,11 +321,15 @@ export function parseCALMData(
         const directionValue = isBidi ? 'bidirectional' : 'source-to-target';
         const markerEnd = { type: MarkerType.ArrowClosed, width: 15, height: 15 };
         const markerStart = isBidi ? { type: MarkerType.ArrowClosed, width: 15, height: 15 } : undefined;
+        // The second edge of an unmerged pair uses the other target handle, so that the two do not draw over each other
+        const overlapsReverse = drawnEnds.has(JSON.stringify([entry.dst, entry.src]));
+        drawnEnds.add(JSON.stringify([entry.src, entry.dst]));
 
         edges.push({
             id: entry.relId,
             source: entry.src,
             target: entry.dst,
+            ...(overlapsReverse ? { targetHandle: 'left-target' } : {}),
             label: entry.protocol || entry.description || undefined,
             data: {
                 calmVariant: 'connects',

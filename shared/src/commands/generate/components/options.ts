@@ -12,7 +12,9 @@ type SchemaNode = { [key: string]: any };
 export interface CalmChoice {
     description: string,
     nodes: string[],
-    relationships: string[]
+    relationships: string[],
+    /** The `unique-id` of the decision this answers. Without it, the answer applies to every decision with a choice of the same description. */
+    optionId?: string
 }
 
 export interface CalmOption {
@@ -23,21 +25,29 @@ export interface CalmOption {
 }
 
 function getItemsInOptionsRelationship(optionsRelationship: SchemaNode): SchemaNode[] {
-    return optionsRelationship['properties']['relationship-type']['properties']['options']['prefixItems'];
+    return optionsRelationship['properties']['relationship-type']['properties']['options']['prefixItems'] ?? [];
+}
+
+// Typed as CalmOption declares it. A pattern that does not pin the id gives undefined.
+function decisionIdOf(optionsRelationship: SchemaNode): string {
+    return optionsRelationship['properties']?.['unique-id']?.['const'];
 }
 
 function extractOptionsFromBlock(optionsRelationship: SchemaNode, blockType: 'oneOf' | 'anyOf'): CalmOption[] {
+    const optionId = decisionIdOf(optionsRelationship);
     return getItemsInOptionsRelationship(optionsRelationship)
         .filter((prefixItem: SchemaNode) => blockType in prefixItem)
         .map((prefixItem: SchemaNode) => prefixItem[blockType] as SchemaNode[])
         .map((choices: SchemaNode[]) => ({
             optionType: blockType,
-            optionId: optionsRelationship['properties']['unique-id']['const'],
-            prompt: optionsRelationship['properties']['description']['const'],
+            // A pattern need not pin every field, and validate reads this for any decision.
+            optionId,
+            prompt: optionsRelationship['properties']['description']?.['const'],
             choices: choices.map(choice => ({
-                description: choice['properties']['description']['const'],
-                nodes: choice['properties']['nodes']['const'],
-                relationships: choice['properties']['relationships']['const']
+                description: choice['properties']?.['description']?.['const'],
+                nodes: choice['properties']?.['nodes']?.['const'] ?? [],
+                relationships: choice['properties']?.['relationships']?.['const'] ?? [],
+                optionId
             }))
         }));
 }
@@ -133,7 +143,11 @@ function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoic
         return relationship;
     }
 
-    const selectionPredicate = (x: SchemaNode) => choices.map(choice => choice.description).includes(x['properties']['description']['const']);
+    const decisionId = decisionIdOf(relationship);
+    const descriptions = choices
+        .filter(choice => choice.optionId === undefined || choice.optionId === decisionId)
+        .map(choice => choice.description);
+    const selectionPredicate = (x: SchemaNode) => descriptions.includes(x['properties']['description']['const']);
     const newItems = getItemsInOptionsRelationship(relationship)
         .flatMap((item: Item) => flattenOneOfAndAnyOf(item, selectionPredicate));
 

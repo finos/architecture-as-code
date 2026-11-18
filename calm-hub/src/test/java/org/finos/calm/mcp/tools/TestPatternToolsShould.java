@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +27,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -162,6 +164,18 @@ class TestPatternToolsShould {
 
         assertThat(result.isError(), is(false));
         assertThat(text(result), containsString("nodes"));
+    }
+
+    @Test
+    void return_pattern_json_for_commit_sha_version() throws Exception {
+        when(patternStore.getPatternForVersion(any())).thenReturn("{\"nodes\":[]}");
+
+        ToolResponse result = patternTools.getPattern("workshop", 1, "1e38a517");
+
+        assertThat(result.isError(), is(false));
+        ArgumentCaptor<Pattern> captor = ArgumentCaptor.forClass(Pattern.class);
+        verify(patternStore).getPatternForVersion(captor.capture());
+        assertThat(captor.getValue().getDotVersion(), is("1e38a517"));
     }
 
     @Test

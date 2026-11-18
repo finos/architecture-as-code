@@ -5,13 +5,60 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import { analyzeCommits } from '@semantic-release/commit-analyzer';
 
-import { finalizeContext, gitIn, isRepoWide, listedCommits, parserOpts, releaseRules, withPrLink } from './release-notes.mjs';
+import { analyzeCommits as analyzeListedCommits } from './release-analyzer.mjs';
+import { expandForkMerges, finalizeContext, gitIn, isRepoWide, listedCommits, parserOpts, releaseConfig, releaseRules, splitForkMerge, withPrLink } from './release-notes.mjs';
+import { generateNotes } from './release-notes-generator.mjs';
+
+const FORK_MERGE = [
+    'Merge commit from fork',
+    '',
+    '* fix(calm-server): never read a local file that a request references',
+    '',
+    'The loader read any local path.',
+    '* this bullet is part of the body',
+    '',
+    'Co-Authored-By: A <a@example.com>',
+    '',
+    '* test(shared): refuse a host outside the allowlist',
+    '',
+    '---------',
+    '',
+    'Co-authored-by: B <b@example.com>',
+].join('\n');
+
+describe('splitForkMerge', () => {
+    it('gives the message of each commit that a fork merge holds, without the trailers', () => {
+        assert.deepEqual(splitForkMerge(FORK_MERGE), [
+            'fix(calm-server): never read a local file that a request references\n\nThe loader read any local path.\n'
+                + '* this bullet is part of the body\n\nCo-Authored-By: A <a@example.com>',
+            'test(shared): refuse a host outside the allowlist',
+        ]);
+    });
+
+    it('keeps any other message as it is', () => {
+        assert.deepEqual(splitForkMerge('fix(cli): a fix\n\n* fix(shared): a bullet'), ['fix(cli): a fix\n\n* fix(shared): a bullet']);
+    });
+
+    it('keeps a fork merge with no conventional commits as it is', () => {
+        assert.deepEqual(splitForkMerge('Merge commit from fork\n\n* wip'), ['Merge commit from fork\n\n* wip']);
+    });
+
+    it('gives each commit the hash of the fork merge', () => {
+        const commits = expandForkMerges([{ hash: 'abc', message: FORK_MERGE }, { hash: 'def', message: 'fix(cli): a fix' }]);
+        assert.deepEqual(commits.map(commit => commit.hash), ['abc', 'abc', 'def']);
+    });
+});
 
 describe('releaseRules', () => {
     const analyze = (...messages) => analyzeCommits(
         { preset: 'conventionalcommits', releaseRules: releaseRules(['calm-server', 'shared']), parserOpts },
-        { commits: messages.map((message, i) => ({ hash: `${i}`, message })), logger: { log() {} } },
+        { commits: expandForkMerges(messages.map((message, i) => ({ hash: `${i}`, message }))), logger: { log() {} } },
     );
+
+    it('releases on the commits that a fork merge holds', async () => {
+        assert.equal(await analyze(FORK_MERGE), 'patch');
+        assert.equal(await analyze(FORK_MERGE.replace('calm-server', 'calm-hub')), null);
+    });
 
     it('releases on the given scopes', async () => {
         assert.equal(await analyze('feat(calm-server): add an endpoint'), 'minor');
@@ -31,6 +78,40 @@ describe('releaseRules', () => {
 
     it('does not release on a plain git revert', async () => {
         assert.equal(await analyze('Revert "feat(calm-server): add an endpoint"\n\nThis reverts commit abc1234.'), null);
+    });
+});
+
+describe('releaseConfig', () => {
+    const plugins = config => config.plugins.map(([name]) => name);
+
+    it('updates package.json by default', () => {
+        assert.ok(plugins(releaseConfig({ product: 'P', tagFormat: 'p-v${version}', scopes: ['p'] })).includes('@semantic-release/npm'));
+    });
+
+    it('leaves out the npm plugin for a product with no package.json', () => {
+        const config = releaseConfig({ product: 'P', tagFormat: 'p-v${version}', scopes: ['p'], npmPackage: false });
+        assert.ok(!plugins(config).includes('@semantic-release/npm'));
+        assert.ok(plugins(config).includes('@semantic-release/changelog'));
+    });
+
+    it('gives the paths to the analyzer', () => {
+        const [, analyzerConfig] = releaseConfig({ product: 'P', tagFormat: 'p-v${version}', scopes: ['p'], paths: ['p'] }).plugins[0];
+        assert.deepEqual(analyzerConfig.paths, ['p']);
+    });
+});
+
+describe('generateNotes', () => {
+    it('lists each commit that a fork merge holds', async () => {
+        const notes = await generateNotes({ preset: 'conventionalcommits' }, {
+            commits: [{ hash: 'abc1234', message: FORK_MERGE }],
+            lastRelease: {},
+            nextRelease: { version: '1.0.0' },
+            options: { repositoryUrl: 'https://github.com/finos/architecture-as-code' },
+            cwd: process.cwd(),
+            logger: { log() {} },
+        });
+        assert.match(notes, /\*\*calm-server:\*\* never read a local file/);
+        assert.doesNotMatch(notes, /Merge commit from fork/);
     });
 });
 
@@ -121,5 +202,22 @@ describe('listedCommits', () => {
         assert.ok(listed.includes(pr.branch[0]));
         assert.ok(!listed.includes(other));
         assert.ok(!listed.includes(pr.branch[1]));
+    });
+
+    it('releases only on the commits that changed the given paths', async () => {
+        const hub = commit('hub/a.java', 'fix(deps): update a hub dependency');
+        const other = commit('cli/a.ts', 'feat(deps): update a CLI dependency');
+        const analyze = paths => analyzeListedCommits(
+            { preset: 'conventionalcommits', releaseRules: releaseRules(['hub', 'deps']), parserOpts, paths },
+            { commits: [hub, other].map(hash => ({ hash, message: git('log', '-1', '--format=%B', hash) })), logger: { log() {} } },
+        );
+        const cwd = process.cwd();
+        process.chdir(repo);
+        try {
+            assert.equal(await analyze([':(top)hub']), 'patch');
+            assert.equal(await analyze([':(top)cli']), 'minor');
+        } finally {
+            process.chdir(cwd);
+        }
     });
 });

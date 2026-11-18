@@ -1,4 +1,4 @@
-import { getBoundsOfRects, getNodesBounds, type Node, type Rect } from 'reactflow';
+import { getNodesBounds, type InternalNode, type Node, type Rect } from '@xyflow/react';
 import { toSvg } from 'html-to-image';
 import type { CalloutSize } from '../../../context/DecisionOverlayContext.js';
 import { calloutRects } from './labelPlacement.js';
@@ -12,8 +12,21 @@ const MAX_CANVAS_AREA = 16_777_216;
 const MAX_CANVAS_SIDE = 16_384;
 const SVG_STYLES = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-opacity', 'opacity', 'display', 'visibility'];
 
+
+/** The smallest rectangle that contains both inputs. React Flow 11 exported this; v12 does not. */
+export function getBoundsOfRects(rect1: Rect, rect2: Rect): Rect {
+    const x = Math.min(rect1.x, rect2.x);
+    const y = Math.min(rect1.y, rect2.y);
+    return {
+        x,
+        y,
+        width: Math.max(rect1.x + rect1.width, rect2.x + rect2.width) - x,
+        height: Math.max(rect1.y + rect1.height, rect2.y + rect2.height) - y,
+    };
+}
+
 /** The area of the shown nodes and their decision callouts. */
-export function diagramBounds(nodes: Node[], callouts: ReadonlyMap<string, CalloutSize>): Rect {
+export function diagramBounds(nodes: (Node | InternalNode)[], callouts: ReadonlyMap<string, CalloutSize>): Rect {
     const shown = nodes.filter((node) => !node.hidden);
     return calloutRects(shown, callouts).reduce(getBoundsOfRects, getNodesBounds(shown));
 }

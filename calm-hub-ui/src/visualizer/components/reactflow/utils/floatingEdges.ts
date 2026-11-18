@@ -1,8 +1,13 @@
-import { Position, Node } from 'reactflow';
+import { Position } from '@xyflow/react';
+import {
+    nodeGeometry,
+    type NodeGeometry,
+    type NodeGeometrySource,
+} from './nodeGeometry.js';
 
 // Helper function to calculate the intersection point of a line from the center of one node to another
 // with the node's bounding box
-function getNodeIntersection(intersectionNode: Node, targetNode: Node) {
+function getNodeIntersection(intersectionNode: NodeGeometry, targetNode: NodeGeometry) {
   const {
     width: intersectionNodeWidth,
     height: intersectionNodeHeight,
@@ -34,7 +39,7 @@ function getNodeIntersection(intersectionNode: Node, targetNode: Node) {
 }
 
 // Get the position (top, right, bottom, left) of the intersection point on the node
-function getEdgePosition(node: Node, intersectionPoint: { x: number; y: number } | null) {
+function getEdgePosition(node: NodeGeometry, intersectionPoint: { x: number; y: number } | null) {
   if (!intersectionPoint || !node.positionAbsolute) return Position.Top;
 
   const nx = node.positionAbsolute.x;
@@ -60,29 +65,34 @@ function getEdgePosition(node: Node, intersectionPoint: { x: number; y: number }
 }
 
 /** Equal when the fields getEdgeParams reads are equal, so a change to another field does not move the edge. */
-export function sameNodeGeometry(a: Node | undefined, b: Node | undefined): boolean {
+export function sameNodeGeometry(a: NodeGeometrySource | undefined, b: NodeGeometrySource | undefined): boolean {
   if (a === b) return true;
   if (!a || !b) return false;
-  return a.width === b.width
-    && a.height === b.height
-    && a.positionAbsolute?.x === b.positionAbsolute?.x
-    && a.positionAbsolute?.y === b.positionAbsolute?.y;
+  const ga = nodeGeometry(a);
+  const gb = nodeGeometry(b);
+  return ga!.width === gb!.width
+    && ga!.height === gb!.height
+    && ga!.positionAbsolute?.x === gb!.positionAbsolute?.x
+    && ga!.positionAbsolute?.y === gb!.positionAbsolute?.y;
 }
 
 // Main function to calculate edge parameters for floating edges
-export function getEdgeParams(source: Node, target: Node) {
-  const sourceIntersectionPoint = getNodeIntersection(source, target);
-  const targetIntersectionPoint = getNodeIntersection(target, source);
+export function getEdgeParams(source: NodeGeometrySource, target: NodeGeometrySource) {
+  const sourceGeom = nodeGeometry(source)!;
+  const targetGeom = nodeGeometry(target)!;
+  const sourceIntersectionPoint = getNodeIntersection(sourceGeom, targetGeom);
+  const targetIntersectionPoint = getNodeIntersection(targetGeom, sourceGeom);
 
-  const sourcePos = getEdgePosition(source, sourceIntersectionPoint);
-  const targetPos = getEdgePosition(target, targetIntersectionPoint);
+  const sourcePos = getEdgePosition(sourceGeom, sourceIntersectionPoint);
+  const targetPos = getEdgePosition(targetGeom, targetIntersectionPoint);
 
   return {
-    sx: sourceIntersectionPoint?.x || source.positionAbsolute?.x || 0,
-    sy: sourceIntersectionPoint?.y || source.positionAbsolute?.y || 0,
-    tx: targetIntersectionPoint?.x || target.positionAbsolute?.x || 0,
-    ty: targetIntersectionPoint?.y || target.positionAbsolute?.y || 0,
+    sx: sourceIntersectionPoint?.x || sourceGeom.positionAbsolute?.x || 0,
+    sy: sourceIntersectionPoint?.y || sourceGeom.positionAbsolute?.y || 0,
+    tx: targetIntersectionPoint?.x || targetGeom.positionAbsolute?.x || 0,
+    ty: targetIntersectionPoint?.y || targetGeom.positionAbsolute?.y || 0,
     sourcePos,
     targetPos,
   };
 }
+

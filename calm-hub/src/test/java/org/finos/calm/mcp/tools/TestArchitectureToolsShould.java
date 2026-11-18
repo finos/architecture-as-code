@@ -174,6 +174,28 @@ class TestArchitectureToolsShould {
         assertThat(text(result), containsString("nodes"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"1e38a517", "1.0.0-SNAPSHOT"})
+    void return_architecture_json_for_commit_sha_and_snapshot_versions(String version) throws Exception {
+        when(architectureStore.getArchitectureForVersion(any()))
+                .thenReturn("{\"nodes\":[]}");
+
+        ToolResponse result = architectureTools.getArchitecture("workshop", 1, version);
+
+        assertThat(result.isError(), is(false));
+        ArgumentCaptor<Architecture> captor = ArgumentCaptor.forClass(Architecture.class);
+        verify(architectureStore).getArchitectureForVersion(captor.capture());
+        assertThat(captor.getValue().getDotVersion(), is(version));
+    }
+
+    @Test
+    void reject_commit_sha_version_for_create_architecture_version() {
+        ToolResponse result = architectureTools.createArchitectureVersion("workshop", 1, "1e38a517", "{\"nodes\":[]}");
+
+        assertThat(result.isError(), is(true));
+        verifyNoInteractions(architectureStore);
+    }
+
     @Test
     void return_error_when_architecture_version_not_found() throws Exception {
         when(architectureStore.getArchitectureForVersion(any()))

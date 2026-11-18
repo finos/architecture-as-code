@@ -47,6 +47,24 @@ describe('validateCalmArchitecture', () => {
     expect(errors).toHaveLength(0);
   });
 
+  it('runs the semantic rules on an architecture with no relationships key', () => {
+    const arch = {
+      nodes: [makeNode('dup', 'First'), makeNode('dup', 'Second')]
+    } as unknown as CalmArchitecture;
+    const issues = validateCalmArchitecture(arch);
+    expect(issues.some((i) => i.severity === 'error' && i.message.includes('dup'))).toBe(true);
+    expect(issues.some((i) => i.message.includes('not referenced by any relationship'))).toBe(true);
+  });
+
+  it('skips the semantic rules when relationships is not an array', () => {
+    const arch = {
+      nodes: [makeNode('node-a', 'Node A')],
+      relationships: 'none'
+    } as unknown as CalmArchitecture;
+    const issues = validateCalmArchitecture(arch);
+    expect(issues.some((i) => i.message.includes('not referenced by any relationship'))).toBe(false);
+  });
+
   it('node missing unique-id returns error', () => {
     const arch = {
       nodes: [{ 'node-type': 'service', name: 'Missing ID', description: 'desc' }],
@@ -145,6 +163,14 @@ describe('validateCalmArchitecture', () => {
     const issues = validateCalmArchitecture(arch);
     const warnings = issues.filter((i) => i.severity === 'warning');
     expect(warnings).toHaveLength(0);
+  });
+
+  it('returns the schema error for a non-string description when relationships is absent', () => {
+    const arch = {
+      nodes: [{ 'unique-id': 'node-1', 'node-type': 'service', name: 'Test', description: 42 }],
+    } as unknown as CalmArchitecture;
+    const issues = validateCalmArchitecture(arch);
+    expect(issues.some((i) => i.severity === 'error')).toBe(true);
   });
 
   it('schema error on relationship extracts relationshipId', () => {

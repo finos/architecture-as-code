@@ -1,4 +1,4 @@
-// The changelog rules shared by the CLI, CALM Server and VS Code extension changelogs.
+// The changelog rules shared by the CLI, CALM Server, CALM Hub and VS Code extension changelogs.
 
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -26,6 +26,32 @@ export const parserOpts = {
 };
 
 const conventionalHeader = /^\w+(\([^)]*\))?!?: /;
+
+// GitHub merges a security advisory's private fork as one squash commit with this fixed title. The
+// body has "* <message>" for each branch commit, then "---------" and the co-author trailers.
+const FORK_MERGE_TITLE = 'Merge commit from fork';
+const forkMergeEntry = /^\* (?=\w+(?:\([^)]*\))?!?: )/m;
+const forkMergeTrailers = '\n---------\n';
+
+/** The messages of the commits that a fork merge holds, or the message itself for any other commit. */
+export function splitForkMerge(message) {
+    const [title, ...rest] = message.split('\n');
+    if (title.trim() !== FORK_MERGE_TITLE) {
+        return [message];
+    }
+    const body = rest.join('\n');
+    const trailers = body.lastIndexOf(forkMergeTrailers);
+    const entries = (trailers === -1 ? body : body.slice(0, trailers))
+        .split(forkMergeEntry)
+        .slice(1)
+        .map(entry => entry.trim());
+    return entries.length > 0 ? entries : [message];
+}
+
+/** Give each commit of a fork merge to semantic-release as a commit of its own, with the same hash. */
+export function expandForkMerges(commits) {
+    return commits.flatMap(commit => splitForkMerge(commit.message).map(message => ({ ...commit, message })));
+}
 
 export function gitIn(cwd) {
     return (...args) => execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 1024 * 1024 * 1024 }).trim();
@@ -57,12 +83,15 @@ export function listedCommits(git, range, paths = []) {
     return hashes;
 }
 
-let listedOnMain;
+const listedOnMain = new Map();
 
 /** The commits that a semantic-release changelog lists. Reading the merge history takes about 2s. */
-export function listedCommitsOnMain() {
-    listedOnMain ??= new Set(listedCommits(gitIn(process.cwd()), 'HEAD'));
-    return listedOnMain;
+export function listedCommitsOnMain(paths = []) {
+    const key = paths.join('\0');
+    if (!listedOnMain.has(key)) {
+        listedOnMain.set(key, new Set(listedCommits(gitIn(process.cwd()), 'HEAD', paths)));
+    }
+    return listedOnMain.get(key);
 }
 
 export function isRepoWide(commit) {
@@ -132,14 +161,17 @@ export function releaseRules(scopes) {
 /**
  * A semantic-release config that releases on `scopes` and on unscoped release types. The release
  * notes list each PR once, and the analyzer reads only the commits that the notes list, so a PR
- * with a conventional title is released on its title alone.
+ * with a conventional title is released on its title alone. With `paths` (git pathspecs, relative
+ * to the working directory), the notes and the analyzer read only the commits that changed them.
+ * Set `npmPackage: false` for a product with no package.json.
  */
-export function releaseConfig({ product, tagFormat, scopes }) {
+export function releaseConfig({ product, tagFormat, scopes, paths = [], npmPackage = true }) {
     const presetConfig = { scope: scopes, types: SECTIONS };
     const presetTransform = createPreset(presetConfig).writer.transform;
 
     function transform(commit, context) {
-        if (commit.notes.length === 0 && (!listedCommitsOnMain().has(commit.hash) || isRepoWide(commit))) {
+        const listed = listedCommitsOnMain(paths).has(commit.hash);
+        if ((paths.length > 0 && !listed) || (commit.notes.length === 0 && (!listed || isRepoWide(commit)))) {
             return undefined;
         }
         return presetTransform(withPrLink(commit), context);
@@ -151,8 +183,8 @@ export function releaseConfig({ product, tagFormat, scopes }) {
         tagFormat,
         ci: true,
         plugins: [
-            [fileURLToPath(new URL('./release-analyzer.mjs', import.meta.url)), { preset: 'conventionalcommits', releaseRules: releaseRules(scopes), parserOpts }],
-            ['@semantic-release/release-notes-generator', {
+            [fileURLToPath(new URL('./release-analyzer.mjs', import.meta.url)), { preset: 'conventionalcommits', releaseRules: releaseRules(scopes), parserOpts, paths }],
+            [fileURLToPath(new URL('./release-notes-generator.mjs', import.meta.url)), {
                 preset: 'conventionalcommits',
                 presetConfig,
                 parserOpts,
@@ -162,7 +194,7 @@ export function releaseConfig({ product, tagFormat, scopes }) {
                 changelogFile: 'CHANGELOG.md',
                 changelogTitle: `# Changelog\n\nAll notable changes to the ${product} will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).`,
             }],
-            ['@semantic-release/npm', { npmPublish: false }],
+            ...(npmPackage ? [['@semantic-release/npm', { npmPublish: false }]] : []),
         ],
     };
 }

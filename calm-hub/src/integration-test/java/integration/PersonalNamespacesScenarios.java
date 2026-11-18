@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 
 /**
@@ -15,6 +17,7 @@ import static org.hamcrest.Matchers.not;
 abstract class PersonalNamespacesScenarios {
 
     private static final String ME = "/api/calm/me/namespace";
+    private static final String STARTER = "/calm/namespaces/users.pn-henry-h/architectures/my-architecture";
 
     private static RequestSpecification as(String user) {
         return given().header("Remote-User", user);
@@ -35,6 +38,26 @@ abstract class PersonalNamespacesScenarios {
                 .then().statusCode(200)
                 .body("exists", equalTo(true))
                 .body("owned", equalTo(true));
+    }
+
+    @Test
+    void give_a_new_personal_namespace_a_starter_architecture_once() {
+        as("pn-henry.h").when().put(ME).then().statusCode(201);
+
+        as("pn-henry.h").when().get(STARTER + "/versions/1.0.0")
+                .then().statusCode(200)
+                .body("title", equalTo("My architecture"))
+                .body("nodes[0].unique-id", equalTo("user-pn-henry-h"))
+                .body("nodes[0].name", equalTo("pn-henry.h"))
+                .body("nodes.unique-id", hasItems("calm-cli", "calm-hub-ui", "calm-hub-api"))
+                .body("relationships", hasSize(4))
+                .body("flows", hasSize(5));
+
+        as("pn-henry.h").when().put(ME).then().statusCode(200);
+        as("pn-henry.h").when().get(STARTER + "/versions")
+                .then().statusCode(200)
+                .body("values", hasSize(1));
+        as("pn-ivy").when().get(STARTER + "/versions/1.0.0").then().statusCode(403);
     }
 
     @Test

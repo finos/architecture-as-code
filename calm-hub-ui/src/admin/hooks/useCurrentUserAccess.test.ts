@@ -88,6 +88,14 @@ describe('useCurrentUserAccess', () => {
     });
 
     describe('isGlobalAdmin', () => {
+        it('is true for a GLOBAL admin grant held through a group', async () => {
+            const groupGlobalAdmin: UserAccess = {
+                userAccessId: 98, username: 'hub-admins', subjectType: 'group', permission: 'admin', namespace: 'GLOBAL',
+            };
+            const { result } = renderHook(() => useCurrentUserAccess(mockService([groupGlobalAdmin])));
+            await waitFor(() => expect(result.current.isGlobalAdmin).toBe(true));
+        });
+
         it('is false when user has no grants', async () => {
             const svc = mockService([]);
             const { result } = renderHook(() => useCurrentUserAccess(svc));
@@ -213,6 +221,46 @@ describe('useCurrentUserAccess', () => {
             const svc = mockService([wildcardReadGrant]);
             const { result } = renderHook(() => useCurrentUserAccess(svc));
             await waitFor(() => expect(result.current.canWriteNamespace('finos')).toBe(false));
+        });
+    });
+
+    describe('canWriteDomain', () => {
+        const domainGrant = (domain: string, permission: UserAccess['permission']): UserAccess => ({
+            userAccessId: 7,
+            username: 'alice',
+            permission,
+            domain,
+        });
+
+        it.each([
+            ['write', true],
+            ['admin', true],
+            ['read', false],
+        ] as const)('a %s grant on the domain gives write: %s', async (permission, expected) => {
+            const svc = mockService([domainGrant('security', permission)]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.loading).toBe(false));
+            expect(result.current.canWriteDomain('security')).toBe(expected);
+        });
+
+        it('does not apply a grant on another domain', async () => {
+            const svc = mockService([domainGrant('security', 'write')]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.loading).toBe(false));
+            expect(result.current.canWriteDomain('compliance')).toBe(false);
+        });
+
+        it('does not apply a namespace grant with the same name', async () => {
+            const svc = mockService([namespaceGrant('security', 'admin')]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.loading).toBe(false));
+            expect(result.current.canWriteDomain('security')).toBe(false);
+        });
+
+        it('returns true for any domain when user is global admin', async () => {
+            const svc = mockService([globalAdminGrant]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.canWriteDomain('anything')).toBe(true));
         });
     });
 });

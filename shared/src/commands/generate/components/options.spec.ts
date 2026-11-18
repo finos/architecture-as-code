@@ -26,6 +26,9 @@ const applicationYtoZ: CalmChoice = {
     relationships: ['application-y-to-z']
 };
 
+const inDecision = (optionId: string, ...choices: CalmChoice[]): CalmChoice[] =>
+    choices.map(choice => ({ ...choice, optionId }));
+
 function buildPatternChoice({ description, nodes, relationships }: CalmChoice) {
     return {
         'properties': {
@@ -156,7 +159,7 @@ describe('Pattern Options', () => {
                 optionType: 'oneOf',
                 optionId: 'option-id',
                 prompt: 'The choice of nodes and relationships in the pattern',
-                choices: [applicationAtoC, applicationBtoC]
+                choices: inDecision('option-id', applicationAtoC, applicationBtoC)
             }];
 
             expect(extractOptions(pattern)).toEqual(expectedOptions);
@@ -176,7 +179,7 @@ describe('Pattern Options', () => {
                 optionType: 'anyOf',
                 optionId: 'option-id',
                 prompt: 'The choice of nodes and relationships in the pattern',
-                choices: [applicationAtoC, applicationBtoC]
+                choices: inDecision('option-id', applicationAtoC, applicationBtoC)
             }];
 
             expect(extractOptions(pattern)).toEqual(expectedOptions);
@@ -216,17 +219,44 @@ describe('Pattern Options', () => {
                     optionType: 'oneOf',
                     optionId: 'option-id',
                     prompt: 'The choice of node A or node B connecting to node C',
-                    choices: [applicationAtoC, applicationBtoC]
+                    choices: inDecision('option-id', applicationAtoC, applicationBtoC)
                 },
                 {
                     optionType: 'anyOf',
                     optionId: 'option-id-2',
                     prompt: 'The choice of node X or node Y connecting to node Z',
-                    choices: [applicationXtoZ, applicationYtoZ]
+                    choices: inDecision('option-id-2', applicationXtoZ, applicationYtoZ)
                 }
             ];
 
             expect(extractOptions(pattern)).toEqual(expectedOptions);
+        });
+
+        it('should read a decision whose alternatives do not pin every field', () => {
+            const pattern = {
+                properties: {
+                    relationships: {
+                        prefixItems: [{
+                            properties: {
+                                'unique-id': { const: 'loose' },
+                                'relationship-type': { properties: { options: {
+                                    prefixItems: [{ oneOf: [{ properties: { description: { const: 'A' } } }, {}] }]
+                                } } }
+                            }
+                        }]
+                    }
+                }
+            };
+
+            expect(extractOptions(pattern)).toEqual([{
+                optionType: 'oneOf',
+                optionId: 'loose',
+                prompt: undefined,
+                choices: [
+                    { description: 'A', nodes: [], relationships: [], optionId: 'loose' },
+                    { description: undefined, nodes: [], relationships: [], optionId: 'loose' }
+                ]
+            }]);
         });
     });
 
@@ -270,6 +300,30 @@ describe('Pattern Options', () => {
                 ]
             );
             expect(selectChoices(pattern, choices)).toEqual(expectedPattern);
+        });
+
+        describe('two decisions with a choice of the same description', () => {
+            const cacheYes: CalmChoice = { description: 'Yes', nodes: ['cache'], relationships: [] };
+            const queueYes: CalmChoice = { description: 'Yes', nodes: ['queue'], relationships: [] };
+            const pattern = buildPattern([], [
+                buildPatternOptionRelationship('want-cache', 'Add a cache?', buildPatternOption('anyOf', buildPatternChoice(cacheYes))),
+                buildPatternOptionRelationship('want-queue', 'Add a queue?', buildPatternOption('anyOf', buildPatternChoice(queueYes)))
+            ]);
+            const answersOf = (narrowed: object, index: number) =>
+                (narrowed as ReturnType<typeof buildPattern>).properties.relationships.prefixItems[index];
+
+            it('should apply an answer only to its own decision', () => {
+                const narrowed = selectChoices(pattern, inDecision('want-cache', cacheYes));
+
+                expect(answersOf(narrowed, 0)).toEqual(buildPatternOptionRelationship('want-cache', 'Add a cache?', buildPatternChoice(cacheYes)));
+                expect(answersOf(narrowed, 1)).toEqual(buildPatternOptionRelationship('want-queue', 'Add a queue?'));
+            });
+
+            it('should apply an answer with no decision id to every decision, as before', () => {
+                const narrowed = selectChoices(pattern, [cacheYes]);
+
+                expect(answersOf(narrowed, 1)).toEqual(buildPatternOptionRelationship('want-queue', 'Add a queue?', buildPatternChoice(queueYes)));
+            });
         });
 
         it('should not mutate the input pattern', () => {
@@ -347,7 +401,7 @@ describe('Pattern Options', () => {
                 optionType: 'oneOf',
                 optionId: 'option-id',
                 prompt: 'Choose connection type',
-                choices: [applicationAtoC, applicationBtoC]
+                choices: inDecision('option-id', applicationAtoC, applicationBtoC)
             }];
 
             expect(extractOptions(allOfPattern)).toEqual(expectedOptions);
@@ -388,7 +442,7 @@ describe('Pattern Options', () => {
                 optionType: 'anyOf',
                 optionId: 'option-id',
                 prompt: 'Choose from base',
-                choices: [applicationXtoZ, applicationYtoZ]
+                choices: inDecision('option-id', applicationXtoZ, applicationYtoZ)
             }];
 
             expect(extractOptions(allOfPattern)).toEqual(expectedOptions);

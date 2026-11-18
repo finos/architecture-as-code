@@ -9,6 +9,7 @@ const defaultState: CurrentUserAccessState = {
     isGlobalAdmin: false,
     canAdminNamespace: () => false,
     canWriteNamespace: () => false,
+    canWriteDomain: () => false,
 };
 
 export const UserAccessContext = createContext<CurrentUserAccessState>(defaultState);

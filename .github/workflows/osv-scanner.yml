@@ -3,8 +3,8 @@ name: OSV Scanner
 # Software composition analysis (SCA) for every dependency tree in the repository.
 # Runs on every pull request with no path filter so it can be a required status
 # check, and needs no secrets so it also runs on pull requests from forks. The
-# CLI, CALM Server and VS Code extension release workflows and the CALM Lab deploy require a
-# passing push run for the commit they release or deploy.
+# CLI, CALM Server, CALM Hub and VS Code extension release workflows and the CALM Lab deploy
+# require a passing push run for the commit they release or deploy.
 # See SECURITY.md, "Dependency and Code Scanning Policy".
 
 permissions:
@@ -35,7 +35,7 @@ jobs:
                   egress-policy: audit
 
             - name: Checkout
-              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
             - name: Install osv-scanner
               run: bash scripts/osv-install.sh

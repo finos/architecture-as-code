@@ -12,6 +12,10 @@ The provided `docker-compose` file exposes four profiles, one per published imag
 | `readonly-static` | `finos/calm-hub:latest-read-only-static` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
 | `readonly-native` | `finos/calm-hub:latest-read-only-native` | `amd64`/`arm64` | NitriteDB baked in (read-only) |
 
+The `latest` tags are the most recent release (see [CHANGELOG.md](CHANGELOG.md)). To use a fixed
+release, replace `latest` with its version, for example `0.8.0-native`. To try unreleased changes,
+replace `latest` with `main`.
+
 ```shell
 cd deploy
 
@@ -30,6 +34,8 @@ The `jvm` and `native` profiles seed MongoDB with the released CALM meta-schemas
 ```shell
 npm ci && npm run calm-hub:copy-schemas
 ```
+
+The `jvm` and `native` profiles also run the [extensions we own](../calm-hub-extensions/README.md) as sidecars, for the C4 and Layers lenses of the Diagram tab. Compose builds their images from source the first time.
 
 A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)

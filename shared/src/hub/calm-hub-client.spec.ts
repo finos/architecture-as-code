@@ -1,6 +1,6 @@
 import { AuthPlugin } from '../auth/auth-plugin';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { CalmHubClient, HubClientError } from './calm-hub-client';
 import { DocumentMetadata } from './document-id-utils';
@@ -148,6 +148,169 @@ describe('CalmHubClient', () => {
         });
     });
 
+    describe('conventions', () => {
+        const base = '/api/calm/namespaces/org.team/conventions/c4-mapping';
+        const request = { name: 'acme', description: 'Acme mapping', conventionJson: '{"unique-id":"acme"}' };
+
+        it('lists the conventions of a type in a namespace', async () => {
+            const summary = { id: 3, name: 'acme', description: 'Acme mapping', versionCount: 2 };
+            mock.onGet(base).reply(200, { values: [summary] });
+            await expect(client.listConventions('org.team', 'c4-mapping')).resolves.toEqual([summary]);
+        });
+
+        it('creates a convention and a later version, and returns each Location', async () => {
+            mock.onPost(base).reply(201, null, { location: `${base}/3/versions/1.0.0` });
+            mock.onPost(`${base}/3/versions/1.1.0`).reply(201, null, { location: `${base}/3/versions/1.1.0` });
+
+            await expect(client.createConvention('org.team', 'c4-mapping', request)).resolves.toBe(`${base}/3/versions/1.0.0`);
+            await expect(client.createConventionVersion('org.team', 'c4-mapping', 3, '1.1.0', request)).resolves.toBe(`${base}/3/versions/1.1.0`);
+            expect(mock.history.post.map(p => JSON.parse(p.data))).toEqual([request, request]);
+        });
+
+        it('rejects a create response without Location', async () => {
+            mock.onPost(base).reply(201, null, {});
+            await expect(client.createConvention('org.team', 'c4-mapping', request)).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it('adds the field errors to the message of a rejected convention', async () => {
+            mock.onPost(`${base}/3/versions/1.1.0`).reply(400, {
+                error: 'Convention does not match the schema of its type',
+                errors: [{ location: '/nesting', error: 'Instance does not match any of the enum values' }, { location: '', error: 'Property unique-id is required' }],
+            });
+            await expect(client.createConventionVersion('org.team', 'c4-mapping', 3, '1.1.0', request)).rejects.toMatchObject({
+                status: 400,
+                error: 'Convention does not match the schema of its type: /nesting: Instance does not match any of the enum values; /: Property unique-id is required',
+                request: `POST ${base}/3/versions/1.1.0`,
+            });
+        });
+
+        it('says how many more field errors Hub left out', async () => {
+            mock.onPost(base).reply(400, {
+                error: 'Convention does not match the schema of its type',
+                errors: [{ location: '/nesting', error: 'Instance does not match any of the enum values' }],
+                moreErrors: 4,
+            });
+            await expect(client.createConvention('org.team', 'c4-mapping', request)).rejects.toMatchObject({
+                error: 'Convention does not match the schema of its type: /nesting: Instance does not match any of the enum values; and 4 more',
+            });
+        });
+
+        it('keeps the Hub error of a create that fails for another reason', async () => {
+            mock.onPost(base).reply(404, { error: 'Invalid namespace provided: org.team' });
+            await expect(client.createConvention('org.team', 'c4-mapping', request)).rejects.toMatchObject({
+                status: 404,
+                error: 'Invalid namespace provided: org.team',
+            });
+        });
+
+        it('reads the versions and one version of a convention', async () => {
+            mock.onGet(`${base}/3/versions`).reply(200, { values: ['1.0.0', '1.1.0'] });
+            mock.onGet(`${base}/3/versions/1.1.0`).reply(200, { 'unique-id': 'acme' });
+
+            await expect(client.getConventionVersions('org.team', 'c4-mapping', 3)).resolves.toEqual(['1.0.0', '1.1.0']);
+            await expect(client.getConventionVersion('org.team', 'c4-mapping', 3, '1.1.0')).resolves.toEqual({ 'unique-id': 'acme' });
+        });
+
+        it('rejects a convention version body that is not an object', async () => {
+            mock.onGet(`${base}/3/versions/1.0.0`).reply(200, '<html>login</html>');
+            await expect(client.getConventionVersion('org.team', 'c4-mapping', 3, '1.0.0')).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it('returns the inherited namespace default', async () => {
+            const resolved = { conventionType: 'c4-mapping', namespace: 'org', conventionId: 1, version: '1.0.0', inherited: true, convention: { 'unique-id': 'org' } };
+            mock.onGet(`${base}/default`).reply(200, resolved);
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).resolves.toEqual(resolved);
+        });
+
+        it('returns undefined when no namespace default applies, but throws on other failures', async () => {
+            mock.onGet(`${base}/default`).replyOnce(204);
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).resolves.toBeUndefined();
+
+            mock.onGet(`${base}/default`).replyOnce(404, 'Invalid namespace provided: org.team');
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).rejects.toMatchObject({ status: 404 });
+
+            mock.onGet(`${base}/default`).replyOnce(500, { error: 'unavailable' });
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).rejects.toMatchObject({ status: 500 });
+
+        });
+
+        it.each([
+            [{ version: '1.0.0', convention: {} }],
+            [{ conventionId: 1, convention: {} }],
+            [{ conventionId: 1, version: '1.0.0' }],
+        ])('throws on a default body without conventionId, version or convention: %o', async (body) => {
+            mock.onGet(`${base}/default`).replyOnce(200, body);
+            await expect(client.getNamespaceDefaultConvention('org.team', 'c4-mapping')).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it('sets the namespace default with the convention id and version', async () => {
+            mock.onPut(`${base}/default`).reply(200, {});
+            await client.setNamespaceDefaultConvention('org.team', 'c4-mapping', 3, '1.1.0');
+            expect(JSON.parse(mock.history.put[0].data)).toEqual({ conventionId: 3, version: '1.1.0' });
+        });
+
+        it('throws when setting the default is forbidden', async () => {
+            mock.onPut(`${base}/default`).reply(403, { error: 'Forbidden' });
+            await expect(client.setNamespaceDefaultConvention('org.team', 'c4-mapping', 3, '1.1.0')).rejects.toMatchObject({
+                status: 403,
+                request: `PUT ${base}/default`,
+            });
+        });
+    });
+
+    // ── personal namespace ───────────────────────────────────────────────────
+
+    describe('getPersonalNamespace', () => {
+        it('returns the personal namespace', async () => {
+            mock.onGet('/api/calm/me/namespace').reply(200, { name: 'users.alice', exists: true, owned: false });
+
+            await expect(client.getPersonalNamespace()).resolves.toEqual({ name: 'users.alice', exists: true, owned: false });
+        });
+
+        it('throws HubClientError(404) when the feature is off', async () => {
+            mock.onGet('/api/calm/me/namespace').reply(404, { error: 'Personal namespaces are not enabled' });
+
+            await expect(client.getPersonalNamespace()).rejects.toMatchObject({
+                status: 404,
+                error: 'Personal namespaces are not enabled',
+                request: 'GET /api/calm/me/namespace'
+            });
+        });
+    });
+
+    describe('createPersonalNamespace', () => {
+        it('reports a create on 201', async () => {
+            mock.onPut('/api/calm/me/namespace').reply(201, { name: 'users.alice', exists: true, owned: true }, {
+                location: 'http://localhost:8080/api/calm/namespaces/users.alice'
+            });
+
+            await expect(client.createPersonalNamespace()).resolves.toEqual({
+                name: 'users.alice',
+                created: true,
+                location: 'http://localhost:8080/api/calm/namespaces/users.alice'
+            });
+        });
+
+        it('reports an existing namespace on 200, with a constructed location', async () => {
+            mock.onPut('/api/calm/me/namespace').reply(200, { name: 'users.alice', exists: true, owned: true });
+
+            await expect(client.createPersonalNamespace()).resolves.toEqual({
+                name: 'users.alice',
+                created: false,
+                location: '/api/calm/namespaces/users.alice'
+            });
+        });
+
+        it('throws HubClientError(409) when another user holds the name', async () => {
+            mock.onPut('/api/calm/me/namespace').reply(409, { error: 'Your personal namespace is held by another user' });
+
+            await expect(client.createPersonalNamespace()).rejects.toMatchObject({
+                status: 409,
+                request: 'PUT /api/calm/me/namespace'
+            });
+        });
+    });
+
     // ── createNamespace ──────────────────────────────────────────────────────
 
     describe('createNamespace', () => {
@@ -229,6 +392,233 @@ describe('CalmHubClient', () => {
             mock.onGet('/api/calm/namespaces').reply(200, null);
 
             await expect(client.listNamespaces()).rejects.toBeInstanceOf(HubClientError);
+        });
+    });
+
+    // ── extensions ───────────────────────────────────────────────────────────
+
+    describe('listExtensions', () => {
+        it('returns the extensions from the values array', async () => {
+            mock.onGet('/api/calm/extensions').reply(200, { values: [{ id: 'example', hubApi: 0 }] });
+
+            await expect(client.listExtensions()).resolves.toEqual([{ id: 'example', hubApi: 0 }]);
+        });
+
+        it('throws HubClientError on 401', async () => {
+            mock.onGet('/api/calm/extensions').reply(401, { error: 'Not signed in' });
+
+            await expect(client.listExtensions()).rejects.toMatchObject({
+                status: 401, error: 'Not signed in', request: 'GET /api/calm/extensions'
+            });
+        });
+
+        it('throws HubClientError when the body is not an object', async () => {
+            mock.onGet('/api/calm/extensions').reply(200, '<html>please log in</html>');
+
+            await expect(client.listExtensions()).rejects.toBeInstanceOf(HubClientError);
+        });
+    });
+
+    describe('callExtension', () => {
+        const getRoute = { id: 'list', method: 'GET', path: '/namespaces/{namespace}/services', scope: 'read' };
+        const postRoute = { id: 'add', method: 'POST', path: '/namespaces/{namespace}/services', scope: 'write' };
+        const example = { id: 'example', routes: [getRoute, postRoute] };
+        const json = { 'content-type': 'application/json' };
+
+        it('sends a GET with the path filled and the rest in the query', async () => {
+            mock.onGet('/api/calm/extensions/example/api/namespaces/finos/services').reply((config) => {
+                expect(config.params.toString()).toBe('limit=5&tag=a&tag=b');
+                expect(config.data).toBeUndefined();
+                return [200, '{"services":["a"]}', json];
+            });
+
+            await expect(client.callExtension(example, getRoute, { namespace: 'finos', limit: 5, tag: ['a', 'b'] }))
+                .resolves.toEqual({ status: 200, contentType: 'application/json', data: { services: ['a'] } });
+        });
+
+        it('sends no query string when only path parameters are given', async () => {
+            mock.onGet('/api/calm/extensions/example/api/namespaces/finos/services').reply((config) => {
+                expect(config.params).toBeUndefined();
+                return [204, ''];
+            });
+
+            await expect(client.callExtension(example, getRoute, { namespace: 'finos' }))
+                .resolves.toEqual({ status: 204, contentType: undefined, data: '' });
+        });
+
+        it('sends the rest of the input as the JSON body for POST', async () => {
+            mock.onPost('/api/calm/extensions/example/api/namespaces/finos/services').reply((config) => {
+                expect(JSON.parse(config.data)).toEqual({ name: 'payments' });
+                return [201, '{"name":"payments"}', { 'content-type': 'application/problem+json' }];
+            });
+
+            const result = await client.callExtension(example, postRoute, { namespace: 'finos', name: 'payments' });
+
+            expect(result.data).toEqual({ name: 'payments' });
+        });
+
+        it('sends a JSON Content-Type for a POST with only path input', async () => {
+            mock.onPost('/api/calm/extensions/example/api/namespaces/finos/services').reply((config) => {
+                expect(config.headers?.['Content-Type']).toBe('application/json');
+                expect(JSON.parse(config.data)).toEqual({});
+                return [204, ''];
+            });
+
+            await expect(client.callExtension(example, postRoute, { namespace: 'finos' }))
+                .resolves.toMatchObject({ status: 204 });
+        });
+
+        it('returns a text reply as text, even when it looks like JSON', async () => {
+            mock.onGet().reply(200, '42', { 'content-type': 'text/plain' });
+
+            const result = await client.callExtension(example, getRoute, { namespace: 'finos' });
+
+            expect(result.data).toBe('42');
+        });
+
+        it('returns malformed JSON as text', async () => {
+            mock.onGet().reply(200, '{oops', json);
+
+            const result = await client.callExtension(example, getRoute, { namespace: 'finos' });
+
+            expect(result.data).toBe('{oops');
+        });
+
+        it('keeps the JSON error body that Hub sent', async () => {
+            const body = { error: 'Input is not valid', details: [{ path: '/name', message: 'required' }] };
+            mock.onPost().reply(400, JSON.stringify(body), json);
+
+            await expect(client.callExtension(example, postRoute, { namespace: 'finos' })).rejects.toMatchObject({
+                status: 400,
+                error: 'Input is not valid',
+                request: 'POST /api/calm/extensions/example/api/namespaces/finos/services',
+                body,
+            });
+        });
+
+        it('uses a text error body as the message', async () => {
+            mock.onGet().reply(502, 'Bad gateway', { 'content-type': 'text/plain' });
+
+            await expect(client.callExtension(example, getRoute, { namespace: 'finos' }))
+                .rejects.toMatchObject({ status: 502, error: 'Bad gateway', body: 'Bad gateway' });
+        });
+
+        it('uses the transport message when the error body has no error field', async () => {
+            mock.onGet().reply(404, '{"missing":true}', json);
+
+            await expect(client.callExtension(example, getRoute, { namespace: 'finos' }))
+                .rejects.toMatchObject({ status: 404, error: 'Request failed with status code 404', body: { missing: true } });
+        });
+
+        it('shows the title and detail of a problem+json error body', async () => {
+            const body = { type: 'about:blank', title: 'Conflict', detail: 'The service exists', status: 409 };
+            mock.onPost().reply(409, JSON.stringify(body), { 'content-type': 'application/problem+json' });
+
+            await expect(client.callExtension(example, postRoute, { namespace: 'finos' }))
+                .rejects.toMatchObject({ status: 409, error: 'Conflict: The service exists', body });
+        });
+
+        it('shows the title of a problem+json error body that has no detail', async () => {
+            mock.onPost().reply(400, '{"title":"Bad input"}', { 'content-type': 'application/problem+json' });
+
+            await expect(client.callExtension(example, postRoute, { namespace: 'finos' }))
+                .rejects.toMatchObject({ status: 400, error: 'Bad input' });
+        });
+
+        it.each([
+            [401, 'Authentication is required, or the credentials are not valid'],
+            [403, 'Access is denied'],
+            [414, 'The path and query are too long for CALM Hub'],
+            [404, 'Request failed with status code 404'],
+        ])('gives an empty %d reply a message and no body', async (status, message) => {
+            mock.onGet().reply(status, '');
+
+            const error = await client.callExtension(example, getRoute, { namespace: 'finos' }).catch((e) => e);
+
+            expect(error).toBeInstanceOf(HubClientError);
+            expect(error).toMatchObject({ status, error: message });
+            expect(error.body).toBeUndefined();
+        });
+
+        it('sets no client timeout by default, because Hub ends the call at the extension timeout', async () => {
+            mock.onGet().reply((config) => {
+                expect(config.timeout).toBe(0);
+                return [204, ''];
+            });
+
+            await client.callExtension(example, getRoute, { namespace: 'finos' });
+        });
+
+        it('uses the timeout that the caller gives', async () => {
+            mock.onGet().reply((config) => {
+                expect(config.timeout).toBe(90000);
+                return [204, ''];
+            });
+
+            await client.callExtension(example, getRoute, { namespace: 'finos' }, { timeoutMs: 90000 });
+        });
+
+        it('says that a write can still complete after a client timeout', async () => {
+            mock.onPost().timeout();
+
+            await expect(client.callExtension(example, postRoute, { namespace: 'finos' }, { timeoutMs: 5 }))
+                .rejects.toMatchObject({ status: 0, error: expect.stringContaining('check whether the write happened before you send it again') });
+        });
+
+        it('says that a write can still complete after the connection drops', async () => {
+            mock.onPost().reply(() => { throw new AxiosError('socket hang up', 'ECONNRESET'); });
+
+            await expect(client.callExtension(example, postRoute, { namespace: 'finos' }))
+                .rejects.toMatchObject({ status: 0, error: 'socket hang up. CALM Hub and the extension can still complete the call, '
+                    + 'so check whether the write happened before you send it again' });
+        });
+
+        it('gives only the transport message when the connection drops on a read', async () => {
+            mock.onGet().reply(() => { throw new AxiosError('socket hang up', 'ECONNRESET'); });
+
+            await expect(client.callExtension(example, getRoute, { namespace: 'finos' }))
+                .rejects.toMatchObject({ status: 0, error: 'socket hang up' });
+        });
+
+        it('gives only the timeout for a read', async () => {
+            mock.onGet().timeout();
+
+            await expect(client.callExtension(example, getRoute, { namespace: 'finos' }, { timeoutMs: 5 }))
+                .rejects.toMatchObject({ status: 0, error: 'timeout of 5ms exceeded' });
+        });
+
+        it('throws HubClientError with status 0 on a network error', async () => {
+            mock.onGet().networkError();
+
+            await expect(client.callExtension(example, getRoute, { namespace: 'finos' }))
+                .rejects.toMatchObject({ status: 0, error: 'Network Error' });
+        });
+
+        it('throws before any call when the filled path matches another route of the extension', async () => {
+            const getService = { id: 'get-service', method: 'GET', path: '/services/{name}', scope: 'read' };
+            const getAdmin = { id: 'get-admin', method: 'GET', path: '/services/admin', scope: 'admin' };
+
+            await expect(client.callExtension({ id: 'example', routes: [getService, getAdmin] }, getService, { name: 'admin' }))
+                .rejects.toMatchObject({ status: 0, error: 'The input fills the path /services/{name} so that it matches route '
+                    + '\'get-admin\', not route \'get-service\' of this command', request: 'GET /api/calm/extensions/example/api/services/{name}' });
+            expect(mock.history.get).toHaveLength(0);
+        });
+
+        it('throws before any call when a path parameter is missing', async () => {
+            await expect(client.callExtension(example, getRoute, {})).rejects.toThrow('Input property \'namespace\' is required');
+            expect(mock.history.get).toHaveLength(0);
+        });
+
+        it('throws before any call when a query value has a control character', async () => {
+            await expect(client.callExtension(example, getRoute, { namespace: 'finos', q: 'a\nb' }))
+                .rejects.toMatchObject({ status: 0, error: expect.stringContaining('Input property \'q\' must not contain a control character') });
+            expect(mock.history.get).toHaveLength(0);
+        });
+
+        it('throws before any call when a path parameter has a slash', async () => {
+            await expect(client.callExtension(example, getRoute, { namespace: 'finos/payments' }))
+                .rejects.toMatchObject({ status: 0, error: expect.stringContaining('must not be empty or ., or contain .., /') });
+            expect(mock.history.get).toHaveLength(0);
         });
     });
 

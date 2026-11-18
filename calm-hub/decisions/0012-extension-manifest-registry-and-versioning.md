@@ -1,8 +1,7 @@
 # ADR 0012: Extension manifest, registry and versioning
 
-**Status**: Proposed. The proof of concept loads manifests from a directory and
-serves `GET /api/calm/extensions`. Route ids, commands, schema validation and
-per-environment overrides are not built.
+**Status**: Accepted. Built (#3704): manifest validation, `hubApi`, built-in manifests
+and `GET /api/calm/extensions`.
 
 ## Context
 
@@ -40,7 +39,7 @@ check on each route, and a host version range.
 | `name`, `description`, `provider` | Shown to operators and users |
 | `routes` | The proxy surface and the full permission list. Each route has `id`, `method`, `path`, `scope` and `readOnly` |
 | `commands` | Each names a route by `id`, and adds `description`, `input`, optional `output`, and `destructive` and `idempotent` hints |
-| `contributes` | Extension points. Each refers to a route by `id`, except `decorator-views`, which needs no route ([ADR 0013](0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md)) |
+| `contributes` | Extension points. Each refers to a route by `id`, except `decorator-views`, which needs no route. A `diagram-lens` also carries its `notation` ([ADR 0013](0013-extension-ui-is-tiered-with-hub-rendered-blocks-by-default.md)) |
 
 A command takes `method`, `scope` and `readOnly` from its route. Input properties
 that match a `{param}` fill the path. The rest go to the query for GET and

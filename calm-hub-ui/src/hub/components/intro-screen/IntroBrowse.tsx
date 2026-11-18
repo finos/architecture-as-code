@@ -5,6 +5,9 @@ import { CountBadge } from '../explore-rail/CountBadge.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useClampToggle } from '../show-more/useClampToggle.js';
 import { ShowMoreToggle } from '../show-more/ShowMoreToggle.js';
+import { useExtensions } from '../../../extensions/ExtensionsContext.js';
+import { extensionNavLinks } from '../../../extensions/contributions.js';
+import { ExtensionCard } from './ExtensionCard.js';
 
 interface BrowseCardProps {
     label: string;
@@ -68,9 +71,10 @@ function BrowseCard({ label, count, to, testId, description }: BrowseCardProps) 
 interface BrowseSectionProps {
     title: string;
     children: React.ReactNode;
+    gridClassName?: string;
 }
 
-function BrowseSection({ title, children }: BrowseSectionProps) {
+function BrowseSection({ title, children, gridClassName = 'grid-cols-2 sm:grid-cols-3' }: BrowseSectionProps) {
     return (
         <section className="w-full">
             <div
@@ -79,7 +83,9 @@ function BrowseSection({ title, children }: BrowseSectionProps) {
             >
                 {title}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">{children}</div>
+            <div data-testid="browse-grid" className={`grid ${gridClassName} gap-3`}>
+                {children}
+            </div>
         </section>
     );
 }
@@ -92,10 +98,13 @@ interface IntroBrowseProps {
 /**
  * The intro's browse affordance: every namespace and control domain as a clickable
  * tile (the same routes the explore rail uses), so the sidebar's targets are
- * reachable from the hero. Renders nothing when the catalogue is empty.
+ * reachable from the hero, and each extension with a landing card or a top-level page. Renders nothing when all are empty.
  */
 export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps) {
-    if (namespaceCounts.length === 0 && domainCounts.length === 0) return null;
+    const extensions = useExtensions()
+        .map((extension) => ({ extension, links: extensionNavLinks(extension) }))
+        .filter(({ extension, links }) => (extension.contributes['landing-card'] ?? []).length > 0 || links.length > 0);
+    if (namespaceCounts.length === 0 && domainCounts.length === 0 && extensions.length === 0) return null;
 
     return (
         <div className="w-full max-w-[640px] flex flex-col gap-10">
@@ -110,6 +119,15 @@ export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps)
                             testId="browse-namespace"
                             description={nc.description}
                         />
+                    ))}
+                </BrowseSection>
+            )}
+
+            {extensions.length > 0 && (
+                // Wider cards than the tiles, so that the figures stay readable on a phone.
+                <BrowseSection title="Extensions" gridClassName="grid-cols-1 sm:grid-cols-2">
+                    {extensions.map(({ extension, links }) => (
+                        <ExtensionCard key={extension.id} extension={extension} links={links} />
                     ))}
                 </BrowseSection>
             )}

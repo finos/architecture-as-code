@@ -8,6 +8,7 @@ import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.finos.calm.migration.steps.MongoArchitectureVersionSplitStep;
 import org.finos.calm.migration.steps.MongoControlVersionSplitStep;
+import org.finos.calm.migration.steps.MongoConventionIndexStep;
 import org.finos.calm.migration.steps.MongoDocumentIndexStep;
 import org.finos.calm.migration.steps.MongoIndexInitializationStep;
 import org.finos.calm.migration.steps.MongoAdrSlugMigrationStep;
@@ -36,7 +37,10 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
     @Override
     public Map<String, String> start() {
         if(mongoDBContainer == null) {
-            mongoDBContainer = new MongoDBContainer("mongo:4.4.3");
+            // The default is the oldest MongoDB that Hub supports. Deploy uses mongo:latest, so also run with
+            // -Dcalm.it.mongo-image=mongo:8.
+            mongoDBContainer = new MongoDBContainer(System.getProperty("calm.it.mongo-image", "mongo:5.0"))
+                    .withEnv("GLIBC_TUNABLES", "glibc.pthread.rseq=1");
         }
 
         logger.info("Starting MongoDB container");
@@ -70,6 +74,7 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
             MongoDatabase database = mongoClient.getDatabase(databaseName);
             new MongoIndexInitializationStep(database).createIndexes();
             new MongoDocumentIndexStep(database).createIndexes();
+            new MongoConventionIndexStep(database).createIndexes();
             // That step creates a unique index on architectures.namespace alone, which
             // enforces the pre-migration one-document-per-namespace shape and would make
             // a second architecture in a namespace impossible. Architecture and Pattern have

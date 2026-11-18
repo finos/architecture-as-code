@@ -290,6 +290,9 @@ if (isEmptyDatabase) {
     db.pattern_layouts.createIndex({ namespace: 1, patternId: 1 }, unique);
     db.documents.createIndex({ namespace: 1, documentType: 1, documentId: 1 }, unique);
     db.documentVersions.createIndex({ namespace: 1, documentType: 1, documentId: 1, version: 1 }, unique);
+    db.conventions.createIndex({ namespace: 1, conventionType: 1, conventionId: 1 }, unique);
+    db.conventionVersions.createIndex({ namespace: 1, conventionType: 1, conventionId: 1, version: 1 }, unique);
+    db.conventionDefaults.createIndex({ namespace: 1, conventionType: 1 }, unique);
     // Control (ADR 0007): the requirement axis is keyed exactly like the other seven types
     // above, domain standing in for namespace. The configuration axis is a second, independent
     // header/version pair keyed by a synthetic (domain::controlId) namespace, since a

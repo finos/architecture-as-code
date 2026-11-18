@@ -88,4 +88,24 @@ describe('printError', () => {
             JSON.stringify({ status: 500, error: 'boom', request: '/explode' }) + '\n'
         );
     });
+
+    it('adds the body to the JSON line in json mode', () => {
+        const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(function () { return true; });
+        printError(400, 'bad', '/x', 'json', { error: 'bad', details: [1] });
+        expect(stderrSpy).toHaveBeenCalledWith(
+            JSON.stringify({ status: 400, error: 'bad', request: '/x', body: { error: 'bad', details: [1] } }) + '\n'
+        );
+    });
+
+    it('writes an object body as JSON after the line in pretty mode', () => {
+        const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(function () { return true; });
+        printError(400, 'bad', '/x', 'pretty', { details: [1] });
+        expect(stderrSpy.mock.calls).toEqual([['Error 400 [/x]: bad\n'], [JSON.stringify({ details: [1] }, null, 2) + '\n']]);
+    });
+
+    it('does not repeat a text body in pretty mode', () => {
+        const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(function () { return true; });
+        printError(502, 'Bad gateway', '/x', 'pretty', 'Bad gateway');
+        expect(stderrSpy.mock.calls).toEqual([['Error 502 [/x]: Bad gateway\n']]);
+    });
 });
