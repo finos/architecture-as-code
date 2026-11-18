@@ -114,6 +114,13 @@
           "items": {
             "$ref": "#/$defs/diagramLens"
           }
+        },
+        "form": {
+          "description": "Forms that a form block in a blocks reply shows. CALM Hub checks the input against the fields before it calls the route.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/form"
+          }
         }
       },
       "required": [],
@@ -223,6 +230,151 @@
         "route",
         "description",
         "input"
+      ],
+      "additionalProperties": false
+    },
+    "form": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "route": {
+          "description": "A POST, PUT or PATCH route. Only the form endpoint can call it: the proxy and the CLI and MCP commands cannot.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "target": {
+          "description": "The context that the form sends: none, a resource version (resource), or a node of a resource version (element). The route path can use only the parameters that the target gives.",
+          "enum": [
+            "none",
+            "resource",
+            "element"
+          ],
+          "default": "none"
+        },
+        "submitLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/formField"
+          },
+          "minItems": 1,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "route",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "formField": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The key of the value in the input. Not a context name and not submission.",
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$"
+        },
+        "type": {
+          "enum": [
+            "text",
+            "multiline",
+            "number",
+            "choice",
+            "checkbox"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "required": {
+          "description": "A required text or choice needs a value, a required number needs a number, and a required checkbox must be ticked.",
+          "type": "boolean",
+          "default": false
+        },
+        "default": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "maxLength": {
+          "description": "For text and multiline. The default is 1000 for text and 10000 for multiline, which is also the most.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "integer": {
+          "type": "boolean"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "value",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "label"
       ],
       "additionalProperties": false
     },

@@ -29,7 +29,7 @@ class TestExtensionBlocksSchemaShould {
     }
 
     @Test
-    void accept_all_seven_block_types() throws Exception {
+    void accept_all_eight_block_types() throws Exception {
         var reply = new JsonObject("""
                 {"hubApi":0,"blocks":[
                   {"type":"markdown","text":"hello"},
@@ -38,7 +38,8 @@ class TestExtensionBlocksSchemaShould {
                   {"type":"table","columns":["name"],"rows":[["x",1,{"badge":"ok","tone":"positive"}]]},
                   {"type":"cards","items":[{"title":"card","link":{"label":"Hub","hub":{"namespace":"test","type":"architectures","id":"1","version":"1.0.0"}}}]},
                   {"type":"alert","text":"notice","tone":"warning"},
-                  {"type":"links","items":[{"label":"site","href":"https://example.com"}]}
+                  {"type":"links","items":[{"label":"site","href":"https://example.com"}]},
+                  {"type":"form","form":"request-review"}
                 ]}
                 """);
         assertTrue(validator().validate(reply).getValid());
@@ -86,7 +87,9 @@ class TestExtensionBlocksSchemaShould {
             "{\"hubApi\":0,\"blocks\":[{\"type\":\"unknown\"}]}",
             "{\"hubApi\":0,\"blocks\":[{\"type\":\"markdown\"}]}",
             "{\"hubApi\":0,\"blocks\":[{\"type\":\"links\",\"items\":[{\"label\":\"x\",\"href\":\"javascript:alert(1)\"}]}]}",
-            "{\"hubApi\":0,\"blocks\":[{\"type\":\"alert\",\"text\":\"x\",\"tone\":\"evil\"}]}"
+            "{\"hubApi\":0,\"blocks\":[{\"type\":\"alert\",\"text\":\"x\",\"tone\":\"evil\"}]}",
+            "{\"hubApi\":0,\"blocks\":[{\"type\":\"form\"}]}",
+            "{\"hubApi\":0,\"blocks\":[{\"type\":\"form\",\"form\":\"review\",\"fields\":[]}]}"
     })
     void reject_invalid_replies(String reply) throws Exception {
         assertFalse(validator().validate(new JsonObject(reply)).getValid());

@@ -3,6 +3,7 @@ import { ExtensionSummary } from '../model/extensions.js';
 import { ExtensionRegistryError, ExtensionService } from '../service/extension-service.js';
 import { ActionRuns, ActionRunsContext } from './actionRuns.js';
 import { ExtensionRefresh, ExtensionRefreshContext } from './extensionRefresh.js';
+import { FormDrafts, FormDraftsContext, useUnsentWarning } from './forms/formDrafts.js';
 
 export type ExtensionsStatus = 'loading' | 'loaded' | 'failed' | 'signed-out';
 
@@ -30,6 +31,8 @@ export function ExtensionsProvider({ children, service }: { children: ReactNode;
     const failures = useRef({ service: svc, count: 0 });
     const [runs] = useState(() => new ActionRuns());
     const [refresh] = useState(() => new ExtensionRefresh());
+    const [drafts] = useState(() => new FormDrafts());
+    useUnsentWarning(drafts);
     // A new service has its own registry: show loading, not the list of the old one.
     const current = state.service === svc ? state : { service: svc, extensions: [], status: 'loading' as const };
 
@@ -64,9 +67,11 @@ export function ExtensionsProvider({ children, service }: { children: ReactNode;
         <ExtensionServiceContext.Provider value={svc}>
             <ActionRunsContext.Provider value={runs}>
                 <ExtensionRefreshContext.Provider value={refresh}>
-                    <ExtensionsStatusContext.Provider value={current.status}>
-                        <ExtensionsContext.Provider value={current.extensions}>{children}</ExtensionsContext.Provider>
-                    </ExtensionsStatusContext.Provider>
+                    <FormDraftsContext.Provider value={drafts}>
+                        <ExtensionsStatusContext.Provider value={current.status}>
+                            <ExtensionsContext.Provider value={current.extensions}>{children}</ExtensionsContext.Provider>
+                        </ExtensionsStatusContext.Provider>
+                    </FormDraftsContext.Provider>
                 </ExtensionRefreshContext.Provider>
             </ActionRunsContext.Provider>
         </ExtensionServiceContext.Provider>

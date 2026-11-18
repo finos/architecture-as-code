@@ -24,6 +24,7 @@ It uses each UI extension point and one command:
 | `landing-card` | A **Release tracker** card on the home page |
 | `designer-tab`, `action` | The **Extensions** tab of an architecture |
 | `detail-panel` | The **Extensions** section of the node details |
+| `form` | A **Log a release** form on the screen and the tab, and a **Request a node review** form in the node details |
 | `decorator-views` | **Release risk** badges on the diagram |
 | `commands` | `calm hub ext release-tracker list-releases`, and the MCP tool `ext_release-tracker_list-releases` |
 
@@ -76,7 +77,7 @@ at start-up. The folder name must equal the `id`.
 ```
 
 This is a part of the demo manifest. The full file also declares the designer tab, detail panel,
-action and decorator view. The designer tab route is `/tab/{resourceType}/{resourceId}`: a path
+action, forms and decorator view. The designer tab route is `/tab/{resourceType}/{resourceId}`: a path
 parameter cannot contain a slash, so the route cannot use `{resource}` (`architectures/1`).
 
 | Field | Purpose |
@@ -105,6 +106,11 @@ draws. For example, the landing card route returns:
 ```
 
 A command route can return any JSON. See the [blocks reference](../../calm-hub/extension-blocks.md).
+
+A `form` block places a form of the manifest, for example `{ "type": "form", "form": "log-release" }`.
+Hub draws the fields and posts `{submission, context, input}` to the form route. The demo saves a
+submission id with its reply, so a repeat of the same id after an unknown outcome saves nothing
+twice. See [form](../../calm-hub/extension-points.md#form).
 
 ### Verify the identity assertion
 
@@ -255,8 +261,8 @@ docker run --rm --network host \
 
 The read-only images sign `iss` with `https://hub.calm.finos.org`, so start the backend with
 `CALM_HUB_ISSUER=https://hub.calm.finos.org`. A read-only Hub leaves out the routes that change
-data and are not `readOnly`, so the **Request release review** action does not show, and a direct
-`POST` to its route gets `405`. If the backend
+data and are not `readOnly`, so the **Request release review** action and the two forms do not
+show, and a direct `POST` to their routes gets `405`. If the backend
 is on another host, use `https`, or set `calm.extensions."<id>".allow-http=true` for a trusted
 internal network.
 
@@ -308,10 +314,14 @@ The decorator `target` writes the version with `-`, not `.`. Do not send `creati
 | Where | What you see |
 |---|---|
 | Home page | The **Release tracker** card with two figures, and a link to each screen |
-| Side menu, **Release tracker** | **Releases**: an alert, figures, a table of releases, text and links. **Release calendar**: an alert and a table of planned releases |
-| Architecture `demo` / `1`, **Extensions** tab | A **Release tracker** section with the **Request release review** button and the **Releases** tab content. The button asks you to confirm, because its route is not `readOnly` |
-| Click the `order-service` node | The **Extensions** section of the node details, with the owner, last release and risk |
+| Side menu, **Release tracker** | **Releases**: filter tiles, releases and deployments tables, the **Log a release** form with a target chooser, text and links. **Release calendar**: an alert and a table of planned releases |
+| Architecture `demo` / `1`, **Extensions** tab | A **Release tracker** section with the **Request release review** button and the **Releases** tab content, with the **Log a release** form for this architecture. The button and the form ask you to confirm, because their routes are not `readOnly` |
+| Click the `order-service` node | The **Extensions** section of the node details, with the owner, last release, risk and the **Request a node review** form |
 | Diagram | An amber **Medium** badge on `order-service`, and a **Release risk · Release tracker** row in the legend |
+
+To see an unknown outcome, put `#slow` in a form text field. The demo saves the input, then replies
+after the 10-second Hub timeout. The form says that the input may have been saved, and
+**Send again** gets the first reply, marked as a repeat.
 
 The backend log shows each call, for example
 `GET /tab/architectures/1?namespace=demo&resource=architectures%2F1&resourceId=1&resourceType=architectures&version=1.0.0 for no-auth: 200`.

@@ -58,7 +58,7 @@ function ScreenBody() {
                             </span>
                         </p>
                         <UrlTableState>
-                            <ExtensionSlot extension={extension} contribution={contribution} context={context} query={screenQuery.params} headingLevel={1} />
+                            <ExtensionSlot extension={extension} contribution={contribution} context={context} query={screenQuery.params} headingLevel={1} point="screen" />
                         </UrlTableState>
                     </div>
                 )}

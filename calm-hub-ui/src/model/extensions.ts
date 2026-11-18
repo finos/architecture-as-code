@@ -26,7 +26,41 @@ export interface ExtensionSummary {
     logo?: ExtensionLogoFiles;
     hubApi: number;
     routes: ExtensionRoute[];
-    contributes: Partial<Record<ExtensionPoint, ExtensionContribution[]>> & { 'diagram-lens'?: DiagramLensContribution[] };
+    contributes: Partial<Record<ExtensionPoint, ExtensionContribution[]>> & {
+        'diagram-lens'?: DiagramLensContribution[];
+        form?: ExtensionForm[];
+    };
+}
+
+export type FormFieldType = 'text' | 'multiline' | 'number' | 'choice' | 'checkbox';
+
+/** One labelled input of a form. Hub checked the rules at start-up, and checks each submission with the same rules. */
+export interface ExtensionFormField {
+    id: string;
+    type: FormFieldType;
+    label: string;
+    help?: string;
+    required?: boolean;
+    default?: string | number | boolean;
+    minLength?: number;
+    maxLength?: number;
+    minimum?: number;
+    maximum?: number;
+    integer?: boolean;
+    options?: { value: string; label: string }[];
+}
+
+/** The context that a form sends: none, a resource version, or a node of a resource version. */
+export type FormTarget = 'none' | 'resource' | 'element';
+
+export interface ExtensionForm {
+    id: string;
+    title: string;
+    description?: string;
+    route: string;
+    target: FormTarget;
+    submitLabel?: string;
+    fields: ExtensionFormField[];
 }
 // A type, not an interface: an interface has no index signature, so it would not match ExtensionQuery.
 export type ExtensionContext = {
@@ -125,7 +159,8 @@ export type ScreenBlock =
     | TableBlockValue
     | { type: 'cards'; items: { title: string; subtitle?: string; link?: ScreenLinkValue }[] }
     | { type: 'alert'; tone?: Tone; text: string }
-    | { type: 'links'; items: ScreenLinkValue[] };
+    | { type: 'links'; items: ScreenLinkValue[] }
+    | { type: 'form'; form: string };
 
 export interface ExtensionScreen {
     hubApi: number;

@@ -32,6 +32,7 @@ export function ExtensionDetailPanels({ context, storage }: { context: Extension
                                 contribution={contribution}
                                 context={context}
                                 headingLevel={6}
+                                point="detail-panel"
                             />
                         )),
                 }))}

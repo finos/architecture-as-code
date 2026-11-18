@@ -3,16 +3,25 @@ package org.finos.calm.domain.extensions;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.json.bind.annotation.JsonbProperty;
 import jakarta.json.bind.annotation.JsonbPropertyOrder;
 import jakarta.json.bind.annotation.JsonbTransient;
 import org.finos.calm.assets.ImageAsset;
 
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Predicate;
 
@@ -57,6 +66,23 @@ public record ExtensionManifest(
 
     public Optional<Route> route(String routeId) {
         return routes.stream().filter(r -> r.id().equals(routeId)).findFirst();
+    }
+
+    /**
+     * The routes that only a dedicated Hub endpoint calls, such as the route of a form. The generic proxy and MCP
+     * refuse them, so a caller cannot skip the checks of that endpoint.
+     */
+    public Set<String> dedicatedRoutes() {
+        Set<String> ids = new HashSet<>();
+        if (contributes.form() != null) {
+            contributes.form().forEach(form -> ids.add(form.route()));
+        }
+        return ids;
+    }
+
+    public Optional<Form> form(String formId) {
+        return contributes.form() == null ? Optional.empty()
+                : contributes.form().stream().filter(f -> f.id().equals(formId)).findFirst();
     }
 
     /** A copy with only the routes that {@code keep} accepts, and the commands and contributions that use them. */
@@ -135,7 +161,7 @@ public record ExtensionManifest(
     @RegisterForReflection
     // Yasson matches the order against Java names, not JSON names.
     @JsonbPropertyOrder({"screen", "designerTab", "landingCard", "detailPanel", "action", "searchProvider", "chat",
-            "decoratorViews", "diagramLens"})
+            "decoratorViews", "diagramLens", "form"})
     public record Contributions(
             List<RouteContribution> screen,
             @JsonProperty("designer-tab") @JsonbProperty("designer-tab") List<RouteContribution> designerTab,
@@ -145,10 +171,12 @@ public record ExtensionManifest(
             @JsonProperty("search-provider") @JsonbProperty("search-provider") List<RouteContribution> searchProvider,
             List<RouteContribution> chat,
             @JsonProperty("decorator-views") @JsonbProperty("decorator-views") List<DecoratorView> decoratorViews,
-            @JsonProperty("diagram-lens") @JsonbProperty("diagram-lens") List<DiagramLens> diagramLens
+            @JsonProperty("diagram-lens") @JsonbProperty("diagram-lens") List<DiagramLens> diagramLens,
+            List<Form> form
     ) {
 
-        public static final Contributions NONE = new Contributions(null, null, null, null, null, null, null, null, null);
+        public static final Contributions NONE = new Contributions(null, null, null, null, null, null, null, null, null,
+                null);
 
         /** The route-based extension points by their manifest name. Absent points are left out. */
         public Map<String, List<RouteContribution>> byRoutePoint() {
@@ -166,14 +194,15 @@ public record ExtensionManifest(
         /** A copy with these lenses in place of the declared ones. */
         public Contributions withDiagramLens(List<DiagramLens> lenses) {
             return new Contributions(screen, designerTab, landingCard, detailPanel, action, searchProvider, chat,
-                    decoratorViews, lenses);
+                    decoratorViews, lenses, form);
         }
 
         Contributions withRoutes(Predicate<String> routeKept) {
             return new Contributions(keep(screen, routeKept), keep(designerTab, routeKept), keep(landingCard, routeKept),
                     keep(detailPanel, routeKept), keep(action, routeKept), keep(searchProvider, routeKept),
                     keep(chat, routeKept), decoratorViews,
-                    diagramLens == null ? null : diagramLens.stream().filter(l -> routeKept.test(l.route())).toList());
+                    diagramLens == null ? null : diagramLens.stream().filter(l -> routeKept.test(l.route())).toList(),
+                    form == null ? null : form.stream().filter(f -> routeKept.test(f.route())).toList());
         }
 
         private static List<RouteContribution> keep(List<RouteContribution> entries, Predicate<String> routeKept) {
@@ -191,6 +220,62 @@ public record ExtensionManifest(
     @RegisterForReflection
     @JsonbPropertyOrder({"id", "title", "route"})
     public record RouteContribution(String id, String title, String route) {}
+
+    /**
+     * Input that a {@code form} block collects and Hub sends to {@code route}, a POST, PUT or PATCH route that only
+     * the form endpoint calls. {@code target} is the context that the form needs: {@code none}, {@code resource} or
+     * {@code element}. Hub checks the input against {@code fields} before it calls the route.
+     */
+    @RegisterForReflection
+    @JsonbPropertyOrder({"id", "title", "description", "route", "target", "submitLabel", "fields"})
+    public record Form(String id, String title, String description, String route, String target, String submitLabel,
+                       List<FormField> fields) {
+
+        public static final String TARGET_NONE = "none";
+        public static final String TARGET_RESOURCE = "resource";
+        public static final String TARGET_ELEMENT = "element";
+
+        public Form {
+            target = target == null ? TARGET_NONE : target;
+            fields = fields == null ? List.of() : List.copyOf(fields);
+        }
+    }
+
+    /**
+     * One labelled input of a form. {@code type} is {@code text}, {@code multiline}, {@code number}, {@code choice} or
+     * {@code checkbox}. The loader checks that each rule suits the type.
+     */
+    @RegisterForReflection
+    @JsonbPropertyOrder({"id", "type", "label", "help", "required", "defaultValue", "minLength", "maxLength", "minimum",
+            "maximum", "integer", "options"})
+    public record FormField(
+            String id,
+            String type,
+            String label,
+            String help,
+            boolean required,
+            @JsonProperty("default") @JsonbProperty("default") @JsonDeserialize(using = AsWritten.class) Object defaultValue,
+            Integer minLength,
+            Integer maxLength,
+            BigDecimal minimum,
+            BigDecimal maximum,
+            Boolean integer,
+            List<FormOption> options
+    ) {
+        /** Reads a decimal default as written, not as its nearest double, so that the form checks see the author's number. */
+        @RegisterForReflection
+        public static final class AsWritten extends JsonDeserializer<Object> {
+            @Override
+            public Object deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+                return parser.currentToken() == JsonToken.VALUE_NUMBER_FLOAT ? parser.getDecimalValue()
+                        : context.readValue(parser, Object.class);
+            }
+        }
+    }
+
+    @RegisterForReflection
+    @JsonbPropertyOrder({"value", "label"})
+    public record FormOption(String value, String label) {}
 
     /** Hub draws this view from decorators, with no extension code. Shared with the overlay engine. */
     @RegisterForReflection

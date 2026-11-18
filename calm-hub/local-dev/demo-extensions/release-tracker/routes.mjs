@@ -32,6 +32,8 @@ const deployments = Array.from({ length: 23 }, (_, i) => ({
 }));
 const deploymentTone = { succeeded: 'positive', failed: 'negative', 'rolled-back': 'warning' };
 let reviews = 0;
+// The replies by submission id: a repeat after an unknown outcome gets the first reply, and changes nothing.
+const submissions = new Map();
 
 const screen = (title, blocks) => ({ hubApi: 0, title, blocks });
 const releaseRows = () =>
@@ -104,6 +106,7 @@ export function route(method, url, body) {
             ] },
             { type: 'table', id: 'deployments', columns: ['Deployment', 'Service', 'Result'], rows: [],
                 search: { label: 'Filter by deployment or service' }, source: { route: 'deployments', pageSize: 5 } },
+            { type: 'form', form: 'log-release' },
             { type: 'markdown', text: '### How releases work\nEach release goes through **review**, **canary** and **full rollout**. A rollback opens an incident automatically.' },
             { type: 'links', items: [
                 { label: 'Release runbook', href: 'https://example.org/runbooks/release' },
@@ -132,6 +135,7 @@ export function route(method, url, body) {
                 { label: 'Open reviews', value: reviews },
             ] },
             { type: 'table', columns: ['Version', 'Status', 'Date', 'Owner'], rows: releaseRows() },
+            { type: 'form', form: 'log-release' },
             { type: 'links', items: [
                 { label: 'All releases for this architecture', screen: { ...SELF, context: {
                     namespace: q.get('namespace'), type: resourceType, id: resourceId, version: q.get('version'),
@@ -155,7 +159,12 @@ export function route(method, url, body) {
     if (method === 'GET' && url.pathname === '/element') {
         const id = q.get('selectedElement');
         const e = elements[id];
-        if (!e) return screen('Release info', [{ type: 'alert', tone: 'neutral', text: `No release data for ${id ?? 'this element'}.` }]);
+        if (!e) {
+            return screen('Release info', [
+                { type: 'alert', tone: 'neutral', text: `No release data for ${id ?? 'this element'}.` },
+                { type: 'form', form: 'review-node' },
+            ]);
+        }
         const riskTone = { Low: 'positive', Medium: 'warning', High: 'negative' }[e.risk];
         return screen('Release info', [
             { type: 'keyValue', items: [
@@ -164,6 +173,7 @@ export function route(method, url, body) {
                 { label: 'On call', value: e.oncall },
             ] },
             { type: 'table', columns: ['Risk'], rows: [[{ badge: e.risk, tone: riskTone }]] },
+            { type: 'form', form: 'review-node' },
         ]);
     }
     if (method === 'POST' && url.pathname === '/reviews') {
@@ -177,4 +187,38 @@ export function route(method, url, body) {
         return { releases: releases.map(({ version, status, date }) => ({ version, status, date })) };
     }
     return null;
+}
+
+const reply = (status, body) => ({ status, body });
+
+function logRelease({ context, input }) {
+    if (!/^\d+\.\d+\.\d+$/.test(input.version)) return reply(422, { error: 'Check the form', fields: { version: 'Use a version such as 2.5.0.' } });
+    if (releases.some((r) => r.version === input.version)) {
+        return reply(422, { error: 'Check the form', fields: { version: `Release ${input.version} is already logged.` } });
+    }
+    releases.unshift({ version: input.version, status: input.status, date: new Date().toISOString().slice(0, 10), owner: 'demo-team' });
+    return reply(201, { message: `Release ${input.version} logged for ${context.resource}.` });
+}
+
+function reviewNode({ context, input }) {
+    const node = context.selectedElement;
+    if (!elements[node]) return reply(409, { title: `No release data for ${node}`, detail: 'Choose a node that the release tracker knows.' });
+    reviews += 1;
+    return reply(201, { message: `Review ${reviews} opened for ${node}, due in ${input.days ?? 5} days.` });
+}
+
+const forms = { '/forms/releases': logRelease, '/forms/reviews': reviewNode };
+
+/**
+ * A form submission, as {status, body}, or null for another request. Hub checked the input against the form, so the
+ * backend checks only its own rules. A repeat of a submission id gets the first reply, so a retry saves nothing twice.
+ */
+export function form(method, url, body) {
+    const handle = forms[url.pathname];
+    if (method !== 'POST' || !handle) return null;
+    const seen = submissions.get(body.submission);
+    if (seen) return { ...seen, repeat: true, body: { ...seen.body, message: `${seen.body.message} (This was a repeat, so nothing changed.)` } };
+    const result = handle(body);
+    if (result.status === 201) submissions.set(body.submission, result);
+    return result;
 }

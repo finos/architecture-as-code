@@ -1,5 +1,6 @@
 package org.finos.calm.extensions;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.json.DecodeException;
@@ -162,8 +163,10 @@ public class ExtensionManifestLoader {
         }
         ExtensionManifest manifest;
         try {
-            manifest = mapper.convertValue(raw.getMap(), ExtensionManifest.class);
-        } catch (IllegalArgumentException e) {
+            // From the text, not from raw: raw holds each decimal as its nearest double, and the form checks need
+            // the number as written.
+            manifest = mapper.readValue(json, ExtensionManifest.class);
+        } catch (JsonProcessingException e) {
             // The schema and the records disagree, which is a Hub defect, not an author error.
             throw new IllegalStateException("Cannot read extension manifest " + source, e);
         }
@@ -189,7 +192,36 @@ public class ExtensionManifestLoader {
         checkRoutes(manifest, problems);
         checkCommands(manifest, problems);
         checkContributions(manifest, problems);
+        ExtensionForms.check(manifest, problems);
+        checkDedicatedRoutes(manifest, problems);
         return problems;
+    }
+
+    /**
+     * Only its dedicated Hub endpoint calls a dedicated route, so that its checks run on each call. Another entry or
+     * a command that names the route would call it through the generic proxy, which refuses it.
+     */
+    private static void checkDedicatedRoutes(ExtensionManifest manifest, List<String> problems) {
+        Map<String, List<String>> users = new HashMap<>();
+        manifest.contributes().byRoutePoint().forEach((point, entries) -> entries.forEach(entry ->
+                users.computeIfAbsent(entry.route(), r -> new ArrayList<>()).add(point + " '" + entry.id() + "'")));
+        manifest.commands().forEach((name, command) ->
+                users.computeIfAbsent(command.route(), r -> new ArrayList<>()).add("command '" + name + "'"));
+        if (manifest.contributes().diagramLens() != null) {
+            manifest.contributes().diagramLens().forEach(lens ->
+                    users.computeIfAbsent(lens.route(), r -> new ArrayList<>()).add("diagram-lens '" + lens.id() + "'"));
+        }
+        if (manifest.contributes().form() != null) {
+            manifest.contributes().form().forEach(form ->
+                    users.computeIfAbsent(form.route(), r -> new ArrayList<>()).add("form '" + form.id() + "'"));
+        }
+        manifest.dedicatedRoutes().stream().sorted().forEach(route -> {
+            List<String> names = users.getOrDefault(route, List.of());
+            if (names.size() > 1) {
+                problems.add("route '" + route + "' is named by " + String.join(", ", names)
+                        + ". Only CALM Hub calls this route, through the endpoint of one entry, so no other entry or command may name it");
+            }
+        });
     }
 
     private static void checkRoutes(ExtensionManifest manifest, List<String> problems) {

@@ -1,7 +1,7 @@
 # release-tracker
 
 A demo extension for local development. It uses every UI extension point: two screens, a landing card,
-an action, a designer tab, a detail panel and a decorator view. Use it to check the CALM Hub UI
+an action, a designer tab, a detail panel, forms and a decorator view. Use it to check the CALM Hub UI
 layout. `server.mjs` is its backend: it has no dependencies, and it uses the identity verifier of
 [example-services](../../extensions/example-services/identity.mjs). The data is made up. The designer tab
 route uses `{resourceType}/{resourceId}`, because CALM Hub refuses `%2F` in a path. Test the routes
@@ -17,6 +17,7 @@ URL does not start, and the UI then shows "CalmHub failed to load".
 | `action`, `designer-tab` | The Extensions tab of an architecture or pattern |
 | `detail-panel` | The Extensions section of the node details |
 | `decorator-views` | Badges on the diagram for `release-risk` decorators |
+| `form` | `log-release` on the screen (with a target chooser) and the designer tab; `review-node` in the node details |
 
 Run it from `calm-hub/`, with the keys from the [example-services README](../../extensions/example-services/README.md):
 
@@ -36,6 +37,11 @@ node local-dev/demo-extensions/release-tracker/server.mjs
 `calm.standalone.seed-demo-data=true` adds the `demo` namespace and its architectures, which the screen
 links. It seeds only a database with no namespaces: to start again, delete the data directory
 (`~/.calm-hub/data` by default).
+
+The forms save in memory. A repeat of a submission id gets the first reply and saves nothing. A
+release version that is not `x.y.z`, or that is already logged, gets a `422` field error, and a
+review of a node with no data gets a `409`. Put `#slow` in a text field to see an unknown outcome:
+the backend saves, then replies after the 10-second Hub timeout.
 
 The detail panel has data for the nodes `web-app`, `api-gateway`, `user-service`, `order-service`,
 `database` and `message-queue`.

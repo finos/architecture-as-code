@@ -13,7 +13,9 @@
     { "id": "element", "method": "GET", "path": "/element", "scope": "authenticated", "readOnly": true },
     { "id": "request-review", "method": "POST", "path": "/reviews", "scope": "authenticated" },
     { "id": "releases", "method": "GET", "path": "/releases", "scope": "authenticated", "readOnly": true },
-    { "id": "deployments", "method": "GET", "path": "/deployments", "scope": "authenticated", "readOnly": true }
+    { "id": "deployments", "method": "GET", "path": "/deployments", "scope": "authenticated", "readOnly": true },
+    { "id": "log-release", "method": "POST", "path": "/forms/releases", "scope": "authenticated" },
+    { "id": "review-node", "method": "POST", "path": "/forms/reviews", "scope": "authenticated" }
   ],
   "commands": {
     "list-releases": {
@@ -46,6 +48,36 @@
     "landing-card": [ { "id": "releases", "title": "Release health", "route": "card" } ],
     "detail-panel": [ { "id": "release", "title": "Release info", "route": "element" } ],
     "action": [ { "id": "request-review", "title": "Request release review", "route": "request-review" } ],
+    "form": [
+      {
+        "id": "log-release",
+        "title": "Log a release",
+        "description": "Record a release of this architecture.",
+        "route": "log-release",
+        "target": "resource",
+        "submitLabel": "Log release",
+        "fields": [
+          { "id": "version", "type": "text", "label": "Release version", "required": true, "maxLength": 20, "help": "For example 2.5.0." },
+          { "id": "status", "type": "choice", "label": "Status", "required": true, "default": "in-progress",
+            "options": [ { "value": "in-progress", "label": "In progress" }, { "value": "released", "label": "Released" }, { "value": "rolled-back", "label": "Rolled back" } ] },
+          { "id": "notes", "type": "multiline", "label": "Notes", "maxLength": 500 }
+        ]
+      },
+      {
+        "id": "review-node",
+        "title": "Request a node review",
+        "route": "review-node",
+        "target": "element",
+        "submitLabel": "Request review",
+        "fields": [
+          { "id": "reviewType", "type": "choice", "label": "Review type", "required": true,
+            "options": [ { "value": "security", "label": "Security" }, { "value": "resilience", "label": "Resilience" }, { "value": "cost", "label": "Cost" } ] },
+          { "id": "note", "type": "multiline", "label": "What to check", "required": true, "minLength": 10, "maxLength": 500 },
+          { "id": "days", "type": "number", "label": "Due in days", "integer": true, "minimum": 1, "maximum": 30, "default": 5 },
+          { "id": "urgent", "type": "checkbox", "label": "Urgent" }
+        ]
+      }
+    ],
     "decorator-views": [
       {
         "id": "release-risk",

@@ -19,6 +19,7 @@ An extension manifest lists its extension points in `contributes`, and its CLI a
 | [`landing-card`](#landing-card) | Hub UI | `GET` | None |
 | [`detail-panel`](#detail-panel) | Hub UI | `GET` | Resource and node |
 | [`action`](#action) | Hub UI | Any | Resource |
+| [`form`](#form) | Hub UI, in a `form` block | `POST`, `PUT` or `PATCH` | None, resource, or resource and node |
 | [`decorator-views`](#decorator-views) | Hub UI | No route | Decorators |
 | [`diagram-lens`](#diagram-lens) | Hub UI | `GET` | Resource |
 | [`search-provider`](#search-provider-and-chat) | Nothing yet | Any | — |
@@ -27,7 +28,7 @@ An extension manifest lists its extension points in `contributes`, and its CLI a
 
 ## Shared fields
 
-Each extension point, except `decorator-views` and `diagram-lens`, is a list of entries with these fields:
+Each extension point, except `decorator-views`, `diagram-lens` and `form`, is a list of entries with these fields:
 
 | Field | Required | Rule |
 |---|---|---|
@@ -160,7 +161,8 @@ A button in the extension's section of the **Extensions** tab of an architecture
   button stays disabled until the call ends, also when its section closes and opens again.
 - The action shows only when the context gives a value for each placeholder in the route path.
   An action that needs only `{selectedElement}` shows disabled until a link names a node. It also shows disabled when Hub refuses the node id in a path, for example an id with `/`, `@` or `%`.
-- An action does not accept user input, and Hub does not show its reply. A call in flight
+- An action does not accept user input, and Hub does not show its reply. For user input, use a
+  [form](#form). A call in flight
   shows `<title>: running…`. A call that succeeds
   shows `<title>: done.`, and a failed call shows "Extension request failed." After a write that
   succeeds, Hub loads the blocks of the extension again, with the same table filters (see
@@ -169,6 +171,101 @@ A button in the extension's section of the **Extensions** tab of an architecture
   For a write, it stays until the action runs again, and names its target when the context has
   changed, for example `Request release review: done (demo architectures/1 1.0.0).`
 - A read-only Hub leaves out an action whose route changes data and is not `readOnly`.
+
+## form
+
+A form that Hub draws from the manifest. A `screen`, `designer-tab` or `detail-panel` reply places
+it with a [`form` block](extension-blocks.md#form). No extension code runs in the browser.
+
+```json
+"routes": [{ "id": "review-node", "method": "POST", "path": "/forms/reviews", "scope": "authenticated" }],
+"contributes": {
+  "form": [{
+    "id": "review-node",
+    "title": "Request a node review",
+    "route": "review-node",
+    "target": "element",
+    "submitLabel": "Request review",
+    "fields": [
+      { "id": "reviewType", "type": "choice", "label": "Review type", "required": true,
+        "options": [{ "value": "security", "label": "Security" }, { "value": "cost", "label": "Cost" }] },
+      { "id": "note", "type": "multiline", "label": "What to check", "required": true, "minLength": 10, "maxLength": 500 },
+      { "id": "days", "type": "number", "label": "Due in days", "integer": true, "minimum": 1, "maximum": 30, "default": 5 },
+      { "id": "urgent", "type": "checkbox", "label": "Urgent" }
+    ]
+  }]
+}
+```
+
+| Field | Required | Rule |
+|---|---|---|
+| `id`, `title`, `route` | Yes | As the [shared fields](#shared-fields). The route must be `POST`, `PUT` or `PATCH`, without `hubData`. Only this form can name it |
+| `description` | No | Shows under the title |
+| `target` | No | `none` (the default), `resource` or `element`. A route path can use only the [context](#context) names that the target gives: none, `namespace`, `resourceType`, `resourceId` and `version`, and also `selectedElement` for `element` |
+| `submitLabel` | No | The label of the send button. The default is `Submit` |
+| `fields` | Yes | 1 to 20 fields |
+
+Each field has an `id` (a letter, then up to 63 letters, digits, `_` or `-`), a `type` and a
+`label`. `help`, `required` and `default` are optional. The other rules depend on the type:
+
+| Type | Control | Rules | Hub sends |
+|---|---|---|---|
+| `text` | One line | `minLength`, `maxLength`, at most 1000 | A string with no control character |
+| `multiline` | A text area | `minLength`, `maxLength`, at most 10000 | A string. Tab and line breaks are allowed |
+| `number` | A number box | `minimum`, `maximum`, `integer` | A JSON number. With `integer`, a whole number from -9007199254740991 to 9007199254740991, the range that JavaScript holds exactly. The limits and the `default` must be in this range too. Each limit and `default` must be the number that JavaScript writes for it, so that the UI and CALM Hub check one number: CALM Hub refuses `0.30000000000000001`, which JavaScript writes as `0.3`, and `4.9e-324`, which it writes as `5e-324` |
+| `choice` | A list | `options`: 1 to 50 `{ value, label }`, each value once | One of the option values |
+| `checkbox` | A check box | None. `required` means the box must be ticked | `true` or `false` |
+
+CALM Hub does not start if a form breaks these rules, for example a rule that does not fit its
+type, a `minimum` above the `maximum`, or a `default` that the field refuses.
+
+### What the backend gets
+
+The UI sends the form to `POST /api/calm/extensions/<id>/forms/<form>`, not through the generic
+proxy. Hub checks the target and the input with the rules of the manifest, then calls the form
+route with this body:
+
+```json
+{
+  "submission": "6f1c1d0e-3b0a-4c43-9d6c-2b0a8f8d1a10",
+  "context": { "namespace": "demo", "resource": "architectures/1", "resourceType": "architectures", "resourceId": "1", "version": "1.0.0", "selectedElement": "database" },
+  "input": { "reviewType": "security", "note": "Check the failover", "days": 5, "urgent": false }
+}
+```
+
+- `input` holds only the declared fields that have a value, in field order. User input never goes
+  in `context`, in the path or in the query.
+- `context` is the target. Hub derives `resource`. A `none` form gets `{}`. The UI keeps the
+  target that the user started to edit: when the selection changes, the form names both targets
+  and asks before it sends to the new one. On a `screen`, the user chooses the target. A screen
+  link with a context fills the choice.
+- The route `scope`, `readOnly`, the confirmation dialog, the audit record and the limit of calls in
+  flight are the same as for an [action](#action). A read-only Hub refuses a form whose route is not
+  `readOnly`.
+- A command or another contribution cannot name a form route, and the generic proxy refuses it
+  with `404`. Thus the CLI, MCP and other clients cannot skip these checks.
+
+### Replies
+
+Reply `2xx` only when the backend saved the input. The UI shows `message` from a JSON reply. For a
+route that is not `readOnly`, it then loads the other contributions of the extension again.
+
+| Reply | The UI shows | Input |
+|---|---|---|
+| `2xx` | "Sent", and `message` | Cleared |
+| `4xx`, with `title` or `error`, and `detail` | "Not saved", and the message | Kept |
+| `422` with `fields`, for example `{ "fields": { "note": "Name the release." } }` | Each message on its field | Kept |
+| `5xx`, a timeout, or no reply | "It may have been saved". The button changes to **Send again** | Kept |
+
+Hub sets the `Calm-Extension-Dispatch` header on each reply: `not-sent` when Hub refused the call,
+`sent` for a backend reply, and `unknown` when the backend failed or did not reply in time. A
+backend cannot set it. A **Send again** with the same input and target keeps the `submission`
+id. Use it to find a duplicate, and reply as for the first submission. While the outcome is unknown,
+the form does not send changed input or another target. The user can change the input back, or
+check the backend and then forget the earlier submission. After that, the changed input gets a new
+id. If Hub refuses a **Send again** before it sends it, for example because the extension is busy,
+the outcome of the first send stays unknown and the id stays the same. Hub never sends a form again
+by itself.
 
 ## decorator-views
 

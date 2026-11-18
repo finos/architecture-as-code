@@ -2,7 +2,7 @@
 // CALM Hub identity assertion, and returns Hub "blocks" for each contribution.
 import { createServer } from 'node:http';
 import { createVerifier } from '../../extensions/example-services/identity.mjs';
-import { route } from './routes.mjs';
+import { form, route } from './routes.mjs';
 
 const PORT = Number(process.env.PORT ?? 8092);
 const HUB_URL = process.env.CALM_HUB_URL ?? 'http://localhost:8080';
@@ -43,8 +43,14 @@ createServer(async (req, res) => {
         res.end(JSON.stringify({ error: 'the body is not valid JSON' }));
         return;
     }
+    const submitted = form(req.method, url, body);
+    // Text with #slow saves first and replies after the Hub timeout, so the UI shows an unknown outcome. A repeat is fast.
+    if (submitted && !submitted.repeat && JSON.stringify(body.input ?? {}).includes('#slow')) {
+        await new Promise((resolve) => setTimeout(resolve, 15_000));
+    }
     const reply = route(req.method, url, body);
-    console.log(`${req.method} ${url.pathname}${url.search} for ${claims.sub}: ${reply ? 200 : 404}`);
-    res.writeHead(reply ? 200 : 404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(reply ?? { error: 'not found' }));
+    const status = submitted?.status ?? (reply ? 200 : 404);
+    console.log(`${req.method} ${url.pathname}${url.search} for ${claims.sub}: ${status}`);
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(submitted?.body ?? reply ?? { error: 'not found' }));
 }).listen(PORT, '127.0.0.1', () => console.log(`release-tracker backend on http://localhost:${PORT}, trusting issuer ${ISSUER}`));
