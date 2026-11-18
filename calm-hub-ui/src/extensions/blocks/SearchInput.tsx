@@ -14,6 +14,8 @@ interface SearchInputProps {
     delay: number;
     onCommit: (text: string) => void;
     controls: string;
+    /** The DOM id of a message that says what is wrong with the text. */
+    problem?: string;
 }
 
 // The page address keeps at most `tableQuery` characters (code points). An HTML maxLength counts UTF-16 units, so it
@@ -26,7 +28,7 @@ const withinMax = (text: string) => (text.length <= MAX_CHARS ? text : Array.fro
  * replaces the text: a `value` that changes because of a commit of this box can arrive after more typing.
  */
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(function SearchInput(
-    { label, value, resetKey, delay, onCommit, controls },
+    { label, value, resetKey, delay, onCommit, controls, problem },
     ref
 ) {
     const [text, setText] = useState(value);
@@ -49,6 +51,8 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(functi
                 value={text}
                 placeholder={label}
                 aria-controls={controls}
+                aria-invalid={problem ? true : undefined}
+                aria-describedby={problem}
                 onChange={(event) => setText(withinMax(event.target.value))}
             />
         </label>
