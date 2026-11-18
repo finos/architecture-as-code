@@ -193,4 +193,37 @@ public class TestSearchResourceShould {
 
         verify(mockSearchStore).search(eq("error"), any(), any());
     }
+
+    @Test
+    void pass_the_qualifiers_to_the_store_and_keep_only_the_type_group() {
+        SearchResult pattern = new SearchResult("workshop", 2, "Signup Pattern", "A pattern");
+        GroupedSearchResults results = new GroupedSearchResults(
+                List.of(new SearchResult("workshop", 1, "Arch", "An architecture")),
+                List.of(pattern), List.of(), List.of(), List.of(), List.of(), List.of());
+        when(mockSearchStore.search(eq("signup"), any(), any())).thenReturn(results);
+
+        given()
+                .queryParam("q", "namespace: workshop type:pattern signup")
+                .when()
+                .get("/calm/search")
+                .then()
+                .statusCode(200)
+                .body("patterns", hasSize(1))
+                .body("architectures", hasSize(0));
+
+        verify(mockSearchStore).search(eq("signup"), eq(Optional.of(Set.of("workshop"))), eq(Optional.of(Set.of())));
+    }
+
+    @Test
+    void return_400_for_an_unknown_type() {
+        given()
+                .queryParam("q", "type:decorator")
+                .when()
+                .get("/calm/search")
+                .then()
+                .statusCode(400)
+                .body(containsString("Unknown type"));
+
+        verify(mockSearchStore, never()).search(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    }
 }

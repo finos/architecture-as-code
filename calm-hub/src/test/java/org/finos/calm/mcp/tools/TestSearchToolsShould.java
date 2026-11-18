@@ -216,4 +216,27 @@ class TestSearchToolsShould {
         assertThat(text(response), containsString("disabled"));
         verifyNoInteractions(searchStore);
     }
+
+    @Test
+    void pass_the_qualifiers_to_the_store_and_keep_only_the_type_group() {
+        GroupedSearchResults grouped = new GroupedSearchResults(
+                List.of(new SearchResult("workshop", 1, "Signup Architecture", "An architecture")),
+                List.of(new SearchResult("workshop", 2, "Signup Pattern", "A pattern")),
+                EMPTY, EMPTY, EMPTY, EMPTY, EMPTY);
+        when(searchStore.search(eq("signup"), any(), any())).thenReturn(grouped);
+
+        String result = text(searchTools.searchHub("ns:workshop type:patterns signup"));
+
+        assertThat(result, containsString("Signup Pattern"));
+        assertThat(result, org.hamcrest.Matchers.not(containsString("Signup Architecture")));
+        verify(searchStore).search(eq("signup"), eq(Optional.of(Set.of("workshop"))), eq(Optional.of(Set.of())));
+    }
+
+    @Test
+    void return_error_for_an_unknown_type() {
+        ToolResponse response = searchTools.searchHub("type:decorator");
+
+        assertThat(text(response), containsString("Unknown type"));
+        verifyNoInteractions(searchStore);
+    }
 }

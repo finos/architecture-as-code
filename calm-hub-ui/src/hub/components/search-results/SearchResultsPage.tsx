@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SearchService } from '../../../service/search-service.js';
+import { SearchQueryError, SearchService } from '../../../service/search-service.js';
 import { GroupedSearchResults, SearchResult } from '../../../model/search.js';
 import { TYPE_LABELS, flattenResults, useSearchNavigation } from '../../../hooks/useSearchNavigation.js';
 import { colors } from '../../../theme/colors.js';
@@ -24,11 +24,13 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
         query: string;
         results: GroupedSearchResults | null;
         error: boolean;
+        errorMessage?: string;
     } | null>(null);
     const current = query !== '' && response?.query === query ? response : null;
     const loading = query !== '' && current === null;
     const results = current?.results ?? null;
     const error = current?.error ?? false;
+    const errorMessage = current?.errorMessage;
 
     const service = useMemo(() => searchService ?? new SearchService(), [searchService]);
     const { navigateToResult } = useSearchNavigation();
@@ -41,8 +43,9 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
             .then((data) => {
                 if (!cancelled) setResponse({ query, results: data, error: false });
             })
-            .catch(() => {
-                if (!cancelled) setResponse({ query, results: null, error: true });
+            .catch((e) => {
+                const errorMessage = e instanceof SearchQueryError && e.userFacing ? e.message : undefined;
+                if (!cancelled) setResponse({ query, results: null, error: true, errorMessage });
             });
         return () => {
             cancelled = true;
@@ -90,7 +93,7 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                 )}
 
                 {query && !loading && error && (
-                    <div className="text-sm text-error">Search failed, please try again.</div>
+                    <div className="text-sm text-error">{errorMessage ?? 'Search failed, please try again.'}</div>
                 )}
 
                 {query && !loading && !error && results !== null && groups.length === 0 && (

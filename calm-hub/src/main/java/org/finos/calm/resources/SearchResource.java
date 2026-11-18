@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.finos.calm.domain.search.GroupedSearchResults;
+import org.finos.calm.domain.search.SearchQuery;
 import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.store.SearchStore;
 import org.slf4j.Logger;
@@ -49,7 +50,7 @@ public class SearchResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Global Search",
-            description = "Search across all resource types (architectures, patterns, flows, standards, interfaces, controls, ADRs) with results grouped by type"
+            description = "Search across all resource types (architectures, patterns, flows, standards, interfaces, controls, ADRs) with results grouped by type. Qualifiers narrow the search: namespace:<name> (or ns:) and type:<architecture|pattern|flow|standard|interface|control|adr>."
     )
     @Authenticated
     public Response search(@QueryParam("q") String query) {
@@ -65,9 +66,18 @@ public class SearchResource {
                     .build();
         }
 
+        SearchQuery parsed = SearchQuery.parse(query);
+        if (parsed.hasUnknownType()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\":\"Unknown type. Use one of: " + String.join(", ", SearchQuery.TYPES) + "\"}")
+                    .build();
+        }
+
         try {
-            GroupedSearchResults results = searchStore.search(query, resolveReadableNamespaces(), resolveReadableDomains());
-            return Response.ok(results).build();
+            GroupedSearchResults results = searchStore.search(parsed.text(),
+                    parsed.narrowNamespaces(resolveReadableNamespaces()),
+                    parsed.narrowDomains(resolveReadableDomains()));
+            return Response.ok(parsed.filterTypes(results)).build();
         } catch (Exception e) {
             log.error("Error performing search for query: {}", sanitizeForLog(query), e);
             return Response.serverError()

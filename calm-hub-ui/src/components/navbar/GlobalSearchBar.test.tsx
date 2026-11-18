@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { GlobalSearchBar } from './GlobalSearchBar.js';
-import { SearchService } from '../../service/search-service.js';
+import { SearchQueryError, SearchService } from '../../service/search-service.js';
+import { CalmService } from '../../service/calm-service.js';
 import { GroupedSearchResults } from '../../model/search.js';
 
 const emptyResults: GroupedSearchResults = {
@@ -81,7 +82,7 @@ describe('GlobalSearchBar', () => {
 
     it('renders search input', () => {
         renderSearchBar();
-        expect(screen.getByPlaceholderText('Search CALM Hub...')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern')).toBeInTheDocument();
     });
 
     it('debounces API calls', async () => {
@@ -89,7 +90,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
 
         await act(async () => {
             fireEvent.change(input, { target: { value: 't' } });
@@ -113,7 +114,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
 
         await act(async () => {
             fireEvent.change(input, { target: { value: 'test' } });
@@ -134,7 +135,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
         await act(async () => {
             fireEvent.change(input, { target: { value: 'test' } });
         });
@@ -159,7 +160,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
         await act(async () => {
             fireEvent.change(input, { target: { value: 'traderx' } });
         });
@@ -180,7 +181,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
 
         await act(async () => {
             fireEvent.change(input, { target: { value: 'test' } });
@@ -198,7 +199,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
 
         await act(async () => {
             fireEvent.change(input, { target: { value: 'test' } });
@@ -289,7 +290,7 @@ describe('GlobalSearchBar', () => {
     it('navigates to the results page when Enter is pressed with no result highlighted', () => {
         renderWithLocation(createMockSearchService(vi.fn().mockResolvedValue(mockResults)));
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
         fireEvent.change(input, { target: { value: 'payments' } });
         // No timers advanced → no dropdown/selection yet, so Enter submits the query.
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -301,7 +302,7 @@ describe('GlobalSearchBar', () => {
         const searchFn = vi.fn().mockResolvedValue(mockResults);
         renderWithLocation(createMockSearchService(searchFn));
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
         // Type then submit BEFORE the 300ms debounce fires.
         fireEvent.change(input, { target: { value: 'payments' } });
         fireEvent.keyDown(input, { key: 'Enter' });
@@ -325,7 +326,7 @@ describe('GlobalSearchBar', () => {
         );
         renderWithLocation(createMockSearchService(searchFn));
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
 
         // Fire a search for "test" and leave it unresolved.
         fireEvent.change(input, { target: { value: 'test' } });
@@ -352,7 +353,7 @@ describe('GlobalSearchBar', () => {
     it('deep-links (does not go to the results page) when a highlighted result is chosen with Enter', async () => {
         renderWithLocation(createMockSearchService(vi.fn().mockResolvedValue(mockResults)));
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
         await act(async () => {
             fireEvent.change(input, { target: { value: 'test' } });
         });
@@ -373,7 +374,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
 
         await act(async () => {
             fireEvent.change(input, { target: { value: 'test' } });
@@ -395,7 +396,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
 
         await act(async () => {
             fireEvent.change(input, { target: { value: 'test' } });
@@ -420,7 +421,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
 
         await act(async () => {
             fireEvent.change(input, { target: { value: 'test' } });
@@ -439,7 +440,7 @@ describe('GlobalSearchBar', () => {
         const service = createMockSearchService(searchFn);
         renderSearchBar(service);
 
-        const input = screen.getByPlaceholderText('Search CALM Hub...');
+        const input = screen.getByPlaceholderText('Search CALM Hub… e.g. namespace:finos type:pattern');
 
         await act(async () => {
             fireEvent.change(input, { target: { value: '   ' } });
@@ -450,5 +451,110 @@ describe('GlobalSearchBar', () => {
         });
 
         expect(searchFn).not.toHaveBeenCalled();
+    });
+
+    describe('qualifiers', () => {
+        const PLACEHOLDER = 'Search CALM Hub… e.g. namespace:finos type:pattern';
+
+        function renderWithNamespaces(fetchNamespaces = vi.fn().mockResolvedValue(['payments', 'payments.cards'])) {
+            const calmService = { fetchNamespaces } as unknown as CalmService;
+            render(
+                <MemoryRouter>
+                    <GlobalSearchBar
+                        searchService={createMockSearchService(vi.fn().mockResolvedValue(emptyResults))}
+                        calmService={calmService}
+                    />
+                </MemoryRouter>
+            );
+            return screen.getByPlaceholderText(PLACEHOLDER) as HTMLInputElement;
+        }
+
+        async function type(input: HTMLInputElement, value: string) {
+            await act(async () => {
+                fireEvent.focus(input);
+                fireEvent.change(input, { target: { value } });
+            });
+        }
+
+        it('suggests a qualifier key and completes it with Tab', async () => {
+            const input = renderWithNamespaces();
+            await type(input, 'na');
+
+            expect(screen.getByRole('option', { name: /namespace:/ })).toBeInTheDocument();
+
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Tab' });
+            });
+            expect(input.value).toBe('namespace:');
+        });
+
+        it('suggests namespaces and adds a space after the chosen one', async () => {
+            const input = renderWithNamespaces();
+            await type(input, 'namespace:pay');
+
+            const options = screen.getAllByRole('option');
+            expect(options.map((o) => o.textContent)).toEqual(['payments', 'payments.cards']);
+
+            // Up from the first option wraps to the last.
+            for (const key of ['ArrowDown', 'ArrowUp', 'ArrowUp', 'Enter']) {
+                await act(async () => {
+                    fireEvent.keyDown(input, { key });
+                });
+            }
+            expect(input.value).toBe('namespace:payments.cards ');
+        });
+
+        it('accepts a type suggestion with a click', async () => {
+            const input = renderWithNamespaces();
+            await type(input, 'type:fl');
+
+            await act(async () => {
+                fireEvent.mouseDown(screen.getByRole('option', { name: /flow/ }));
+            });
+            expect(input.value).toBe('type:flow ');
+        });
+
+        it('hides the suggestions on Escape', async () => {
+            const input = renderWithNamespaces();
+            await type(input, 'ty');
+
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Escape' });
+            });
+            expect(screen.queryByRole('option')).not.toBeInTheDocument();
+        });
+
+        it('suggests no namespaces when they fail to load', async () => {
+            const input = renderWithNamespaces(vi.fn().mockRejectedValue(new Error('down')));
+            await type(input, 'namespace:');
+
+            expect(screen.queryByRole('option')).not.toBeInTheDocument();
+        });
+
+        it('underlines an unknown type', async () => {
+            const input = renderWithNamespaces();
+            await type(input, 'type:decorator ');
+
+            expect(screen.getByText('decorator')).toHaveClass('text-error');
+        });
+
+        it('shows the server message for an invalid query', async () => {
+            const searchFn = vi.fn().mockRejectedValue(new SearchQueryError('Unknown type. Use one of: pattern', true));
+            render(
+                <MemoryRouter>
+                    <GlobalSearchBar
+                        searchService={createMockSearchService(searchFn)}
+                        calmService={{ fetchNamespaces: vi.fn().mockResolvedValue([]) } as unknown as CalmService}
+                    />
+                </MemoryRouter>
+            );
+            const input = screen.getByPlaceholderText(PLACEHOLDER) as HTMLInputElement;
+            await type(input, 'type:bad ');
+            await act(async () => {
+                vi.advanceTimersByTime(300);
+            });
+
+            expect(screen.getByText('Unknown type. Use one of: pattern')).toBeInTheDocument();
+        });
     });
 });
