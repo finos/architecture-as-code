@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useMatch, useNavigate } from 'react-router-dom';
+import { NavigationType, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom';
 import { IoCompassOutline } from 'react-icons/io5';
 import { ExtensionResourceContext } from '../extensions/ExtensionResourceContext.js';
 import { RESOURCE_ROUTE } from './routes.js';
@@ -12,6 +12,7 @@ import { IntroScreen } from './components/intro-screen/IntroScreen.js';
 import { SearchResultsPage } from './components/search-results/SearchResultsPage.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
 import { useResourceNavigationKey } from './hooks/useResourceNavigationKey.js';
+import { readEntrySelection, sessionStore, useBrowserEntry, writeEntrySelection } from './hooks/entrySelection.js';
 import { PersonalNamespaceControl, usePersonalNamespace } from './hooks/usePersonalNamespace.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { BreadcrumbItem, Data, Adr } from '../model/calm.js';
@@ -36,7 +37,8 @@ import { ResourceNotFound } from './components/resource-not-found/ResourceNotFou
 import { extensionContext } from './components/diagram-section/tabs/diagramTabs.js';
 import { parseCALMHubPath } from '../visualizer/components/reactflow/utils/calmHelpers.js';
 import type { Decorator, SelectedItem } from '../visualizer/contracts/contracts.js';
-import type { CalmNodeSchema } from '@finos/calm-models/types';
+import type { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
+import { findPatternElement, type SchemaObject } from '../visualizer/components/reactflow/utils/patternTransformer.js';
 import { authStore } from '../service/utils/auth-store.js';
 import { diagramLenses } from './components/diagram-section/tabs/diagramLenses.js';
 import { useExtensions, useExtensionsStatus } from '../extensions/ExtensionsContext.js';
@@ -65,15 +67,24 @@ function readBreadcrumbs(state: unknown): BreadcrumbItem[] {
     );
 }
 
-/** The node or relationship with this unique-id in an architecture or pattern document, if it has one at the top level. */
-function findElement(data: Data | undefined, uniqueId: string | null): CalmNodeSchema | undefined {
+/**
+ * The node or relationship with this unique-id in an architecture or pattern, as the details panel shows it. A pattern
+ * declares its elements in JSON Schema, which patternTransformer reads for the diagram too.
+ */
+function findElement(data: Data | undefined, uniqueId: string | null): CalmNodeSchema | CalmRelationshipSchema | undefined {
     if (!data || !uniqueId) return undefined;
+    if (data.calmType === 'Patterns') return data.data ? findPatternElement(data.data as SchemaObject, uniqueId) : undefined;
     const document = data.data as { nodes?: unknown; relationships?: unknown } | undefined;
     const items = [document?.nodes, document?.relationships].flatMap((list) => (Array.isArray(list) ? list : []));
     return (items as CalmNodeSchema[]).find((entry) => entry?.['unique-id'] === uniqueId);
 }
 
-export default function Hub() {
+interface HubProps {
+    /** Where the selection of each history entry is kept. Injected for tests; defaults to `sessionStorage`. */
+    storage?: Storage;
+}
+
+export default function Hub({ storage }: HubProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const extensions = useExtensions();
@@ -114,6 +125,7 @@ export default function Hub() {
     const isMobile = useIsMobile();
     const navigation = useNavigationSettings();
     const showExplore = navigation.showNamespaces || navigation.showControlDomains;
+    const selectionStorage = storage ?? sessionStore();
 
     // Route-first content selection (redesign problem #4): the same <Hub/> element
     // is reused across `/`, `/namespace/:ns`, `/domain/:domain` and the detail
@@ -233,24 +245,36 @@ export default function Hub() {
 
     // Any navigation, a tab change included, closes the node details panel, except the one that
     // handleItemSelect makes to take `node` out of the URL, and a change of only the diagram lens or its parameters.
+    // Back, Forward and a URL that the user opens go to another history entry, which has its own selection: a lens
+    // change keeps a selection only in the page. A browser move can keep the location (useBrowserEntry).
+    const navigationType = useNavigationType();
+    const browserEntry = useBrowserEntry();
     const [nodeRemovedFromUrl, setNodeRemovedFromUrl] = useState<string | null>(null);
-    const [selectionLocation, setSelectionLocation] = useState({ key: location.key, search: location.search });
-    if (selectionLocation.key !== location.key || selectionLocation.search !== location.search) {
-        const lensChangeOnly = selectionLocation.search !== location.search
-            && lensFreeQuery(selectionLocation.search) === lensFreeQuery(location.search);
-        setSelectionLocation({ key: location.key, search: location.search });
+    const [selectionLocation, setSelectionLocation] = useState({ key: location.key, search: location.search, entry: browserEntry.entry });
+    const locationChanged = selectionLocation.key !== location.key || selectionLocation.search !== location.search;
+    if (locationChanged || selectionLocation.entry !== browserEntry.entry) {
+        const otherEntry = selectionLocation.entry !== browserEntry.entry || navigationType === NavigationType.Pop;
+        const lensChangeOnly =
+            !otherEntry &&
+            selectionLocation.search !== location.search &&
+            lensFreeQuery(selectionLocation.search) === lensFreeQuery(location.search);
+        setSelectionLocation({ key: location.key, search: location.search, entry: browserEntry.entry });
         setNodeRemovedFromUrl(null);
         if (!lensChangeOnly && nodeRemovedFromUrl !== location.search) setSelectedItem(null);
     }
 
     // A link can name a node to open: `#/ns/architectures/1/1.0.0?node=client-ledger`. This comes after
     // the clear above, so a link to another node replaces the cleared selection. A lens can name a relationship
-    // there too, because a lens element can stand for one.
+    // there too, because a lens element can stand for one. Without a node in the URL, Back or Forward to a history
+    // entry opens the node that the user selected on it, which the URL does not name. This runs on each new location
+    // and each browser move, the changes that the effect which keeps the selection runs on, so the effect keeps the
+    // selection that opens here. The key alone is no such change: the router gives every entry that the browser made
+    // the key `default`.
     const linkedNodeId = new URLSearchParams(location.search).get('node');
-    const [linkSource, setLinkSource] = useState({ data, linkedNodeId, key: location.key });
-    if (linkSource.data !== data || linkSource.linkedNodeId !== linkedNodeId || linkSource.key !== location.key) {
-        setLinkSource({ data, linkedNodeId, key: location.key });
-        const item = findElement(data, linkedNodeId);
+    const [linkSource, setLinkSource] = useState({ data, location, entry: browserEntry.entry });
+    if (linkSource.data !== data || linkSource.location !== location || linkSource.entry !== browserEntry.entry) {
+        setLinkSource({ data, location, entry: browserEntry.entry });
+        const item = findElement(data, linkedNodeId ?? readEntrySelection(selectionStorage, location) ?? null);
         if (item) setSelectedItem({ data: item });
     }
 
@@ -475,6 +499,14 @@ export default function Hub() {
     const returnQuery = new URLSearchParams(location.search);
     const selectedId = showsDroppedFile ? undefined : selectedItem?.data['unique-id'];
     if (selectedId) returnQuery.set('node', selectedId);
+    // Only once the resource has loaded: until then the entry keeps the selection that the load opens again. A node of
+    // a dropped file is not the resource's, and a node that the URL names opens from the URL. After a browser move, only
+    // the render that opens the selection of the new entry keeps one for it. `hasMoved` changes on each move.
+    const { hasMoved } = browserEntry;
+    useEffect(() => {
+        if (!data || !isDiagramView || hasMoved()) return;
+        writeEntrySelection(selectionStorage, location, selectedId === linkedNodeId ? undefined : selectedId);
+    }, [selectionStorage, location, hasMoved, data, isDiagramView, selectedId, linkedNodeId]);
     const returnSearch = returnQuery.toString() ? `?${returnQuery.toString()}` : '';
     const returnLabel = detailMatch
         ? `${displayName || detailMatch.params.id} ${detailMatch.params.version}`
@@ -483,8 +515,9 @@ export default function Hub() {
     // The parts of a link that this page cannot show. The page itself shows; access is checked when each part loads.
     const linkNotices: string[] = [];
     if (data && !showsDroppedFile && isDetailRoute) {
-        if (linkedNodeId && data.calmType === 'Architectures' && !findElement(data, linkedNodeId)) {
-            linkNotices.push(`The element "${linkedNodeId}" is not in version ${data.version} of this architecture.`);
+        if (linkedNodeId && isDiagramView && !findElement(data, linkedNodeId)) {
+            const kind = data.calmType === 'Patterns' ? 'pattern' : 'architecture';
+            linkNotices.push(`The element "${linkedNodeId}" is not in version ${data.version} of this ${kind}.`);
         }
         const linkedExtension = new URLSearchParams(location.search).get(EXTENSION_PARAM);
         if (linkedExtension && isDiagramView) {

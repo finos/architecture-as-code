@@ -1,4 +1,5 @@
 import type { DiagramLensContribution, LensControl, LensLink, LensReply } from '../../model/lens.js';
+import { isWithin } from '../../navigation/destinations.js';
 
 /** The limits of lens.schema.json. A larger reply shows a message, so one reply cannot lock the browser. */
 export const LENS_LIMITS = { nodes: 500, edges: 2000, groups: 200 } as const;
@@ -23,14 +24,19 @@ const isOptional = (value: unknown, check: (value: unknown) => boolean) => value
 const isRecordOf = (max: number, check: (value: unknown) => boolean) => (value: unknown) =>
     value === undefined || (isObject(value) && Object.keys(value).length <= max && Object.values(value).every(check));
 const isPosition = (value: unknown) => isObject(value) && isNumber(value.x) && isNumber(value.y);
+const EXTENSION_ID = /^[a-z][a-z0-9-]*$/;
+// An element counts code points, as the schema's maxLength does.
+const isHubElement = (value: unknown) => isString(value) && value !== '' && isWithin(value, MAX.calmId);
+const isHubLink = (hub: unknown) =>
+    isObject(hub) && isString(hub.namespace) && isString(hub.type) && isString(hub.id) && isOptional(hub.version, isString)
+    && isOptional(hub.element, isHubElement) && isOptional(hub.extension, (value) => isString(value) && EXTENSION_ID.test(value));
 const isLink = (value: unknown): value is LensLink => {
     if (!isObject(value)) return false;
     const kinds = ['params', 'hub', 'href'].filter((key) => value[key] !== undefined);
     if (kinds.length !== 1) return false;
     if (value.params !== undefined) return isObject(value.params) && isRecordOf(MAX.params, isText(MAX.param))(value.params);
     if (value.href !== undefined) return isText(MAX.href)(value.href) && value.href.startsWith('https://');
-    const hub = value.hub;
-    return isObject(hub) && isString(hub.namespace) && isString(hub.type) && isString(hub.id) && isOptional(hub.version, isString);
+    return isHubLink(value.hub);
 };
 
 /**

@@ -82,10 +82,11 @@ export const DIAGRAM_TABS: readonly DiagramTab[] = [
         // Hidden, not unknown, until the registry loads, so a link to the tab keeps it.
         isVisible: ({ hasExtensions }) => !!hasExtensions,
         searchParams: [EXTENSION_PARAM],
-        render: ({ data, selectedElement, searchParams }) => (
+        render: ({ data, selectedElement, searchParams, linkKey }) => (
             <ExtensionsTabPanel
                 context={extensionContext(data, selectedElement)}
                 linkedExtension={searchParams.get(EXTENSION_PARAM) ?? undefined}
+                linkKey={linkKey}
             />
         ),
     },

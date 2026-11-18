@@ -18,6 +18,11 @@ export interface DiagramTabContext extends DiagramTabScope {
     selectedElement?: string;
     searchParams: URLSearchParams;
     /**
+     * Changes on each link and on each Back or Forward, also to the URL that shows. A replace that changes the URL, such
+     * as closing the details, updates the page in place and keeps it.
+     */
+    linkKey: number;
+    /**
      * Replaces the query parameters of the active tab, or of the active lens for a lens. `tab` or `lens` is kept.
      * A lens can name a node to select in the same navigation.
      */
