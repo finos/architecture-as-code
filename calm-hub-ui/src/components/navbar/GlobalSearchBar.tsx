@@ -4,6 +4,10 @@ import { SearchService } from '../../service/search-service.js';
 import { CalmService } from '../../service/calm-service.js';
 import { AdrService } from '../../service/adr-service/adr-service.js';
 import { SearchResult } from '../../model/search.js';
+import { SEARCH_PLACEHOLDER_HINT } from '../../model/search-query.js';
+import { AssistedSearchInput } from './search/AssistedSearchInput.js';
+import { useQueryAssist } from '../../hooks/useQueryAssist.js';
+import { SearchSuggestionList } from './search/SearchSuggestionList.js';
 import { FlatResult, TYPE_LABELS, useSearchNavigation } from '../../hooks/useSearchNavigation.js';
 import { useCatalogueSearch } from '../../hooks/useCatalogueSearch.js';
 import { useProductName } from '../branding/brand-names.js';
@@ -25,25 +29,42 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
         results,
         loading,
         error,
+        errorMessage,
         open,
         selectedIndex,
         flatResults,
         handleInputChange,
+        updateQuery,
         moveSelection,
         clear,
         closeDropdown,
     } = useCatalogueSearch(searchService);
 
-    const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const listboxId = useId();
     const noticeId = useId();
     const [dismissed, setDismissed] = useState(false);
     const resultsOpen = open && !dismissed;
-    const noticeOpen = !!chat && !!query.trim() && !dismissed;
     const optionId = (index: number) => `${listboxId}-option-${index}`;
-    const activeDescendant = resultsOpen && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
     const calmService = useMemo(() => calmServiceProp ?? new CalmService(), [calmServiceProp]);
+    const {
+        inputRef,
+        highlightRef,
+        suggestions,
+        showSuggestions,
+        suggestionIndex,
+        handleChange,
+        handleFocus,
+        handleBlur,
+        syncHighlightScroll,
+        acceptSuggestion,
+        handleSuggestionKey,
+    } = useQueryAssist(query, updateQuery, handleInputChange, calmService);
+    const listboxOpen = resultsOpen || showSuggestions;
+    const noticeOpen = !!chat && !!query.trim() && !dismissed && !showSuggestions;
+    const activeDescendant = showSuggestions
+        ? optionId(suggestionIndex)
+        : resultsOpen && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
     const adrService = useMemo(() => adrServiceProp ?? new AdrService(), [adrServiceProp]);
     const { navigateToResult: goToResult, submitSearch } = useSearchNavigation({ calmService, adrService });
 
@@ -70,6 +91,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
+            if (handleSuggestionKey(e)) return;
             if (e.key === 'ArrowDown') {
                 if (!resultsOpen || flatResults.length === 0) return;
                 e.preventDefault();
@@ -90,28 +112,29 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                 dismiss();
             }
         },
-        [resultsOpen, flatResults, selectedIndex, moveSelection, navigateToResult, submitQuery, dismiss]
+        [handleSuggestionKey, resultsOpen, flatResults, selectedIndex, moveSelection, navigateToResult, submitQuery, dismiss]
     );
 
     const handleClear = useCallback(() => {
         clear();
         inputRef.current?.focus();
-    }, [clear]);
+    }, [clear, inputRef]);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
                 dismiss();
+                handleBlur();
             }
         }
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [dismiss]);
+    }, [dismiss, handleBlur]);
 
     const renderGroupedResults = () => {
         if (error) {
-            return <div className="p-3 text-sm text-error">Search failed, please try again</div>;
+            return <div className="p-3 text-sm text-error">{errorMessage ?? 'Search failed, please try again'}</div>;
         }
 
         if (!results) return null;
@@ -189,22 +212,25 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
         <div ref={containerRef} className="relative">
             <div className="flex items-center gap-1 bg-base-200 rounded-lg px-3 py-1.5">
                 <IoSearchOutline className="text-base-content/50 h-4 w-4 shrink-0" />
-                <input
-                    ref={inputRef}
-                    type="text"
-                    placeholder={`Search ${productName}...`}
-                    className="bg-transparent border-none outline-none text-sm text-base-content text-ellipsis placeholder:text-base-content/40 w-28 sm:w-48 lg:w-64"
-                    value={query}
+                <AssistedSearchInput
+                    query={query}
+                    inputRef={inputRef}
+                    highlightRef={highlightRef}
                     onChange={(event) => {
                         setDismissed(false);
-                        handleInputChange(event);
+                        handleChange(event);
                     }}
+                    onFocus={handleFocus}
+                    onSyncScroll={syncHighlightScroll}
+                    wrapperClassName="w-28 sm:w-56 lg:w-80"
+                    textClassName="text-sm leading-5"
+                    placeholder={`Search ${productName}… e.g. ${SEARCH_PLACEHOLDER_HINT}`}
                     onKeyDown={handleKeyDown}
                     aria-label="Search"
                     role="combobox"
-                    aria-expanded={resultsOpen}
+                    aria-expanded={listboxOpen}
                     aria-haspopup="listbox"
-                    aria-controls={resultsOpen ? listboxId : undefined}
+                    aria-controls={listboxOpen ? listboxId : undefined}
                     aria-activedescendant={activeDescendant}
                     aria-describedby={noticeOpen ? noticeId : undefined}
                 />
@@ -221,11 +247,21 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     <span className="loading loading-spinner loading-xs text-base-content/50" />
                 )}
             </div>
-            {(resultsOpen || noticeOpen) && (
+            {(listboxOpen || noticeOpen) && (
                 <div
                     className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-lg shadow-lg z-50"
                 >
-                    {resultsOpen && <div id={listboxId} role="listbox">{renderGroupedResults()}</div>}
+                    {showSuggestions ? (
+                        <SearchSuggestionList
+                            listboxId={listboxId}
+                            suggestions={suggestions}
+                            selectedIndex={suggestionIndex}
+                            optionId={optionId}
+                            onAccept={acceptSuggestion}
+                        />
+                    ) : (
+                        resultsOpen && <div id={listboxId} role="listbox">{renderGroupedResults()}</div>
+                    )}
                     {noticeOpen && <SearchChatEntry id={noticeId} />}
                 </div>
             )}

@@ -3,6 +3,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { IntroSearchBar } from './IntroSearchBar.js';
 import { SearchService } from '../../../service/search-service.js';
+import { CalmService } from '../../../service/calm-service.js';
 import { GroupedSearchResults } from '../../../model/search.js';
 
 const emptyResults: GroupedSearchResults = {
@@ -170,5 +171,30 @@ describe('IntroSearchBar', () => {
         expect(within(standards).getByRole('option')).toHaveTextContent('Encryption Standard');
         const controls = screen.getByRole('group', { name: 'Controls' });
         expect(within(controls).getByRole('option')).toHaveTextContent('PCI-DSS');
+    });
+
+    it('suggests qualifiers and completes a type', async () => {
+        const calmService = { fetchNamespaces: vi.fn().mockResolvedValue(['payments']) } as unknown as CalmService;
+        render(
+            <MemoryRouter>
+                <IntroSearchBar
+                    searchService={createMockSearchService(vi.fn().mockResolvedValue(emptyResults))}
+                    calmService={calmService}
+                />
+            </MemoryRouter>
+        );
+        const input = screen.getByLabelText('Search the architecture catalogue') as HTMLInputElement;
+
+        await act(async () => {
+            fireEvent.focus(input);
+            fireEvent.change(input, { target: { value: 'type:pat' } });
+        });
+        expect(screen.getByRole('option', { name: /pattern/ })).toBeInTheDocument();
+
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'Tab' });
+        });
+        expect(input.value).toBe('type:pattern ');
+        expect(screen.queryByRole('option')).not.toBeInTheDocument();
     });
 });

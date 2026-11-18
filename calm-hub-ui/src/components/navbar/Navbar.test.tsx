@@ -341,7 +341,7 @@ describe('Navbar branding', () => {
         expect(home).toHaveTextContent('Architecture Hub');
         await waitFor(() => expect(home.querySelector('img')).toHaveAttribute('src', svgDataUrl(logoSvg('#0f766e'))));
         expect(screen.queryByAltText('CALM Logo')).not.toBeInTheDocument();
-        expect(screen.getByPlaceholderText('Search Northstar Financial...')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Search Northstar Financial… e.g. namespace:finos type:pattern')).toBeInTheDocument();
     });
 
     it('uses the dark logo on dark, without a plate', async () => {

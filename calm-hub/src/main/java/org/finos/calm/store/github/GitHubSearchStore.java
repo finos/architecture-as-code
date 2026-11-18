@@ -41,9 +41,9 @@ public class GitHubSearchStore implements SearchStore {
     @Override
     public GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces,
                                        Optional<Set<String>> readableDomains) {
-        if (query == null || query.isBlank()) {
-            return new GroupedSearchResults(
-                    List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+        // A blank query comes from a search of qualifiers only, and lists all that the caller can read.
+        if (query == null) {
+            query = "";
         }
 
         // No cap on the merged stream here, deliberately: filterByType below already caps
