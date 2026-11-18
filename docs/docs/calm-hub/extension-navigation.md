@@ -31,8 +31,8 @@ plain text.
 | Field | Required | Rule |
 |---|---|---|
 | `namespace`, `type`, `id`, `version` | Yes | The exact resource and version. Not empty, `.` or `..` |
-| `element` | No | The `unique-id` of a node or relationship. Hub selects it and opens its details |
-| `extension` | No | An extension id. Hub opens the section of that extension in the **Extensions** tab |
+| `element` | No | The `unique-id` of a node or relationship. Hub selects it and opens its details. In a pattern, it is a node or relationship that the pattern declares, also as one choice of a `oneOf` or `anyOf` |
+| `extension` | No | An extension id. Hub opens the section of that extension in the **Extensions** tab, and clears an extension filter that hides it. Each link, and Back or Forward to one, opens it again, also a link to the extension that is open |
 
 When a plain URL, such as a catalogue link, opens the latest version of an architecture with a
 timeline, Hub opens the current moment of the timeline. The URL of a Hub link has `exact=1`, so Hub
@@ -86,8 +86,14 @@ was: the filters, sort and page of a list, or the tab, lens and selected node of
 - Hub keeps the return points in the browser history, not in the URL. Back, Forward and a refresh
   keep them. A copied link has none.
 - Hub keeps the last 5 return points. A detailed-architecture link and a breadcrumb keep them.
-- A link to the same page, such as a filter link of a screen, changes only the view. It keeps the
-  return points and adds none.
+- A link to the same page, such as a filter link of a screen or a lens node that links to the
+  version that it shows, changes only the view. It keeps the return points and adds none.
+- Back and Forward to an architecture or pattern page select the node that the user selected there
+  again. Hub keeps that selection for each history entry in the session storage of the browser tab,
+  not in the URL. A change of tab and a close of the details clear it. A change of lens on the page
+  keeps it. A new visit to the same URL, such as a pasted link, is a new history entry and selects
+  nothing. Back, Forward and a jump of more than one entry select only the node of the entry that
+  they open, also between two entries at the same URL.
 - A Hub link and a return to an architecture or a pattern open the exact version. Their URL has
   `exact=1`, so a copied link, a new tab and a refresh also open that version.
 - The page name in **Back to** has at most 200 characters. Hub shortens a longer title.
@@ -103,7 +109,7 @@ A page shows what it can, and says what it cannot show.
 | Case | The Hub UI shows |
 |---|---|
 | The resource or the version does not exist | "Architecture not found", with the return link |
-| The element is not in the version | The architecture, and a notice that names the element |
+| The element is not in the version | The architecture or pattern, and a notice that names the element |
 | The extension is not enabled, or has no view for the resource | The page, and a notice that names the extension |
 | The screen is not enabled, or the extension has no such screen | "Extension screen unavailable.", with the extension and screen ids |
 | The screen link has an incomplete context, or too many parameters | A message. Hub does not call the screen route |

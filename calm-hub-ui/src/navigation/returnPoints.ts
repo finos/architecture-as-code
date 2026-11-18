@@ -110,17 +110,21 @@ export function returnPointLocation(point: ReturnPoint): Path {
     return { pathname: pagePath(point.page), search: `?${query.toString()}`, hash: '' };
 }
 
+type ReturnPointValue = { point: ReturnPoint; earlier: ReturnPoint[] };
+
 /** The current page as a return point, and the points before it. Null on a page that records none. */
-export const ReturnPointContext = createContext<{ point: ReturnPoint; earlier: ReturnPoint[] } | null>(null);
+export const ReturnPointContext = createContext<ReturnPointValue | null>(null);
 
 /**
- * The history state for a link from this page: the page joins the return points, so the next page can link back. A
- * link to `to` on this same page, such as a filter, changes only its view: it keeps the points and adds none.
+ * The history state for a link from the page `here`: the page joins the return points, so the next page can link back.
+ * A link to `to` on this same page, such as a filter, changes only its view: it keeps the points and adds none.
  */
-export function useLinkState(to?: Pick<Path, 'pathname'>): { returnTo: ReturnPoint[] } | undefined {
-    const here = useContext(ReturnPointContext);
+export function linkState(here: ReturnPointValue | null, to?: Pick<Path, 'pathname'>): { returnTo: ReturnPoint[] } | undefined {
     if (!here) return undefined;
     const samePage = to !== undefined && to.pathname === pagePath(here.point.page);
     const returnTo = samePage ? here.earlier : [...here.earlier, here.point].slice(-MAX_RETURN_POINTS);
     return returnTo.length > 0 ? { returnTo } : undefined;
 }
+
+/** `linkState` for a link from the current page. A link that finds its target only on a click uses `linkState`. */
+export const useLinkState = (to?: Pick<Path, 'pathname'>) => linkState(useContext(ReturnPointContext), to);

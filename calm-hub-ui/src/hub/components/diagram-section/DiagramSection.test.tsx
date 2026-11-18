@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation, useNavigate, useSearchParams, type InitialEntry } from 'react-router-dom';
+import { HashRouter, MemoryRouter, Route, Routes, useLocation, useNavigate, useSearchParams, type InitialEntry } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
@@ -14,6 +14,7 @@ import { DestinationLink } from '../../../navigation/DestinationLink.js';
 import { destinationLocation } from '../../../navigation/destinations.js';
 import { ReturnLink } from '../../../navigation/ReturnLink.js';
 import { ReturnPointProvider } from '../../../navigation/ReturnPointProvider.js';
+import { fakeExtensions } from '../../../test-support/fake-extensions.js';
 
 const releaseTracker: ExtensionSummary = {
     id: 'release-tracker',
@@ -915,6 +916,179 @@ describe('DiagramSection', () => {
             rerender(page([releaseTracker]));
 
             expect(await screen.findByRole('heading', { name: 'Releases' })).toBeInTheDocument();
+            vi.restoreAllMocks();
+        });
+
+        // A link from one extension to a view on the same resource keeps the tab mounted, with its filter.
+        it('opens the extension of each new link again, also the same one, and clears only a filter that hides it', async () => {
+            const resource = { namespace: 'arch-namespace', type: 'architectures', id: 'test-arch', version: '1.0.0' };
+            vi.spyOn(ExtensionService.prototype, 'call').mockImplementation(async (id) => ({
+                hubApi: 0,
+                blocks:
+                    id === 'ext-1'
+                        ? [{ type: 'links', items: [{ label: 'Open Extension 5', hub: { ...resource, extension: 'ext-5' } }] }]
+                        : [],
+            }));
+            function SearchProbe() {
+                return <div data-testid="search">{useLocation().search}</div>;
+            }
+            render(
+                <MemoryRouter initialEntries={['/?node=node-1&tab=extensions&extension=ext-5&exact=1']}>
+                    <ExtensionsContext.Provider value={fakeExtensions(7)}>
+                        <DiagramSection data={architectureData} selectedElement="node-1" />
+                        <SearchProbe />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+            const filter = screen.getByRole('searchbox', { name: 'Filter extensions' });
+            const shown = () => screen.getAllByTestId('extension-section').map((section) => section.dataset.extension);
+            const toggle = (id: string) =>
+                screen
+                    .getAllByTestId('extension-section')
+                    .find((section) => section.dataset.extension === id)!
+                    .querySelector('button')!;
+            const follow = async () => fireEvent.click(await screen.findByRole('link', { name: 'Open Extension 5' }));
+
+            fireEvent.click(toggle('ext-5'));
+            // One change per key, as typing makes.
+            for (let length = 1; length <= 'Provider 1'.length; length++) {
+                fireEvent.change(filter, { target: { value: 'Provider 1'.slice(0, length) } });
+            }
+            expect(filter).toHaveValue('Provider 1');
+            expect(shown()).toEqual(['ext-1']);
+
+            await follow();
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions&extension=ext-5&exact=1');
+            expect(filter).toHaveValue('');
+            expect(toggle('ext-5')).toHaveAttribute('aria-expanded', 'true');
+
+            fireEvent.change(filter, { target: { value: 'Provider' } });
+            fireEvent.click(toggle('ext-5'));
+            await follow();
+            expect(filter).toHaveValue('Provider');
+            expect(shown()).toHaveLength(7);
+            expect(toggle('ext-5')).toHaveAttribute('aria-expanded', 'true');
+            vi.restoreAllMocks();
+        });
+
+        // Hub takes `node` out of the URL with a replace when the user closes the details or selects another node.
+        it.each([
+            ['closes the details', undefined],
+            ['selects another node', 'node-2'],
+        ])('keeps the filter and the closed section when the user %s, and opens the extension again after Back', async (_, next) => {
+            vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+            const { useNavigate: useRealNavigate } = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+            function Page() {
+                const navigate = useRealNavigate();
+                const location = useLocation();
+                const [selected, setSelected] = useState<string | undefined>('node-1');
+                const select = () => {
+                    setSelected(next);
+                    const query = new URLSearchParams(location.search);
+                    query.delete('node');
+                    navigate({ pathname: location.pathname, search: `?${query.toString()}` }, { replace: true, state: location.state });
+                };
+                return (
+                    <>
+                        <DiagramSection data={architectureData} selectedElement={selected} />
+                        <button onClick={select}>Change the selection</button>
+                        <button onClick={() => navigate(-1)}>Browser back</button>
+                        <div data-testid="search">{location.search}</div>
+                    </>
+                );
+            }
+            render(
+                <MemoryRouter
+                    initialEntries={['/?tab=extensions&extension=ext-5', '/?node=node-1&tab=extensions&extension=ext-5&exact=1']}
+                    initialIndex={1}
+                >
+                    <ExtensionsContext.Provider value={fakeExtensions(7)}>
+                        <Page />
+                    </ExtensionsContext.Provider>
+                </MemoryRouter>
+            );
+            const filter = screen.getByRole('searchbox', { name: 'Filter extensions' });
+            const shown = () => screen.getAllByTestId('extension-section').map((section) => section.dataset.extension);
+            const toggle = (id: string) =>
+                screen
+                    .getAllByTestId('extension-section')
+                    .find((section) => section.dataset.extension === id)!
+                    .querySelector('button')!;
+
+            fireEvent.click(toggle('ext-5'));
+            fireEvent.change(filter, { target: { value: 'Provider 1' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Change the selection' }));
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions&extension=ext-5&exact=1');
+            expect(filter).toHaveValue('Provider 1');
+            expect(shown()).toEqual(['ext-1']);
+            fireEvent.change(filter, { target: { value: '' } });
+            expect(toggle('ext-5')).toHaveAttribute('aria-expanded', 'false');
+
+            fireEvent.change(filter, { target: { value: 'Provider 1' } });
+            fireEvent.click(screen.getByRole('button', { name: 'Browser back' }));
+            expect(screen.getByTestId('search').textContent).toBe('?tab=extensions&extension=ext-5');
+            expect(filter).toHaveValue('');
+            expect(shown()).toHaveLength(7);
+            expect(toggle('ext-5')).toHaveAttribute('aria-expanded', 'true');
+            vi.restoreAllMocks();
+        });
+
+        // The browser makes an entry with no state for a pasted URL, and React Router gives each of them the key
+        // `default`, and the same location to two of them at the same URL.
+        it('opens the extension again on each move between entries that the browser made, also at the same URL', async () => {
+            vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+            const first = '#/?node=node-1&tab=extensions&extension=ext-5&exact=1';
+            window.history.replaceState(null, '', first);
+            render(
+                <HashRouter>
+                    <ExtensionsContext.Provider value={fakeExtensions(7)}>
+                        <DiagramSection data={architectureData} selectedElement="node-1" />
+                    </ExtensionsContext.Provider>
+                </HashRouter>
+            );
+            const filter = screen.getByRole('searchbox', { name: 'Filter extensions' });
+            const toggle = (id: string) =>
+                screen
+                    .getAllByTestId('extension-section')
+                    .find((section) => section.dataset.extension === id)!
+                    .querySelector('button')!;
+            const visit = (hash: string) =>
+                act(() => {
+                    window.history.pushState(null, '', hash);
+                    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
+                });
+            const traverse = (delta: number) =>
+                act(
+                    () =>
+                        new Promise<void>((resolve) => {
+                            window.addEventListener('popstate', () => resolve(), { once: true });
+                            window.history.go(delta);
+                        })
+                );
+
+            fireEvent.click(toggle('ext-5'));
+            fireEvent.change(filter, { target: { value: 'Provider 1' } });
+            visit('#/?node=node-2&tab=extensions&extension=ext-5&exact=1');
+            expect(filter).toHaveValue('');
+            expect(toggle('ext-5')).toHaveAttribute('aria-expanded', 'true');
+
+            fireEvent.change(filter, { target: { value: 'Provider' } });
+            fireEvent.click(toggle('ext-5'));
+            await traverse(-1);
+            expect(window.location.hash).toBe(first);
+            expect(filter).toHaveValue('Provider');
+            expect(toggle('ext-5')).toHaveAttribute('aria-expanded', 'true');
+            fireEvent.click(toggle('ext-5'));
+            await traverse(1);
+            expect(toggle('ext-5')).toHaveAttribute('aria-expanded', 'true');
+
+            visit(first);
+            fireEvent.click(toggle('ext-5'));
+            fireEvent.change(filter, { target: { value: 'Provider 1' } });
+            await traverse(-2);
+            expect(window.location.hash).toBe(first);
+            expect(filter).toHaveValue('');
+            expect(toggle('ext-5')).toHaveAttribute('aria-expanded', 'true');
             vi.restoreAllMocks();
         });
 

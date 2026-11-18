@@ -297,7 +297,12 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   or put asset bytes in markup: an SVG opened from a `blob:` URL as a page runs with Hub's origin. Tests inject a
   loader with `ImageAssetContext` (`test-support/fake-image-assets.tsx`).
 - Both use `ExtensionSections`: the first section is open, a choice is kept in `localStorage` per extension, and a
-  closed section renders nothing, so it sends no request.
+  closed section renders nothing, so it sends no request. In the Extensions tab, each link and each Back or Forward
+  that names an extension, also the same one again, opens its section, clears a filter that hides it and keeps one
+  that shows it (`linkKey` from DiagramSection, a count of the new `location` values and the browser moves of
+  `useBrowserEntry()`). A replace that changes the URL, such as Hub taking `node` out when the details close, updates
+  the page in place: the filter and the sections stay. React Router makes a link to the URL that shows a replace, so a
+  replace that keeps the URL is a link. Typing in the filter never clears it.
   Give `ExtensionSections` and `ExtensionSlot` a `headingLevel` one below the heading of the place that holds
   them: `h3`/`h4` in the Extensions tab, `h5`/`h6` in the node details, `h1` on a screen page (nothing else
   there is an `h1`).
@@ -338,7 +343,9 @@ URL: a page, its query and a label. A page declares itself with `ReturnPointProv
 resource pages and `/search`; the chat view adds `{ kind: 'chat' }`). `ReturnLink` shows **Back to …**. A navigation
 that is not a new destination, such as a breadcrumb or a detailed-architecture hop, keeps the points with
 `carryReturnPoints(location.state)`, and a URL state change uses `{ replace: true, state: location.state }`. Pass the
-target to `useLinkState(to)`: a link to the same page, such as a filter, keeps the points and adds none. A typed
+target to `useLinkState(to)`: a link to the same page, such as a filter, keeps the points and adds none. A link whose
+target is known only on a click, such as a lens node, reads `const here = useContext(ReturnPointContext)` during render
+and calls `linkState(here, to)` in the click handler. A typed
 Hub link (`destinationLocation()`) and a return to a resource (`returnPointLocation()`) add `exact=1`
 (`EXACT_VERSION_PARAM`) to the URL, so DiagramSection's timeline redirect (`isExactVersion(location)`) leaves the
 version, also for a copied link. A plain latest-version URL keeps the redirect; a timeline pick still uses
@@ -346,7 +353,19 @@ version, also for a copied link. A plain latest-version URL keeps the redirect; 
 cannot take the name. `boundLabel()` shortens a label to 200 code points on write and
 read; a long title never costs the return point. `safeHref()` takes `unknown`: extension data is untyped at run time. Form
 input never goes in a URL, a param or a return point. `ReturnBar` shows the return link and the notices for a linked
-`node` that is not in the version or a linked `extension` that does not apply.
+`node` that is not in the version or a linked `extension` that does not apply. Hub finds a linked `node` of a pattern
+with `findPatternElement()` (`patternTransformer.ts`), which gives the data that a diagram click gives the details
+panel. A node that the user selects is not in the URL: Hub keeps it per history entry (`hooks/entrySelection.ts`,
+session storage keyed by `location.key`), so browser Back and Forward select it again. The browser makes an entry with
+no state for a first visit or a pasted URL, and the router gives each one the key `default`: such an entry gets its own
+id in `history.state` (`calmHubEntry`, next to the router's fields), which a reload keeps. Do not detect an entry
+change with the key or the `location` value alone: the router gives two entries that the browser made at the same URL
+the same `location` and does not render again. `useBrowserEntry()` counts the `popstate` events and sets its count in
+a transition, as the router sets its location, so one render gets both. After Back, Forward or a URL that the user
+opens, the entry decides: Hub opens its kept selection or none. A lens change keeps the selection only on the page. Hub
+reads the selection on each new `location` value and each browser move, and the effect that keeps it waits while
+`hasMoved()`, so a restore comes before a write. A `node` in the URL comes first, and a node of a dropped file is
+never kept.
 
 ### Namespace conventions
 
