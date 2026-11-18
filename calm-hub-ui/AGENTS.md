@@ -256,7 +256,14 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   `<dialog>` that opens with `showModal()`, so focus stays in it and the page behind it is inert. It stays in the page
   when it closes, so slot state stays. Its `cancel` handler ignores the cancel of a dialog in a slot, which closes only
   that dialog. Hub owns the inspector, so the
-  diagram stays mounted while it opens and closes. `?extension=<id>` (`EXTENSION_PARAM`) opens it on an extension;
+  diagram stays mounted while it opens and closes. Hub renders the inspector once, with `createPortal`, into one node
+  (`inspectorNode`) that the `Sidebar` or the `MobileInspector` holds. A change of breakpoint moves that node, so the
+  chosen views and the slot state stay. Do not render the inspector as a child of either one: a new parent remounts it.
+  A move ends the modal state of an open `<dialog>` in a slot, and the dialog stays open. `SlotHostContext` names the
+  host; when it changes, `ConfirmActionDialog` shows itself modally again, on top, with focus on Cancel. A new dialog in
+  a slot must do the same. `placeInspector` does not move the node to the host that holds it: StrictMode attaches the
+  ref of a new host twice, and a second move ends the modal state again.
+  `?extension=<id>` (`EXTENSION_PARAM`) opens it on an extension;
   Details and each extension's chosen view stay in memory only. A fresh `?extension=` link shows the extension's first view. A change of only `extension` keeps the selection.
   The router shows a replace in a transition, so a close can come before the choice before it shows, also while a
   render of it waits. Hub shows the latest choice at once (`inspectorChoice`) and sends one replace at a time. It never
@@ -337,8 +344,10 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   that, also while the inspector is closed, so slot state stays. `SlotActiveContext` is false for a hidden slot:
   `ExtensionSlot` and its `SourceTable`s then pass no `load` to `useRefreshingRequest`, so they send no request, and
   load when they show again if their context, revision or table query changed. A failed request does not load again
-  when it shows: the slot and the table show **Try again**, also for a first load. Keep the inspector's tree the same
-  when it closes, or React remounts the slots.
+  when it shows: the slot and the table show **Try again**, also for a first load. A reply that cannot render shows
+  **Try again** too (`ScreenErrorBoundary` with `retry`): it mounts the slot content again, which loads the reply again
+  for the same context and sends no write. Form drafts and their targets stay in `FormDrafts`. Give `retry` only where
+  the children load again on mount. Keep the inspector's tree the same when it closes, or React remounts the slots.
 - On a wide screen, each selection that the user makes opens the inspector, also a click on the item that is already
   selected (`selections` in `Hub`). `handleItemSelect` counts it with a functional update, so its identity stays.
   Each link, and each Back or Forward, whose URL names the selected node opens it too, also a link to the URL that
@@ -636,6 +645,7 @@ mobile viewport** — never just one.
   renders. Drive the breakpoint by mocking `window.matchMedia` (returning
   `matches: true` simulates mobile, `false` desktop). `ControlDetailSection.test.tsx`
   and `hub/Hub.test.tsx` show the `mockViewport`/`mockMobileViewport` helper pattern.
+  For a change of breakpoint in one render, `resizableViewport` in `hub/Hub.test.tsx` fires the change event.
   The default (no mock) reports desktop, so add explicit mobile cases.
 - **Manual/visual check**: run `npm run start --workspace calm-hub-ui` and confirm the
   change at a desktop width and at a mobile width (≤1023px — e.g. a 390px-wide device

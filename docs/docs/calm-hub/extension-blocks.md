@@ -275,7 +275,7 @@ An error stays in the slot of its extension. It does not break the Hub page arou
 | The call fails: no scope, the backend is down, or Hub returns `4xx` or `5xx` | "Extension request failed." |
 | The reply has no `blocks` list, or its `hubApi` is not the manifest `hubApi` | "Extension request failed." |
 | A block has an unknown `type` | "This screen has a block type that this CALM Hub cannot show." in place of that block. The other blocks show |
-| A block that the UI cannot draw, for example a `table` with no `rows` | "This extension sent content that CALM Hub cannot show." in place of the whole contribution |
+| A block that the UI cannot draw, for example a `table` with no `rows` | "This extension sent content that CALM Hub cannot show." with **Try again** in place of the whole contribution. **Try again** loads the contribution again for the same context |
 | A landing card call fails or has a bad reply | The card shows no headline |
 | A reload after a write fails | The earlier reply, with "Could not refresh" and **Try again** |
 | A table `source` names a route that is not a `GET` route with `readOnly` | "Table source route unavailable." in place of the table |

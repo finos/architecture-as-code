@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { NavigationType, useLocation, useMatch, useNavigate, useNavigationType } from 'react-router-dom';
 import { IoCompassOutline } from 'react-icons/io5';
 import { RESOURCE_ROUTE } from './routes.js';
@@ -45,6 +46,7 @@ import { diagramLenses } from './components/diagram-section/tabs/diagramLenses.j
 import { useExtensions, useExtensionsStatus } from '../extensions/ExtensionsContext.js';
 import { EXTENSION_PARAM, EXTENSIONS_TAB_ID, inspectorExtension, withoutLens } from './components/diagram-section/tabs/diagramTabRegistry.js';
 import { resourceExtensions } from '../extensions/contributions.js';
+import { SlotHostContext } from '../extensions/slotActivity.js';
 import { ReturnPointProvider } from '../navigation/ReturnPointProvider.js';
 import { carryReturnPoints, type ReturnPage } from '../navigation/returnPoints.js';
 import { ReturnBar } from './components/return-bar/ReturnBar.js';
@@ -457,6 +459,17 @@ export default function Hub({ storage }: HubProps) {
     }
     if (track !== inspectorTrack) setInspectorTrack(track);
     const linkedExtension = choice ? choice.extension : inspectorExtension(new URLSearchParams(location.search));
+    // The inspector renders once, into this node. The side panel or the dialog holds the node, so the inspector keeps its
+    // views and the state of its slots when the screen crosses the breakpoint.
+    const [inspectorNode] = useState(() => {
+        const node = document.createElement('div');
+        node.style.display = 'contents';
+        return node;
+    });
+    // Each move ends the modal state of an open dialog in a slot. StrictMode attaches the ref of a new host twice.
+    const placeInspector = useCallback((place: HTMLDivElement | null) => {
+        if (place && inspectorNode.parentNode !== place) place.appendChild(inspectorNode);
+    }, [inspectorNode]);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [focusInspector, setFocusInspector] = useState(false);
     const clearFocusInspector = useCallback(() => setFocusInspector(false), []);
@@ -873,14 +886,20 @@ export default function Hub({ storage }: HubProps) {
                                 </div>
                             )}
                             <MobileInspector open={inspectorOpen} onClose={closeInspector}>
-                                {inspector}
+                                <div ref={placeInspector} className="contents" />
                             </MobileInspector>
                         </>
                     ) : (
                         <Sidebar id={INSPECTOR_ID} label="Inspector" hidden={!inspectorOpen}>
-                            {inspector}
+                            <div ref={placeInspector} className="contents" />
                         </Sidebar>
                     ))}
+                {/* After the panel or the dialog above, so a confirmation in a slot shows modally again on top of it. */}
+                {inspector && (
+                    <SlotHostContext.Provider value={isMobile ? 'dialog' : 'side panel'}>
+                        {createPortal(inspector, inspectorNode)}
+                    </SlotHostContext.Provider>
+                )}
 
             </div>
         </AppLayout>

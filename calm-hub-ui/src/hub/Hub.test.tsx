@@ -17,6 +17,7 @@ import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
 import { ReturnLink } from '../navigation/ReturnLink.js';
 import { createMemoryStorage } from '../test-support/memory-storage.js';
+import { INSPECTOR_ID } from './components/inspector/inspectorIds.js';
 
 /**
  * Force `useIsMobile()` (which reads window.matchMedia) to report a mobile
@@ -36,6 +37,105 @@ function mockMobileViewport(isMobile: boolean) {
     })) as unknown as typeof window.matchMedia;
     return () => {
         window.matchMedia = original;
+    };
+}
+
+/** A viewport that can cross the 1024px breakpoint, as a rotated tablet does. Only the width query matches. */
+function resizableViewport(narrow: boolean) {
+    const original = window.matchMedia;
+    const listeners = new Set<() => void>();
+    let current = narrow;
+    window.matchMedia = ((query: string) => ({
+        get matches() {
+            return query.includes('max-width') && current;
+        },
+        media: query,
+        onchange: null,
+        addEventListener: (_: string, listener: () => void) => listeners.add(listener),
+        removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
+        addListener: (listener: () => void) => listeners.add(listener),
+        removeListener: (listener: () => void) => listeners.delete(listener),
+        dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+    return {
+        set(next: boolean) {
+            current = next;
+            act(() => listeners.forEach((listener) => listener()));
+        },
+        restore() {
+            window.matchMedia = original;
+        },
+    };
+}
+
+/**
+ * jsdom has no top layer. This models what a browser does with modal dialogs: showModal puts a dialog on top, and it
+ * throws on an open dialog. A removal from the page, also as part of a move, ends the modal state, and the dialog stays
+ * open. While a dialog is modal, focus() outside the top one does nothing, and Escape cancels the top one.
+ */
+function modelTopLayer() {
+    // The modal dialogs, in top layer order.
+    const shown = new Set<HTMLDialogElement>();
+    const top = () => [...shown].at(-1);
+    const removes = (node: Node) => {
+        if (node.isConnected) shown.forEach((dialog) => node.contains(dialog) && shown.delete(dialog));
+    };
+    const { appendChild, insertBefore, removeChild } = Node.prototype;
+    const moves = [
+        vi.spyOn(Node.prototype, 'appendChild').mockImplementation(function <T extends Node>(this: Node, node: T) {
+            removes(node);
+            return appendChild.call(this, node) as T;
+        }),
+        vi.spyOn(Node.prototype, 'insertBefore').mockImplementation(function <T extends Node>(this: Node, node: T, child: Node | null) {
+            removes(node);
+            return insertBefore.call(this, node, child) as T;
+        }),
+        vi.spyOn(Node.prototype, 'removeChild').mockImplementation(function <T extends Node>(this: Node, child: T) {
+            removes(child);
+            return removeChild.call(this, child) as T;
+        }),
+    ];
+    const { matches } = Element.prototype;
+    const focus = HTMLElement.prototype.focus;
+    Object.defineProperties(HTMLDialogElement.prototype, {
+        showModal: {
+            configurable: true,
+            value(this: HTMLDialogElement) {
+                if (this.open) throw new DOMException('The dialog is open.', 'InvalidStateError');
+                this.setAttribute('open', '');
+                shown.add(this);
+            },
+        },
+        close: {
+            configurable: true,
+            value(this: HTMLDialogElement) {
+                this.removeAttribute('open');
+                shown.delete(this);
+            },
+        },
+        matches: {
+            configurable: true,
+            value(this: HTMLDialogElement, selector: string) {
+                return selector === ':modal' ? shown.has(this) : matches.call(this, selector);
+            },
+        },
+    });
+    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, options?: FocusOptions) {
+        const modal = top();
+        if (modal && !modal.contains(this)) return;
+        focus.call(this, options);
+    });
+    return {
+        top,
+        escape() {
+            const modal = top();
+            if (modal && fireEvent(modal, new Event('cancel', { cancelable: true }))) modal.close();
+        },
+        restore() {
+            for (const name of ['showModal', 'close', 'matches']) delete (HTMLDialogElement.prototype as unknown as Record<string, unknown>)[name];
+            focusSpy.mockRestore();
+            moves.forEach((move) => move.mockRestore());
+        },
     };
 }
 
@@ -1531,6 +1631,125 @@ describe('Hub', () => {
             expect(screen.getByTestId('diagram-section')).toBe(diagram);
             expect(captured?.resourceKey).toBe(resource);
             expect(diagramItemSelect).toBe(handler);
+        });
+
+        // The inspector moves between the side panel and the full-screen dialog. Its chosen view and the state of its slots
+        // stay, also while it is closed, and it sends no request for the move.
+        it.each([
+            ['a wide screen', false],
+            ['a narrow screen', true],
+        ])('keeps the chosen view and its table filter across the breakpoint, from %s and back', async (_, narrow) => {
+            const viewport = resizableViewport(narrow);
+            try {
+                const twoViews: ExtensionSummary = {
+                    ...fakeExtension(1, []),
+                    contributes: {
+                        'designer-tab': [
+                            { id: 'first', title: 'First view', route: 'data' },
+                            { id: 'second', title: 'Second view', route: 'data' },
+                        ],
+                    },
+                };
+                call.mockResolvedValue({
+                    hubApi: 0,
+                    blocks: [{ type: 'table', id: 'rows', columns: ['Name'], rows: [['alpha'], ['beta']], search: { label: 'Filter rows' } }],
+                });
+                renderWithNav('/?extension=ext-1', [], [twoViews]);
+                loadArchitectureWithNodes();
+                fireEvent.click(inspectorSelector());
+                fireEvent.click(screen.getByRole('menuitemradio', { name: 'Second view' }));
+                const second = await screen.findByRole('region', { name: 'Second view' });
+                fireEvent.change(await within(second).findByRole('searchbox', { name: 'Filter rows' }), { target: { value: 'beta' } });
+                await waitFor(() => expect(within(second).queryByText('alpha')).not.toBeInTheDocument());
+                const requests = call.mock.calls.length;
+                const keptState = () => {
+                    expect(inspectorSelector()).toHaveAccessibleName('Inspector view: Extension 1 — Second view');
+                    const region = screen.getByRole('region', { name: 'Second view' });
+                    expect(within(region).getByRole('searchbox', { name: 'Filter rows' })).toHaveValue('beta');
+                    expect(within(region).getByText('beta')).toBeInTheDocument();
+                    expect(within(region).queryByText('alpha')).not.toBeInTheDocument();
+                };
+
+                viewport.set(!narrow);
+                keptState();
+
+                fireEvent.click(screen.getByRole('button', { name: narrow ? 'Close inspector' : 'Back to diagram' }));
+                viewport.set(narrow);
+                fireEvent.click(toggle());
+                keptState();
+                expect(screen.getAllByTestId('inspector-extension')).toHaveLength(1);
+                expect(call.mock.calls.length).toBe(requests);
+            } finally {
+                viewport.restore();
+            }
+        });
+
+        // A move to the other host ends the modal state of an open confirmation in the browser. It must show on top again,
+        // with focus on Cancel, so that Enter does not send the write and Escape cancels it.
+        const noteForm: ExtensionSummary = {
+            id: 'ext-1',
+            name: 'Extension 1',
+            hubApi: 0,
+            routes: [
+                { id: 'data', method: 'GET', path: '/data', scope: 'authenticated', readOnly: true },
+                { id: 'note', method: 'POST', path: '/note', scope: 'authenticated', readOnly: false },
+            ],
+            contributes: {
+                'designer-tab': [{ id: 'notes', title: 'Notes', route: 'data' }],
+                form: [{ id: 'note', title: 'Add a note', route: 'note', target: 'none', submitLabel: 'Add note', fields: [{ id: 'text', type: 'multiline', label: 'Note', required: true }] }],
+            },
+        };
+        it.each([
+            ['an action', 'a wide', false],
+            ['an action', 'a narrow', true],
+            ['a form', 'a wide', false],
+            ['a form', 'a narrow', true],
+        ])('keeps the confirmation of %s modal, on top and on Cancel across the breakpoint, from %s screen', async (kind, _, narrow) => {
+            const viewport = resizableViewport(narrow);
+            const layer = modelTopLayer();
+            const submitForm = vi.spyOn(ExtensionService.prototype, 'submitForm');
+            try {
+                const action = kind === 'an action';
+                if (!action) call.mockResolvedValue({ hubApi: 0, blocks: [{ type: 'form', form: 'note' }] });
+                // As in the app: StrictMode attaches the ref of a new host twice.
+                render(
+                    <ExtensionsContext.Provider value={[action ? fakeExtension(1, ['designer-tab', 'action']) : noteForm]}>
+                        <MemoryRouter initialEntries={['/?extension=ext-1']}>
+                            <Hub />
+                        </MemoryRouter>
+                    </ExtensionsContext.Provider>,
+                    { reactStrictMode: true }
+                );
+                loadArchitectureWithNodes();
+                if (action) {
+                    fireEvent.click(await screen.findByRole('button', { name: 'Run 1' }));
+                } else {
+                    fireEvent.change(await screen.findByRole('textbox', { name: /^Note\b/ }), { target: { value: 'Keep this note' } });
+                    fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
+                }
+                const confirmation = await screen.findByRole('dialog', { name: action ? 'Confirm action' : 'Confirm submission' });
+                const opener = screen.getByRole('button', { name: action ? 'Run 1' : 'Add note' });
+                const inspectorDialog = () => document.querySelector<HTMLDialogElement>(`dialog#${INSPECTOR_ID}`);
+                await waitFor(() => expect(layer.top()).toBe(confirmation));
+
+                viewport.set(!narrow);
+                expect(screen.getByRole('dialog', { name: action ? 'Confirm action' : 'Confirm submission' })).toBe(confirmation);
+                expect(layer.top()).toBe(confirmation);
+                expect(within(confirmation).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+                if (!narrow) expect(inspectorDialog()?.matches(':modal')).toBe(true);
+
+                layer.escape();
+                expect(confirmation).not.toBeInTheDocument();
+                expect(layer.top()).toBe(narrow ? undefined : inspectorDialog());
+                await waitFor(() => expect(opener).toHaveFocus());
+                if (!action) expect(screen.getByRole('textbox', { name: /^Note\b/ })).toHaveValue('Keep this note');
+                expect(call.mock.calls.filter(([, route]) => route.method === 'POST')).toHaveLength(0);
+                expect(submitForm).not.toHaveBeenCalled();
+            } finally {
+                submitForm.mockRestore();
+                layer.restore();
+                viewport.restore();
+            }
         });
 
         it('opens full screen from the edge handle on a narrow screen with no selection, and gives focus back to the handle', () => {
