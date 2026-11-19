@@ -65,8 +65,7 @@ class TestGitHubPatternStoreShould {
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
@@ -134,8 +133,7 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         String stem = "event-driven";
@@ -154,8 +152,7 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
@@ -176,8 +173,7 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
@@ -206,8 +202,7 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -229,8 +224,7 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
@@ -253,8 +247,7 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         String stem = "event-driven";
@@ -272,8 +265,7 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/nonexistent.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -294,8 +286,7 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setName("nonexistent").build();

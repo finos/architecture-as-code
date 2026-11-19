@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import jakarta.ws.rs.core.Response;
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
 import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +21,17 @@ class TestInvalidResourceIdExceptionMapperShould {
             String body = response.getEntity().toString();
             assertThat(body, containsString("Invalid resource id"));
             assertThat(body, not(containsString("<script>")));
+        }
+    }
+
+    @Test
+    void map_an_ambiguous_id_to_a_generic_404() {
+        try (Response response = new AmbiguousResourceIdExceptionMapper()
+                .toResponse(new AmbiguousResourceIdException("foo"))) {
+            assertThat(response.getStatus(), equalTo(404));
+            String body = response.getEntity().toString();
+            assertThat(body, containsString("more than one resource"));
+            assertThat(body, not(containsString("foo")));
         }
     }
 }

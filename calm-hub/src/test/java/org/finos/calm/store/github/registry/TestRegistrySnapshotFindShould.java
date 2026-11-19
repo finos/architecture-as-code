@@ -19,7 +19,7 @@ class TestRegistrySnapshotFindShould {
     private final RegistryEntry other = entry("web", "patterns/web.json");
 
     private final RegistrySnapshot snapshot = new RegistrySnapshot(
-            Map.of("finos", List.of(plain, variant, other)), Map.of());
+            Map.of("finos", List.of(plain, variant, other)));
 
     @Test
     void match_the_stem_and_ignore_unsupplied_parts() {

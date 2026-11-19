@@ -29,34 +29,24 @@ class TestRegistrySnapshotShould {
                 Map.of(
                         "finos", List.of(FINOS_PATTERN, FINOS_FLOW),
                         "other", List.of(OTHER_PATTERN)
-                ),
-                Map.of(
-                        "finos:finos-pattern", FINOS_PATTERN,
-                        "finos:finos-flow", FINOS_FLOW,
-                        "other:other-pattern", OTHER_PATTERN
                 ));
     }
 
     @Test
-    void find_an_entry_by_its_qualified_id() {
-        Optional<RegistryEntry> found = buildSnapshot().findByUniqueId("finos", "finos-pattern");
+    void find_an_entry_by_its_stem() {
+        List<RegistryEntry> found = buildSnapshot().find("finos", null, "finos-pattern", null, null);
 
-        assertThat(found.isPresent(), is(true));
-        assertThat(found.get(), equalTo(FINOS_PATTERN));
+        assertThat(found, contains(FINOS_PATTERN));
     }
 
     @Test
     void not_find_an_entry_that_exists_only_under_a_different_namespace() {
-        Optional<RegistryEntry> found = buildSnapshot().findByUniqueId("other", "finos-pattern");
-
-        assertThat(found.isPresent(), is(false));
+        assertThat(buildSnapshot().find("other", null, "finos-pattern", null, null), is(empty()));
     }
 
     @Test
-    void not_find_an_unknown_unique_id() {
-        Optional<RegistryEntry> found = buildSnapshot().findByUniqueId("finos", "does-not-exist");
-
-        assertThat(found.isPresent(), is(false));
+    void not_find_an_unknown_stem() {
+        assertThat(buildSnapshot().find("finos", null, "does-not-exist", null, null), is(empty()));
     }
 
     @Test
@@ -102,6 +92,6 @@ class TestRegistrySnapshotShould {
         assertThat(RegistrySnapshot.EMPTY.getNamespaces(), is(empty()));
         assertThat(RegistrySnapshot.EMPTY.listAll("finos"), is(empty()));
         assertThat(RegistrySnapshot.EMPTY.listByType("finos", RegistryResourceType.PATTERN), is(empty()));
-        assertThat(RegistrySnapshot.EMPTY.findByUniqueId("finos", "anything").isPresent(), is(false));
+        assertThat(RegistrySnapshot.EMPTY.find("finos", null, "anything", null, null), is(empty()));
     }
 }

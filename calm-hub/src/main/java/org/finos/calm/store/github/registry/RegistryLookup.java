@@ -1,6 +1,6 @@
 package org.finos.calm.store.github.registry;
 
-import org.finos.calm.domain.exception.InvalidResourceIdException;
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +17,7 @@ public final class RegistryLookup {
     /**
      * Returns the sole match, or {@code null} when there is none so callers can raise their own
      * typed not-found exception. More than one match is ambiguous: candidates go to the log only,
-     * never into the client response, and the caller gets a 400 before it can serve the wrong file.
+     * never into the client response, and the caller gets a 404 before it can serve the wrong file.
      */
     public static RegistryEntry singleOrNull(List<RegistryEntry> matches) {
         if (matches == null || matches.isEmpty()) {
@@ -28,6 +28,6 @@ public final class RegistryLookup {
         }
         List<String> candidates = matches.stream().map(RegistryEntry::filePath).map(Object::toString).toList();
         LOG.warn("Ambiguous resource id: {} matching files, candidates {}", matches.size(), candidates);
-        throw new InvalidResourceIdException("Resource id is ambiguous; add path and variant to identify one resource");
+        throw new AmbiguousResourceIdException("Resource id is ambiguous; add path and variant to identify one resource");
     }
 }

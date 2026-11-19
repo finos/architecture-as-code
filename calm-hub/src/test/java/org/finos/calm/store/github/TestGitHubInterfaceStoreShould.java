@@ -60,8 +60,7 @@ class TestGitHubInterfaceStoreShould {
     @Test
     void return_empty_interfaces_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of());
 
@@ -76,8 +75,7 @@ class TestGitHubInterfaceStoreShould {
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
@@ -139,8 +137,7 @@ class TestGitHubInterfaceStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
@@ -158,8 +155,7 @@ class TestGitHubInterfaceStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
@@ -179,8 +175,7 @@ class TestGitHubInterfaceStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
@@ -208,8 +203,7 @@ class TestGitHubInterfaceStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -228,8 +222,7 @@ class TestGitHubInterfaceStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
@@ -251,8 +244,7 @@ class TestGitHubInterfaceStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
@@ -269,8 +261,7 @@ class TestGitHubInterfaceStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/nonexistent.json"),
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -289,8 +280,7 @@ class TestGitHubInterfaceStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThrows(InterfaceNotFoundException.class, () -> store.getInterfaceVersions("finos", 99999));

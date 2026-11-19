@@ -64,8 +64,7 @@ class TestGitHubStandardStoreShould {
                 RegistryResourceType.STANDARD, "Naming Convention", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:naming-convention", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
@@ -113,8 +112,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("std-x", Path.of("standards/x.json"),
                 RegistryResourceType.STANDARD, "X", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:std-x", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThrows(StandardNotFoundException.class,
@@ -140,8 +138,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("std-1", Path.of("standards/std.json"),
                 RegistryResourceType.STANDARD, "Std", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:std-1", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         int hashId = ("std-1".hashCode() & 0x7FFFFFFF);
@@ -158,8 +155,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("std-1", Path.of("standards/std.json"),
                 RegistryResourceType.STANDARD, "Std", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:std-1", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
@@ -183,8 +179,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/test.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -208,8 +203,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("policy", Path.of("standards/policy.guideline.json"),
                 RegistryResourceType.STANDARD, "Policy", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:policy", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -228,8 +222,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("policy", Path.of("standards/policy.guideline.json"),
                 RegistryResourceType.STANDARD, "Policy", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:policy", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
@@ -256,8 +249,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("std-1", Path.of("standards/std.json"),
                 RegistryResourceType.STANDARD, "Std", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:std-1", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
@@ -281,8 +273,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/test.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
@@ -304,8 +295,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/test.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
@@ -322,8 +312,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/nonexistent.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
@@ -344,8 +333,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/nonexistent.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -368,8 +356,7 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("already-markdown", Path.of("standards/already-markdown.md"),
                 RegistryResourceType.STANDARD, "Already Markdown", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:already-markdown", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
