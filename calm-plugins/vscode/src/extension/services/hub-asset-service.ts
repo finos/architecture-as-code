@@ -1,10 +1,15 @@
-import { HubClient, type NamespaceSummary } from './hub-client';
+import { HubClient, type NamespaceSummary, type Tags } from './hub-client';
 import type { StandardNodeDef, PatternEntry } from './workspace-asset-service';
 
 export interface HubNamespace {
     name: string;
     standardNodes: StandardNodeDef[];
     patterns: PatternEntry[];
+}
+
+/** Distinguishes same-stem resources held in different folders or variants. */
+function resourceKey(id: string, tags?: Tags): string {
+    return [id, tags?.path ?? '', tags?.variant ?? ''].join('~');
 }
 
 export class HubAssetService {
@@ -51,16 +56,16 @@ export class HubAssetService {
             let needsStandardRefresh = false;
             try {
                 const blocks = await this.client.getResources(ns.name, 'standards');
-                const oldShaMap = new Map(old.standardNodes.map(n => [n.id, n.sha]));
+                const oldShaMap = new Map(old.standardNodes.map(n => [resourceKey(n.id, n.tags), n.sha]));
                 if (blocks.length !== old.standardNodes.length) {
                     needsStandardRefresh = true;
                 } else {
                     const versionChecks = await Promise.all(
                         blocks.map(async (block) => {
-                            const oldSha = oldShaMap.get(block.uniqueId);
+                            const oldSha = oldShaMap.get(resourceKey(block.uniqueId, block.tags));
                             if (!oldSha) return true;
                             try {
-                                const versions = await this.client.getVersions(ns.name, 'standards', String(block.numericId));
+                                const versions = await this.client.getVersions(ns.name, 'standards', block.id, block.tags);
                                 if (versions.length === 0) return true;
                                 return versions[versions.length - 1] !== oldSha;
                             } catch {
@@ -101,7 +106,7 @@ export class HubAssetService {
             const blocks = await this.client.getResources(nsName, 'standards');
             const versionResults = await Promise.all(
                 blocks.map((block) =>
-                    this.client.getVersions(nsName, 'standards', String(block.numericId))
+                    this.client.getVersions(nsName, 'standards', block.id, block.tags)
                         .then((versions) => ({ block, versions }))
                         .catch(() => ({ block, versions: [] as string[] }))
                 )
@@ -115,7 +120,7 @@ export class HubAssetService {
                     if (latestSha) {
                         try {
                             const content = await this.client.getResourceAtVersion(
-                                nsName, 'standards', String(block.numericId), latestSha
+                                nsName, 'standards', block.id, latestSha, block.tags
                             ) as Record<string, unknown>;
                             const nodes = content?.nodes as Array<Record<string, unknown>> | undefined;
                             if (nodes?.[0]?.['node-type']) nodeType = nodes[0]['node-type'] as string;
@@ -132,8 +137,8 @@ export class HubAssetService {
             );
             for (const { block, latestSha, nodeType, displayName, controls } of contentResults) {
                 namespace.standardNodes.push({
-                    id: block.uniqueId || String(block.numericId), name: displayName, behaviour: 'create-node',
-                    controls, nodeType, namespace: nsName, sha: latestSha, hubId: block.numericId,
+                    id: block.uniqueId || block.id, name: displayName, behaviour: 'create-node',
+                    controls, nodeType, namespace: nsName, sha: latestSha, hubId: block.id, tags: block.tags,
                 });
             }
         } catch { /* namespace may not have standards */ }
@@ -150,7 +155,7 @@ export class HubAssetService {
             const patterns = await this.client.getResources(nsName, 'patterns');
             const patResults = await Promise.all(
                 patterns.map((pat) =>
-                    this.client.getVersions(nsName, 'patterns', String(pat.numericId))
+                    this.client.getVersions(nsName, 'patterns', pat.id, pat.tags)
                         .then((versions) => ({ pat, versions }))
                         .catch(() => ({ pat, versions: [] as string[] }))
                 )
@@ -159,9 +164,9 @@ export class HubAssetService {
                 const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
                 if (!latestSha) continue;
                 try {
-                    const content = await this.client.getResourceAtVersion(nsName, 'patterns', String(pat.numericId), latestSha) as Record<string, unknown>;
+                    const content = await this.client.getResourceAtVersion(nsName, 'patterns', pat.id, latestSha, pat.tags) as Record<string, unknown>;
                     newPatterns.push({
-                        id: pat.uniqueId || String(pat.numericId),
+                        id: pat.uniqueId || pat.id,
                         name: (content.title as string) || pat.name || humanize(pat.uniqueId),
                         description: (content.description as string) || '',
                         category: (content.category as string) || (content['x-category'] as string) || nsName,

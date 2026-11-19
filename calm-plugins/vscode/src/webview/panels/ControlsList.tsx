@@ -207,7 +207,7 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
                                                     if (!url) return null;
                                                     const hubRef = isControlCurie(url);
                                                     return hubRef
-                                                        ? <button key={idx} type="button" onClick={() => notifyOpenControlInHub(url)} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{url} ↗</button>
+                                                        ? <button key={idx} type="button" onClick={() => notifyOpenControlInHub(url, control.hubIdentity)} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{url} ↗</button>
                                                         : <span key={idx} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-fg-muted)', padding: 0 }}>{url}</span>;
                                                 })}
                                             </div>

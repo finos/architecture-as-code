@@ -30,12 +30,12 @@ describe('HubAssetService', () => {
                 (ns: string, type: string) => {
                     if (ns === 'finos' && type === 'standards') {
                         return Promise.resolve([
-                            { uniqueId: 'microservice', name: 'Microservice', numericId: 1 },
+                            { uniqueId: 'microservice', name: 'Microservice', id: '1' },
                         ]);
                     }
                     if (ns === 'acme' && type === 'standards') {
                         return Promise.resolve([
-                            { uniqueId: 'api-gateway', name: 'API Gateway', numericId: 3 },
+                            { uniqueId: 'api-gateway', name: 'API Gateway', id: '3' },
                         ]);
                     }
                     return Promise.resolve([]);
@@ -66,6 +66,31 @@ describe('HubAssetService', () => {
             expect(namespaces[1].standardNodes).toHaveLength(1);
         });
 
+        it('carries string ids and tags into version and content reads', async () => {
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'finos' }]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => type === 'standards'
+                    ? Promise.resolve([{ uniqueId: 'api-gateway', name: 'API Gateway', id: 'aws/prod/api-gateway', tags: { path: 'aws/prod', variant: 'markdown' } }])
+                    : Promise.resolve([])
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['v1']);
+            (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
+                nodes: [{ 'node-type': 'service', name: 'API Gateway' }],
+            });
+
+            const namespaces = await service.refresh();
+            const node = namespaces[0].standardNodes[0];
+
+            expect(node.hubId).toBe('aws/prod/api-gateway');
+            expect(node.tags).toEqual({ path: 'aws/prod', variant: 'markdown' });
+            expect(mockClient.getVersions).toHaveBeenCalledWith(
+                'finos', 'standards', 'aws/prod/api-gateway', { path: 'aws/prod', variant: 'markdown' }
+            );
+            expect(mockClient.getResourceAtVersion).toHaveBeenCalledWith(
+                'finos', 'standards', 'aws/prod/api-gateway', 'v1', { path: 'aws/prod', variant: 'markdown' }
+            );
+        });
+
         it('handles namespace with no standard-nodes gracefully', async () => {
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
                 { name: 'empty-ns' },
@@ -89,7 +114,7 @@ describe('HubAssetService', () => {
                 (_ns: string, type: string) => {
                     if (type === 'standards') {
                         return Promise.resolve([
-                            { uniqueId: 'svc', name: 'Service', numericId: 1 },
+                            { uniqueId: 'svc', name: 'Service', id: '1' },
                         ]);
                     }
                     return Promise.resolve([]);
@@ -114,7 +139,7 @@ describe('HubAssetService', () => {
                 (_ns: string, type: string) => {
                     if (type === 'standards') {
                         return Promise.resolve([
-                            { uniqueId: 'svc', name: 'Service', numericId: 1 },
+                            { uniqueId: 'svc', name: 'Service', id: '1' },
                         ]);
                     }
                     return Promise.resolve([]);
@@ -156,7 +181,7 @@ describe('HubAssetService', () => {
                 (ns: string, type: string) => {
                     if (type === 'standards') {
                         return Promise.resolve([
-                            { uniqueId: `${ns}-block`, name: `${ns} Block`, numericId: 1 },
+                            { uniqueId: `${ns}-block`, name: `${ns} Block`, id: '1' },
                         ]);
                     }
                     return Promise.resolve([]);
@@ -181,7 +206,7 @@ describe('HubAssetService', () => {
                 (ns: string, type: string) => {
                     if (type === 'standards') {
                         return Promise.resolve([
-                            { uniqueId: `${ns}-block`, name: `${ns} Block`, numericId: 1 },
+                            { uniqueId: `${ns}-block`, name: `${ns} Block`, id: '1' },
                         ]);
                     }
                     return Promise.resolve([]);
@@ -206,7 +231,7 @@ describe('HubAssetService', () => {
                 (_ns: string, type: string) => {
                     if (type === 'patterns') {
                         return Promise.resolve([
-                            { uniqueId: 'api-pattern', name: 'API Pattern', numericId: 1 },
+                            { uniqueId: 'api-pattern', name: 'API Pattern', id: '1' },
                         ]);
                     }
                     return Promise.resolve([]);
@@ -241,7 +266,7 @@ describe('HubAssetService', () => {
                 (_ns: string, type: string) => {
                     if (type === 'patterns') {
                         return Promise.resolve([
-                            { uniqueId: 'no-version', name: 'No Version', numericId: 1 },
+                            { uniqueId: 'no-version', name: 'No Version', id: '1' },
                         ]);
                     }
                     return Promise.resolve([]);
@@ -275,7 +300,7 @@ describe('HubAssetService', () => {
                 (_ns: string, type: string) => {
                     if (type === 'patterns') {
                         return Promise.resolve([
-                            { uniqueId: 'minimal', name: 'Minimal', numericId: 1 },
+                            { uniqueId: 'minimal', name: 'Minimal', id: '1' },
                         ]);
                     }
                     return Promise.resolve([]);
@@ -299,7 +324,7 @@ describe('HubAssetService', () => {
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Service', numericId: 1 }]);
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Service', id: '1' }]);
                     return Promise.resolve([]);
                 }
             );
@@ -331,7 +356,7 @@ describe('HubAssetService', () => {
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', numericId: 1 }]);
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', id: '1' }]);
                     return Promise.resolve([]);
                 }
             );
@@ -355,7 +380,7 @@ describe('HubAssetService', () => {
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', numericId: 1 }]);
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', id: '1' }]);
                     return Promise.resolve([]);
                 }
             );
@@ -381,14 +406,14 @@ describe('HubAssetService', () => {
         it('returns changed: false when cached SHAs match live versions', async () => {
             service.loadFromCache([{
                 name: 'ns1',
-                standardNodes: [{ id: 'svc', name: 'Svc', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: 1 }],
+                standardNodes: [{ id: 'svc', name: 'Svc', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: '1' }],
                 patterns: [],
             }]);
 
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', numericId: 1 }]);
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', id: '1' }]);
                     return Promise.resolve([]);
                 }
             );
@@ -401,14 +426,14 @@ describe('HubAssetService', () => {
         it('returns changed: true when a standard has a new version', async () => {
             service.loadFromCache([{
                 name: 'ns1',
-                standardNodes: [{ id: 'svc', name: 'Svc', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: 1 }],
+                standardNodes: [{ id: 'svc', name: 'Svc', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: '1' }],
                 patterns: [],
             }]);
 
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', numericId: 1 }]);
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', id: '1' }]);
                     return Promise.resolve([]);
                 }
             );
@@ -420,6 +445,35 @@ describe('HubAssetService', () => {
             const { changed } = await service.deltaRefresh();
             expect(changed).toBe(true);
             expect(service.getNamespaces()[0].standardNodes[0].sha).toBe('sha2');
+        });
+
+        it('keeps SHAs separate for same-stem resources in different folders', async () => {
+            service.loadFromCache([{
+                name: 'ns1',
+                standardNodes: [
+                    { id: 'api-gateway', name: 'Gateway', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'prod-sha', hubId: 'aws/prod/gw', tags: { path: 'aws/prod' } },
+                    { id: 'api-gateway', name: 'Gateway', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'dev-sha', hubId: 'aws/dev/gw', tags: { path: 'aws/dev' } },
+                ],
+                patterns: [],
+            }]);
+
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => type === 'standards'
+                    ? Promise.resolve([
+                        { uniqueId: 'api-gateway', id: 'aws/prod/gw', name: 'Gateway', tags: { path: 'aws/prod' } },
+                        { uniqueId: 'api-gateway', id: 'aws/dev/gw', name: 'Gateway', tags: { path: 'aws/dev' } },
+                    ])
+                    : Promise.resolve([])
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, _type: string, id: string) => Promise.resolve([id === 'aws/dev/gw' ? 'dev-sha' : 'prod-sha'])
+            );
+
+            const { changed } = await service.deltaRefresh();
+            expect(changed).toBe(false);
+            expect(mockClient.getVersions).toHaveBeenCalledWith('ns1', 'standards', 'aws/prod/gw', { path: 'aws/prod' });
+            expect(mockClient.getVersions).toHaveBeenCalledWith('ns1', 'standards', 'aws/dev/gw', { path: 'aws/dev' });
         });
     });
 });

@@ -13,8 +13,10 @@ export interface StandardNodeDef {
     namespace?: string;
     /** Latest version string — present when this node was fetched from a remote CalmHub. */
     sha?: string;
-    /** Hub numeric resource ID — used for API calls that require integer IDs. */
-    hubId?: number;
+    /** Hub string resource ID, used for version and definition API calls. */
+    hubId?: string;
+    /** Folder path and variant that disambiguate same-named GitHub resources. */
+    tags?: { path?: string; variant?: string };
 }
 
 /** A locally-authored standalone control requirement discovered under `controls/`. */

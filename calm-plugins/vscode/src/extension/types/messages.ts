@@ -1,6 +1,15 @@
 import type { ParsedRequirement } from '../services/requirement-parser';
 import type { ControlBrowseGroup } from '../services/control-asset-service';
 
+/** Identity of a Hub-sourced control, carried from the picker to the extension host. */
+export interface ControlIdentity {
+    domain: string;
+    controlName: string;
+    hubId?: string;
+    path?: string;
+    variant?: string;
+}
+
 export type ExtToWebviewMessage =
     | {
           type: 'modelUpdated';
@@ -61,9 +70,25 @@ export type WebviewToExtMessage =
           requestId: string;
           domain: string;
           controlName: string;
+          hubId?: string;
+          path?: string;
+          variant?: string;
       }
-    | { type: 'requestControlResolve'; requestId: string; ref: string }
+    | {
+          type: 'requestControlResolve';
+          requestId: string;
+          ref: string;
+          hubId?: string;
+          path?: string;
+          variant?: string;
+      }
     | { type: 'saveControl'; requestId: string; filename: string; content: string }
     | { type: 'savePattern'; filename: string; content: string }
     | { type: 'requestExportPattern'; doc: string }
-    | { type: 'openControlInHub'; ref: string };
+    | {
+          type: 'openControlInHub';
+          ref: string;
+          hubId?: string;
+          path?: string;
+          variant?: string;
+      };
