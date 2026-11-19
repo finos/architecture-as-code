@@ -1,8 +1,10 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
 import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
@@ -76,8 +78,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -106,8 +107,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry restrictedEntry = new RegistryEntry("ctrl-b", Path.of("controls/security/ctrl-b.json"),
                 RegistryResourceType.CONTROL, "Control B", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(accessibleEntry), "private", List.of(restrictedEntry)),
-                Map.of("finos:ctrl-a", accessibleEntry, "private:ctrl-b", restrictedEntry));
+                Map.of("finos", List.of(accessibleEntry), "private", List.of(restrictedEntry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(accessibleEntry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -125,8 +125,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry restricted = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(accessible), "private", List.of(restricted)),
-                Map.of("finos:ctrl-a", accessible, "private:" + CONTROL_STEM, restricted));
+                Map.of("finos", List.of(accessible), "private", List.of(restricted)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(accessible));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -142,8 +141,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry restricted = new RegistryEntry("other", Path.of("controls/security/other.json"),
                 RegistryResourceType.CONTROL, "Other", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(accessible), "private", List.of(restricted)),
-                Map.of("finos:" + CONTROL_STEM, accessible, "private:other", restricted));
+                Map.of("finos", List.of(accessible), "private", List.of(restricted)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(accessible));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -160,8 +158,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -176,8 +173,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -194,8 +190,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -220,8 +215,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -240,8 +234,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -253,6 +246,23 @@ class TestGitHubControlStoreShould {
         String content = store.getRequirementForVersion(DOMAIN, CONTROL_ID, "abc1234");
 
         assertThat(content, equalTo("{\"control\":\"old-data\"}"));
+    }
+
+    @Test
+    void fail_closed_when_the_same_control_matches_in_two_namespaces() {
+        RegistryEntry first = new RegistryEntry("my-control", Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "First", Instant.now());
+        RegistryEntry second = new RegistryEntry("my-control", Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "Second", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(first), "other", List.of(second)));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(first));
+        when(registryService.listByType("other", RegistryResourceType.CONTROL)).thenReturn(List.of(second));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos", "other"));
+
+        assertThrows(AmbiguousResourceIdException.class,
+                () -> store.getRequirementVersions(DOMAIN, new GitHubResourceId("my-control", null, null)));
     }
 
     @Test
@@ -269,8 +279,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -293,8 +302,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -308,8 +316,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security/missing", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -327,8 +334,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security/missing", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -354,8 +360,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL))
                 .thenReturn(List.of(entry), List.of());
@@ -369,8 +374,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL))
                 .thenReturn(List.of(entry), List.of());
@@ -406,8 +410,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -429,8 +432,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -455,8 +457,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -470,8 +471,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/security", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
@@ -495,8 +495,7 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(CONTROL_STEM, Path.of("controls/payments", CONTROL_STEM + ".json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + CONTROL_STEM, entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));

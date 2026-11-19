@@ -175,8 +175,7 @@ class TestGitHubResourceMappingStoreShould {
 
     private void setupNamespace() {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(NAMESPACE, List.of()),
-                Map.of());
+                Map.of(NAMESPACE, List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
     }
 }

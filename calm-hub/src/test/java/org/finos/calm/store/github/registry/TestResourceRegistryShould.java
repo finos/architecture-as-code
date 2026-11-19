@@ -1,5 +1,7 @@
 package org.finos.calm.store.github.registry;
 
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -17,6 +19,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestResourceRegistryShould {
 
@@ -80,7 +83,7 @@ class TestResourceRegistryShould {
     }
 
     @Test
-    void find_entry_by_unique_id() throws IOException {
+    void find_entry_by_stem() throws IOException {
         Path archDir = tempDir.resolve("architectures");
         Files.createDirectories(archDir);
         Files.writeString(archDir.resolve("payment.json"),
@@ -88,17 +91,16 @@ class TestResourceRegistryShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        Optional<RegistryEntry> found = registryService.findByUniqueId("finos", "payment-svc");
-        assertThat(found.isPresent(), is(true));
-        assertThat(found.get().uniqueId(), equalTo("payment-svc"));
+        List<RegistryEntry> found = registryService.find("finos", null, "payment", null, null);
+        assertThat(found, hasSize(1));
+        assertThat(found.get(0).uniqueId(), equalTo("payment-svc"));
     }
 
     @Test
-    void return_empty_for_unknown_unique_id() throws IOException {
+    void return_empty_for_unknown_stem() throws IOException {
         registryService.rebuild(Map.of("finos", tempDir));
 
-        Optional<RegistryEntry> found = registryService.findByUniqueId("finos", "nonexistent");
-        assertThat(found.isPresent(), is(false));
+        assertThat(registryService.find("finos", null, "nonexistent", null, null), is(empty()));
     }
 
     @Test
@@ -141,14 +143,14 @@ class TestResourceRegistryShould {
         Files.writeString(archDir.resolve("v1.json"), "{\"unique-id\": \"v1\", \"nodes\": []}");
 
         registryService.rebuild(Map.of("finos", tempDir));
-        assertThat(registryService.findByUniqueId("finos", "v1").isPresent(), is(true));
+        assertThat(registryService.find("finos", null, "v1", null, null), hasSize(1));
 
         Files.delete(archDir.resolve("v1.json"));
         Files.writeString(archDir.resolve("v2.json"), "{\"unique-id\": \"v2\", \"nodes\": []}");
 
         registryService.rebuild(Map.of("finos", tempDir));
-        assertThat(registryService.findByUniqueId("finos", "v1").isPresent(), is(false));
-        assertThat(registryService.findByUniqueId("finos", "v2").isPresent(), is(true));
+        assertThat(registryService.find("finos", null, "v1", null, null), is(empty()));
+        assertThat(registryService.find("finos", null, "v2", null, null), hasSize(1));
     }
 
     @Test
@@ -298,10 +300,9 @@ class TestResourceRegistryShould {
     }
 
     @Test
-    void return_empty_optional_for_unknown_namespace_in_find() {
+    void return_empty_for_unknown_namespace_in_find() {
         registryService.rebuild(Map.of());
-        Optional<RegistryEntry> result = registryService.findByUniqueId("nonexistent", "any-id");
-        assertThat(result.isPresent(), is(false));
+        assertThat(registryService.find("nonexistent", null, "any-id", null, null), is(empty()));
     }
 
     @Test
@@ -356,12 +357,7 @@ class TestResourceRegistryShould {
     }
 
     @Test
-    void resolve_a_colliding_unique_id_to_the_same_entry_deterministically_across_rebuilds() throws IOException {
-        // findByUniqueId can only ever resolve one of the two colliding entries (that's
-        // the known, tracked limitation - see the class javadoc on the index build).
-        // What must hold is that repeated rebuilds of identical, unchanged content
-        // resolve to the SAME one every time, not whichever the filesystem happened to
-        // walk first.
+    void fail_closed_when_a_stem_matches_more_than_one_entry() throws IOException {
         Path patternsA = tempDir.resolve("patterns/a");
         Path patternsB = tempDir.resolve("patterns/b");
         Files.createDirectories(patternsA);
@@ -370,15 +366,13 @@ class TestResourceRegistryShould {
         Files.writeString(patternsB.resolve("foo.json"), "{\"name\": \"Foo B\", \"nodes\": []}");
 
         registryService.rebuild(Map.of("finos", tempDir));
-        Optional<RegistryEntry> firstRebuild = registryService.findByUniqueId("finos", "foo");
+        List<RegistryEntry> matches = registryService.find("finos", RegistryResourceType.PATTERN, "foo", null, null);
 
+        assertThat(matches, hasSize(2));
+        assertThrows(AmbiguousResourceIdException.class, () -> RegistryLookup.singleOrNull(matches));
+
+        // Rebuilding identical content must not change the set of candidates.
         registryService.rebuild(Map.of("finos", tempDir));
-        Optional<RegistryEntry> secondRebuild = registryService.findByUniqueId("finos", "foo");
-
-        assertThat(firstRebuild.isPresent(), is(true));
-        assertThat(secondRebuild, equalTo(firstRebuild));
-        // Sorted by path ascending, then indexed in that order - the alphabetically
-        // last path ("patterns/b/foo.json") is put into the map last, so it wins.
-        assertThat(firstRebuild.get().filePath().toString(), equalTo("patterns/b/foo.json"));
+        assertThat(registryService.find("finos", RegistryResourceType.PATTERN, "foo", null, null), equalTo(matches));
     }
 }

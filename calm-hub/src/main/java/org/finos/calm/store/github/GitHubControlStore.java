@@ -30,6 +30,7 @@ import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.access.NamespaceAccessFilter;
 import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistryLookup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -218,6 +219,7 @@ public class GitHubControlStore implements ControlStore {
     private RegistryEntry findControlEntry(String domain, GitHubResourceId controlId) throws DomainNotFoundException, ControlNotFoundException {
         Set<String> accessible = accessFilter.getAccessibleNamespaces();
         boolean domainExists = false;
+        List<RegistryEntry> matches = new ArrayList<>();
         for (String namespace : registryService.getSnapshot().getNamespaces()) {
             if (!accessible.contains(namespace)) {
                 continue;
@@ -230,7 +232,7 @@ public class GitHubControlStore implements ControlStore {
                     if (controlId.name().equals(entry.stem())
                             && (!controlId.hasPath() || controlId.path().equals(entry.path()))
                             && (!controlId.hasVariant() || controlId.variant().equals(entry.variant()))) {
-                        return entry;
+                        matches.add(entry);
                     }
                 }
             }
@@ -238,14 +240,16 @@ public class GitHubControlStore implements ControlStore {
         if (!domainExists) {
             // The requested domain doesn't exist in any namespace this caller can see -
             // do NOT fall back to scanning every accessible namespace for a coincidental
-            // controlId hash match regardless of domain. That previously let a caller
-            // pass a bogus/wrong domain alongside a real controlId from a DIFFERENT
-            // domain and get that other domain's content back instead of a 404 - a
-            // cross-domain read, and one that would become live the moment domain grants
-            // are scoped independently of namespace access (see getGrantsForUser).
+            // id match regardless of domain. That previously let a caller pass a bogus/wrong
+            // domain alongside a real control id from a DIFFERENT domain and get that other
+            // domain's content back instead of a 404.
             throw new DomainNotFoundException(domain);
         }
-        throw new ControlNotFoundException();
+        RegistryEntry match = RegistryLookup.singleOrNull(matches);
+        if (match == null) {
+            throw new ControlNotFoundException();
+        }
+        return match;
     }
 
     private String findNamespaceForControl(RegistryEntry entry) {
