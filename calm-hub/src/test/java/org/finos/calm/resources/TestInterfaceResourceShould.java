@@ -6,6 +6,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.CalmInterface;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
@@ -120,9 +121,9 @@ public class TestInterfaceResourceShould {
                 .get("/api/calm/namespaces/valid/interfaces")
                 .then()
                 .statusCode(200)
-                .body("values[0].id", equalTo(1))
+                .body("values[0].id", equalTo("1"))
                 .body("values[0].customId", equalTo("tcp-port"))
-                .body("values[1].id", equalTo(2))
+                .body("values[1].id", equalTo("2"))
                 .body("values[1].customId", nullValue());
     }
 
@@ -225,9 +226,9 @@ public class TestInterfaceResourceShould {
     void respond_correctly_to_get_interface_versions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode, String expectedBody) throws InterfaceNotFoundException, NamespaceNotFoundException {
 
         if (exceptionToThrow != null) {
-            when(mockInterfaceStore.getInterfaceVersions(namespace, 5)).thenThrow(exceptionToThrow);
+            when(mockInterfaceStore.getInterfaceVersions(anyString(), any(ResourceId.class))).thenThrow(exceptionToThrow);
         } else {
-            when(mockInterfaceStore.getInterfaceVersions(namespace, 5)).thenReturn(List.of("1.0.0", "1.0.1"));
+            when(mockInterfaceStore.getInterfaceVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("1.0.0", "1.0.1"));
         }
 
         if (expectedStatusCode == 200) {
@@ -246,7 +247,7 @@ public class TestInterfaceResourceShould {
                     .body(containsString(expectedBody));
         }
 
-        verify(mockInterfaceStore).getInterfaceVersions(namespace, 5);
+        verify(mockInterfaceStore).getInterfaceVersions(anyString(), any(ResourceId.class));
     }
 
     @Test
@@ -297,10 +298,10 @@ public class TestInterfaceResourceShould {
         calmInterface.setInterfaceJson("{}");
 
         if (exceptionToThrow != null) {
-            when(mockInterfaceStore.getInterfaceForVersion(namespace, 5, "1.0.0")).thenThrow(exceptionToThrow);
+            when(mockInterfaceStore.getInterfaceForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(exceptionToThrow);
         } else {
             calmInterface.setInterfaceJson(objectMapper.writeValueAsString(calmInterface));
-            when(mockInterfaceStore.getInterfaceForVersion(namespace, 5, "1.0.0")).thenReturn("{}");
+            when(mockInterfaceStore.getInterfaceForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{}");
         }
 
         if (expectedStatusCode == 200) {

@@ -1,5 +1,13 @@
 package org.finos.calm.resources;
 
+import jakarta.ws.rs.BeanParam;
+
+import jakarta.validation.Valid;
+
+import org.finos.calm.resources.params.PatternIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+import org.finos.calm.domain.ResourceId;
+
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
@@ -51,10 +59,13 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
  * path either, so it is rejected by the same equality check as any other mismatched target, with
  * no separate case needed.</p>
  */
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 @Authenticated
 public class PatternLayoutResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final PatternLayoutStore patternLayoutStore;
     private final Logger logger = LoggerFactory.getLogger(PatternLayoutResource.class);
@@ -82,8 +93,13 @@ public class PatternLayoutResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getLayout(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("patternId") @Min(value = 1, message = "Pattern ID must be a positive integer") int patternId
+            @Valid @BeanParam PatternIdParam patternIdParam
     ) {
+        ResourceId resourceId = patternIdParam.toResourceId(resourceIdResolver);
+        int patternId = resourceIdResolver.numericForWrite(resourceId);
+        if (!resourceIdResolver.isGitHub() && patternId <= 0) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Pattern ID must be a positive integer").build();
+        }
         try {
             return patternLayoutStore.getLayout(namespace, patternId)
                     .map(layoutJson -> Response.ok(layoutJson).build())
@@ -117,9 +133,14 @@ public class PatternLayoutResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response saveLayout(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("patternId") @Min(value = 1, message = "Pattern ID must be a positive integer") int patternId,
+            @Valid @BeanParam PatternIdParam patternIdParam,
             String layoutJson
     ) {
+        ResourceId resourceId = patternIdParam.toResourceId(resourceIdResolver);
+        int patternId = resourceIdResolver.numericForWrite(resourceId);
+        if (!resourceIdResolver.isGitHub() && patternId <= 0) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Pattern ID must be a positive integer").build();
+        }
         try {
             String forPath = LayoutRequestParsing.parseForTarget(layoutJson);
             String expectedPath = LayoutRequestParsing.canonicalPath(namespace, "patterns", patternId);

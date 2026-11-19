@@ -1,5 +1,14 @@
 package org.finos.calm.resources;
 
+import jakarta.ws.rs.BeanParam;
+
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+
+import org.finos.calm.resources.params.IdParam;
+import org.finos.calm.services.ResourceIdResolver;
+import org.finos.calm.domain.ResourceId;
+
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.NARRATIVE_DOCUMENT_TYPES;
@@ -42,10 +51,13 @@ import java.net.URI;
 import java.util.Map;
 import java.util.regex.Matcher;
 
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 @Consumes(MediaType.APPLICATION_JSON)
 public class DocumentResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private static final java.util.regex.Pattern FRONTMATTER_PATTERN =
             java.util.regex.Pattern.compile(
@@ -141,7 +153,9 @@ public class DocumentResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE)
                     String namespace,
             @PathParam("documentType") String type,
-            @PathParam("id") Integer id) {
+            @Valid @BeanParam IdParam idParam) {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
         Response invalidResponse = validateDocumentType(type);
         if (invalidResponse != null) {
             return invalidResponse;
@@ -176,9 +190,11 @@ public class DocumentResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE)
                     String namespace,
             @PathParam("documentType") String type,
-            @PathParam("id") Integer id,
+            @Valid @BeanParam IdParam idParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
                     String version) {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
         Response invalidResponse = validateDocumentType(type);
         if (invalidResponse != null) {
             return invalidResponse;
@@ -217,10 +233,12 @@ public class DocumentResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE)
                     String namespace,
             @PathParam("documentType") String type,
-            @PathParam("id") Integer id,
+            @Valid @BeanParam IdParam idParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
                     String version,
             CreateDocumentRequest request) {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
         Response invalidResponse = validate(type, request);
         if (invalidResponse != null) {
             return invalidResponse;

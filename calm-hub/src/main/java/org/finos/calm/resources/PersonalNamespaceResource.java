@@ -21,7 +21,7 @@ import org.finos.calm.services.PersonalNamespaceService.CreateOutcome;
 import java.net.URI;
 import java.util.Optional;
 
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/me/namespace")
 public class PersonalNamespaceResource {
 

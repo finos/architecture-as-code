@@ -1,5 +1,9 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.resources.params.InterfaceIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -30,9 +34,12 @@ import java.net.URISyntaxException;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
 
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 public class InterfaceResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final InterfaceStore interfaceStore;
     private final CustomIdEnrichmentService customIds;
@@ -90,10 +97,12 @@ public class InterfaceResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getInterfaceVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("interfaceId") Integer interfaceId
+            @Valid @BeanParam InterfaceIdParam interfaceIdParam
     ) {
+        ResourceId resourceId = interfaceIdParam.toResourceId(resourceIdResolver);
+        int interfaceId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(new ValueWrapper<>(interfaceStore.getInterfaceVersions(namespace, interfaceId))).build();
+            return Response.ok(new ValueWrapper<>(interfaceStore.getInterfaceVersions(namespace, resourceId))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving interface versions", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -109,11 +118,13 @@ public class InterfaceResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getInterfaceForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("interfaceId") Integer interfaceId,
+            @Valid @BeanParam InterfaceIdParam interfaceIdParam,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
+        ResourceId resourceId = interfaceIdParam.toResourceId(resourceIdResolver);
+        int interfaceId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(interfaceStore.getInterfaceForVersion(namespace, interfaceId, version)).build();
+            return Response.ok(interfaceStore.getInterfaceForVersion(namespace, resourceId, version)).build();
         } catch (InterfaceNotFoundException e) {
             logger.error("Invalid interface [{}] when retrieving interface versions", interfaceId, e);
             return invalidInterfaceResponse(interfaceId);
@@ -133,10 +144,12 @@ public class InterfaceResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createInterfaceForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("interfaceId") Integer interfaceId,
+            @Valid @BeanParam InterfaceIdParam interfaceIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             @Valid @NotNull(message = "Request must not be null") CreateInterfaceRequest createInterfaceRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = interfaceIdParam.toResourceId(resourceIdResolver);
+        int interfaceId = resourceIdResolver.numericForWrite(resourceId);
         try {
             interfaceStore.createInterfaceForVersion(createInterfaceRequest, namespace, interfaceId, version);
             return Response.created(new URI("/api/calm/namespaces/" + namespace + "/interfaces/" + interfaceId + "/versions/" + version)).build();
@@ -161,8 +174,10 @@ public class InterfaceResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deleteInterface(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("interfaceId") Integer interfaceId
+            @Valid @BeanParam InterfaceIdParam interfaceIdParam
     ) {
+        ResourceId resourceId = interfaceIdParam.toResourceId(resourceIdResolver);
+        int interfaceId = resourceIdResolver.numericForWrite(resourceId);
         try {
             interfaceStore.deleteInterface(namespace, interfaceId);
         } catch (NamespaceNotFoundException e) {
