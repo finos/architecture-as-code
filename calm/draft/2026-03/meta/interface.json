@@ -18,6 +18,9 @@
         "config": {
           "type": "object",
           "description": "Inline configuration conforming to the external interface schema"
+        },
+        "controls": {
+          "$ref": "control.json#/defs/controls"
         }
       },
       "required": [
@@ -32,6 +35,9 @@
       "properties": {
         "unique-id": {
           "type": "string"
+        },
+        "controls": {
+          "$ref": "control.json#/defs/controls"
         }
       },
       "required": [
