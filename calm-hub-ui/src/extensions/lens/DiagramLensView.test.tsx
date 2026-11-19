@@ -242,6 +242,53 @@ describe('DiagramLensView', () => {
             expect(screen.queryByRole('dialog')).toBeNull();
         });
 
+        // The details stay where the badge was, so a move of the diagram closes them. A button or the wheel moves it
+        // without a press, which would close the details on its own.
+        it.each([
+            ['the zoom in button', () => fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))],
+            ['a wheel zoom', () => fireEvent.wheel(screen.getByTestId('lens-canvas').parentElement!.parentElement!, { deltaY: -200 })],
+        ])('closes the badge details on %s, and gives focus back to the badge', async (_name, move) => {
+            call.mockResolvedValue(decorated);
+            show({ decorators, storage: createMemoryStorage() });
+            const badge = await screen.findByRole('button', { name: 'Release risk · Release tracker: Medium' });
+            fireEvent.click(badge);
+            expect(screen.getByRole('dialog')).toHaveFocus();
+            move();
+            await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+            expect(badge).toHaveAttribute('aria-expanded', 'false');
+            expect(badge).toHaveFocus();
+        });
+
+        it('closes the badge details on a drag-pan of the diagram', async () => {
+            const capture = { set: Element.prototype.setPointerCapture, has: Element.prototype.hasPointerCapture, release: Element.prototype.releasePointerCapture };
+            // jsdom does not implement the Pointer Capture API.
+            Element.prototype.setPointerCapture = vi.fn();
+            Element.prototype.hasPointerCapture = vi.fn(() => true);
+            Element.prototype.releasePointerCapture = vi.fn();
+            try {
+                call.mockResolvedValue(decorated);
+                show({ decorators, storage: createMemoryStorage() });
+                fireEvent.click(await screen.findByRole('button', { name: 'Release risk · Release tracker: Medium' }));
+                const pane = screen.getByTestId('lens-canvas');
+                fireEvent.pointerDown(pane, { button: 0, pointerId: 1, clientX: 100, clientY: 100 });
+                fireEvent.pointerMove(pane, { pointerId: 1, clientX: 140, clientY: 100 });
+                fireEvent.pointerUp(pane, { pointerId: 1 });
+                expect(pane.parentElement!.style.transform).toContain('translate(40px, 0px)');
+                expect(screen.queryByRole('dialog')).toBeNull();
+
+                // The press above closes the details by itself. Fit view only pans back, with no press and no zoom.
+                const badge = screen.getByRole('button', { name: 'Release risk · Release tracker: Medium' });
+                fireEvent.click(badge);
+                expect(screen.getByRole('dialog')).toHaveFocus();
+                fireEvent.click(screen.getByRole('button', { name: 'Fit view' }));
+                expect(pane.parentElement!.style.transform).toBe('translate(0px, 0px) scale(1)');
+                expect(screen.queryByRole('dialog')).toBeNull();
+                expect(badge).toHaveFocus();
+            } finally {
+                Object.assign(Element.prototype, { setPointerCapture: capture.set, hasPointerCapture: capture.has, releasePointerCapture: capture.release });
+            }
+        });
+
         // A lens names at most 32 ids on an element, so an edge that stands for more relationships cannot name them all.
         it('says that a decorator is not shown, not that it is outside the view, when the element that draws it cannot name it', async () => {
             const ids = Array.from({ length: 33 }, (_, index) => `r${index}`);
