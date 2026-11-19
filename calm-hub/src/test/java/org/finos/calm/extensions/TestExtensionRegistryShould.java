@@ -89,6 +89,10 @@ class TestExtensionRegistryShould {
         assertThat(ExtensionRegistry.settingId("CALM_EXTENSIONS__TEAM_SERVICES__CONNECT_TIMEOUT_SECONDS"),
                 equalTo(Optional.of("team-services")));
         assertThat(ExtensionRegistry.settingId("CALM_EXTENSIONS_TEAM_SERVICES_ALLOW_HTTP"), equalTo(Optional.of("team-services")));
+        assertThat(ExtensionRegistry.settingId("CALM_EXTENSIONS_TEAM_SERVICES_MAX_CONCURRENT_STREAMS_PER_USER"),
+                equalTo(Optional.of("team-services")));
+        assertThat(ExtensionRegistry.settingId("calm.extensions.\"team-services\".max-concurrent-chat-streams"),
+                equalTo(Optional.of("team-services")));
         assertThat(ExtensionRegistry.settingId("calm.extensions.dir"), equalTo(Optional.empty()));
         assertThat(ExtensionRegistry.settingId("CALM_EXTENSIONS_IDENTITY_TTL_SECONDS"), equalTo(Optional.empty()));
         assertThat(ExtensionRegistry.settingId("calm.extensions.\"team-services\".colour"), equalTo(Optional.empty()));
@@ -346,8 +350,46 @@ class TestExtensionRegistryShould {
         ExtensionLimits limits = registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().limits();
 
         assertThat(limits.maxConcurrentStreams(), equalTo(2));
+        assertThat(limits.maxConcurrentChatStreams(), equalTo(8));
+        assertThat(limits.maxConcurrentStreamsPerUser(), equalTo(2));
         assertThat(limits.streamIdleTimeout(), equalTo(Duration.ofSeconds(12)));
         assertThat(limits.maxStreamDuration(), equalTo(Duration.ofSeconds(300)));
+    }
+
+    @Test
+    void read_the_chat_stream_pool_and_the_per_user_stream_limit() throws IOException {
+        write("team-services", valid());
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-chat-streams", "4");
+        properties.put("calm.extensions.http.max-concurrent-streams-per-user", "3");
+
+        ExtensionLimits limits = registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().limits();
+
+        assertThat(limits.maxConcurrentChatStreams(), equalTo(4));
+        assertThat(limits.maxConcurrentStreamsPerUser(), equalTo(3));
+        assertThat(limits.maxConcurrentStreams(), equalTo(8));
+    }
+
+    @Test
+    void refuse_a_per_user_stream_limit_over_either_pool_and_a_chat_pool_under_1() throws IOException {
+        write("team-services", valid());
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-chat-streams", "3");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-streams-per-user", "4");
+
+        assertThat(assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS)).getMessage(),
+                containsString("calm.extensions.\"team-services\".max-concurrent-streams-per-user must not be more than "
+                        + "max-concurrent-streams (8) or max-concurrent-chat-streams (3), but was 4"));
+
+        properties.put("calm.extensions.\"team-services\".max-concurrent-chat-streams", "8");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-streams", "3");
+        assertThat(assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS)).getMessage(),
+                containsString("max-concurrent-streams (3) or max-concurrent-chat-streams (8), but was 4"));
+
+        properties.put("calm.extensions.\"team-services\".max-concurrent-streams-per-user", "3");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-chat-streams", "0");
+        assertThat(assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS)).getMessage(),
+                containsString("calm.extensions.\"team-services\".max-concurrent-chat-streams must be at least 1, but was 0"));
     }
 
     @Test

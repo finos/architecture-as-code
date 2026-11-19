@@ -79,7 +79,12 @@ public class ExtensionProxyService {
     private final ExtensionStreamWatchdog watchdog;
     private final Map<String, HttpClient> clients = new ConcurrentHashMap<>();
     private final Map<String, Semaphore> concurrentCalls = new ConcurrentHashMap<>();
+    /** The streams of the generic proxy and MCP, per extension. */
     private final Map<String, Semaphore> concurrentStreams = new ConcurrentHashMap<>();
+    /** The streams of the chat endpoint, per extension, so that other streams cannot fill this pool. */
+    private final Map<String, Semaphore> concurrentChatStreams = new ConcurrentHashMap<>();
+    /** The open streams of each user in each pool. A count of 0 removes its entry, so each entry has an open stream. */
+    private final Map<StreamUser, Integer> userStreams = new ConcurrentHashMap<>();
 
     @Inject
     public ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer,
@@ -189,15 +194,24 @@ public class ExtensionProxyService {
         String method = access.method();
         ExtensionLimits limits = extension.limits();
         Semaphore calls = concurrentCalls.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentCalls()));
-        Semaphore streams = concurrentStreams.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentStreams()));
+        boolean chatCall = chatContext != null;
+        Semaphore streams = chatCall
+                ? concurrentChatStreams.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentChatStreams()))
+                : concurrentStreams.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentStreams()));
+        StreamUser user = new StreamUser(extension.id(), chatCall, identity.getPrincipal().getName());
         boolean stream = streamPolicy != null || acceptsEventStream(request.accept());
         boolean acquired = false;
         boolean streamAcquired = false;
+        AtomicBoolean userAcquired = new AtomicBoolean();
         AtomicReference<ExtensionEventStream> opened = new AtomicReference<>();
-        // The call and its stream share one release, so that a slot is freed once, whichever of them frees it first.
+        // The call and its stream share one release of the pool slot and the user's count, so that they are freed
+        // once, whichever of the two frees them first. A second release could free the count of a newer stream.
         AtomicBoolean slotFreed = new AtomicBoolean();
         Runnable freeSlot = () -> {
             if (slotFreed.compareAndSet(false, true)) {
+                if (userAcquired.get()) {
+                    releaseUserStream(user);
+                }
                 streams.release();
             }
         };
@@ -226,10 +240,18 @@ public class ExtensionProxyService {
             if (stream) {
                 streamAcquired = streams.tryAcquire();
                 if (!streamAcquired) {
-                    LOG.warn("Extension {} has {} streams open, so Hub refused one more", extension.id(),
-                            limits.maxConcurrentStreams());
+                    LOG.warn("Extension {} has {} {} open, so Hub refused one more", extension.id(),
+                            chatCall ? limits.maxConcurrentChatStreams() : limits.maxConcurrentStreams(),
+                            chatCall ? "chat streams" : "streams");
                     throw new ExtensionProxyException(503, "The extension is busy. Try again later",
                             Map.of("Retry-After", "1"));
+                }
+                userAcquired.set(acquireUserStream(user, limits.maxConcurrentStreamsPerUser()));
+                if (!userAcquired.get()) {
+                    LOG.warn("A user has {} {} open from extension {}, so Hub refused one more",
+                            limits.maxConcurrentStreamsPerUser(), chatCall ? "chat streams" : "streams", extension.id());
+                    throw new ExtensionProxyException(503, "You have too many replies open from this extension. "
+                            + "Close one and try again", Map.of("Retry-After", "1"));
                 }
             }
             String contentType = request.contentType();
@@ -302,6 +324,32 @@ public class ExtensionProxyService {
                         outcome, request.sourceIp());
             }
         }
+    }
+
+    /** One user's streams from one extension, in the chat pool or the pool of the generic proxy. */
+    private record StreamUser(String extensionId, boolean chat, String user) {
+    }
+
+    private boolean acquireUserStream(StreamUser user, int max) {
+        boolean[] acquired = {false};
+        userStreams.compute(user, (key, open) -> {
+            int count = open == null ? 0 : open;
+            if (count >= max) {
+                return open;
+            }
+            acquired[0] = true;
+            return count + 1;
+        });
+        return acquired[0];
+    }
+
+    private void releaseUserStream(StreamUser user) {
+        userStreams.computeIfPresent(user, (key, open) -> open <= 1 ? null : open - 1);
+    }
+
+    /** The users with a stream open, counted once per extension and pool. For tests: it must go back to 0. */
+    int streamUsers() {
+        return userStreams.size();
     }
 
     private record Access(RegisteredExtension extension, URI backend, String method, String path,

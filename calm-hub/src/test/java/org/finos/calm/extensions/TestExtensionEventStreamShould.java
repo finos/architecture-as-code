@@ -59,7 +59,7 @@ class TestExtensionEventStreamShould {
     }
 
     private static ExtensionLimits limits(int maxBytes, Duration idle, Duration max) {
-        return new ExtensionLimits(Duration.ofSeconds(1), Duration.ofSeconds(1), 1024, maxBytes, 4, 2, idle, max);
+        return new ExtensionLimits(Duration.ofSeconds(1), Duration.ofSeconds(1), 1024, maxBytes, 4, 2, 2, 2, idle, max);
     }
 
     private static List<ByteBuffer> part(String text) {

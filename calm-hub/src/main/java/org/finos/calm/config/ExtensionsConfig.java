@@ -73,6 +73,10 @@ public interface ExtensionsConfig {
 
         Optional<String> maxConcurrentStreams();
 
+        Optional<String> maxConcurrentChatStreams();
+
+        Optional<String> maxConcurrentStreamsPerUser();
+
         Optional<String> streamIdleTimeoutSeconds();
 
         Optional<String> maxStreamSeconds();
@@ -111,9 +115,20 @@ public interface ExtensionsConfig {
         @WithDefault("32")
         int maxConcurrentCalls();
 
-        /** Streamed replies from one extension at the same time. Each holds a worker thread until it ends. */
+        /**
+         * Streamed replies of the generic proxy from one extension at the same time. Each holds a worker thread until
+         * it ends.
+         */
         @WithDefault("8")
         int maxConcurrentStreams();
+
+        /** Chat replies from one extension at the same time, in their own pool. */
+        @WithDefault("8")
+        int maxConcurrentChatStreams();
+
+        /** The streams of one user in each pool, so that one user cannot hold every slot. */
+        @WithDefault("2")
+        int maxConcurrentStreamsPerUser();
 
         /** The longest wait for the next part of a streamed reply. */
         @WithDefault("30")

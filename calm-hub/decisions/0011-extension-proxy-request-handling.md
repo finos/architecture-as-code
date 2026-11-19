@@ -70,8 +70,11 @@ reply, so that the extension cannot serve HTML that runs in Hub's origin.
 
 **Limits.** Each extension has a connect timeout, a request timeout, a cap on
 the request and reply size, a cap on concurrent streams, an idle-read timeout and
-a maximum stream duration. An upstream failure becomes 502 or 504 with a generic
-body. The proxy fails closed.
+a maximum stream duration. Chat replies have their own pool of streams, so that
+streams of the generic proxy cannot use up the chat. In each pool, one user has
+at most `max-concurrent-streams-per-user` streams, so that one user cannot hold
+every slot. An upstream failure becomes 502 or 504 with a generic body. The proxy
+fails closed.
 
 **Audit.** A call to a route that is not `readOnly` is audited with a new
 `EXTENSION` entity type. The record holds the extension id, the route id and the

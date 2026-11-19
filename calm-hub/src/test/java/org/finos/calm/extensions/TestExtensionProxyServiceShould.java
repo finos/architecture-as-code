@@ -50,6 +50,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -921,7 +922,7 @@ class TestExtensionProxyServiceShould {
     @Test
     void refuse_more_streams_than_the_limit_and_free_the_slot_when_a_stream_closes() throws Exception {
         register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 32,
-                1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+                1, 1, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
         CountDownLatch gate = new CountDownLatch(1);
         backend.stream(new FixtureBackend.Stream(200, "text/event-stream", List.of("data: 1\n\n", "data: 2\n\n"), gate));
         ExtensionProxyResponse open = service.call(alice, eventStream("GET", "/screen"));
@@ -967,7 +968,7 @@ class TestExtensionProxyServiceShould {
         try {
             service = new ExtensionProxyService(registry, signer, permissions, auditService, null, "oidc", holding);
             register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofMillis(500), 1024, 1024,
-                    32, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+                    32, 2, 2, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
             CountDownLatch gate = new CountDownLatch(1);
             List<String> parts = new java.util.ArrayList<>(List.of("data: first\n\n"));
             for (int i = 0; i < 200; i++) {
@@ -980,16 +981,27 @@ class TestExtensionProxyServiceShould {
             assertThat(call.get(5, TimeUnit.SECONDS), is(504));
             // A newer stream takes the slot that the call freed, while the late stream is still opening.
             ExtensionProxyResponse newer = service.call(alice, eventStream("GET", "/screen"));
+            ExtensionProxyResponse bobs = null;
             try {
+                assertThat(service.streamUsers(), is(1));
                 timedOut.countDown();
                 gate.countDown();
 
                 // The late stream closes at once, not at its maximum time, and so closes the backend connection.
                 await(() -> holding.watched() == 1 && backend.streamBroken());
-                // max-concurrent-streams is 1: a slot freed twice would let a second stream in.
-                assertThat(status(eventStream("GET", "/screen")), is(503));
+                // A second release of the late stream would remove the count of alice's newer stream.
+                assertThat(service.streamUsers(), is(1));
+                assertThat(assertThrows(ExtensionProxyException.class, () -> service.call(alice, eventStream("GET", "/screen")))
+                        .getMessage(), startsWith("You have too many replies open"));
+                // The pool has 2 slots: a slot freed twice would let bob open a second stream.
+                bobs = service.call(identity("bob"), eventStream("GET", "/screen"));
+                assertThat(assertThrows(ExtensionProxyException.class, () -> service.call(identity("bob"),
+                        eventStream("GET", "/screen"))).getMessage(), is("The extension is busy. Try again later"));
             } finally {
                 newer.stream().close();
+                if (bobs != null) {
+                    bobs.stream().close();
+                }
             }
         } finally {
             timedOut.countDown();
@@ -998,9 +1010,122 @@ class TestExtensionProxyServiceShould {
     }
 
     @Test
+    void refuse_a_user_at_the_per_user_stream_limit_while_another_user_still_streams() {
+        register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 32,
+                8, 8, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", List.of("data: 1\n\n", "data: 2\n\n"), gate));
+        SecurityIdentity bob = identity("bob");
+        try {
+            ExtensionProxyResponse alices = service.call(alice, eventStream("GET", "/screen"));
+            ExtensionProxyException busy = assertThrows(ExtensionProxyException.class,
+                    () -> service.call(alice, eventStream("GET", "/screen")));
+            assertThat(busy.status(), is(503));
+            assertThat(busy.headers(), equalTo(Map.of("Retry-After", "1")));
+
+            ExtensionProxyResponse bobs = service.call(bob, eventStream("GET", "/screen"));
+            assertThat(bobs.stream() != null, is(true));
+            assertThat(service.streamUsers(), is(2));
+
+            alices.stream().close();
+            ExtensionProxyResponse again = service.call(alice, eventStream("GET", "/screen"));
+            assertThat(again.stream() != null, is(true));
+            again.stream().close();
+            bobs.stream().close();
+            assertThat(service.streamUsers(), is(0));
+        } finally {
+            gate.countDown();
+        }
+    }
+
+    @Test
+    void keep_chat_streams_in_their_own_pool_so_generic_proxy_streams_cannot_fill_it() {
+        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 1, 1, 1,
+                Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream",
+                List.of("event: delta\ndata: {\"text\":\"a\"}\n\n", "event: done\ndata: {}\n\n"), gate));
+        SecurityIdentity bob = identity("bob");
+        try {
+            ExtensionProxyResponse generic = service.call(bob, eventStream("GET", "/screen"));
+            assertThat(assertThrows(ExtensionProxyException.class,
+                    () -> service.call(alice, eventStream("GET", "/screen"))).status(), is(503));
+
+            ExtensionProxyResponse answer = chat(QUESTION);
+            assertThat(answer.stream() != null, is(true));
+            ExtensionProxyException full = assertThrows(ExtensionProxyException.class, () -> service.chat(bob,
+                    "team-services", "assistant", "application/json", null, null,
+                    new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8))));
+            assertThat(full.status(), is(503));
+
+            answer.stream().close();
+            generic.stream().close();
+            assertThat(service.streamUsers(), is(0));
+            ExtensionProxyResponse next = chat(QUESTION);
+            assertThat(next.stream() != null, is(true));
+            next.stream().close();
+        } finally {
+            gate.countDown();
+        }
+    }
+
+    @Test
+    void count_the_streams_of_one_user_in_each_pool_on_its_own() {
+        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 8, 8, 1,
+                Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream",
+                List.of("event: delta\ndata: {\"text\":\"a\"}\n\n", "event: done\ndata: {}\n\n"), gate));
+        try {
+            ExtensionProxyResponse generic = service.call(alice, eventStream("GET", "/screen"));
+            // Alice's proxy stream does not count against her chat streams.
+            ExtensionProxyResponse answer = chat(QUESTION);
+            assertThat(service.streamUsers(), is(2));
+            // The per-user limit applies in each pool, the chat pool too.
+            assertThat(assertThrows(ExtensionProxyException.class, () -> service.call(alice, eventStream("GET", "/screen")))
+                    .getMessage(), startsWith("You have too many replies open"));
+            assertThat(assertThrows(ExtensionProxyException.class, () -> chat(QUESTION)).getMessage(),
+                    startsWith("You have too many replies open"));
+
+            answer.stream().close();
+            generic.stream().close();
+            assertThat(service.streamUsers(), is(0));
+        } finally {
+            gate.countDown();
+        }
+    }
+
+    @Test
+    void let_another_user_take_the_chat_slots_that_one_user_cannot_use() {
+        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 8, 3, 2,
+                Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream",
+                List.of("event: delta\ndata: {\"text\":\"a\"}\n\n", "event: done\ndata: {}\n\n"), gate));
+        SecurityIdentity bob = identity("bob");
+        List<ExtensionProxyResponse> open = new java.util.ArrayList<>();
+        try {
+            open.add(chat(QUESTION));
+            open.add(chat(QUESTION));
+            assertThat(assertThrows(ExtensionProxyException.class, () -> chat(QUESTION)).getMessage(),
+                    startsWith("You have too many replies open"));
+            open.add(service.chat(bob, "team-services", "assistant", "application/json", null, null,
+                    new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8))));
+            // The chat pool (3) is full, so bob is under his own limit and still gets 503.
+            assertThat(assertThrows(ExtensionProxyException.class, () -> service.chat(bob, "team-services", "assistant",
+                    "application/json", null, null, new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8))))
+                    .getMessage(), is("The extension is busy. Try again later"));
+        } finally {
+            open.forEach(reply -> reply.stream().close());
+            gate.countDown();
+        }
+        assertThat(service.streamUsers(), is(0));
+    }
+
+    @Test
     void free_the_stream_slot_when_the_backend_does_not_send_an_event_stream() {
         register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 32,
-                1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+                1, 1, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
         backend.reply(FixtureBackend.Reply.json(500, "{}"));
         assertThat(status(eventStream("GET", "/screen")), is(502));
         backend.reply(FixtureBackend.Reply.json(200, "{}"));
@@ -1153,7 +1278,7 @@ class TestExtensionProxyServiceShould {
 
     @Test
     void end_a_chat_reply_after_its_terminal_event_and_free_the_stream_slot_while_the_backend_still_sends() throws Exception {
-        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 1,
+        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 1, 1, 1,
                 Duration.ofSeconds(5), Duration.ofSeconds(30)));
         CountDownLatch gate = new CountDownLatch(1);
         List<String> parts = new java.util.ArrayList<>(List.of("event: error\ndata: {\"message\":\"No model\"}\n\n"));

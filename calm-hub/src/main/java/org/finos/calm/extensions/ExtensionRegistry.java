@@ -38,7 +38,8 @@ public class ExtensionRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(ExtensionRegistry.class);
     private static final List<String> PER_ID_KEYS = List.of("enabled", "order", "backend-url", "allow-http", "send-identity",
             "connect-timeout-seconds", "request-timeout-seconds", "max-request-bytes", "max-response-bytes",
-            "max-concurrent-calls", "max-concurrent-streams", "stream-idle-timeout-seconds", "max-stream-seconds");
+            "max-concurrent-calls", "max-concurrent-streams", "max-concurrent-chat-streams", "max-concurrent-streams-per-user",
+            "stream-idle-timeout-seconds", "max-stream-seconds");
     private static final Pattern PER_ID_SETTING = Pattern.compile(
             "^calm\\.extensions\\.(?:\"([a-z][a-z0-9-]*)\"|([a-z][a-z0-9-]*))\\.(?:" + String.join("|", PER_ID_KEYS) + ")$");
     /** The same settings as environment variables, such as {@code CALM_EXTENSIONS__TEAM_SERVICES__ENABLED}. */
@@ -287,15 +288,24 @@ public class ExtensionRegistry {
 
     private ExtensionLimits limits(String id, List<String> errors) {
         ExtensionsConfig.Http defaults = config.http();
-        return new ExtensionLimits(
+        ExtensionLimits limits = new ExtensionLimits(
                 Duration.ofSeconds(positiveSetting(id, "connect-timeout-seconds", defaults.connectTimeoutSeconds(), errors)),
                 Duration.ofSeconds(positiveSetting(id, "request-timeout-seconds", defaults.requestTimeoutSeconds(), errors)),
                 positiveSetting(id, "max-request-bytes", defaults.maxRequestBytes(), errors),
                 positiveSetting(id, "max-response-bytes", defaults.maxResponseBytes(), errors),
                 positiveSetting(id, "max-concurrent-calls", defaults.maxConcurrentCalls(), errors),
                 positiveSetting(id, "max-concurrent-streams", defaults.maxConcurrentStreams(), errors),
+                positiveSetting(id, "max-concurrent-chat-streams", defaults.maxConcurrentChatStreams(), errors),
+                positiveSetting(id, "max-concurrent-streams-per-user", defaults.maxConcurrentStreamsPerUser(), errors),
                 Duration.ofSeconds(positiveSetting(id, "stream-idle-timeout-seconds", defaults.streamIdleTimeoutSeconds(), errors)),
                 Duration.ofSeconds(positiveSetting(id, "max-stream-seconds", defaults.maxStreamSeconds(), errors)));
+        // The per-user limit applies inside each pool.
+        if (limits.maxConcurrentStreamsPerUser() > Math.min(limits.maxConcurrentStreams(), limits.maxConcurrentChatStreams())) {
+            errors.add(key(id, "max-concurrent-streams-per-user") + " must not be more than max-concurrent-streams ("
+                    + limits.maxConcurrentStreams() + ") or max-concurrent-chat-streams (" + limits.maxConcurrentChatStreams()
+                    + "), but was " + limits.maxConcurrentStreamsPerUser());
+        }
+        return limits;
     }
 
     private int positiveSetting(String id, String name, int fallback, List<String> errors) {

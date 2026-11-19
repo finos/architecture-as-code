@@ -444,8 +444,9 @@ class TestExtensionProxyResourceShould {
     }
 
     /**
-     * Fills the default max-concurrent-streams (8) with streams that a failed response filter stops JAX-RS from
-     * writing, while the backend holds each one open. Each must cancel its backend call, not only free its slot.
+     * Fills a stream pool of the default size (8, as max-concurrent-streams and max-concurrent-chat-streams) with
+     * streams that a failed response filter stops JAX-RS from writing, while the backend holds each one open. Each
+     * must cancel its backend call, not only free its slot.
      */
     private static void failEachStreamOfAFullPool(Runnable failedCall) throws Exception {
         CountDownLatch gate = new CountDownLatch(1);
