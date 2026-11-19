@@ -102,13 +102,15 @@ vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
 }));
 
 vi.mock('../../../extensions/lens/DiagramLensView.js', () => ({
-    DiagramLensView: ({ context, params, onParamsChange, onSelectElement }: {
+    DiagramLensView: ({ context, params, decorators, onParamsChange, onSelectElement }: {
         context: { selectedElement?: string; version?: string };
         params: Record<string, string | undefined>;
+        decorators?: { uniqueId: string }[];
         onParamsChange: (params: Record<string, string>, select?: string) => void;
         onSelectElement: (uniqueId: string) => void;
     }) => (
-        <div data-testid="c4-lens" data-selected={context.selectedElement ?? ''} data-params={JSON.stringify(params)}>
+        <div data-testid="c4-lens" data-selected={context.selectedElement ?? ''} data-params={JSON.stringify(params)}
+            data-decorators={decorators?.map((decorator) => decorator.uniqueId).join(' ') ?? ''}>
             <button onClick={() => onParamsChange({ level: 'container', scope: 'shop' })}>open-container</button>
             <button onClick={() => onParamsChange({ level: 'container', scope: 'shop' }, 'shop')}>open-shop</button>
             <button onClick={() => onSelectElement('api')}>select-api</button>
@@ -723,6 +725,30 @@ describe('DiagramSection', () => {
                 await act(async () => { await vi.advanceTimersByTimeAsync(0); });
                 await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
                 expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(calls);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('polls the decorators while an extension lens shows, and gives the lens the list', async () => {
+            vi.useFakeTimers({ shouldAdvanceTime: true });
+            try {
+                render(
+                    <ExtensionsStatusContext.Provider value="loaded">
+                        <ExtensionsContext.Provider value={[C4_EXTENSION]}>
+                            <MemoryRouter initialEntries={['/?lens=c4']}>
+                                <DiagramSection data={architectureData} />
+                            </MemoryRouter>
+                        </ExtensionsContext.Provider>
+                    </ExtensionsStatusContext.Provider>
+                );
+                await waitFor(() => expect(screen.getByTestId('c4-lens')).toHaveAttribute('data-decorators', 'dep-1 obs-1'));
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(1);
+
+                calmServiceMock.fetchDecoratorsForTarget.mockResolvedValue([deployment, { ...deployment, uniqueId: 'dep-2' }]);
+                await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+                expect(calmServiceMock.fetchDecoratorsForTarget).toHaveBeenCalledTimes(2);
+                expect(screen.getByTestId('c4-lens')).toHaveAttribute('data-decorators', 'dep-1 dep-2');
             } finally {
                 vi.useRealTimers();
             }
