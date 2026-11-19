@@ -78,7 +78,7 @@ public class TestMongoAuditLogStoreShould {
     }
 
     @Test
-    void store_and_read_back_the_route_and_jti_of_an_extension_entry() {
+    void store_and_read_back_the_route_jti_and_shared_resource_of_an_extension_entry() {
         LocalDateTime timestamp = LocalDateTime.of(2026, 1, 1, 10, 30);
         AuditLogEntry entry = new AuditLogEntry.AuditLogEntryBuilder()
                 .setTimestamp(timestamp)
@@ -90,6 +90,8 @@ public class TestMongoAuditLogStoreShould {
                 .setOutcome(AuditOutcome.SUCCESS)
                 .setRoute("add-service")
                 .setJti("jti-1")
+                .setResourceType("architectures")
+                .setResourceId("7")
                 .build();
 
         store.record(entry);
@@ -98,6 +100,8 @@ public class TestMongoAuditLogStoreShould {
         verify(auditLogCollection).insertOne(captor.capture());
         assertThat(captor.getValue().getString("route"), is("add-service"));
         assertThat(captor.getValue().getString("jti"), is("jti-1"));
+        assertThat(captor.getValue().getString("resourceType"), is("architectures"));
+        assertThat(captor.getValue().getString("resourceId"), is("7"));
 
         DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
         DocumentMongoCursor cursor = Mockito.mock(DocumentMongoCursor.class);

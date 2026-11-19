@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useId, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { IoSearchOutline, IoCloseOutline } from 'react-icons/io5';
 import { SearchService } from '../../../service/search-service.js';
 import { SearchResult } from '../../../model/search.js';
 import { FlatResult, TYPE_LABELS, useSearchNavigation } from '../../../hooks/useSearchNavigation.js';
 import { useCatalogueSearch } from '../../../hooks/useCatalogueSearch.js';
 import { colors } from '../../../theme/colors.js';
+import { SearchChatEntry } from '../../../extensions/chat/SearchChatEntry.js';
 
 interface IntroSearchBarProps {
     /** Injected for tests; defaults to a fresh {@link SearchService}. */
@@ -37,8 +37,7 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
     const listboxId = useId();
     const optionId = (index: number) => `${listboxId}-option-${index}`;
     const activeDescendant = open && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
-    const { navigateToResult: goToResult } = useSearchNavigation();
-    const navigate = useNavigate();
+    const { navigateToResult: goToResult, submitSearch } = useSearchNavigation();
 
     const handleClear = useCallback(() => {
         clear();
@@ -58,8 +57,8 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
         const trimmed = query.trim();
         if (!trimmed) return;
         clear();
-        navigate({ pathname: '/search', search: `?q=${encodeURIComponent(trimmed)}` });
-    }, [query, clear, navigate]);
+        submitSearch(trimmed);
+    }, [query, clear, submitSearch]);
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
@@ -199,13 +198,12 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
                     Search
                 </button>
             </div>
+            <SearchChatEntry />
             {open && (
                 <div
-                    id={listboxId}
                     className="absolute left-0 right-0 top-full mt-2 max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-xl shadow-lg z-50"
-                    role="listbox"
                 >
-                    {renderGroupedResults()}
+                    <div id={listboxId} role="listbox">{renderGroupedResults()}</div>
                 </div>
             )}
         </div>

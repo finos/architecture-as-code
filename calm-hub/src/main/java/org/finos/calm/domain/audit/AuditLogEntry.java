@@ -18,7 +18,9 @@ import java.util.Objects;
  * (e.g. user access grants).</p>
  *
  * <p>{@code route} and {@code jti} are set only for {@code EXTENSION} entries: the route id, and the
- * id of the identity assertion that Hub sent to the extension. {@code entityId} is then the extension id.</p>
+ * id of the identity assertion that Hub sent to the extension. {@code entityId} is then the extension id.
+ * {@code resourceType} and {@code resourceId} name the resource that a chat call shared with the extension, with its
+ * {@code namespace} and {@code version}. An audit entry never holds the text of a chat message.</p>
  */
 public class AuditLogEntry {
 
@@ -37,6 +39,8 @@ public class AuditLogEntry {
     private String sourceIp;
     private String route;
     private String jti;
+    private String resourceType;
+    private String resourceId;
 
     public AuditLogEntry() {
     }
@@ -137,6 +141,22 @@ public class AuditLogEntry {
         this.jti = jti;
     }
 
+    public String getResourceType() {
+        return resourceType;
+    }
+
+    public void setResourceType(String resourceType) {
+        this.resourceType = resourceType;
+    }
+
+    public String getResourceId() {
+        return resourceId;
+    }
+
+    public void setResourceId(String resourceId) {
+        this.resourceId = resourceId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -153,12 +173,15 @@ public class AuditLogEntry {
                 && outcome == that.outcome
                 && Objects.equals(sourceIp, that.sourceIp)
                 && Objects.equals(route, that.route)
-                && Objects.equals(jti, that.jti);
+                && Objects.equals(jti, that.jti)
+                && Objects.equals(resourceType, that.resourceType)
+                && Objects.equals(resourceId, that.resourceId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(timestamp, actor, action, entityType, namespace, domain, entityId, version, outcome, sourceIp, route, jti);
+        return Objects.hash(timestamp, actor, action, entityType, namespace, domain, entityId, version, outcome, sourceIp, route, jti,
+                resourceType, resourceId);
     }
 
     @Override
@@ -176,6 +199,8 @@ public class AuditLogEntry {
                 ", sourceIp='" + sourceIp + '\'' +
                 ", route='" + route + '\'' +
                 ", jti='" + jti + '\'' +
+                ", resourceType='" + resourceType + '\'' +
+                ", resourceId='" + resourceId + '\'' +
                 '}';
     }
 
@@ -193,6 +218,8 @@ public class AuditLogEntry {
         private String sourceIp;
         private String route;
         private String jti;
+        private String resourceType;
+        private String resourceId;
 
         public AuditLogEntryBuilder setTimestamp(LocalDateTime timestamp) {
             this.timestamp = timestamp;
@@ -254,6 +281,16 @@ public class AuditLogEntry {
             return this;
         }
 
+        public AuditLogEntryBuilder setResourceType(String resourceType) {
+            this.resourceType = resourceType;
+            return this;
+        }
+
+        public AuditLogEntryBuilder setResourceId(String resourceId) {
+            this.resourceId = resourceId;
+            return this;
+        }
+
         public AuditLogEntry build() {
             AuditLogEntry entry = new AuditLogEntry();
             entry.timestamp = this.timestamp;
@@ -268,6 +305,8 @@ public class AuditLogEntry {
             entry.sourceIp = this.sourceIp;
             entry.route = this.route;
             entry.jti = this.jti;
+            entry.resourceType = this.resourceType;
+            entry.resourceId = this.resourceId;
             return entry;
         }
     }

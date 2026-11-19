@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ExtensionService, extensionRequest, formOutcome, MAX_REQUEST_LINE } from './extension-service.js';
+import { ChatCallError, ExtensionService, extensionRequest, formOutcome, MAX_REQUEST_LINE, readEventStream } from './extension-service.js';
 import { ExtensionRoute } from '../model/extensions.js';
 import { migrationStore } from './utils/migration-store.js';
 import { authStore } from './utils/auth-store.js';
@@ -332,5 +332,82 @@ describe('form submissions', () => {
         expect(await new ExtensionService(ax).submitForm('test', 'f', body)).toEqual({ kind: 'failed', sent: false });
         expect(migration).not.toHaveBeenCalled();
         expect(auth).not.toHaveBeenCalled();
+    });
+});
+
+describe('ExtensionService chat', () => {
+    const chat = { extension: 'knowledge', contribution: 'atlas' };
+    it('reads the chat that the operator chose from the one registry request', async () => {
+        mock.onGet('/api/calm/extensions').reply(200, { values: [entry('knowledge')], chat });
+        const service = new ExtensionService(ax);
+        expect(await service.fetchChatProvider()).toBeUndefined();
+        await service.fetchExtensions();
+        expect(await service.fetchChatProvider()).toEqual(chat);
+        expect(mock.history.get).toHaveLength(1);
+    });
+    it.each([{ extension: 'knowledge' }, 'knowledge', { extension: 1, contribution: 'atlas' }])('ignores a chat value that is not an entry: %j', async (value) => {
+        mock.onGet('/api/calm/extensions').reply(200, { values: [entry('knowledge')], chat: value });
+        const service = new ExtensionService(ax);
+        await service.fetchExtensions();
+        expect(await service.fetchChatProvider()).toBeUndefined();
+    });
+    it('refuses a successful reply that is not an event stream', async () => {
+        const fetchFn = vi.fn().mockResolvedValue(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
+        const sent = new ExtensionService(ax, fetchFn).sendChatMessage('knowledge', 'atlas', { conversationId: 'c', messageId: 'm', messages: [] }, vi.fn());
+        await expect(sent).rejects.toEqual(new ChatCallError('The chat provider sent a reply that CALM Hub cannot show', 200));
+    });
+    it.each([
+        [{ error: 'The chat message needs 1 to 100 messages' }, 'The chat message needs 1 to 100 messages'],
+        [{ message: 'Slow down' }, 'Slow down'],
+        [{ title: 'Too many questions', detail: 'Wait a minute' }, 'Wait a minute'],
+    ])('shows the message of a refusal %j', async (body, message) => {
+        const fetchFn = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), { status: 429, headers: { 'Content-Type': 'application/json' } }));
+        const sent = new ExtensionService(ax, fetchFn).sendChatMessage('knowledge', 'atlas', { conversationId: 'c', messageId: 'm', messages: [] }, vi.fn());
+        await expect(sent).rejects.toEqual(new ChatCallError(message, 429));
+    });
+    it('names a network failure', async () => {
+        const fetchFn = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+        const sent = new ExtensionService(ax, fetchFn).sendChatMessage('knowledge', 'atlas', { conversationId: 'c', messageId: 'm', messages: [] }, vi.fn());
+        await expect(sent).rejects.toThrow('CALM Hub could not be reached');
+    });
+});
+
+describe('readEventStream', () => {
+    const streamOf = (...chunks: string[]) =>
+        new ReadableStream<Uint8Array>({
+            start(controller) {
+                for (const chunk of chunks) controller.enqueue(new TextEncoder().encode(chunk));
+                controller.close();
+            },
+        });
+    const read = async (...chunks: string[]) => {
+        const events: { name: string; data: string }[] = [];
+        await readEventStream(streamOf(...chunks), (event) => events.push(event));
+        return events;
+    };
+
+    it('joins data lines, names an unnamed event message, and skips comments', async () => {
+        expect(await read(': heartbeat\n\nevent: delta\ndata: {"text":\ndata: "a"}\n\ndata: plain\n\n')).toEqual([
+            { name: 'delta', data: '{"text":\n"a"}' },
+            { name: 'message', data: 'plain' },
+        ]);
+    });
+    it('reads an event that a chunk splits, also between CR and LF and inside a character', async () => {
+        const bytes = new TextEncoder().encode('event: delta\r\ndata: {"text":"\u00e9"}\r\n\r\n');
+        const at = bytes.indexOf(0xa9);
+        const events: { name: string; data: string }[] = [];
+        const stream = new ReadableStream<Uint8Array>({
+            start(controller) {
+                controller.enqueue(bytes.slice(0, 13));
+                controller.enqueue(bytes.slice(13, at));
+                controller.enqueue(bytes.slice(at));
+                controller.close();
+            },
+        });
+        await readEventStream(stream, (event) => events.push(event));
+        expect(events).toEqual([{ name: 'delta', data: '{"text":"\u00e9"}' }]);
+    });
+    it('drops a last event with no blank line after it', async () => {
+        expect(await read('event: done\ndata: {}\n\nevent: delta\ndata: {"text":"cut"}')).toEqual([{ name: 'done', data: '{}' }]);
     });
 });

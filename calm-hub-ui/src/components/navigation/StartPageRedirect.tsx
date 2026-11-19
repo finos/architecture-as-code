@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useExtensions, useExtensionsStatus } from '../../extensions/ExtensionsContext.js';
+import { useChatProvider, useExtensions, useExtensionsStatus } from '../../extensions/ExtensionsContext.js';
 import { useUiConfigStatus } from '../ui-config/ui-config-status.js';
 import { useNavigationSettings } from './navigation-settings.js';
 import { startPageTarget } from './start-page.js';
@@ -10,8 +10,6 @@ export const START_PAGE_WAIT_MS = 3_000;
 
 interface StartPageRedirectProps {
     children: ReactNode;
-    /** True when the registry names a chat provider. Without one, a `/chat` start page falls back to the overview. */
-    chatAvailable?: boolean;
 }
 
 /**
@@ -20,7 +18,7 @@ interface StartPageRedirectProps {
  * Back to the first entry, shows the overview. Until it decides, the first entry renders nothing, so the overview does
  * not flash first. A deep link renders at once.
  */
-export function StartPageRedirect({ children, chatAvailable = false }: StartPageRedirectProps) {
+export function StartPageRedirect({ children }: StartPageRedirectProps) {
     const location = useLocation();
     const navigate = useNavigate();
     const { startPage } = useNavigationSettings();
@@ -28,7 +26,7 @@ export function StartPageRedirect({ children, chatAvailable = false }: StartPage
         configStatus: useUiConfigStatus(),
         extensions: useExtensions(),
         extensionsStatus: useExtensionsStatus(),
-        chatAvailable,
+        chatAvailable: useChatProvider() !== undefined,
     });
     // Decided once, so a config or registry that loads after a fallback does not move the user away from the overview.
     const opening = location.pathname === '/' && location.key === 'default';
