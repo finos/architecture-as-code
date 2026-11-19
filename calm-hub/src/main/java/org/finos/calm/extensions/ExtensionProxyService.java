@@ -122,12 +122,12 @@ public class ExtensionProxyService {
      * the request before {@link #call} uses this first, so that a caller with no scope cannot cause the work.
      */
     public void checkAccess(SecurityIdentity identity, ExtensionProxyRequest request) {
-        authorise(identity, request, null);
+        authorise(identity, request, null, false);
     }
 
     /** Throws {@link ExtensionProxyException} when Hub refuses the call or the backend fails. */
     public ExtensionProxyResponse call(SecurityIdentity identity, ExtensionProxyRequest request) {
-        return call(identity, request, null, null, null);
+        return call(identity, request, null, null, null, null);
     }
 
     /**
@@ -136,15 +136,18 @@ public class ExtensionProxyService {
      */
     public ExtensionProxyResponse callDedicated(SecurityIdentity identity, ExtensionProxyRequest request, String routeId,
                                                 Supplier<byte[]> body) {
-        return call(identity, request, routeId, body, null);
+        return call(identity, request, routeId, body, null, null);
     }
 
     /**
      * Sends a chat message to the route of a {@code chat} entry and streams the reply (hubApi 0 chat contract). Hub
      * checks the message and its context, builds the body, and passes back only the citations that the caller can open.
+     * Each chat call is audited as a READ, with the resource that it shares, because the message and any shared document
+     * leave Hub. The entry never holds the message text. {@code sourceIp} is for the audit entry only, as in
+     * {@link ExtensionProxyRequest}.
      */
     public ExtensionProxyResponse chat(SecurityIdentity identity, String extensionId, String entryId, String contentType,
-                                       String acceptLanguage, InputStream body) {
+                                       String acceptLanguage, String sourceIp, InputStream body) {
         RegisteredExtension extension = registry.find(extensionId)
                 .orElseThrow(() -> new ExtensionProxyException(404, "There is no such extension"));
         List<ExtensionManifest.RouteContribution> entries = extension.manifest().contributes().chat();
@@ -154,10 +157,11 @@ public class ExtensionProxyService {
                 .flatMap(entry -> extension.manifest().route(entry.route()))
                 .orElseThrow(() -> new ExtensionProxyException(404, "The extension has no such chat"));
         ExtensionProxyRequest request = new ExtensionProxyRequest(extensionId, "POST", route.path(), null, contentType,
-                "text/event-stream", acceptLanguage, null);
+                "text/event-stream", acceptLanguage, null, null, sourceIp, null);
         int maxBytes = extension.limits().maxRequestBytes();
+        AtomicReference<ExtensionChat.Context> shared = new AtomicReference<>();
         Supplier<byte[]> message = () -> {
-            byte[] built = chat.body(identity, readBody(body, maxBytes));
+            byte[] built = chat.body(identity, readBody(body, maxBytes), shared::set);
             if (built.length > maxBytes) {
                 throw new ExtensionProxyException(413, "The conversation and its shared context are too large for "
                         + "this extension. Start a new conversation, or share no context");
@@ -165,7 +169,7 @@ public class ExtensionProxyService {
             return built;
         };
         return call(identity, request, route.id(), message,
-                new ExtensionEventStream.Policy(chat.citations(identity), ExtensionChat.TERMINAL_EVENTS));
+                new ExtensionEventStream.Policy(chat.citations(identity), ExtensionChat.TERMINAL_EVENTS), shared);
     }
 
     /**
@@ -173,11 +177,13 @@ public class ExtensionProxyService {
      * the generic proxy and MCP. {@code body} builds the JSON body of a dedicated call; Hub calls it after the scope
      * check and the concurrency limits, so a refusal in it is a FAILURE with no jti, and caps what it builds at
      * max-request-bytes. Without it, Hub sends the caller's body. {@code stream} is null when the caller chooses an event stream with Accept; otherwise the backend must
-     * reply with one, and the policy filters and ends it.
+     * reply with one, and the policy filters and ends it. {@code chatContext} is set only for a chat call, which is
+     * always audited: the body builder puts the context that the message shares in it.
      */
     private ExtensionProxyResponse call(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute,
-                                        Supplier<byte[]> build, ExtensionEventStream.Policy streamPolicy) {
-        Access access = authorise(identity, request, dedicatedRoute);
+                                        Supplier<byte[]> build, ExtensionEventStream.Policy streamPolicy,
+                                        AtomicReference<ExtensionChat.Context> chatContext) {
+        Access access = authorise(identity, request, dedicatedRoute, chatContext != null);
         RegisteredExtension extension = access.extension();
         ExtensionManifest.Route route = access.route();
         String method = access.method();
@@ -270,6 +276,12 @@ public class ExtensionProxyService {
             outcome = reply.status() < 400 ? AuditOutcome.SUCCESS
                     : reply.status() == 401 || reply.status() == 403 ? AuditOutcome.DENIED : AuditOutcome.FAILURE;
             return reply;
+        } catch (ExtensionProxyException e) {
+            // A chat message that shares a resource the caller cannot read.
+            if (chatContext != null && e.status() == 403) {
+                outcome = AuditOutcome.DENIED;
+            }
+            throw e;
         } finally {
             if (acquired) {
                 calls.release();
@@ -282,9 +294,12 @@ public class ExtensionProxyService {
             } else if (started == null && streamAcquired) {
                 freeSlot.run();
             }
-            if (!route.readOnly()) {
-                audit(identity, method, extension, route, access.namespace(), access.domain(), sentJti, outcome,
-                        request.sourceIp());
+            if (chatContext != null) {
+                audit(identity, AuditAction.READ, extension, route, access.namespace(), access.domain(), chatContext.get(),
+                        sentJti, outcome, request.sourceIp());
+            } else if (!route.readOnly()) {
+                audit(identity, action(method), extension, route, access.namespace(), access.domain(), null, sentJti,
+                        outcome, request.sourceIp());
             }
         }
     }
@@ -295,9 +310,10 @@ public class ExtensionProxyService {
 
     /**
      * {@code dedicatedRoute} is the route that a dedicated Hub endpoint calls, or null for the generic proxy and MCP. A
-     * dedicated route answers only its endpoint, so the checks of that endpoint cannot be skipped.
+     * dedicated route answers only its endpoint, so the checks of that endpoint cannot be skipped. A {@code chat} call is
+     * audited, also when its route is {@code readOnly}.
      */
-    private Access authorise(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute) {
+    private Access authorise(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute, boolean chat) {
         RegisteredExtension extension = registry.find(request.extensionId())
                 .orElseThrow(() -> new ExtensionProxyException(404, "There is no such extension"));
         URI backend = extension.backendUrl()
@@ -325,15 +341,15 @@ public class ExtensionProxyService {
                 || (domain != null && !DOMAIN.matcher(domain).matches())) {
             throw new ExtensionProxyException(400, "The namespace or domain in the path is not valid");
         }
-        boolean audited = !route.readOnly();
+        boolean audited = !route.readOnly() || chat;
         boolean authorised = isAuthorised(identity, route.scope(), namespace, domain);
         // The backend and the audit log get only the values that Hub checked for the scope.
         namespace = NAMESPACE_SCOPES.contains(route.scope()) ? namespace : null;
         domain = DOMAIN_SCOPES.contains(route.scope()) ? domain : null;
         if (!authorised) {
             if (audited) {
-                audit(identity, method, extension, route, namespace, domain, null, AuditOutcome.DENIED,
-                        request.sourceIp());
+                audit(identity, chat ? AuditAction.READ : action(method), extension, route, namespace, domain, null, null,
+                        AuditOutcome.DENIED, request.sourceIp());
             }
             boolean anonymous = identity == null || identity.isAnonymous();
             throw anonymous
@@ -366,21 +382,29 @@ public class ExtensionProxyService {
         };
     }
 
-    private void audit(SecurityIdentity identity, String method, RegisteredExtension extension,
-                       ExtensionManifest.Route route, String namespace, String domain, String jti, AuditOutcome outcome,
-                       String sourceIp) {
+    private static AuditAction action(String method) {
+        return switch (method) {
+            case "GET" -> AuditAction.READ;
+            case "POST" -> AuditAction.CREATE;
+            case "DELETE" -> AuditAction.DELETE;
+            default -> AuditAction.UPDATE;
+        };
+    }
+
+    /** {@code shared} is the resource that a chat call shares, or null. Its namespace replaces the route's. */
+    private void audit(SecurityIdentity identity, AuditAction action, RegisteredExtension extension,
+                       ExtensionManifest.Route route, String namespace, String domain, ExtensionChat.Context shared,
+                       String jti, AuditOutcome outcome, String sourceIp) {
         auditService.record(new AuditLogEntry.AuditLogEntryBuilder()
                 .setTimestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .setActor(identity == null || identity.isAnonymous() ? "anonymous" : identity.getPrincipal().getName())
-                .setAction(switch (method) {
-                    case "GET" -> AuditAction.READ;
-                    case "POST" -> AuditAction.CREATE;
-                    case "DELETE" -> AuditAction.DELETE;
-                    default -> AuditAction.UPDATE;
-                })
+                .setAction(action)
                 .setEntityType(AuditEntityType.EXTENSION)
-                .setNamespace(namespace)
+                .setNamespace(shared == null ? namespace : shared.namespace())
                 .setDomain(domain)
+                .setVersion(shared == null ? null : shared.version())
+                .setResourceType(shared == null ? null : shared.resourceType())
+                .setResourceId(shared == null ? null : shared.resourceId())
                 .setEntityId(extension.id())
                 .setRoute(route.id())
                 .setJti(jti)

@@ -6,6 +6,7 @@ import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
+import io.vertx.core.json.JsonObject;
 import org.finos.calm.config.ExtensionsConfig;
 import org.finos.calm.domain.audit.AuditAction;
 import org.finos.calm.domain.audit.AuditEntityType;
@@ -44,8 +45,10 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -1050,7 +1053,7 @@ class TestExtensionProxyServiceShould {
                         + "\"architectures\",\"id\":\"1\",\"version\":\"1.0.0\"}}\n\n"
                         + "event: done\ndata: {}\n\n"));
 
-        ExtensionProxyResponse reply = service.chat(alice, "team-services", "assistant", "application/json", "en-GB",
+        ExtensionProxyResponse reply = service.chat(alice, "team-services", "assistant", "application/json", "en-GB", null,
                 new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8)));
         StringBuffer written = new StringBuffer();
         reply.stream().writeTo(collect(written));
@@ -1068,7 +1071,84 @@ class TestExtensionProxyServiceShould {
         assertThat(written.toString(), is("event: delta\ndata: {\"text\":\"See \"}\n\n"
                 + "event: citation\ndata: {\"label\":\"Open\",\"hub\":{\"namespace\":\"finos\",\"type\":\"architectures\","
                 + "\"id\":\"1\",\"version\":\"1.0.0\"}}\n\nevent: done\ndata: {}\n\n"));
-        verify(auditService, never()).record(any());
+    }
+
+    @Test
+    void audit_a_chat_call_that_shares_no_context_as_a_read_with_no_message_text() throws Exception {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+
+        chat(QUESTION).stream().close();
+
+        AuditLogEntry entry = recorded();
+        assertThat(entry.getActor(), is("alice"));
+        assertThat(entry.getAction(), is(AuditAction.READ));
+        assertThat(entry.getEntityType(), is(AuditEntityType.EXTENSION));
+        assertThat(entry.getEntityId(), is("team-services"));
+        assertThat(entry.getRoute(), is("ask"));
+        assertThat(entry.getJti(), is(claims(backend.received().header("X-Calm-Hub-Identity")).get("jti").asText()));
+        assertThat(entry.getOutcome(), is(AuditOutcome.SUCCESS));
+        assertThat(entry.getNamespace(), nullValue());
+        assertThat(entry.getVersion(), nullValue());
+        assertThat(entry.getResourceType(), nullValue());
+        assertThat(entry.getResourceId(), nullValue());
+        assertThat(entry.getSourceIp(), nullValue());
+        assertThat(entry.toString(), not(containsString("Which services?")));
+    }
+
+    @Test
+    void audit_a_chat_call_with_the_source_ip_that_the_resource_passes() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+
+        service.chat(alice, "team-services", "assistant", "application/json", null, "192.0.2.17",
+                new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8))).stream().close();
+
+        assertThat(recorded().getSourceIp(), is("192.0.2.17"));
+    }
+
+    @Test
+    void audit_a_chat_call_that_shares_a_context_with_the_resource_and_version_it_shared() {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        when(hubData.read("finos", "architectures", "7", "1.0.0"))
+                .thenReturn(Optional.of(new JsonObject().put("unique-id", "payments-document")));
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+
+        chat(shared("finos")).stream().close();
+
+        AuditLogEntry entry = recorded();
+        assertThat(entry.getAction(), is(AuditAction.READ));
+        assertThat(entry.getOutcome(), is(AuditOutcome.SUCCESS));
+        assertThat(entry.getNamespace(), is("finos"));
+        assertThat(entry.getResourceType(), is("architectures"));
+        assertThat(entry.getResourceId(), is("7"));
+        assertThat(entry.getVersion(), is("1.0.0"));
+        assertThat(entry.getJti() != null, is(true));
+        assertThat(entry.toString(), not(containsString("Which services?")));
+        assertThat(entry.toString(), not(containsString("payments-document")));
+    }
+
+    @Test
+    void audit_a_chat_call_whose_shared_context_the_caller_cannot_read_as_denied() {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        when(permissions.canRead(alice, "secret")).thenReturn(false);
+
+        assertThat(assertThrows(ExtensionProxyException.class, () -> chat(shared("secret"))).status(), is(403));
+
+        AuditLogEntry entry = recorded();
+        assertThat(entry.getAction(), is(AuditAction.READ));
+        assertThat(entry.getOutcome(), is(AuditOutcome.DENIED));
+        assertThat(entry.getNamespace(), is("secret"));
+        assertThat(entry.getResourceType(), is("architectures"));
+        assertThat(entry.getResourceId(), is("7"));
+        assertThat(entry.getVersion(), is("1.0.0"));
+        assertThat(entry.getJti(), nullValue());
+        assertThat(backend.received(), nullValue());
+        verify(hubData, never()).read(any(), any(), any(), any());
     }
 
     @Test
@@ -1143,15 +1223,26 @@ class TestExtensionProxyServiceShould {
         registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
 
         assertThat(assertThrows(ExtensionProxyException.class, () -> service.chat(alice, "team-services", "other",
-                "application/json", null, new ByteArrayInputStream(new byte[0]))).status(), is(404));
+                "application/json", null, null, new ByteArrayInputStream(new byte[0]))).status(), is(404));
         assertThat(assertThrows(ExtensionProxyException.class, () -> service.chat(alice, "missing", "assistant",
-                "application/json", null, new ByteArrayInputStream(new byte[0]))).status(), is(404));
+                "application/json", null, null, new ByteArrayInputStream(new byte[0]))).status(), is(404));
         register(backend.url("/base"), limits(4096, 4096, Duration.ofSeconds(5)));
         assertThat(assertThrows(ExtensionProxyException.class, () -> chat(QUESTION)).status(), is(404));
     }
 
+    private static String shared(String namespace) {
+        return QUESTION.replace("\"extra\":1", "\"context\":{\"namespace\":\"" + namespace
+                + "\",\"resourceType\":\"architectures\",\"resourceId\":\"7\",\"version\":\"1.0.0\"}");
+    }
+
+    private AuditLogEntry recorded() {
+        ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+        verify(auditService).record(captor.capture());
+        return captor.getValue();
+    }
+
     private ExtensionProxyResponse chat(String body) {
-        return service.chat(alice, "team-services", "assistant", "application/json", null,
+        return service.chat(alice, "team-services", "assistant", "application/json", null, null,
                 new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8)));
     }
 

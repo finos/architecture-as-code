@@ -540,7 +540,13 @@ from; it fails if there is none.
   The schema and the UI count lengths in code points. It returns the namespaces that the caller must READ-check. calm-hub-ui
   `navigation/destinations.ts` has the same limits; change both together
 - `send-identity=false` (`RegisteredExtension.sendsIdentity`) skips the assertion for an open service. The registry
-  allows it only when every route is `GET` or `readOnly`, so no audited call goes out without a `jti`.
+  allows it only when every route is `GET` or `readOnly`. A chat call is the one audited call that can then go out
+  without a `jti`.
+- Every authenticated chat call is audited as a `READ` (`ExtensionProxyService.chat`), even though its route is `readOnly`.
+  A `401` from `@Authenticated` comes before the audit and sends nothing out, as for the proxy and forms.
+  `ExtensionChat.body` gives the validated context to the proxy before its read check, so the entry names the shared
+  resource (`resourceType`, `resourceId`, namespace and version) and a refused one is `DENIED`. Never put message text
+  in an entry. `AuditService` skips the store on a read-only Hub, so the log line is the only record there.
 - Try it: see `local-dev/extensions/example-services/README.md`. `local-dev/demo-extensions/` holds a demo
   (release-tracker) that uses every UI extension point, to test the UI layout.
   Keep it out of `local-dev/extensions`: it has routes, so a Hub that loads it without its `backend-url` does

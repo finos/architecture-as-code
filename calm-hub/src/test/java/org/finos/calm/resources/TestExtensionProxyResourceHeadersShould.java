@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,6 +65,18 @@ class TestExtensionProxyResourceHeadersShould {
         new ExtensionProxyResource(service, identity, config(null), currentRequest).get("x", uriInfo, headers);
 
         assertThat(captured().sourceIp(), nullValue());
+    }
+
+    @Test
+    void pass_the_source_ip_of_a_chat_message_only_when_capture_is_on() {
+        when(service.chat(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new ExtensionProxyResponse(200, Map.of(), new byte[0]));
+
+        new ExtensionChatResource(service, identity, currentRequest, config("true")).post("x", "assistant", headers, null);
+        new ExtensionChatResource(service, identity, currentRequest, config(null)).post("x", "assistant", headers, null);
+
+        verify(service).chat(eq(identity), eq("x"), eq("assistant"), any(), any(), eq("10.0.0.1"), any());
+        verify(service).chat(eq(identity), eq("x"), eq("assistant"), any(), any(), isNull(), any());
     }
 
     @Test
