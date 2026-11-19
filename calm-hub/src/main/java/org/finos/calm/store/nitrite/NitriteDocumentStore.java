@@ -7,6 +7,7 @@ import jakarta.inject.Inject;
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.documents.CreateDocumentRequest;
 import org.finos.calm.domain.exception.DocumentNotFoundException;
 import org.finos.calm.domain.exception.DocumentVersionExistsException;
@@ -51,7 +52,7 @@ public class NitriteDocumentStore implements DocumentStore {
             throws NamespaceNotFoundException {
         requireNamespace(namespace);
         return store(documentType).listSummariesPaged(namespace, PageRequest.UNPAGED).stream()
-                .map(summary -> summary.getId())
+                .map(summary -> ResourceIds.parseNumeric(summary.getId()))
                 .toList();
     }
 

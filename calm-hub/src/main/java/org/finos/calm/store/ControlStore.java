@@ -1,5 +1,8 @@
 package org.finos.calm.store;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
+
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -21,6 +24,14 @@ public interface ControlStore {
 
     List<String> getRequirementVersions(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException;
     String getRequirementForVersion(String domain, int controlId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException;
+
+    default List<String> getRequirementVersions(String domain, ResourceId id) throws DomainNotFoundException, ControlNotFoundException {
+        return getRequirementVersions(domain, ResourceIds.numeric(id));
+    }
+
+    default String getRequirementForVersion(String domain, ResourceId id, String version) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException {
+        return getRequirementForVersion(domain, ResourceIds.numeric(id), version);
+    }
     void createRequirementForVersion(String domain, int controlId, String version, CreateControlRequirement request) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException;
 
     List<Integer> getConfigurationsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException;

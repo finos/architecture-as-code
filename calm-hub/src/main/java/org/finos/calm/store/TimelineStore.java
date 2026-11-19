@@ -1,5 +1,7 @@
 package org.finos.calm.store;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.exception.TimelineVersionExistsException;
@@ -16,6 +18,16 @@ public interface TimelineStore {
     Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace, String version) throws NamespaceNotFoundException;
     List<String> getTimelineVersions(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException;
     String getTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException;
+
+    default List<String> getTimelineVersions(String namespace, ResourceId id) throws NamespaceNotFoundException, TimelineNotFoundException {
+        return getTimelineVersions(new Timeline.TimelineBuilder()
+                .setNamespace(namespace).setId(ResourceIds.numeric(id)).build());
+    }
+
+    default String getTimelineForVersion(String namespace, ResourceId id, String version) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException {
+        return getTimelineForVersion(new Timeline.TimelineBuilder()
+                .setNamespace(namespace).setId(ResourceIds.numeric(id)).setVersion(version).build());
+    }
     Timeline createTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionExistsException;
     Timeline updateTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException;
 

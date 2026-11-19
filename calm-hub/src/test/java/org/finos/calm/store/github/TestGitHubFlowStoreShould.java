@@ -124,10 +124,13 @@ class TestGitHubFlowStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
-        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
-        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "payment-flow";
+
+        when(registryService.find("finos", RegistryResourceType.FLOW, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getFlowVersions(flow);
 
         assertThat(versions, is(empty()));
@@ -141,11 +144,14 @@ class TestGitHubFlowStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
-        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
-        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "payment-flow";
+
+        when(registryService.find("finos", RegistryResourceType.FLOW, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getFlowVersions(flow);
 
         assertThat(versions, hasSize(1));
@@ -160,15 +166,18 @@ class TestGitHubFlowStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
         when(versionService.getFileVersions("finos/architecture-as-code", "main", "flows/payment-flow.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
-        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
-        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "payment-flow";
+
+        when(registryService.find("finos", RegistryResourceType.FLOW, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getFlowVersions(flow);
 
         assertThat(versions, hasSize(2));
@@ -187,13 +196,16 @@ class TestGitHubFlowStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubFlowStore realFileReaderStore = new GitHubFlowStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
-        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
-        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "payment-flow";
+
+        when(registryService.find("finos", RegistryResourceType.FLOW, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
 
         String content = realFileReaderStore.getFlowForVersion(flow);
         assertThat(content, equalTo("{\"steps\":[]}"));
@@ -207,14 +219,17 @@ class TestGitHubFlowStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
         when(versionService.getFileAtVersion("finos/repo", "flows/payment-flow.json", "abc1234"))
                 .thenReturn("{\"steps\":[{\"name\":\"old\"}]}");
 
-        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
-        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "payment-flow";
+
+        when(registryService.find("finos", RegistryResourceType.FLOW, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
         String content = store.getFlowForVersion(flow);
 
         assertThat(content, equalTo("{\"steps\":[{\"name\":\"old\"}]}"));
@@ -228,10 +243,13 @@ class TestGitHubFlowStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
-        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
-        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
+        String stem = "payment-flow";
+
+        when(registryService.find("finos", RegistryResourceType.FLOW, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setName(stem).setVersion("1.0.0").build();
 
         assertThrows(FlowVersionNotFoundException.class, () -> store.getFlowForVersion(flow));
     }
@@ -244,13 +262,16 @@ class TestGitHubFlowStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubFlowStore realFileReaderStore = new GitHubFlowStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
-        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
-        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "payment-flow";
+
+        when(registryService.find("finos", RegistryResourceType.FLOW, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
 
         assertThrows(FlowVersionNotFoundException.class, () -> realFileReaderStore.getFlowForVersion(flow));
     }
@@ -263,9 +284,8 @@ class TestGitHubFlowStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
-        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(99999).build();
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setName("nonexistent").build();
         assertThrows(FlowNotFoundException.class, () -> store.getFlowVersions(flow));
     }
 

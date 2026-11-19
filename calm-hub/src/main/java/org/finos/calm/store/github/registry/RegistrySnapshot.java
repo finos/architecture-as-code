@@ -37,6 +37,20 @@ public record RegistrySnapshot(
         return entriesByNamespace.getOrDefault(namespace, Collections.emptyList());
     }
 
+    /**
+     * Returns every entry matching the supplied parts of the composite identity. A {@code null}
+     * part is not supplied and therefore does not filter; every supplied part must match. Callers
+     * never pick a winner from more than one match — ambiguity is resolved as a 404 above this layer.
+     */
+    public List<RegistryEntry> find(String namespace, RegistryResourceType type, String name, String path, String variant) {
+        return entriesByNamespace.getOrDefault(namespace, Collections.emptyList()).stream()
+                .filter(e -> type == null || e.type() == type)
+                .filter(e -> name == null || name.equals(e.stem()))
+                .filter(e -> path == null || path.equals(e.path()))
+                .filter(e -> variant == null || variant.equals(e.variant()))
+                .toList();
+    }
+
     public List<String> getNamespaces() {
         return List.copyOf(entriesByNamespace.keySet());
     }

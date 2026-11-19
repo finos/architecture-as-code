@@ -98,6 +98,11 @@ public class ResourceRegistry {
         return snapshot.listByType(namespace, type);
     }
 
+    /** Resolves the composite (stem, path, variant) identity; a null part is an unconstrained field. */
+    public List<RegistryEntry> find(String namespace, RegistryResourceType type, String name, String path, String variant) {
+        return snapshot.find(namespace, type, name, path, variant);
+    }
+
     private List<RegistryEntry> scanDirectory(String namespace, Path root) {
         List<RegistryEntry> entries = new ArrayList<>();
 

@@ -1,4 +1,8 @@
 package org.finos.calm.store.github;
+import org.finos.calm.domain.Tags;
+import org.finos.calm.domain.GitHubResourceId;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
 
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 
@@ -53,7 +57,7 @@ public class GitHubPatternStore extends AbstractReadOnlyGitHubStore implements P
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.PATTERN);
         return entries.stream()
-                .map(e -> new NamespaceResourceSummary(e.name(), null, (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
+                .map(e -> new NamespaceResourceSummary(e.name(), null, Tags.of(e.path(), e.variant()), e.stem(), 0))
                 .toList();
     }
 
@@ -64,19 +68,30 @@ public class GitHubPatternStore extends AbstractReadOnlyGitHubStore implements P
 
     @Override
     public List<String> getPatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        verifyNamespace(pattern.getNamespace());
-        RegistryEntry entry = findEntry(pattern.getNamespace(), RegistryResourceType.PATTERN, pattern.getId())
-                .orElseThrow(PatternNotFoundException::new);
-        return getVersions(pattern.getNamespace(), entry);
+        return getPatternVersions(pattern.getNamespace(), new GitHubResourceId(pattern.getName(), null, null));
     }
 
     @Override
     public String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
-        verifyNamespace(pattern.getNamespace());
-        RegistryEntry entry = findEntry(pattern.getNamespace(), RegistryResourceType.PATTERN, pattern.getId())
+        return getPatternForVersion(pattern.getNamespace(),
+                new GitHubResourceId(pattern.getName(), null, null), pattern.getDotVersion());
+    }
+
+    @Override
+    public List<String> getPatternVersions(String namespace, ResourceId id) throws NamespaceNotFoundException, PatternNotFoundException {
+        verifyNamespace(namespace);
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.PATTERN, ResourceIds.github(id))
+                .orElseThrow(PatternNotFoundException::new);
+        return getVersions(namespace, entry);
+    }
+
+    @Override
+    public String getPatternForVersion(String namespace, ResourceId id, String version) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
+        verifyNamespace(namespace);
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.PATTERN, ResourceIds.github(id))
                 .orElseThrow(PatternNotFoundException::new);
         try {
-            return readAtVersion(pattern.getNamespace(), entry, pattern.getDotVersion())
+            return readAtVersion(namespace, entry, version)
                     .orElseThrow(PatternVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read pattern file: {}", entry.filePath(), e);

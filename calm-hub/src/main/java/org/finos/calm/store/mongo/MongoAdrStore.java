@@ -7,6 +7,7 @@ import com.mongodb.client.MongoDatabase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
 import org.finos.calm.domain.adr.NamespaceAdrSummary;
@@ -94,7 +95,7 @@ public class MongoAdrStore implements AdrStore {
 
         List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (NamespaceResourceSummary header : documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED)) {
-            summaries.add(toAdrSummary(namespace, header.getId()));
+            summaries.add(toAdrSummary(namespace, header.getId() == null ? null : ResourceIds.parseNumeric(header.getId())));
         }
         return summaries;
     }

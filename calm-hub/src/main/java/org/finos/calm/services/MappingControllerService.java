@@ -2,6 +2,7 @@ package org.finos.calm.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.*;
@@ -21,7 +22,9 @@ import org.finos.calm.resources.CalmDocumentParser;
 import org.finos.calm.resources.CalmResourceErrorResponses;
 import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.store.*;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.util.CanonicalVersion;
+import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +56,7 @@ public class MappingControllerService {
     private final DomainStore domainStore;
     private final ControlStore controlStore;
     private final CalmDocumentParser documentParser;
+    private final Instance<GitHubCloneManager> gitHubCloneManager;
 
     @Inject
     public MappingControllerService(ResourceMappingStore mappingStore,
@@ -64,7 +68,8 @@ public class MappingControllerService {
                                     TimelineStore timelineStore,
                                     DomainStore domainStore,
                                     ControlStore controlStore,
-                                    CalmDocumentParser documentParser) {
+                                    CalmDocumentParser documentParser,
+                                    Instance<GitHubCloneManager> gitHubCloneManager) {
         this.mappingStore = mappingStore;
         this.patternStore = patternStore;
         this.architectureStore = architectureStore;
@@ -75,6 +80,7 @@ public class MappingControllerService {
         this.domainStore = domainStore;
         this.controlStore = controlStore;
         this.documentParser = documentParser;
+        this.gitHubCloneManager = gitHubCloneManager;
     }
 
     // =========================================================================
@@ -140,6 +146,25 @@ public class MappingControllerService {
     }
 
     public List<String> getVersionsForMapping(ResourceMapping mapping) throws Exception {
+        return getVersionsNumeric(mapping);
+    }
+
+    /**
+     * Lists versions using the resolved id. Numeric ids go to the numeric stores; a GitHub id is
+     * routed to the composite registry lookup in each GitHub store.
+     */
+    public List<String> getVersions(String namespace, ResourceType type, ResourceId id) throws Exception {
+        return switch (type) {
+            case PATTERN -> patternStore.getPatternVersions(namespace, id);
+            case ARCHITECTURE -> architectureStore.getArchitectureVersions(namespace, id);
+            case FLOW -> flowStore.getFlowVersions(namespace, id);
+            case STANDARD -> standardStore.getStandardVersions(namespace, id);
+            case INTERFACE -> interfaceStore.getInterfaceVersions(namespace, id);
+            case TIMELINE -> timelineStore.getTimelineVersions(namespace, id);
+        };
+    }
+
+    private List<String> getVersionsNumeric(ResourceMapping mapping) throws Exception {
         return switch (mapping.getResourceType()) {
             case PATTERN -> {
                 Pattern pattern = new Pattern.PatternBuilder()
@@ -175,6 +200,22 @@ public class MappingControllerService {
     }
 
     public String getResourceJsonForVersion(ResourceMapping mapping, String version) throws Exception {
+        return getResourceJsonNumeric(mapping, version);
+    }
+
+    /** Reads resource content with the resolved id, routing GitHub ids to composite store lookups. */
+    public String getResourceJson(String namespace, ResourceType type, ResourceId id, String version) throws Exception {
+        return switch (type) {
+            case PATTERN -> patternStore.getPatternForVersion(namespace, id, version);
+            case ARCHITECTURE -> architectureStore.getArchitectureForVersion(namespace, id, version);
+            case FLOW -> flowStore.getFlowForVersion(namespace, id, version);
+            case STANDARD -> standardStore.getStandardForVersion(namespace, id, version);
+            case INTERFACE -> interfaceStore.getInterfaceForVersion(namespace, id, version);
+            case TIMELINE -> timelineStore.getTimelineForVersion(namespace, id, version);
+        };
+    }
+
+    private String getResourceJsonNumeric(ResourceMapping mapping, String version) throws Exception {
         return switch (mapping.getResourceType()) {
             case PATTERN -> {
                 Pattern pattern = new Pattern.PatternBuilder()
@@ -211,6 +252,27 @@ public class MappingControllerService {
                 yield timelineStore.getTimelineForVersion(timeline);
             }
         };
+    }
+
+    /**
+     * Resolves the concrete latest version for the unversioned GET. In GitHub mode this is the
+     * local clone's HEAD; a missing clone is reported as no version (404 at the resource). In
+     * numeric modes it is the last element of the version-scheme-ordered list.
+     *
+     * @return the concrete version, or {@code null} when GitHub has no local clone yet
+     */
+    public String resolveLatestVersion(String namespace, ResourceType type, ResourceId id) throws Exception {
+        if (id instanceof GitHubResourceId) {
+            if (!gitHubCloneManager.isResolvable()) {
+                return null;
+            }
+            return gitHubCloneManager.get().headSha(namespace);
+        }
+        List<String> versions = getVersions(namespace, type, id);
+        if (versions == null || versions.isEmpty()) {
+            return null;
+        }
+        return versions.stream().max(SemanticVersionOrder.ASCENDING).orElse(null);
     }
 
     public List<ResourceMapping> listMappings(String namespace, ResourceType resourceType)
@@ -416,7 +478,7 @@ public class MappingControllerService {
         return controls.stream()
                 .filter(c -> controlName.equalsIgnoreCase(c.getName()))
                 .findFirst()
-                .map(ControlDetail::getId)
+                .map(d -> ResourceIds.parseNumeric(d.getId()))
                 .orElseThrow(ControlNotFoundException::new);
     }
 
@@ -437,7 +499,7 @@ public class MappingControllerService {
         return configs.stream()
                 .filter(c -> configName.equalsIgnoreCase(c.getName()))
                 .findFirst()
-                .map(ControlConfigDetail::getId)
+                .map(d -> ResourceIds.parseNumeric(d.getId()))
                 .orElseThrow(ControlConfigurationNotFoundException::new);
     }
 
