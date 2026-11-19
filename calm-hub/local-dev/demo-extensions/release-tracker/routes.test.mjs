@@ -44,6 +44,29 @@ test('every GET route that a UI contribution names is readOnly', () => {
     for (const route of gets) assert.equal(route.readOnly, true, route.id);
 });
 
+const search = (body) => route('POST', new URL('/search', 'http://localhost'), body);
+
+test('search finds releases and services by owner, and links each to the demo architecture', () => {
+    const reply = search({ hubApi: 0, query: 'payments', limit: 10 });
+
+    assert.equal(reply.hubApi, 0);
+    assert.deepEqual(reply.results.map((r) => r.id), ['release-2.4.0', 'release-2.3.1']);
+    assert.deepEqual(reply.results[0].link, { hub: { namespace: 'demo', type: 'architectures', id: '1', version: '1.0.0' } });
+    assert.equal(search({ hubApi: 0, query: 'order-service', limit: 10 }).results[0].link.hub.element, 'order-service');
+    assert.deepEqual(search({ hubApi: 0, query: 'runbook', limit: 10 }).results[0].link, { href: 'https://example.org/runbooks/release' });
+});
+
+test('search pages with the cursor, and reads a cursor that is not a number as the first page', () => {
+    const first = search({ hubApi: 0, query: 'team', limit: 3 });
+    assert.equal(first.results.length, 3);
+    assert.equal(first.next, '3');
+    const second = search({ hubApi: 0, query: 'team', limit: 3, cursor: first.next });
+    assert.notDeepEqual(second.results.map((r) => r.id), first.results.map((r) => r.id));
+    assert.deepEqual(search({ hubApi: 0, query: 'team', limit: 3, cursor: '../x' }).results, first.results);
+    // 11 results match '', but a page has at most 10.
+    assert.equal(search({ hubApi: 0, query: '', limit: 50 }).results.length, 10);
+});
+
 test('the screen links each release to its component and declares a status filter', () => {
     const { blocks } = get('/screen');
     const table = blocks.find((block) => block.id === 'releases');
