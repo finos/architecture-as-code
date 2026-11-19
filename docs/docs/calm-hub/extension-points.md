@@ -23,7 +23,7 @@ An extension manifest lists its extension points in `contributes`, and its CLI a
 | [`decorator-views`](#decorator-views) | Hub UI | No route | Decorators |
 | [`diagram-lens`](#diagram-lens) | Hub UI | `GET` | Resource |
 | [`search-provider`](#search-provider) | Hub UI search | `POST`, `readOnly` | The query |
-| [`chat`](#chat) | Nothing yet | Any | — |
+| [`chat`](#chat) | Hub UI, one chat that the operator chooses | `POST` | A resource, only when the user shares it |
 | [`commands`](#commands) | CLI and MCP | Any | Command input |
 
 ## Shared fields
@@ -523,11 +523,102 @@ version, keeps the return points and adds none, as a change of version does.
 
 ## chat
 
-CALM Hub accepts `chat` entries in a manifest, with the shared fields. It checks that each names a
-declared route, and lists them in `GET /api/calm/extensions`. The route can use any method.
+A `chat` entry adds a chat page to the Hub UI, at `/chat`. The operator chooses one chat for the
+CALM Hub with `calm.extensions.chat-provider`: `<extension-id>`, or `<extension-id>/<entry-id>`
+when the extension has more than one `chat` entry. With no setting, the UI shows no chat. CALM Hub
+does not start if the setting does not name a `chat` entry of an enabled extension.
 
-Nothing uses them yet: the Hub UI, the CLI and MCP do not call these routes. A client can call the
-route through the proxy, as for any declared route.
+Several enabled extensions can declare chat entries, but the UI exposes only the one entry that
+the operator selects. Users cannot switch assistants, and the UI does not send a question to
+multiple chat providers. This differs from search, which queries all enabled `search-provider`
+entries independently.
+
+Submitting a search starts a fresh conversation with the selected assistant in parallel with catalogue
+and extension search. Typing and empty searches send no chat request. Opening or reloading a nonempty
+search URL also asks the assistant. The answer appears above ordinary results; a slow or failed reply
+does not block them. **Show more / Show less** expands a long answer without another request.
+Follow-ups keep the same conversation. Returning from a citation keeps the current answer and draft;
+submitting another search, even the same query, starts fresh. Back and Forward do not resend a query
+or discard the current conversation or draft. If that conversation belongs elsewhere, the search page
+offers **Ask** to start a new one. A change of the configured chat provider also requires an explicit
+submission before it receives the query. Only the current conversation stays in memory, and a reload
+clears it. Search queries are in the URL; follow-up drafts are not.
+
+Search sends only the query, never a previous conversation or an architecture. The UI names the
+recipient before submission and warns that provider charges and retention policies apply. The menu,
+extension card and Details pane also link to `/chat`, where the user can choose to share an offered
+architecture. The extension keeps its model and credentials. CALM Hub and the UI send it no user token.
+
+The route must be a `readOnly` `POST` with no path parameters and no `hubData`. No other entry
+and no command can name it. The UI sends each message to
+`POST /api/calm/extensions/<id>/chat/<entry>`. The proxy and MCP refuse the route with `404`, so
+CALM Hub always checks what goes to the route and what comes back. Because the route is
+`readOnly`, the chat works on a read-only CALM Hub. CALM Hub audits each message of a signed-in user as a `READ`
+of the extension, with the chat route and the assertion `jti`. When the message shares a
+resource, the entry also names its namespace, type, id and version. The entry never holds the
+message text. A shared resource that the user cannot read gives a `DENIED` entry. A read-only
+CALM Hub writes only the audit log line, not a stored entry.
+
+### Chat request
+
+CALM Hub checks the message and builds the body that the route gets. It drops other fields.
+
+```json
+{
+  "hubApi": 0,
+  "conversationId": "c7k2m9",
+  "messageId": "m4",
+  "messages": [
+    { "role": "user", "content": "Which services does this architecture use?" }
+  ],
+  "context": {
+    "namespace": "finos",
+    "resourceType": "architectures",
+    "resourceId": "1",
+    "version": "1.0.0",
+    "selectedElement": "api-gateway",
+    "document": { "nodes": [] }
+  }
+}
+```
+
+| Field | Rule |
+|---|---|
+| `conversationId`, `messageId` | 1 to 64 letters, digits, `_` or `-`. A retry sends the same `messageId` again |
+| `messages` | 1 to 100 messages, oldest first. Each has the `role` `user` or `assistant`, and `content` of 1 to 16000 characters. The last message is from the user |
+| `context` | Only when the user selects **Share** for the resource that they came from. CALM Hub gives `403` if the user cannot read the namespace, and `404` if the version does not exist. It adds the document of that version as `document`. `selectedElement` is the node that was selected, if any |
+
+The body must not be larger than `max-request-bytes`, or the UI gets `413`. The UI keeps the
+conversation in the browser tab only, and sends all of it with each message. A reload or
+**New conversation** starts again. CALM Hub and the UI store no history. A failed reply is not
+sent again as history.
+
+### Chat reply
+
+The route replies `200` with `text/event-stream`. CALM Hub gives `502` for any other `2xx` reply.
+A `4xx` JSON reply goes to the UI, which shows its `message` or `error`.
+
+| Event | Data | UI |
+|---|---|---|
+| `delta` | `{"text": "..."}` | Adds the text to the reply |
+| `citation` | A [link](extension-navigation.md): a `label` of at most 200 characters and exactly one destination, `href`, `hub` or `screen` | Shows a link under the reply. A Hub or screen link opens in Hub, with **Back to** the chat |
+| `done` | `{}` | Ends the reply |
+| `error` | `{"message": "..."}` | Ends the reply as failed, with **Retry** |
+
+- CALM Hub sends each event on when it arrives, with only its `event` and `data` lines. It drops
+  `id` and `retry`, so the browser never connects to the extension again by itself.
+- CALM Hub drops a `citation` that is not valid, or that names a namespace that the user cannot
+  read: the `hub` namespace, or the namespace of the `screen` context. It uses the same check as
+  for a [link that Hub passes on](extension-navigation.md#links-that-hub-passes-on).
+- CALM Hub ends the stream with an `error` event when the backend is silent for
+  `stream-idle-timeout-seconds`, when the stream is open for `max-stream-seconds`, or when the
+  reply is larger than `max-response-bytes`. It sends a comment line every 5 seconds while the
+  backend is silent.
+- **Stop** keeps the partial reply and closes the stream. CALM Hub then closes the connection to
+  the backend. **Retry** sends the same question again with the same `messageId`.
+
+The [example backend](https://github.com/finos/architecture-as-code/blob/main/calm-hub/local-dev/extensions/example-services/server.mjs)
+has a chat route with no model.
 
 ## commands
 

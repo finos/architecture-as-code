@@ -12,7 +12,7 @@ export interface ExtensionRoute {
     scope: string;
     readOnly: boolean;
 }
-export type ExtensionPoint = 'screen' | 'designer-tab' | 'landing-card' | 'detail-panel' | 'action' | 'search-provider';
+export type ExtensionPoint = 'screen' | 'designer-tab' | 'landing-card' | 'detail-panel' | 'action' | 'search-provider' | 'chat';
 /** The logo files that the manifest declares. Hub serves them at `/api/calm/extensions/<id>/logo/<light|dark>`. */
 export interface ExtensionLogoFiles {
     light: string;
@@ -61,6 +61,11 @@ export interface ExtensionForm {
     target: FormTarget;
     submitLabel?: string;
     fields: ExtensionFormField[];
+}
+/** The chat entry that the operator chose (`calm.extensions.chat-provider`), by extension id and entry id. */
+export interface ChatProviderRef {
+    extension: string;
+    contribution: string;
 }
 // A type, not an interface: an interface has no index signature, so it would not match ExtensionQuery.
 export type ExtensionContext = {
@@ -173,4 +178,26 @@ export interface TableRowsReply {
     hubApi: number;
     rows: CellValue[][];
     total: number;
+}
+
+/** The resource that a user shares with the chat provider. Hub checks it and sends its document with the message. */
+export interface ChatContext {
+    namespace: string;
+    resourceType: 'architectures' | 'patterns';
+    resourceId: string;
+    version: string;
+    selectedElement?: string;
+}
+
+export interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
+/** The body of `POST /api/calm/extensions/<id>/chat/<entry>`. */
+export interface ChatRequest {
+    conversationId: string;
+    messageId: string;
+    messages: ChatMessage[];
+    context?: ChatContext;
 }

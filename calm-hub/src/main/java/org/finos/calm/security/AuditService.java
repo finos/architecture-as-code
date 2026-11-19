@@ -30,6 +30,9 @@ import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITI
  * {@link ReadOnlyRequestFilter}, since {@code @ConfigProperty} values on CDI beans are
  * captured at native-image build time and would ignore a runtime env var override.</p>
  *
+ * <p>On a read-only Hub ({@code calm.readonly=true}) the store cannot take a write, so only the log line
+ * records an entry, such as that of a chat call.</p>
+ *
  * <p>A failure writing to the store (e.g. Mongo transiently unavailable) is caught and
  * logged, never propagated — the audit trail must never block or fail the mutating
  * request it is recording.</p>
@@ -52,6 +55,8 @@ public class AuditService {
     // Package-private so unit tests can override the resolved values.
     boolean storeEnabled;
     boolean logEnabled;
+    /** True on a read-only Hub, whose store does not take writes. */
+    boolean readOnly;
 
     @PostConstruct
     void init() {
@@ -61,6 +66,9 @@ public class AuditService {
         logEnabled = ConfigProvider.getConfig()
                 .getOptionalValue("calm.audit.log.enabled", Boolean.class)
                 .orElse(true);
+        readOnly = ConfigProvider.getConfig()
+                .getOptionalValue("calm.readonly", Boolean.class)
+                .orElse(false);
         boolean authEnabled = ConfigProvider.getConfig()
                 .getOptionalValue("calm.auth.enabled", Boolean.class)
                 .orElse(false);
@@ -76,7 +84,7 @@ public class AuditService {
      * toggles. Never throws — a failure recording the entry is logged and swallowed.
      */
     public void record(AuditLogEntry entry) {
-        if (storeEnabled) {
+        if (storeEnabled && !readOnly) {
             try {
                 auditLogStore.record(entry);
             } catch (Exception e) {
@@ -102,7 +110,12 @@ public class AuditService {
         if (entry.getRoute() == null && entry.getJti() == null) {
             return "";
         }
-        return " route=[" + sanitize(entry.getRoute()) + "] jti=[" + sanitize(entry.getJti()) + "]";
+        String fields = " route=[" + sanitize(entry.getRoute()) + "] jti=[" + sanitize(entry.getJti()) + "]";
+        if (entry.getResourceType() == null && entry.getResourceId() == null) {
+            return fields;
+        }
+        return fields + " resourceType=[" + sanitize(entry.getResourceType()) + "] resourceId=["
+                + sanitize(entry.getResourceId()) + "]";
     }
 
     /**

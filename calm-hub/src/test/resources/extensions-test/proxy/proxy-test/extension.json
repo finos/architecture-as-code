@@ -15,7 +15,8 @@
     { "id": "admin", "method": "GET", "path": "/admin", "scope": "global_admin" },
     { "id": "domain-services", "method": "GET", "path": "/domains/{domain}/services", "scope": "domain_read" },
     { "id": "request-review", "method": "POST", "path": "/namespaces/{namespace}/reviews", "scope": "write" },
-    { "id": "preview", "method": "POST", "path": "/preview", "scope": "authenticated", "readOnly": true }
+    { "id": "preview", "method": "POST", "path": "/preview", "scope": "authenticated", "readOnly": true },
+    { "id": "ask", "method": "POST", "path": "/chat", "scope": "authenticated", "readOnly": true }
   ],
   "contributes": {
     "form": [
@@ -27,6 +28,7 @@
         "id": "preview", "title": "Preview", "route": "preview",
         "fields": [{ "id": "query", "type": "text", "label": "Query" }]
       }
-    ]
+    ],
+    "chat": [{ "id": "assistant", "title": "Ask Atlas", "route": "ask" }]
   }
 }

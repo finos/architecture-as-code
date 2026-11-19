@@ -73,7 +73,7 @@ that it signs, in the `X-Calm-Hub-Identity` header. The public keys are at
 | `sub` | The user. When `auth` is `none`, one shared principal |
 | `auth` | `none`, `oidc` or `proxy` |
 | `iat`, `exp` | Issue and expiry time. The lifetime is `calm.extensions.identity.ttl-seconds`, by default 60 seconds |
-| `jti` | A unique id for this call. The audit log records it for a route that is not `readOnly`. Hub does not audit `readOnly` routes |
+| `jti` | A unique id for this call. The audit log records it for a route that is not `readOnly` and for a chat message. Hub does not audit other `readOnly` routes |
 | `htm`, `htp` | The method, and the path and query relative to the backend URL. CALM Hub sorts the query by name |
 | `hubApi`, `route`, `scope` | The manifest `hubApi`, the route `id`, and the route `scope` |
 | `ns` | The namespace that CALM Hub checked. Only for a `read`, `write` or `admin` route |

@@ -6,6 +6,8 @@ import { createVerifier } from './identity.mjs';
 const PORT = Number(process.env.PORT ?? 8091);
 const MAX_BODY_BYTES = 1024 * 1024;
 const HUB_URL = process.env.CALM_HUB_URL ?? 'http://localhost:8080';
+// The pause between the words of a chat reply. A question that contains "slow" waits longer, so you can try Stop.
+const WORD_DELAY_MS = Number(process.env.CHAT_WORD_DELAY_MS ?? 60);
 const ISSUER = process.env.CALM_HUB_ISSUER ?? HUB_URL;
 
 // Made-up data: the services that each namespace owns, and the owner of each service.
@@ -88,6 +90,61 @@ function handle(req, claims, url, body) {
     return [404, { error: 'not found' }];
 }
 
+// A made-up chat: no model, so it shows the hubApi 0 chat contract and nothing else. It answers from the services
+// that the caller owns and from the resource that the caller shared, if any. Hub checked the caller's read access
+// to that resource and sent its document.
+function chatReply(claims, request) {
+    const question = request.messages.at(-1).content;
+    const mine = Object.entries(services).flatMap(([ns, list]) =>
+        list.filter((s) => s.owner === claims.sub).map((s) => ({ namespace: ns, name: s.name })));
+    const words = [`You own ${mine.length} service(s)${mine.length ? `: ${mine.map((s) => s.name).join(', ')}` : ''}.`];
+    const citations = [
+        { label: 'Services screen', screen: { extension: 'example-services', screen: 'services' } },
+        { label: 'CALM documentation', href: 'https://calm.finos.org/' },
+    ];
+    const { context } = request;
+    if (context) {
+        const nodes = Array.isArray(context.document?.nodes) ? context.document.nodes.length : 0;
+        words.push(`You shared ${context.resourceType}/${context.resourceId} ${context.version} in ${context.namespace},`,
+            `which has ${nodes} node(s)${context.selectedElement ? `, with ${context.selectedElement} selected` : ''}.`);
+        citations.unshift({ label: `${context.resourceId} ${context.version}`,
+            hub: { namespace: context.namespace, type: context.resourceType, id: context.resourceId, version: context.version } });
+    } else {
+        words.push('Share a resource with your question to ask about it.');
+    }
+    words.push(`You asked: "${question}". This example backend has no model, so it gives the same kind of answer each time.`);
+    return { text: words.join(' ').split(/(?<= )/), citations, slow: /slow/i.test(question), fail: /fail/i.test(question) };
+}
+
+// Writes the reply as text/event-stream: delta events, then citation events, then done. Hub ends the stream for the
+// caller when it closes, for example after Stop, and this backend then stops writing.
+function streamChat(req, res, claims, body) {
+    const request = JSON.parse(body.toString('utf8'));
+    console.log(`POST /chat for ${claims.sub} (route ${claims.route}, jti ${claims.jti}, message ${request.messageId})`);
+    const reply = chatReply(claims, request);
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' });
+    const event = (name, data) => res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
+    const delay = reply.slow ? WORD_DELAY_MS * 10 : WORD_DELAY_MS;
+    let index = 0;
+    const timer = setInterval(() => {
+        if (reply.fail && index === 3) {
+            clearInterval(timer);
+            // Ends the connection with no done event, as a backend that fails part way does.
+            return res.destroy();
+        }
+        if (index < reply.text.length) return event('delta', { text: reply.text[index++] });
+        clearInterval(timer);
+        reply.citations.forEach((citation) => event('citation', citation));
+        event('done', {});
+        res.end();
+        console.log(`chat ${request.messageId} for ${claims.sub} done after ${index} word(s)`);
+    }, delay);
+    res.on('close', () => {
+        if (!res.writableFinished) console.log(`chat ${request.messageId} for ${claims.sub} stopped after ${index} word(s)`);
+        clearInterval(timer);
+    });
+}
+
 createServer(async (req, res) => {
     const url = new URL(req.url, 'http://backend');
     let body;
@@ -110,6 +167,13 @@ createServer(async (req, res) => {
     } catch (e) {
         console.warn(`rejected ${req.method} ${url.pathname}: ${e.message}`);
         return send(res, 401, { error: 'CALM Hub identity is missing or not valid' });
+    }
+    if (req.method === 'POST' && url.pathname === '/chat') {
+        try {
+            return streamChat(req, res, claims, body);
+        } catch (e) {
+            return send(res, 400, { error: 'bad request' });
+        }
     }
     try {
         const [status, reply] = handle(req, claims, url, body);

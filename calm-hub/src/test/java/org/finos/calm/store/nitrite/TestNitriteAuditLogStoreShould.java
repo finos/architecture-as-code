@@ -61,12 +61,14 @@ public class TestNitriteAuditLogStoreShould {
     }
 
     @Test
-    void store_and_read_back_the_route_and_jti_of_an_extension_entry() {
+    void store_and_read_back_the_route_jti_and_shared_resource_of_an_extension_entry() {
         AuditLogEntry entry = new AuditLogEntry.AuditLogEntryBuilder()
                 .setTimestamp(LocalDateTime.of(2026, 1, 1, 10, 30))
                 .setActor("alice")
                 .setRoute("add-service")
                 .setJti("jti-1")
+                .setResourceType("architectures")
+                .setResourceId("7")
                 .build();
 
         store.record(entry);
@@ -75,6 +77,8 @@ public class TestNitriteAuditLogStoreShould {
         verify(mockCollection).insert(captor.capture());
         assertThat(captor.getValue().get("route", String.class), is("add-service"));
         assertThat(captor.getValue().get("jti", String.class), is("jti-1"));
+        assertThat(captor.getValue().get("resourceType", String.class), is("architectures"));
+        assertThat(captor.getValue().get("resourceId", String.class), is("7"));
 
         DocumentCursor cursor = mock(DocumentCursor.class);
         when(cursor.iterator()).thenReturn(List.of(captor.getValue()).iterator());

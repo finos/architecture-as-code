@@ -18,20 +18,27 @@ import org.junit.jupiter.api.BeforeEach;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.Test;
 
+import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.oneOf;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.when;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -42,6 +49,10 @@ class TestExtensionProxyResourceShould {
 
     static final String CSP = "sandbox; default-src 'none'";
     private static final String BASE = "/api/calm/extensions/proxy-test/api";
+    private static final String CHAT = "/api/calm/extensions/proxy-test/chat/assistant";
+    private static final String QUESTION = """
+            {"conversationId":"c1","messageId":"m1","messages":[{"role":"user","content":"Which services?"}]}""";
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static FixtureBackend backend;
 
     @InjectMock
@@ -54,6 +65,7 @@ class TestExtensionProxyResourceShould {
         public Map<String, String> getConfigOverrides() {
             return Map.of(
                     "calm.extensions.dir", "src/test/resources/extensions-test/proxy",
+                    "calm.extensions.chat-provider", "proxy-test",
                     "calm.extensions.\"proxy-test\".backend-url", "http://localhost:" + FixtureBackend.freePort() + "/base",
                     "calm.extensions.identity.private-key-location", KEYS.privateKey().toString(),
                     "calm.extensions.identity.public-key-locations", KEYS.publicKey().toString());
@@ -237,6 +249,8 @@ class TestExtensionProxyResourceShould {
         given().contentType("application/json").body("{}").when().post(BASE + "/namespaces/finos/services")
                 .then().statusCode(403);
         given().when().get(BASE + "/admin").then().statusCode(403);
+        given().when().head(BASE + "/namespaces/other/services").then().statusCode(403);
+        given().when().head(BASE + "/admin").then().statusCode(403);
     }
 
     @Test
@@ -318,6 +332,219 @@ class TestExtensionProxyResourceShould {
 
     @Test
     @TestSecurity(user = "alice")
+    void answer_head_on_an_event_stream_with_its_headers_and_free_its_stream_slot() {
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "data: hello\n\n".getBytes(StandardCharsets.UTF_8), 0));
+        // One more HEAD than the default max-concurrent-streams (8): a HEAD that kept its slot would make the last 503.
+        for (int i = 0; i <= 8; i++) {
+            given().accept("text/event-stream").when().head(BASE + "/screen")
+                    .then().statusCode(200)
+                    .contentType("text/event-stream")
+                    .header("Content-Security-Policy", CSP)
+                    .body(emptyString());
+        }
+        assertThat(backend.received().method(), is("GET"));
+
+        given().accept("text/event-stream").when().get(BASE + "/screen")
+                .then().statusCode(200)
+                .body(equalTo("data: hello\n\n"));
+
+        // HEAD has the access checks of GET: the chat route is POST only, and an undeclared route does not exist.
+        backend.reset();
+        for (String path : new String[]{"/chat", "/not-declared"}) {
+            int status = given().accept("text/event-stream").when().get(BASE + path).then().extract().statusCode();
+            assertThat(status, oneOf(404, 405));
+            given().accept("text/event-stream").when().head(BASE + path).then().statusCode(status);
+        }
+        assertThat(backend.received(), nullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void buffer_a_2xx_event_stream_reply_other_than_200_and_refuse_it_on_the_chat_endpoint() {
+        backend.reply(new FixtureBackend.Reply(204, Map.of("Content-Type", "text/event-stream"), new byte[0], 0));
+        // One more than the default max-concurrent-streams (8): a 204 that kept its stream slot would make the last 503.
+        for (int i = 0; i <= 8; i++) {
+            given().accept("text/event-stream").when().get(BASE + "/screen").then().statusCode(204);
+        }
+        given().contentType("application/json").body(QUESTION).when().post(CHAT)
+                .then().statusCode(502)
+                .body("error", equalTo("The extension failed"));
+
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "data: hello\n\n".getBytes(StandardCharsets.UTF_8), 0));
+        given().accept("text/event-stream").when().get(BASE + "/screen")
+                .then().statusCode(200)
+                .body(equalTo("data: hello\n\n"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void free_a_proxy_stream_and_cancel_its_backend_call_when_a_response_filter_fails() throws Exception {
+        failEachStreamOfAFullPool(() -> given().accept("text/event-stream").header(FaultyResponseFilter.FAIL, "true")
+                .when().get(BASE + "/screen").then().statusCode(500));
+
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "data: hello\n\n".getBytes(StandardCharsets.UTF_8), 0));
+        given().accept("text/event-stream").when().get(BASE + "/screen")
+                .then().statusCode(200)
+                .body(equalTo("data: hello\n\n"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void free_a_chat_stream_and_cancel_its_backend_call_when_a_response_filter_fails() throws Exception {
+        failEachStreamOfAFullPool(() -> given().contentType("application/json").header(FaultyResponseFilter.FAIL, "true")
+                .body(QUESTION).when().post(CHAT).then().statusCode(500));
+
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "event: done\ndata: {}\n\n".getBytes(StandardCharsets.UTF_8), 0));
+        given().contentType("application/json").body(QUESTION).when().post(CHAT)
+                .then().statusCode(200)
+                .body(equalTo("event: done\ndata: {}\n\n"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void free_the_stream_slot_when_the_caller_leaves_before_the_backend_replies_and_a_response_filter_fails()
+            throws Exception {
+        // As many as the default max-concurrent-streams (8): the exchange has ended before the reply arrives.
+        for (int i = 0; i < 8; i++) {
+            backend.reset();
+            FaultyResponseFilter.EXCHANGE.set(null);
+            CountDownLatch headers = new CountDownLatch(1);
+            backend.holdHeaders(headers);
+            backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                    "data: hello\n\n".getBytes(StandardCharsets.UTF_8), 0));
+            int failed = FaultyResponseFilter.FAILED.get();
+            try {
+                try (Socket socket = new Socket("localhost", RestAssured.port)) {
+                    // A reset, so that Hub sees the connection end at once.
+                    socket.setSoLinger(true, 0);
+                    socket.getOutputStream().write(("GET " + BASE + "/screen HTTP/1.1\r\nHost: localhost\r\n"
+                            + "Accept: text/event-stream\r\n" + FaultyResponseFilter.FAIL + ": true\r\n\r\n")
+                            .getBytes(StandardCharsets.US_ASCII));
+                    socket.getOutputStream().flush();
+                    waitFor(() -> backend.received() != null);
+                }
+                // Hub has seen the caller leave before the backend sends its headers.
+                waitFor(() -> FaultyResponseFilter.EXCHANGE.get() != null
+                        && FaultyResponseFilter.EXCHANGE.get().response().closed());
+            } finally {
+                headers.countDown();
+            }
+            waitFor(() -> FaultyResponseFilter.FAILED.get() > failed);
+        }
+
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "data: hello\n\n".getBytes(StandardCharsets.UTF_8), 0));
+        given().accept("text/event-stream").when().get(BASE + "/screen")
+                .then().statusCode(200)
+                .body(equalTo("data: hello\n\n"));
+    }
+
+    /**
+     * Fills a stream pool of the default size (8, as max-concurrent-streams and max-concurrent-chat-streams) with
+     * streams that a failed response filter stops JAX-RS from writing, while the backend holds each one open. Each
+     * must cancel its backend call, not only free its slot.
+     */
+    private static void failEachStreamOfAFullPool(Runnable failedCall) throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        List<String> parts = new ArrayList<>(List.of("event: delta\ndata: {\"text\":\"Hel\"}\n\n"));
+        // Enough data that a write of the backend fails after Hub closes the connection.
+        for (int i = 0; i < 300; i++) {
+            parts.add("data: " + "x".repeat(1000) + "\n\n");
+        }
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+        try {
+            for (int i = 0; i < 8; i++) {
+                failedCall.run();
+            }
+        } finally {
+            gate.countDown();
+        }
+        waitFor(() -> backend.brokenStreams() == 8);
+        assertThat(backend.brokenStreams(), is(8));
+    }
+
+    private static void waitFor(BooleanSupplier condition) throws InterruptedException {
+        long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (!condition.getAsBoolean() && System.nanoTime() < end) {
+            Thread.sleep(10);
+        }
+        assertThat(condition.getAsBoolean(), is(true));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void stream_each_chat_event_before_the_backend_ends_the_reply() throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", List.of(
+                "id: 7\nevent: delta\ndata: {\"text\":\"Hel\"}\n\n",
+                "event: delta\ndata: {\"text\":\"lo\"}\n\nevent: done\ndata: {}\n\n"), gate));
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + RestAssured.port + CHAT))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(QUESTION))
+                .build();
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<java.util.stream.Stream<String>> response = client.send(request, HttpResponse.BodyHandlers.ofLines());
+        // A failed assertion must not wait for the open stream, so the test ends the client at once.
+        try (java.util.stream.Stream<String> body = response.body()) {
+            java.util.Iterator<String> lines = body.iterator();
+
+            assertThat(response.statusCode(), is(200));
+            assertThat(response.headers().firstValue("Content-Type").orElseThrow(), startsWith("text/event-stream"));
+            assertThat(response.headers().firstValue("Cache-Control").orElseThrow(), is("private, no-store"));
+            assertThat(response.headers().firstValue("Content-Security-Policy").orElseThrow(), is(CSP));
+            // The first event arrives while the backend still holds the rest of the reply.
+            assertThat(lines.next(), is("event: delta"));
+            assertThat(lines.next(), is("data: {\"text\":\"Hel\"}"));
+            gate.countDown();
+            StringBuilder rest = new StringBuilder();
+            lines.forEachRemaining(line -> rest.append(line).append('\n'));
+            assertThat(rest.toString(), is("\nevent: delta\ndata: {\"text\":\"lo\"}\n\nevent: done\ndata: {}\n\n"));
+        } finally {
+            gate.countDown();
+            client.shutdownNow();
+        }
+        assertThat(MAPPER.readTree(backend.received().body()).get("hubApi").asInt(), is(0));
+        assertThat(backend.received().header("Accept"), is("text/event-stream"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void refuse_a_chat_route_on_the_generic_proxy_and_a_chat_message_that_is_not_valid() {
+        given().contentType("application/json").body(QUESTION).when().post(BASE + "/chat")
+                .then().statusCode(404)
+                .body("error", equalTo("Call this extension route through its CALM Hub endpoint"));
+        given().contentType("application/json").body("{\"messages\":[]}").when().post(CHAT)
+                .then().statusCode(400)
+                .contentType("application/json")
+                .header("Content-Security-Policy", CSP);
+        given().contentType("application/json").body(QUESTION).when().post("/api/calm/extensions/proxy-test/chat/other")
+                .then().statusCode(404);
+        assertThat(backend.received(), nullValue());
+    }
+
+    @Test
+    void refuse_a_chat_message_from_an_anonymous_caller() {
+        given().contentType("application/json").body(QUESTION).when().post(CHAT).then().statusCode(401);
+        assertThat(backend.received(), nullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void list_the_chat_that_the_operator_chose() {
+        given().when().get("/api/calm/extensions")
+                .then().statusCode(200)
+                .body("chat.extension", equalTo("proxy-test"))
+                .body("chat.contribution", equalTo("assistant"))
+                .body("values.find { it.id == 'proxy-test' }.contributes.chat[0].title", equalTo("Ask Atlas"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
     void refuse_an_empty_post_that_is_not_json_and_forward_an_empty_json_post() {
         for (String type : new String[]{"text/plain", "application/x-www-form-urlencoded"}) {
             given().contentType(type).when().post(BASE + "/search").then().statusCode(415);
@@ -362,6 +589,7 @@ class TestExtensionProxyResourceShould {
                 .get(BASE + "/screen")
                 .then()
                 .statusCode(401);
+        given().accept("text/event-stream").when().head(BASE + "/screen").then().statusCode(401);
 
         assertThat(backend.received(), nullValue());
     }
