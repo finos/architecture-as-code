@@ -23,7 +23,6 @@ export function IntroBody({ namespaceCounts, domainCounts, personalNamespace, th
             <div className="w-full flex justify-center mt-10 sm:mt-12">
                 <IntroSearchBar />
             </div>
-
             {personalNamespace && showNamespaces && (
                 <div className="w-full flex justify-center mt-14 sm:mt-16 empty:hidden">
                     <MyNamespaceCard personalNamespace={personalNamespace} />

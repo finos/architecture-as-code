@@ -473,8 +473,7 @@ from; it fails if there is none.
 - `mcp/tools/ExtensionTools` registers the command tools after `ExtensionRegistry` loads (observer priority).
   `ToolManager` lists them after the `@Tool` methods, in registration order, so it registers them sorted.
   The MCP server does not check arguments against `inputSchema`, so the handler does
-- `ReadOnlyRequestFilter` exempts only `^/api/calm/extensions/[^/]+/(api|forms)(/|$)`, in normal form. The proxy
-  then allows a non-GET method only on a `readOnly` route
+- `ReadOnlyRequestFilter` exempts only the proxy and form paths, `^/api/calm/extensions/[^/]+/(api|forms)(/|$)`, and the chat endpoint, `^/api/calm/extensions/[^/]+/chat/<entry id>$`, in normal form. The proxy then allows a non-GET method only on a `readOnly` route
 - A form route (`contributes.form`) is a dedicated route: `ExtensionManifest.dedicatedRoutes()`. Only
   `ExtensionFormService` calls it, through `ExtensionProxyService.callDedicated`, after it checks the target and the
   input. `authorise(..., dedicatedRoute)` refuses it on the generic proxy and MCP with a 404, and
@@ -499,6 +498,27 @@ from; it fails if there is none.
   what the caller may see. It refuses a reply whose `next` makes the request for the next page longer than
   `MAX_REQUEST_LINE` (3584 bytes, under the HTTP server's 4096-byte request line), so the UI can always send a
   cursor back; it counts a byte that can be percent-encoded as three. Its route is also in `dedicatedRoutes()`
+- A `200` `text/event-stream` reply streams through `ExtensionEventStream` (JAX-RS can skip the body of another 2xx), only to a caller that accepts it and to
+  a dedicated endpoint that passes an `ExtensionEventStream.Policy` (the chat). With a policy, the backend must stream,
+  and the policy filters the events and names the ones that end the stream. It writes each event again with only
+  `event` and `data`, and ends the stream with an `error` event at a limit. Each open stream holds a slot of its pool
+  (`max-concurrent-streams` for the proxy and MCP, `max-concurrent-chat-streams` for the chat), a per-user count
+  (`max-concurrent-streams-per-user`, in each pool) and its backend connection until `close()`, and its writer holds a
+  worker thread until `writeTo` returns. A count of 0 removes the user's entry, so the map holds only users with an
+  open stream. In no-auth mode every caller is the `no-auth` principal, so all callers share one per-user count. Keep the heartbeat comment: a failed write is how Hub sees that the
+  caller went away, and `close()` then cancels the backend call. The writer closes a stream that Hub passes on, and the end of the Vert.x
+  exchange closes it too, because a failed response filter skips the writer. Vert.x does not call an end handler that is
+  added after the exchange ended (the caller left while Hub waited for the backend), so `ExtensionProxyResource` then
+  closes the stream at once. `ExtensionStreamWatchdog` (application scoped, started and stopped with Hub; a stop closes
+  every open stream) calls `close()` `max-stream-seconds` after the stream opens, also when no writer runs. It sends no
+  `error` event: only a running writer does. The call and its stream share one release-once callback for the slot and the user's count, and
+  a stream that the backend opens after its call has failed (a timeout) closes at once. A write to the caller has no
+  time limit (RESTEasy Classic writes block), so a caller that stops reading holds a worker thread until the
+  connection fails, also after `close()`. JAX-RS does not call the writer for `HEAD`, so `ExtensionProxyResource`
+  closes the stream itself. `ExtensionChat` checks the chat body, reads the
+  shared document with the caller's read scope, and drops a citation that `ExtensionDestinations.link` refuses or that
+  names a namespace the caller cannot read. It parses the citation strictly (no duplicate key, nothing after it),
+  because Hub sends the data on as it came
 - `ExtensionIdentitySigner` signs with the JDK, not a JWT library. `ExtensionAssertionRejectingMechanism`
   refuses a bearer token with `typ: calm-ext+jwt` in every auth mode, and sends the 401 challenge for it itself, so
   that an OIDC provider that is down cannot make it a 500
@@ -522,7 +542,13 @@ from; it fails if there is none.
   The schema and the UI count lengths in code points. It returns the namespaces that the caller must READ-check. calm-hub-ui
   `navigation/destinations.ts` has the same limits; change both together
 - `send-identity=false` (`RegisteredExtension.sendsIdentity`) skips the assertion for an open service. The registry
-  allows it only when every route is `GET` or `readOnly`, so no audited call goes out without a `jti`.
+  allows it only when every route is `GET` or `readOnly`. A chat call is the one audited call that can then go out
+  without a `jti`.
+- Every authenticated chat call is audited as a `READ` (`ExtensionProxyService.chat`), even though its route is `readOnly`.
+  A `401` from `@Authenticated` comes before the audit and sends nothing out, as for the proxy and forms.
+  `ExtensionChat.body` gives the validated context to the proxy before its read check, so the entry names the shared
+  resource (`resourceType`, `resourceId`, namespace and version) and a refused one is `DENIED`. Never put message text
+  in an entry. `AuditService` skips the store on a read-only Hub, so the log line is the only record there.
 - Try it: see `local-dev/extensions/example-services/README.md`. `local-dev/demo-extensions/` holds a demo
   (release-tracker) that uses every UI extension point, to test the UI layout.
   Keep it out of `local-dev/extensions`: it has routes, so a Hub that loads it without its `backend-url` does

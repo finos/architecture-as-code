@@ -12,12 +12,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -77,7 +82,7 @@ public class TestAuditServiceShould {
     }
 
     @Test
-    void name_the_route_and_jti_of_an_extension_entry_when_the_store_write_fails() {
+    void name_the_route_jti_and_shared_resource_of_an_extension_entry_when_the_store_write_fails() {
         auditService.storeEnabled = true;
         auditService.logEnabled = false;
         doThrow(new RuntimeException("Mongo down")).when(auditLogStore).record(any(AuditLogEntry.class));
@@ -89,11 +94,13 @@ public class TestAuditServiceShould {
                 .setOutcome(AuditOutcome.SUCCESS)
                 .setRoute("add-service")
                 .setJti("jti-1")
+                .setResourceType("architectures")
+                .setResourceId("7")
                 .build();
 
         List<String> warnings = LogCapture.messages(AuditService.class, Level.WARNING, () -> auditService.record(entry));
 
-        assertThat(warnings, contains(containsString("route=[add-service] jti=[jti-1]")));
+        assertThat(warnings, contains(containsString("route=[add-service] jti=[jti-1] resourceType=[architectures] resourceId=[7]")));
     }
 
     @Test
@@ -105,6 +112,47 @@ public class TestAuditServiceShould {
         List<String> warnings = LogCapture.messages(AuditService.class, Level.WARNING, () -> auditService.record(sampleEntry()));
 
         assertThat(warnings, contains(not(containsString("route="))));
+    }
+
+    @Test
+    void write_only_the_log_line_on_a_read_only_hub() {
+        auditService.storeEnabled = true;
+        auditService.logEnabled = true;
+        auditService.readOnly = true;
+        AuditLogEntry chat = new AuditLogEntry.AuditLogEntryBuilder()
+                .setActor("alice")
+                .setAction(AuditAction.READ)
+                .setEntityType(AuditEntityType.EXTENSION)
+                .setEntityId("assistant")
+                .setRoute("ask")
+                .setJti("jti-1")
+                .setOutcome(AuditOutcome.SUCCESS)
+                .setNamespace("finos")
+                .setResourceType("architectures")
+                .setResourceId("7")
+                .setVersion("1.0.0")
+                .setTimestamp(LocalDateTime.of(2026, 1, 2, 12, 34, 56))
+                .build();
+        List<LogRecord> lines = new ArrayList<>();
+
+        List<String> warnings = LogCapture.messages(AuditService.class, Level.WARNING,
+                () -> lines.addAll(LogCapture.records("org.finos.calm.audit", Level.INFO, () -> auditService.record(chat))));
+
+        verifyNoInteractions(auditLogStore);
+        assertThat(warnings, is(empty()));
+        assertThat(lines.size(), is(1));
+        assertThat(rendered(lines.getFirst()), is("AUDIT actor=[alice] action=[READ] entityType=[EXTENSION] namespace=[finos] "
+                + "domain=[null] entityId=[assistant] version=[1.0.0] outcome=[SUCCESS] sourceIp=[null] "
+                + "timestamp=[2026-01-02T12:34:56] route=[ask] jti=[jti-1] resourceType=[architectures] resourceId=[7]"));
+    }
+
+    /** The line as the log shows it, whether or not the log manager has put the parameters into the message. */
+    private static String rendered(LogRecord record) {
+        String text = record.getMessage();
+        for (Object parameter : record.getParameters() == null ? new Object[0] : record.getParameters()) {
+            text = text.replaceFirst("\\{}", java.util.regex.Matcher.quoteReplacement(String.valueOf(parameter)));
+        }
+        return text;
     }
 
     @Test

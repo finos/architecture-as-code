@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { startBackend } from '../../demo-extensions/backend-harness.mjs';
 
+// The words of a chat reply come at once in the tests.
+process.env.CHAT_WORD_DELAY_MS = '1';
 const manifest = JSON.parse(readFileSync(new URL('./extension.json', import.meta.url), 'utf8'));
 
 test('refuses a POST that is not JSON, also with no body or no Content-Type', async (t) => {
@@ -58,5 +60,56 @@ test('every GET route that returns blocks is readOnly', () => {
     for (const { route } of manifest.contributes.screen) {
         assert.equal(routes.get(route).method, 'GET', route);
         assert.equal(routes.get(route).readOnly, true, route);
+    }
+});
+
+const question = (content, context) => JSON.stringify({
+    hubApi: 0, conversationId: 'c1', messageId: 'm1', messages: [{ role: 'user', content }], ...(context && { context }),
+});
+
+function events(text) {
+    return text.split('\n\n').filter(Boolean).map((block) => {
+        const lines = Object.fromEntries(block.split('\n').map((line) => [line.slice(0, line.indexOf(':')), line.slice(line.indexOf(':') + 2)]));
+        return { event: lines.event, data: JSON.parse(lines.data) };
+    });
+}
+
+test('chat streams deltas, then citations, then done', async (t) => {
+    const backend = await startBackend(new URL('./server.mjs', import.meta.url), 'example-services');
+    t.after(backend.stop);
+    const context = { namespace: 'finos', resourceType: 'architectures', resourceId: '1', version: '1.0.0',
+        selectedElement: 'api-gateway', document: { nodes: [{}, {}] } };
+
+    const reply = await backend.request('POST', '/chat', question('What do I own?', context));
+
+    assert.equal(reply.status, 200);
+    assert.equal(reply.headers.get('content-type'), 'text/event-stream');
+    const received = events(await reply.text());
+    const text = received.filter((e) => e.event === 'delta').map((e) => e.data.text).join('');
+    assert.match(text, /^You own 2 service\(s\): settlement-engine, settlement-reports\. You shared architectures\/1 1\.0\.0 in finos, which has 2 node\(s\), with api-gateway selected\./);
+    assert.deepEqual(received.filter((e) => e.event === 'citation').map((e) => e.data), [
+        { label: '1 1.0.0', hub: { namespace: 'finos', type: 'architectures', id: '1', version: '1.0.0' } },
+        { label: 'Services screen', screen: { extension: 'example-services', screen: 'services' } },
+        { label: 'CALM documentation', href: 'https://calm.finos.org/' },
+    ]);
+    assert.deepEqual(received.at(-1), { event: 'done', data: {} });
+});
+
+test('chat ends a question that asks it to fail with no done event', async (t) => {
+    const backend = await startBackend(new URL('./server.mjs', import.meta.url), 'example-services');
+    t.after(backend.stop);
+
+    const reply = await backend.request('POST', '/chat', question('Please fail'));
+    const text = await reply.text().catch(() => '');
+
+    assert.equal(text.includes('event: done'), false);
+});
+
+test('the chat entry names a readOnly POST route with no path parameters', () => {
+    const routes = new Map(manifest.routes.map((r) => [r.id, r]));
+    for (const { route } of manifest.contributes.chat) {
+        assert.equal(routes.get(route).method, 'POST', route);
+        assert.equal(routes.get(route).readOnly, true, route);
+        assert.equal(routes.get(route).path.includes('{'), false, route);
     }
 });

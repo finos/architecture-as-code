@@ -70,6 +70,18 @@ class TestExtensionProxyResourceReadOnlyShould {
 
     @Test
     @TestSecurity(user = "alice")
+    void allow_a_chat_message_on_a_read_only_hub() {
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+
+        given().contentType("application/json")
+                .body("{\"conversationId\":\"c1\",\"messageId\":\"m1\",\"messages\":[{\"role\":\"user\",\"content\":\"Hi\"}]}")
+                .when().post("/api/calm/extensions/proxy-test/chat/assistant")
+                .then().statusCode(200)
+                .body(equalTo("event: done\ndata: {}\n\n"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
     void leave_a_post_with_no_slash_after_api_to_the_proxy() {
         // Not the read-only 405. JAX-RS gives the 404: the proxy resource needs a slash after "api".
         given().contentType("application/json").body("{}")

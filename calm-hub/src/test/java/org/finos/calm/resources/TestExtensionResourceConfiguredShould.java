@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
@@ -55,7 +56,7 @@ class TestExtensionResourceConfiguredShould {
                 .body("values.id", contains("control-evaluation", "deployment", "example-services"))
                 .body("values.find { it.id == 'example-services' }.version", equalTo("0.1.0"))
                 .body("values.find { it.id == 'example-services' }.hubApi", equalTo(0))
-                .body("values.find { it.id == 'example-services' }.routes.id", contains("screen", "namespace-services", "search", "add-service"))
+                .body("values.find { it.id == 'example-services' }.routes.id", contains("screen", "namespace-services", "search", "add-service", "chat"))
                 .body("values.find { it.id == 'example-services' }.routes[0].readOnly", equalTo(true))
                 .body("values.find { it.id == 'example-services' }.routes[3].readOnly", equalTo(false))
                 .body("values.find { it.id == 'example-services' }.commands.keySet()", contains("add-service", "list-services"))
@@ -64,7 +65,9 @@ class TestExtensionResourceConfiguredShould {
                 .body("values.find { it.id == 'example-services' }.contributes.screen[0].route", equalTo("screen"))
                 .body("values.find { it.id == 'example-services' }.contributes.search-provider[0].route", equalTo("search"))
                 .body("values.find { it.id == 'example-services' }.contributes.decorator-views[0].overlay.default", equalTo("info"))
-                .body("values.find { it.id == 'example-services' }.contributes.keySet()", contains("screen", "search-provider", "decorator-views"))
+                .body("values.find { it.id == 'example-services' }.contributes.keySet()", contains("screen", "search-provider", "chat", "decorator-views"))
+                .body("values.find { it.id == 'example-services' }.contributes.chat[0].route", equalTo("chat"))
+                .body("chat", nullValue())
                 .body("values.find { it.id == 'example-services' }.contributes.decorator-views[0].overlay.keySet()", contains("status", "map", "default", "label"))
                 .body("values.find { it.id == 'example-services' }.logo.light", equalTo("logo.svg"))
                 .body("values.find { it.id == 'example-services' }.logo.keySet()", contains("light", "dark"))

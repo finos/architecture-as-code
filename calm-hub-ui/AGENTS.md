@@ -315,6 +315,18 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   source tables read `useExtensionRevision()` and load again through `useRefreshingRequest`, which keeps the earlier
   value, shows a value only for the view (context, filters) it was loaded for, and drops a late reply. Do not add a
   second refresh store.
+- Chat: one chat page at `/chat` (`extensions/chat/`), for the chat entry that the operator chose
+  (`calm.extensions.chat-provider`, `useChatProvider()` from the registry `chat`). With no choice there is no chat
+  and no link. `SearchChatEntry` names the recipient, charges and retention before submission, without waiting for catalogue results; it is not a chat action. `useSearchNavigation.submitSearch()` calls `startSearch()` before navigating, including for a repeated query. Do not clear the session and let the old search page's effect restart it while Router's transition waits. `SearchAnswer` starts an initial query once, after effect replay; catalogue and provider searches never wait for it. Automatic startup cannot replace an existing conversation or draft, or send after a provider change. Back and Forward reuse a matching session or show Ask for an explicit fresh start. `ChatAnswerText` hides long answer content from keyboard and accessibility navigation until expanded, without a request; keep its toggle and composer mounted while streaming. `ChatEntryLink` is the shared link, labelled with the entry `title` and no fixed prefix. It offers
+  the resource of the page in router state, never in the URL, and the user must tick Share for each new resource.
+  `ChatSessionProvider` sits above the router and holds the conversation in memory only, so it stays while the user
+  follows a citation and comes back, and goes on a reload. The page is a `{ kind: 'chat' }` return point, so a
+  citation page shows **Back to** the chat; `parseCitation` accepts a citation only when `isDestination()` does. Do
+  not store history. `sendChatMessage` uses `fetch`, not axios, because it reads the event stream as it arrives.
+  Stop marks the attempt stopped at once, also while sign-in is pending, then aborts the fetch; the partial reply
+  stays. Each callback changes only a streaming turn of its own attempt (`update()`). Retry sends the same
+  `messageId` again and replaces the failed reply, so the question shows once. The live status says only the state of
+  the reply (replying, complete, stopped), never its text; a failure has its own alert.
 - Identity: `ExtensionLogo` (`extensions/ExtensionLogo.tsx`) is the mark beside an extension name everywhere, also in
   search and chat attribution. It is the `ExtensionMarker` when the manifest has no `logo`, and while a logo loads or
   after it fails. A logo has loaded when its `img` fires `load` or is `complete`, not when its bytes arrive: Firefox

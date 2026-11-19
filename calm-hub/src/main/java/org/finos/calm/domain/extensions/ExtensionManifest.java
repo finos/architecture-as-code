@@ -80,6 +80,9 @@ public record ExtensionManifest(
         if (contributes.searchProvider() != null) {
             contributes.searchProvider().forEach(provider -> ids.add(provider.route()));
         }
+        if (contributes.chat() != null) {
+            contributes.chat().forEach(chat -> ids.add(chat.route()));
+        }
         return ids;
     }
 
