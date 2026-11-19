@@ -29,18 +29,15 @@ import java.util.List;
 
 /**
  * GitHub-mode {@link StandardStore}: standards are read from files under {@code standards/}
- * and {@code standard-nodes/} in the namespace's clone (the two directories are merged into
- * one listing - see {@link org.finos.calm.store.github.registry.CalmContentDetector} for why
- * {@code standard-nodes/} maps to {@code STANDARD} rather than a separate concept, and for
- * the node-catalogue half of that ask this store does not cover - #3102). Id
- * lookup, version listing and version-content resolution all delegate to
- * {@link AbstractReadOnlyGitHubStore} - see its class javadoc for why an unresolvable version
- * 404s rather than silently reading whatever HEAD holds. The one thing this store adds beyond
- * that shared behaviour is {@link #preferMarkdownSibling}: standards render better as prose,
- * so a JSON entry with a same-named {@code .md} sibling serves that sibling instead - but only
- * for the local-HEAD read, never for a pinned-SHA API fetch (see that method's javadoc for
- * why). Every mutating method throws {@link GitHubWriteNotSupportedException}: this backend is
- * read-only until GitHub account linking and PR creation land.
+ * in the namespace's clone. Id lookup, version listing and version-content resolution all
+ * delegate to {@link AbstractReadOnlyGitHubStore} - see its class javadoc for why an
+ * unresolvable version 404s rather than silently reading whatever HEAD holds. The one thing
+ * this store adds beyond that shared behaviour is {@link #preferMarkdownSibling}: standards
+ * render better as prose, so a JSON entry with a same-named {@code .md} sibling serves that
+ * sibling instead - but only for the local-HEAD read, never for a pinned-SHA API fetch (see
+ * that method's javadoc for why). Every mutating method throws
+ * {@link GitHubWriteNotSupportedException}: this backend is read-only until GitHub account
+ * linking and PR creation land.
  */
 @ApplicationScoped
 @Typed(GitHubStandardStore.class)
