@@ -7,8 +7,8 @@ const ax = axios.create();
 const mock = new AxiosMockAdapter(ax as never);
 
 const domain = 'security';
-const controlId = 1;
-const configId = 10;
+const controlId = "1";
+const configId = "10";
 const version = '0.1.0';
 
 describe('ControlService', () => {

@@ -48,7 +48,7 @@ export class ControlService {
             });
     }
 
-    public async fetchRequirementVersions(domain: string, controlId: number): Promise<string[]> {
+    public async fetchRequirementVersions(domain: string, controlId: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions`, { headers })
@@ -62,7 +62,7 @@ export class ControlService {
             });
     }
 
-    public async fetchRequirementForVersion(domain: string, controlId: number, version: string): Promise<ControlRequirementDoc> {
+    public async fetchRequirementForVersion(domain: string, controlId: string, version: string): Promise<ControlRequirementDoc> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions/${encodeURIComponent(version)}`, { headers })
@@ -74,7 +74,7 @@ export class ControlService {
             });
     }
 
-    public async fetchConfigurationsForControl(domain: string, controlId: number): Promise<ControlConfigDetail[]> {
+    public async fetchConfigurationsForControl(domain: string, controlId: string): Promise<ControlConfigDetail[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations`, { headers })
@@ -88,7 +88,7 @@ export class ControlService {
             });
     }
 
-    public async fetchConfigurationVersions(domain: string, controlId: number, configId: number): Promise<string[]> {
+    public async fetchConfigurationVersions(domain: string, controlId: string, configId: string): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions`, { headers })
@@ -102,7 +102,7 @@ export class ControlService {
             });
     }
 
-    public async fetchConfigurationForVersion(domain: string, controlId: number, configId: number, version: string): Promise<ControlConfigurationDoc> {
+    public async fetchConfigurationForVersion(domain: string, controlId: string, configId: string, version: string): Promise<ControlConfigurationDoc> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions/${encodeURIComponent(version)}`, { headers })

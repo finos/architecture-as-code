@@ -34,7 +34,7 @@ export function useControlDocuments(controlService: ControlService, { domain, co
     const [requirementResult, setRequirementResult] = useState<Keyed<ControlRequirementDoc | undefined> | null>(null);
 
     const [configsResult, setConfigsResult] = useState<Keyed<ControlConfigDetail[]> | null>(null);
-    const [chosenConfigId, setChosenConfigId] = useState<Keyed<number> | null>(null);
+    const [chosenConfigId, setChosenConfigId] = useState<Keyed<string> | null>(null);
     const [configVersionsResult, setConfigVersionsResult] = useState<Keyed<string[]> | null>(null);
     const [chosenConfigVersion, setChosenConfigVersion] = useState<Keyed<string> | null>(null);
     const [configResult, setConfigResult] = useState<Keyed<ControlConfigurationDoc | undefined> | null>(null);
@@ -130,7 +130,7 @@ export function useControlDocuments(controlService: ControlService, { domain, co
         [controlKey]
     );
     const selectConfig = useCallback(
-        (configId: number) => setChosenConfigId({ key: controlKey, value: configId }),
+        (configId: string) => setChosenConfigId({ key: controlKey, value: configId }),
         [controlKey]
     );
     const selectConfigVersion = useCallback(
