@@ -163,7 +163,7 @@ public class InterfaceTools {
             String existingDescription = null;
             boolean interfaceFound = false;
             for (NamespaceInterfaceSummary s : interfaces) {
-                if (Objects.equals(s.getId(), interfaceId)) {
+                if (Objects.equals(s.getId(), String.valueOf(interfaceId))) {
                     existingName = s.getName();
                     existingDescription = s.getDescription();
                     interfaceFound = true;

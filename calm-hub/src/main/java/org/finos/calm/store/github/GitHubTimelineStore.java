@@ -1,4 +1,8 @@
 package org.finos.calm.store.github;
+import org.finos.calm.domain.Tags;
+import org.finos.calm.domain.GitHubResourceId;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
 
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 
@@ -51,7 +55,7 @@ public class GitHubTimelineStore extends AbstractReadOnlyGitHubStore implements 
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.TIMELINE);
         return entries.stream()
-                .map(e -> new NamespaceTimelineSummary(e.name(), null, (e.uniqueId().hashCode() & 0x7FFFFFFF)))
+                .map(e -> new NamespaceTimelineSummary(e.name(), null, Tags.of(e.path(), e.variant()), e.stem()))
                 .toList();
     }
 
@@ -67,19 +71,30 @@ public class GitHubTimelineStore extends AbstractReadOnlyGitHubStore implements 
 
     @Override
     public List<String> getTimelineVersions(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
-        verifyNamespace(timeline.getNamespace());
-        RegistryEntry entry = findEntry(timeline.getNamespace(), RegistryResourceType.TIMELINE, timeline.getId())
-                .orElseThrow(TimelineNotFoundException::new);
-        return getVersions(timeline.getNamespace(), entry);
+        return getTimelineVersions(timeline.getNamespace(), new GitHubResourceId(timeline.getName(), null, null));
     }
 
     @Override
     public String getTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException {
-        verifyNamespace(timeline.getNamespace());
-        RegistryEntry entry = findEntry(timeline.getNamespace(), RegistryResourceType.TIMELINE, timeline.getId())
+        return getTimelineForVersion(timeline.getNamespace(),
+                new GitHubResourceId(timeline.getName(), null, null), timeline.getDotVersion());
+    }
+
+    @Override
+    public List<String> getTimelineVersions(String namespace, ResourceId id) throws NamespaceNotFoundException, TimelineNotFoundException {
+        verifyNamespace(namespace);
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.TIMELINE, ResourceIds.github(id))
+                .orElseThrow(TimelineNotFoundException::new);
+        return getVersions(namespace, entry);
+    }
+
+    @Override
+    public String getTimelineForVersion(String namespace, ResourceId id, String version) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException {
+        verifyNamespace(namespace);
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.TIMELINE, ResourceIds.github(id))
                 .orElseThrow(TimelineNotFoundException::new);
         try {
-            return readAtVersion(timeline.getNamespace(), entry, timeline.getDotVersion())
+            return readAtVersion(namespace, entry, version)
                     .orElseThrow(TimelineVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read timeline file: {}", entry.filePath(), e);

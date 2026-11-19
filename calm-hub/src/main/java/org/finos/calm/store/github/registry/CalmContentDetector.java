@@ -125,28 +125,6 @@ public class CalmContentDetector {
     }
 
     private String getParentDirectoryName(Path filePath) {
-        if (filePath == null) {
-            return null;
-        }
-        for (int i = 0; i < filePath.getNameCount() - 1; i++) {
-            String segment = filePath.getName(i).toString().toLowerCase();
-            if (isKnownDirectory(segment)) {
-                return segment;
-            }
-        }
-        if (filePath.getParent() != null) {
-            Path fileName = filePath.getParent().getFileName();
-            return fileName != null ? fileName.toString() : null;
-        }
-        return null;
-    }
-
-    private boolean isKnownDirectory(String name) {
-        return switch (name) {
-            case "architectures", "patterns", "standards",
-                 "controls", "adrs", "flows", "interfaces", "timelines", "decorators",
-                 "standard-nodes" -> true;
-            default -> false;
-        };
+        return ResourcePathHelper.typeRoot(filePath);
     }
 }

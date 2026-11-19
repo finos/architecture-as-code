@@ -3,6 +3,7 @@ package org.finos.calm.store.github;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
+import org.finos.calm.domain.Tags;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
@@ -88,8 +89,14 @@ public class GitHubSearchStore implements SearchStore {
     }
 
     private boolean matchesQuery(RegistryEntry entry, String lowerQuery) {
-        return (entry.name() != null && entry.name().toLowerCase().contains(lowerQuery))
-                || (entry.uniqueId() != null && entry.uniqueId().toLowerCase().contains(lowerQuery));
+        return contains(entry.name(), lowerQuery)
+                || contains(entry.stem(), lowerQuery)
+                || contains(entry.path(), lowerQuery)
+                || contains(entry.variant(), lowerQuery);
+    }
+
+    private boolean contains(String value, String lowerQuery) {
+        return value != null && value.toLowerCase().contains(lowerQuery);
     }
 
     private List<SearchResult> filterByType(List<RegistryEntry> entries, RegistryResourceType type,
@@ -99,9 +106,10 @@ public class GitHubSearchStore implements SearchStore {
                 .limit(MAX_RESULTS_PER_TYPE)
                 .map(e -> new SearchResult(
                         namespaceByEntry.getOrDefault(e, ""),
-                        (e.uniqueId().hashCode() & 0x7FFFFFFF),
+                        e.stem(),
                         e.name(),
-                        null
+                        null,
+                        Tags.of(e.path(), e.variant())
                 ))
                 .collect(Collectors.toList());
     }

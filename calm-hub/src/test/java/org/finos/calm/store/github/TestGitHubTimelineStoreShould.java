@@ -131,10 +131,13 @@ class TestGitHubTimelineStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
-        int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "release-timeline";
+
+        when(registryService.find("finos", RegistryResourceType.TIMELINE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getTimelineVersions(timeline);
 
         assertThat(versions, is(empty()));
@@ -148,11 +151,14 @@ class TestGitHubTimelineStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
-        int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "release-timeline";
+
+        when(registryService.find("finos", RegistryResourceType.TIMELINE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getTimelineVersions(timeline);
 
         assertThat(versions, hasSize(1));
@@ -167,15 +173,18 @@ class TestGitHubTimelineStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
         when(versionService.getFileVersions("finos/architecture-as-code", "main", "timelines/release-timeline.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
-        int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "release-timeline";
+
+        when(registryService.find("finos", RegistryResourceType.TIMELINE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getTimelineVersions(timeline);
 
         assertThat(versions, hasSize(2));
@@ -194,13 +203,16 @@ class TestGitHubTimelineStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubTimelineStore realFileReaderStore = new GitHubTimelineStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
-        int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "release-timeline";
+
+        when(registryService.find("finos", RegistryResourceType.TIMELINE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
 
         String content = realFileReaderStore.getTimelineForVersion(timeline);
         assertThat(content, equalTo("{\"milestones\":[]}"));
@@ -214,14 +226,17 @@ class TestGitHubTimelineStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
         when(versionService.getFileAtVersion("finos/repo", "timelines/release-timeline.json", "abc1234"))
                 .thenReturn("{\"milestones\":[{\"name\":\"old\"}]}");
 
-        int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "release-timeline";
+
+        when(registryService.find("finos", RegistryResourceType.TIMELINE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
         String content = store.getTimelineForVersion(timeline);
 
         assertThat(content, equalTo("{\"milestones\":[{\"name\":\"old\"}]}"));
@@ -235,10 +250,13 @@ class TestGitHubTimelineStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
-        int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
+        String stem = "release-timeline";
+
+        when(registryService.find("finos", RegistryResourceType.TIMELINE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setName(stem).setVersion("1.0.0").build();
 
         assertThrows(TimelineVersionNotFoundException.class, () -> store.getTimelineForVersion(timeline));
     }
@@ -251,13 +269,16 @@ class TestGitHubTimelineStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubTimelineStore realFileReaderStore = new GitHubTimelineStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
-        int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "release-timeline";
+
+        when(registryService.find("finos", RegistryResourceType.TIMELINE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
 
         assertThrows(TimelineVersionNotFoundException.class, () -> realFileReaderStore.getTimelineForVersion(timeline));
     }
@@ -270,9 +291,8 @@ class TestGitHubTimelineStoreShould {
                 Map.of("finos", List.of(entry)),
                 Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(99999).build();
+        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setName("nonexistent").build();
         assertThrows(TimelineNotFoundException.class, () -> store.getTimelineVersions(timeline));
     }
 

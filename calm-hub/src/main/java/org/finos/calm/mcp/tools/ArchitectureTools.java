@@ -145,7 +145,7 @@ public class ArchitectureTools {
         try {
             List<NamespaceResourceSummary> summaries = architectureStore.getArchitecturesForNamespace(namespace);
             for (NamespaceResourceSummary summary : summaries) {
-                if (Objects.equals(summary.getId(), architectureId)) {
+                if (Objects.equals(summary.getId(), String.valueOf(architectureId))) {
                     resolvedName = summary.getName();
                     resolvedDescription = summary.getDescription();
                     break;
@@ -207,7 +207,7 @@ public class ArchitectureTools {
             try {
                 List<NamespaceResourceSummary> summaries = architectureStore.getArchitecturesForNamespace(namespace);
                 for (NamespaceResourceSummary summary : summaries) {
-                    if (Objects.equals(summary.getId(), architectureId)) {
+                    if (Objects.equals(summary.getId(), String.valueOf(architectureId))) {
                         if (resolvedName == null) resolvedName = summary.getName();
                         if (resolvedDescription == null) resolvedDescription = summary.getDescription();
                         break;

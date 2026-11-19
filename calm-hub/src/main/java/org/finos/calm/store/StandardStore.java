@@ -1,5 +1,7 @@
 package org.finos.calm.store;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
@@ -15,6 +17,14 @@ public interface StandardStore {
     Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace, String version) throws NamespaceNotFoundException;
     List<String> getStandardVersions(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException;
     String getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException;
+
+    default List<String> getStandardVersions(String namespace, ResourceId id) throws NamespaceNotFoundException, StandardNotFoundException {
+        return getStandardVersions(namespace, ResourceIds.numeric(id));
+    }
+
+    default String getStandardForVersion(String namespace, ResourceId id, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
+        return getStandardForVersion(namespace, ResourceIds.numeric(id), version);
+    }
     Standard createStandardForVersion(CreateStandardRequest standardRequest, String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException;
 
     /**

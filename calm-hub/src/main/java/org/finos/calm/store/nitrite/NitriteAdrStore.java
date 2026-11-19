@@ -8,6 +8,7 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.dizitart.no2.Nitrite;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
 import org.finos.calm.domain.adr.NamespaceAdrSummary;
@@ -75,7 +76,7 @@ public class NitriteAdrStore implements AdrStore {
 
         List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (NamespaceResourceSummary header : documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED)) {
-            summaries.add(toAdrSummary(namespace, header.getId()));
+            summaries.add(toAdrSummary(namespace, header.getId() == null ? null : ResourceIds.parseNumeric(header.getId())));
         }
         return summaries;
     }

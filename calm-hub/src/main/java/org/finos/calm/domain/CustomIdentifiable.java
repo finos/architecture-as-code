@@ -7,8 +7,11 @@ package org.finos.calm.domain;
  */
 public interface CustomIdentifiable {
 
-    /** Read-only: the numeric ID is minted by the counter store when the summary is built. */
-    Integer getId();
+    /**
+     * The string form of the resource id: the numeric id in MongoDB and standalone modes,
+     * the filename stem in GitHub mode. Read-only; minted when the summary is built.
+     */
+    String getId();
 
     String getCustomId();
 

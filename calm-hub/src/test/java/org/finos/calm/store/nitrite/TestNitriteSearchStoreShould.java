@@ -87,7 +87,7 @@ class TestNitriteSearchStoreShould {
         assertEquals(1, results.getArchitectures().size());
         SearchResult result = results.getArchitectures().get(0);
         assertEquals("finos", result.getNamespace());
-        assertEquals(1, result.getId());
+        assertEquals("1", result.getId());
         assertEquals("Payment Architecture", result.getName());
     }
 

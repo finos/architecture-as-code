@@ -6,34 +6,45 @@ import java.util.Objects;
 
 /**
  * Lightweight projection returned by the User Facing API that pairs a configuration's
- * numeric storage id with its human-readable name slug.
+ * resource id with its human-readable name slug.
  */
 @RegisterForReflection
 public class ControlConfigDetail {
 
-    private Integer id;
+    private String id;
     private String name;
     private String title;
 
     public ControlConfigDetail() {}
 
     public ControlConfigDetail(Integer id, String name) {
-        this.id = id;
-        this.name = name;
+        this(id == null ? null : String.valueOf(id), name, null);
+    }
+
+    public ControlConfigDetail(String id, String name) {
+        this(id, name, null);
     }
 
     public ControlConfigDetail(Integer id, String name, String title) {
+        this(id == null ? null : String.valueOf(id), name, title);
+    }
+
+    public ControlConfigDetail(String id, String name, String title) {
         this.id = id;
         this.name = name;
         this.title = title;
     }
 
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(String id) {
         this.id = id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id == null ? null : String.valueOf(id);
     }
 
     public String getName() {
