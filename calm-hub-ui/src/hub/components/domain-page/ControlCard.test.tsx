@@ -14,7 +14,7 @@ describe('ControlCard', () => {
             <ControlCard
                 name="Encryption at rest"
                 description="All persisted data must be encrypted."
-                controlId={5}
+                controlId={"5"}
                 href={HREF}
             />
         );
@@ -26,7 +26,7 @@ describe('ControlCard', () => {
     });
 
     it('is a link to the control deep link, not a toggle button', () => {
-        renderCard(<ControlCard name="Access Control" controlId={5} href={HREF} />);
+        renderCard(<ControlCard name="Access Control" controlId={"5"} href={HREF} />);
 
         const card = screen.getByTestId('control-card');
         expect(card).toHaveAttribute('href', HREF);
@@ -34,7 +34,7 @@ describe('ControlCard', () => {
     });
 
     it('renders without a description', () => {
-        renderCard(<ControlCard name="Audit Logging" controlId={9} href={HREF} />);
+        renderCard(<ControlCard name="Audit Logging" controlId={"9"} href={HREF} />);
 
         expect(screen.getByText('Audit Logging')).toBeInTheDocument();
         expect(screen.getByText('#9')).toBeInTheDocument();

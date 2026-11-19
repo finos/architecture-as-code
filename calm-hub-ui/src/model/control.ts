@@ -7,14 +7,14 @@ export interface ControlDetail {
 }
 
 export interface ControlConfigDetail {
-    id: number;
+    id: string;
     name?: string;
     title?: string;
 }
 
 export interface ControlData {
     domain: string;
-    controlId: number;
+    controlId: string;
     controlName: string;
     controlDescription: string;
     controlTitle?: string;

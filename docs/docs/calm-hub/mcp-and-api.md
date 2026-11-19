@@ -75,7 +75,7 @@ The full endpoint list with request/response schemas is visible in the Swagger U
 | `ControlDetail.id`, `ControlConfigDetail.id` | integer | string |
 | `CustomIdentifiable.getId()` | integer | string (namespace listing summaries) |
 
-Existing numeric URLs under `/api/calm/...` remain valid. No MongoDB migration is needed: counters, `_id`, the `resource_mappings` collection and its indexes are unchanged. The document-level `unique-id` no longer determines GitHub resource identity; identity is the filename stem plus optional path and variant.
+Existing numeric URLs under `/api/calm/...` remain valid in MongoDB and standalone modes. In GitHub mode there are no stored numeric ids, so the mapping-by-numeric-id endpoints have no match (`MappingNotFoundException`) and enrichment by numeric id returns nothing. No MongoDB migration is needed: counters, `_id`, the `resource_mappings` collection and its indexes are unchanged. The document-level `unique-id` no longer determines GitHub resource identity; identity is the filename stem plus optional path and variant.
 
 ### Finding the architectures that implement a pattern
 
