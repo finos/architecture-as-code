@@ -96,7 +96,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                     className="w-full sm:w-auto"
                     options={configOptions}
                     value={selectedConfigId !== null ? String(selectedConfigId) : ''}
-                    onChange={(v) => handleConfigClick(Number(v))}
+                    onChange={handleConfigClick}
                 />
                 <OptionSelect
                     label="Configuration version"

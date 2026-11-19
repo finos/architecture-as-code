@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { CalmService } from '../../service/calm-service.js';
 import { ControlService } from '../../service/control-service.js';
 import { InterfaceService } from '../../service/interface-service.js';
@@ -57,6 +57,7 @@ export function useResourceFromRoute({
     onLoadError,
 }: UseResourceFromRouteOptions) {
     const { namespace, type, id, version } = useParams<HubParams>();
+    const [searchParams] = useSearchParams();
 
     const onControlLoadRef = useRef(onControlLoad);
     const onInterfaceLoadRef = useRef(onInterfaceLoad);
@@ -136,6 +137,8 @@ export function useResourceFromRoute({
                         controlName: match.name,
                         controlDescription: match.description,
                         controlTitle: match.title,
+                        path: searchParams.get('path') ?? undefined,
+                        variant: searchParams.get('variant') ?? undefined,
                     });
                 })
                 .catch(reportError);

@@ -80,6 +80,20 @@ describe('SearchResultsPage', () => {
         );
     });
 
+    it('passes control tags into the detail link', async () => {
+        const tagged = {
+            ...controlResults,
+            controls: [{ ...controlResults.controls[0], tags: { path: 'aws/prod', variant: 'calm' } }],
+        };
+        renderPage('/search?q=pci', createMockSearchService(vi.fn().mockResolvedValue(tagged)));
+
+        fireEvent.click(await screen.findByText('PCI-DSS'));
+
+        await waitFor(() =>
+            expect(screen.getByTestId('location')).toHaveTextContent('/security/controls/PCI-DSS/detail?path=aws%2Fprod&variant=calm')
+        );
+    });
+
     it('shows an empty state when nothing matches', async () => {
         renderPage('/search?q=zzz', createMockSearchService(vi.fn().mockResolvedValue(emptyResults)));
         expect(await screen.findByText(/No results found for/i)).toBeInTheDocument();

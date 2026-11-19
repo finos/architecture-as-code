@@ -19,7 +19,7 @@ vi.mock('../../../service/control-service.js', () => ({
 
 const controlData = {
     domain: 'security',
-    controlId: 5,
+    controlId: "5",
     controlName: 'Encryption',
     controlDescription: 'Encrypt data',
 };

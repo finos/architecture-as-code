@@ -95,6 +95,18 @@ describe('ControlService', () => {
         });
     });
 
+    it('appends path and variant to control reads', async () => {
+        mock.onGet('/api/calm/domains/security/controls/1/requirement/versions?path=aws%2Fprod&variant=calm')
+            .reply(200, { values: ['1.0.0'] });
+
+        const result = await controlService.fetchRequirementVersions(domain, controlId, {
+            path: 'aws/prod',
+            variant: 'calm',
+        });
+
+        expect(result).toEqual(['1.0.0']);
+    });
+
     // ──────────────────────────────────────────────────
     // fetchRequirementVersions
     // ──────────────────────────────────────────────────

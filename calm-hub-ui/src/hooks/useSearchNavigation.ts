@@ -118,7 +118,11 @@ export function useSearchNavigation({ calmService: calmServiceProp, adrService: 
             };
 
             if (type === 'controls') {
-                go(`/${ns}/controls/${encodeURIComponent(result.name)}/detail`);
+                const identity = new URLSearchParams();
+                if (result.tags?.path) identity.set('path', result.tags.path);
+                if (result.tags?.variant) identity.set('variant', result.tags.variant);
+                const query = identity.toString();
+                go(`/${ns}/controls/${encodeURIComponent(result.name)}/detail${query ? `?${query}` : ''}`);
                 return;
             }
 
