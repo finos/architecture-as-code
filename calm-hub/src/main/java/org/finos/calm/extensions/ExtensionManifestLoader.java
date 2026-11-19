@@ -49,7 +49,7 @@ public class ExtensionManifestLoader {
     /** The tool name limit of common MCP clients. The MCP specification allows 128. */
     static final int MAX_TOOL_NAME_LENGTH = 64;
     /** Ids that would clash with the static {@code calm.extensions.*} settings. */
-    static final Set<String> RESERVED_IDS = Set.of("dir", "identity", "http", "allow-without-auth");
+    static final Set<String> RESERVED_IDS = Set.of("dir", "identity", "http", "allow-without-auth", "chat-provider");
 
     private static final Logger LOG = LoggerFactory.getLogger(ExtensionManifestLoader.class);
     private static final String SCHEMA_PATH = "META-INF/calm-extensions/schema/%d/extension.schema.json";
@@ -222,6 +222,16 @@ public class ExtensionManifestLoader {
                         + ". Only CALM Hub calls this route, through the endpoint of one entry, so no other entry or command may name it");
             }
         });
+        List<ExtensionManifest.RouteContribution> chats = manifest.contributes().chat();
+        for (ExtensionManifest.RouteContribution chat : chats == null ? List.<ExtensionManifest.RouteContribution>of() : chats) {
+            manifest.route(chat.route()).ifPresent(route -> {
+                if (!"POST".equals(route.method()) || !route.readOnly() || route.sendsHubData()
+                        || !pathParams(route.path()).isEmpty()) {
+                    problems.add("chat '" + chat.id() + "' must name a readOnly POST route with no path parameters and "
+                            + "no hubData, but route '" + route.id() + "' is not one");
+                }
+            });
+        }
     }
 
     private static void checkRoutes(ExtensionManifest manifest, List<String> problems) {

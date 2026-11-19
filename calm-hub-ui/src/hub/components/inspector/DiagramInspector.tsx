@@ -7,6 +7,7 @@ import { useExtensions, useExtensionsStatus } from '../../../extensions/Extensio
 import { resourceExtensions } from '../../../extensions/contributions.js';
 import { ExtensionInspector } from '../../../extensions/inspector/ExtensionInspector.js';
 import { inspectorViews } from '../../../extensions/inspector/inspectorViews.js';
+import { ChatEntryLink } from '../../../extensions/chat/ChatEntryLink.js';
 import { ElementDetails } from '../../../visualizer/components/sidebar/ElementDetails.js';
 import { isCALMNode } from '../../../visualizer/components/sidebar/calm-type-guards.js';
 import { CloseButton } from '../../../visualizer/components/sidebar/CloseButton.js';
@@ -127,6 +128,7 @@ export function DiagramInspector(props: DiagramInspectorProps) {
                 {open && (
                     <div id={inspectorPanelId('details')} role="region" aria-label="Details" hidden={tab !== 'details'} className="h-full">
                         {selected ? <ElementDetails key={selected['unique-id']} selectedData={selected} /> : <ResourceDetails data={data} displayName={displayName} dropped={!context} />}
+                        {context && <div className="px-4 pb-4"><ChatEntryLink context={context} className="btn btn-outline btn-sm gap-2" /></div>}
                     </div>
                 )}
                 {extensionPanel}

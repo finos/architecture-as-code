@@ -7,6 +7,7 @@ import { colors } from '../../../theme/colors.js';
 import { useExtensions } from '../../../extensions/ExtensionsContext.js';
 import { searchProviders } from '../../../extensions/contributions.js';
 import { ProviderResults } from './ProviderResults.js';
+import { SearchAnswer } from '../../../extensions/chat/SearchAnswer.js';
 
 interface SearchResultsPageProps {
     /** Injected for tests. */
@@ -61,7 +62,7 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
     const totalCount = results ? flattenResults(results).length : 0;
 
     return (
-        <div className="h-full overflow-auto bg-base-100" style={{ padding: '44px 48px' }}>
+        <div className="h-full overflow-auto bg-base-100 px-4 py-6 sm:px-12 sm:py-11">
             <div className="max-w-[880px] mx-auto flex flex-col gap-8">
                 <header>
                     <h1 className="text-[28px] font-bold" style={{ color: colors.redesign.ink }}>
@@ -80,6 +81,8 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                         </p>
                     )}
                 </header>
+
+                <SearchAnswer query={query} />
 
                 {!query && (
                     <p className="text-sm" style={{ color: colors.redesign.muted }}>

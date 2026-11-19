@@ -111,7 +111,8 @@ public class ExtensionHubData {
         return body.encode().getBytes(StandardCharsets.UTF_8);
     }
 
-    private Optional<JsonObject> read(String namespace, String resourceType, String id, String version) {
+    /** The document of an architecture or a pattern version, or empty when there is no such version. */
+    Optional<JsonObject> read(String namespace, String resourceType, String id, String version) {
         try {
             String text = switch (resourceType) {
                 case "architectures" -> architectures.getArchitectureForVersion(new Architecture.ArchitectureBuilder()

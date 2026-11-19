@@ -5,8 +5,8 @@ import { IntroBrowse } from './IntroBrowse.js';
 import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
 import { mockHeights, mockViewport } from '../../../test-support/layout-mocks.js';
 import { UiConfigContext } from '../../../components/ui-config/UiConfigContext.js';
-import { ExtensionsContext } from '../../../extensions/ExtensionsContext.js';
-import { fakeExtensions } from '../../../test-support/fake-extensions.js';
+import { ChatProviderContext, ExtensionsContext } from '../../../extensions/ExtensionsContext.js';
+import { fakeExtension, fakeExtensions } from '../../../test-support/fake-extensions.js';
 import { UiNavigation } from '../../../model/ui-config.js';
 
 const namespaceCounts: NamespaceCounts[] = [
@@ -105,6 +105,20 @@ describe('IntroBrowse', () => {
             fireEvent.click(screen.getByText('finos'));
             expect(screen.getByTestId('location')).toHaveTextContent('/namespace/finos');
         });
+    });
+
+    it('gives the selected chat provider a card with its chat link, also when it has no other page', () => {
+        render(
+            <MemoryRouter>
+                <ExtensionsContext.Provider value={[fakeExtension(1, ['chat']), fakeExtension(2, ['chat'])]}>
+                    <ChatProviderContext.Provider value={{ extension: 'ext-1', contribution: 'chat' }}>
+                        <IntroBrowse namespaceCounts={[]} domainCounts={[]} />
+                    </ChatProviderContext.Provider>
+                </ExtensionsContext.Provider>
+            </MemoryRouter>
+        );
+        expect(screen.getByRole('link', { name: 'chat 1' })).toHaveAttribute('href', '/chat');
+        expect(screen.queryByText('Extension 2')).not.toBeInTheDocument();
     });
 
     it('renders nothing when the catalogue is empty', () => {

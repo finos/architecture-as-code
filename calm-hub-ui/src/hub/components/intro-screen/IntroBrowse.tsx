@@ -5,7 +5,7 @@ import { CountBadge } from '../explore-rail/CountBadge.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useClampToggle } from '../show-more/useClampToggle.js';
 import { ShowMoreToggle } from '../show-more/ShowMoreToggle.js';
-import { useExtensions } from '../../../extensions/ExtensionsContext.js';
+import { useChatProvider, useExtensions } from '../../../extensions/ExtensionsContext.js';
 import { extensionNavLinks } from '../../../extensions/contributions.js';
 import { ExtensionCard } from './ExtensionCard.js';
 import { extensionsHeading, useNavigationSettings } from '../../../components/navigation/navigation-settings.js';
@@ -108,8 +108,9 @@ export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps)
     const navigation = useNavigationSettings();
     const namespaces = navigation.showNamespaces ? namespaceCounts : [];
     const domains = navigation.showControlDomains ? domainCounts : [];
+    const chat = useChatProvider();
     const extensions = useExtensions()
-        .map((extension) => ({ extension, links: extensionNavLinks(extension) }))
+        .map((extension) => ({ extension, links: extensionNavLinks(extension, chat) }))
         .filter(({ extension, links }) => (extension.contributes['landing-card'] ?? []).length > 0 || links.length > 0);
     if (namespaces.length === 0 && domains.length === 0 && extensions.length === 0) return null;
 

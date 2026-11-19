@@ -1,6 +1,6 @@
 import { ExtensionContext, ExtensionContribution, ExtensionSummary } from '../model/extensions.js';
 import { extensionRequest } from '../service/extension-service.js';
-import { screenRoutePath } from '../hub/routes.js';
+import { CHAT_PATH, screenRoutePath } from '../hub/routes.js';
 
 function canFill(extension: ExtensionSummary, contribution: ExtensionContribution, context: ExtensionContext): boolean {
     const route = extension.routes.find((entry) => entry.id === contribution.route);
@@ -113,7 +113,7 @@ export function extensionNavLinks(extension: ExtensionSummary, chat?: ChatSelect
         to: screenPath(extension, contribution),
     }));
     if (chat?.extension === extension.id) {
-        links.push({ key: `chat/${chat.contribution.id}`, title: chat.contribution.title, to: '/chat' });
+        links.push({ key: `chat/${chat.contribution.id}`, title: chat.contribution.title, to: CHAT_PATH });
     }
     return links;
 }
