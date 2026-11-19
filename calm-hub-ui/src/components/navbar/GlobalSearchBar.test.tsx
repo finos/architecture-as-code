@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { GlobalSearchBar } from './GlobalSearchBar.js';
 import { SearchService } from '../../service/search-service.js';
+import { CalmService } from '../../service/calm-service.js';
 import { GroupedSearchResults } from '../../model/search.js';
+import { RESOURCE_ROUTE } from '../../hub/routes.js';
+import { ReturnLink } from '../../navigation/ReturnLink.js';
+import { ReturnPointProvider } from '../../navigation/ReturnPointProvider.js';
 
 const emptyResults: GroupedSearchResults = {
     architectures: [],
@@ -433,6 +437,74 @@ describe('GlobalSearchBar', () => {
 
         expect(screen.getByText('Search failed, please try again')).toBeInTheDocument();
     });
+
+    // 1.10.0 is the latest version, so the result opens this same address. From 1.0.0 it opens 1.10.0, where a
+    // timeline can redirect back to 1.0.0, its current moment.
+    it.each(['1.10.0', '1.0.0'])(
+        'adds no return point for the resource on show at %s, and adds one for another resource',
+        async (version) => {
+            const platforms: GroupedSearchResults = {
+                ...emptyResults,
+                architectures: [
+                    { namespace: 'finos', id: 1, name: 'Payments platform', description: '' },
+                    { namespace: 'finos', id: 2, name: 'Trading platform', description: '' },
+                ],
+            };
+            const searchService = createMockSearchService(vi.fn().mockResolvedValue(platforms));
+            const calmService = { fetchArchitectureVersions: vi.fn().mockResolvedValue(['1.0.0', '1.10.0']) } as unknown as CalmService;
+            function ResourcePage() {
+                const { namespace, type, id, version } = useParams();
+                const location = useLocation();
+                return (
+                    <ReturnPointProvider
+                        page={{ kind: 'resource', namespace: namespace!, type: type!, id: id!, version: version! }}
+                        label={`Architecture ${id} ${version}`}
+                    >
+                        <GlobalSearchBar searchService={searchService} calmService={calmService} />
+                        <ReturnLink />
+                        <p data-testid="location" data-key={location.key}>
+                            {location.pathname}
+                        </p>
+                    </ReturnPointProvider>
+                );
+            }
+            render(
+                <MemoryRouter
+                    initialEntries={[
+                        {
+                            pathname: `/finos/architectures/1/${version}`,
+                            state: { returnTo: [{ page: { kind: 'search' }, search: '?q=payments', label: 'search results' }] },
+                        },
+                    ]}
+                >
+                    <Routes>
+                        <Route path={RESOURCE_ROUTE} element={<ResourcePage />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+            const choose = async (name: string) => {
+                await act(async () => {
+                    fireEvent.change(screen.getByPlaceholderText('Search CALM Hub...'), { target: { value: 'platform' } });
+                });
+                await act(async () => {
+                    await vi.advanceTimersByTimeAsync(300);
+                });
+                const before = screen.getByTestId('location').dataset.key;
+                await act(async () => {
+                    fireEvent.mouseDown(screen.getByRole('option', { name: new RegExp(name) }));
+                });
+                expect(screen.getByTestId('location').dataset.key).not.toBe(before);
+            };
+
+            await choose('Payments platform');
+            expect(screen.getByTestId('location')).toHaveTextContent('/finos/architectures/1/1.10.0');
+            expect(screen.getByRole('link', { name: 'Back to search results' })).toBeInTheDocument();
+
+            await choose('Trading platform');
+            expect(screen.getByTestId('location')).toHaveTextContent('/finos/architectures/2/1.10.0');
+            expect(screen.getByRole('link', { name: 'Back to Architecture 1 1.10.0' })).toBeInTheDocument();
+        }
+    );
 
     it('does not search when input is empty', async () => {
         const searchFn = vi.fn().mockResolvedValue(emptyResults);

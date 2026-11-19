@@ -15,7 +15,8 @@
     { "id": "releases", "method": "GET", "path": "/releases", "scope": "authenticated", "readOnly": true },
     { "id": "deployments", "method": "GET", "path": "/deployments", "scope": "authenticated", "readOnly": true },
     { "id": "log-release", "method": "POST", "path": "/forms/releases", "scope": "authenticated" },
-    { "id": "review-node", "method": "POST", "path": "/forms/reviews", "scope": "authenticated" }
+    { "id": "review-node", "method": "POST", "path": "/forms/reviews", "scope": "authenticated" },
+    { "id": "search", "method": "POST", "path": "/search", "scope": "authenticated", "readOnly": true }
   ],
   "commands": {
     "list-releases": {
@@ -78,6 +79,7 @@
         ]
       }
     ],
+    "search-provider": [ { "id": "releases", "title": "Releases", "route": "search" } ],
     "decorator-views": [
       {
         "id": "release-risk",
