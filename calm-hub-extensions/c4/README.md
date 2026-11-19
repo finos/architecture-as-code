@@ -22,7 +22,7 @@ Hub draws decorator badges on the C4 diagram from the `calm` ids of each element
 |---|---|---|
 | Person, software system, container, component | The CALM node | Those of the node, and of its `composed-of` and `deployed-in` relationships |
 | System or container boundary, enterprise boundary, deployment node | The CALM node | The same, on the group |
-| Relationship | Each CALM `connects` or `interacts` relationship that it merges or lifts, up to 32 | Those of each relationship, `error` and `warn` only |
+| Relationship | Each CALM `connects` or `interacts` relationship that it merges or lifts, up to 32 | Those of each relationship. Hub draws a badge only when one of them is `error` or `warn` |
 | Implicit software system | None | None. It is not a CALM node |
 
 A node of a detailed architecture is not a node of the open architecture, so it has no `calm` id. Its

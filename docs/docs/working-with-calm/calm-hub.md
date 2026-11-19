@@ -181,7 +181,7 @@ The legend at the bottom of the diagram lists each overlay that has decorators o
 
 An extension lens of an architecture, such as **C4** or **Layers**, draws the same overlays:
 
-* **Badges:** each element shows the badges of the CALM nodes or relationships that it stands for. An error also gives a node or a group a red outline, and a warning an amber one. A relationship shows a badge only for an error or a warning.
+* **Badges:** each element shows the badges of the CALM nodes or relationships that it stands for. An error also gives a node or a group a red outline, and a warning an amber one. A relationship shows the badge of an overlay only when one of its results is an error or a warning. The details of that badge also list its other results.
 * **Details:** click a badge to see up to five results, each with its status and any label or time. The details give the number of the others. For the full list, select **View all** in the legend, or the **View all** link under the results.
 * **Legend:** the legend is at the top left of the lens. It uses the choices that you make on the CALM diagram.
 * **Not shown:** when no element of the lens stands for a decorated node or relationship, a notice above the legend says so, for example "Deployments · Built-in: 1 decorated element is not shown." The lens does not move the badge to another element. A `deployed-in` or `composed-of` relationship counts as its container, as on the CALM diagram. To see the decorators, change the level or the view of the lens, or select **View all**.
@@ -292,10 +292,10 @@ A link in an extension can open an exact architecture version, with a node selec
 An extension can add a chat with an assistant. The operator chooses one [chat provider](../calm-hub/extension-points.md#chat) for the CALM Hub. With no chat provider, the UI shows no chat.
 
 * **Chat page:** the side menu, the home page card of the extension and the **Details** view of the inspector link to the chat page, `/chat`, with the name that the extension gives its chat. The operator can also make it the start page. Type a question and select **Send**. **Stop** ends a reply and keeps its text. **Retry** sends the question again after a reply that stopped or failed. The links under a reply are its sources. A link to a CALM Hub page shows **Back to** the chat on that page.
-* **Share an architecture:** when you open the chat from an architecture or a pattern, tick **Share** to send that version, and the selected node, with your messages. The box starts clear. Without it, the provider gets only your messages.
+* **Share an architecture:** when you open the chat from the **Details** view of an architecture or a pattern, tick **Share** to send that version, and the selected node, with your messages. The box starts clear. Without it, the provider gets only your messages.
 * **Search page:** when you submit a search, CALM Hub also sends the query, and nothing else, to the chat provider. The search box names the provider while you type, and sends nothing to the chat provider until you submit. **Assistant answer** shows above the results, which do not wait for it. You can ask a follow-up there. A new search starts a new conversation.
-* **Search links:** only a fresh search URL with a query sends the query without a submit, for example when you open the link in a new tab or reload the page. When the tab already has a conversation or a draft, CALM Hub sends nothing: they stay when you come back to a search. If the conversation is not from that search, select **Ask** to send the query.
-* **Your data:** the conversation stays in the browser tab until you select **New conversation** or reload the page. CALM Hub does not store it. The provider can have charges, and can keep the messages under its own retention policy.
+* **Search links:** a search URL asks the assistant only in a tab that has started no conversation since it loaded and has no draft, such as a new tab or a reloaded page. In another tab, CALM Hub sends nothing, also after **New conversation**, and the conversation and the draft stay. When the search page does not show the answer for its query, select **Ask &lt;provider&gt;** to send the query.
+* **Your data:** the conversation stays in the browser tab until you select **New conversation**, submit a search, or reload the page. CALM Hub does not store it. The provider can have charges, and can keep the messages under its own retention policy.
 
 ---
 

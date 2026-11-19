@@ -65,7 +65,7 @@ of the architecture, such as deployments and control evaluations.
 | Element | Shows the decorators of |
 |:--|:--|
 | Element, or the container around its parts | Its CALM node. A container also shows those of its `composed-of` and `deployed-in` relationships |
-| Serving or access relationship | Its CALM `connects` or `interacts` relationship, errors and warnings only |
+| Serving or access relationship | Its CALM `connects` or `interacts` relationship. It shows a badge only when the relationship has an error or a warning |
 | Composition or assignment relationship | None. They show on the container |
 | Layer | None. It is not a CALM node |
 

@@ -46,7 +46,7 @@ Hub draws decorator badges on the diagram from the `calm` ids of each element (s
 | Element | `calm` ids | Decorators that show on it |
 |---|---|---|
 | Element, or the container group of the application cooperation view | The CALM node | Those of the node, and of its `composed-of` and `deployed-in` relationships |
-| Serving or access relationship | The CALM `connects` or `interacts` relationship | Those of the relationship, `error` and `warn` only |
+| Serving or access relationship | The CALM `connects` or `interacts` relationship | Those of the relationship. Hub draws a badge only when one of them is `error` or `warn` |
 | Composition or assignment relationship | The CALM `composed-of` or `deployed-in` relationship | None. Hub shows them on the container |
 | Layer | None | None. It is not a CALM node |
 
