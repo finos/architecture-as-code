@@ -1,8 +1,10 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistryLookup;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.sync.GitHubCloneManager;
@@ -64,10 +66,9 @@ abstract class AbstractReadOnlyGitHubStore extends AbstractGitHubStore {
      * caller supplies its own typed {@code *NotFoundException} via
      * {@code .orElseThrow(XNotFoundException::new)}.
      */
-    Optional<RegistryEntry> findEntry(String namespace, RegistryResourceType type, int id) {
-        return registryService.listByType(namespace, type).stream()
-                .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == id)
-                .findFirst();
+    Optional<RegistryEntry> findEntry(String namespace, RegistryResourceType type, GitHubResourceId id) {
+        return Optional.ofNullable(RegistryLookup.singleOrNull(
+                registryService.find(namespace, type, id.name(), id.path(), id.variant())));
     }
 
     /**

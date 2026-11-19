@@ -1,5 +1,6 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -78,11 +79,10 @@ class TestAbstractReadOnlyGitHubStoreShould {
     }
 
     @Test
-    void find_an_entry_by_its_hashed_id() {
-        int id = "my-pattern".hashCode() & 0x7FFFFFFF;
-        when(registryService.listByType(NAMESPACE, RegistryResourceType.PATTERN)).thenReturn(List.of(ENTRY));
+    void find_an_entry_by_its_stem() {
+        when(registryService.find(NAMESPACE, RegistryResourceType.PATTERN, "my-pattern", null, null)).thenReturn(List.of(ENTRY));
 
-        Optional<RegistryEntry> found = store.findEntry(NAMESPACE, RegistryResourceType.PATTERN, id);
+        Optional<RegistryEntry> found = store.findEntry(NAMESPACE, RegistryResourceType.PATTERN, new GitHubResourceId("my-pattern", null, null));
 
         assertThat(found.isPresent(), is(true));
         assertThat(found.get(), equalTo(ENTRY));
@@ -90,9 +90,9 @@ class TestAbstractReadOnlyGitHubStoreShould {
 
     @Test
     void return_empty_when_no_entry_matches_the_id() {
-        when(registryService.listByType(NAMESPACE, RegistryResourceType.PATTERN)).thenReturn(List.of(ENTRY));
+        when(registryService.find(NAMESPACE, RegistryResourceType.PATTERN, "missing", null, null)).thenReturn(List.of());
 
-        Optional<RegistryEntry> found = store.findEntry(NAMESPACE, RegistryResourceType.PATTERN, 99999);
+        Optional<RegistryEntry> found = store.findEntry(NAMESPACE, RegistryResourceType.PATTERN, new GitHubResourceId("missing", null, null));
 
         assertThat(found.isPresent(), is(false));
     }

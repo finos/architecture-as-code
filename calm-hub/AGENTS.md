@@ -497,6 +497,12 @@ from; it fails if there is none.
   `TestExtensionFormsShould` against Hub
 - `ExtensionFormResource` sets `Calm-Extension-Dispatch` on each reply: `not-sent`, `sent`, or `unknown` (a proxy
   502 or 504). The UI reads only the header to tell a Hub refusal from a backend reply, so keep it on every path
+- `ExtensionSearch` (endpoint `ExtensionSearchResource`, a `GET`, so no read-only exemption) owns the search
+  contract: it copies only known fields, READ-checks each namespace a result names (`namespace`, `hub.namespace`,
+  `screen.context.namespace`) and drops `next` when it filtered out a whole page. Route scope alone does not show
+  what the caller may see. It refuses a reply whose `next` makes the request for the next page longer than
+  `MAX_REQUEST_LINE` (3584 bytes, under the HTTP server's 4096-byte request line), so the UI can always send a
+  cursor back; it counts a byte that can be percent-encoded as three. Its route is also in `dedicatedRoutes()`
 - `ExtensionIdentitySigner` signs with the JDK, not a JWT library. `ExtensionAssertionRejectingMechanism`
   refuses a bearer token with `typ: calm-ext+jwt` in every auth mode, and sends the 401 challenge for it itself, so
   that an OIDC provider that is down cannot make it a 500

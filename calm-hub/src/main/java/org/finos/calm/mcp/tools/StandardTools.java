@@ -162,7 +162,7 @@ public class StandardTools {
             String existingDescription = null;
             boolean standardFound = false;
             for (NamespaceResourceSummary s : standards) {
-                if (Objects.equals(s.getId(), standardId)) {
+                if (Objects.equals(s.getId(), String.valueOf(standardId))) {
                     existingName = s.getName();
                     existingDescription = s.getDescription();
                     standardFound = true;

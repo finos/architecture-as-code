@@ -1,5 +1,11 @@
 package org.finos.calm.resources;
 
+import jakarta.validation.Valid;
+
+import org.finos.calm.resources.params.IdParam;
+import org.finos.calm.services.ResourceIdResolver;
+import org.finos.calm.domain.ResourceId;
+
 import io.quarkus.security.PermissionsAllowed;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
@@ -39,9 +45,12 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * Resource for managing decorators in a given namespace
  */
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 public class DecoratorResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private static final String BAD_DECORATOR = "The JSON does not parse, a field that Hub reads has the wrong type, the body sends a "
             + "Hub-owned field, the decorator does not match a $schema that Hub knows, or the store cannot keep a key of the "
@@ -136,8 +145,13 @@ public class DecoratorResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getDecoratorById(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id
+            @Valid @BeanParam IdParam idParam
     ) {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
+        if (!resourceIdResolver.isGitHub() && id <= 0) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("ID must be a positive integer").build();
+        }
         try {
             return decoratorStore.getDecoratorById(namespace, id)
                     .map(decorator -> Response.ok(decorator).build())
@@ -165,8 +179,13 @@ public class DecoratorResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getDecoratorHistory(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id
+            @Valid @BeanParam IdParam idParam
     ) {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
+        if (!resourceIdResolver.isGitHub() && id <= 0) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("ID must be a positive integer").build();
+        }
         try {
             return Response.ok(new ValueWrapper<>(decoratorStore.getDecoratorHistory(namespace, id))).build();
         } catch (DecoratorNotFoundException e) {
@@ -264,9 +283,14 @@ public class DecoratorResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateDecoratorForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id,
+            @Valid @BeanParam IdParam idParam,
             String decoratorJson
     ) throws URISyntaxException {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
+        if (!resourceIdResolver.isGitHub() && id <= 0) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("ID must be a positive integer").build();
+        }
         try {
             int currentId = decoratorWriteService.updateDecorator(DecoratorWriteService.principalName(identity), namespace, id, decoratorJson);
             if (currentId == id) {
@@ -326,8 +350,13 @@ public class DecoratorResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deleteDecoratorForNamespace(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id
+            @Valid @BeanParam IdParam idParam
     ) {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
+        if (!resourceIdResolver.isGitHub() && id <= 0) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("ID must be a positive integer").build();
+        }
         try {
             decoratorWriteService.deleteDecorator(namespace, id);
         } catch (DecoratorNotFoundException e) {

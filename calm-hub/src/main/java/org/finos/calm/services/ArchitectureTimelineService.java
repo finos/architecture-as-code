@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
@@ -110,7 +111,7 @@ public class ArchitectureTimelineService {
             try {
                 Timeline base = new Timeline.TimelineBuilder()
                         .setNamespace(namespace)
-                        .setId(summary.getId())
+                        .setId(ResourceIds.parseNumeric(summary.getId()))
                         .build();
 
                 List<String> versions = timelineStore.getTimelineVersions(base);
@@ -121,7 +122,7 @@ public class ArchitectureTimelineService {
                 String latest = ResourceVersion.latestRelease(orderVersions(versions));
                 Timeline versioned = new Timeline.TimelineBuilder()
                         .setNamespace(namespace)
-                        .setId(summary.getId())
+                        .setId(ResourceIds.parseNumeric(summary.getId()))
                         .setVersion(latest)
                         .build();
 

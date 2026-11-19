@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -32,7 +31,6 @@ class TestGitHubResourceMappingStoreShould {
 
     private static final String NAMESPACE = "finos";
     private static final String UNIQUE_ID = "my-architecture";
-    private static final int NUMERIC_ID = UNIQUE_ID.hashCode() & 0x7FFFFFFF;
 
     @Mock
     private ResourceRegistry registryService;
@@ -47,21 +45,21 @@ class TestGitHubResourceMappingStoreShould {
     @Test
     void return_mapping_when_entry_exists_in_registry() throws Exception {
         RegistryEntry entry = createEntry(UNIQUE_ID, RegistryResourceType.ARCHITECTURE);
-        setupNamespaceWithEntry(entry);
-        when(registryService.findByUniqueId(NAMESPACE, UNIQUE_ID)).thenReturn(Optional.of(entry));
+        setupNamespace();
+        when(registryService.find(NAMESPACE, RegistryResourceType.ARCHITECTURE, UNIQUE_ID, null, null))
+                .thenReturn(List.of(entry));
 
         ResourceMapping mapping = store.getMapping(NAMESPACE, ResourceType.ARCHITECTURE, UNIQUE_ID);
 
         assertThat(mapping.getNamespace(), equalTo(NAMESPACE));
         assertThat(mapping.getCustomId(), equalTo(UNIQUE_ID));
         assertThat(mapping.getResourceType(), equalTo(ResourceType.ARCHITECTURE));
-        assertThat(mapping.getNumericId(), equalTo(NUMERIC_ID));
+        assertThat(mapping.getNumericId(), equalTo(ResourceMapping.NO_NUMERIC_ID));
     }
 
     @Test
     void throw_mapping_not_found_when_entry_missing() {
         setupNamespace();
-        when(registryService.findByUniqueId(NAMESPACE, "nonexistent")).thenReturn(Optional.empty());
 
         assertThrows(MappingNotFoundException.class,
                 () -> store.getMapping(NAMESPACE, ResourceType.ARCHITECTURE, "nonexistent"));
@@ -69,9 +67,9 @@ class TestGitHubResourceMappingStoreShould {
 
     @Test
     void throw_mapping_not_found_when_type_mismatch() {
-        RegistryEntry entry = createEntry(UNIQUE_ID, RegistryResourceType.PATTERN);
-        setupNamespaceWithEntry(entry);
-        when(registryService.findByUniqueId(NAMESPACE, UNIQUE_ID)).thenReturn(Optional.of(entry));
+        setupNamespace();
+        when(registryService.find(NAMESPACE, RegistryResourceType.ARCHITECTURE, UNIQUE_ID, null, null))
+                .thenReturn(List.of());
 
         assertThrows(MappingNotFoundException.class,
                 () -> store.getMapping(NAMESPACE, ResourceType.ARCHITECTURE, UNIQUE_ID));
@@ -111,41 +109,21 @@ class TestGitHubResourceMappingStoreShould {
     }
 
     @Test
-    void get_mapping_by_numeric_id() throws Exception {
-        RegistryEntry entry = createEntry(UNIQUE_ID, RegistryResourceType.ARCHITECTURE);
+    void throw_mapping_not_found_for_any_numeric_id() {
         setupNamespace();
-        when(registryService.listByType(NAMESPACE, RegistryResourceType.ARCHITECTURE))
-                .thenReturn(List.of(entry));
-
-        ResourceMapping mapping = store.getMappingByNumericId(NAMESPACE, ResourceType.ARCHITECTURE, NUMERIC_ID);
-
-        assertThat(mapping.getCustomId(), equalTo(UNIQUE_ID));
-        assertThat(mapping.getNumericId(), equalTo(NUMERIC_ID));
-    }
-
-    @Test
-    void throw_mapping_not_found_for_unknown_numeric_id() {
-        setupNamespace();
-        when(registryService.listByType(NAMESPACE, RegistryResourceType.ARCHITECTURE)).thenReturn(List.of());
 
         assertThrows(MappingNotFoundException.class,
-                () -> store.getMappingByNumericId(NAMESPACE, ResourceType.ARCHITECTURE, 99999));
+                () -> store.getMappingByNumericId(NAMESPACE, ResourceType.ARCHITECTURE, 1));
     }
 
     @Test
-    void list_mappings_by_numeric_ids() throws Exception {
-        RegistryEntry entry1 = createEntry("arch-one", RegistryResourceType.ARCHITECTURE);
-        RegistryEntry entry2 = createEntry("arch-two", RegistryResourceType.ARCHITECTURE);
+    void return_empty_list_for_any_numeric_ids() throws Exception {
         setupNamespace();
-        when(registryService.listByType(NAMESPACE, RegistryResourceType.ARCHITECTURE))
-                .thenReturn(List.of(entry1, entry2));
 
-        int id1 = "arch-one".hashCode() & 0x7FFFFFFF;
         List<ResourceMapping> mappings = store.listMappingsByNumericIds(
-                NAMESPACE, ResourceType.ARCHITECTURE, List.of(id1));
+                NAMESPACE, ResourceType.ARCHITECTURE, List.of(1));
 
-        assertThat(mappings, hasSize(1));
-        assertThat(mappings.get(0).getCustomId(), equalTo("arch-one"));
+        assertThat(mappings, hasSize(0));
     }
 
     @Test
@@ -199,13 +177,6 @@ class TestGitHubResourceMappingStoreShould {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of(NAMESPACE, List.of()),
                 Map.of());
-        when(registryService.getSnapshot()).thenReturn(snapshot);
-    }
-
-    private void setupNamespaceWithEntry(RegistryEntry entry) {
-        RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(NAMESPACE, List.of(entry)),
-                Map.of(NAMESPACE + ":" + entry.uniqueId(), entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
     }
 }

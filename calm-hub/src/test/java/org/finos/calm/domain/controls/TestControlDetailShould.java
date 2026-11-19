@@ -17,7 +17,7 @@ public class TestControlDetailShould {
     @Test
     public void test_parameterized_constructor() {
         ControlDetail detail = new ControlDetail(1, "Test Control", "Test Description");
-        assertEquals(1, detail.getId());
+        assertEquals("1", detail.getId());
         assertEquals("Test Control", detail.getName());
         assertEquals("Test Description", detail.getDescription());
     }
@@ -29,7 +29,7 @@ public class TestControlDetailShould {
         detail.setName("My Control");
         detail.setDescription("My Description");
 
-        assertEquals(42, detail.getId());
+        assertEquals("42", detail.getId());
         assertEquals("My Control", detail.getName());
         assertEquals("My Description", detail.getDescription());
     }

@@ -75,7 +75,7 @@ public class TestSearchResourceShould {
     @Test
     void return_grouped_results_for_valid_query() {
         GroupedSearchResults results = new GroupedSearchResults(
-                List.of(new SearchResult("finos", 1, "Test Architecture", "A test architecture")),
+                List.of(new SearchResult("finos", "1", "Test Architecture", "A test architecture")),
                 List.of(),
                 List.of(),
                 List.of(),
@@ -95,7 +95,7 @@ public class TestSearchResourceShould {
                 .body("architectures", hasSize(1))
                 .body("architectures[0].name", equalTo("Test Architecture"))
                 .body("architectures[0].namespace", equalTo("finos"))
-                .body("architectures[0].id", equalTo(1))
+                .body("architectures[0].id", equalTo("1"))
                 .body("patterns", hasSize(0))
                 .body("flows", hasSize(0))
                 .body("standards", hasSize(0))
@@ -134,12 +134,12 @@ public class TestSearchResourceShould {
     @Test
     void return_results_from_multiple_resource_types() {
         GroupedSearchResults results = new GroupedSearchResults(
-                List.of(new SearchResult("finos", 1, "Demo Architecture", "demo desc")),
-                List.of(new SearchResult("finos", 2, "Demo Pattern", "pattern desc")),
-                List.of(new SearchResult("finos", 3, "Demo Flow", "flow desc")),
+                List.of(new SearchResult("finos", "1", "Demo Architecture", "demo desc")),
+                List.of(new SearchResult("finos", "2", "Demo Pattern", "pattern desc")),
+                List.of(new SearchResult("finos", "3", "Demo Flow", "flow desc")),
                 List.of(),
                 List.of(),
-                List.of(new SearchResult("api-threats", 1, "Demo Control", "control desc")),
+                List.of(new SearchResult("api-threats", "1", "Demo Control", "control desc")),
                 List.of()
         );
 

@@ -1,5 +1,9 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.resources.params.TimelineIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -35,9 +39,12 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * Resource for managing explicit timelines in a given namespace.
  */
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 public class TimelineResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final TimelineStore store;
     private final CustomIdEnrichmentService customIds;
@@ -110,15 +117,17 @@ public class TimelineResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getTimelineVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("timelineId") int timelineId
+            @Valid @BeanParam TimelineIdParam timelineIdParam
     ) {
+        ResourceId resourceId = timelineIdParam.toResourceId(resourceIdResolver);
+        int timelineId = resourceIdResolver.numericForWrite(resourceId);
         Timeline timeline = new Timeline.TimelineBuilder()
                 .setNamespace(namespace)
                 .setId(timelineId)
                 .build();
 
         try {
-            return Response.ok(new ValueWrapper<>(store.getTimelineVersions(timeline))).build();
+            return Response.ok(new ValueWrapper<>(store.getTimelineVersions(namespace, resourceId))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting versions of timeline", timeline, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -138,9 +147,11 @@ public class TimelineResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("timelineId") int timelineId,
+            @Valid @BeanParam TimelineIdParam timelineIdParam,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
+        ResourceId resourceId = timelineIdParam.toResourceId(resourceIdResolver);
+        int timelineId = resourceIdResolver.numericForWrite(resourceId);
         Timeline timeline = new Timeline.TimelineBuilder()
                 .setNamespace(namespace)
                 .setId(timelineId)
@@ -148,7 +159,7 @@ public class TimelineResource {
                 .build();
 
         try {
-            return Response.ok(store.getTimelineForVersion(timeline)).build();
+            return Response.ok(store.getTimelineForVersion(namespace, resourceId, version)).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting a timeline", timeline, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -172,10 +183,12 @@ public class TimelineResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createVersionedTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("timelineId") int timelineId,
+            @Valid @BeanParam TimelineIdParam timelineIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             @Valid @NotNull(message = "Request must not be null") CreateTimelineRequest timelineRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = timelineIdParam.toResourceId(resourceIdResolver);
+        int timelineId = resourceIdResolver.numericForWrite(resourceId);
         Timeline timeline = new Timeline.TimelineBuilder()
                 .setNamespace(namespace)
                 .setId(timelineId)
@@ -214,10 +227,12 @@ public class TimelineResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateVersionedTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("timelineId") int timelineId,
+            @Valid @BeanParam TimelineIdParam timelineIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             @Valid @NotNull(message = "Request must not be null") CreateTimelineRequest timelineRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = timelineIdParam.toResourceId(resourceIdResolver);
+        int timelineId = resourceIdResolver.numericForWrite(resourceId);
         Timeline timeline = new Timeline.TimelineBuilder()
                 .setNamespace(namespace)
                 .setId(timelineId)
@@ -256,8 +271,10 @@ public class TimelineResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deleteTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("timelineId") int timelineId
+            @Valid @BeanParam TimelineIdParam timelineIdParam
     ) {
+        ResourceId resourceId = timelineIdParam.toResourceId(resourceIdResolver);
+        int timelineId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deleteTimeline(namespace, timelineId);
         } catch (NamespaceNotFoundException e) {

@@ -117,7 +117,7 @@ public class MongoSearchStore implements SearchStore {
             if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
                 results.add(new SearchResult(
                         namespace,
-                        id,
+                        String.valueOf(id),
                         SearchTextMatcher.nullToEmpty(name),
                         SearchTextMatcher.nullToEmpty(description)
                 ));
@@ -159,7 +159,7 @@ public class MongoSearchStore implements SearchStore {
             }
 
             if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
-                results.add(new SearchResult(namespace, adrId, title, ""));
+                results.add(new SearchResult(namespace, String.valueOf(adrId), title, ""));
             }
         }
 

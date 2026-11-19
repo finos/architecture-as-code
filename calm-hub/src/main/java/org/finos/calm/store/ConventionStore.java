@@ -1,5 +1,7 @@
 package org.finos.calm.store;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.conventions.ConventionDefault;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.CreateConventionRequest;
@@ -32,6 +34,16 @@ public interface ConventionStore {
 
     String getConventionForVersion(String namespace, ConventionType type, int id, String version)
             throws NamespaceNotFoundException, ConventionNotFoundException, ConventionVersionNotFoundException;
+
+    default List<String> getConventionVersions(String namespace, ConventionType type, ResourceId id)
+            throws NamespaceNotFoundException, ConventionNotFoundException {
+        return getConventionVersions(namespace, type, ResourceIds.numeric(id));
+    }
+
+    default String getConventionForVersion(String namespace, ConventionType type, ResourceId id, String version)
+            throws NamespaceNotFoundException, ConventionNotFoundException, ConventionVersionNotFoundException {
+        return getConventionForVersion(namespace, type, ResourceIds.numeric(id), version);
+    }
 
     void createConventionForVersion(CreateConventionRequest request, String namespace, ConventionType type, int id, String version)
             throws NamespaceNotFoundException, ConventionNotFoundException, ConventionVersionExistsException;

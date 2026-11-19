@@ -109,7 +109,7 @@ class TestMongoConventionStoreShould {
         doAnswer(forEach(header)).when(headerFind).forEach(any());
         doAnswer(forEach(new Document("version", "1.0.0"))).when(versionFind).forEach(any());
 
-        assertThat(store.getConventionsForNamespace("finos", C4).get(0).getId(), is(7));
+        assertThat(store.getConventionsForNamespace("finos", C4).get(0).getId(), is("7"));
         assertThat(store.getConventionVersions("finos", C4, 7), contains("1.0.0"));
         assertThat(Document.parse(store.getConventionForVersion("finos", C4, 7, "1.0.0")).getString("unique-id"), is("acme"));
         ArgumentCaptor<Bson> listFilter = ArgumentCaptor.forClass(Bson.class);

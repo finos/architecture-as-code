@@ -1,4 +1,8 @@
 package org.finos.calm.store.github;
+import org.finos.calm.domain.Tags;
+import org.finos.calm.domain.GitHubResourceId;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
 
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 
@@ -51,7 +55,7 @@ public class GitHubFlowStore extends AbstractReadOnlyGitHubStore implements Flow
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.FLOW);
         return entries.stream()
-                .map(e -> new NamespaceResourceSummary(e.name(), null, (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
+                .map(e -> new NamespaceResourceSummary(e.name(), null, Tags.of(e.path(), e.variant()), e.stem(), 0))
                 .toList();
     }
 
@@ -62,19 +66,30 @@ public class GitHubFlowStore extends AbstractReadOnlyGitHubStore implements Flow
 
     @Override
     public List<String> getFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        verifyNamespace(flow.getNamespace());
-        RegistryEntry entry = findEntry(flow.getNamespace(), RegistryResourceType.FLOW, flow.getId())
-                .orElseThrow(FlowNotFoundException::new);
-        return getVersions(flow.getNamespace(), entry);
+        return getFlowVersions(flow.getNamespace(), new GitHubResourceId(flow.getName(), null, null));
     }
 
     @Override
     public String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
-        verifyNamespace(flow.getNamespace());
-        RegistryEntry entry = findEntry(flow.getNamespace(), RegistryResourceType.FLOW, flow.getId())
+        return getFlowForVersion(flow.getNamespace(),
+                new GitHubResourceId(flow.getName(), null, null), flow.getDotVersion());
+    }
+
+    @Override
+    public List<String> getFlowVersions(String namespace, ResourceId id) throws NamespaceNotFoundException, FlowNotFoundException {
+        verifyNamespace(namespace);
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.FLOW, ResourceIds.github(id))
+                .orElseThrow(FlowNotFoundException::new);
+        return getVersions(namespace, entry);
+    }
+
+    @Override
+    public String getFlowForVersion(String namespace, ResourceId id, String version) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
+        verifyNamespace(namespace);
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.FLOW, ResourceIds.github(id))
                 .orElseThrow(FlowNotFoundException::new);
         try {
-            return readAtVersion(flow.getNamespace(), entry, flow.getDotVersion())
+            return readAtVersion(namespace, entry, version)
                     .orElseThrow(FlowVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read flow file: {}", entry.filePath(), e);

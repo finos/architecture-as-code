@@ -38,6 +38,17 @@ public class CalmResourceErrorResponses {
         return Response.status(Response.Status.BAD_REQUEST).entity("The " + resourceType + " JSON could not be parsed").build();
     }
 
+    /**
+     * Returns a 400 response for a resource id that cannot be resolved for the active storage mode.
+     * The message is sanitised because it may quote a path parameter supplied by the caller.
+     */
+    public static Response invalidResourceIdResponse(String message) {
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Invalid resource id: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(message == null ? "" : message))
+                .build();
+    }
+
     public static Response decoratorNotFoundResponse(String namespace, int id) {
         return Response.status(Response.Status.NOT_FOUND).entity("Decorator with ID " + id + " does not exist in namespace: " + namespace).build();
     }

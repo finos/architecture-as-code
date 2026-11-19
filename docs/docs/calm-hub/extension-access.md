@@ -110,6 +110,15 @@ reads data with a service account, return only what `sub` may see in `ns`.
 With `calm.auth.allow-public-read=true`, each signed-in user can read every namespace. Thus on a
 `read` route, `ns` does not mean that `sub` has a grant on the namespace.
 
+A [`search-provider`](extension-points.md#search-provider) route has no path parameters, so the
+scope check does not show which records the caller may see. The provider and CALM Hub share the
+check:
+
+| Who | Checks |
+|---|---|
+| The provider | Returns only the records that `sub` may see. This is the only check for a record with no `namespace`, such as an external record |
+| CALM Hub | Leaves out each result whose `namespace`, `hub.namespace` or `screen.context.namespace` the caller cannot read, before any title, summary or count leaves CALM Hub |
+
 ### Write the routes
 
 - A `GET` route must change nothing, also when it is not `readOnly`. Use `POST`, `PUT`, `PATCH` or

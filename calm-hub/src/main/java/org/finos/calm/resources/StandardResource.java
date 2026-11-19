@@ -1,6 +1,12 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.resources.params.StandardIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+
 import io.quarkus.security.PermissionsAllowed;
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -26,9 +32,12 @@ import java.net.URISyntaxException;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
 
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 public class StandardResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final StandardStore standardStore;
     private final CustomIdEnrichmentService customIds;
@@ -82,10 +91,12 @@ public class StandardResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getStandardVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("standardId") Integer standardId
+            @Valid @BeanParam StandardIdParam standardIdParam
     ) {
+        ResourceId resourceId = standardIdParam.toResourceId(resourceIdResolver);
+        int standardId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(new ValueWrapper<>(standardStore.getStandardVersions(namespace, standardId))).build();
+            return Response.ok(new ValueWrapper<>(standardStore.getStandardVersions(namespace, resourceId))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving standard versions", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -101,11 +112,13 @@ public class StandardResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getStandardForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("standardId") Integer standardId,
+            @Valid @BeanParam StandardIdParam standardIdParam,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
+        ResourceId resourceId = standardIdParam.toResourceId(resourceIdResolver);
+        int standardId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(standardStore.getStandardForVersion(namespace, standardId, version)).build();
+            return Response.ok(standardStore.getStandardForVersion(namespace, resourceId, version)).build();
         } catch (StandardNotFoundException e) {
             logger.error("Invalid standard [{}] when retrieving standard versions", standardId, e);
             return invalidStandardResponse(standardId);
@@ -125,10 +138,12 @@ public class StandardResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createStandardForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("standardId") Integer standardId,
+            @Valid @BeanParam StandardIdParam standardIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             CreateStandardRequest createStandardRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = standardIdParam.toResourceId(resourceIdResolver);
+        int standardId = resourceIdResolver.numericForWrite(resourceId);
 
         try {
             standardStore.createStandardForVersion(createStandardRequest, namespace, standardId, version);
@@ -151,8 +166,10 @@ public class StandardResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deleteStandard(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("standardId") Integer standardId
+            @Valid @BeanParam StandardIdParam standardIdParam
     ) {
+        ResourceId resourceId = standardIdParam.toResourceId(resourceIdResolver);
+        int standardId = resourceIdResolver.numericForWrite(resourceId);
         try {
             standardStore.deleteStandard(namespace, standardId);
         } catch (NamespaceNotFoundException e) {

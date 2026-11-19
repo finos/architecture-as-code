@@ -10,16 +10,26 @@ import java.util.Objects;
  */
 @RegisterForReflection
 public class ResourceMapping {
+    /**
+     * Sentinel used by GitHub mappings, which have no numeric id. The field stays a primitive
+     * {@code int} so internal numeric call sites cannot unbox {@code null}; GitHub stores ignore it.
+     */
+    public static final int NO_NUMERIC_ID = 0;
+
     private final String namespace;
     private final String customId;
     private final ResourceType resourceType;
     private final int numericId;
+    private final String path;
+    private final String variant;
 
     private ResourceMapping(ResourceMappingBuilder builder) {
         this.namespace = builder.namespace;
         this.customId = builder.customId;
         this.resourceType = builder.resourceType;
         this.numericId = builder.numericId;
+        this.path = builder.path;
+        this.variant = builder.variant;
     }
 
     public String getNamespace() {
@@ -36,6 +46,14 @@ public class ResourceMapping {
 
     public int getNumericId() {
         return numericId;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public String getVariant() {
+        return variant;
     }
 
     @Override
@@ -69,6 +87,8 @@ public class ResourceMapping {
         private String customId;
         private ResourceType resourceType;
         private int numericId;
+        private String path;
+        private String variant;
 
         public ResourceMappingBuilder setNamespace(String namespace) {
             this.namespace = namespace;
@@ -87,6 +107,16 @@ public class ResourceMapping {
 
         public ResourceMappingBuilder setNumericId(int numericId) {
             this.numericId = numericId;
+            return this;
+        }
+
+        public ResourceMappingBuilder setPath(String path) {
+            this.path = path;
+            return this;
+        }
+
+        public ResourceMappingBuilder setVariant(String variant) {
+            this.variant = variant;
             return this;
         }
 

@@ -812,6 +812,29 @@ class TestExtensionProxyServiceShould {
         assertThat(assertion.get("htp").asText(), is("/services/bob%3Ateam"));
     }
 
+    @Test
+    void call_a_dedicated_route_only_from_its_own_endpoint() throws IOException {
+        ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
+                MANIFEST.routes(), null, new ExtensionManifest.Contributions(null, null, null, null, null,
+                List.of(new ExtensionManifest.RouteContribution("services", "Services", "search")), null, null, null, null));
+        when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
+                Optional.of(backend.url("/base")), limits(1024, 1024, Duration.ofSeconds(5)))));
+
+        ExtensionProxyException generic = assertThrows(ExtensionProxyException.class,
+                () -> service.call(alice, request("POST", "/search", null, "{}")));
+        assertThat(generic.status(), is(404));
+        assertThat(generic.getMessage(), is("Call this extension route through its CALM Hub endpoint"));
+        assertThat(assertThrows(ExtensionProxyException.class,
+                () -> service.checkAccess(alice, request("POST", "/search", null, "{}"))).status(), is(404));
+        // A dedicated endpoint reaches only its own route.
+        assertThat(assertThrows(ExtensionProxyException.class,
+                () -> service.callDedicated(alice, request("GET", "/screen", null, null), "search", null)).status(), is(404));
+        assertThat(backend.received(), nullValue());
+
+        assertThat(service.callDedicated(alice, request("POST", "/search", null, "{}"), "search", null).status(), is(200));
+        assertThat(claims(backend.received().header("X-Calm-Hub-Identity")).get("route").asText(), is("search"));
+    }
+
     private void register_service_routes() {
         ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
                 List.of(new Route("service", "GET", "/services/{service}", "authenticated", false),

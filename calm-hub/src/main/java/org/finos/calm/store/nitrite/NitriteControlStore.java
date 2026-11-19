@@ -5,6 +5,7 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.dizitart.no2.Nitrite;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -76,7 +77,7 @@ public class NitriteControlStore implements ControlStore {
 
         List<ControlDetail> result = new ArrayList<>();
         for (NamespaceResourceSummary summary : requirementStore.listSummariesPaged(domain, PageRequest.UNPAGED)) {
-            String title = titleFromJsonString(requirementStore.getLatestVersionContent(domain, summary.getId()));
+            String title = titleFromJsonString(requirementStore.getLatestVersionContent(domain, ResourceIds.parseNumeric(summary.getId())));
             result.add(new ControlDetail(summary.getId(), summary.getName(), summary.getDescription(), title));
         }
         return result;
@@ -131,7 +132,7 @@ public class NitriteControlStore implements ControlStore {
         List<Integer> configIds = new ArrayList<>();
         for (NamespaceResourceSummary summary
                 : configurationStore.listSummariesPaged(configurationNamespace(domain, controlId), PageRequest.UNPAGED)) {
-            configIds.add(summary.getId());
+            configIds.add(ResourceIds.parseNumeric(summary.getId()));
         }
         return configIds;
     }
@@ -143,7 +144,7 @@ public class NitriteControlStore implements ControlStore {
         String configNamespace = configurationNamespace(domain, controlId);
         List<ControlConfigDetail> details = new ArrayList<>();
         for (NamespaceResourceSummary summary : configurationStore.listSummariesPaged(configNamespace, PageRequest.UNPAGED)) {
-            String title = titleFromJsonString(configurationStore.getLatestVersionContent(configNamespace, summary.getId()));
+            String title = titleFromJsonString(configurationStore.getLatestVersionContent(configNamespace, ResourceIds.parseNumeric(summary.getId())));
             details.add(new ControlConfigDetail(summary.getId(), summary.getName(), title));
         }
         return details;

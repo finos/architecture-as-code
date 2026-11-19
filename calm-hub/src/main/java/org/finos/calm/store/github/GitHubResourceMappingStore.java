@@ -10,6 +10,7 @@ import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ResourceMappingStore;
+import org.finos.calm.store.github.registry.RegistryLookup;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -47,11 +48,12 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
             throws MappingNotFoundException, NamespaceNotFoundException {
         verifyNamespace(namespace);
         RegistryResourceType calmType = toRegistryResourceType(type);
-        Optional<RegistryEntry> entry = registryService.findByUniqueId(namespace, customId);
-        if (entry.isEmpty() || entry.get().type() != calmType) {
+        RegistryEntry entry = RegistryLookup.singleOrNull(
+                registryService.find(namespace, calmType, customId, null, null));
+        if (entry == null) {
             throw new MappingNotFoundException();
         }
-        return toResourceMapping(namespace, type, entry.get());
+        return toResourceMapping(namespace, type, entry);
     }
 
     @Override
@@ -68,25 +70,16 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
     public ResourceMapping getMappingByNumericId(String namespace, ResourceType type, int numericId)
             throws MappingNotFoundException, NamespaceNotFoundException {
         verifyNamespace(namespace);
-        RegistryResourceType calmType = toRegistryResourceType(type);
-        Optional<RegistryEntry> found = registryService.listByType(namespace, calmType).stream()
-                .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == numericId)
-                .findFirst();
-        if (found.isEmpty()) {
-            throw new MappingNotFoundException();
-        }
-        return toResourceMapping(namespace, type, found.get());
+        // GitHub mappings have no numeric id. Callers in this mode resolve by stem/path/variant.
+        throw new MappingNotFoundException();
     }
 
     @Override
     public List<ResourceMapping> listMappingsByNumericIds(String namespace, ResourceType type, List<Integer> ids)
             throws NamespaceNotFoundException {
         verifyNamespace(namespace);
-        RegistryResourceType calmType = toRegistryResourceType(type);
-        return registryService.listByType(namespace, calmType).stream()
-                .filter(e -> ids.contains(e.uniqueId().hashCode() & 0x7FFFFFFF))
-                .map(e -> toResourceMapping(namespace, type, e))
-                .toList();
+        // No numeric ids exist in GitHub mode; enrichment is skipped for string ids.
+        return List.of();
     }
 
     @Override
@@ -116,9 +109,11 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
     private ResourceMapping toResourceMapping(String namespace, ResourceType type, RegistryEntry entry) {
         return new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace(namespace)
-                .setCustomId(entry.uniqueId())
+                .setCustomId(entry.stem())
                 .setResourceType(type)
-                .setNumericId(entry.uniqueId().hashCode() & 0x7FFFFFFF)
+                .setNumericId(ResourceMapping.NO_NUMERIC_ID)
+                .setPath(entry.path())
+                .setVariant(entry.variant())
                 .build();
     }
 

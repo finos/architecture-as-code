@@ -51,9 +51,14 @@ public class CustomIdEnrichmentService {
             return summaries;
         }
 
+        // Summary ids are strings on the wire. In numeric modes they are decimal forms of the
+        // stored id; in GitHub mode they are stems and are deliberately left unenriched — the
+        // mapping lookup below is keyed on numeric ids and has no meaning for a stem.
         List<Integer> numericIds = summaries.stream()
                 .map(CustomIdentifiable::getId)
                 .filter(Objects::nonNull)
+                .filter(id -> id.matches("\\d{1,9}"))
+                .map(Integer::parseInt)
                 .toList();
 
         if (numericIds.isEmpty()) {
@@ -75,7 +80,11 @@ public class CustomIdEnrichmentService {
                             (first, second) -> first));
 
             for (T summary : summaries) {
-                String customId = customIdsByNumericId.get(summary.getId());
+                String id = summary.getId();
+                if (id == null || !id.matches("\\d{1,9}")) {
+                    continue;
+                }
+                String customId = customIdsByNumericId.get(Integer.parseInt(id));
                 if (customId != null) {
                     summary.setCustomId(customId);
                 }

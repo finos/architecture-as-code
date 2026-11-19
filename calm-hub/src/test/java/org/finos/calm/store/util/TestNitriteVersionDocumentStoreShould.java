@@ -601,7 +601,7 @@ class TestNitriteVersionDocumentStoreShould {
                 header(null, "No id", "d", 0)));
 
         assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED), contains(
-                new NamespaceResourceSummary("No id", "d", null, 0),
+                new NamespaceResourceSummary("No id", "d", (Integer) null, 0),
                 new NamespaceResourceSummary("First", "d", 1, 1)));
     }
 

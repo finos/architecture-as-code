@@ -1,5 +1,10 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.resources.params.ConfigIdParam;
+import org.finos.calm.resources.params.ControlIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+import org.finos.calm.domain.ResourceId;
+
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
@@ -29,10 +34,13 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * REST resource for managing controls within domains.
  */
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/domains")
 @Authenticated
 public class ControlResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final ControlStore store;
 
@@ -98,7 +106,9 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId) {
+            @Valid @BeanParam ControlIdParam controlIdParam) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
             return Response.ok(new ValueWrapper<>(store.getRequirementVersions(domain, controlId))).build();
         } catch (DomainNotFoundException e) {
@@ -122,10 +132,12 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
             @PathParam("version")
             @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE)
             String version) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
             return Response.ok(store.getRequirementForVersion(domain, controlId, version)).build();
         } catch (DomainNotFoundException e) {
@@ -153,11 +165,13 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
             @PathParam("version")
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version,
             @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.createRequirementForVersion(domain, controlId, version, createControlRequirement);
             return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/requirement/versions/" + version)).build();
@@ -188,7 +202,9 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId) {
+            @Valid @BeanParam ControlIdParam controlIdParam) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
             return Response.ok(new ValueWrapper<>(store.getConfigurationDetailsForControl(domain, controlId))).build();
         } catch (DomainNotFoundException e) {
@@ -213,8 +229,10 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
             int configurationId = store.createControlConfiguration(createControlConfiguration, domain, controlId);
             return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configurationId)).build();
@@ -239,8 +257,12 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
-            @PathParam("configId") int configId) {
+            @Valid @BeanParam ControlIdParam controlIdParam,
+            @Valid @BeanParam ConfigIdParam configIdParam) {
+        ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(controlResourceId);
+        ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
+        int configId = resourceIdResolver.numericForWrite(configResourceId);
         try {
             return Response.ok(new ValueWrapper<>(store.getConfigurationVersions(domain, controlId, configId))).build();
         } catch (DomainNotFoundException e) {
@@ -267,11 +289,15 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
-            @PathParam("configId") int configId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
+            @Valid @BeanParam ConfigIdParam configIdParam,
             @PathParam("version")
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version) {
+        ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(controlResourceId);
+        ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
+        int configId = resourceIdResolver.numericForWrite(configResourceId);
         try {
             return Response.ok(store.getConfigurationForVersion(domain, controlId, configId, version)).build();
         } catch (DomainNotFoundException e) {
@@ -302,12 +328,16 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
-            @PathParam("configId") int configId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
+            @Valid @BeanParam ConfigIdParam configIdParam,
             @PathParam("version")
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version,
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
+        ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(controlResourceId);
+        ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
+        int configId = resourceIdResolver.numericForWrite(configResourceId);
         try {
             store.createConfigurationForVersion(domain, controlId, configId, version, createControlConfiguration);
             return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configId + "/versions/" + version)).build();
@@ -341,7 +371,9 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId) {
+            @Valid @BeanParam ControlIdParam controlIdParam) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deleteControlRequirement(domain, controlId);
         } catch (DomainNotFoundException e) {
@@ -369,8 +401,12 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
-            @PathParam("configId") int configId) {
+            @Valid @BeanParam ControlIdParam controlIdParam,
+            @Valid @BeanParam ConfigIdParam configIdParam) {
+        ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(controlResourceId);
+        ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
+        int configId = resourceIdResolver.numericForWrite(configResourceId);
         try {
             store.deleteControlConfiguration(domain, controlId, configId);
         } catch (DomainNotFoundException e) {
