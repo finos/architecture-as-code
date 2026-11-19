@@ -12,6 +12,7 @@ const ISSUER = process.env.CALM_HUB_ISSUER ?? HUB_URL;
 const services = {
     finos: [
         { name: 'settlement-engine', owner: 'alice' },
+        { name: 'settlement-reports', owner: 'alice' },
         { name: 'refunds-worker', owner: 'bob' },
     ],
 };
@@ -71,12 +72,18 @@ function handle(req, claims, url, body) {
         (services[claims.ns] ??= []).push({ name, owner: claims.sub });
         return [201, { name }];
     }
-    // An authenticated route has no ns, so Hub checked no namespace: search only the caller's own services.
+    // The search provider. Its route is authenticated, so Hub checked no namespace: search only the caller's own
+    // services. Hub also leaves out a result in a namespace that the caller cannot read. The cursor comes back
+    // from the browser, so treat it as untrusted input.
     if (req.method === 'POST' && url.pathname === '/search') {
-        const { q = '' } = json();
-        const hits = Object.entries(services).flatMap(([ns, list]) =>
-            list.filter((s) => s.owner === claims.sub && s.name.includes(q)).map((s) => ({ namespace: ns, name: s.name })));
-        return [200, { results: hits }];
+        const { query = '', limit = 10, cursor = '0' } = json();
+        const start = /^\d{1,6}$/.test(cursor) ? Number(cursor) : 0;
+        const hits = Object.entries(services).flatMap(([ns, list]) => list
+            .filter((s) => s.owner === claims.sub && s.name.includes(String(query).toLowerCase()))
+            .map((s) => ({ id: `${ns}/${s.name}`, title: s.name, summary: `A service that ${s.owner} owns`, namespace: ns,
+                link: { screen: { extension: 'example-services', screen: 'services' } } })));
+        const end = start + Math.min(Number(limit) || 10, 10);
+        return [200, { hubApi: 0, results: hits.slice(start, end), ...(end < hits.length ? { next: String(end) } : {}) }];
     }
     return [404, { error: 'not found' }];
 }
