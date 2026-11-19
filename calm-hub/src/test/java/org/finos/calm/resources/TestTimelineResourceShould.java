@@ -81,10 +81,10 @@ public class TestTimelineResourceShould {
                 .statusCode(200)
                 .body("values[0].name", equalTo("Timeline One"))
                 .body("values[0].description", equalTo("First"))
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[1].name", equalTo("Timeline Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321));
+                .body("values[1].id", equalTo("54321"));
 
         verify(mockTimelineStore, times(1)).getTimelinesForNamespace("valid");
     }

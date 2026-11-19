@@ -97,11 +97,11 @@ public class TestArchitectureResourceShould {
                 .statusCode(200)
                 .body("values[0].name", equalTo("Arch One"))
                 .body("values[0].description", equalTo("First architecture"))
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Arch Two"))
                 .body("values[1].description", equalTo("Second architecture"))
-                .body("values[1].id", equalTo(54321))
+                .body("values[1].id", equalTo("54321"))
                 .body("values[1].versionCount", equalTo(1));
 
         verify(mockArchitectureStore, times(1)).getArchitecturesForNamespace("finos", PageRequest.UNPAGED);

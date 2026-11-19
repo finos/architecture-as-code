@@ -90,11 +90,11 @@ public class TestPatternResourceShould {
                 .statusCode(200)
                 .body("values[0].name", equalTo("Pattern One"))
                 .body("values[0].description", equalTo("First"))
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Pattern Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321))
+                .body("values[1].id", equalTo("54321"))
                 .body("values[1].versionCount", equalTo(1));
 
         verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", PageRequest.UNPAGED);
@@ -120,9 +120,9 @@ public class TestPatternResourceShould {
                 .get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[0].customId", equalTo("api-gateway-pattern"))
-                .body("values[1].id", equalTo(54321))
+                .body("values[1].id", equalTo("54321"))
                 .body("values[1].customId", nullValue());
     }
 
@@ -139,7 +139,7 @@ public class TestPatternResourceShould {
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("Pattern One"))
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[0].customId", nullValue());
     }
 

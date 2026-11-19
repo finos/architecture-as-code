@@ -65,7 +65,7 @@ Once running, you can access the Hub at:
 
 The CALM Hub dashboard is divided into three primary zones:
 
-1. **Top Navbar:** Displays the branding, navigation links (Hub explorer, standalone Visualizer), and a global search bar.
+1. **Top Navbar:** Displays the branding, navigation links (Hub explorer, standalone Visualizer), and a global search bar. Its results page shows the catalogue results, then the results of each [extension search provider](../calm-hub/extension-points.md#search-provider).
 2. **Explore Sidebar (Left):** Allows hierarchical or flat navigation of Namespaces, Resource Types, and Compliance Control Domains.
 3. **Main Content Area (Center/Right):** Dynamically updates depending on the selected resource, rendering visual diagrams, JSON documents, or interactive schema forms.
 

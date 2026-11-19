@@ -77,6 +77,9 @@ public record ExtensionManifest(
         if (contributes.form() != null) {
             contributes.form().forEach(form -> ids.add(form.route()));
         }
+        if (contributes.searchProvider() != null) {
+            contributes.searchProvider().forEach(provider -> ids.add(provider.route()));
+        }
         return ids;
     }
 

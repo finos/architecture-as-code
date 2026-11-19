@@ -120,9 +120,9 @@ public class TestInterfaceResourceShould {
                 .get("/api/calm/namespaces/valid/interfaces")
                 .then()
                 .statusCode(200)
-                .body("values[0].id", equalTo(1))
+                .body("values[0].id", equalTo("1"))
                 .body("values[0].customId", equalTo("tcp-port"))
-                .body("values[1].id", equalTo(2))
+                .body("values[1].id", equalTo("2"))
                 .body("values[1].customId", nullValue());
     }
 

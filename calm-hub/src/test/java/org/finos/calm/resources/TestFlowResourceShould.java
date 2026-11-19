@@ -71,11 +71,11 @@ public class TestFlowResourceShould {
                 .statusCode(200)
                 .body("values[0].name", equalTo("Flow One"))
                 .body("values[0].description", equalTo("First"))
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Flow Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321))
+                .body("values[1].id", equalTo("54321"))
                 .body("values[1].versionCount", equalTo(1));
 
         verify(mockFlowStore, times(1)).getFlowsForNamespace("valid");

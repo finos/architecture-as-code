@@ -12,7 +12,7 @@ export interface ExtensionRoute {
     scope: string;
     readOnly: boolean;
 }
-export type ExtensionPoint = 'screen' | 'designer-tab' | 'landing-card' | 'detail-panel' | 'action';
+export type ExtensionPoint = 'screen' | 'designer-tab' | 'landing-card' | 'detail-panel' | 'action' | 'search-provider';
 /** The logo files that the manifest declares. Hub serves them at `/api/calm/extensions/<id>/logo/<light|dark>`. */
 export interface ExtensionLogoFiles {
     light: string;

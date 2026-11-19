@@ -1,7 +1,7 @@
 # release-tracker
 
-A demo extension for local development. It uses every UI extension point: two screens, a landing card,
-an action, a designer tab, a detail panel, forms and a decorator view. Use it to check the CALM Hub UI
+A demo extension for local development. It uses two screens, a landing card, an action, a designer tab,
+a detail panel, forms, a decorator view and a search provider. Use it to check the CALM Hub UI
 layout. `server.mjs` is its backend: it has no dependencies, and it uses the identity verifier of
 [example-services](../../extensions/example-services/identity.mjs). The data is made up. The designer tab
 route uses `{resourceType}/{resourceId}`, because CALM Hub refuses `%2F` in a path. Test the routes
@@ -18,6 +18,7 @@ URL does not start, and the UI then shows "CalmHub failed to load".
 | `detail-panel` | The inspector, for the selected node |
 | `decorator-views` | Badges on the diagram for `release-risk` decorators |
 | `form` | `log-release` on the screen (with a target chooser) and the designer tab; `review-node` in the inspector, for the selected node |
+| `search-provider` | A Releases group on the search page, for example `/search?q=payment` |
 
 Run it from `calm-hub/`, with the keys from the [example-services README](../../extensions/example-services/README.md):
 
