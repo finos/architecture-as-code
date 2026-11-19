@@ -289,7 +289,7 @@ A form route is not at this path: it gives `404` there. Hub calls it only from
 `POST /api/calm/extensions/<id>/forms/<form>`, after it checks the target and the input. That endpoint
 uses the same scope, read-only, limit and audit rules (see [form](extension-points.md#form)).
 
-CALM Hub does not audit a call that it refuses before the scope check: a `401` for a caller who is not signed in, a `404`, a `400` for the path, the namespace or the domain, or a `405`.
+CALM Hub does not audit an extension call that it refuses before the scope check: a `401` for a caller who is not signed in, a `404`, a `400` for the path, the namespace or the domain, or a `405`.
 
 CALM Hub does not start with an enabled extension that has routes when `calm.auth.enabled=false`, because every caller is then a global admin. Set `calm.extensions.allow-without-auth=true` only for local development.
 
