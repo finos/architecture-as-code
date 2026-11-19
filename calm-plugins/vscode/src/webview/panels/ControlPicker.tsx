@@ -4,6 +4,7 @@ import type {
     ControlBrowseGroup,
 } from '../../extension/services/control-asset-service';
 import type { ParsedRequirement } from '../../extension/services/requirement-parser';
+import type { ControlIdentity } from '../../extension/types/messages';
 import { makeControlMapKey } from '../../extension/services/control-curie';
 import {
     requestControlBrowse,
@@ -17,19 +18,60 @@ type DomainStatus = 'idle' | 'loading' | 'loaded' | 'error';
 interface ControlPickerProps {
     visible: boolean;
     onClose: () => void;
-    onAttach: (ref: string, parsed: ParsedRequirement) => void;
+    onAttach: (ref: string, parsed: ParsedRequirement, identity?: ControlIdentity) => void;
     existingControlKeys: Set<string>;
 }
 
-function rowKey(domain: string, controlName: string): string {
-    return `${domain}::${controlName}`;
+/** Unique React key: the same control name can occur in several folders. */
+export function entryKey(entry: ControlBrowseEntry): string {
+    return [
+        entry.domain,
+        entry.controlName,
+        entry.hubId ?? '',
+        entry.tags?.path ?? '',
+        entry.tags?.variant ?? '',
+    ].join('::');
 }
 
 /** Build the reference string the extension will classify and resolve. */
-function buildRef(entry: ControlBrowseEntry): string {
+export function buildRef(entry: ControlBrowseEntry): string {
     if (entry.source === 'local') return entry.requirementRef ?? '';
     // Unversioned CURIE — the resolver auto-fetches the latest version from Hub.
     return `${entry.domain}:controls:${entry.controlName}`;
+}
+
+/** Hub identity carried alongside the CURIE so resolution never parses folder data from it. */
+export function buildControlIdentity(entry: ControlBrowseEntry): ControlIdentity | undefined {
+    if (entry.source !== 'hub' || !entry.hubId) return undefined;
+    return {
+        domain: entry.domain,
+        controlName: entry.controlName,
+        hubId: entry.hubId,
+        path: entry.tags?.path,
+        variant: entry.tags?.variant,
+    };
+}
+
+export interface PathGroup {
+    path?: string;
+    label: string;
+    controls: ControlBrowseEntry[];
+}
+
+/** Display groups derived from `tags.path`; entries without a path go to "Ungrouped". */
+export function groupByPath(controls: ControlBrowseEntry[]): PathGroup[] {
+    const groups = new Map<string, PathGroup>();
+    for (const control of controls) {
+        const path = control.tags?.path;
+        const key = path ?? '';
+        let group = groups.get(key);
+        if (!group) {
+            group = { path, label: path ?? 'Ungrouped', controls: [] };
+            groups.set(key, group);
+        }
+        group.controls.push(control);
+    }
+    return [...groups.values()];
 }
 
 export function ControlPicker({
@@ -122,7 +164,7 @@ export function ControlPicker({
                 },
                 properties: {},
             };
-            onAttach(ref, parsed);
+            onAttach(ref, parsed, buildControlIdentity(entry));
             onClose();
         },
         [onAttach, onClose]
@@ -189,38 +231,44 @@ export function ControlPicker({
                                         {status !== 'loading' && !group.error && visibleControls.length === 0 && (
                                             <div style={hintStyle}>No controls</div>
                                         )}
-                                        {visibleControls.map((entry) => {
-                                            const key = rowKey(entry.domain, entry.controlName);
-                                            const ref = buildRef(entry);
-                                            const mapKey = ref ? makeControlMapKey(ref) : '';
-                                            const duplicate = !!mapKey && (existingControlKeys.has(mapKey) || existingControlKeys.has(entry.controlName) || existingControlKeys.has(entry.title));
-                                            return (
-                                                <div key={key} style={rowStyle}>
-                                                    <div style={rowHeaderStyle}>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                                            <span style={{ fontSize: '12px', fontWeight: 600 }}>{entry.title}</span>
-                                                            <span style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', fontFamily: 'monospace' }}>{entry.controlName}</span>
-                                                            {entry.description && (
-                                                                <span style={{ fontSize: '10px', color: 'var(--calm-fg-muted)' }}>{entry.description}</span>
+                                        {groupByPath(visibleControls).map((pathGroup) => (
+                                            <div key={pathGroup.path ?? '__ungrouped__'} style={{ marginTop: '6px' }}>
+                                                <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--calm-fg-muted)', padding: '2px 4px' }}>
+                                                    {pathGroup.label}
+                                                </div>
+                                                {pathGroup.controls.map((entry) => {
+                                                    const ref = buildRef(entry);
+                                                    const mapKey = ref ? makeControlMapKey(ref) : '';
+                                                    const duplicate = !!mapKey && (existingControlKeys.has(mapKey) || existingControlKeys.has(entry.controlName) || existingControlKeys.has(entry.title));
+                                                    return (
+                                                        <div key={entryKey(entry)} style={rowStyle}>
+                                                            <div style={rowHeaderStyle}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                                                                    <span style={{ fontSize: '12px', fontWeight: 600 }}>{entry.title}</span>
+                                                                    <span style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', fontFamily: 'monospace' }}>{entry.controlName}</span>
+                                                                    {entry.description && (
+                                                                        <span style={{ fontSize: '10px', color: 'var(--calm-fg-muted)' }}>{entry.description}</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={duplicate}
+                                                                    onClick={() => attach(entry)}
+                                                                    style={{ ...attachBtnStyle, opacity: duplicate ? 0.5 : 1 }}
+                                                                >
+                                                                    Attach
+                                                                </button>
+                                                            </div>
+                                                            {duplicate && (
+                                                                <div style={warnBannerStyle}>Already attached</div>
                                                             )}
                                                         </div>
-                                                    </div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                        <button
-                                                            type="button"
-                                                            disabled={duplicate}
-                                                            onClick={() => attach(entry)}
-                                                            style={{ ...attachBtnStyle, opacity: duplicate ? 0.5 : 1 }}
-                                                        >
-                                                            Attach
-                                                        </button>
-                                                    </div>
-                                                    {duplicate && (
-                                                        <div style={warnBannerStyle}>Already attached</div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
+                                                    );
+                                                })}
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>

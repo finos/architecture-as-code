@@ -24,25 +24,34 @@ export interface NamespaceSummary {
     name: string;
 }
 
+/** Folder path and file-kind qualifier that disambiguate same-named GitHub resources. */
+export interface Tags {
+    path?: string;
+    variant?: string;
+}
+
 export interface ResourceSummary {
     name: string;
     uniqueId: string;
-    numericId: number;
+    /** String resource id from the Hub; numeric ids from older Hubs are coerced to strings. */
+    id: string;
     versionCount?: number;
     customId?: string;
+    tags?: Tags;
 }
 
 /** A control listed under a Hub domain. `name` is the kebab-case slug used in API paths. */
 export interface ControlDetail {
-    id: number;
+    id: string;
     name: string;
     description: string;
     title?: string;
+    tags?: Tags;
 }
 
 /** Summary entry from `GET /adrs` — flat, top-level fields. `id` may be null for malformed rows. */
 export interface AdrSummary {
-    id: number | null;
+    id: string | null;
     title?: string;
     status?: string;
 }
@@ -61,15 +70,21 @@ export interface AdrContent {
 /** Wrapper returned by `GET /adrs/{id}` — ADR content is nested under `adr`. */
 export interface AdrMeta {
     namespace: string;
-    id: number;
+    id: string;
     revision: number;
     adr: AdrContent;
 }
 
+const RESOURCE_ID_ROUTE = /\/namespaces\/|\/controls\/|\/adrs\//;
+
 export function describeHubError(err: unknown): string {
     if (err instanceof HubApiError) {
         if (err.status === 403) return 'Access denied (403)';
-        return `Hub request failed (${err.status})`;
+        const base = `Hub request failed (${err.status})`;
+        if ((err.status === 400 || err.status === 404) && RESOURCE_ID_ROUTE.test(err.url)) {
+            return `${base}: the resource id may be ambiguous — add a folder path or variant to identify one resource`;
+        }
+        return base;
     }
     return err instanceof Error ? err.message : String(err);
 }
@@ -129,21 +144,26 @@ export class HubClient {
         );
         const data = await res.json();
         const raw = this.unwrapValues<Record<string, unknown>>(data);
-        return raw.map((item) => ({
-            name: (item.name as string) || (item.customId as string) || '',
-            uniqueId: (item.uniqueId as string) || (item.customId as string) || String((item.id as number) ?? ''),
-            numericId: (item.id as number) ?? (item.numericId as number) ?? 0,
-            versionCount: item.versionCount as number | undefined,
-        }));
+        return raw.map((item) => {
+            const id = item.id == null ? '' : String(item.id as string | number);
+            return {
+                name: (item.name as string) || (item.customId as string) || '',
+                uniqueId: (item.customId as string) || id,
+                id,
+                versionCount: item.versionCount as number | undefined,
+                tags: item.tags as Tags | undefined,
+            };
+        });
     }
 
     async getVersions(
         namespace: string,
         type: string,
-        name: string
+        id: string,
+        tags?: Tags
     ): Promise<string[]> {
         const res = await this.authenticatedFetch(
-            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(id)}/versions${this.idQuery(tags)}`
         );
         const data = await res.json();
         return this.unwrapValues(data);
@@ -152,11 +172,12 @@ export class HubClient {
     async getResourceAtVersion(
         namespace: string,
         type: string,
-        name: string,
-        version: string
+        id: string,
+        version: string,
+        tags?: Tags
     ): Promise<unknown> {
         const res = await this.authenticatedFetch(
-            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(id)}/versions/${encodeURIComponent(version)}${this.idQuery(tags)}`
         );
         return res.json();
     }
@@ -177,11 +198,26 @@ export class HubClient {
         return this.unwrapValues<ControlDetail>(data);
     }
 
-    async resolveControlId(domain: string, controlName: string): Promise<{ id: number; domain: string }> {
+    async resolveControlId(
+        domain: string,
+        controlName: string,
+        tags?: Tags
+    ): Promise<{ id: string; domain: string; tags?: Tags }> {
+        const pick = (controls: ControlDetail[]): ControlDetail | undefined => {
+            const matches = controls.filter((c) => c.name === controlName);
+            if (matches.length === 0) return undefined;
+            if (matches.length === 1) return matches[0];
+            return (tags?.path && matches.find((c) => c.tags?.path === tags.path)) || matches[0];
+        };
+        const toResult = (match: ControlDetail, foundIn: string) => ({
+            id: String(match.id),
+            domain: foundIn,
+            tags: match.tags,
+        });
+
         try {
-            const controls = await this.getControlsForDomain(domain);
-            const match = controls.find((c) => c.name === controlName);
-            if (match) return { id: match.id, domain };
+            const match = pick(await this.getControlsForDomain(domain));
+            if (match) return toResult(match, domain);
         } catch (err) {
             if (err instanceof HubApiError && err.status !== 404) throw err;
         }
@@ -189,9 +225,8 @@ export class HubClient {
         for (const d of domains) {
             if (d === domain) continue;
             try {
-                const controls = await this.getControlsForDomain(d);
-                const match = controls.find((c) => c.name === controlName);
-                if (match) return { id: match.id, domain: d };
+                const match = pick(await this.getControlsForDomain(d));
+                if (match) return toResult(match, d);
             } catch (err) {
                 if (err instanceof HubApiError && err.status !== 404) throw err;
             }
@@ -201,10 +236,11 @@ export class HubClient {
 
     async getRequirementVersions(
         domain: string,
-        controlId: number
+        controlId: string,
+        tags?: Tags
     ): Promise<string[]> {
         const res = await this.authenticatedFetch(
-            `/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions`
+            `/api/calm/domains/${encodeURIComponent(domain)}/controls/${encodeURIComponent(controlId)}/requirement/versions${this.idQuery(tags)}`
         );
         const data = await res.json();
         return this.unwrapValues<string>(data);
@@ -212,16 +248,17 @@ export class HubClient {
 
     async getRequirementAtVersion(
         domain: string,
-        controlId: number,
-        version: string
+        controlId: string,
+        version: string,
+        tags?: Tags
     ): Promise<unknown> {
         const res = await this.authenticatedFetch(
-            `/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions/${encodeURIComponent(version)}`
+            `/api/calm/domains/${encodeURIComponent(domain)}/controls/${encodeURIComponent(controlId)}/requirement/versions/${encodeURIComponent(version)}${this.idQuery(tags)}`
         );
         return res.json();
     }
 
-    // --- ADRs (namespace-scoped storage API, numeric IDs) ---
+    // --- ADRs (namespace-scoped storage API; string ids, numeric revisions) ---
 
     async getAdrs(namespace: string): Promise<AdrSummary[]> {
         const res = await this.authenticatedFetch(
@@ -231,22 +268,30 @@ export class HubClient {
         return this.unwrapValues<AdrSummary>(data);
     }
 
-    async getAdr(namespace: string, adrId: number): Promise<AdrMeta> {
+    async getAdr(namespace: string, adrId: string): Promise<AdrMeta> {
         const res = await this.authenticatedFetch(
-            `/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${adrId}`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrId)}`
         );
         return (await res.json()) as AdrMeta;
     }
 
     async getAdrRevisions(
         namespace: string,
-        adrId: number
+        adrId: string
     ): Promise<number[]> {
         const res = await this.authenticatedFetch(
-            `/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${adrId}/revisions`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${encodeURIComponent(adrId)}/revisions`
         );
         const data = await res.json();
         return this.unwrapValues<number>(data);
+    }
+
+    private idQuery(tags?: Tags): string {
+        const params = new URLSearchParams();
+        if (tags?.path) params.set('path', tags.path);
+        if (tags?.variant) params.set('variant', tags.variant);
+        const query = params.toString();
+        return query ? `?${query}` : '';
     }
 
     private unwrapValues<T>(data: unknown): T[] {

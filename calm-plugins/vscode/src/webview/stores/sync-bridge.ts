@@ -1,4 +1,4 @@
-import type { ExtToWebviewMessage } from '../../extension/types/messages';
+import type { ControlIdentity, ExtToWebviewMessage } from '../../extension/types/messages';
 import type { ControlBrowseGroup } from '../../extension/services/control-asset-service';
 import type { ParsedRequirement } from '../../extension/services/requirement-parser';
 import { postMessage } from '../vscode-api';
@@ -205,8 +205,12 @@ export function notifyRequestImportSvg(): void {
     postMessage({ type: 'requestImportSvg' });
 }
 
-export function notifyOpenControlInHub(ref: string): void {
-    postMessage({ type: 'openControlInHub', ref });
+export function notifyOpenControlInHub(ref: string, identity?: ControlIdentity): void {
+    postMessage({
+        type: 'openControlInHub',
+        ref,
+        ...(identity ? { hubId: identity.hubId, path: identity.path, variant: identity.variant } : {}),
+    });
 }
 
 // --- Correlated control request functions. Each generates a requestId, stores
@@ -254,7 +258,8 @@ export function requestControlsForDomain(
 export function requestControlVersions(
     domain: string,
     controlName: string,
-    callback: (result: ControlVersionsResult) => void
+    callback: (result: ControlVersionsResult) => void,
+    identity?: ControlIdentity
 ): void {
     const requestId = nextRequestId();
     registerPending(
@@ -274,12 +279,14 @@ export function requestControlVersions(
         requestId,
         domain,
         controlName,
+        ...(identity ? { hubId: identity.hubId, path: identity.path, variant: identity.variant } : {}),
     });
 }
 
 export function requestControlResolve(
     ref: string,
-    callback: (result: ControlResolveResult) => void
+    callback: (result: ControlResolveResult) => void,
+    identity?: ControlIdentity
 ): void {
     const requestId = nextRequestId();
     registerPending(
@@ -294,7 +301,12 @@ export function requestControlResolve(
         },
         () => callback({ ok: false, error: 'timeout' })
     );
-    postMessage({ type: 'requestControlResolve', requestId, ref });
+    postMessage({
+        type: 'requestControlResolve',
+        requestId,
+        ref,
+        ...(identity ? { hubId: identity.hubId, path: identity.path, variant: identity.variant } : {}),
+    });
 }
 
 export function requestSaveControl(

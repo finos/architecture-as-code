@@ -5,6 +5,7 @@ import {
 } from './standard-node-doc';
 import { makeControlMapKey } from '../../extension/services/control-curie';
 import type { ParsedRequirement } from '../../extension/services/requirement-parser';
+import type { ControlIdentity } from '../../extension/types/messages';
 
 interface StandardNodeCreatorProps {
     visible: boolean;
@@ -12,7 +13,7 @@ interface StandardNodeCreatorProps {
     onSave: (nodeJson: string, fileName: string) => void;
     /** Opens the shared control picker, preserving the in-progress form. */
     onRequestBrowseControls?: (
-        onAttach: (ref: string, parsed: ParsedRequirement) => void,
+        onAttach: (ref: string, parsed: ParsedRequirement, identity?: ControlIdentity) => void,
         existingKeys: Set<string>
     ) => void;
 }

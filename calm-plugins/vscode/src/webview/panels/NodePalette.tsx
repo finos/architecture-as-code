@@ -13,7 +13,7 @@ interface StandardNode {
     description?: string;
     namespace?: string;
     sha?: string;
-    hubId?: number;
+    hubId?: string;
 }
 
 interface NodePaletteProps {

@@ -19,6 +19,7 @@ import {
     requestControlVersions,
     requestControlResolve,
     requestSaveControl,
+    notifyOpenControlInHub,
 } from './sync-bridge';
 
 function dispatch(msg: unknown): void {
@@ -95,6 +96,43 @@ describe('control request correlation', () => {
         dispatch({ type: 'controlResolveResult', requestId: id2, ok: true, parsed, warnings: [] });
         expect(cb2).toHaveBeenCalledWith({ ok: true, parsed, warnings: [] });
         expect(cb1).not.toHaveBeenCalled();
+    });
+
+    it('emits the control identity from requestControlVersions', () => {
+        requestControlVersions('security', 'seg', vi.fn(), {
+            domain: 'security', controlName: 'seg', hubId: 'aws/prod/seg', path: 'aws/prod', variant: 'markdown',
+        });
+        const msg = [...posted].reverse().find((m) => m.type === 'requestControlVersions');
+        expect(msg).toMatchObject({
+            domain: 'security', controlName: 'seg', hubId: 'aws/prod/seg', path: 'aws/prod', variant: 'markdown',
+        });
+    });
+
+    it('emits the control identity from requestControlResolve', () => {
+        requestControlResolve('security:controls:seg', vi.fn(), {
+            domain: 'security', controlName: 'seg', hubId: 'aws/prod/seg', path: 'aws/prod', variant: 'markdown',
+        });
+        const msg = [...posted].reverse().find((m) => m.type === 'requestControlResolve');
+        expect(msg).toMatchObject({
+            ref: 'security:controls:seg', hubId: 'aws/prod/seg', path: 'aws/prod', variant: 'markdown',
+        });
+    });
+
+    it('omits identity fields when no identity is supplied', () => {
+        requestControlVersions('security', 'seg', vi.fn());
+        const msg = [...posted].reverse().find((m) => m.type === 'requestControlVersions');
+        expect(msg).not.toHaveProperty('hubId');
+        expect(msg).not.toHaveProperty('path');
+    });
+
+    it('emits the identity on openControlInHub links', () => {
+        notifyOpenControlInHub('security:controls:seg', {
+            domain: 'security', controlName: 'seg', hubId: 'aws/prod/seg', path: 'aws/prod', variant: 'markdown',
+        });
+        const msg = [...posted].reverse().find((m) => m.type === 'openControlInHub');
+        expect(msg).toMatchObject({
+            ref: 'security:controls:seg', hubId: 'aws/prod/seg', path: 'aws/prod', variant: 'markdown',
+        });
     });
 
     it('does not double-fire a callback for a duplicate response', () => {
