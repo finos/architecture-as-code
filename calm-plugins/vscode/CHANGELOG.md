@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Odd minor versions (e.g. 0.9.x) are published as pre-releases.
 
+## [0.9.7](https://github.com/finos/architecture-as-code/compare/vscode-v0.9.6...vscode-v0.9.7) (2026-11-19)
+
+### 🚀 Features
+
+* **vscode:** add clear canvas button, set editor layout and improve properties panel ([#3764](https://github.com/finos/architecture-as-code/issues/3764)) ([444f932](https://github.com/finos/architecture-as-code/commit/444f932c8eb289e5887a3abc205c51a6e3e75c7d))
+
+### 🐛 Bug Fixes
+
+* **vscode:** keep documents that have no nodes or relationships keys ([#3637](https://github.com/finos/architecture-as-code/issues/3637)) ([e4aa1c3](https://github.com/finos/architecture-as-code/commit/e4aa1c3c9aad3b25bb1e26846a2d3cf2de6d7018)), closes [#3633](https://github.com/finos/architecture-as-code/issues/3633)
+* **vscode:** keep the data of each relationship in a connects pair ([#3567](https://github.com/finos/architecture-as-code/issues/3567)) ([bb61dc2](https://github.com/finos/architecture-as-code/commit/bb61dc29161cfa95146a8a698d74fee55841e361)), closes [#3519](https://github.com/finos/architecture-as-code/issues/3519)
+
 ## [0.9.6](https://github.com/finos/architecture-as-code/compare/vscode-v0.9.5...vscode-v0.9.6) (2026-11-11)
 
 ### 🚀 Features
