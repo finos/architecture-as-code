@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.vertx.http.runtime.CurrentVertxRequest;
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -34,6 +35,7 @@ class TestExtensionProxyResourceHeadersShould {
     private final SecurityIdentity identity = mock(SecurityIdentity.class);
     private final UriInfo uriInfo = mock(UriInfo.class);
     private final HttpHeaders headers = mock(HttpHeaders.class);
+    private final CurrentVertxRequest currentRequest = mock(CurrentVertxRequest.class);
 
     @BeforeEach
     void setup() {
@@ -49,7 +51,7 @@ class TestExtensionProxyResourceHeadersShould {
 
     @Test
     void pass_the_conditional_headers_and_the_source_ip_when_capture_is_on() {
-        new ExtensionProxyResource(service, identity, config("true")).get("x", uriInfo, headers);
+        new ExtensionProxyResource(service, identity, config("true"), currentRequest).get("x", uriInfo, headers);
 
         ExtensionProxyRequest request = captured();
         assertThat(request.ifMatch(), is("\"v1\""));
@@ -59,7 +61,7 @@ class TestExtensionProxyResourceHeadersShould {
 
     @Test
     void leave_out_the_source_ip_when_capture_is_off() {
-        new ExtensionProxyResource(service, identity, config(null)).get("x", uriInfo, headers);
+        new ExtensionProxyResource(service, identity, config(null), currentRequest).get("x", uriInfo, headers);
 
         assertThat(captured().sourceIp(), nullValue());
     }
@@ -69,7 +71,7 @@ class TestExtensionProxyResourceHeadersShould {
         when(service.call(any(), any())).thenThrow(new ExtensionProxyException(503, "The extension is busy. Try again later",
                 Map.of("Retry-After", "1")));
 
-        Response response = new ExtensionProxyResource(service, identity, config(null)).get("x", uriInfo, headers);
+        Response response = new ExtensionProxyResource(service, identity, config(null), currentRequest).get("x", uriInfo, headers);
 
         assertThat(response.getStatus(), is(503));
         assertThat(response.getHeaderString("Retry-After"), is("1"));

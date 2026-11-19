@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.vertx.http.runtime.CurrentVertxRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -31,11 +32,14 @@ public class ExtensionChatResource {
 
     private final ExtensionProxyService service;
     private final SecurityIdentity identity;
+    private final CurrentVertxRequest currentRequest;
 
     @Inject
-    public ExtensionChatResource(ExtensionProxyService service, SecurityIdentity identity) {
+    public ExtensionChatResource(ExtensionProxyService service, SecurityIdentity identity,
+                                 CurrentVertxRequest currentRequest) {
         this.service = service;
         this.identity = identity;
+        this.currentRequest = currentRequest;
     }
 
     @POST
@@ -48,7 +52,7 @@ public class ExtensionChatResource {
         try {
             return ExtensionProxyResource.response(service.chat(identity, id, entry,
                     headers.getHeaderString(HttpHeaders.CONTENT_TYPE), headers.getHeaderString(HttpHeaders.ACCEPT_LANGUAGE),
-                    body));
+                    body), currentRequest.getCurrent());
         } catch (ExtensionProxyException e) {
             return ExtensionProxyResource.error(e);
         }

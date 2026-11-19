@@ -591,7 +591,7 @@ sent again as history.
 
 ### Chat reply
 
-The route replies with `text/event-stream`. CALM Hub gives `502` for a `2xx` reply of another type.
+The route replies `200` with `text/event-stream`. CALM Hub gives `502` for any other `2xx` reply.
 A `4xx` JSON reply goes to the UI, which shows its `message` or `error`.
 
 | Event | Data | UI |

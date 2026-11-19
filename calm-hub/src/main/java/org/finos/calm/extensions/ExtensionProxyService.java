@@ -44,6 +44,7 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -75,6 +76,7 @@ public class ExtensionProxyService {
     private final ExtensionHubData hubData;
     private final String authMode;
     private final ExtensionChat chat;
+    private final ExtensionStreamWatchdog watchdog;
     private final Map<String, HttpClient> clients = new ConcurrentHashMap<>();
     private final Map<String, Semaphore> concurrentCalls = new ConcurrentHashMap<>();
     private final Map<String, Semaphore> concurrentStreams = new ConcurrentHashMap<>();
@@ -82,23 +84,28 @@ public class ExtensionProxyService {
     @Inject
     public ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer,
                                  CalmHubPermissionChecker permissions, AuditService auditService, Config properties,
-                                 Instance<ProxyAuthenticationMechanism> proxyAuthentication, ExtensionHubData hubData) {
-        this(registry, signer, permissions, auditService, hubData, authMode(properties, proxyAuthentication.isResolvable()));
+                                 Instance<ProxyAuthenticationMechanism> proxyAuthentication, ExtensionHubData hubData,
+                                 ExtensionStreamWatchdog watchdog) {
+        this(registry, signer, permissions, auditService, hubData, authMode(properties, proxyAuthentication.isResolvable()),
+                watchdog);
     }
 
+    /** With a watchdog of its own, for a test that streams nothing: the watchdog starts no thread until a stream opens. */
     ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer,
                           CalmHubPermissionChecker permissions, AuditService auditService, String authMode) {
-        this(registry, signer, permissions, auditService, null, authMode);
+        this(registry, signer, permissions, auditService, null, authMode, ExtensionStreamWatchdog.started());
     }
 
     ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer, CalmHubPermissionChecker permissions,
-                          AuditService auditService, ExtensionHubData hubData, String authMode) {
+                          AuditService auditService, ExtensionHubData hubData, String authMode,
+                          ExtensionStreamWatchdog watchdog) {
         this.registry = registry;
         this.signer = signer;
         this.permissions = permissions;
         this.auditService = auditService;
         this.hubData = hubData;
         this.authMode = authMode;
+        this.watchdog = watchdog;
         this.chat = new ExtensionChat(permissions, hubData);
     }
 
@@ -181,6 +188,15 @@ public class ExtensionProxyService {
         boolean acquired = false;
         boolean streamAcquired = false;
         AtomicReference<ExtensionEventStream> opened = new AtomicReference<>();
+        // The call and its stream share one release, so that a slot is freed once, whichever of them frees it first.
+        AtomicBoolean slotFreed = new AtomicBoolean();
+        Runnable freeSlot = () -> {
+            if (slotFreed.compareAndSet(false, true)) {
+                streams.release();
+            }
+        };
+        // Set when the call returns or fails. A stream that the backend opens after that closes at once.
+        AtomicBoolean finished = new AtomicBoolean();
         ExtensionProxyResponse reply = null;
         // A refusal after the scope check is a FAILURE with no jti: Hub sent nothing to the backend.
         AuditOutcome outcome = AuditOutcome.FAILURE;
@@ -240,8 +256,12 @@ public class ExtensionProxyService {
             HttpResponse.BodyHandler<Object> handler = info -> {
                 if (stream && isEventStream(info)) {
                     ExtensionEventStream opening = new ExtensionEventStream(extension.id(), route.id(), limits,
-                            policy.events(), policy.terminal(), streams::release);
+                            policy.events(), policy.terminal(), freeSlot, watchdog);
                     opened.set(opening);
+                    if (finished.get()) {
+                        // The call timed out while the stream opened, so Hub never passes it on.
+                        opening.close();
+                    }
                     return HttpResponse.BodySubscribers.mapping(opening, s -> s);
                 }
                 return HttpResponse.BodySubscribers.mapping(new CappedBodySubscriber(limits.maxResponseBytes()), b -> b);
@@ -255,11 +275,12 @@ public class ExtensionProxyService {
                 calls.release();
             }
             // An open stream frees its own slot when it closes. A stream that Hub does not pass on closes here.
+            finished.set(true);
             ExtensionEventStream started = opened.get();
             if (started != null && (reply == null || reply.stream() != started)) {
                 started.close();
             } else if (started == null && streamAcquired) {
-                streams.release();
+                freeSlot.run();
             }
             if (!route.readOnly()) {
                 audit(identity, method, extension, route, access.namespace(), access.domain(), sentJti, outcome,
@@ -552,8 +573,9 @@ public class ExtensionProxyService {
         return false;
     }
 
+    /** Only a 200: JAX-RS can skip the body of another 2xx, such as a 204. */
     private static boolean isEventStream(HttpResponse.ResponseInfo info) {
-        return info.statusCode() >= 200 && info.statusCode() < 300 && info.headers().firstValue("Content-Type")
+        return info.statusCode() == 200 && info.headers().firstValue("Content-Type")
                 .map(ExtensionProxyService::mediaType).filter("text/event-stream"::equals).isPresent();
     }
 

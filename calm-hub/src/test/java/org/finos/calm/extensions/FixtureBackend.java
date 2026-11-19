@@ -16,7 +16,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** A loopback HTTP server that records the last request and sends a set reply. */
@@ -53,9 +53,10 @@ public final class FixtureBackend implements AutoCloseable {
     private final HttpServer server;
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final AtomicReference<Received> received = new AtomicReference<>();
-    private final AtomicBoolean streamBroken = new AtomicBoolean();
+    private final AtomicInteger brokenStreams = new AtomicInteger();
     private volatile Reply reply = Reply.json(200, "{}");
     private volatile Stream stream;
+    private volatile CountDownLatch headerGate;
 
     public FixtureBackend() {
         this(0);
@@ -95,9 +96,19 @@ public final class FixtureBackend implements AutoCloseable {
         stream = next;
     }
 
+    /** The next replies wait for {@code gate} before they send their headers. */
+    public void holdHeaders(CountDownLatch gate) {
+        headerGate = gate;
+    }
+
     /** True when the caller closed the connection while the backend was writing a stream. */
     public boolean streamBroken() {
-        return streamBroken.get();
+        return brokenStreams.get() > 0;
+    }
+
+    /** The streams that the caller closed while the backend was writing them. */
+    public int brokenStreams() {
+        return brokenStreams.get();
     }
 
     /** The last request, or null. */
@@ -109,7 +120,8 @@ public final class FixtureBackend implements AutoCloseable {
         received.set(null);
         reply = Reply.json(200, "{}");
         stream = null;
-        streamBroken.set(false);
+        headerGate = null;
+        brokenStreams.set(0);
     }
 
     private void handle(HttpExchange exchange) throws IOException {
@@ -125,12 +137,16 @@ public final class FixtureBackend implements AutoCloseable {
             return;
         }
         Reply current = reply;
-        if (current.delayMillis() > 0) {
-            try {
-                Thread.sleep(current.delayMillis());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+        CountDownLatch gate = headerGate;
+        try {
+            if (gate != null && !gate.await(10, TimeUnit.SECONDS)) {
+                throw new IOException("The test did not open the header gate");
             }
+            if (current.delayMillis() > 0) {
+                Thread.sleep(current.delayMillis());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
         current.headers().forEach((name, value) -> exchange.getResponseHeaders().add(name, value));
         exchange.sendResponseHeaders(current.status(), current.body().length == 0 ? -1 : current.body().length);
@@ -154,7 +170,7 @@ public final class FixtureBackend implements AutoCloseable {
                 }
             }
         } catch (IOException e) {
-            streamBroken.set(true);
+            brokenStreams.incrementAndGet();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } finally {

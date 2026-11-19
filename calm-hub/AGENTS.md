@@ -498,13 +498,22 @@ from; it fails if there is none.
   what the caller may see. It refuses a reply whose `next` makes the request for the next page longer than
   `MAX_REQUEST_LINE` (3584 bytes, under the HTTP server's 4096-byte request line), so the UI can always send a
   cursor back; it counts a byte that can be percent-encoded as three. Its route is also in `dedicatedRoutes()`
-- A `2xx` `text/event-stream` reply streams through `ExtensionEventStream`, only to a caller that accepts it and to
+- A `200` `text/event-stream` reply streams through `ExtensionEventStream` (JAX-RS can skip the body of another 2xx), only to a caller that accepts it and to
   a dedicated endpoint that passes an `ExtensionEventStream.Policy` (the chat). With a policy, the backend must stream,
   and the policy filters the events and names the ones that end the stream. It writes each event again with only
-  `event` and `data`, and ends the stream with an `error` event at a limit. Each open stream holds a worker thread and
-  a `max-concurrent-streams` slot until `close()`. Keep the heartbeat comment: a failed write is how Hub sees that the
-  caller went away, and `close()` then cancels the backend call. Only the writer closes a stream that Hub passes on,
-  and JAX-RS does not call it for `HEAD`, so `ExtensionProxyResource.head` closes the stream itself. `ExtensionChat` checks the chat body, reads the
+  `event` and `data`, and ends the stream with an `error` event at a limit. Each open stream holds a
+  `max-concurrent-streams` slot and its backend connection until `close()`, and its writer holds a worker thread until
+  `writeTo` returns. Keep the heartbeat comment: a failed write is how Hub sees that the
+  caller went away, and `close()` then cancels the backend call. The writer closes a stream that Hub passes on, and the end of the Vert.x
+  exchange closes it too, because a failed response filter skips the writer. Vert.x does not call an end handler that is
+  added after the exchange ended (the caller left while Hub waited for the backend), so `ExtensionProxyResource` then
+  closes the stream at once. `ExtensionStreamWatchdog` (application scoped, started and stopped with Hub; a stop closes
+  every open stream) calls `close()` `max-stream-seconds` after the stream opens, also when no writer runs. It sends no
+  `error` event: only a running writer does. The call and its stream share one release-once callback for the slot, and
+  a stream that the backend opens after its call has failed (a timeout) closes at once. A write to the caller has no
+  time limit (RESTEasy Classic writes block), so a caller that stops reading holds a worker thread until the
+  connection fails, also after `close()`. JAX-RS does not call the writer for `HEAD`, so `ExtensionProxyResource`
+  closes the stream itself. `ExtensionChat` checks the chat body, reads the
   shared document with the caller's read scope, and drops a citation that `ExtensionDestinations.link` refuses or that
   names a namespace the caller cannot read. It parses the citation strictly (no duplicate key, nothing after it),
   because Hub sends the data on as it came

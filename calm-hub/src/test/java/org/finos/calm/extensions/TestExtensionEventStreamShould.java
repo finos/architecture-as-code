@@ -1,5 +1,6 @@
 package org.finos.calm.extensions;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -12,8 +13,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -24,6 +28,12 @@ class TestExtensionEventStreamShould {
 
     private final AtomicInteger released = new AtomicInteger();
     private final RecordingSubscription subscription = new RecordingSubscription();
+    private final ExtensionStreamWatchdog watchdog = ExtensionStreamWatchdog.started();
+
+    @AfterEach
+    void stopWatchdog() {
+        watchdog.stop();
+    }
 
     /** Counts the parts that the stream asks for, and whether it cancelled the backend call. */
     private static final class RecordingSubscription implements Flow.Subscription {
@@ -43,7 +53,7 @@ class TestExtensionEventStreamShould {
 
     private ExtensionEventStream stream(ExtensionLimits limits, java.util.function.Predicate<ExtensionEventStream.Event> filter) {
         ExtensionEventStream stream = new ExtensionEventStream("knowledge", "chat", limits, filter, Set.of(),
-                released::incrementAndGet, Duration.ofMillis(20));
+                released::incrementAndGet, watchdog, Duration.ofMillis(20));
         stream.onSubscribe(subscription);
         return stream;
     }
@@ -141,6 +151,80 @@ class TestExtensionEventStreamShould {
     }
 
     @Test
+    void count_the_maximum_time_from_when_hub_opens_the_stream_not_from_when_the_writer_starts() throws Exception {
+        ExtensionEventStream stream = stream(limits(1024, Duration.ofSeconds(5), Duration.ofMillis(100)), event -> true);
+        Thread.sleep(150);
+
+        assertThat(written(stream), equalTo("event: error\ndata: {\"message\":\"The extension reply took too long\"}\n\n"));
+        assertThat(subscription.cancelled, is(true));
+        assertThat(released.get(), is(1));
+    }
+
+    @Test
+    void close_a_stream_that_hub_never_writes_at_its_maximum_time() throws Exception {
+        ExtensionEventStream stream = stream(limits(1024, Duration.ofSeconds(5), Duration.ofMillis(100)), event -> true);
+        try {
+            long end = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+            while (released.get() == 0 && System.nanoTime() < end) {
+                Thread.sleep(10);
+            }
+
+            assertThat(released.get(), is(1));
+            assertThat(subscription.cancelled, is(true));
+            assertThat(watchdog.watched(), is(0));
+        } finally {
+            stream.close();
+        }
+    }
+
+    @Test
+    void free_the_slot_once_when_the_stream_closes_more_than_once() {
+        ExtensionEventStream stream = stream(limits(1024, Duration.ofSeconds(5), Duration.ofMillis(100)), event -> true);
+        stream.close();
+        stream.close();
+        stream.expire();
+
+        assertThat(released.get(), is(1));
+        assertThat(watchdog.watched(), is(0));
+    }
+
+    @Test
+    void close_each_open_stream_and_end_the_watchdog_thread_when_hub_stops_and_watch_again_after_a_restart()
+            throws Exception {
+        AtomicReference<Thread> expiredOn = new AtomicReference<>();
+        ExtensionEventStream expiring = new ExtensionEventStream("knowledge", "chat",
+                limits(1024, Duration.ofSeconds(5), Duration.ofMillis(50)), event -> true, Set.of(),
+                () -> expiredOn.set(Thread.currentThread()), watchdog);
+        ExtensionEventStream open = stream(limits(1024, Duration.ofSeconds(5), Duration.ofSeconds(300)), event -> true);
+        long end = System.nanoTime() + Duration.ofSeconds(5).toNanos();
+        while (expiredOn.get() == null && System.nanoTime() < end) {
+            Thread.sleep(10);
+        }
+        assertThat(expiredOn.get().getName(), is("extension-stream-watchdog"));
+
+        watchdog.stop();
+
+        assertThat(subscription.cancelled, is(true));
+        assertThat(released.get(), is(1));
+        assertThat(watchdog.watched(), is(0));
+        expiredOn.get().join(5000);
+        assertThat(expiredOn.get().isAlive(), is(false));
+        // A stream that opens while Hub stops closes at once.
+        AtomicInteger stoppedReleases = new AtomicInteger();
+        new ExtensionEventStream("knowledge", "chat", limits(1024, Duration.ofSeconds(5), Duration.ofSeconds(300)),
+                event -> true, Set.of(), stoppedReleases::incrementAndGet, watchdog);
+        assertThat(stoppedReleases.get(), is(1));
+
+        watchdog.start();
+        CountDownLatch restarted = new CountDownLatch(1);
+        new ExtensionEventStream("knowledge", "chat", limits(1024, Duration.ofSeconds(5), Duration.ofMillis(50)),
+                event -> true, Set.of(), restarted::countDown, watchdog);
+        assertThat(restarted.await(5, TimeUnit.SECONDS), is(true));
+        expiring.close();
+        open.close();
+    }
+
+    @Test
     void end_with_an_error_event_when_the_backend_connection_fails() {
         ExtensionEventStream stream = stream(limits(1024, Duration.ofSeconds(5), Duration.ofSeconds(5)), event -> true);
         stream.onNext(part("event: delta\ndata: {\"text\":\"a\"}\n\n"));
@@ -173,7 +257,7 @@ class TestExtensionEventStreamShould {
     void end_after_a_terminal_event_and_cancel_the_backend_that_keeps_sending(String terminal) {
         ExtensionEventStream stream = new ExtensionEventStream("knowledge", "chat",
                 limits(1024, Duration.ofSeconds(5), Duration.ofSeconds(5)), event -> true, Set.of("done", "error"),
-                released::incrementAndGet, Duration.ofMillis(20));
+                released::incrementAndGet, watchdog, Duration.ofMillis(20));
         stream.onSubscribe(subscription);
         // The backend sends more and does not end its reply.
         stream.onNext(part("event: delta\ndata: {\"text\":\"a\"}\n\nevent: " + terminal + "\ndata: {}\n\n"
@@ -187,7 +271,7 @@ class TestExtensionEventStreamShould {
     @Test
     void cancel_a_subscription_that_arrives_after_the_stream_closed() {
         ExtensionEventStream stream = new ExtensionEventStream("knowledge", "chat",
-                limits(1024, Duration.ofSeconds(5), Duration.ofSeconds(5)), event -> true, Set.of(), released::incrementAndGet);
+                limits(1024, Duration.ofSeconds(5), Duration.ofSeconds(5)), event -> true, Set.of(), released::incrementAndGet, watchdog);
         stream.close();
         stream.onSubscribe(subscription);
 

@@ -75,6 +75,7 @@ class TestExtensionProxyServiceShould {
     private final CalmHubPermissionChecker permissions = mock(CalmHubPermissionChecker.class);
     private final AuditService auditService = mock(AuditService.class);
     private final SecurityIdentity alice = identity("alice");
+    private final ExtensionStreamWatchdog watchdog = ExtensionStreamWatchdog.started();
     private ExtensionProxyService service;
 
     private ExtensionIdentitySigner signer;
@@ -92,7 +93,7 @@ class TestExtensionProxyServiceShould {
         signer = new ExtensionIdentitySigner(config.getConfigMapping(ExtensionsConfig.class),
                 config, registry);
         signer.load();
-        service = new ExtensionProxyService(registry, signer, permissions, auditService, "oidc");
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, null, "oidc", watchdog);
         when(permissions.canRead(any(), any())).thenReturn(true);
         when(permissions.canWrite(any(), any())).thenReturn(true);
         register(backend.url("/base"), limits(1024, 1024, Duration.ofSeconds(5)));
@@ -101,6 +102,7 @@ class TestExtensionProxyServiceShould {
     @AfterEach
     void teardown() {
         backend.close();
+        watchdog.stop();
     }
 
     @Test
@@ -205,7 +207,7 @@ class TestExtensionProxyServiceShould {
         Route lens = new Route("lens", "POST", "/lens/{namespace}/{resourceType}/{resourceId}", "read", true, List.of("document"));
         ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
                 List.of(lens), null, null);
-        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc");
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
         when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
                 Optional.of(backend.url("/base")), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 0))));
 
@@ -219,7 +221,7 @@ class TestExtensionProxyServiceShould {
         Route lens = new Route("lens", "POST", "/lens/{namespace}/{resourceType}/{resourceId}", "read", true, List.of("document"));
         ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
                 List.of(lens), null, null);
-        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc");
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
         when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
                 Optional.of(backend.url("/base")), limits(1024, 1024, Duration.ofSeconds(5)), false)));
         String hubBody = "{\"hubApi\":0,\"document\":{\"nodes\":[]}}";
@@ -239,7 +241,7 @@ class TestExtensionProxyServiceShould {
         Route lens = new Route("lens", "POST", "/lens/{namespace}/{resourceType}/{resourceId}", "read", true, List.of("document"));
         ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
                 List.of(lens), null, null);
-        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc");
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
         when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
                 Optional.of(backend.url("/base")), limits(64, 1024, Duration.ofSeconds(5)))));
         String hubBody = "{\"hubApi\":0,\"document\":{\"nodes\":[]}}";
@@ -935,6 +937,61 @@ class TestExtensionProxyServiceShould {
         ExtensionProxyResponse next = service.call(alice, eventStream("GET", "/screen"));
         assertThat(next.stream() != null, is(true));
         next.stream().close();
+    }
+
+    @Test
+    void free_the_stream_slot_once_and_close_the_stream_when_the_call_times_out_while_the_stream_opens()
+            throws Exception {
+        CountDownLatch opening = new CountDownLatch(1);
+        CountDownLatch timedOut = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicBoolean first = new java.util.concurrent.atomic.AtomicBoolean(true);
+        // Holds the first stream inside its constructor, before the call can see it, until the call has timed out.
+        ExtensionStreamWatchdog holding = new ExtensionStreamWatchdog() {
+            @Override
+            boolean watch(ExtensionEventStream stream, long delayNanos) {
+                if (first.compareAndSet(true, false)) {
+                    opening.countDown();
+                    try {
+                        timedOut.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                return super.watch(stream, delayNanos);
+            }
+        };
+        holding.start();
+        try {
+            service = new ExtensionProxyService(registry, signer, permissions, auditService, null, "oidc", holding);
+            register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofMillis(500), 1024, 1024,
+                    32, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+            CountDownLatch gate = new CountDownLatch(1);
+            List<String> parts = new java.util.ArrayList<>(List.of("data: first\n\n"));
+            for (int i = 0; i < 200; i++) {
+                parts.add("data: " + "x".repeat(1000) + "\n\n");
+            }
+            backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+
+            CompletableFuture<Integer> call = CompletableFuture.supplyAsync(() -> status(eventStream("GET", "/screen")));
+            assertThat(opening.await(5, TimeUnit.SECONDS), is(true));
+            assertThat(call.get(5, TimeUnit.SECONDS), is(504));
+            // A newer stream takes the slot that the call freed, while the late stream is still opening.
+            ExtensionProxyResponse newer = service.call(alice, eventStream("GET", "/screen"));
+            try {
+                timedOut.countDown();
+                gate.countDown();
+
+                // The late stream closes at once, not at its maximum time, and so closes the backend connection.
+                await(() -> holding.watched() == 1 && backend.streamBroken());
+                // max-concurrent-streams is 1: a slot freed twice would let a second stream in.
+                assertThat(status(eventStream("GET", "/screen")), is(503));
+            } finally {
+                newer.stream().close();
+            }
+        } finally {
+            timedOut.countDown();
+            holding.stop();
+        }
     }
 
     @Test
