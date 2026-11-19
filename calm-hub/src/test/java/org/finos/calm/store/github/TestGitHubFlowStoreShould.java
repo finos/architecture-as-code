@@ -64,8 +64,7 @@ class TestGitHubFlowStoreShould {
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
@@ -121,8 +120,7 @@ class TestGitHubFlowStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         String stem = "payment-flow";
@@ -141,8 +139,7 @@ class TestGitHubFlowStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
@@ -163,8 +160,7 @@ class TestGitHubFlowStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
@@ -193,8 +189,7 @@ class TestGitHubFlowStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -216,8 +211,7 @@ class TestGitHubFlowStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
@@ -240,8 +234,7 @@ class TestGitHubFlowStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         String stem = "payment-flow";
@@ -259,8 +252,7 @@ class TestGitHubFlowStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/nonexistent.json"),
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -281,8 +273,7 @@ class TestGitHubFlowStoreShould {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         Flow flow = new Flow.FlowBuilder().setNamespace("finos").setName("nonexistent").build();

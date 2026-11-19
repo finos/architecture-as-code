@@ -64,8 +64,7 @@ class TestGitHubArchitectureStoreShould {
                 RegistryResourceType.ARCHITECTURE, "My Architecture", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:my-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
 
@@ -121,8 +120,7 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         String stem = "test-arch";
@@ -141,8 +139,7 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
@@ -163,8 +160,7 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
@@ -193,8 +189,7 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -216,8 +211,7 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
@@ -241,8 +235,7 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         String stem = "test-arch";
@@ -260,8 +253,7 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/nonexistent.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -282,8 +274,7 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setName("nonexistent").build();

@@ -61,8 +61,7 @@ class TestGitHubTimelineStoreShould {
     @Test
     void return_empty_timelines_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of());
 
@@ -77,8 +76,7 @@ class TestGitHubTimelineStoreShould {
                 RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
@@ -128,8 +126,7 @@ class TestGitHubTimelineStoreShould {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
                 RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         String stem = "release-timeline";
@@ -148,8 +145,7 @@ class TestGitHubTimelineStoreShould {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
                 RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
@@ -170,8 +166,7 @@ class TestGitHubTimelineStoreShould {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
                 RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
@@ -200,8 +195,7 @@ class TestGitHubTimelineStoreShould {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
                 RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -223,8 +217,7 @@ class TestGitHubTimelineStoreShould {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
                 RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
@@ -247,8 +240,7 @@ class TestGitHubTimelineStoreShould {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
                 RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         String stem = "release-timeline";
@@ -266,8 +258,7 @@ class TestGitHubTimelineStoreShould {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/nonexistent.json"),
                 RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
@@ -288,8 +279,7 @@ class TestGitHubTimelineStoreShould {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
                 RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setName("nonexistent").build();

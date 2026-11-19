@@ -39,8 +39,7 @@ class TestGitHubDecoratorStoreShould {
     @Test
     void return_empty_decorators_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<Integer> result = store.getDecoratorsForNamespace("finos", "target", "type");
@@ -51,8 +50,7 @@ class TestGitHubDecoratorStoreShould {
     @Test
     void return_empty_decorator_values_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<Decorator> result = store.getDecoratorValuesForNamespace("finos", "target", "type");
@@ -63,8 +61,7 @@ class TestGitHubDecoratorStoreShould {
     @Test
     void return_empty_optional_for_decorator_by_id() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         Optional<Decorator> result = store.getDecoratorById("finos", 1);
@@ -128,8 +125,7 @@ class TestGitHubDecoratorStoreShould {
     @Test
     void throw_decorator_not_found_on_get_decorator_history() {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThrows(DecoratorNotFoundException.class, () -> store.getDecoratorHistory("finos", 1));

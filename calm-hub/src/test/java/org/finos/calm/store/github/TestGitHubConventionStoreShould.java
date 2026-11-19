@@ -59,7 +59,7 @@ class TestGitHubConventionStoreShould {
     @BeforeEach
     void setup() {
         store = new GitHubConventionStore(registryService, cloneManager, versionService, fileReader);
-        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of()), Map.of()));
+        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of())));
         when(registryService.listByType("finos", RegistryResourceType.CONVENTION)).thenReturn(List.of(ACME, DEFAULT, OTHER_TYPE));
         when(cloneManager.headSha("finos")).thenReturn(SHA);
     }

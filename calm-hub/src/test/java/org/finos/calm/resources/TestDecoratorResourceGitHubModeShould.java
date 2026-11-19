@@ -58,7 +58,7 @@ class TestDecoratorResourceGitHubModeShould {
     @BeforeEach
     void answerAsTheGitHubStore() throws Exception {
         ResourceRegistry registry = mock(ResourceRegistry.class);
-        when(registry.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of()), Map.of()));
+        when(registry.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of())));
         GitHubDecoratorStore gitHubStore = new GitHubDecoratorStore(registry);
         doAnswer(delegatesTo(gitHubStore)).when(decoratorStore).requireWritable();
         doAnswer(delegatesTo(gitHubStore)).when(decoratorStore).getDecoratorHistory(anyString(), anyInt());

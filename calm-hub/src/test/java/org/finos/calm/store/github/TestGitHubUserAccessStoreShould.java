@@ -70,8 +70,7 @@ class TestGitHubUserAccessStoreShould {
     void return_empty_grants_when_no_matching_group() {
         when(roleResolver.resolve(eq(identity), any())).thenReturn(OidcRoleResolver.AccessLevel.NONE);
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(), "team", List.of()),
-                Map.of());
+                Map.of("finos", List.of(), "team", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<UserAccess> result = store.getGrantsForUser("testuser");
@@ -84,8 +83,7 @@ class TestGitHubUserAccessStoreShould {
         when(roleResolver.resolve(eq(identity), eq(ACCESS_GROUPS)))
                 .thenReturn(OidcRoleResolver.AccessLevel.READ);
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(), "team", List.of()),
-                Map.of());
+                Map.of("finos", List.of(), "team", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<UserAccess> result = store.getGrantsForUser("testuser");
@@ -104,8 +102,7 @@ class TestGitHubUserAccessStoreShould {
                 .thenReturn(OidcRoleResolver.AccessLevel.NONE);
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(), "public", List.of()),
-                Map.of());
+                Map.of("finos", List.of(), "public", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<UserAccess> result = store.getGrantsForUser("testuser");
@@ -121,8 +118,7 @@ class TestGitHubUserAccessStoreShould {
         RegistryEntry securityControl = new RegistryEntry("ctrl-a", Path.of("controls/security/ctrl-a.json"),
                 RegistryResourceType.CONTROL, "Control A", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(securityControl), "team", List.of()),
-                Map.of());
+                Map.of("finos", List.of(securityControl), "team", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<UserAccess> result = store.getGrantsForUser("testuser");
@@ -150,8 +146,7 @@ class TestGitHubUserAccessStoreShould {
         RegistryEntry paymentsControl = new RegistryEntry("ctrl-b", Path.of("controls/payments/ctrl-b.json"),
                 RegistryResourceType.CONTROL, "Control B", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(), "team", List.of(paymentsControl), "public", List.of()),
-                Map.of());
+                Map.of("finos", List.of(), "team", List.of(paymentsControl), "public", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<UserAccess> result = store.getGrantsForUser("testuser");
@@ -172,8 +167,7 @@ class TestGitHubUserAccessStoreShould {
     void throw_user_access_not_found_when_no_access() {
         when(roleResolver.resolve(eq(identity), any())).thenReturn(OidcRoleResolver.AccessLevel.NONE);
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThrows(UserAccessNotFoundException.class,
