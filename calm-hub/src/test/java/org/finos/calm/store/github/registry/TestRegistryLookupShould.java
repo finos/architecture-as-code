@@ -1,6 +1,6 @@
 package org.finos.calm.store.github.registry;
 
-import org.finos.calm.domain.exception.InvalidResourceIdException;
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -30,7 +30,7 @@ class TestRegistryLookupShould {
 
     @Test
     void fail_closed_when_the_id_is_ambiguous() {
-        assertThrows(InvalidResourceIdException.class,
+        assertThrows(AmbiguousResourceIdException.class,
                 () -> RegistryLookup.singleOrNull(List.of(entry, entry)));
     }
 }

@@ -34,7 +34,7 @@ class TestGitHubDocumentStoreShould {
     }
 
     private void withNamespace(String namespace) {
-        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of(namespace, List.of()), Map.of()));
+        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of(namespace, List.of())));
     }
 
     @Test
