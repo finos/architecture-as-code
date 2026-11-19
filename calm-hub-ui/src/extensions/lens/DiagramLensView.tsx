@@ -198,7 +198,7 @@ export function DiagramLensView({
                                 <div className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-col items-start gap-2" onPointerDown={(event) => event.stopPropagation()}>
                                     {notDrawn.length > 0 && (
                                         <p role="status" data-testid="lens-overlays-not-drawn" className="max-w-md rounded-md border border-base-300 bg-base-100/95 px-3 py-1.5 text-xs shadow-sm">
-                                            {notDrawn.map(({ view, notDrawn: ids }) => `${viewTitleOf(view)}: ${ids.length} decorated element${ids.length === 1 ? ' is' : 's are'} not in this view`).join('. ')}.
+                                            {notDrawn.map(({ view, notDrawn: ids }) => `${viewTitleOf(view)}: ${ids.length} decorated element${ids.length === 1 ? ' is' : 's are'} not shown`).join('. ')}.
                                         </p>
                                     )}
                                     <OverlayLegend />

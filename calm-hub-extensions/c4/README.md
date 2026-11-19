@@ -28,8 +28,9 @@ Hub draws decorator badges on the C4 diagram from the `calm` ids of each element
 A node of a detailed architecture is not a node of the open architecture, so it has no `calm` id. Its
 prefixed id can be the id of a node of the open architecture, such as `api/db`. The lens then leaves out
 that id, so the node's decorators do not show on the detailed node. A decorated node that a level does not
-draw, such as a container at context level, shows no badge on another element: Hub says that it is not in
-the view.
+draw, such as a container at context level, shows no badge on another element: Hub says that it is not
+shown. An edge that merges or lifts more than 32 relationships names the first 32, so Hub counts a decorator of
+another one as not shown too.
 
 ## Run it as a sidecar
 

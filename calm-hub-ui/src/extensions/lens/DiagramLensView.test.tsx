@@ -195,7 +195,7 @@ describe('DiagramLensView', () => {
             expect(badges('node:pay')).toEqual([]);
             expect(badges('edge:e')).toEqual(['Deployments · Built-in: Failed']);
             expect(document.querySelector('[data-node="shop"] [data-overlay-outline]')).not.toBeNull();
-            expect(screen.getByTestId('lens-overlays-not-drawn')).toHaveTextContent('Deployments · Built-in: 1 decorated element is not in this view.');
+            expect(screen.getByTestId('lens-overlays-not-drawn')).toHaveTextContent('Deployments · Built-in: 1 decorated element is not shown.');
         });
 
         it('opens the badge details without selecting the node, and the legend turns a view off', async () => {
@@ -242,6 +242,17 @@ describe('DiagramLensView', () => {
             expect(screen.queryByRole('dialog')).toBeNull();
         });
 
+        // A lens names at most 32 ids on an element, so an edge that stands for more relationships cannot name them all.
+        it('says that a decorator is not shown, not that it is outside the view, when the element that draws it cannot name it', async () => {
+            const ids = Array.from({ length: 33 }, (_, index) => `r${index}`);
+            call.mockResolvedValue({ ...reply, graph: { ...reply.graph, edges: [{ ...reply.graph.edges[0], calm: ids.slice(0, 32) }] } });
+            show({ decorators: [decorator('d-r32', 'deployment', ['r32'], { status: 'failed', 'start-time': '2026-11-17T10:00:00Z' })], storage: createMemoryStorage() });
+            await screen.findByRole('button', { name: 'Online Shop' });
+            expect(document.querySelector('[data-edge="e"]')).not.toBeNull();
+            await waitFor(() => expect(screen.getByTestId('lens-overlays-not-drawn')).toHaveTextContent('Deployments · Built-in: 1 decorated element is not shown.'));
+            expect(badges('edge:e')).toEqual([]);
+        });
+
         it('keeps a legend row for a view whose decorated elements are all outside the view, so it can be turned on again', async () => {
             const storage = createMemoryStorage();
             storage.setItem('calm-hub-overlay-views', JSON.stringify({ 'deployment/deployment': false }));
@@ -250,7 +261,7 @@ describe('DiagramLensView', () => {
             const toggle = await screen.findByRole('checkbox', { name: /Deployments · Built-in/ });
             expect(screen.queryByTestId('lens-overlays-not-drawn')).toBeNull();
             fireEvent.click(toggle);
-            expect(screen.getByTestId('lens-overlays-not-drawn')).toHaveTextContent('Deployments · Built-in: 1 decorated element is not in this view.');
+            expect(screen.getByTestId('lens-overlays-not-drawn')).toHaveTextContent('Deployments · Built-in: 1 decorated element is not shown.');
         });
 
         it('wraps many badges to the node width, inside the view box of the diagram', async () => {

@@ -61,8 +61,10 @@ A view without `overlay` is valid, but the UI draws nothing for it yet.
 - Click a badge to see each result, its mapped status, its label and its time.
 - A [diagram lens](extension-points.md#diagram-lens), such as C4, draws the same views. Each lens element shows
   the results of the CALM elements that its `calm` list names, and nothing else. An element that stands for
-  several CALM elements shows each of their results, and a decorator on two of them counts once. When a
-  decorated element is not in the lens view, the lens says so on the diagram. It does not move the badge
+  several CALM elements shows each of their results, and a decorator on two of them counts once. When no lens
+  element names a decorated element, the lens says on the diagram that it is not shown. For example, the level
+  does not draw it, or the element that draws it cannot name it: a `calm` list has at most 32 ids, of at most
+  256 characters each. It does not move the badge
   to another element, and the view keeps its row in the legend, so you can turn it on there. Badges wrap to
   the width of their element. An edge shows only `error` and `warn`, as on the CALM diagram.
 - While the diagram, a lens, the **Decorators** tab or the details drawer is open, Hub reads the decorators again every 5 seconds. The other tabs do not. The overlays, the **Decorators** tab and the details drawer show the same list. The details drawer lists all the decorators of the element under **All decorators**, also the older ones that a badge does not count.

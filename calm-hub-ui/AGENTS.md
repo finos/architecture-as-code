@@ -188,7 +188,7 @@ choice that leaves the query as it is does not navigate, because Hub reloads the
 Each lens fits its own view. The layout controls, the component search and the version compare belong
 to the `calm` lens. An extension lens draws the decorator overlays too (`extensions/lens/overlays.ts`): a lens
 element shows only the decorators of the CALM ids in its `calm` list, and a decorated id that no element names is
-reported under the diagram, never moved to another element. `DiagramSection` polls decorators while an extension
+reported on the diagram, never moved to another element. `DiagramSection` polls decorators while an extension
 lens shows. An extension lens draws its controls on its canvas (`LensToolbar`). On desktop,
 the Diagram tab names the open lens, and its chevron opens `LensMenu`: the lenses, with a text filter, so many
 lenses take no more space in the header. The list and the mobile View sheet show Hub's lenses first, then the
