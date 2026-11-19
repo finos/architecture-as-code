@@ -1,6 +1,6 @@
 export interface SearchResult {
     namespace: string;
-    id: number;
+    id: string;
     name: string;
     description: string;
 }

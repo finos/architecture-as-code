@@ -78,8 +78,13 @@ In this mode, a version is a commit, not a number.
 
 - The versions of a document are the abbreviated (7-character) SHAs of the commits that changed its file on the configured branch, oldest first. CALM Hub gets them from the GitHub commits API, up to `calm.github.max-versions`.
 - If the API returns no history (for example, it cannot be reached or the rate limit is exceeded), the version list has one entry: the SHA of the commit that the clone holds.
-- There is no semantic version and no `latest` version. A request for a version that is not a commit SHA returns `404`.
+- There is no semantic version. The unversioned `GET /calm/namespaces/{ns}/{type}/{name}` resolves "latest" to the clone's current HEAD SHA; if there is no local clone it returns `404`.
+- A request for a version that is not a commit SHA returns `404`.
 - CALM Hub reads the version that the clone holds from disk. It gets any other version from the GitHub contents API and caches the response.
+
+### Resource identity
+
+A GitHub resource is identified by its filename stem (the part before the first dot), plus an optional parent-folder `path` and compound-extension `variant`. The first known type folder (`architectures/`, `patterns/`, and so on) is removed from the path. The `?path=` and `?variant=` query parameters narrow the lookup on both API surfaces. The document's `unique-id` is not used for identity. If the supplied fields match more than one file, the request fails with `404` rather than serving an arbitrary match.
 
 ---
 

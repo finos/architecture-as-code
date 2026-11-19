@@ -124,9 +124,9 @@ There are 13 store interfaces in `org.finos.calm.store`, one for each resource t
 | `NamespaceStore` | Namespace management |
 | `DomainStore` | Domain management |
 | `UserAccessStore` | User access rules |
-| `ResourceMappingStore` | Slug → numeric ID mappings |
+| `ResourceMappingStore` | Slug → resource ID mappings |
 
-Each interface exposes the same CRUD contract (list all, get by ID/version, create, update, delete). REST resources depend only on the interface, not on any concrete implementation.
+Each interface exposes the same CRUD contract (list all, get by ID/version, create, update, delete). REST resources depend only on the interface, not on any concrete implementation. Read methods also accept a `ResourceId`: MongoDB and standalone unwrap a `NumericResourceId`, while GitHub stores resolve a `GitHubResourceId` (stem plus optional path and variant) through the resource registry.
 
 ### CDI Producers
 

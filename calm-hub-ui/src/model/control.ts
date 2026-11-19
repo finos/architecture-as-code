@@ -1,8 +1,9 @@
 export interface ControlDetail {
-    id: number;
+    id: string;
     name: string;
     description: string;
     title?: string;
+    tags?: { path?: string; variant?: string };
 }
 
 export interface ControlConfigDetail {

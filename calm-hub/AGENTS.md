@@ -414,6 +414,10 @@ from; it fails if there is none.
 
 ## Key Concepts
 
+### Resource IDs
+
+`{id}` path segments are strings. `ResourceIdResolver` builds a `NumericResourceId` in MongoDB/standalone modes (non-numeric → `InvalidResourceIdException` → 400) and a `GitHubResourceId` (stem + optional `path`/`variant`) in GitHub mode. Name-based `/calm/...` routes use the same resolver; GitHub resolves the composite identity through `ResourceRegistry.find`, which returns all matches and fails closed on ambiguity (never picks a winner). Document `unique-id` is not part of GitHub identity. `ResourceMapping.numericId` stays a primitive int internally (`NO_NUMERIC_ID = 0` for GitHub) and is omitted from JSON by `ResourceMappingView`. Numeric MongoDB URLs and the `resource_mappings` collection are unchanged — no migration.
+
 ### Quarkus Dev Mode
 - Hot reload for Java code changes
 - Accessible at http://localhost:8080

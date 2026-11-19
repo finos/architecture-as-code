@@ -17,10 +17,10 @@ const emptyResults: GroupedSearchResults = {
 
 const mockResults: GroupedSearchResults = {
     architectures: [
-        { namespace: 'finos', id: 1, name: 'Test Architecture', description: 'A test architecture' },
+        { namespace: 'finos', id: '1', name: 'Test Architecture', description: 'A test architecture' },
     ],
     patterns: [
-        { namespace: 'finos', id: 2, name: 'Test Pattern', description: 'A test pattern' },
+        { namespace: 'finos', id: '2', name: 'Test Pattern', description: 'A test pattern' },
     ],
     flows: [],
     standards: [],
@@ -33,8 +33,8 @@ const mockResults: GroupedSearchResults = {
 // ambiguous-duplicate case the namespace chip must disambiguate (problem #9).
 const duplicateNameResults: GroupedSearchResults = {
     architectures: [
-        { namespace: 'finos', id: 1, name: 'TraderX Architecture', description: 'in finos' },
-        { namespace: 'traderx', id: 2, name: 'TraderX Architecture', description: 'in traderx' },
+        { namespace: 'finos', id: '1', name: 'TraderX Architecture', description: 'in finos' },
+        { namespace: 'traderx', id: '2', name: 'TraderX Architecture', description: 'in traderx' },
     ],
     patterns: [],
     flows: [],
