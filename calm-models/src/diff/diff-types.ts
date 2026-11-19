@@ -59,6 +59,27 @@ export interface UndiffableDiffItems {
     relationships: unknown[];
 }
 
+/**
+ * How a pattern declares an item: a plain `prefixItems` entry, one alternative
+ * of a `oneOf`/`anyOf` entry, or a member of the `items` catalogue.
+ */
+export type PatternObligation = 'required' | 'alternative' | 'catalogue';
+
+export interface ObligationChange<T> {
+    item: T;
+    from: PatternObligation;
+    to: PatternObligation;
+}
+
+/**
+ * Pattern items that both versions declare, at a different obligation. An item
+ * can also be in a `Modified` bucket when its content changed too.
+ */
+export interface ObligationChangedItems {
+    nodes: ObligationChange<CalmNodeSchema>[];
+    relationships: ObligationChange<CalmRelationshipSchema>[];
+}
+
 export type ChangeType = 'added' | 'removed' | 'unchanged';
 
 export interface StringDiffItem {
@@ -101,6 +122,7 @@ export interface NodesAndRelationshipsDiffResult {
 
     invalidItems?: InvalidDiffItems;
     undiffableItems?: UndiffableDiffItems;
+    obligationChanged?: ObligationChangedItems;
 }
 
 /**

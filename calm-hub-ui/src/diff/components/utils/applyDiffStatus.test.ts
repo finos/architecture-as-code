@@ -30,6 +30,19 @@ describe('applyDiffStatus', () => {
         expect(result.nodes[0].data.diffStatus).toBe('added');
     });
 
+    it.each([true, false])('highlights a node whose obligation changed as modified (isFirst=%s)', (isFirst) => {
+        const parsed = { nodes: [node('cache', { 'unique-id': 'cache' })], edges: [] as Edge[] };
+        const diff: DiffResult = {
+            ...emptyDiff,
+            obligationChanged: {
+                nodes: [{ item: { 'unique-id': 'cache', 'node-type': 'database' }, from: 'required', to: 'catalogue' }],
+                relationships: [],
+            },
+        };
+        const result = applyDiffStatus(parsed, diff, isFirst);
+        expect(result.nodes[0].data.diffStatus).toBe('modified');
+    });
+
     it('leaves id-less pattern nodes unchanged rather than matching by undefined', () => {
         // An unconstrained pattern node has no unique-id; the diff's id-less
         // content entry also has none. Without the guard, `undefined === undefined`

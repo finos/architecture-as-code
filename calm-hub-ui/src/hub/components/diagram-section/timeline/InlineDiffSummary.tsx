@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { IoTriangleSharp } from 'react-icons/io5';
-import type { DiffResult } from '@finos/calm-models/diff';
+import type { DiffResult, ObligationChange } from '@finos/calm-models/diff';
 import type { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import { colors } from '../../../../theme/colors.js';
 
@@ -40,6 +40,27 @@ function relationshipType(e: CalmRelationshipSchema): string {
     return 'relationship';
 }
 
+type Identified = { 'unique-id'?: string };
+
+function obligationsById<T extends Identified>(changes: ObligationChange<T>[] | undefined): Map<string | undefined, ObligationChange<T>> {
+    return new Map((changes ?? []).map((c) => [c.item['unique-id'], c]));
+}
+
+/** An obligation change on a modified or renamed item shows on that item's pill, not on its own. */
+function obligationsOnly<T extends Identified>(
+    obligations: Map<string | undefined, ObligationChange<T>>,
+    modified: { updated: Identified }[],
+    renamed: { newId: string }[],
+): ObligationChange<T>[] {
+    const shown = new Set<string | undefined>([...modified.map((m) => m.updated['unique-id']), ...renamed.map((r) => r.newId)]);
+    return [...obligations.values()].filter((c) => !shown.has(c.item['unique-id']));
+}
+
+function withObligation(type: string | undefined, change: ObligationChange<Identified> | undefined): string {
+    const obligation = change ? `${change.from} → ${change.to}` : undefined;
+    return [type, obligation].filter(Boolean).join(' · ');
+}
+
 /**
  * Replaces the old right-side DiffPanel for compare mode. Lives inside the
  * expanded timeline panel: stat row + ADDED / MODIFIED / REMOVED grids for
@@ -61,10 +82,14 @@ export function InlineDiffSummary({ diffResult }: InlineDiffSummaryProps) {
     }
 
     const nodeAdds = diffResult.nodesAdded.length;
-    const nodeMods = diffResult.nodesModified.length + diffResult.nodesRenamed.length;
+    const nodeObligations = obligationsById<CalmNodeSchema>(diffResult.obligationChanged?.nodes);
+    const edgeObligations = obligationsById<CalmRelationshipSchema>(diffResult.obligationChanged?.relationships);
+    const nodeObligationsOnly = obligationsOnly(nodeObligations, diffResult.nodesModified, diffResult.nodesRenamed);
+    const edgeObligationsOnly = obligationsOnly(edgeObligations, diffResult.edgesModified, diffResult.edgesRenamed);
+    const nodeMods = diffResult.nodesModified.length + diffResult.nodesRenamed.length + nodeObligationsOnly.length;
     const nodeDels = diffResult.nodesRemoved.length;
     const edgeAdds = diffResult.edgesAdded.length;
-    const edgeMods = diffResult.edgesModified.length + diffResult.edgesRenamed.length;
+    const edgeMods = diffResult.edgesModified.length + diffResult.edgesRenamed.length + edgeObligationsOnly.length;
     const edgeDels = diffResult.edgesRemoved.length;
     const totalNodes = nodeAdds + nodeMods + nodeDels;
     const totalEdges = edgeAdds + edgeMods + edgeDels;
@@ -108,14 +133,14 @@ export function InlineDiffSummary({ diffResult }: InlineDiffSummaryProps) {
                         ))}
                     </Section>
                 )}
-                {diffResult.nodesModified.length + diffResult.nodesRenamed.length > 0 && (
-                    <Section label={`NODES MODIFIED (${diffResult.nodesModified.length + diffResult.nodesRenamed.length})`}>
+                {nodeMods > 0 && (
+                    <Section label={`NODES MODIFIED (${nodeMods})`}>
                         {diffResult.nodesModified.map((m) => (
                             <Pill
                                 key={m.original['unique-id']}
                                 kind="mod"
                                 name={nodeName(m.original)}
-                                type={nodeType(m.original)}
+                                type={withObligation(nodeType(m.original), nodeObligations.get(m.updated['unique-id']))}
                             />
                         ))}
                         {diffResult.nodesRenamed.map((r) => (
@@ -123,19 +148,27 @@ export function InlineDiffSummary({ diffResult }: InlineDiffSummaryProps) {
                                 key={`${r.oldId}->${r.newId}`}
                                 kind="mod"
                                 name={`${r.oldId} → ${r.newId}`}
-                                type="renamed"
+                                type={withObligation('renamed', nodeObligations.get(r.newId))}
+                            />
+                        ))}
+                        {nodeObligationsOnly.map((c) => (
+                            <Pill
+                                key={`obligation-${c.item['unique-id']}`}
+                                kind="mod"
+                                name={nodeName(c.item)}
+                                type={withObligation(undefined, c)}
                             />
                         ))}
                     </Section>
                 )}
-                {diffResult.edgesModified.length + diffResult.edgesRenamed.length > 0 && (
-                    <Section label={`RELATIONSHIPS MODIFIED (${diffResult.edgesModified.length + diffResult.edgesRenamed.length})`}>
+                {edgeMods > 0 && (
+                    <Section label={`RELATIONSHIPS MODIFIED (${edgeMods})`}>
                         {diffResult.edgesModified.map((m) => (
                             <Pill
                                 key={m.original['unique-id']}
                                 kind="mod"
                                 name={relationshipName(m.original)}
-                                type={relationshipType(m.original)}
+                                type={withObligation(relationshipType(m.original), edgeObligations.get(m.updated['unique-id']))}
                             />
                         ))}
                         {diffResult.edgesRenamed.map((r) => (
@@ -143,7 +176,15 @@ export function InlineDiffSummary({ diffResult }: InlineDiffSummaryProps) {
                                 key={`${r.oldId}->${r.newId}`}
                                 kind="mod"
                                 name={`${r.oldId} → ${r.newId}`}
-                                type="renamed"
+                                type={withObligation('renamed', edgeObligations.get(r.newId))}
+                            />
+                        ))}
+                        {edgeObligationsOnly.map((c) => (
+                            <Pill
+                                key={`obligation-${c.item['unique-id']}`}
+                                kind="mod"
+                                name={relationshipName(c.item)}
+                                type={withObligation(undefined, c)}
                             />
                         ))}
                     </Section>

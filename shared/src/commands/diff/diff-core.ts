@@ -80,7 +80,9 @@ export function hasChanges(diff: DiffResult): boolean {
         (diff.invalidItems?.nodes.length ?? 0) > 0 ||
         (diff.invalidItems?.relationships.length ?? 0) > 0 ||
         (diff.undiffableItems?.nodes.length ?? 0) > 0 ||
-        (diff.undiffableItems?.relationships.length ?? 0) > 0
+        (diff.undiffableItems?.relationships.length ?? 0) > 0 ||
+        (diff.obligationChanged?.nodes.length ?? 0) > 0 ||
+        (diff.obligationChanged?.relationships.length ?? 0) > 0
     );
 }
 
@@ -114,6 +116,8 @@ export function formatDiff(
     const invalidFlows = diff.invalidItems?.flows?.length ?? 0;
     const undiffableNodes = diff.undiffableItems?.nodes.length ?? 0;
     const undiffableEdges = diff.undiffableItems?.relationships.length ?? 0;
+    const obligationNodes = diff.obligationChanged?.nodes ?? [];
+    const obligationEdges = diff.obligationChanged?.relationships ?? [];
     const counts = architectureLevelChangeCounts(diff);
     const title = `CALM ${documentType} diff`;
     const lines = [
@@ -146,6 +150,9 @@ export function formatDiff(
     if (undiffableNodes + undiffableEdges > 0) {
         lines.push(`Undiffable items: ${undiffableNodes} node(s) + ${undiffableEdges} relationship(s) (no constrained unique-id to diff by)`);
     }
+    if (obligationNodes.length + obligationEdges.length > 0) {
+        lines.push(`Obligation changed: ${obligationNodes.length} node(s) + ${obligationEdges.length} relationship(s)`);
+    }
     lines.push('');
     const list = (label: string, ids: string[]) => {
         if (ids.length === 0) return;
@@ -161,6 +168,8 @@ export function formatDiff(
     list('Relationships removed:', diff.edgesRemoved.map(edgeLabel));
     list('Relationships modified:', diff.edgesModified.map((e) => edgeLabel(e.original)));
     list('Relationships renamed:', diff.edgesRenamed.map((r) => `${r.oldId} -> ${r.newId}`));
+    list('Nodes with a changed obligation:', obligationNodes.map((c) => `${nodeLabel(c.item)} (${c.from} -> ${c.to})`));
+    list('Relationships with a changed obligation:', obligationEdges.map((c) => `${edgeLabel(c.item)} (${c.from} -> ${c.to})`));
     list('Flows added:', diff.flowsAdded?.map((flow) => flow['unique-id']) ?? []);
     list('Flows removed:', diff.flowsRemoved?.map((flow) => flow['unique-id']) ?? []);
     list('Flows modified:', diff.flowsModified?.map((flow) => flow.original['unique-id']) ?? []);

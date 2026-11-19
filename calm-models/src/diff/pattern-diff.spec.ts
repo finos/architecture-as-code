@@ -223,3 +223,85 @@ describe('items catalogues', () => {
         expect(normalisePatternToInstance(plain).nodes).toHaveLength(0);
     });
 });
+
+describe('obligation changes', () => {
+    const node = (id: string) => ({
+        type: 'object',
+        properties: { 'unique-id': { const: id }, 'node-type': { const: 'service' } },
+    });
+    const relationship = (id: string) => ({
+        type: 'object',
+        properties: { 'unique-id': { const: id } },
+    });
+    const pattern = (
+        nodes: { prefixItems: unknown[]; items?: unknown },
+        relationships: { prefixItems: unknown[]; items?: unknown } = { prefixItems: [] },
+    ) => ({
+        properties: {
+            nodes: { type: 'array', ...nodes },
+            relationships: { type: 'array', ...relationships },
+        },
+    });
+
+    const required = pattern({ prefixItems: [node('webapp'), node('cache')] });
+    const alternative = pattern({ prefixItems: [node('webapp'), { oneOf: [node('cache'), node('queue')] }] });
+    const anyOfSlot = pattern({ prefixItems: [node('webapp'), { anyOf: [node('cache')] }] });
+    const catalogue = pattern({ prefixItems: [node('webapp')], items: { anyOf: [node('cache')] } });
+
+    it.each([
+        ['required', 'catalogue', required, catalogue],
+        ['catalogue', 'required', catalogue, required],
+        ['required', 'alternative', required, alternative],
+        ['alternative', 'required', alternative, required],
+        ['alternative', 'catalogue', anyOfSlot, catalogue],
+        ['catalogue', 'alternative', catalogue, anyOfSlot],
+    ])('reports a node that moves from %s to %s', (from, to, a, b) => {
+        const result = diffPatterns(a, b);
+        expect(result.obligationChanged?.nodes).toEqual([
+            { item: { 'unique-id': 'cache', 'node-type': 'service' }, from, to },
+        ]);
+        expect(result.nodesSame.map((n) => n['unique-id'])).toEqual(['webapp']);
+    });
+
+    it('reports a relationship that moves into a catalogue', () => {
+        const a = pattern({ prefixItems: [] }, { prefixItems: [relationship('r1')] });
+        const b = pattern({ prefixItems: [] }, { prefixItems: [], items: { oneOf: [relationship('r1')] } });
+        const result = diffPatterns(a, b);
+        expect(result.obligationChanged?.relationships).toEqual([
+            { item: { 'unique-id': 'r1' }, from: 'required', to: 'catalogue' },
+        ]);
+        expect(result.edgesSame).toHaveLength(0);
+    });
+
+    it('reports both the obligation change and the content change of a node', () => {
+        const changed = pattern({
+            prefixItems: [node('webapp')],
+            items: { anyOf: [{ properties: { 'unique-id': { const: 'cache' }, 'node-type': { const: 'database' } } }] },
+        });
+        const result = diffPatterns(required, changed);
+        expect(result.nodesModified.map((m) => m.updated['unique-id'])).toEqual(['cache']);
+        expect(result.obligationChanged?.nodes.map((c) => c.item['unique-id'])).toEqual(['cache']);
+    });
+
+    it('reports the strongest obligation of a node that a pattern declares twice', () => {
+        const both = pattern({ prefixItems: [node('webapp'), node('cache')], items: { anyOf: [node('cache')] } });
+        expect(diffPatterns(both, catalogue).obligationChanged?.nodes.map((c) => [c.from, c.to]))
+            .toEqual([['required', 'catalogue']]);
+        expect(diffPatterns(required, both).obligationChanged).toBeUndefined();
+    });
+
+    it('reports the obligation change of a renamed node', () => {
+        const renamed = pattern({ prefixItems: [node('webapp')], items: { anyOf: [node('cache-v2')] } });
+        const result = diffPatterns(required, renamed);
+        expect(result.nodesRenamed.map((r) => [r.oldId, r.newId])).toEqual([['cache', 'cache-v2']]);
+        expect(result.obligationChanged?.nodes).toEqual([
+            { item: { 'unique-id': 'cache-v2', 'node-type': 'service' }, from: 'required', to: 'catalogue' },
+        ]);
+    });
+
+    it('does not report a node that stays at the same obligation', () => {
+        const oneOfSlot = pattern({ prefixItems: [node('webapp'), { oneOf: [node('cache')] }] });
+        expect(diffPatterns(anyOfSlot, oneOfSlot).obligationChanged).toBeUndefined();
+        expect(diffPatterns(catalogue, catalogue).obligationChanged).toBeUndefined();
+    });
+});
