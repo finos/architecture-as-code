@@ -18,6 +18,8 @@ export interface ControlData {
     controlName: string;
     controlDescription: string;
     controlTitle?: string;
+    path?: string;
+    variant?: string;
 }
 
 /**

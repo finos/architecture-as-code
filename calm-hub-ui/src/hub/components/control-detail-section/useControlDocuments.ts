@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ControlConfigDetail,
     ControlConfigurationDoc,
@@ -26,8 +26,9 @@ function valueFor<T>(entry: Keyed<T> | null, key: string): T | undefined {
  * resets the selection during render and a late response for an earlier key is ignored.
  * Until the user chooses, the latest version and the first configuration are selected.
  */
-export function useControlDocuments(controlService: ControlService, { domain, controlId }: ControlData) {
-    const controlKey = `${domain}|${controlId}`;
+export function useControlDocuments(controlService: ControlService, { domain, controlId, path, variant }: ControlData) {
+    const tags = useMemo(() => (path || variant ? { path, variant } : undefined), [path, variant]);
+    const controlKey = `${domain}|${controlId}|${path ?? ''}|${variant ?? ''}`;
 
     const [requirementVersionsResult, setRequirementVersionsResult] = useState<Keyed<string[]> | null>(null);
     const [chosenReqVersion, setChosenReqVersion] = useState<Keyed<string> | null>(null);
@@ -54,7 +55,7 @@ export function useControlDocuments(controlService: ControlService, { domain, co
 
     useEffect(() => {
         let cancelled = false;
-        controlService.fetchRequirementVersions(domain, controlId)
+        controlService.fetchRequirementVersions(domain, controlId, tags)
             .then(sortVersionsDescending)
             .catch((error): string[] => {
                 console.error('%s', 'Failed to load requirement versions:', error);
@@ -63,7 +64,7 @@ export function useControlDocuments(controlService: ControlService, { domain, co
             .then((versions) => {
                 if (!cancelled) setRequirementVersionsResult({ key: controlKey, value: versions });
             });
-        controlService.fetchConfigurationsForControl(domain, controlId)
+        controlService.fetchConfigurationsForControl(domain, controlId, tags)
             .catch((error): ControlConfigDetail[] => {
                 console.error('%s', 'Failed to load configurations:', error);
                 return [];
@@ -74,12 +75,12 @@ export function useControlDocuments(controlService: ControlService, { domain, co
         return () => {
             cancelled = true;
         };
-    }, [controlService, domain, controlId, controlKey]);
+    }, [controlService, domain, controlId, path, variant, controlKey]);
 
     useEffect(() => {
         if (!selectedReqVersion) return;
         let cancelled = false;
-        controlService.fetchRequirementForVersion(domain, controlId, selectedReqVersion)
+        controlService.fetchRequirementForVersion(domain, controlId, selectedReqVersion, tags)
             .catch((error): undefined => {
                 console.error('%s', 'Failed to load control requirement:', error);
                 return undefined;
@@ -90,12 +91,12 @@ export function useControlDocuments(controlService: ControlService, { domain, co
         return () => {
             cancelled = true;
         };
-    }, [controlService, domain, controlId, selectedReqVersion, requirementKey]);
+    }, [controlService, domain, controlId, path, variant, selectedReqVersion, requirementKey]);
 
     useEffect(() => {
         if (selectedConfigId === null) return;
         let cancelled = false;
-        controlService.fetchConfigurationVersions(domain, controlId, selectedConfigId)
+        controlService.fetchConfigurationVersions(domain, controlId, selectedConfigId, tags)
             .then(sortVersionsDescending)
             .catch((error): string[] => {
                 console.error('%s', 'Failed to load configuration versions:', error);
@@ -107,12 +108,12 @@ export function useControlDocuments(controlService: ControlService, { domain, co
         return () => {
             cancelled = true;
         };
-    }, [controlService, domain, controlId, selectedConfigId, configKey]);
+    }, [controlService, domain, controlId, path, variant, selectedConfigId, configKey]);
 
     useEffect(() => {
         if (selectedConfigId === null || !selectedConfigVersion) return;
         let cancelled = false;
-        controlService.fetchConfigurationForVersion(domain, controlId, selectedConfigId, selectedConfigVersion)
+        controlService.fetchConfigurationForVersion(domain, controlId, selectedConfigId, selectedConfigVersion, tags)
             .catch((error): undefined => {
                 console.error('%s', 'Failed to load configuration:', error);
                 return undefined;
@@ -123,7 +124,7 @@ export function useControlDocuments(controlService: ControlService, { domain, co
         return () => {
             cancelled = true;
         };
-    }, [controlService, domain, controlId, selectedConfigId, selectedConfigVersion, configVersionKey]);
+    }, [controlService, domain, controlId, path, variant, selectedConfigId, selectedConfigVersion, configVersionKey]);
 
     const selectReqVersion = useCallback(
         (version: string) => setChosenReqVersion({ key: controlKey, value: version }),

@@ -7,9 +7,18 @@ import {
     ControlRequirementDoc,
 } from '../model/control.js';
 import { apiClient } from './utils/api-client.js';
+import type { ResourceTags } from '../model/search.js';
 
 export class ControlService {
     private readonly ax: AxiosInstance;
+
+    private static withTags(url: string, tags?: ResourceTags): string {
+        if (!tags?.path && !tags?.variant) return url;
+        const query = new URLSearchParams();
+        if (tags.path) query.set('path', tags.path);
+        if (tags.variant) query.set('variant', tags.variant);
+        return `${url}?${query.toString()}`;
+    }
 
     constructor(axiosInstance?: AxiosInstance) {
         if (axiosInstance) {
@@ -48,10 +57,10 @@ export class ControlService {
             });
     }
 
-    public async fetchRequirementVersions(domain: string, controlId: string): Promise<string[]> {
+    public async fetchRequirementVersions(domain: string, controlId: string, tags?: ResourceTags): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions`, { headers })
+            .get(ControlService.withTags(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions`, tags), { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -62,10 +71,10 @@ export class ControlService {
             });
     }
 
-    public async fetchRequirementForVersion(domain: string, controlId: string, version: string): Promise<ControlRequirementDoc> {
+    public async fetchRequirementForVersion(domain: string, controlId: string, version: string, tags?: ResourceTags): Promise<ControlRequirementDoc> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions/${encodeURIComponent(version)}`, { headers })
+            .get(ControlService.withTags(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions/${encodeURIComponent(version)}`, tags), { headers })
             .then((res) => res.data as ControlRequirementDoc)
             .catch((error) => {
                 const errorMessage = `Error fetching requirement version ${version} for control ${controlId}:`;
@@ -74,10 +83,10 @@ export class ControlService {
             });
     }
 
-    public async fetchConfigurationsForControl(domain: string, controlId: string): Promise<ControlConfigDetail[]> {
+    public async fetchConfigurationsForControl(domain: string, controlId: string, tags?: ResourceTags): Promise<ControlConfigDetail[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations`, { headers })
+            .get(ControlService.withTags(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations`, tags), { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -88,10 +97,10 @@ export class ControlService {
             });
     }
 
-    public async fetchConfigurationVersions(domain: string, controlId: string, configId: string): Promise<string[]> {
+    public async fetchConfigurationVersions(domain: string, controlId: string, configId: string, tags?: ResourceTags): Promise<string[]> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions`, { headers })
+            .get(ControlService.withTags(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions`, tags), { headers })
             .then((res) => {
                 return Array.isArray(res.data?.values) ? res.data.values : [];
             })
@@ -102,10 +111,10 @@ export class ControlService {
             });
     }
 
-    public async fetchConfigurationForVersion(domain: string, controlId: string, configId: string, version: string): Promise<ControlConfigurationDoc> {
+    public async fetchConfigurationForVersion(domain: string, controlId: string, configId: string, version: string, tags?: ResourceTags): Promise<ControlConfigurationDoc> {
         const headers = await getAuthHeaders();
         return this.ax
-            .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions/${encodeURIComponent(version)}`, { headers })
+            .get(ControlService.withTags(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions/${encodeURIComponent(version)}`, tags), { headers })
             .then((res) => res.data as ControlConfigurationDoc)
             .catch((error) => {
                 const errorMessage = `Error fetching configuration version ${version} for config ${configId}:`;

@@ -1,10 +1,17 @@
 import type { Destination } from './extensions.js';
 
+/** Optional GitHub identity parts used to disambiguate resources with the same stem. */
+export interface ResourceTags {
+    path?: string;
+    variant?: string;
+}
+
 export interface SearchResult {
     namespace: string;
     id: string;
     name: string;
     description: string;
+    tags?: ResourceTags;
 }
 
 export interface GroupedSearchResults {
