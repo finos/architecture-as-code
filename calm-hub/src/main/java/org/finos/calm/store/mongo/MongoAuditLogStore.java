@@ -104,6 +104,8 @@ public class MongoAuditLogStore implements AuditLogStore {
         // Only extension entries have these, so that other entries keep their shape.
         appendIfPresent(document, "route", entry.getRoute());
         appendIfPresent(document, "jti", entry.getJti());
+        appendIfPresent(document, "resourceType", entry.getResourceType());
+        appendIfPresent(document, "resourceId", entry.getResourceId());
         return document;
     }
 
@@ -131,6 +133,8 @@ public class MongoAuditLogStore implements AuditLogStore {
         entry.setSourceIp(doc.getString("sourceIp"));
         entry.setRoute(doc.getString("route"));
         entry.setJti(doc.getString("jti"));
+        entry.setResourceType(doc.getString("resourceType"));
+        entry.setResourceId(doc.getString("resourceId"));
         return entry;
     }
 

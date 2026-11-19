@@ -18,15 +18,19 @@ import org.junit.jupiter.api.BeforeEach;
 import org.finos.calm.store.UserAccessStore;
 import org.junit.jupiter.api.Test;
 
+import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -353,6 +357,122 @@ class TestExtensionProxyResourceShould {
             given().accept("text/event-stream").when().head(BASE + path).then().statusCode(status);
         }
         assertThat(backend.received(), nullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void buffer_a_2xx_event_stream_reply_other_than_200_and_refuse_it_on_the_chat_endpoint() {
+        backend.reply(new FixtureBackend.Reply(204, Map.of("Content-Type", "text/event-stream"), new byte[0], 0));
+        // One more than the default max-concurrent-streams (8): a 204 that kept its stream slot would make the last 503.
+        for (int i = 0; i <= 8; i++) {
+            given().accept("text/event-stream").when().get(BASE + "/screen").then().statusCode(204);
+        }
+        given().contentType("application/json").body(QUESTION).when().post(CHAT)
+                .then().statusCode(502)
+                .body("error", equalTo("The extension failed"));
+
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "data: hello\n\n".getBytes(StandardCharsets.UTF_8), 0));
+        given().accept("text/event-stream").when().get(BASE + "/screen")
+                .then().statusCode(200)
+                .body(equalTo("data: hello\n\n"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void free_a_proxy_stream_and_cancel_its_backend_call_when_a_response_filter_fails() throws Exception {
+        failEachStreamOfAFullPool(() -> given().accept("text/event-stream").header(FaultyResponseFilter.FAIL, "true")
+                .when().get(BASE + "/screen").then().statusCode(500));
+
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "data: hello\n\n".getBytes(StandardCharsets.UTF_8), 0));
+        given().accept("text/event-stream").when().get(BASE + "/screen")
+                .then().statusCode(200)
+                .body(equalTo("data: hello\n\n"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void free_a_chat_stream_and_cancel_its_backend_call_when_a_response_filter_fails() throws Exception {
+        failEachStreamOfAFullPool(() -> given().contentType("application/json").header(FaultyResponseFilter.FAIL, "true")
+                .body(QUESTION).when().post(CHAT).then().statusCode(500));
+
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "event: done\ndata: {}\n\n".getBytes(StandardCharsets.UTF_8), 0));
+        given().contentType("application/json").body(QUESTION).when().post(CHAT)
+                .then().statusCode(200)
+                .body(equalTo("event: done\ndata: {}\n\n"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void free_the_stream_slot_when_the_caller_leaves_before_the_backend_replies_and_a_response_filter_fails()
+            throws Exception {
+        // As many as the default max-concurrent-streams (8): the exchange has ended before the reply arrives.
+        for (int i = 0; i < 8; i++) {
+            backend.reset();
+            FaultyResponseFilter.EXCHANGE.set(null);
+            CountDownLatch headers = new CountDownLatch(1);
+            backend.holdHeaders(headers);
+            backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                    "data: hello\n\n".getBytes(StandardCharsets.UTF_8), 0));
+            int failed = FaultyResponseFilter.FAILED.get();
+            try {
+                try (Socket socket = new Socket("localhost", RestAssured.port)) {
+                    // A reset, so that Hub sees the connection end at once.
+                    socket.setSoLinger(true, 0);
+                    socket.getOutputStream().write(("GET " + BASE + "/screen HTTP/1.1\r\nHost: localhost\r\n"
+                            + "Accept: text/event-stream\r\n" + FaultyResponseFilter.FAIL + ": true\r\n\r\n")
+                            .getBytes(StandardCharsets.US_ASCII));
+                    socket.getOutputStream().flush();
+                    waitFor(() -> backend.received() != null);
+                }
+                // Hub has seen the caller leave before the backend sends its headers.
+                waitFor(() -> FaultyResponseFilter.EXCHANGE.get() != null
+                        && FaultyResponseFilter.EXCHANGE.get().response().closed());
+            } finally {
+                headers.countDown();
+            }
+            waitFor(() -> FaultyResponseFilter.FAILED.get() > failed);
+        }
+
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "data: hello\n\n".getBytes(StandardCharsets.UTF_8), 0));
+        given().accept("text/event-stream").when().get(BASE + "/screen")
+                .then().statusCode(200)
+                .body(equalTo("data: hello\n\n"));
+    }
+
+    /**
+     * Fills a stream pool of the default size (8, as max-concurrent-streams and max-concurrent-chat-streams) with
+     * streams that a failed response filter stops JAX-RS from writing, while the backend holds each one open. Each
+     * must cancel its backend call, not only free its slot.
+     */
+    private static void failEachStreamOfAFullPool(Runnable failedCall) throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        List<String> parts = new ArrayList<>(List.of("event: delta\ndata: {\"text\":\"Hel\"}\n\n"));
+        // Enough data that a write of the backend fails after Hub closes the connection.
+        for (int i = 0; i < 300; i++) {
+            parts.add("data: " + "x".repeat(1000) + "\n\n");
+        }
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+        try {
+            for (int i = 0; i < 8; i++) {
+                failedCall.run();
+            }
+        } finally {
+            gate.countDown();
+        }
+        waitFor(() -> backend.brokenStreams() == 8);
+        assertThat(backend.brokenStreams(), is(8));
+    }
+
+    private static void waitFor(BooleanSupplier condition) throws InterruptedException {
+        long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (!condition.getAsBoolean() && System.nanoTime() < end) {
+            Thread.sleep(10);
+        }
+        assertThat(condition.getAsBoolean(), is(true));
     }
 
     @Test

@@ -2,6 +2,7 @@ package org.finos.calm.resources;
 
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.vertx.http.runtime.CurrentVertxRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -11,6 +12,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.extensions.ExtensionProxyException;
@@ -31,11 +33,17 @@ public class ExtensionChatResource {
 
     private final ExtensionProxyService service;
     private final SecurityIdentity identity;
+    private final CurrentVertxRequest currentRequest;
+    private final boolean captureSourceIp;
 
     @Inject
-    public ExtensionChatResource(ExtensionProxyService service, SecurityIdentity identity) {
+    public ExtensionChatResource(ExtensionProxyService service, SecurityIdentity identity,
+                                 CurrentVertxRequest currentRequest, Config properties) {
         this.service = service;
         this.identity = identity;
+        this.currentRequest = currentRequest;
+        // Read at run time, as AuditRequestFilter does.
+        this.captureSourceIp = properties.getOptionalValue("calm.audit.capture-source-ip", Boolean.class).orElse(false);
     }
 
     @POST
@@ -48,7 +56,7 @@ public class ExtensionChatResource {
         try {
             return ExtensionProxyResource.response(service.chat(identity, id, entry,
                     headers.getHeaderString(HttpHeaders.CONTENT_TYPE), headers.getHeaderString(HttpHeaders.ACCEPT_LANGUAGE),
-                    body));
+                    captureSourceIp ? headers.getHeaderString("X-Forwarded-For") : null, body), currentRequest.getCurrent());
         } catch (ExtensionProxyException e) {
             return ExtensionProxyResource.error(e);
         }

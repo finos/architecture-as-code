@@ -16,6 +16,7 @@ import org.finos.calm.security.CalmHubPermissionChecker;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -48,6 +49,9 @@ final class ExtensionChat {
             .build()
             .reader();
 
+    /** The resource version that a chat message shares, as Hub checked it. The audit entry names it. */
+    record Context(String namespace, String resourceType, String resourceId, String version) {}
+
     private final CalmHubPermissionChecker permissions;
     private final ExtensionHubData hubData;
 
@@ -58,9 +62,10 @@ final class ExtensionChat {
 
     /**
      * The body for the chat route: the conversation and message ids, the messages and, only when the caller shared one,
-     * the context with the document of that version. Hub reads the document with the caller's read scope.
+     * the context with the document of that version. Hub reads the document with the caller's read scope. Hub gives
+     * {@code shared} the context as soon as it is valid, before the read check, so that a refusal names it too.
      */
-    byte[] body(SecurityIdentity identity, byte[] request) {
+    byte[] body(SecurityIdentity identity, byte[] request, Consumer<Context> shared) {
         JsonObject in = parse(new String(request, StandardCharsets.UTF_8));
         String conversationId = in.getValue("conversationId") instanceof String s && ID.matcher(s).matches() ? s : null;
         String messageId = in.getValue("messageId") instanceof String s && ID.matcher(s).matches() ? s : null;
@@ -74,7 +79,7 @@ final class ExtensionChat {
                 .put("messages", messages(in.getValue("messages")));
         Object context = in.getValue("context");
         if (context != null) {
-            out.put("context", context(identity, context));
+            out.put("context", context(identity, context, shared));
         }
         return out.encode().getBytes(StandardCharsets.UTF_8);
     }
@@ -107,7 +112,7 @@ final class ExtensionChat {
         return out;
     }
 
-    private JsonObject context(SecurityIdentity identity, Object value) {
+    private JsonObject context(SecurityIdentity identity, Object value, Consumer<Context> shared) {
         if (!(value instanceof JsonObject context)
                 || !(context.getValue("namespace") instanceof String namespace) || !NAMESPACE.matcher(namespace).matches()
                 || !(context.getValue("resourceType") instanceof String resourceType) || !RESOURCE_TYPES.contains(resourceType)
@@ -121,6 +126,7 @@ final class ExtensionChat {
                 || CONTROL.matcher(text).find())) {
             throw new ExtensionProxyException(400, "The selectedElement of the chat context is not valid");
         }
+        shared.accept(new Context(namespace, resourceType, resourceId, version));
         // The same check as the page of the resource, so a shared context never names what the caller cannot read.
         if (!permissions.canRead(identity, namespace)) {
             throw new ExtensionProxyException(403, "You do not have read access to the resource that you shared");

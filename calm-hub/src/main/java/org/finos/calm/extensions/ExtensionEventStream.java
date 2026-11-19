@@ -29,7 +29,8 @@ import java.util.regex.Pattern;
  * a reconnect time. A limit ends the stream with an {@code error} event from Hub: the backend is silent for the idle
  * timeout, the stream is open for longer than its maximum time, or the backend sends more than max-response-bytes.
  * When the caller goes away, for example with Stop in the UI, Hub closes the backend connection too. After a terminal
- * event, such as the {@code done} of a chat reply, Hub ends the stream and closes the backend connection.
+ * event, such as the {@code done} of a chat reply, Hub ends the stream and closes the backend connection. At its
+ * maximum time a watchdog closes the stream, also when Hub never writes it, so that it always frees its slot.
  */
 public final class ExtensionEventStream implements HttpResponse.BodySubscriber<ExtensionEventStream>, AutoCloseable {
 
@@ -48,6 +49,8 @@ public final class ExtensionEventStream implements HttpResponse.BodySubscriber<E
     static final Duration HEARTBEAT = Duration.ofSeconds(5);
     private static final byte[] COMMENT = ":\n".getBytes(StandardCharsets.US_ASCII);
     private static final Object END = new Object();
+    /** Wakes a writer that waits for the next part, so that it sees a stream that the watchdog closed. */
+    private static final Object CLOSED = new Object();
 
     private final String extensionId;
     private final String routeId;
@@ -55,29 +58,48 @@ public final class ExtensionEventStream implements HttpResponse.BodySubscriber<E
     private final Predicate<Event> filter;
     private final Set<String> terminal;
     private final Runnable release;
+    private final ExtensionStreamWatchdog watchdog;
     private final long heartbeatNanos;
+    /** From when Hub opens the backend call, so a writer that starts late cannot keep the stream open longer. */
+    private final long deadline;
     private final BlockingQueue<Object> items = new LinkedBlockingQueue<>();
     private final AtomicBoolean closed = new AtomicBoolean();
     private volatile Flow.Subscription subscription;
+    private volatile boolean writing;
 
     /**
      * {@code filter} drops an event that it does not accept. The stream ends after it writes an event named in
-     * {@code terminal}. {@code release} runs once, when the stream closes.
+     * {@code terminal}. {@code release} runs once, when the stream closes. {@code watchdog} closes the stream at its
+     * maximum time.
      */
     ExtensionEventStream(String extensionId, String routeId, ExtensionLimits limits, Predicate<Event> filter,
-                         Set<String> terminal, Runnable release) {
-        this(extensionId, routeId, limits, filter, terminal, release, HEARTBEAT);
+                         Set<String> terminal, Runnable release, ExtensionStreamWatchdog watchdog) {
+        this(extensionId, routeId, limits, filter, terminal, release, watchdog, HEARTBEAT);
     }
 
     ExtensionEventStream(String extensionId, String routeId, ExtensionLimits limits, Predicate<Event> filter,
-                         Set<String> terminal, Runnable release, Duration heartbeat) {
+                         Set<String> terminal, Runnable release, ExtensionStreamWatchdog watchdog, Duration heartbeat) {
         this.extensionId = extensionId;
         this.routeId = routeId;
         this.limits = limits;
         this.filter = filter;
         this.terminal = terminal;
         this.release = release;
+        this.watchdog = watchdog;
         this.heartbeatNanos = heartbeat.toNanos();
+        this.deadline = System.nanoTime() + limits.maxStreamDuration().toNanos();
+        if (!watchdog.watch(this, deadline - System.nanoTime())) {
+            // Hub is stopping.
+            close();
+        }
+    }
+
+    void expire() {
+        if (!writing && !closed.get()) {
+            LOG.warn("Extension {} route {} stream reached its maximum time before Hub wrote it, so Hub closed it",
+                    extensionId, routeId);
+        }
+        close();
     }
 
     @Override
@@ -114,7 +136,7 @@ public final class ExtensionEventStream implements HttpResponse.BodySubscriber<E
 
     /** Writes the events to the caller until the backend ends the stream, a limit stops it or the caller goes away. */
     public void writeTo(OutputStream out) {
-        long deadline = System.nanoTime() + limits.maxStreamDuration().toNanos();
+        writing = true;
         long idleUntil = System.nanoTime() + limits.streamIdleTimeout().toNanos();
         Parser parser = new Parser();
         long size = 0;
@@ -123,6 +145,9 @@ public final class ExtensionEventStream implements HttpResponse.BodySubscriber<E
                 long now = System.nanoTime();
                 if (now - deadline >= 0) {
                     stop(out, "The extension reply took too long", "reached its maximum time");
+                    return;
+                }
+                if (closed.get()) {
                     return;
                 }
                 if (now - idleUntil >= 0) {
@@ -138,6 +163,9 @@ public final class ExtensionEventStream implements HttpResponse.BodySubscriber<E
                 }
                 if (item == END) {
                     return;
+                }
+                if (item == CLOSED) {
+                    continue;
                 }
                 if (item instanceof Throwable error) {
                     LOG.warn("Extension {} route {} stream failed: {}", extensionId, routeId, error.toString());
@@ -180,6 +208,8 @@ public final class ExtensionEventStream implements HttpResponse.BodySubscriber<E
     @Override
     public void close() {
         if (closed.compareAndSet(false, true)) {
+            watchdog.forget(this);
+            items.add(CLOSED);
             Flow.Subscription current = subscription;
             if (current != null) {
                 current.cancel();

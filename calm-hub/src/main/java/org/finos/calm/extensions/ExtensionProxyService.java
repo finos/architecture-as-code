@@ -44,6 +44,7 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -75,30 +76,41 @@ public class ExtensionProxyService {
     private final ExtensionHubData hubData;
     private final String authMode;
     private final ExtensionChat chat;
+    private final ExtensionStreamWatchdog watchdog;
     private final Map<String, HttpClient> clients = new ConcurrentHashMap<>();
     private final Map<String, Semaphore> concurrentCalls = new ConcurrentHashMap<>();
+    /** The streams of the generic proxy and MCP, per extension. */
     private final Map<String, Semaphore> concurrentStreams = new ConcurrentHashMap<>();
+    /** The streams of the chat endpoint, per extension, so that other streams cannot fill this pool. */
+    private final Map<String, Semaphore> concurrentChatStreams = new ConcurrentHashMap<>();
+    /** The open streams of each user in each pool. A count of 0 removes its entry, so each entry has an open stream. */
+    private final Map<StreamUser, Integer> userStreams = new ConcurrentHashMap<>();
 
     @Inject
     public ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer,
                                  CalmHubPermissionChecker permissions, AuditService auditService, Config properties,
-                                 Instance<ProxyAuthenticationMechanism> proxyAuthentication, ExtensionHubData hubData) {
-        this(registry, signer, permissions, auditService, hubData, authMode(properties, proxyAuthentication.isResolvable()));
+                                 Instance<ProxyAuthenticationMechanism> proxyAuthentication, ExtensionHubData hubData,
+                                 ExtensionStreamWatchdog watchdog) {
+        this(registry, signer, permissions, auditService, hubData, authMode(properties, proxyAuthentication.isResolvable()),
+                watchdog);
     }
 
+    /** With a watchdog of its own, for a test that streams nothing: the watchdog starts no thread until a stream opens. */
     ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer,
                           CalmHubPermissionChecker permissions, AuditService auditService, String authMode) {
-        this(registry, signer, permissions, auditService, null, authMode);
+        this(registry, signer, permissions, auditService, null, authMode, ExtensionStreamWatchdog.started());
     }
 
     ExtensionProxyService(ExtensionRegistry registry, ExtensionIdentitySigner signer, CalmHubPermissionChecker permissions,
-                          AuditService auditService, ExtensionHubData hubData, String authMode) {
+                          AuditService auditService, ExtensionHubData hubData, String authMode,
+                          ExtensionStreamWatchdog watchdog) {
         this.registry = registry;
         this.signer = signer;
         this.permissions = permissions;
         this.auditService = auditService;
         this.hubData = hubData;
         this.authMode = authMode;
+        this.watchdog = watchdog;
         this.chat = new ExtensionChat(permissions, hubData);
     }
 
@@ -115,12 +127,12 @@ public class ExtensionProxyService {
      * the request before {@link #call} uses this first, so that a caller with no scope cannot cause the work.
      */
     public void checkAccess(SecurityIdentity identity, ExtensionProxyRequest request) {
-        authorise(identity, request, null);
+        authorise(identity, request, null, false);
     }
 
     /** Throws {@link ExtensionProxyException} when Hub refuses the call or the backend fails. */
     public ExtensionProxyResponse call(SecurityIdentity identity, ExtensionProxyRequest request) {
-        return call(identity, request, null, null, null);
+        return call(identity, request, null, null, null, null);
     }
 
     /**
@@ -129,15 +141,18 @@ public class ExtensionProxyService {
      */
     public ExtensionProxyResponse callDedicated(SecurityIdentity identity, ExtensionProxyRequest request, String routeId,
                                                 Supplier<byte[]> body) {
-        return call(identity, request, routeId, body, null);
+        return call(identity, request, routeId, body, null, null);
     }
 
     /**
      * Sends a chat message to the route of a {@code chat} entry and streams the reply (hubApi 0 chat contract). Hub
      * checks the message and its context, builds the body, and passes back only the citations that the caller can open.
+     * Each chat call is audited as a READ, with the resource that it shares, because the message and any shared document
+     * leave Hub. The entry never holds the message text. {@code sourceIp} is for the audit entry only, as in
+     * {@link ExtensionProxyRequest}.
      */
     public ExtensionProxyResponse chat(SecurityIdentity identity, String extensionId, String entryId, String contentType,
-                                       String acceptLanguage, InputStream body) {
+                                       String acceptLanguage, String sourceIp, InputStream body) {
         RegisteredExtension extension = registry.find(extensionId)
                 .orElseThrow(() -> new ExtensionProxyException(404, "There is no such extension"));
         List<ExtensionManifest.RouteContribution> entries = extension.manifest().contributes().chat();
@@ -147,10 +162,11 @@ public class ExtensionProxyService {
                 .flatMap(entry -> extension.manifest().route(entry.route()))
                 .orElseThrow(() -> new ExtensionProxyException(404, "The extension has no such chat"));
         ExtensionProxyRequest request = new ExtensionProxyRequest(extensionId, "POST", route.path(), null, contentType,
-                "text/event-stream", acceptLanguage, null);
+                "text/event-stream", acceptLanguage, null, null, sourceIp, null);
         int maxBytes = extension.limits().maxRequestBytes();
+        AtomicReference<ExtensionChat.Context> shared = new AtomicReference<>();
         Supplier<byte[]> message = () -> {
-            byte[] built = chat.body(identity, readBody(body, maxBytes));
+            byte[] built = chat.body(identity, readBody(body, maxBytes), shared::set);
             if (built.length > maxBytes) {
                 throw new ExtensionProxyException(413, "The conversation and its shared context are too large for "
                         + "this extension. Start a new conversation, or share no context");
@@ -158,7 +174,7 @@ public class ExtensionProxyService {
             return built;
         };
         return call(identity, request, route.id(), message,
-                new ExtensionEventStream.Policy(chat.citations(identity), ExtensionChat.TERMINAL_EVENTS));
+                new ExtensionEventStream.Policy(chat.citations(identity), ExtensionChat.TERMINAL_EVENTS), shared);
     }
 
     /**
@@ -166,21 +182,41 @@ public class ExtensionProxyService {
      * the generic proxy and MCP. {@code body} builds the JSON body of a dedicated call; Hub calls it after the scope
      * check and the concurrency limits, so a refusal in it is a FAILURE with no jti, and caps what it builds at
      * max-request-bytes. Without it, Hub sends the caller's body. {@code stream} is null when the caller chooses an event stream with Accept; otherwise the backend must
-     * reply with one, and the policy filters and ends it.
+     * reply with one, and the policy filters and ends it. {@code chatContext} is set only for a chat call, which is
+     * always audited: the body builder puts the context that the message shares in it.
      */
     private ExtensionProxyResponse call(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute,
-                                        Supplier<byte[]> build, ExtensionEventStream.Policy streamPolicy) {
-        Access access = authorise(identity, request, dedicatedRoute);
+                                        Supplier<byte[]> build, ExtensionEventStream.Policy streamPolicy,
+                                        AtomicReference<ExtensionChat.Context> chatContext) {
+        Access access = authorise(identity, request, dedicatedRoute, chatContext != null);
         RegisteredExtension extension = access.extension();
         ExtensionManifest.Route route = access.route();
         String method = access.method();
         ExtensionLimits limits = extension.limits();
         Semaphore calls = concurrentCalls.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentCalls()));
-        Semaphore streams = concurrentStreams.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentStreams()));
+        boolean chatCall = chatContext != null;
+        Semaphore streams = chatCall
+                ? concurrentChatStreams.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentChatStreams()))
+                : concurrentStreams.computeIfAbsent(extension.id(), id -> new Semaphore(limits.maxConcurrentStreams()));
+        StreamUser user = new StreamUser(extension.id(), chatCall, identity.getPrincipal().getName());
         boolean stream = streamPolicy != null || acceptsEventStream(request.accept());
         boolean acquired = false;
         boolean streamAcquired = false;
+        AtomicBoolean userAcquired = new AtomicBoolean();
         AtomicReference<ExtensionEventStream> opened = new AtomicReference<>();
+        // The call and its stream share one release of the pool slot and the user's count, so that they are freed
+        // once, whichever of the two frees them first. A second release could free the count of a newer stream.
+        AtomicBoolean slotFreed = new AtomicBoolean();
+        Runnable freeSlot = () -> {
+            if (slotFreed.compareAndSet(false, true)) {
+                if (userAcquired.get()) {
+                    releaseUserStream(user);
+                }
+                streams.release();
+            }
+        };
+        // Set when the call returns or fails. A stream that the backend opens after that closes at once.
+        AtomicBoolean finished = new AtomicBoolean();
         ExtensionProxyResponse reply = null;
         // A refusal after the scope check is a FAILURE with no jti: Hub sent nothing to the backend.
         AuditOutcome outcome = AuditOutcome.FAILURE;
@@ -204,10 +240,18 @@ public class ExtensionProxyService {
             if (stream) {
                 streamAcquired = streams.tryAcquire();
                 if (!streamAcquired) {
-                    LOG.warn("Extension {} has {} streams open, so Hub refused one more", extension.id(),
-                            limits.maxConcurrentStreams());
+                    LOG.warn("Extension {} has {} {} open, so Hub refused one more", extension.id(),
+                            chatCall ? limits.maxConcurrentChatStreams() : limits.maxConcurrentStreams(),
+                            chatCall ? "chat streams" : "streams");
                     throw new ExtensionProxyException(503, "The extension is busy. Try again later",
                             Map.of("Retry-After", "1"));
+                }
+                userAcquired.set(acquireUserStream(user, limits.maxConcurrentStreamsPerUser()));
+                if (!userAcquired.get()) {
+                    LOG.warn("A user has {} {} open from extension {}, so Hub refused one more",
+                            limits.maxConcurrentStreamsPerUser(), chatCall ? "chat streams" : "streams", extension.id());
+                    throw new ExtensionProxyException(503, "You have too many replies open from this extension. "
+                            + "Close one and try again", Map.of("Retry-After", "1"));
                 }
             }
             String contentType = request.contentType();
@@ -240,8 +284,12 @@ public class ExtensionProxyService {
             HttpResponse.BodyHandler<Object> handler = info -> {
                 if (stream && isEventStream(info)) {
                     ExtensionEventStream opening = new ExtensionEventStream(extension.id(), route.id(), limits,
-                            policy.events(), policy.terminal(), streams::release);
+                            policy.events(), policy.terminal(), freeSlot, watchdog);
                     opened.set(opening);
+                    if (finished.get()) {
+                        // The call timed out while the stream opened, so Hub never passes it on.
+                        opening.close();
+                    }
                     return HttpResponse.BodySubscribers.mapping(opening, s -> s);
                 }
                 return HttpResponse.BodySubscribers.mapping(new CappedBodySubscriber(limits.maxResponseBytes()), b -> b);
@@ -250,22 +298,58 @@ public class ExtensionProxyService {
             outcome = reply.status() < 400 ? AuditOutcome.SUCCESS
                     : reply.status() == 401 || reply.status() == 403 ? AuditOutcome.DENIED : AuditOutcome.FAILURE;
             return reply;
+        } catch (ExtensionProxyException e) {
+            // A chat message that shares a resource the caller cannot read.
+            if (chatContext != null && e.status() == 403) {
+                outcome = AuditOutcome.DENIED;
+            }
+            throw e;
         } finally {
             if (acquired) {
                 calls.release();
             }
             // An open stream frees its own slot when it closes. A stream that Hub does not pass on closes here.
+            finished.set(true);
             ExtensionEventStream started = opened.get();
             if (started != null && (reply == null || reply.stream() != started)) {
                 started.close();
             } else if (started == null && streamAcquired) {
-                streams.release();
+                freeSlot.run();
             }
-            if (!route.readOnly()) {
-                audit(identity, method, extension, route, access.namespace(), access.domain(), sentJti, outcome,
-                        request.sourceIp());
+            if (chatContext != null) {
+                audit(identity, AuditAction.READ, extension, route, access.namespace(), access.domain(), chatContext.get(),
+                        sentJti, outcome, request.sourceIp());
+            } else if (!route.readOnly()) {
+                audit(identity, action(method), extension, route, access.namespace(), access.domain(), null, sentJti,
+                        outcome, request.sourceIp());
             }
         }
+    }
+
+    /** One user's streams from one extension, in the chat pool or the pool of the generic proxy. */
+    private record StreamUser(String extensionId, boolean chat, String user) {
+    }
+
+    private boolean acquireUserStream(StreamUser user, int max) {
+        boolean[] acquired = {false};
+        userStreams.compute(user, (key, open) -> {
+            int count = open == null ? 0 : open;
+            if (count >= max) {
+                return open;
+            }
+            acquired[0] = true;
+            return count + 1;
+        });
+        return acquired[0];
+    }
+
+    private void releaseUserStream(StreamUser user) {
+        userStreams.computeIfPresent(user, (key, open) -> open <= 1 ? null : open - 1);
+    }
+
+    /** The users with a stream open, counted once per extension and pool. For tests: it must go back to 0. */
+    int streamUsers() {
+        return userStreams.size();
     }
 
     private record Access(RegisteredExtension extension, URI backend, String method, String path,
@@ -274,9 +358,10 @@ public class ExtensionProxyService {
 
     /**
      * {@code dedicatedRoute} is the route that a dedicated Hub endpoint calls, or null for the generic proxy and MCP. A
-     * dedicated route answers only its endpoint, so the checks of that endpoint cannot be skipped.
+     * dedicated route answers only its endpoint, so the checks of that endpoint cannot be skipped. A {@code chat} call is
+     * audited, also when its route is {@code readOnly}.
      */
-    private Access authorise(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute) {
+    private Access authorise(SecurityIdentity identity, ExtensionProxyRequest request, String dedicatedRoute, boolean chat) {
         RegisteredExtension extension = registry.find(request.extensionId())
                 .orElseThrow(() -> new ExtensionProxyException(404, "There is no such extension"));
         URI backend = extension.backendUrl()
@@ -304,15 +389,15 @@ public class ExtensionProxyService {
                 || (domain != null && !DOMAIN.matcher(domain).matches())) {
             throw new ExtensionProxyException(400, "The namespace or domain in the path is not valid");
         }
-        boolean audited = !route.readOnly();
+        boolean audited = !route.readOnly() || chat;
         boolean authorised = isAuthorised(identity, route.scope(), namespace, domain);
         // The backend and the audit log get only the values that Hub checked for the scope.
         namespace = NAMESPACE_SCOPES.contains(route.scope()) ? namespace : null;
         domain = DOMAIN_SCOPES.contains(route.scope()) ? domain : null;
         if (!authorised) {
             if (audited) {
-                audit(identity, method, extension, route, namespace, domain, null, AuditOutcome.DENIED,
-                        request.sourceIp());
+                audit(identity, chat ? AuditAction.READ : action(method), extension, route, namespace, domain, null, null,
+                        AuditOutcome.DENIED, request.sourceIp());
             }
             boolean anonymous = identity == null || identity.isAnonymous();
             throw anonymous
@@ -345,21 +430,29 @@ public class ExtensionProxyService {
         };
     }
 
-    private void audit(SecurityIdentity identity, String method, RegisteredExtension extension,
-                       ExtensionManifest.Route route, String namespace, String domain, String jti, AuditOutcome outcome,
-                       String sourceIp) {
+    private static AuditAction action(String method) {
+        return switch (method) {
+            case "GET" -> AuditAction.READ;
+            case "POST" -> AuditAction.CREATE;
+            case "DELETE" -> AuditAction.DELETE;
+            default -> AuditAction.UPDATE;
+        };
+    }
+
+    /** {@code shared} is the resource that a chat call shares, or null. Its namespace replaces the route's. */
+    private void audit(SecurityIdentity identity, AuditAction action, RegisteredExtension extension,
+                       ExtensionManifest.Route route, String namespace, String domain, ExtensionChat.Context shared,
+                       String jti, AuditOutcome outcome, String sourceIp) {
         auditService.record(new AuditLogEntry.AuditLogEntryBuilder()
                 .setTimestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .setActor(identity == null || identity.isAnonymous() ? "anonymous" : identity.getPrincipal().getName())
-                .setAction(switch (method) {
-                    case "GET" -> AuditAction.READ;
-                    case "POST" -> AuditAction.CREATE;
-                    case "DELETE" -> AuditAction.DELETE;
-                    default -> AuditAction.UPDATE;
-                })
+                .setAction(action)
                 .setEntityType(AuditEntityType.EXTENSION)
-                .setNamespace(namespace)
+                .setNamespace(shared == null ? namespace : shared.namespace())
                 .setDomain(domain)
+                .setVersion(shared == null ? null : shared.version())
+                .setResourceType(shared == null ? null : shared.resourceType())
+                .setResourceId(shared == null ? null : shared.resourceId())
                 .setEntityId(extension.id())
                 .setRoute(route.id())
                 .setJti(jti)
@@ -552,8 +645,9 @@ public class ExtensionProxyService {
         return false;
     }
 
+    /** Only a 200: JAX-RS can skip the body of another 2xx, such as a 204. */
     private static boolean isEventStream(HttpResponse.ResponseInfo info) {
-        return info.statusCode() >= 200 && info.statusCode() < 300 && info.headers().firstValue("Content-Type")
+        return info.statusCode() == 200 && info.headers().firstValue("Content-Type")
                 .map(ExtensionProxyService::mediaType).filter("text/event-stream"::equals).isPresent();
     }
 

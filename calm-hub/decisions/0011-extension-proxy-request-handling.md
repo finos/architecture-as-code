@@ -70,12 +70,21 @@ reply, so that the extension cannot serve HTML that runs in Hub's origin.
 
 **Limits.** Each extension has a connect timeout, a request timeout, a cap on
 the request and reply size, a cap on concurrent streams, an idle-read timeout and
-a maximum stream duration. An upstream failure becomes 502 or 504 with a generic
-body. The proxy fails closed.
+a maximum stream duration. Chat replies have their own pool of streams, so that
+streams of the generic proxy cannot use up the chat. In each pool, one user has
+at most `max-concurrent-streams-per-user` streams, so that one user cannot hold
+every slot. An upstream failure becomes 502 or 504 with a generic body. The proxy
+fails closed.
 
 **Audit.** A call to a route that is not `readOnly` is audited with a new
 `EXTENSION` entity type. The record holds the extension id, the route id and the
-assertion `jti`.
+assertion `jti`. Each chat message of a signed-in user is audited too, as a
+`READ`, although its route is `readOnly`: it changes nothing in Hub, but it
+sends data to a third party. When it shares a resource, the record also holds
+that resource's namespace, type, id and version. A shared resource that the
+caller cannot read is recorded as `DENIED`. The record never holds the message
+text. A request that Hub refuses with `401` is not audited, for the chat as for
+the other routes: Hub sends nothing to the extension.
 
 **Auth off.** Hub refuses to start with enabled extensions when auth is off,
 unless the operator sets an explicit opt-in. A warning is not enough, because in
@@ -88,6 +97,9 @@ that mode every caller is a global admin.
 - `chat` and `search-provider` work on the read-only images, because their routes
   are `readOnly`. The extension holds no credential with the user's rights, so a
   proxied POST cannot change Hub data.
+- A read-only Hub cannot write to its audit store, so the audit log line is the
+  only record of a chat message there. Operators who need the trail route the
+  `org.finos.calm.audit` category to a durable sink.
 - The path checks need tests for each rejected form, including encoded and
   double-encoded forms.
 - An extension cannot set cookies, redirect the browser or serve a page through

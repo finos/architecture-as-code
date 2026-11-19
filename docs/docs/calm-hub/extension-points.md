@@ -557,7 +557,11 @@ The route must be a `readOnly` `POST` with no path parameters and no `hubData`. 
 and no command can name it. The UI sends each message to
 `POST /api/calm/extensions/<id>/chat/<entry>`. The proxy and MCP refuse the route with `404`, so
 CALM Hub always checks what goes to the route and what comes back. Because the route is
-`readOnly`, the chat works on a read-only CALM Hub, and CALM Hub does not audit it.
+`readOnly`, the chat works on a read-only CALM Hub. CALM Hub audits each message of a signed-in user as a `READ`
+of the extension, with the chat route and the assertion `jti`. When the message shares a
+resource, the entry also names its namespace, type, id and version. The entry never holds the
+message text. A shared resource that the user cannot read gives a `DENIED` entry. A read-only
+CALM Hub writes only the audit log line, not a stored entry.
 
 ### Chat request
 
@@ -595,7 +599,7 @@ sent again as history.
 
 ### Chat reply
 
-The route replies with `text/event-stream`. CALM Hub gives `502` for a `2xx` reply of another type.
+The route replies `200` with `text/event-stream`. CALM Hub gives `502` for any other `2xx` reply.
 A `4xx` JSON reply goes to the UI, which shows its `message` or `error`.
 
 | Event | Data | UI |

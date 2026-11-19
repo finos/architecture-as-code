@@ -2,6 +2,8 @@ package org.finos.calm.resources;
 
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.vertx.http.runtime.CurrentVertxRequest;
+import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -50,11 +52,14 @@ public class ExtensionProxyResource {
     private final ExtensionProxyService service;
     private final SecurityIdentity identity;
     private final boolean captureSourceIp;
+    private final CurrentVertxRequest currentRequest;
 
     @Inject
-    public ExtensionProxyResource(ExtensionProxyService service, SecurityIdentity identity, Config properties) {
+    public ExtensionProxyResource(ExtensionProxyService service, SecurityIdentity identity, Config properties,
+                                  CurrentVertxRequest currentRequest) {
         this.service = service;
         this.identity = identity;
+        this.currentRequest = currentRequest;
         // Read at run time, as AuditRequestFilter does.
         this.captureSourceIp = properties.getOptionalValue("calm.audit.capture-source-ip", Boolean.class).orElse(false);
     }
@@ -120,23 +125,30 @@ public class ExtensionProxyResource {
             if (uriInfo.getRequestUri().getRawPath().indexOf(';') >= 0) {
                 throw new ExtensionProxyException(400, ExtensionPaths.NOT_ALLOWED);
             }
-            return response(service.call(identity, request), head);
+            return response(service.call(identity, request), head, currentRequest.getCurrent());
         } catch (ExtensionProxyException e) {
             return error(e);
         }
     }
 
     /** The reply of the extension. An event stream goes to the caller event by event, while it arrives. */
-    static Response response(ExtensionProxyResponse reply) {
-        return response(reply, false);
+    static Response response(ExtensionProxyResponse reply, RoutingContext exchange) {
+        return response(reply, false, exchange);
     }
 
-    private static Response response(ExtensionProxyResponse reply, boolean head) {
+    private static Response response(ExtensionProxyResponse reply, boolean head, RoutingContext exchange) {
         Response.ResponseBuilder builder = Response.status(reply.status());
         if (reply.stream() != null && head) {
-            // Only the writer ends a stream, and JAX-RS does not call it for HEAD, so the stream would keep its slot.
+            // JAX-RS does not call the writer for HEAD, so the stream closes at once.
             reply.stream().close();
         } else if (reply.stream() != null) {
+            // The writer closes the stream when it ends. A failed response filter skips the writer, so the end of the
+            // exchange, in any way, closes the stream too and frees its slot and its backend connection. Vert.x does not
+            // call the handler for an exchange that ended before Hub added it, such as when the caller left first.
+            exchange.addEndHandler(ended -> reply.stream().close());
+            if (exchange.response().ended() || exchange.response().closed()) {
+                reply.stream().close();
+            }
             builder.entity((StreamingOutput) reply.stream()::writeTo);
         } else {
             builder.entity(reply.body().length == 0 ? null : reply.body());

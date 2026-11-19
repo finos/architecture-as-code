@@ -58,12 +58,12 @@ class TestExtensionChatShould {
     }
 
     private JsonObject body(JsonObject request) {
-        return new JsonObject(new String(chat.body(alice, request.encode().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8));
+        return new JsonObject(new String(chat.body(alice, request.encode().getBytes(StandardCharsets.UTF_8), shared -> { }), StandardCharsets.UTF_8));
     }
 
     private int refusal(JsonObject request) {
         return assertThrows(ExtensionProxyException.class,
-                () -> chat.body(alice, request.encode().getBytes(StandardCharsets.UTF_8))).status();
+                () -> chat.body(alice, request.encode().getBytes(StandardCharsets.UTF_8), shared -> { })).status();
     }
 
     @Test
@@ -124,7 +124,7 @@ class TestExtensionChatShould {
         JsonArray lastFromAssistant = message().getJsonArray("messages").copy();
         lastFromAssistant.remove(2);
         assertThat(refusal(message().put("messages", lastFromAssistant)), is(400));
-        assertThrows(ExtensionProxyException.class, () -> chat.body(alice, "[1]".getBytes(StandardCharsets.UTF_8)));
+        assertThrows(ExtensionProxyException.class, () -> chat.body(alice, "[1]".getBytes(StandardCharsets.UTF_8), shared -> { }));
     }
 
     @ParameterizedTest
