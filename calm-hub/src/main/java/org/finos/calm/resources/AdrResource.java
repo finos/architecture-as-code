@@ -335,6 +335,8 @@ public class AdrResource {
         int adrId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deleteAdr(namespace, adrId);
+        } catch (AmbiguousResourceIdException e) {
+            throw e; // let the 404 mapper produce the generic response
         } catch (InvalidResourceIdException e) {
             return CalmResourceErrorResponses.invalidResourceIdResponse(e.getMessage());
         } catch (Exception e) {
