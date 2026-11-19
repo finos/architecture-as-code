@@ -65,7 +65,7 @@ Once running, you can access the Hub at:
 
 The CALM Hub dashboard is divided into three primary zones:
 
-1. **Top Navbar:** Displays the branding, navigation links (Hub explorer, standalone Visualizer), and a global search bar. Its results page shows the catalogue results, then the results of each [extension search provider](../calm-hub/extension-points.md#search-provider).
+1. **Top Navbar:** Displays the branding, navigation links (Hub explorer, standalone Visualizer), and a global search bar. Its results page shows the catalogue results, then the results of each [extension search provider](../calm-hub/extension-points.md#search-provider). With a chat provider, the answer of its assistant shows above them (see [Chat](#chat)).
 2. **Explore Sidebar (Left):** Allows hierarchical or flat navigation of Namespaces, Resource Types, and Compliance Control Domains.
 3. **Main Content Area (Center/Right):** Dynamically updates depending on the selected resource, rendering visual diagrams, JSON documents, or interactive schema forms.
 
@@ -162,7 +162,7 @@ The **C4** lens of the Diagram tab shows the architecture as a C4 context, conta
 * **Guessed elements:** an element with a **Guessed** badge has a node type that the mapping does not name. Its kind comes from the structure of the architecture. Add the node type to the mapping to fix the kind.
 * **External elements:** a grey element is outside the enterprise or owned by another team. Its badge gives the reason.
 
-The lens, the level and the scope are in the URL, for example `?lens=c4&level=container&scope=trading-system`. A link to another version keeps them. Decorator overlays, the layout controls and the version compare use the CALM lens only.
+The lens, the level and the scope are in the URL, for example `?lens=c4&level=container&scope=trading-system`. A link to another version keeps them. The lens draws the decorator overlays (see [Overlays on an extension lens](#overlays-on-an-extension-lens)). The layout controls, the component search and the version compare use the CALM lens only.
 
 ### Decorator Overlays
 
@@ -173,9 +173,20 @@ Some decorator types are drawn on the diagram as an overlay. Each node or relati
 | Control evaluations | `control-evaluation` | The latest result of each control: see [Control Evaluations](#control-evaluations) |
 | Deployments | `deployment` | The status of the latest deployment, by `start-time`: completed (OK), pending or in progress (Info), rolled back (Warning), failed (Error) |
 
-The legend at the bottom of the diagram lists each overlay that has decorators on screen, with how many elements show each status. Clear an overlay's checkbox to hide it. On a screen narrower than 1024 pixels, the legend starts closed: tap **Overlays** to open it. **View all** opens the Decorators tab filtered to the type and the `$schema` of that overlay. While the diagram, the Decorators tab or the details drawer is open, they refresh every 5 seconds.
+The legend at the bottom of the diagram lists each overlay that has decorators on screen, with how many elements show each status. Clear an overlay's checkbox to hide it. On a screen narrower than 1024 pixels, the legend starts closed: tap **Overlays** to open it. **View all** opens the Decorators tab filtered to the type and the `$schema` of that overlay. While the CALM diagram, an extension lens, the Decorators tab or the details drawer is open, they refresh every 5 seconds.
 
 ![CALM Hub Raw JSON Viewer](/img/hub-ui/json-view.png)
+
+#### Overlays on an extension lens
+
+An extension lens of an architecture, such as **C4** or **Layers**, draws the same overlays:
+
+* **Badges:** each element shows the badges of the CALM nodes or relationships that it stands for. An error also gives a node or a group a red outline, and a warning an amber one. A relationship shows a badge only for an error or a warning.
+* **Details:** click a badge to see up to five results, each with its status and any label or time. The details give the number of the others. For the full list, select **View all** in the legend, or the **View all** link under the results.
+* **Legend:** the legend is at the top left of the lens. It uses the choices that you make on the CALM diagram.
+* **Not shown:** when no element of the lens stands for a decorated node or relationship, a notice above the legend says so, for example "Deployments · Built-in: 1 decorated element is not shown." The lens does not move the badge to another element. A `deployed-in` or `composed-of` relationship counts as its container, as on the CALM diagram. To see the decorators, change the level or the view of the lens, or select **View all**.
+
+The decision overlay and presentation mode are on the CALM lens only.
 
 ### Control Evaluations
 
@@ -275,6 +286,16 @@ An operator can install extensions (see [Extensions](../calm-hub/index.md#extens
 * **Diagram overlays:** each extension has a colour marker on its badges and legend rows. Click a node's badge to see what it means.
 
 A link in an extension can open an exact architecture version, with a node selected, or an extension screen for an architecture. The page that it opens shows **Back to &lt;page&gt;**, which returns to the list or architecture that you came from, with its filters, page and selected node. Back, Forward and a refresh keep this link; a copied link does not have it. If the link names a node that is not in the version, or an extension that is not enabled, the page says so and shows the rest. See [Extension navigation](../calm-hub/extension-navigation.md).
+
+### Chat
+
+An extension can add a chat with an assistant. The operator chooses one [chat provider](../calm-hub/extension-points.md#chat) for the CALM Hub. With no chat provider, the UI shows no chat.
+
+* **Chat page:** the side menu, the home page card of the extension and the **Details** view of the inspector link to the chat page, `/chat`, with the name that the extension gives its chat. The operator can also make it the start page. Type a question and select **Send**. **Stop** ends a reply and keeps its text. **Retry** sends the question again after a reply that stopped or failed. The links under a reply are its sources. A link to a CALM Hub page shows **Back to** the chat on that page.
+* **Share an architecture:** when you open the chat from an architecture or a pattern, tick **Share** to send that version, and the selected node, with your messages. The box starts clear. Without it, the provider gets only your messages.
+* **Search page:** when you submit a search, CALM Hub also sends the query, and nothing else, to the chat provider. The search box names the provider while you type, and sends nothing to the chat provider until you submit. **Assistant answer** shows above the results, which do not wait for it. You can ask a follow-up there. A new search starts a new conversation.
+* **Search links:** only a fresh search URL with a query sends the query without a submit, for example when you open the link in a new tab or reload the page. When the tab already has a conversation or a draft, CALM Hub sends nothing: they stay when you come back to a search. If the conversation is not from that search, select **Ask** to send the query.
+* **Your data:** the conversation stays in the browser tab until you select **New conversation** or reload the page. CALM Hub does not store it. The provider can have charges, and can keep the messages under its own retention policy.
 
 ---
 
