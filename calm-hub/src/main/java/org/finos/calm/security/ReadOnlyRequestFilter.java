@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
  * writes themselves ({@code ReadOnlyHubGuard}).
  *
  * <p>The one exception is the extension proxy, {@code /api/calm/extensions/<id>/api/...}, and the form
- * endpoint {@code /api/calm/extensions/<id>/forms/...}, which calls the proxy. The proxy enforces read-only mode
+ * and chat endpoints, which call the proxy. The proxy enforces read-only mode
  * itself, because a {@code readOnly} extension route (a search or a chat) changes nothing and must work on a
  * read-only Hub (ADR 0011).
  *
@@ -57,7 +57,7 @@ public class ReadOnlyRequestFilter implements ContainerRequestFilter {
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "DELETE", "PATCH");
     private static final String ALLOW_HEADER = "Allow";
     private static final String ALLOWED_METHODS = "GET, HEAD, OPTIONS";
-    private static final Pattern EXTENSION_PROXY_PATH = Pattern.compile("^/?api/calm/extensions/[^/]+/(api|forms)(/|$)");
+    private static final Pattern EXTENSION_PROXY_PATH = Pattern.compile("^/?api/calm/extensions/[^/]+/(?:(api|forms)(/|$)|chat/[a-z][a-z0-9-]*$)");
 
     // Resolved once at runtime startup via @PostConstruct (see init()).  We deliberately
     // avoid @ConfigProperty here: in native image, @ConfigProperty values on CDI beans

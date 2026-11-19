@@ -15,7 +15,11 @@ public final class LogCapture {
     }
 
     public static List<LogRecord> records(Class<?> source, Level level, Runnable action) {
-        Logger logger = Logger.getLogger(source.getName());
+        return records(source.getName(), level, action);
+    }
+
+    public static List<LogRecord> records(String category, Level level, Runnable action) {
+        Logger logger = Logger.getLogger(category);
         List<LogRecord> records = new ArrayList<>();
         Handler handler = new Handler() {
             @Override

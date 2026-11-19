@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { ExtensionSummary } from '../model/extensions.js';
+import { ChatProviderRef, ExtensionContribution, ExtensionSummary } from '../model/extensions.js';
 import { ExtensionRegistryError, ExtensionService } from '../service/extension-service.js';
 import { ActionRuns, ActionRunsContext } from './actionRuns.js';
 import { ExtensionRefresh, ExtensionRefreshContext } from './extensionRefresh.js';
@@ -12,6 +12,8 @@ export const REGISTRY_RETRY_MS = 5_000;
 export const REGISTRY_RETRY_MAX_MS = 60_000;
 
 export const ExtensionsContext = createContext<ExtensionSummary[]>([]);
+// The chat entry that the registry names. useChatProvider() checks it against the extensions.
+export const ChatProviderContext = createContext<ChatProviderRef | undefined>(undefined);
 // 'loaded' outside a provider: a bare ExtensionsContext value is a settled registry.
 export const ExtensionsStatusContext = createContext<ExtensionsStatus>('loaded');
 const ExtensionServiceContext = createContext<ExtensionService | null>(null);
@@ -19,6 +21,7 @@ const ExtensionServiceContext = createContext<ExtensionService | null>(null);
 interface RegistryState {
     service: ExtensionService;
     extensions: ExtensionSummary[];
+    chat?: ChatProviderRef;
     status: ExtensionsStatus;
 }
 
@@ -41,10 +44,11 @@ export function ExtensionsProvider({ children, service }: { children: ReactNode;
         let retry: ReturnType<typeof setTimeout> | undefined;
         if (failures.current.service !== svc) failures.current = { service: svc, count: 0 };
         svc.fetchExtensions()
-            .then((extensions) => {
+            .then(async (extensions) => [extensions, await svc.fetchChatProvider()] as const)
+            .then(([extensions, chat]) => {
                 if (cancelled) return;
                 failures.current.count = 0;
-                setState({ service: svc, extensions, status: 'loaded' });
+                setState({ service: svc, extensions, chat, status: 'loaded' });
             })
             .catch((error: unknown) => {
                 if (cancelled) return;
@@ -69,7 +73,9 @@ export function ExtensionsProvider({ children, service }: { children: ReactNode;
                 <ExtensionRefreshContext.Provider value={refresh}>
                     <FormDraftsContext.Provider value={drafts}>
                         <ExtensionsStatusContext.Provider value={current.status}>
-                            <ExtensionsContext.Provider value={current.extensions}>{children}</ExtensionsContext.Provider>
+                            <ExtensionsContext.Provider value={current.extensions}>
+                                <ChatProviderContext.Provider value={current.chat}>{children}</ChatProviderContext.Provider>
+                            </ExtensionsContext.Provider>
                         </ExtensionsStatusContext.Provider>
                     </FormDraftsContext.Provider>
                 </ExtensionRefreshContext.Provider>
@@ -80,6 +86,21 @@ export function ExtensionsProvider({ children, service }: { children: ReactNode;
 
 export function useExtensions() {
     return useContext(ExtensionsContext);
+}
+
+/**
+ * The chat entry that the operator chose, when its extension is in the registry. Undefined when the operator chose none:
+ * Hub never picks a chat provider itself.
+ */
+export function useChatProvider(): { extension: string; contribution: ExtensionContribution } | undefined {
+    const chat = useContext(ChatProviderContext);
+    const extensions = useExtensions();
+    return useMemo(() => {
+        const contribution = extensions
+            .find((extension) => extension.id === chat?.extension)
+            ?.contributes.chat?.find((entry) => entry.id === chat?.contribution);
+        return chat && contribution ? { extension: chat.extension, contribution } : undefined;
+    }, [chat, extensions]);
 }
 
 export function useExtensionsStatus() {

@@ -579,6 +579,64 @@ class TestExtensionManifestLoaderShould {
                 + "/routes/0/readonly: Property \"readonly\" does not match additional properties schema"));
     }
 
+    static JsonObject withChat() {
+        JsonObject manifest = valid();
+        manifest.getJsonArray("routes").add(route("chat", "POST", "/chat", "authenticated").put("readOnly", true));
+        manifest.getJsonObject("contributes").put("chat", new JsonArray().add(contribution("atlas", "chat")));
+        return manifest;
+    }
+
+    @Test
+    void accept_a_chat_on_a_read_only_post_route_and_dedicate_the_route_to_it() {
+        ExtensionManifest manifest = loader.parse(withChat().encode(), ID, "test");
+
+        assertThat(manifest.dedicatedRoutes(), equalTo(java.util.Set.of("chat")));
+    }
+
+    @Test
+    void refuse_a_chat_route_that_can_write_has_path_parameters_or_has_hub_data() {
+        JsonObject writes = withChat();
+        writes.getJsonArray("routes").getJsonObject(4).remove("readOnly");
+        JsonObject get = withChat();
+        get.getJsonArray("routes").getJsonObject(4).put("method", "GET");
+        JsonObject parameters = withChat();
+        parameters.getJsonArray("routes").getJsonObject(4).put("path", "/chat/{namespace}");
+
+        for (JsonObject manifest : List.of(writes, get, parameters)) {
+            IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(manifest.encode(), ID, "test"));
+            assertThat(e.getMessage(), containsString("chat 'atlas' must name a readOnly POST route with no path parameters and "
+                    + "no hubData, but route 'chat' is not one"));
+        }
+    }
+
+    @Test
+    void refuse_a_command_or_another_entry_that_names_a_chat_route() {
+        JsonObject command = withChat();
+        command.getJsonObject("commands").put("ask", new JsonObject()
+                .put("route", "chat").put("description", "Ask").put("input", new JsonObject().put("type", "object")));
+        JsonObject search = withChat();
+        search.getJsonObject("contributes").put("search-provider", new JsonArray().add(contribution("find", "chat")));
+        JsonObject twoChats = withChat();
+        twoChats.getJsonObject("contributes").getJsonArray("chat").add(contribution("other", "chat"));
+
+        assertThat(assertThrows(IllegalStateException.class, () -> loader.parse(command.encode(), ID, "test")).getMessage(),
+                containsString("route 'chat' is named by chat 'atlas', command 'ask'. Only CALM Hub calls this route"));
+        assertThat(assertThrows(IllegalStateException.class, () -> loader.parse(search.encode(), ID, "test")).getMessage(),
+                containsString("route 'chat' is named by chat 'atlas', search-provider 'find'. Only CALM Hub calls this route"));
+        assertThat(assertThrows(IllegalStateException.class, () -> loader.parse(twoChats.encode(), ID, "test")).getMessage(),
+                containsString("route 'chat' is named by chat 'atlas', chat 'other'. Only CALM Hub calls this route"));
+    }
+
+    @Test
+    void reserve_the_chat_provider_id() {
+        JsonObject manifest = valid().put("id", "chat-provider");
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(manifest.encode(), "chat-provider", "test"));
+
+        assertThat(e.getMessage(), containsString("id 'chat-provider' is reserved for calm.extensions.chat-provider"));
+    }
+
     @Test
     void reject_a_reserved_id() {
         JsonObject manifest = valid().put("id", "http");

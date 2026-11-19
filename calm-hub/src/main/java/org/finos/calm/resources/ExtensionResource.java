@@ -12,7 +12,8 @@ import jakarta.ws.rs.core.Request;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.finos.calm.domain.ValueWrapper;
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import org.finos.calm.domain.extensions.ChatProvider;
 import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.finos.calm.extensions.ExtensionRegistry;
 import org.finos.calm.extensions.NotationChecker;
@@ -20,6 +21,7 @@ import org.finos.calm.extensions.NotationChecker;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -115,9 +117,13 @@ public class ExtensionResource {
             summary = "List the enabled extensions",
             description = "Returns the enabled extensions in order, with their routes, commands and contributions. "
                     + "Leaves out backend URLs, and the routes and commands that this CALM Hub cannot run, such as "
-                    + "write routes on a read-only CALM Hub."
+                    + "write routes on a read-only CALM Hub. chat names the chat entry that the operator chose, if any."
     )
     public Response listExtensions() {
-        return Response.ok(new ValueWrapper<>(registry.available())).build();
+        return Response.ok(new ExtensionList(registry.available(), registry.chatProvider().orElse(null))).build();
     }
+
+    /** The registry reply. {@code chat} is left out when the operator chose no chat. */
+    @RegisterForReflection
+    public record ExtensionList(List<ExtensionManifest> values, ChatProvider chat) {}
 }

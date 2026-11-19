@@ -1,8 +1,15 @@
 import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { isBuiltInExtension } from '../extensions/extensionIdentity.js';
-import { ExtensionContext, ExtensionPoint, ExtensionRoute, ExtensionSummary } from '../model/extensions.js';
 import type { FormInput } from '../extensions/forms/formRules.js';
+import {
+    ChatProviderRef,
+    ChatRequest,
+    ExtensionContext,
+    ExtensionPoint,
+    ExtensionRoute,
+    ExtensionSummary,
+} from '../model/extensions.js';
 import type { Notation } from '../model/lens.js';
 import type { ExtensionSearchPage } from '../model/search.js';
 import type { DecoratorView } from '../visualizer/contracts/contracts.js';
@@ -22,7 +29,7 @@ type RegistryEntry = ExtensionSummary & { contributes: { 'decorator-views'?: unk
 const isObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const UI_POINTS: readonly ExtensionPoint[] = ['screen', 'designer-tab', 'landing-card', 'detail-panel', 'action', 'search-provider'];
+const UI_POINTS: readonly ExtensionPoint[] = ['screen', 'designer-tab', 'landing-card', 'detail-panel', 'action', 'search-provider', 'chat'];
 
 const hasStrings = (value: unknown, fields: readonly string[]) =>
     isObject(value) && fields.every((field) => typeof value[field] === 'string');
@@ -174,21 +181,98 @@ export function formOutcome(status: number, dispatch: unknown, data: unknown): F
     return { kind: 'failed', sent: dispatch === 'sent', message, fields: fields && Object.keys(fields).length > 0 ? fields : undefined };
 }
 
+interface Registry {
+    values: RegistryEntry[];
+    chat?: ChatProviderRef;
+}
+
+const chatProviderRef = (value: unknown): ChatProviderRef | undefined =>
+    isObject(value) && typeof value.extension === 'string' && typeof value.contribution === 'string'
+        ? { extension: value.extension, contribution: value.contribution }
+        : undefined;
+
+/** A failed chat message. `status` is the HTTP status, or undefined when no reply came. */
+export class ChatCallError extends Error {
+    constructor(message: string, readonly status?: number) {
+        super(message);
+    }
+}
+
+/** One event of a chat reply stream. */
+export interface ChatStreamEvent {
+    name: string;
+    data: string;
+}
+
+/** Calls `onEvent` for each event of a `text/event-stream` body, with the rules of the HTML event stream format. */
+export async function readEventStream(body: ReadableStream<Uint8Array>, onEvent: (event: ChatStreamEvent) => void): Promise<void> {
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let name = '';
+    let data: string[] | undefined;
+    const line = (text: string) => {
+        if (text === '') {
+            if (data) onEvent({ name: name || 'message', data: data.join('\n') });
+            name = '';
+            data = undefined;
+            return;
+        }
+        if (text.startsWith(':')) return;
+        const colon = text.indexOf(':');
+        const field = colon < 0 ? text : text.slice(0, colon);
+        const value = colon < 0 ? '' : text.slice(colon + 1).replace(/^ /, '');
+        if (field === 'event') name = value;
+        else if (field === 'data') (data ??= []).push(value);
+    };
+    for (;;) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        if (done) {
+            // A last event without its blank line is incomplete, so it is dropped, as a browser does.
+            return;
+        }
+        // A CR at the end may be the first half of a CRLF, so it waits for the next part.
+        const lines = buffer.split(/\r\n|\n|\r(?!$)/);
+        buffer = lines.pop() ?? '';
+        lines.forEach(line);
+    }
+}
+
+async function chatError(response: Response): Promise<ChatCallError> {
+    let message: string | undefined;
+    try {
+        const data: unknown = await response.json();
+        if (isObject(data)) {
+            const text = data.detail ?? data.title ?? data.message ?? data.error;
+            if (typeof text === 'string') message = text.slice(0, 500);
+        }
+    } catch {
+        // Not JSON: the status alone says enough.
+    }
+    return new ChatCallError(message ?? `The chat provider failed (HTTP ${response.status})`, response.status);
+}
+
 export class ExtensionService {
     private readonly ax: AxiosInstance;
-    private registry?: Promise<RegistryEntry[]>;
+    private readonly fetchFn: typeof fetch;
+    private registry?: Promise<Registry>;
     private core?: Promise<Notation>;
 
-    constructor(axiosInstance?: AxiosInstance) {
+    constructor(axiosInstance?: AxiosInstance, fetchFn?: typeof fetch) {
         // Not apiClient: an extension failure stays in its slot and must not open the global auth or outage page.
         this.ax = axiosInstance ?? axios.create();
+        // fetch, not axios, because only fetch reads a reply while it streams.
+        this.fetchFn = fetchFn ?? ((input, init) => fetch(input, init));
     }
 
-    private loadRegistry(): Promise<RegistryEntry[]> {
+    private loadRegistry(): Promise<Registry> {
         this.registry ??= getAuthHeaders()
-            .then((headers) => this.ax.get<{ values?: unknown }>('/api/calm/extensions', { headers }))
-            .then((res) => (Array.isArray(res.data?.values) ? (res.data.values as unknown[]) : []))
-            .then((values) => values.filter(keepRegistryEntry).map(withValidLogo))
+            .then((headers) => this.ax.get<{ values?: unknown; chat?: unknown }>('/api/calm/extensions', { headers }))
+            .then((res) => ({
+                values: (Array.isArray(res.data?.values) ? (res.data.values as unknown[]) : []).filter(keepRegistryEntry).map(withValidLogo),
+                chat: chatProviderRef(res.data?.chat),
+            }))
             .catch((error) => {
                 this.registry = undefined;
                 // The registry is a Hub call, so a 401 means the Hub session ended. An extension call keeps its 401 in its slot.
@@ -199,15 +283,58 @@ export class ExtensionService {
     }
 
     public async fetchExtensions(): Promise<ExtensionSummary[]> {
-        return this.loadRegistry().catch((error) => {
+        return this.loadRegistry().then((registry) => registry.values).catch((error) => {
             console.error('%s', 'Error fetching extensions:', error);
             return Promise.reject(new ExtensionRegistryError('Error fetching extensions', isSignedOut(error)));
         });
     }
 
+    /** The chat entry that the operator chose, from the registry that `fetchExtensions` loaded. Never a second request. */
+    public async fetchChatProvider(): Promise<ChatProviderRef | undefined> {
+        return this.registry?.then((registry) => registry.chat);
+    }
+
+    /**
+     * Sends a chat message and calls `onEvent` for each event of the reply while it streams. `signal` stops the reply:
+     * Hub then closes the call to the extension. Rejects with a `ChatCallError` when Hub or the extension refuses the
+     * message, or when the reply cannot be read.
+     */
+    public async sendChatMessage(
+        extensionId: string,
+        entryId: string,
+        request: ChatRequest,
+        onEvent: (event: ChatStreamEvent) => void,
+        signal?: AbortSignal
+    ): Promise<void> {
+        const headers = await getAuthHeaders();
+        // The user can stop the reply while sign-in is pending. Then Hub gets no request.
+        signal?.throwIfAborted();
+        let response: Response;
+        try {
+            response = await this.fetchFn(`/api/calm/extensions/${encodeURIComponent(extensionId)}/chat/${encodeURIComponent(entryId)}`, {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+                body: JSON.stringify(request),
+                signal,
+            });
+        } catch (error) {
+            if (signal?.aborted) throw error;
+            throw new ChatCallError('CALM Hub could not be reached');
+        }
+        if (!response.ok) {
+            // The chat endpoint is a Hub call, so a 401 means the Hub session ended. Hub turns an extension 401 into 502.
+            if (response.status === 401) authStore.setAuthError(401);
+            throw await chatError(response);
+        }
+        if (!response.body || !(response.headers.get('Content-Type') ?? '').startsWith('text/event-stream')) {
+            throw new ChatCallError('The chat provider sent a reply that CALM Hub cannot show', response.status);
+        }
+        await readEventStream(response.body, onEvent);
+    }
+
     public async fetchDecoratorViews(): Promise<DecoratorView[]> {
         return this.loadRegistry()
-            .then((values) =>
+            .then(({ values }) =>
                 values.flatMap((extension) => {
                     const views = extension.contributes['decorator-views'];
                     // One bad value must not fail the load, which would replace every view with the built-in ones.

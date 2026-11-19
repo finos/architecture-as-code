@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.vertx.http.runtime.CurrentVertxRequest;
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfigBuilder;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -24,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,6 +36,7 @@ class TestExtensionProxyResourceHeadersShould {
     private final SecurityIdentity identity = mock(SecurityIdentity.class);
     private final UriInfo uriInfo = mock(UriInfo.class);
     private final HttpHeaders headers = mock(HttpHeaders.class);
+    private final CurrentVertxRequest currentRequest = mock(CurrentVertxRequest.class);
 
     @BeforeEach
     void setup() {
@@ -49,7 +52,7 @@ class TestExtensionProxyResourceHeadersShould {
 
     @Test
     void pass_the_conditional_headers_and_the_source_ip_when_capture_is_on() {
-        new ExtensionProxyResource(service, identity, config("true")).get("x", uriInfo, headers);
+        new ExtensionProxyResource(service, identity, config("true"), currentRequest).get("x", uriInfo, headers);
 
         ExtensionProxyRequest request = captured();
         assertThat(request.ifMatch(), is("\"v1\""));
@@ -59,9 +62,21 @@ class TestExtensionProxyResourceHeadersShould {
 
     @Test
     void leave_out_the_source_ip_when_capture_is_off() {
-        new ExtensionProxyResource(service, identity, config(null)).get("x", uriInfo, headers);
+        new ExtensionProxyResource(service, identity, config(null), currentRequest).get("x", uriInfo, headers);
 
         assertThat(captured().sourceIp(), nullValue());
+    }
+
+    @Test
+    void pass_the_source_ip_of_a_chat_message_only_when_capture_is_on() {
+        when(service.chat(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new ExtensionProxyResponse(200, Map.of(), new byte[0]));
+
+        new ExtensionChatResource(service, identity, currentRequest, config("true")).post("x", "assistant", headers, null);
+        new ExtensionChatResource(service, identity, currentRequest, config(null)).post("x", "assistant", headers, null);
+
+        verify(service).chat(eq(identity), eq("x"), eq("assistant"), any(), any(), eq("10.0.0.1"), any());
+        verify(service).chat(eq(identity), eq("x"), eq("assistant"), any(), any(), isNull(), any());
     }
 
     @Test
@@ -69,7 +84,7 @@ class TestExtensionProxyResourceHeadersShould {
         when(service.call(any(), any())).thenThrow(new ExtensionProxyException(503, "The extension is busy. Try again later",
                 Map.of("Retry-After", "1")));
 
-        Response response = new ExtensionProxyResource(service, identity, config(null)).get("x", uriInfo, headers);
+        Response response = new ExtensionProxyResource(service, identity, config(null), currentRequest).get("x", uriInfo, headers);
 
         assertThat(response.getStatus(), is(503));
         assertThat(response.getHeaderString("Retry-After"), is("1"));

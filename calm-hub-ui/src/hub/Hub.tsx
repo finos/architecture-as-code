@@ -44,6 +44,7 @@ import { findPatternElement, type SchemaObject } from '../visualizer/components/
 import { authStore } from '../service/utils/auth-store.js';
 import { diagramLenses } from './components/diagram-section/tabs/diagramLenses.js';
 import { useExtensions, useExtensionsStatus } from '../extensions/ExtensionsContext.js';
+import { ExtensionResourceContext } from '../extensions/ExtensionResourceContext.js';
 import { EXTENSION_PARAM, EXTENSIONS_TAB_ID, inspectorExtension, withoutLens } from './components/diagram-section/tabs/diagramTabRegistry.js';
 import { resourceExtensions } from '../extensions/contributions.js';
 import { SlotHostContext } from '../extensions/slotActivity.js';
@@ -805,6 +806,7 @@ export default function Hub({ storage }: HubProps) {
         <DiagramActionsContext.Provider value={diagramActions}>
         <DecoratorsContext.Provider value={decoratorsState}>
         <ReturnPointProvider page={returnPage} label={returnLabel} search={returnSearch}>
+        <ExtensionResourceContext.Provider value={inspectorContext}>
         <AppLayout>
             {isMobile && !isMobileNavOpen && (
                 <button
@@ -903,6 +905,7 @@ export default function Hub({ storage }: HubProps) {
 
             </div>
         </AppLayout>
+        </ExtensionResourceContext.Provider>
         </ReturnPointProvider>
         </DecoratorsContext.Provider>
         </DiagramActionsContext.Provider>
