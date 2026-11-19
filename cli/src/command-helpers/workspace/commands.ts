@@ -13,6 +13,7 @@ import { detectChangedResources, bumpWorkspace } from './bump';
 import { markAsSnapshot, releaseSnapshot, findSnapshotDependencyViolations, listSnapshotCandidates } from './snapshot';
 import { loadPostBumpValidationOptions, runPostBumpValidation } from './post-bump-validate';
 import { checkWorkspaceLayout } from './layout-check';
+import { findBaseUrlMismatches, baseUrlMismatchMessage, normalizeBaseUrl } from './base-url-check';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
 import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId, resourceTypeFromDocumentId, documentName } from '@finos/calm-shared';
@@ -520,7 +521,8 @@ export function setupWorkspaceCommands(program: Command) {
         .description('Push all files in the current workspace manifest to CalmHub. Does not auto-bump; pushes the version each document declares.')
         .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
         .option('--fail-if-modified', 'Fail if a modified document already exists in CalmHub at its declared version (overrides the workspace config; strict merge-time mode)')
-        .action(async (options: { calmHubUrl?: string; failIfModified?: boolean }) => {
+        .option('--base-url <url>', 'Expected $id base URL (defaults to the CalmHub URL); set when CalmHub\'s calm.hub.base-url differs from the URL used to reach it')
+        .action(async (options: { calmHubUrl?: string; failIfModified?: boolean; baseUrl?: string }) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
                 if (!bundlePath) {
@@ -534,7 +536,8 @@ export function setupWorkspaceCommands(program: Command) {
                 const failIfModified = options.failIfModified ?? workspaceConfig.push.failIfModified;
 
                 const client = new CalmHubClient(calmHubOptions);
-                await pushWorkspaceToHub(bundlePath, client, { failIfModified });
+                const expectedBaseUrl = options.baseUrl ?? calmHubOptions.calmHubUrl;
+                await pushWorkspaceToHub(bundlePath, client, { failIfModified, expectedBaseUrl });
             } catch (err) {
                 logger.error('Failed to push workspace: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
@@ -545,7 +548,8 @@ export function setupWorkspaceCommands(program: Command) {
         .command('check')
         .description('Check whether any tracked documents have changed on disk relative to CalmHub and need a version bump. Exits non-zero if so (CI/PR gate).')
         .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
-        .action(async (options: { calmHubUrl?: string }) => {
+        .option('--base-url <url>', 'Expected $id base URL (defaults to the CalmHub URL); set when CalmHub\'s calm.hub.base-url differs from the URL used to reach it')
+        .action(async (options: { calmHubUrl?: string; baseUrl?: string }) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
                 if (!bundlePath) {
@@ -557,7 +561,14 @@ export function setupWorkspaceCommands(program: Command) {
                 const manifest = await loadManifest(bundlePath);
                 const validationOptions = await loadPostBumpValidationOptions(bundlePath, manifest, calmHubOptions);
                 const client = new CalmHubClient(calmHubOptions);
-                const changed = await detectChangedResources(bundlePath, client);
+                const expectedBaseUrl = normalizeBaseUrl(options.baseUrl ?? calmHubOptions.calmHubUrl!);
+                const baseUrlMismatches = await findBaseUrlMismatches(bundlePath, manifest, expectedBaseUrl);
+                for (const m of baseUrlMismatches) {
+                    logger.error(baseUrlMismatchMessage(m.id, m.actual, expectedBaseUrl));
+                }
+                // CalmHub rewrites $id on read, so a mismatched base always looks changed; a bump would not help.
+                const mismatchedIds = new Set(baseUrlMismatches.map(m => m.id));
+                const changed = (await detectChangedResources(bundlePath, client)).filter(c => !mismatchedIds.has(c.id));
 
                 let needsBump = false;
                 if (changed.length === 0) {
@@ -600,7 +611,7 @@ export function setupWorkspaceCommands(program: Command) {
                     logger.warn(w.message);
                 }
 
-                if (needsBump || validationFailed || snapshotViolations.length > 0) {
+                if (needsBump || validationFailed || snapshotViolations.length > 0 || baseUrlMismatches.length > 0) {
                     process.exit(1);
                 }
             } catch (err) {

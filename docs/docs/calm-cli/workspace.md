@@ -225,10 +225,11 @@ When `new` or `add` makes a `$id`, it asks for the scope and then each part. The
 Push all tracked documents to CALM Hub.
 
 ```shell
-calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
+calm workspace push [--calm-hub-url <url>] [--fail-if-modified] [--base-url <url>]
 ```
 
 - **`--fail-if-modified`**: Fail if a document has changed but CALM Hub already has its version. This option overrides `push.failIfModified`.
+- **`--base-url <url>`**: The base URL each document's `$id` must start with. The default is the CALM Hub URL. Set it when CALM Hub's `calm.hub.base-url` is different from the URL you use to reach it, for example behind a proxy.
 
 | State in CALM Hub | Result |
 |---|---|
@@ -237,18 +238,21 @@ calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
 | The version exists with different content | `push` skips the document, or fails with `--fail-if-modified` |
 | The version is a snapshot with different content | `push` replaces it |
 
-`push` skips a document, with a warning, if its `$id` is not a CALM Hub `$id`.
+`push` skips a document, with a warning, if its `$id` is not a CALM Hub `$id`. It does not push a document whose `$id` base URL does not match, and the push fails.
 
 ### check
 
 Find tracked documents that have changed but do not have a new version, and validate the workspace.
 
 ```shell
-calm workspace check [--calm-hub-url <url>]
+calm workspace check [--calm-hub-url <url>] [--base-url <url>]
 ```
+
+- **`--base-url <url>`**: The base URL each document's `$id` must start with. The default is the CALM Hub URL.
 
 `check` exits with a non-zero status when:
 
+- a document's `$id` base URL does not match, so CALM Hub would reject it,
 - a document is different from CALM Hub at the same version,
 - a document that is not a snapshot refers to a snapshot,
 - an architecture or pattern is not valid, or validation cannot run.
