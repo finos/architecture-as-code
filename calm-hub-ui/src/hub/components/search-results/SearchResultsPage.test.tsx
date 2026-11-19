@@ -17,7 +17,7 @@ const emptyResults: GroupedSearchResults = {
 
 const controlResults: GroupedSearchResults = {
     ...emptyResults,
-    controls: [{ namespace: 'security', id: 7, name: 'PCI-DSS', description: 'Encryption at rest' }],
+    controls: [{ namespace: 'security', id: '7', name: 'PCI-DSS', description: 'Encryption at rest' }],
 };
 
 function createMockSearchService(searchFn: (q: string) => Promise<GroupedSearchResults>) {

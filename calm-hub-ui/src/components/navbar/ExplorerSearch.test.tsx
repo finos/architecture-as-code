@@ -16,8 +16,8 @@ const emptyResults: GroupedSearchResults = {
 };
 
 const mockResults: GroupedSearchResults = {
-    architectures: [{ namespace: 'finos', id: 1, name: 'Test Architecture', description: 'A test architecture' }],
-    patterns: [{ namespace: 'finos', id: 2, name: 'Test Pattern', description: 'A test pattern' }],
+    architectures: [{ namespace: 'finos', id: '1', name: 'Test Architecture', description: 'A test architecture' }],
+    patterns: [{ namespace: 'finos', id: '2', name: 'Test Pattern', description: 'A test pattern' }],
     flows: [],
     standards: [],
     interfaces: [],

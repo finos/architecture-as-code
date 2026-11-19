@@ -2,7 +2,7 @@ import type { Destination } from './extensions.js';
 
 export interface SearchResult {
     namespace: string;
-    id: number;
+    id: string;
     name: string;
     description: string;
 }
