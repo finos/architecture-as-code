@@ -373,6 +373,8 @@ public class MappingControllerResource {
                  | InterfaceVersionNotFoundException | TimelineVersionNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Invalid version provided").build();
+        } catch (AmbiguousResourceIdException e) {
+            throw e; // let the 404 mapper produce the generic response
         } catch (InvalidResourceIdException e) {
             return CalmResourceErrorResponses.invalidResourceIdResponse(e.getMessage());
         } catch (Exception e) {
@@ -436,6 +438,8 @@ public class MappingControllerResource {
                  | StandardNotFoundException | InterfaceNotFoundException | TimelineNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
+        } catch (AmbiguousResourceIdException e) {
+            throw e; // let the 404 mapper produce the generic response
         } catch (InvalidResourceIdException e) {
             return CalmResourceErrorResponses.invalidResourceIdResponse(e.getMessage());
         } catch (Exception e) {
@@ -492,6 +496,8 @@ public class MappingControllerResource {
                  | InterfaceVersionNotFoundException | TimelineVersionNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Invalid version provided: " + version).build();
+        } catch (AmbiguousResourceIdException e) {
+            throw e; // let the 404 mapper produce the generic response
         } catch (InvalidResourceIdException e) {
             return CalmResourceErrorResponses.invalidResourceIdResponse(e.getMessage());
         } catch (Exception e) {
