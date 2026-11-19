@@ -1,5 +1,14 @@
 package org.finos.calm.resources;
 
+import jakarta.ws.rs.BeanParam;
+
+import jakarta.inject.Inject;
+import jakarta.validation.Valid;
+
+import org.finos.calm.resources.params.IdParam;
+import org.finos.calm.services.ResourceIdResolver;
+import org.finos.calm.domain.ResourceId;
+
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
@@ -49,6 +58,9 @@ import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX
 @Tag(name = "Conventions", description = "Versioned tool conventions and namespace defaults")
 @Path("/api/calm/namespaces")
 public class ConventionResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private static final Logger LOG = LoggerFactory.getLogger(ConventionResource.class);
 
@@ -127,7 +139,9 @@ public class ConventionResource {
     public Response getConventionVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("conventionType") String conventionType,
-            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id) {
+            @Valid @BeanParam IdParam idParam) {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
         Optional<ConventionType> type = ConventionType.fromName(conventionType);
         if (type.isEmpty()) {
             return CalmResourceErrorResponses.unknownConventionTypeResponse();
@@ -156,8 +170,10 @@ public class ConventionResource {
     public Response getConventionForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("conventionType") String conventionType,
-            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id,
+            @Valid @BeanParam IdParam idParam,
             @PathParam("version") @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE) String version) {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
         Optional<ConventionType> type = ConventionType.fromName(conventionType);
         if (type.isEmpty()) {
             return CalmResourceErrorResponses.unknownConventionTypeResponse();
@@ -191,9 +207,11 @@ public class ConventionResource {
     public Response createConventionVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("conventionType") String conventionType,
-            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id,
+            @Valid @BeanParam IdParam idParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             CreateConventionRequest request) {
+        ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
+        int id = resourceIdResolver.numericForWrite(resourceId);
         Optional<ConventionType> type = ConventionType.fromName(conventionType);
         if (type.isEmpty()) {
             return CalmResourceErrorResponses.unknownConventionTypeResponse();

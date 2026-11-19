@@ -1,5 +1,9 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.resources.params.PatternIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -37,9 +41,12 @@ import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERS
 import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 public class PatternResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final PatternStore store;
     private final CustomIdEnrichmentService customIds;
@@ -114,15 +121,17 @@ public class PatternResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getPatternVersions(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("patternId") int patternId
+            @Valid @BeanParam PatternIdParam patternIdParam
     ) {
+        ResourceId resourceId = patternIdParam.toResourceId(resourceIdResolver);
+        int patternId = resourceIdResolver.numericForWrite(resourceId);
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
                 .setId(patternId)
                 .build();
 
         try {
-            return Response.ok(new ValueWrapper<>(store.getPatternVersions(pattern))).build();
+            return Response.ok(new ValueWrapper<>(store.getPatternVersions(namespace, resourceId))).build();
         } catch (NamespaceNotFoundException e) {
 
             logger.error("Invalid namespace [{}] when getting versions of pattern", namespace, e);
@@ -143,9 +152,11 @@ public class PatternResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("patternId") int patternId,
+            @Valid @BeanParam PatternIdParam patternIdParam,
             @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
+        ResourceId resourceId = patternIdParam.toResourceId(resourceIdResolver);
+        int patternId = resourceIdResolver.numericForWrite(resourceId);
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
                 .setId(patternId)
@@ -153,7 +164,7 @@ public class PatternResource {
                 .build();
 
         try {
-            return Response.ok(store.getPatternForVersion(pattern)).build();
+            return Response.ok(store.getPatternForVersion(namespace, resourceId, version)).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting a pattern", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -177,10 +188,12 @@ public class PatternResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createVersionedPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("patternId") int patternId,
+            @Valid @BeanParam PatternIdParam patternIdParam,
             @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             @Valid @NotNull(message = "Request must not be null") CreatePatternRequest patternRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = patternIdParam.toResourceId(resourceIdResolver);
+        int patternId = resourceIdResolver.numericForWrite(resourceId);
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
                 .setId(patternId)
@@ -219,10 +232,12 @@ public class PatternResource {
     @PermissionsAllowed({CalmHubScopes.WRITE})
     public Response updateVersionedPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("patternId") int patternId,
+            @Valid @BeanParam PatternIdParam patternIdParam,
             @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             @Valid @NotNull(message = "Request must not be null") CreatePatternRequest patternRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = patternIdParam.toResourceId(resourceIdResolver);
+        int patternId = resourceIdResolver.numericForWrite(resourceId);
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
                 .setId(patternId)
@@ -263,8 +278,10 @@ public class PatternResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deletePattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("patternId") int patternId
+            @Valid @BeanParam PatternIdParam patternIdParam
     ) {
+        ResourceId resourceId = patternIdParam.toResourceId(resourceIdResolver);
+        int patternId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deletePattern(namespace, patternId);
         } catch (NamespaceNotFoundException e) {

@@ -91,7 +91,7 @@ class TestConventionResourceShould {
                 .thenReturn(List.of(new NamespaceResourceSummary("Acme", "Acme mapping", 3, 2)));
 
         given().get(BASE).then().statusCode(200)
-                .body("values[0].id", equalTo(3))
+                .body("values[0].id", equalTo("3"))
                 .body("values[0].name", equalTo("Acme"))
                 .body("values[0].versionCount", equalTo(2));
     }

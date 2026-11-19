@@ -1,5 +1,9 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.resources.params.FlowIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -40,9 +44,12 @@ import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERS
 import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 public class FlowResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final FlowStore store;
     private final CustomIdEnrichmentService customIds;
@@ -115,15 +122,17 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getLatestFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId
+            @Valid @BeanParam FlowIdParam flowIdParam
     ) {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
                 .build();
 
         try {
-            List<String> versions =  store.getFlowVersions(flow);
+            List<String> versions =  store.getFlowVersions(namespace, resourceId);
             String lastVersion = ResourceVersion.latestRelease(versions);
            return getFlowInternal(namespace,flowId, lastVersion);
         } catch (NamespaceNotFoundException e) {
@@ -146,15 +155,17 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getFlowVersions(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId
+            @Valid @BeanParam FlowIdParam flowIdParam
     ) {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
                 .build();
 
         try {
-            return Response.ok(new ValueWrapper<>(store.getFlowVersions(flow))).build();
+            return Response.ok(new ValueWrapper<>(store.getFlowVersions(namespace, resourceId))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting versions of flow", flow, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -174,9 +185,11 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId,
+            @Valid @BeanParam FlowIdParam flowIdParam,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         return getFlowInternal(namespace, flowId, version);
     }
 
@@ -212,10 +225,12 @@ public class FlowResource {
     )
     public Response createVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId,
+            @Valid @BeanParam FlowIdParam flowIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
@@ -251,10 +266,12 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId,
+            @Valid @BeanParam FlowIdParam flowIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)  String version,
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
@@ -290,8 +307,10 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deleteFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId
+            @Valid @BeanParam FlowIdParam flowIdParam
     ) {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deleteFlow(namespace, flowId);
         } catch (NamespaceNotFoundException e) {

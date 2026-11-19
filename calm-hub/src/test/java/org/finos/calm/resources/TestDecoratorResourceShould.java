@@ -330,14 +330,14 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void return_404_when_getting_by_id_with_invalid_id_format() {
+    void return_400_when_getting_by_id_with_invalid_id_format() {
         String namespace = "test-namespace";
         String invalidId = "invalid-id";
 
         given()
                 .when().get("/api/calm/namespaces/{namespace}/decorators/{id}", namespace, invalidId)
                 .then()
-                .statusCode(404);
+                .statusCode(400);
     }
 
     @Test

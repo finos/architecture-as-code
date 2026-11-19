@@ -105,7 +105,7 @@ public class TestControlResourceShould {
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/5"))
-                .body("id", equalTo(5))
+                .body("id", equalTo("5"))
                 .body("name", equalTo("New Control"))
                 .body("description", equalTo("New Description"));
 
@@ -305,10 +305,10 @@ public class TestControlResourceShould {
                     .then()
                     .statusCode(expectedStatusCode)
                     .body("values", hasSize(2))
-                    .body("values[0].id", equalTo(10))
+                    .body("values[0].id", equalTo("10"))
                     .body("values[0].name", equalTo("config-a"))
                     .body("values[0].title", equalTo("Config A Title"))
-                    .body("values[1].id", equalTo(20))
+                    .body("values[1].id", equalTo("20"))
                     .body("values[1].name", equalTo("config-b"));
         } else {
             given()
