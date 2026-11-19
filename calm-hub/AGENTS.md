@@ -519,7 +519,8 @@ from; it fails if there is none.
 - A manifest `logo` names image files next to `extension.json`. `ExtensionManifestLoader` reads each one with
   `assets/ImageAsset.read`, which checks the type from the bytes, the size and the pixel size, and refuses active or
   external SVG content. `ExtensionResource` serves the result at `{id}/logo/{light|dark}`. `ImageAsset` is shared with
-  organisation branding: use it for every image that Hub serves, and do not add a remote image fetch
+  organisation branding: use it for every image that Hub serves, and do not add a remote image fetch. Give
+  `ImageAsset.read` an `InputStream`, not the whole file, so that it stops reading at the size limit
 - `ExtensionHubData` builds the body of a `hubData` route, with the scope of the caller: the document, detailed
   architectures in the same namespace only, and conventions only where `permissions.canRead` allows. The proxy
   replaces the caller's body with it before it signs, so `bdh` covers it. Keep both limits (`MAX_*`).

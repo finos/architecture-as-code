@@ -29,8 +29,8 @@ export function SourceTable({ block, scope, controls }: { block: TableBlockValue
     const { page } = state;
     const filterId = filter?.id;
     const { namespace, resource, resourceType, resourceId, version, selectedElement } = scope.context;
-    const load = useMemo(() => {
-        if (!route || !active) return undefined;
+    const { load, tooLong } = useMemo(() => {
+        if (!route) return { tooLong: false };
         const query = {
             namespace,
             resource,
@@ -43,11 +43,17 @@ export function SourceTable({ block, scope, controls }: { block: TableBlockValue
             page: String(page),
             pageSize: String(pageSize),
         };
-        return (signal: AbortSignal) =>
-            service.call(extension.id, route, query, signal).then((reply) => {
-                if (!isRowsReply(reply, extension.hubApi)) throw new Error('Invalid table rows reply');
-                return reply;
-            });
+        // Hub would refuse the request with 414. The filters and the search text stay, so the user can change them.
+        if (!service.fitsRequestLine(extension.id, route, query)) return { tooLong: true };
+        if (!active) return { tooLong: false };
+        return {
+            tooLong: false,
+            load: (signal: AbortSignal) =>
+                service.call(extension.id, route, query, signal).then((reply) => {
+                    if (!isRowsReply(reply, extension.hubApi)) throw new Error('Invalid table rows reply');
+                    return reply;
+                }),
+        };
     }, [
         service,
         extension.id,
@@ -97,9 +103,22 @@ export function SourceTable({ block, scope, controls }: { block: TableBlockValue
           : filtered
             ? 'No rows match these filters.'
             : 'No rows.';
+    const problemId = `${controls.domId}-problem`;
+    const { search } = controls.toolbar;
     return (
         <>
-            <TableToolbar summary={summary} {...controls.toolbar} />
+            <TableToolbar
+                summary={summary}
+                {...controls.toolbar}
+                search={search && tooLong && q ? { ...search, problem: problemId } : search}
+            />
+            {tooLong && (
+                <p id={problemId} role="alert" className="alert alert-warning alert-soft text-base-content">
+                    {q
+                        ? 'The search is too long to send to the extension. Shorten it to load the rows.'
+                        : 'The request for these rows is too long to send to the extension.'}
+                </p>
+            )}
             {(failed || retrying) && (
                 <RetryAlert
                     message={value ? 'Could not refresh the rows. This shows the rows from before.' : 'The rows could not be loaded.'}

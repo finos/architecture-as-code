@@ -5,11 +5,14 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Request;
 import jakarta.ws.rs.core.Response;
 
+import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -52,18 +55,25 @@ public record ImageAsset(String mediaType, byte[] bytes, String version) {
     private static final Pattern CSS_LOADER = Pattern.compile("(?i)@import|image-set\\(|(?<![\\w-])src\\(");
 
     /**
+     * Reads at most {@link #MAX_BYTES} and one more byte from {@code in}, so that a large file is refused before Hub
+     * holds all of it. The caller closes {@code in}.
+     *
      * @param fileName names the type by its extension: {@code .png}, {@code .jpg}, {@code .jpeg}, {@code .webp} or
      *                 {@code .svg}. The bytes must hold that type
      * @throws IllegalArgumentException with a reason that reads after the file name, such as "is not a PNG image"
      */
-    public static ImageAsset read(String fileName, byte[] bytes) {
+    public static ImageAsset read(String fileName, InputStream in) throws IOException {
+        return read(fileName, in.readNBytes(MAX_BYTES + 1));
+    }
+
+    static ImageAsset read(String fileName, byte[] bytes) {
         int dot = fileName.lastIndexOf('.');
         String type = dot < 0 ? null : TYPES.get(fileName.substring(dot + 1).toLowerCase(Locale.ROOT));
         if (type == null) {
             throw new IllegalArgumentException("must end in .png, .jpg, .jpeg, .webp or .svg");
         }
         if (bytes.length > MAX_BYTES) {
-            throw new IllegalArgumentException("is " + bytes.length + " bytes, more than the limit of " + MAX_BYTES);
+            throw new IllegalArgumentException("is more than the limit of " + MAX_BYTES + " bytes");
         }
         switch (type) {
             case "image/png" -> checkPng(bytes);
@@ -149,7 +159,8 @@ public record ImageAsset(String mediaType, byte[] bytes, String version) {
     /**
      * Refuses what could run or load another resource if the SVG were a document: a DTD or entity, a processing
      * instruction (such as xml-stylesheet), a script or foreign element, an event handler, a link or CSS
-     * {@code url()} that is not a {@code #fragment}, an animation of a link, a CSS import or escape.
+     * {@code url()} that is not a {@code #fragment}, an {@code xml:base}, an animation of a link or base, a CSS import
+     * or escape.
      */
     private static void checkSvg(byte[] bytes) {
         // The JDK parser, so that another StAX implementation on the classpath cannot change these checks.
@@ -184,7 +195,8 @@ public record ImageAsset(String mediaType, byte[] bytes, String version) {
                             throw new IllegalArgumentException("has an HTML element " + name);
                         }
                         for (int i = 0; i < reader.getAttributeCount(); i++) {
-                            checkSvgAttribute(reader.getAttributeLocalName(i), reader.getAttributeValue(i));
+                            checkSvgAttribute(reader.getAttributeNamespace(i), reader.getAttributeLocalName(i),
+                                    reader.getAttributeValue(i));
                         }
                         styleDepth += name.equals("style") ? 1 : 0;
                     }
@@ -214,7 +226,11 @@ public record ImageAsset(String mediaType, byte[] bytes, String version) {
         }
     }
 
-    private static void checkSvgAttribute(String name, String value) {
+    private static void checkSvgAttribute(String namespace, String name, String value) {
+        // xml:base changes what each link resolves against, also a #fragment link in a document.
+        if (XMLConstants.XML_NS_URI.equals(namespace) && name.equals("base")) {
+            throw new IllegalArgumentException("has an xml:base attribute");
+        }
         String lower = name.toLowerCase(Locale.ROOT);
         if (lower.startsWith("on")) {
             throw new IllegalArgumentException("has an event handler attribute " + name);
@@ -222,8 +238,12 @@ public record ImageAsset(String mediaType, byte[] bytes, String version) {
         if (lower.equals("href") && !value.strip().startsWith("#")) {
             throw new IllegalArgumentException("has an href that is not a #fragment");
         }
-        if (lower.equals("attributename") && value.strip().toLowerCase(Locale.ROOT).endsWith("href")) {
+        String animated = lower.equals("attributename") ? value.strip().toLowerCase(Locale.ROOT) : "";
+        if (animated.endsWith("href")) {
             throw new IllegalArgumentException("animates an href");
+        }
+        if (animated.endsWith("base")) {
+            throw new IllegalArgumentException("animates an xml:base");
         }
         checkCss(value);
     }

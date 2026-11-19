@@ -10,16 +10,25 @@ interface AppLayoutProps {
     storage?: Storage;
 }
 
+/** Reading the `localStorage` global itself throws when site data is blocked. */
+function defaultStorage(): Storage | undefined {
+    try {
+        return localStorage;
+    } catch {
+        return undefined;
+    }
+}
+
 /**
  * The navbar above the page. In the `sidebar` layout on a wide screen, the menu shows beside the page instead of in
  * the navbar's drawer. The page fills the rest of the screen and scrolls itself.
  */
-export function AppLayout({ children, storage = localStorage }: AppLayoutProps) {
+export function AppLayout({ children, storage = defaultStorage() }: AppLayoutProps) {
     const persistent = usePersistentNavigation();
     const menuId = useId();
     const [collapsed, setCollapsed] = useState(() => {
         try {
-            return storage.getItem('calm-navigation-collapsed') === 'true';
+            return storage?.getItem('calm-navigation-collapsed') === 'true';
         } catch {
             return false;
         }
@@ -28,7 +37,7 @@ export function AppLayout({ children, storage = localStorage }: AppLayoutProps) 
         const next = !collapsed;
         setCollapsed(next);
         try {
-            storage.setItem('calm-navigation-collapsed', String(next));
+            storage?.setItem('calm-navigation-collapsed', String(next));
         } catch {
             // The menu remains usable when the browser blocks storage.
         }

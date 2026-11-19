@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { ExtensionContext } from '../model/extensions.js';
+import { useSlotHost } from './slotActivity.js';
 
 interface ConfirmActionDialogProps {
     title: string;
@@ -34,6 +35,17 @@ export function ConfirmActionDialog({
         // showModal focuses the confirm button, the first button, so an Enter would confirm a write.
         cancel.current?.focus();
     }, []);
+    // A move to another host ends the modal state of the dialog, and it stays open. Show it modally again, with focus on
+    // Cancel. A layout effect, so it goes above a new host dialog, which opens in an earlier layout effect.
+    const host = useSlotHost();
+    useLayoutEffect(() => {
+        const dialog = ref.current;
+        if (!dialog?.open || dialog.matches(':modal') || typeof dialog.showModal !== 'function' || typeof dialog.close !== 'function') return;
+        // showModal throws on an open dialog.
+        dialog.close();
+        dialog.showModal();
+        cancel.current?.focus();
+    }, [host]);
 
     // close() first: while the dialog is modal the page is inert, so the caller cannot move focus out of it.
     const closeThen = (next: () => void) => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import type { Decorator, DecoratorView } from '../../visualizer/contracts/contracts.js';
 import { DecoratorOverlayContext, type DecoratorOverlayState } from '../../visualizer/context/DecoratorOverlayContext.js';
 import { useDecoratorViews } from '../../visualizer/overlay/decoratorViews.js';
@@ -13,7 +13,7 @@ import { useResolvedTheme } from '../../theme/useTheme.js';
 import { useExtensionService } from '../ExtensionsContext.js';
 import { ScreenErrorBoundary } from '../ScreenErrorBoundary.js';
 import { destinationLocation, safeHref } from '../../navigation/destinations.js';
-import { useLinkState } from '../../navigation/returnPoints.js';
+import { linkState, ReturnPointContext } from '../../navigation/returnPoints.js';
 import { BlockRenderer } from '../blocks/BlockRenderer.js';
 import { resetElk, sharedElk } from './elk.js';
 import { LayoutTimeout, layoutLens, type Layout } from './layout.js';
@@ -63,7 +63,7 @@ export function DiagramLensView({
     const service = useExtensionService();
     const theme = useResolvedTheme();
     const navigate = useNavigate();
-    const linkState = useLinkState();
+    const here = useContext(ReturnPointContext);
     const [fetched, setFetched] = useState<Fetched>({ status: 'loading' });
     const [laidOut, setLaidOut] = useState<LaidOut>();
     const [hiddenTags, setHiddenTags] = useState<ReadonlySet<string>>(new Set());
@@ -152,7 +152,7 @@ export function DiagramLensView({
         }
         if (select) onSelectElement(select);
         const to = link?.hub?.version ? destinationLocation({ hub: { ...link.hub, version: link.hub.version } }) : undefined;
-        if (to) navigate(to, { state: linkState });
+        if (to) navigate(to, { state: linkState(here, to) });
         else if (link?.href) {
             const href = safeHref(link.href);
             if (href?.startsWith('https://')) window.open(href, '_blank', 'noopener,noreferrer');

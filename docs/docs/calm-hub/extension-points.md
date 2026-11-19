@@ -104,7 +104,9 @@ The inspector has one view menu, with **Details** first. Each extension name gro
 views (`designer-tab`), then its node views (`detail-panel`), in manifest order within each kind.
 The menu has a filter when there are more than five extension views. Select one view at a time;
 the extension's actions stay above it. An extension with only actions has an **Actions** entry.
-The chosen view of each extension stays in memory while the inspector is mounted, not in the URL.
+The chosen view of each extension stays in memory, not in the URL. The chosen views and the state of each view
+also stay when the screen changes between the wide and the narrow layout, for example when you turn a tablet. An open
+confirmation stays open on top, with focus on **Cancel**.
 
 - With no selection, the inspector shows the whole resource. **Clear selection** goes back to it.
 - A view sends no request until it shows. A view that you leave, and a closed inspector,
@@ -118,6 +120,9 @@ The chosen view of each extension stays in memory while the inspector is mounted
 - A link opens the inspector on an extension with `?extension=<extension id>`, or on the first
   extension with `?extension=`. A fresh load shows its first view. Hub changes an old `?tab=extensions` link to `?extension=`, and keeps
   the other parameters, such as `node`.
+- On a wide screen, each link that names the selected node with `node`, and Back or Forward to one,
+  opens the inspector again, also a link to the page that shows. Closing the inspector and selecting
+  another node keep the open extension and its chosen view.
 
 ## designer-tab
 
@@ -396,7 +401,9 @@ The route returns JSON that matches
   an id in `calm` shows on that element. Leave out an id that is not in the
   open architecture.
 - A `link` sets view parameters, opens a CALM Hub page or opens an `https` URL. A link to a CALM
-  Hub page shows **Back to &lt;page&gt;** on that page.
+  Hub page opens only with a `version`. It can also name an `element` and an `extension`, as a
+  [Hub destination](extension-navigation.md#hub) does. A link to another page shows
+  **Back to &lt;page&gt;** on that page.
 - A control can name its `value`: the value that the reply was drawn with,
   when the request named none. For example, the C4 service draws the first
   system when the URL names no `scope`, and its list shows that system.
@@ -470,9 +477,9 @@ The provider replies `200` with this body:
 | `hubApi` | Yes | The `hubApi` of the manifest |
 | `results` | Yes | At most 10 results |
 | `next` | No | The cursor of the next page. It must fit in the request for the next page (see below). Leave it out on the last page |
-| `id` | Yes | Unique in the results, at most 256 characters |
-| `title` | Yes | At most 300 characters. It is the text of the link |
-| `summary` | No | At most 1000 characters |
+| `id` | Yes | A string of at most 256 code points, unique in the results. CALM Hub leaves out the result when the `id` is missing, not a string, blank (empty or white space only), longer, or has an ASCII control character (U+0000–U+001F or U+007F) |
+| `title` | Yes | A string of at most 300 code points. It is the text of the link. CALM Hub leaves out the result when the `title` is missing, not a string, blank (empty or white space only), longer, or has an ASCII control character (U+0000–U+001F or U+007F) |
+| `summary` | No | A string of at most 1000 code points. When the `summary` is missing, null, not a string, blank (empty or white space only), longer, or has an ASCII control character (U+0000–U+001F or U+007F), CALM Hub keeps the result without a summary. It does not shorten a long summary |
 | `namespace` | No | The CALM Hub namespace of the record |
 | `link` | No | A [destination](extension-navigation.md#destinations) without a label: an `href`, a `hub` page or an extension `screen`. The `title` is its text |
 
@@ -515,7 +522,8 @@ The heading of a group gives the number of results that it shows, with `+` when 
 It gives no total, because only the provider knows its records, and CALM Hub can leave some out.
 A reply for an earlier query is dropped. A provider result and a catalogue result both record the
 search page as the [return point](extension-navigation.md#return-to-the-page), so the page that
-opens shows **Back to search results**.
+opens shows **Back to search results**. A catalogue result for the resource that is open, at any
+version, keeps the return points and adds none, as a change of version does.
 
 ## chat
 

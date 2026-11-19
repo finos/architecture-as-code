@@ -116,7 +116,8 @@ export interface Notation {
 
 export interface LensLink {
     params?: Record<string, string>;
-    hub?: { namespace: string; type: string; id: string; version?: string };
+    /** Hub opens it only with a version. `element` and `extension` are as in a `HubTarget`. */
+    hub?: { namespace: string; type: string; id: string; version?: string; element?: string; extension?: string };
     href?: string;
 }
 

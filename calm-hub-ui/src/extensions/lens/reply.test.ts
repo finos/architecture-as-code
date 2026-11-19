@@ -57,6 +57,20 @@ describe('parseLensReply', () => {
         expect(problem(reply({ nodes: [] }, { controls: empty }))).toContain('A control is not valid');
     });
 
+    it('accepts a Hub link that names an element and an extension view, as lens.schema.json does', () => {
+        const hub = { namespace: 'finos', type: 'architectures', id: 'shop', version: '1.0.0' };
+        const link = (fields: object) => reply({ nodes: [{ id: 'a', label: 'A', link: { hub: { ...hub, ...fields } } }] });
+        expect(problem(link({}))).toBeUndefined();
+        expect(problem(link({ version: undefined }))).toBeUndefined();
+        expect(parseLensReply(link({ element: 'orders-api', extension: 'c4-model' }), 0, lens).reply?.graph.nodes[0].link)
+            .toEqual({ hub: { ...hub, element: 'orders-api', extension: 'c4-model' } });
+        // maxLength counts code points: '𝄞' is one character and two UTF-16 units.
+        expect(problem(link({ element: '𝄞'.repeat(256) }))).toBeUndefined();
+        for (const fields of [{ element: '' }, { element: 'e'.repeat(257) }, { element: 7 }, { extension: 'C4' }, { extension: '' }]) {
+            expect(problem(link(fields)), JSON.stringify(fields)).toContain("Node 'a'");
+        }
+    });
+
     it('refuses a link that is not https, and a reply of another contract', () => {
         expect(problem(reply({ nodes: [{ id: 'a', label: 'A', link: { href: 'javascript:alert(1)' } }] }))).toContain("Node 'a'");
         expect(problem({ ...reply({ nodes: [] }), hubApi: 1 })).toContain('hubApi 0');

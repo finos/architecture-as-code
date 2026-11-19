@@ -17,7 +17,7 @@ URL does not start, and the UI then shows "CalmHub failed to load".
 | `action`, `designer-tab` | The inspector beside the diagram of an architecture or pattern |
 | `detail-panel` | The inspector, for the selected node |
 | `decorator-views` | Badges on the diagram for `release-risk` decorators |
-| `form` | `log-release` on the screen (with a target chooser) and the designer tab; `review-node` in the node details |
+| `form` | `log-release` on the screen (with a target chooser) and the designer tab; `review-node` in the inspector, for the selected node |
 | `search-provider` | A Releases group on the search page, for example `/search?q=payment` |
 
 Run it from `calm-hub/`, with the keys from the [example-services README](../../extensions/example-services/README.md):
