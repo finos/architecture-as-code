@@ -489,7 +489,7 @@ const loadControl = () =>
     act(() =>
         captured?.onControlLoad({
             domain: 'test-domain',
-            controlId: 1,
+            controlId: "1",
             controlName: 'test-control',
             controlDescription: 'A test control',
         })
