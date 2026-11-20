@@ -265,9 +265,9 @@ describe('projectC4', () => {
             { element: 'sidecar', rule: 'hidden-relationship', message: 'Hidden, so its interacts relationship "audit" is not drawn' },
         ]);
         expect(model.relationships).toEqual([
-            { source: 'user', target: 'api', label: 'Uses', technology: undefined, count: 1 },
-            { source: 'api', target: 'db', label: 'Reads orders', technology: 'JDBC', count: 2 },
-            { source: 'user', target: 'db', label: 'Uses', technology: undefined, count: 1 },
+            { source: 'user', target: 'api', label: 'Uses', technology: undefined, count: 1, ids: ['i'] },
+            { source: 'api', target: 'db', label: 'Reads orders', technology: 'JDBC', count: 2, ids: ['api-db-Reads orders', 'api-db-Writes orders'] },
+            { source: 'user', target: 'db', label: 'Uses', technology: undefined, count: 1, ids: ['audit'] },
         ]);
     });
 });
@@ -324,6 +324,7 @@ describe('c4View', () => {
 
         expect(ids(view.outside)).toEqual(['buyer', 'crm', 'pay', 'shop']);
         expect(edges(view)).toEqual(['buyer->shopx1', 'shop->crmx2', 'shop->payx1']);
+        expect(view.relationships.find((r) => r.target === 'crm')?.ids.sort()).toEqual(['handler-crm-db-Reads customers', 'orders-crm-api-Syncs customers']);
     });
 
     it('shows the children of a system and lifts the other end of each relationship to the highest element outside it', () => {

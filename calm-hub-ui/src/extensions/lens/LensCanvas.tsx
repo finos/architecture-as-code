@@ -1,11 +1,17 @@
-import { useId, useMemo, type KeyboardEvent, type PointerEvent } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { LensNode } from '../../model/lens.js';
+import { useDecoratorOverlays, type ShownOverlay } from '../../visualizer/context/DecoratorOverlayContext.js';
+import { viewKey, worstStatus } from '../../visualizer/overlay/overlayEngine.js';
+import { OverlayBadgeDetails } from '../../visualizer/components/reactflow/overlay/OverlayBadgeDetails.js';
+import { overlayOutline } from '../../visualizer/components/reactflow/overlay/overlayStyle.js';
 import type { Theme } from '../../theme/useTheme.js';
 import { useSvgZoomPan } from '../../hub/components/flow-sequence-diagram/useSvgZoomPan.js';
 import { ZoomControls } from '../../hub/components/flow-sequence-diagram/ZoomControls.js';
 import { FONT_SIZE, LINE_HEIGHT, fitShape, midpoint } from './geometry.js';
 import type { Layout, PlacedEdge } from './layout.js';
 import { GroupShape, NodeShape, ShapeParts } from './LensShape.js';
+import { LensOverlayBadges } from './LensOverlayBadges.js';
+import { LENS_BADGE_HEIGHT, lensOverlayKey, placeBadges } from './overlays.js';
 import { CANVAS, DASH, findMarker, findShape, type ResolvedNotation } from './styles.js';
 
 interface LensCanvasProps {
@@ -21,6 +27,17 @@ interface LensCanvasProps {
 
 const SELECTION = '#2563eb';
 const DIMMED = 0.15;
+
+/** The badge whose details are open: its element and view. The details read the overlay of this render. */
+interface OpenDetails {
+    element: string;
+    view: string;
+    anchor: DOMRect;
+    trigger: { current: SVGGElement };
+}
+
+/** Badges of an edge wrap at this width. Those of a node or a group wrap at its width. */
+const EDGE_BADGES_WIDTH = 220;
 
 /** The line through the points: straight segments, or a smooth curve through the bends for `curved`. */
 function edgePath({ points, style }: Pick<PlacedEdge, 'points' | 'style'>): string {
@@ -69,10 +86,75 @@ export function LensCanvas({ layout, notation, theme, selectedElement, hiddenTag
     const hidden = (tags: string[] | undefined) => !!tags?.some((tag) => hiddenTags.has(tag));
     const selected = (calm: string[] | undefined) => !!selectedElement && !!calm?.includes(selectedElement);
 
+    // The decorator overlays, keyed by `lensOverlayKey`, without the views that the legend turned off.
+    const { overlays, hiddenViews } = useDecoratorOverlays();
+    const shownOn = (key: string): ShownOverlay[] => overlays.flatMap(({ view, elements }) => {
+        const overlay = elements.get(key);
+        return overlay && !hiddenViews.has(viewKey(view)) ? [{ view, overlay }] : [];
+    });
+    // An edge shows only the views that need attention, as on the CALM diagram.
+    const flagged = (shown: ShownOverlay[]) => shown.filter(({ overlay }) => overlayOutline(overlay.status));
+    const outline = (shown: ShownOverlay[]) => overlayOutline(worstStatus(shown.map(({ overlay }) => overlay.status)));
+    const [details, setDetails] = useState<OpenDetails>();
+    const openDetails = (element: string) => (shown: ShownOverlay, badge: SVGGElement) =>
+        setDetails((current) => current?.element === element && current.view === viewKey(shown.view)
+            ? undefined
+            : { element, view: viewKey(shown.view), anchor: badge.getBoundingClientRect(), trigger: { current: badge } });
+    const closeDetails = useCallback((restoreFocus: boolean) => {
+        if (restoreFocus) details?.trigger.current.focus({ preventScroll: true });
+        setDetails(undefined);
+    }, [details]);
+    // The badges are a layer above every element, so a neighbour does not cover them, and they are not inside the
+    // button of a node. A node's badges are on its bottom edge, as the lens badges are on the top edge.
+    // Badges wrap to the width of their element, and the view box takes in every badge, so each one shows and takes a click.
+    const badges = [
+        ...layout.groups.map(({ group, x, y, width }) => {
+            const key = lensOverlayKey('group', group.id);
+            return { key, shown: shownOn(key), placed: placeBadges(shownOn(key), x + width - 8, y + 6, 'end', width - 16), tags: group.tags };
+        }),
+        ...layout.edges.map(({ edge, points, label, labelAt }) => {
+            const mid = labelAt ?? midpoint(points);
+            const key = lensOverlayKey('edge', edge.id);
+            const shown = flagged(shownOn(key));
+            return { key, shown, placed: placeBadges(shown, mid.x, mid.y + (label.length / 2) * FONT_SIZE.small * LINE_HEIGHT + 4, 'middle', EDGE_BADGES_WIDTH), tags: edge.tags };
+        }),
+        ...layout.nodes.map(({ node, fit, x, y }) => {
+            const key = lensOverlayKey('node', node.id);
+            return { key, shown: shownOn(key), placed: placeBadges(shownOn(key), x + 8, y + fit.height - LENS_BADGE_HEIGHT / 2, 'start', fit.width - 16), tags: node.tags };
+        }),
+    ].filter(({ shown }) => shown.length > 0);
+    const placedBadges = badges.flatMap(({ placed }) => placed);
+    const box = {
+        left: Math.min(0, ...placedBadges.map(({ x }) => x - 4)),
+        top: Math.min(0, ...placedBadges.map(({ y }) => y - 4)),
+        right: Math.max(layout.width, ...placedBadges.map(({ x, width }) => x + width + 4)),
+        bottom: Math.max(layout.height, ...placedBadges.map(({ y }) => y + LENS_BADGE_HEIGHT + 4)),
+    };
+    const boxWidth = box.right - box.left;
+    const boxHeight = box.bottom - box.top;
+    // The details show the overlay of this render, and close when the badge goes: its decorator went, its view was
+    // turned off, or its edge became ok.
+    const openShown = details && badges.find(({ key }) => key === details.element)?.shown.find(({ view }) => viewKey(view) === details.view);
+    if (details && !openShown) setDetails(undefined);
+    // The details stay where the badge was, so they close when the diagram pans or zooms.
+    const moveListeners = useRef(new Set<() => void>());
+    useEffect(() => {
+        for (const listener of [...moveListeners.current]) listener();
+    }, [transform]);
+    const subscribeToMoves = useCallback((onMove: () => void) => {
+        moveListeners.current.add(onMove);
+        return () => {
+            moveListeners.current.delete(onMove);
+        };
+    }, []);
+    const openView = (element: string) => (details?.element === element ? details.view : undefined);
+
     // A drag-pan captures the pointer, and the click then goes to the pane. So a press on an element that takes a
-    // click does not start a pan.
+    // click does not start a pan. The badge details are in a portal, but React still sends their events here.
     const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-        if (!(event.target as Element).closest('[data-clickable]')) panHandlers.onPointerDown(event);
+        const target = event.target as Element;
+        if (!containerRef.current?.contains(target)) return;
+        if (!target.closest('[data-clickable]')) panHandlers.onPointerDown(event);
     };
 
     return (
@@ -89,11 +171,11 @@ export function LensCanvas({ layout, notation, theme, selectedElement, hiddenTag
             >
                 <svg
                     ref={contentRef}
-                    viewBox={`0 0 ${layout.width} ${layout.height}`}
+                    viewBox={`${box.left} ${box.top} ${boxWidth} ${boxHeight}`}
                     preserveAspectRatio="xMidYMid meet"
                     className="h-full w-full"
                     // A small diagram fits the pane, but grows to at most 1.25 times its size.
-                    style={{ maxWidth: layout.width * 1.25, maxHeight: layout.height * 1.25, fontFamily: 'inherit' }}
+                    style={{ maxWidth: boxWidth * 1.25, maxHeight: boxHeight * 1.25, fontFamily: 'inherit' }}
                     role="img"
                     aria-roledescription="diagram"
                     data-testid="lens-canvas"
@@ -116,12 +198,14 @@ export function LensCanvas({ layout, notation, theme, selectedElement, hiddenTag
                         })}
                     </defs>
                     {layout.groups.map(({ group, style, x, y, width, height }) => {
+                        const decorated = outline(shownOn(lensOverlayKey('group', group.id)));
                         const shape = style.shape ? findShape(notation, style.shape) : undefined;
                         const fit = shape ? fitShape(shape, undefined, undefined, width, height) : fitShape({ viewBox: [0, 0, width, height], parts: [] }, undefined, undefined, width, height);
                         return (
                             <g key={`g-${group.id}`} transform={`translate(${x},${y})`} opacity={hidden(group.tags) ? DIMMED : style.opacity}
                                 data-group={group.id} data-clickable={group.calm?.length ? true : undefined} onClick={group.calm?.length ? () => onSelect(group.calm!) : undefined}>
                                 <GroupShape label={group.label} shape={shape} fit={fit} style={style} />
+                                {decorated && <rect width={width} height={height} rx={6} fill="none" stroke={decorated} strokeWidth={2.5} data-overlay-outline={decorated} />}
                                 {selected(group.calm) && <rect width={width} height={height} rx={6} fill="none" stroke={SELECTION} strokeWidth={2} />}
                             </g>
                         );
@@ -159,6 +243,7 @@ export function LensCanvas({ layout, notation, theme, selectedElement, hiddenTag
                     })}
                     {layout.nodes.map(({ node, style, shape, fit, x, y }) => {
                         const interactive = !!node.link || !!node.calm?.length;
+                        const decorated = outline(shownOn(lensOverlayKey('node', node.id)));
                         return (
                             <g key={`n-${node.id}`} transform={`translate(${x},${y})`} data-node={node.id}
                                 opacity={hidden(node.tags) ? DIMMED : style.opacity}
@@ -169,14 +254,23 @@ export function LensCanvas({ layout, notation, theme, selectedElement, hiddenTag
                                 className="outline-none [&:focus-visible>.lens-focus]:opacity-100">
                                 <title>{[node.tooltip, node.link?.params ? 'Click to open' : undefined].filter(Boolean).join('\n') || node.label}</title>
                                 <NodeShape node={node} shape={shape} fit={fit} style={style} />
+                                {decorated && <rect x={-2} y={-2} width={fit.width + 4} height={fit.height + 4} rx={7} fill="none" stroke={decorated} strokeWidth={2.5} data-overlay-outline={decorated} />}
                                 {selected(node.calm) && <rect x={-4} y={-4} width={fit.width + 8} height={fit.height + 8} rx={8} fill="none" stroke={SELECTION} strokeWidth={3} data-selected />}
                                 <rect className="lens-focus opacity-0" x={-6} y={-6} width={fit.width + 12} height={fit.height + 12} rx={9} fill="none" stroke={SELECTION} strokeWidth={2} strokeDasharray="4 3" />
                             </g>
                         );
                     })}
+                    {badges.map(({ key, placed, tags }) => (
+                        <g key={`b-${key}`} data-overlay-for={key} opacity={hidden(tags) ? DIMMED : undefined}>
+                            <LensOverlayBadges badges={placed} background={canvas.background} openView={openView(key)} onOpen={openDetails(key)} />
+                        </g>
+                    ))}
                 </svg>
             </div>
             <ZoomControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={reset} isInteractive={isInteractive} onToggleInteractive={toggleInteractive} />
+            {details && openShown && (
+                <OverlayBadgeDetails shown={openShown} anchor={details.anchor} trigger={details.trigger} onClose={closeDetails} subscribeToMoves={subscribeToMoves} />
+            )}
         </div>
     );
 }

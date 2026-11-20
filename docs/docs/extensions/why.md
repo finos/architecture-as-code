@@ -18,12 +18,15 @@ architecture stays the single source, and each team sees it in the form that it 
 | Show the results of your tools on the diagram | [`decorator-views`](../calm-hub/extension-points.md#decorator-views) | Control results, deployment status, security scan results |
 | Show facts about an architecture or a node | [`designer-tab`](../calm-hub/extension-points.md#designer-tab), [`detail-panel`](../calm-hub/extension-points.md#detail-panel) | The owner from your CMDB, open incidents, cost |
 | Start a process from an architecture | [`action`](../calm-hub/extension-points.md#action) | Request a design review, open a ticket |
+| Get input from a user | [`form`](../calm-hub/extension-points.md#form) | Log a release, request a review of a node |
 | Add a page or a card on the home page | [`screen`](../calm-hub/extension-points.md#screen), [`landing-card`](../calm-hub/extension-points.md#landing-card) | A release calendar |
+| Show your records on the search page | [`search-provider`](../calm-hub/extension-points.md#search-provider) | Releases, tickets, entries of your service catalogue |
+| Add a chat with an assistant | [`chat`](../calm-hub/extension-points.md#chat) | Answers about your architectures, with links to the sources |
 | Let the CLI and AI assistants use it | [`commands`](../calm-hub/extension-points.md#commands) | `calm hub ext <id> <command>`, and an MCP tool for each command |
 
 One extension can use many extension points. The
 [release-tracker tutorial](../tutorials/advanced/hub-extension.md) uses `screen`, `designer-tab`, `landing-card`,
-`detail-panel`, `action`, `decorator-views` and `commands`.
+`detail-panel`, `action`, `form`, `decorator-views` and `commands`.
 
 ## Why not a fork
 
