@@ -19,7 +19,7 @@ Select a view at the top of the lens. The view is in the URL, for example `?lens
 | View | Shows |
 |:--|:--|
 | Layered | Each element in its business, application or technology layer. Composition and deployment are edges |
-| Application cooperation | The application layer only. A container is drawn around its parts |
+| Application cooperation | The application elements, and the containers around them, except technology containers. A container is drawn around its parts |
 
 ![The layered view of the Conference Signup architecture, with the notes panel](/img/extensions/layers-layered.png)
 
@@ -56,6 +56,24 @@ Thus it points against the CALM `connects` relationship.
   architecture. **Hide** closes the panel.
 - **Type guessed:** the lens does not know the node type of this element, so it draws an application
   component.
+
+## Decorators
+
+The lens shows the [decorator overlays](../working-with-calm/calm-hub.md#overlays-on-an-extension-lens)
+of the architecture, such as deployments and control evaluations.
+
+| Element | Shows the decorators of |
+|:--|:--|
+| Element, or the container around its parts | Its CALM node. A container also shows those of its `composed-of` and `deployed-in` relationships |
+| Serving or access relationship | Its CALM `connects` or `interacts` relationship. It shows a badge only when the relationship has an error or a warning |
+| Composition or assignment relationship | None. They show on the container |
+| Layer | None. It is not a CALM node |
+
+The application cooperation view does not draw all of the architecture: a database, for example, is
+not on it. When nothing on the diagram stands for a decorated CALM node or relationship, the lens
+shows no badge for it, and says on the diagram that it is not shown. A decorator of a
+`composed-of` or `deployed-in` relationship counts as a decorator of the container. Thus it shows when
+the diagram draws the container, also when the diagram does not draw the parts.
 
 ## Settings
 

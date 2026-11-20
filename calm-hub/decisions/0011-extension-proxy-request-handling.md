@@ -42,10 +42,11 @@ ancestor rules as `CalmHubPermissionChecker`: READ needs every ancestor, WRITE
 needs any ancestor. When `calm.auth.allow-public-read` is on, an `authenticated`
 route still needs a non-anonymous identity.
 
-**Read-only mode.** `ReadOnlyRequestFilter` exempts only paths that match
-`^/api/calm/extensions/[^/]+/api/`. On a read-only Hub the proxy then allows a
-non-GET method only on routes that declare `readOnly: true`. The registry leaves
-out the other routes, so the UI and CLI need no mode logic.
+**Read-only mode.** `ReadOnlyRequestFilter` exempts only the proxy and form
+paths, `^/api/calm/extensions/[^/]+/(api|forms)(/|$)`, and the chat endpoint,
+`^/api/calm/extensions/[^/]+/chat/<entry id>$`. On a read-only Hub the proxy
+then allows a non-GET method only on routes that declare `readOnly: true`. The
+registry leaves out the other routes, so the UI and CLI need no mode logic.
 
 **Route matching and host pinning.**
 
@@ -84,7 +85,7 @@ sends data to a third party. When it shares a resource, the record also holds
 that resource's namespace, type, id and version. A shared resource that the
 caller cannot read is recorded as `DENIED`. The record never holds the message
 text. A request that Hub refuses with `401` is not audited, for the chat as for
-the other routes: Hub sends nothing to the extension.
+the other extension routes: Hub sends nothing to the extension.
 
 **Auth off.** Hub refuses to start with enabled extensions when auth is off,
 unless the operator sets an explicit opt-in. A warning is not enough, because in

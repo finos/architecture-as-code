@@ -37,6 +37,25 @@ describe('buildC4Model', () => {
         expect(fetch).not.toHaveBeenCalled();
     });
 
+    it('names the nodes and relationships of this architecture, but not an id that a detailed architecture takes', async () => {
+        const link = '/calm/namespaces/finos/architectures/9/versions/1.0.0';
+        const data: HubData = {
+            document: {
+                nodes: [
+                    calmNode('shop', 'system'),
+                    calmNode('api', 'service', { details: { 'detailed-architecture': link } }),
+                    calmNode('api/db', 'database', { name: 'Parent database' }),
+                ],
+                relationships: [{ 'unique-id': 'c', 'relationship-type': { 'composed-of': { container: 'shop', nodes: ['api', 'api/db'] } } }],
+            },
+            linked: { [link]: { nodes: [calmNode('db', 'database', { name: 'Detailed database' })] } },
+        };
+        const { model, calmIds } = await buildC4Model(data, 'finos', '7');
+        // The projection holds the detailed node under the parent's id, so a parent decorator there would be wrong.
+        expect(model.elements.get('api/db')?.name).toBe('Detailed database');
+        expect([...calmIds].sort()).toEqual(['api', 'c', 'shop']);
+    });
+
     it('resolves a mapping that extends a mapping on Hub, from what Hub sent', async () => {
         const parent = 'http://hub.example.org/calm/namespaces/org/conventions/c4-mapping/1/versions/1.0.0';
         const data: HubData = {

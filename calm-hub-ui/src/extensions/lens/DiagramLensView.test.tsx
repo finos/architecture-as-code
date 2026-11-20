@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExtensionSummary } from '../../model/extensions.js';
@@ -8,6 +8,9 @@ import core from '../../../../calm-hub/src/main/resources/META-INF/calm-extensio
 import { isExactVersion, MAX_RETURN_POINTS, readReturnPoints } from '../../navigation/returnPoints.js';
 import { ReturnPointProvider } from '../../navigation/ReturnPointProvider.js';
 import { DiagramLensView, type DiagramLensViewProps } from './DiagramLensView.js';
+import { BUILTIN_DECORATOR_VIEWS } from '../../visualizer/overlay/builtinDecoratorViews.js';
+import type { Decorator } from '../../visualizer/contracts/contracts.js';
+import { createMemoryStorage } from '../../test-support/memory-storage.js';
 
 const lens: DiagramLensContribution = {
     id: 'c4', title: 'C4', route: 'lens', notation: 'notation.json',
@@ -36,6 +39,11 @@ beforeEach(() => {
     vi.spyOn(ExtensionService.prototype, 'fetchLensNotation').mockResolvedValue({});
     vi.spyOn(ExtensionService.prototype, 'fetchCoreNotation').mockResolvedValue(core as Notation);
     call = vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue(reply);
+    vi.spyOn(ExtensionService.prototype, 'fetchDecoratorViews').mockResolvedValue([...BUILTIN_DECORATOR_VIEWS, {
+        id: 'release-risk', label: 'Release risk', match: { type: 'release-risk' },
+        overlay: { status: '/risk', map: { low: 'ok', medium: 'warn', high: 'error' }, default: 'info', label: '/summary' },
+        source: { id: 'release-tracker', name: 'Release tracker', builtIn: false },
+    }]);
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -165,5 +173,174 @@ describe('DiagramLensView', () => {
         call.mockRejectedValue(new ExtensionCallError({ title: 'The C4 mapping does not load', detail: 'c4-mapping has no level' }));
         show();
         expect(await screen.findByRole('alert')).toHaveTextContent('The C4 mapping does not loadc4-mapping has no level');
+    });
+
+    describe('decorators', () => {
+        const decorator = (uniqueId: string, type: string, appliesTo: string[], data: object) =>
+            ({ uniqueId, type, target: [], appliesTo, data }) as Decorator;
+        const decorators = [
+            decorator('d-shop', 'deployment', ['shop'], { status: 'failed', 'start-time': '2026-11-17T10:00:00Z' }),
+            decorator('r-shop', 'release-risk', ['shop'], { risk: 'medium', summary: 'Canary rollout' }),
+            decorator('d-edge', 'deployment', ['shop-pays'], { status: 'failed', 'start-time': '2026-11-17T10:00:00Z' }),
+            decorator('d-gone', 'deployment', ['queue'], { status: 'pending', 'start-time': '2026-11-17T10:00:00Z' }),
+        ];
+        const decorated = { ...reply, graph: { ...reply.graph, edges: [{ ...reply.graph.edges[0], calm: ['shop-pays'] }] } };
+        const badges = (on: string) => [...document.querySelectorAll(`[data-overlay-for="${on}"] [data-overlay-badge]`)].map((badge) => badge.getAttribute('aria-label'));
+
+        it('draws each view as a badge on the lens element that names the CALM element, and says what it does not draw', async () => {
+            call.mockResolvedValue(decorated);
+            show({ decorators, storage: createMemoryStorage() });
+            await screen.findByRole('button', { name: 'Online Shop' });
+            await waitFor(() => expect(badges('node:shop')).toEqual(['Deployments · Built-in: Failed', 'Release risk · Release tracker: Medium']));
+            expect(badges('node:pay')).toEqual([]);
+            expect(badges('edge:e')).toEqual(['Deployments · Built-in: Failed']);
+            expect(document.querySelector('[data-node="shop"] [data-overlay-outline]')).not.toBeNull();
+            expect(screen.getByTestId('lens-overlays-not-drawn')).toHaveTextContent('Deployments · Built-in: 1 decorated element is not shown.');
+        });
+
+        it('opens the badge details without selecting the node, and the legend turns a view off', async () => {
+            call.mockResolvedValue(decorated);
+            const { onParamsChange, onSelectElement } = show({ decorators, storage: createMemoryStorage() });
+            const badge = await screen.findByRole('button', { name: 'Release risk · Release tracker: Medium' });
+            fireEvent.click(badge);
+            expect(screen.getByRole('dialog', { name: 'Release risk · Release tracker' })).toHaveTextContent('Canary rollout');
+            expect(onParamsChange).not.toHaveBeenCalled();
+            expect(onSelectElement).not.toHaveBeenCalled();
+            fireEvent.keyDown(document, { key: 'Escape' });
+            expect(screen.queryByRole('dialog')).toBeNull();
+            fireEvent.click(within(screen.getByRole('group', { name: 'Decorator overlays' })).getByRole('checkbox', { name: /Release risk/ }));
+            expect(badges('node:shop')).toEqual(['Deployments · Built-in: Failed']);
+        });
+
+        it('draws no decorator on an element without calm ids', async () => {
+            show({ decorators, storage: createMemoryStorage() });
+            await screen.findByRole('button', { name: 'Online Shop' });
+            await waitFor(() => expect(badges('node:shop')).toHaveLength(2));
+            expect(badges('edge:e')).toEqual([]);
+        });
+
+        it('shows the current result in open details, and closes them when the badge goes', async () => {
+            call.mockResolvedValue(decorated);
+            const risk = (value: string, summary: string) => decorator('r-shop', 'release-risk', ['shop'], { risk: value, summary });
+            const view = show({ decorators: [risk('high', 'Old result'), decorators[2]], storage: createMemoryStorage() });
+            fireEvent.click(await screen.findByRole('button', { name: 'Release risk · Release tracker: High' }));
+            expect(screen.getByRole('dialog')).toHaveTextContent('Old result');
+
+            view.rerender({ decorators: [risk('low', 'New result'), decorators[2]] });
+            await screen.findByRole('button', { name: 'Release risk · Release tracker: Low' });
+            expect(screen.getByRole('dialog')).toHaveTextContent('New result');
+
+            view.rerender({ decorators: [decorators[2]] });
+            await waitFor(() => expect(screen.queryByRole('button', { name: /Release risk/ })).toBeNull());
+            expect(screen.queryByRole('dialog')).toBeNull();
+
+            // An edge shows only error and warn, so its badge goes when its relationship becomes ok.
+            fireEvent.click(screen.getByRole('button', { name: 'Deployments · Built-in: Failed' }));
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+            view.rerender({ decorators: [decorator('d-edge', 'deployment', ['shop-pays'], { status: 'completed', 'start-time': '2026-11-17T11:00:00Z' })] });
+            await waitFor(() => expect(badges('edge:e')).toEqual([]));
+            expect(screen.queryByRole('dialog')).toBeNull();
+        });
+
+        // The details stay where the badge was, so a move of the diagram closes them. A button or the wheel moves it
+        // without a press, which would close the details on its own.
+        it.each([
+            ['the zoom in button', () => fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))],
+            ['a wheel zoom', () => fireEvent.wheel(screen.getByTestId('lens-canvas').parentElement!.parentElement!, { deltaY: -200 })],
+        ])('closes the badge details on %s, and gives focus back to the badge', async (_name, move) => {
+            call.mockResolvedValue(decorated);
+            show({ decorators, storage: createMemoryStorage() });
+            const badge = await screen.findByRole('button', { name: 'Release risk · Release tracker: Medium' });
+            fireEvent.click(badge);
+            expect(screen.getByRole('dialog')).toHaveFocus();
+            move();
+            await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+            expect(badge).toHaveAttribute('aria-expanded', 'false');
+            expect(badge).toHaveFocus();
+        });
+
+        it('closes the badge details on a drag-pan of the diagram', async () => {
+            const capture = { set: Element.prototype.setPointerCapture, has: Element.prototype.hasPointerCapture, release: Element.prototype.releasePointerCapture };
+            // jsdom does not implement the Pointer Capture API.
+            Element.prototype.setPointerCapture = vi.fn();
+            Element.prototype.hasPointerCapture = vi.fn(() => true);
+            Element.prototype.releasePointerCapture = vi.fn();
+            try {
+                call.mockResolvedValue(decorated);
+                show({ decorators, storage: createMemoryStorage() });
+                fireEvent.click(await screen.findByRole('button', { name: 'Release risk · Release tracker: Medium' }));
+                const pane = screen.getByTestId('lens-canvas');
+                fireEvent.pointerDown(pane, { button: 0, pointerId: 1, clientX: 100, clientY: 100 });
+                fireEvent.pointerMove(pane, { pointerId: 1, clientX: 140, clientY: 100 });
+                fireEvent.pointerUp(pane, { pointerId: 1 });
+                expect(pane.parentElement!.style.transform).toContain('translate(40px, 0px)');
+                expect(screen.queryByRole('dialog')).toBeNull();
+
+                // The press above closes the details by itself. Fit view only pans back, with no press and no zoom.
+                const badge = screen.getByRole('button', { name: 'Release risk · Release tracker: Medium' });
+                fireEvent.click(badge);
+                expect(screen.getByRole('dialog')).toHaveFocus();
+                fireEvent.click(screen.getByRole('button', { name: 'Fit view' }));
+                expect(pane.parentElement!.style.transform).toBe('translate(0px, 0px) scale(1)');
+                expect(screen.queryByRole('dialog')).toBeNull();
+                expect(badge).toHaveFocus();
+            } finally {
+                Object.assign(Element.prototype, { setPointerCapture: capture.set, hasPointerCapture: capture.has, releasePointerCapture: capture.release });
+            }
+        });
+
+        // A lens names at most 32 ids on an element, so an edge that stands for more relationships cannot name them all.
+        it('says that a decorator is not shown, not that it is outside the view, when the element that draws it cannot name it', async () => {
+            const ids = Array.from({ length: 33 }, (_, index) => `r${index}`);
+            call.mockResolvedValue({ ...reply, graph: { ...reply.graph, edges: [{ ...reply.graph.edges[0], calm: ids.slice(0, 32) }] } });
+            show({ decorators: [decorator('d-r32', 'deployment', ['r32'], { status: 'failed', 'start-time': '2026-11-17T10:00:00Z' })], storage: createMemoryStorage() });
+            await screen.findByRole('button', { name: 'Online Shop' });
+            expect(document.querySelector('[data-edge="e"]')).not.toBeNull();
+            await waitFor(() => expect(screen.getByTestId('lens-overlays-not-drawn')).toHaveTextContent('Deployments · Built-in: 1 decorated element is not shown.'));
+            expect(badges('edge:e')).toEqual([]);
+        });
+
+        it('keeps a legend row for a view whose decorated elements are all outside the view, so it can be turned on again', async () => {
+            const storage = createMemoryStorage();
+            storage.setItem('calm-hub-overlay-views', JSON.stringify({ 'deployment/deployment': false }));
+            show({ decorators: [decorators[3]], storage });
+            await screen.findByRole('button', { name: 'Online Shop' });
+            const toggle = await screen.findByRole('checkbox', { name: /Deployments · Built-in/ });
+            expect(screen.queryByTestId('lens-overlays-not-drawn')).toBeNull();
+            fireEvent.click(toggle);
+            expect(screen.getByTestId('lens-overlays-not-drawn')).toHaveTextContent('Deployments · Built-in: 1 decorated element is not shown.');
+        });
+
+        it('wraps many badges to the node width, inside the view box of the diagram', async () => {
+            const extra = [1, 2, 3].map((n) => ({
+                id: `risk-${n}`, label: `Approval ${n}`, match: { type: `risk-${n}` },
+                overlay: { status: '/status', map: { 'approval-required': 'warn' as const } }, source: { id: `risk-${n}`, name: `Risk ${n}`, builtIn: false },
+            }));
+            vi.mocked(ExtensionService.prototype.fetchDecoratorViews).mockResolvedValue([...BUILTIN_DECORATOR_VIEWS, ...extra]);
+            show({
+                decorators: [
+                    decorator('d-pay', 'deployment', ['payments'], { status: 'rolled-back', 'start-time': '2026-11-17T10:00:00Z' }),
+                    ...extra.map((view) => decorator(view.id, view.match.type, ['payments'], { status: 'approval-required' })),
+                ],
+                storage: createMemoryStorage(),
+            });
+            await screen.findByRole('button', { name: 'Payments' });
+            await waitFor(() => expect(badges('node:pay')).toHaveLength(4));
+            const [left, top, width, height] = screen.getByTestId('lens-canvas').getAttribute('viewBox')!.split(' ').map(Number);
+            const node = document.querySelector('[data-node="pay"]')!.getAttribute('transform')!;
+            const nodeX = Number(/translate\(([-\d.]+)/.exec(node)![1]);
+            const placed = [...document.querySelectorAll('[data-overlay-for="node:pay"] [data-overlay-badge]')].map((badge) => {
+                const [, x, y] = /translate\(([-\d.]+),([-\d.]+)\)/.exec(badge.getAttribute('transform')!)!.map(Number);
+                return { x, y, width: Number(badge.querySelector('rect')!.getAttribute('width')) };
+            });
+            expect(new Set(placed.map(({ y }) => y)).size).toBeGreaterThan(1);
+            for (const { x, y, width: w } of placed) {
+                expect(x).toBeGreaterThanOrEqual(left);
+                expect(x + w).toBeLessThanOrEqual(left + width);
+                expect(y).toBeGreaterThanOrEqual(top);
+                expect(y + 18).toBeLessThanOrEqual(top + height);
+                expect(x).toBeGreaterThanOrEqual(nodeX);
+            }
+        });
     });
 });
