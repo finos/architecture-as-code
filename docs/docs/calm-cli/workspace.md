@@ -279,11 +279,14 @@ Layout warnings do not change the exit code.
 Give each changed document a new version, and update all references to it. See [Bump Behaviour](#bump-behaviour).
 
 ```shell
-calm workspace bump [--calm-hub-url <url>] [--major | --minor | --patch] [--inherit-change-type]
+calm workspace bump [--calm-hub-url <url>] [--major | --minor | --patch] [--inherit-change-type] [--base-url <url>]
 ```
 
 - **`--major`**, **`--minor`**, **`--patch`**: Use this bump type for all changed documents, with no prompts.
 - **`--inherit-change-type`**: Give each dependent document the bump type of the document that it refers to, with no prompt.
+- **`--base-url <url>`**: The base URL each document's `$id` must start with. The default is the CALM Hub URL.
+
+If a document's `$id` base URL does not match, `bump` fails and does not change a file. A new version does not correct the base URL.
 
 After it bumps the documents, `bump` validates the workspace and prints the same summary as `check`. Validation failures do not change the exit code of `bump`. If CALM Hub has a snapshot of the new version, `bump` shows a warning, because a push of that version deletes the snapshot.
 

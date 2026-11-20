@@ -255,6 +255,19 @@ export class DocumentMetadataValidationError extends Error {
     }
 }
 
+/** Mirrors CalmHub's normalisation of its configured `calm.hub.base-url`. */
+export function normalizeBaseUrl(url: string): string {
+    return url.trim().replace(/\/+$/, '');
+}
+
+/**
+ * CalmHub rejects a `$id` whose base URL is not exactly its own base URL.
+ * Unlike {@link validateDocumentId}, which ignores the base URL on purpose.
+ */
+export function hasExpectedBaseUrl(metadata: Pick<DocumentMetadata, 'baseUrl'>, expectedBaseUrl: string): boolean {
+    return metadata.baseUrl === normalizeBaseUrl(expectedBaseUrl);
+}
+
 /**
  * Validate a document metadata against an expected form.
  * @param expectedMetadata The metadata to check against.

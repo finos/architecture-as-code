@@ -13,10 +13,10 @@ import { detectChangedResources, bumpWorkspace } from './bump';
 import { markAsSnapshot, releaseSnapshot, findSnapshotDependencyViolations, listSnapshotCandidates } from './snapshot';
 import { loadPostBumpValidationOptions, runPostBumpValidation } from './post-bump-validate';
 import { checkWorkspaceLayout } from './layout-check';
-import { findBaseUrlMismatches, baseUrlMismatchMessage, normalizeBaseUrl } from './base-url-check';
+import { findBaseUrlMismatches, baseUrlMismatchMessage } from './base-url-check';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
-import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId, resourceTypeFromDocumentId, documentName } from '@finos/calm-shared';
+import { initLogger, Logger, CalmHubClient, normalizeBaseUrl, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId, resourceTypeFromDocumentId, documentName } from '@finos/calm-shared';
 import { select, input } from '@inquirer/prompts';
 import {
     CALM_DOCUMENT_TYPES_LIST,
@@ -34,6 +34,7 @@ import {
 } from './document-kind';
 
 const logger: Logger = initLogger(false, 'workspace');
+const BASE_URL_OPTION_DESCRIPTION = 'Expected $id base URL (defaults to the CalmHub URL); set when CalmHub\'s calm.hub.base-url differs from the URL used to reach it';
 
 type NarrativeRegistrationOptions = {
     id?: string;
@@ -521,7 +522,7 @@ export function setupWorkspaceCommands(program: Command) {
         .description('Push all files in the current workspace manifest to CalmHub. Does not auto-bump; pushes the version each document declares.')
         .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
         .option('--fail-if-modified', 'Fail if a modified document already exists in CalmHub at its declared version (overrides the workspace config; strict merge-time mode)')
-        .option('--base-url <url>', 'Expected $id base URL (defaults to the CalmHub URL); set when CalmHub\'s calm.hub.base-url differs from the URL used to reach it')
+        .option('--base-url <url>', BASE_URL_OPTION_DESCRIPTION)
         .action(async (options: { calmHubUrl?: string; failIfModified?: boolean; baseUrl?: string }) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
@@ -548,7 +549,7 @@ export function setupWorkspaceCommands(program: Command) {
         .command('check')
         .description('Check whether any tracked documents have changed on disk relative to CalmHub and need a version bump. Exits non-zero if so (CI/PR gate).')
         .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
-        .option('--base-url <url>', 'Expected $id base URL (defaults to the CalmHub URL); set when CalmHub\'s calm.hub.base-url differs from the URL used to reach it')
+        .option('--base-url <url>', BASE_URL_OPTION_DESCRIPTION)
         .action(async (options: { calmHubUrl?: string; baseUrl?: string }) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
@@ -628,7 +629,8 @@ export function setupWorkspaceCommands(program: Command) {
         .option('--minor', 'Apply a minor version bump to all changed documents (no prompts)')
         .option('--patch', 'Apply a patch version bump to all changed documents (no prompts)')
         .option('--inherit-change-type', 'Auto-inherit the bump type for cascade-bumped dependents without prompting')
-        .action(async (options: { calmHubUrl?: string; major?: boolean; minor?: boolean; patch?: boolean; inheritChangeType?: boolean }) => {
+        .option('--base-url <url>', BASE_URL_OPTION_DESCRIPTION)
+        .action(async (options: { calmHubUrl?: string; major?: boolean; minor?: boolean; patch?: boolean; inheritChangeType?: boolean; baseUrl?: string }) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
                 if (!bundlePath) {
@@ -647,6 +649,16 @@ export function setupWorkspaceCommands(program: Command) {
 
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
                 const client = new CalmHubClient(calmHubOptions);
+
+                // A bump cannot fix a $id base URL mismatch, and push would reject the bumped version.
+                const expectedBaseUrl = normalizeBaseUrl(options.baseUrl ?? calmHubOptions.calmHubUrl!);
+                const baseUrlMismatches = await findBaseUrlMismatches(bundlePath, await loadManifest(bundlePath), expectedBaseUrl);
+                if (baseUrlMismatches.length > 0) {
+                    for (const m of baseUrlMismatches) {
+                        logger.error(baseUrlMismatchMessage(m.id, m.actual, expectedBaseUrl));
+                    }
+                    process.exit(1);
+                }
 
                 // Detect changed resources up-front so interactive prompts can be shown before
                 // any files are written, and to avoid a redundant detection pass inside bumpWorkspace.

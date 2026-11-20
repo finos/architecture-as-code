@@ -986,13 +986,16 @@ If a create request has an uncertain outcome, the entry stays pending and anothe
 - If you confirm that no document was created, run `calm workspace rm <workspace-id>`, then `calm workspace add <file> --id <workspace-id> --type <type> --namespace <namespace>`. Removal clears the pending entry and keeps the file. Re-adding starts at version `1.0.0`. Correct the Hub URL or connection problem before pushing again.
 
 ```
-calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
+calm workspace push [--calm-hub-url <url>] [--fail-if-modified] [--base-url <url>]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--calm-hub-url <url>` | CalmHub base URL. If omitted, falls back to `calmHubUrl` in `~/.calm.json`. |
 | `--fail-if-modified` | Fail the push if a document that already exists in CalmHub at its declared version has changed on disk. Overrides `push.failIfModified` in the workspace config. |
+| `--base-url <url>` | The base URL each document's `$id` must start with. Defaults to the CalmHub URL, with trailing slashes removed. Set it when CalmHub's `calm.hub.base-url` is different from the URL you use to reach it, for example behind a proxy. |
+
+Push does not send a JSON mapping document whose `$id` base URL does not match, because CalmHub would reject it. It reports an error and the push fails.
 
 For each tracked document, push looks up the existing versions in CalmHub:
 - **Version does not exist** → creates it.
@@ -1025,8 +1028,15 @@ calm workspace push --calm-hub-url http://localhost:8080
 Check whether any tracked document has changed on disk relative to CalmHub but has **not** been version-bumped. Intended as a CI/PR gate — it **exits non-zero** when a bump is required, so a PR cannot merge with unversioned changes.
 
 ```
-calm workspace check [--calm-hub-url <url>]
+calm workspace check [--calm-hub-url <url>] [--base-url <url>]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--calm-hub-url <url>` | CalmHub base URL. If omitted, falls back to `calmHubUrl` in `~/.calm.json`. |
+| `--base-url <url>` | The base URL each document's `$id` must start with. Defaults to the CalmHub URL. |
+
+`check` fails for each JSON mapping document whose `$id` base URL does not match, because CalmHub would reject it. A bump does not correct this, so `check` does not also report that document as needing a bump.
 
 A document is flagged when its on-disk `$id` version still matches a version in CalmHub but its content differs. Brand-new documents (not yet in CalmHub) and already-bumped documents (whose version is ahead of CalmHub) are not flagged. A modified `-SNAPSHOT` document is never flagged — it's mutable, so `push` just overwrites it.
 
@@ -1045,7 +1055,7 @@ or, if a document fails:
   my-arch (2 error(s)) — run `calm validate -a .calm-workspace/files/my-arch.json` to see full output
 ```
 
-The command exits non-zero if any documents need bumping **or** if any document fails validation. It also exits non-zero if validation cannot run. A `~/.calm.json` setting that stops `calm validate`, for example a direct-URL authentication setting that is not valid, also stops `check` before it compares the workspace with CalmHub.
+The command exits non-zero if any documents need bumping, if a `$id` base URL does not match, **or** if any document fails validation. It also exits non-zero if validation cannot run. A `~/.calm.json` setting that stops `calm validate`, for example a direct-URL authentication setting that is not valid, also stops `check` before it compares the workspace with CalmHub.
 
 `check` also warns when a tracked file is in a directory where CALM Hub GitHub mode will not import it as its type (`architectures/`, `patterns/`, `standards/` [or `standard-nodes/`], `flows/`, `interfaces/`, `controls/`, `adrs/`, `timelines/`, `decorators/`):
 
@@ -1060,7 +1070,7 @@ Directory layout warnings alert authors to misplaced files before merge and do n
 Bump the version of every document that has changed on disk relative to CalmHub, and update every reference to those documents across the workspace so everything stays in sync.
 
 ```
-calm workspace bump [--calm-hub-url <url>] [--major | --minor | --patch] [--inherit-change-type]
+calm workspace bump [--calm-hub-url <url>] [--major | --minor | --patch] [--inherit-change-type] [--base-url <url>]
 ```
 
 | Option | Description |
@@ -1070,6 +1080,9 @@ calm workspace bump [--calm-hub-url <url>] [--major | --minor | --patch] [--inhe
 | `--minor` | Apply a minor bump to all changed documents without prompting (e.g. `1.2.3` → `1.3.0`). |
 | `--patch` | Apply a patch bump to all changed documents without prompting (e.g. `1.2.3` → `1.2.4`). |
 | `--inherit-change-type` | Suppress prompts for cascade-bumped dependents; they silently inherit the trigger's bump type. |
+| `--base-url <url>` | The base URL each document's `$id` must start with. Defaults to the CalmHub URL. |
+
+If a document's `$id` base URL does not match, `bump` fails before it changes a file. A new version does not correct the base URL, and push would reject it.
 
 When none of `--major`, `--minor`, or `--patch` is given, `bump` prompts interactively for each changed document:
 

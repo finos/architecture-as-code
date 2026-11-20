@@ -15,6 +15,8 @@ import {
     DocumentMetadata,
     HubClientError,
     extractDocumentMetadata,
+    hasExpectedBaseUrl,
+    normalizeBaseUrl,
     isSnapshotVersion,
     initLogger,
     Logger,
@@ -34,7 +36,7 @@ import {
 } from './document-kind';
 import { findSnapshotDependencyViolations } from './snapshot';
 import { resourceTypeForDocumentType } from './document-id-type';
-import { baseUrlMismatchMessage, normalizeBaseUrl } from './base-url-check';
+import { baseUrlMismatchMessage } from './base-url-check';
 
 const logger: Logger = initLogger(false, 'workspace');
 const DEFINITE_CREATE_REJECTION_STATUSES = new Set([400, 401, 403, 404]);
@@ -294,7 +296,7 @@ async function pushMappingEntry(
         logger.warn(`Skipping '${id}': document $id has no namespace.`);
         return;
     }
-    if (expectedBaseUrl !== undefined && metadata.baseUrl !== expectedBaseUrl) {
+    if (expectedBaseUrl !== undefined && !hasExpectedBaseUrl(metadata, expectedBaseUrl)) {
         const message = baseUrlMismatchMessage(id, metadata.baseUrl, expectedBaseUrl);
         logger.error(message);
         mappingFailures.push(`${id}: $id base URL does not match CalmHub`);

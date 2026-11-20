@@ -2,16 +2,11 @@ import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { resolveFilePath, type WorkspaceManifest } from './bundle';
 import { isNarrativeWorkspaceManifestEntry } from './document-kind';
-import { extractDocumentMetadata } from '@finos/calm-shared';
+import { extractDocumentMetadata, hasExpectedBaseUrl, type DocumentMetadata } from '@finos/calm-shared';
 
 export interface BaseUrlMismatch {
     id: string;
     actual: string;
-}
-
-/** Mirrors CalmHub's normalisation of its configured `calm.hub.base-url`. */
-export function normalizeBaseUrl(url: string): string {
-    return url.trim().replace(/\/+$/, '');
 }
 
 export function baseUrlMismatchMessage(id: string, actual: string, expected: string): string {
@@ -25,20 +20,19 @@ export async function findBaseUrlMismatches(
     manifest: WorkspaceManifest,
     expectedBaseUrl: string
 ): Promise<BaseUrlMismatch[]> {
-    const expected = normalizeBaseUrl(expectedBaseUrl);
     const mismatches: BaseUrlMismatch[] = [];
     for (const [id, entry] of Object.entries(manifest)) {
         if (isNarrativeWorkspaceManifestEntry(entry)) continue;
         const filePath = resolveFilePath(bundlePath, entry.path);
         if (!existsSync(filePath)) continue;
-        let baseUrl: string;
+        let metadata: DocumentMetadata;
         try {
-            baseUrl = extractDocumentMetadata(await readFile(filePath, 'utf8')).baseUrl;
+            metadata = extractDocumentMetadata(await readFile(filePath, 'utf8'));
         } catch {
             continue;
         }
-        if (baseUrl !== expected) {
-            mismatches.push({ id, actual: baseUrl });
+        if (!hasExpectedBaseUrl(metadata, expectedBaseUrl)) {
+            mismatches.push({ id, actual: metadata.baseUrl });
         }
     }
     return mismatches;

@@ -1245,6 +1245,22 @@ describe('setupWorkspaceCommands', () => {
         // Minimal ChangedResource for tests that need detectChangedResources to return something.
         const fakeChanged = [{ id: 'test-doc', currentVersion: '1.0.0', latestHubVersion: '1.0.0', filePath: '/fake/path.json', metadata: {} }];
 
+        it('exits 1 on a $id base URL mismatch without bumping', async () => {
+            mocks.findBaseUrlMismatches.mockResolvedValueOnce([{ id: 'test-doc', actual: 'https://other.example.com' }]);
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'bump', '--minor'])).rejects.toThrow();
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                '\'test-doc\' $id base URL \'https://other.example.com\' does not match CalmHub base URL \'https://calmhub.example.com\''
+            ));
+            expect(mocks.bumpWorkspace).not.toHaveBeenCalled();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('checks $id base URLs against --base-url when given', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--minor', '--base-url', 'https://public.example.com/']);
+            expect(mocks.findBaseUrlMismatches).toHaveBeenCalledWith('/fake/bundle', expect.anything(), 'https://public.example.com');
+        });
+
         it('prompts for bump type per document and passes perDocIncrements to bumpWorkspace', async () => {
             mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
             mocks.select.mockResolvedValueOnce('MINOR');

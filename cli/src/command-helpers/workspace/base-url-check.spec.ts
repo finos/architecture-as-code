@@ -1,16 +1,10 @@
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import path from 'path';
-import { findBaseUrlMismatches, normalizeBaseUrl } from './base-url-check';
+import { findBaseUrlMismatches } from './base-url-check';
 import type { WorkspaceManifest } from './bundle';
 
 const idFor = (base: string, name: string) => `${base}/calm/namespaces/com.example/architectures/${name}/versions/1.0.0`;
-
-describe('normalizeBaseUrl', () => {
-    it('trims whitespace and trailing slashes', () => {
-        expect(normalizeBaseUrl('  https://hub.example.com//  ')).toBe('https://hub.example.com');
-    });
-});
 
 describe('findBaseUrlMismatches', () => {
     const bundlePath = path.resolve(__dirname, '../../../../sandbox/test-base-url-check');
