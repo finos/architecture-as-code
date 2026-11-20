@@ -30,6 +30,17 @@ export interface Command {
     arguments?: unknown[];
 }
 
+export class MarkdownString {
+    constructor(public readonly value: string = '') {}
+}
+
+export class Hover {
+    constructor(
+        public readonly contents: MarkdownString,
+        public readonly range?: unknown
+    ) {}
+}
+
 export class CodeLens {
     constructor(
         public readonly range: Range,
@@ -193,6 +204,9 @@ export const commands = {
 
 export const languages = {
     registerCodeLensProvider: (_selector: unknown, _provider: unknown) => ({
+        dispose: () => {},
+    }),
+    registerHoverProvider: (_selector: unknown, _provider: unknown) => ({
         dispose: () => {},
     }),
 };
