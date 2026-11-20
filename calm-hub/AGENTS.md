@@ -123,8 +123,7 @@ CALM Hub supports pluggable storage backends via CDI Producers:
 3. **read-only** - `standalone` + `calm.readonly=true`; pre-seeded NitriteDB opened with `.readOnly(true)`
 4. **github** - read-only; namespaces map to cloned GitHub repos (`calm.github.namespaces`, one
    `namespace|repo|branch|groups` entry each). Writes return 501. Versions are commit SHAs, never
-   `latest`. Needs no database. A namespace with no groups gives read-only access to any
-   authenticated user.
+   `latest`. Needs no database.
 
 **How It Works**:
 - Store interfaces defined in `org.finos.calm.store`

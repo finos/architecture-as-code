@@ -16,8 +16,6 @@ import java.util.stream.Stream;
  * Resolves user access by checking SecurityIdentity roles (populated from the
  * token's "groups" claim via {@code quarkus.oidc.roles.role-claim-path=groups})
  * against the required access groups for a namespace.
- * <p>
- * A namespace with no groups gives read-only access to any authenticated user.
  */
 @ApplicationScoped
 public class OidcRoleResolver {
@@ -27,6 +25,10 @@ public class OidcRoleResolver {
     @Inject
     @ConfigProperty(name = "calm.oidc.roles.access", defaultValue = "")
     Optional<String> globalAccessGroups;
+
+    @Inject
+    @ConfigProperty(name = "calm.oidc.roles.allow-authenticated-read", defaultValue = "false")
+    boolean allowAuthenticatedRead;
 
     public enum AccessLevel { READ, NONE }
 
@@ -42,8 +44,12 @@ public class OidcRoleResolver {
         Set<String> requiredGroups = accessGroups.isEmpty() ? parseConfig(globalAccessGroups) : accessGroups;
 
         if (requiredGroups.isEmpty()) {
-            LOG.debug("No access groups configured — granting read access to all authenticated users.");
-            return AccessLevel.READ;
+            if (allowAuthenticatedRead) {
+                LOG.debug("No access groups configured — granting read access to all authenticated users.");
+                return AccessLevel.READ;
+            }
+            LOG.warn("No access groups configured. No access will be granted.");
+            return AccessLevel.NONE;
         }
 
         Set<String> userGroups = identity.getRoles();
