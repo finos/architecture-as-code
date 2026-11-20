@@ -1,4 +1,5 @@
 import type { Node, Edge } from 'reactflow';
+import type { CalmFlow } from '../../core/types';
 import { joinEdgeMetadata } from './edge-metadata';
 import { calmIdOf, pathOf } from './node-instances';
 import { parseCALMData } from './calm-parser';
@@ -9,6 +10,7 @@ export type LayoutMap = Record<string, LayoutEntry>;
 export interface CalmArchitecture {
     nodes?: Array<Record<string, unknown>>;
     relationships?: Array<Record<string, unknown>>;
+    flows?: CalmFlow[];
     [key: string]: unknown;
 }
 
@@ -22,11 +24,15 @@ export function setLastParsedArch(arch: CalmArchitecture | null): void {
 export function buildLayoutMap(nodes: Node[]): LayoutMap {
     const layout: LayoutMap = {};
     for (const n of nodes) {
+        const width = n.width ?? (n as any).measured?.width;
+        const height = n.height ?? (n as any).measured?.height;
+        const size = typeof width === 'number' && typeof height === 'number'
+            ? { w: Math.round(width), h: Math.round(height) }
+            : {};
         layout[n.id] = {
             x: Math.round(n.position.x),
             y: Math.round(n.position.y),
-            w: Math.round((n as any).width ?? (n as any).measured?.width ?? 0),
-            h: Math.round((n as any).height ?? (n as any).measured?.height ?? 0),
+            ...size,
         };
     }
     return layout;
@@ -39,10 +45,11 @@ export function applyLayoutFromMetadata(nodes: Node[], metadata: Record<string, 
     return nodes.map((n) => {
         const entry = layoutData[n.id];
         if (!entry) return n;
+        const shouldApplySize = typeof entry.w === 'number' && typeof entry.h === 'number';
         return {
             ...n,
             position: { x: entry.x, y: entry.y },
-            ...(entry.w && entry.h ? { width: entry.w, height: entry.h, style: { ...n.style, width: entry.w, height: entry.h } } : {}),
+            ...(shouldApplySize ? { width: entry.w, height: entry.h, style: { ...n.style, width: entry.w, height: entry.h } } : {}),
         };
     });
 }
@@ -51,6 +58,7 @@ export function flowToCalm(
     nodes: Node[],
     edges: Edge[],
     documentControls?: Record<string, unknown>,
+    flows?: CalmFlow[],
 ): CalmArchitecture {
     const calmNodes: Array<Record<string, unknown>> = [];
     const calmRelationships: Array<Record<string, unknown>> = [];
@@ -173,6 +181,7 @@ export function flowToCalm(
 
         const direction = (data.direction as string) ?? 'source-to-target';
         const original = originalRels.get(relId);
+        const metadata = buildEdgeMetadata(data, original, edge);
 
         calmRelationships.push(applyCanvasFields(original, {
             'unique-id': relId,
@@ -180,7 +189,7 @@ export function flowToCalm(
             protocol: data.protocol || undefined,
             description: data.description || undefined,
             controls: data.controls || undefined,
-            metadata: joinEdgeMetadata(data, original?.metadata),
+            metadata,
         }));
 
         // Bidirectional: emit a second relationship in the reverse direction
@@ -193,7 +202,7 @@ export function flowToCalm(
                 protocol: data.protocol || undefined,
                 description: data.description || undefined,
                 controls: data.controls || undefined,
-                metadata: joinEdgeMetadata(data, (reverseOriginal ?? original)?.metadata),
+                metadata: buildEdgeMetadata(data, reverseOriginal ?? original, edge),
             }));
         }
     }
@@ -210,7 +219,7 @@ export function flowToCalm(
             protocol: data.protocol || undefined,
             description: data.description || undefined,
             controls: data.controls || undefined,
-            metadata: joinEdgeMetadata(data, original?.metadata),
+            metadata: buildEdgeMetadata(data, original, group.edge),
         }));
     }
 
@@ -227,6 +236,11 @@ export function flowToCalm(
         (relOrder.get(a['unique-id'] as string) ?? Infinity) - (relOrder.get(b['unique-id'] as string) ?? Infinity));
 
     const arch: CalmArchitecture = { ...lastParsedArch, nodes: calmNodes, relationships: calmRelationships };
+    if (flows && flows.length > 0) {
+        arch.flows = flows;
+    } else if (flows !== undefined) {
+        delete arch.flows;
+    }
     // Both keys are optional in the schema: do not add an empty one to a document that has none
     if (lastParsedArch && !('nodes' in lastParsedArch) && calmNodes.length === 0) delete arch.nodes;
     if (lastParsedArch && !('relationships' in lastParsedArch) && calmRelationships.length === 0) delete arch.relationships;
@@ -283,6 +297,21 @@ function originalVariant(
 ): Record<string, unknown> | undefined {
     const rt = rel?.['relationship-type'] as Record<string, unknown> | undefined;
     return rt?.[variant] as Record<string, unknown> | undefined;
+}
+
+function buildEdgeMetadata(
+    data: Record<string, unknown>,
+    original: Record<string, unknown> | undefined,
+    edge?: Edge,
+): Record<string, unknown> | unknown[] | undefined {
+    return joinEdgeMetadata({
+        lineStyle: data.lineStyle as string | undefined,
+        routing: data.routing as string | undefined,
+        direction: data.direction as string | undefined,
+        sourceHandle: edge?.sourceHandle ?? undefined,
+        targetHandle: edge?.targetHandle === data._autoTargetHandle ? undefined : edge?.targetHandle ?? undefined,
+        edgeMetadata: data.edgeMetadata as Record<string, unknown> | undefined,
+    }, original?.metadata);
 }
 
 function buildRelationshipType(

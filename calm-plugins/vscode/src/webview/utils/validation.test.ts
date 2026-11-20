@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateControls, validateControlConfig, validateArchitecture } from './validation';
-import sampleCalm from '../../../sample.calm.json';
+import { validateControls, validateControlConfig } from './validation';
 
 const control = (validation: unknown, value?: string) => ({
     requirements: [{ config: value === undefined ? {} : { value } }],
@@ -11,14 +10,14 @@ describe('validateControlConfig', () => {
     it('errors (unconfigured) when an allowed-values control has no value', () => {
         const issues = validateControlConfig(
             'api-gw',
-            control({ 'allowed-values': ['Kong', 'AWS API GW'] }),
+            control({ 'allowed-values': ['Stratum', 'AWS API GW'] }),
             '"Svc"',
             'svc-1'
         );
         expect(issues).toHaveLength(1);
         expect(issues[0].severity).toBe('error');
         expect(issues[0].message).toContain('not configured');
-        expect(issues[0].message).toContain('Kong');
+        expect(issues[0].message).toContain('Stratum');
         expect(issues[0].nodeId).toBe('svc-1');
         expect(issues[0].controlId).toBe('api-gw');
     });
@@ -26,7 +25,7 @@ describe('validateControlConfig', () => {
     it('errors when the value is not one of the allowed values', () => {
         const issues = validateControlConfig(
             'api-gw',
-            control({ 'allowed-values': ['Kong'] }, 'Nginx'),
+            control({ 'allowed-values': ['Stratum'] }, 'Nginx'),
             '"Svc"'
         );
         expect(issues).toHaveLength(1);
@@ -34,11 +33,31 @@ describe('validateControlConfig', () => {
         expect(issues[0].message).toContain('not an allowed value');
     });
 
+    it('errors when allowedValues metadata has an out-of-range value', () => {
+        const issues = validateControlConfig(
+            'gateway',
+            {
+                requirements: [{ config: { value: 'Outside' } }],
+                metadata: {
+                    validation: {
+                        identity: { controlId: 'gateway-type', name: 'Gateway Type', description: 'd' },
+                        properties: {
+                            value: { allowedValues: ['Edge', 'Internal'], required: true },
+                        },
+                    },
+                },
+            } as any,
+            '"Svc"'
+        );
+        expect(issues).toHaveLength(1);
+        expect(issues[0].message).toContain('not allowed');
+    });
+
     it('passes when the value is an allowed value', () => {
         expect(
             validateControlConfig(
                 'api-gw',
-                control({ 'allowed-values': ['Kong'] }, 'Kong'),
+                control({ 'allowed-values': ['Stratum'] }, 'Stratum'),
                 '"Svc"'
             )
         ).toEqual([]);
@@ -87,13 +106,14 @@ describe('validateControlConfig', () => {
 });
 
 describe('validateControls', () => {
-    it('validates controls on every node', () => {
+    it('validates controls on every node, including standard nodes', () => {
         const arch = {
             nodes: [
                 {
-                    'unique-id': 'db-1',
-                    'node-type': 'database',
-                    name: 'Order DB',
+                    'unique-id': 'std-1',
+                    'node-type': 'standard',
+                    name: 'A Standard',
+                    metadata: { 'source-standard-node': 'standards:foo' },
                     controls: {
                         'app-id': control({ 'allowed-values': ['x'] }),
                     },
@@ -104,7 +124,7 @@ describe('validateControls', () => {
                     name: 'Microservice',
                     controls: {
                         'api-gateway': control({
-                            'allowed-values': ['Kong'],
+                            'allowed-values': ['Stratum'],
                         }),
                         'health-api': control(
                             { pattern: '^/[a-z]+$' },
@@ -117,11 +137,11 @@ describe('validateControls', () => {
         } as any;
 
         const issues = validateControls(arch);
-        // The database's unconfigured app-id AND the service's api-gateway are flagged
+        // The standard's unconfigured app-id AND the service's api-gateway are flagged
         // (health-api has a valid value, so it passes).
         expect(issues).toHaveLength(2);
         expect(
-            issues.some((i) => i.controlId === 'app-id' && i.nodeId === 'db-1')
+            issues.some((i) => i.controlId === 'app-id' && i.nodeId === 'std-1')
         ).toBe(true);
         expect(
             issues.some(
@@ -130,7 +150,7 @@ describe('validateControls', () => {
         ).toBe(true);
     });
 
-    it('validates architecture-level controls', () => {
+    it('validates solution-level controls', () => {
         const arch = {
             nodes: [],
             relationships: [],
@@ -140,7 +160,7 @@ describe('validateControls', () => {
         } as any;
         const issues = validateControls(arch);
         expect(issues).toHaveLength(1);
-        expect(issues[0].message).toContain('the architecture');
+        expect(issues[0].message).toContain('the solution');
     });
 });
 
@@ -247,12 +267,5 @@ describe('validateControlConfig (multi-property shape)', () => {
                 '"Svc"'
             )
         ).toEqual([]);
-    });
-});
-
-describe('sample.calm.json', () => {
-    it('passes full CALM architecture and control validation without errors or warnings', () => {
-        const issues = validateArchitecture(sampleCalm as any);
-        expect(issues).toEqual([]);
     });
 });

@@ -1,24 +1,13 @@
 import type { ValidationIssue } from '../stores/canvas-store';
 import type { CalmArchitecture } from '../transforms/calm-editor-transformer';
 import type { RequirementPropertyDef } from '../../extension/services/requirement-parser';
-import type { ControlEntry } from '../panels/control-metadata';
+import { type ControlEntry, isNewControlMetadata } from '../panels/control-metadata';
 import { validateCalmArchitecture } from '../../core/validation.js';
 
 interface LegacyValidationMeta {
     pattern?: string;
     'allowed-values'?: string[];
     example?: string;
-}
-
-interface NewValidationMeta {
-    identity?: { controlId: string; name: string; description: string };
-    properties?: Record<string, RequirementPropertyDef>;
-}
-
-type ControlValidationMeta = LegacyValidationMeta | NewValidationMeta;
-
-function isNewValidation(v: ControlValidationMeta): v is NewValidationMeta {
-    return !!v && typeof v === 'object' && 'properties' in v && !!v.properties;
 }
 
 /** A config value is "present" unless it is undefined, null, or an empty string. `false` and `0` count. */
@@ -58,7 +47,7 @@ export function validateControlProperties(
         }
 
         if (
-            def.type === 'enum' &&
+            (def.type === 'enum' || Array.isArray(def.allowedValues)) &&
             def.allowedValues &&
             !def.allowedValues.includes(value as string | number | boolean)
         ) {
@@ -138,7 +127,7 @@ export function validateControlConfig(
     const validation = control?.metadata?.validation;
 
     // New multi-property shape — validate each property's inline config value.
-    if (validation && isNewValidation(validation)) {
+    if (isNewControlMetadata(validation)) {
         return validateControlProperties(
             controlId,
             validation.properties ?? {},
@@ -181,7 +170,7 @@ export function validateControlConfig(
         return issues;
     }
 
-    if (allowed?.length && !allowed.includes(value)) {
+    if (allowed?.length && !allowed.includes(String(value))) {
         issues.push({
             severity: 'error',
             message: `Control "${controlId}" on ${scopeLabel}: "${value}" is not an allowed value (must be one of: ${allowed.join(', ')})`,
@@ -193,7 +182,7 @@ export function validateControlConfig(
     if (pattern) {
         let matches = true;
         try {
-            matches = new RegExp(pattern).test(value);
+            matches = new RegExp(pattern).test(String(value));
         } catch {
             matches = true; // malformed pattern in the standard — don't punish the user
         }
@@ -212,7 +201,7 @@ export function validateControlConfig(
 
 /**
  * Control-requirement validation: for every non-reference node (and the
- * architecture-level controls), check each control's configured value against its
+ * solution-level controls), check each control's configured value against its
  * `metadata.validation` (allowed-values / pattern). Structural/schema validation
  * is handled separately by calm-core.
  */
@@ -240,7 +229,7 @@ export function validateControls(arch: CalmArchitecture): ValidationIssue[] {
     if (docControls) {
         for (const [controlId, control] of Object.entries(docControls)) {
             issues.push(
-                ...validateControlConfig(controlId, control, 'the architecture')
+                ...validateControlConfig(controlId, control, 'the solution')
             );
         }
     }

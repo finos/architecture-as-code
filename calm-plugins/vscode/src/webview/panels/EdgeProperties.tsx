@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Edge } from 'reactflow';
 import type { EdgeDirection, EdgeLineStyle, EdgeRouting } from '../canvas/edges/TooltipEdge';
 import { CustomMetadata } from './CustomMetadata';
@@ -10,6 +10,7 @@ const COMMON_PROTOCOLS = ['HTTPS', 'HTTP', 'gRPC', 'GraphQL', 'WebSocket', 'AMQP
 
 const DIRECTION_OPTIONS: { value: EdgeDirection; label: string }[] = [
     { value: 'source-to-target', label: 'Source → Target' },
+    { value: 'target-to-source', label: 'Target → Source' },
     { value: 'bidirectional', label: 'Bidirectional ↔' },
     { value: 'none', label: 'No Arrows' },
 ];
@@ -41,7 +42,7 @@ interface EdgePropertiesProps {
 }
 
 export function EdgeProperties({ edge, hasReverseEdge = false, readonlyMode = false, onEdgeUpdate }: EdgePropertiesProps) {
-    const data = (edge.data ?? {}) as Record<string, unknown>;
+    const data = useMemo(() => (edge.data ?? {}) as Record<string, unknown>, [edge.data]);
     const relType = (data.calmVariant as string) ?? 'connects';
     const isCustomRelType = !KNOWN_RELATIONSHIP_SET.has(relType);
     const showProtocol = PROTOCOL_TYPES.includes(relType);

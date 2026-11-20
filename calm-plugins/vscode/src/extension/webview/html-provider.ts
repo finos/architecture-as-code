@@ -24,8 +24,18 @@ export function getWebviewHtml(
     const calmConfig = vscode.workspace.getConfiguration('calm');
     const enabledPacks = calmConfig.get<string[]>('packs.enabled', []);
     const excludeNodes = calmConfig.get<string[]>('packs.excludeNodes', []);
+    // Array settings have an implicit [] default in VS Code. Only explicit
+    // configuration should override the features discovered in this build.
+    const featureConfig = vscode.workspace.getConfiguration('calm', document.uri)
+      .inspect<string[]>('canvas.enabledFeatures');
+    const enabledFeatures = featureConfig?.workspaceFolderValue
+      ?? featureConfig?.workspaceValue
+      ?? featureConfig?.globalValue;
     const packsJson = escapeForScript(JSON.stringify(enabledPacks));
     const excludeNodesJson = escapeForScript(JSON.stringify(excludeNodes));
+    const featuresJson = enabledFeatures === undefined
+      ? 'undefined'
+      : escapeForScript(JSON.stringify(enabledFeatures));
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -49,6 +59,7 @@ export function getWebviewHtml(
     window.__INITIAL_CALM_JSON__ = ${initialJson};
     window.__CALM_ENABLED_PACKS__ = ${packsJson};
     window.__CALM_EXCLUDE_NODES__ = ${excludeNodesJson};
+    window.__CALM_ENABLED_FEATURES__ = ${featuresJson};
   </script>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>

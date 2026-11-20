@@ -127,4 +127,34 @@ describe('ShaCacheService', () => {
             expect(await service.get(HUB, 'ns', 'standards', 'svc', 'sha1')).toBeNull();
         });
     });
+
+    describe('clearHub', () => {
+        it('removes only the selected hub cache', async () => {
+            await service.put(HUB, 'ns', 'type', 'slug', 'sha1', { v: 1 });
+            await service.put('other-hub', 'ns', 'type', 'slug', 'sha2', { v: 2 });
+            await service.clearHub(HUB);
+            expect(await service.get(HUB, 'ns', 'type', 'slug', 'sha1')).toBeNull();
+            expect(await service.get('other-hub', 'ns', 'type', 'slug', 'sha2')).toEqual({ v: 2 });
+        });
+
+        it('is safe to call when the hub cache does not exist', async () => {
+            await expect(service.clearHub('missing')).resolves.toBeUndefined();
+        });
+    });
+
+    describe('path and namespace isolation', () => {
+        it('writes inside the hub cache with traversal characters in type', async () => {
+            await service.put(HUB, 'ns', '../secret', 'slug', 'sha', { data: true });
+            expect(fs.existsSync(path.join(tmpDir, HUB, 'ns', '.._secret', 'slug', 'sha.json'))).toBe(true);
+            expect(fs.existsSync(path.join(tmpDir, HUB, 'secret', 'slug', 'sha.json'))).toBe(false);
+        });
+
+        it('different namespaces do not collide', async () => {
+            await service.put(HUB, 'ns-a', 'type', 'slug', 'sha', { from: 'a' });
+            await service.put(HUB, 'ns-b', 'type', 'slug', 'sha', { from: 'b' });
+
+            expect(await service.get(HUB, 'ns-a', 'type', 'slug', 'sha')).toEqual({ from: 'a' });
+            expect(await service.get(HUB, 'ns-b', 'type', 'slug', 'sha')).toEqual({ from: 'b' });
+        });
+    });
 });

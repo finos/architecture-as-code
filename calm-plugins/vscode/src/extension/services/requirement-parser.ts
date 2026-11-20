@@ -94,8 +94,14 @@ function interpretProperty(
     const description =
         typeof schema.description === 'string' ? schema.description : undefined;
 
-    if (Array.isArray(schema.enum)) {
-        const allowed = schema.enum.filter(
+    const rawAllowedValues = Array.isArray(schema.enum)
+        ? schema.enum
+        : Array.isArray(schema.allowedValues)
+          ? schema.allowedValues
+          : null;
+
+    if (rawAllowedValues) {
+        const allowed = rawAllowedValues.filter(
             (v): v is string | number | boolean =>
                 typeof v === 'string' ||
                 typeof v === 'number' ||

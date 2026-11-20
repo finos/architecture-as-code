@@ -3,7 +3,7 @@ import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, getStrai
 import { theme } from '../theme-colors';
 import { ArrowMarker, arrowMarkerId, hasMarker } from './ArrowMarker';
 
-export type EdgeDirection = 'source-to-target' | 'bidirectional' | 'none';
+export type EdgeDirection = 'source-to-target' | 'target-to-source' | 'bidirectional' | 'none';
 export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
 export type EdgeRouting = 'bezier' | 'smoothstep' | 'straight';
 
@@ -21,8 +21,8 @@ export function edgeStroke(hovered: boolean, style?: React.CSSProperties): strin
 }
 
 export function TooltipEdge({
-    id, sourceX, sourceY, targetX, targetY,
-    sourcePosition, targetPosition, data, markerEnd, markerStart, style, label,
+    id, source, target, sourceX, sourceY, targetX, targetY,
+    sourcePosition, targetPosition, data, markerEnd, markerStart, style, label, selected,
 }: EdgeProps) {
     const [hovered, setHovered] = useState(false);
     const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,32 +39,46 @@ export function TooltipEdge({
     const edgeData = (data ?? {}) as Record<string, unknown>;
     const routing = (edgeData.routing as EdgeRouting) ?? 'bezier';
 
-    const pathParams = { sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition };
-    const [edgePath, labelX, labelY] = routing === 'smoothstep'
-        ? getSmoothStepPath(pathParams)
-        : routing === 'straight'
-            ? getStraightPath(pathParams)
-            : getBezierPath(pathParams);
+    const isSelfLoop = source === target;
+    let edgePath: string;
+    let labelX: number;
+    let labelY: number;
+
+    if (isSelfLoop) {
+        const loopRadius = 40;
+        const offsetX = sourceX + loopRadius;
+        const offsetY = sourceY - loopRadius;
+        edgePath = `M ${sourceX},${sourceY} C ${offsetX},${sourceY - loopRadius * 2} ${offsetX + loopRadius},${offsetY} ${targetX + 5},${targetY - 5}`;
+        labelX = offsetX + 10;
+        labelY = offsetY - loopRadius + 10;
+    } else {
+        const pathParams = { sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition };
+        [edgePath, labelX, labelY] = routing === 'smoothstep'
+            ? getSmoothStepPath(pathParams)
+            : routing === 'straight'
+                ? getStraightPath(pathParams)
+                : getBezierPath(pathParams);
+    }
 
     const description = edgeData.description as string | undefined;
     const protocol = edgeData.protocol as string | undefined;
     const variant = edgeData.calmVariant as string | undefined;
     const lineStyle = edgeData.lineStyle as EdgeLineStyle | undefined;
-
     const hasTooltipContent = !!(description || protocol);
     const dashArray = strokeDasharray(lineStyle);
     const edgeStyle = style as React.CSSProperties | undefined;
-    const stroke = edgeStroke(hovered, edgeStyle);
     const endMarkerId = hasMarker(markerEnd) ? arrowMarkerId(id, 'end') : undefined;
     const startMarkerId = hasMarker(markerStart) ? arrowMarkerId(id, 'start') : undefined;
     const endMarkerUrl = endMarkerId && `url(#${endMarkerId})`;
     const startMarkerUrl = startMarkerId && `url(#${startMarkerId})`;
     const pathStyle: React.CSSProperties = {
         ...edgeStyle,
-        stroke,
+        stroke: edgeStroke(hovered, edgeStyle),
         ...(dashArray ? { strokeDasharray: dashArray } : {}),
+        ...(selected ? { stroke: theme.focus, strokeWidth: 3, opacity: 1 } : {}),
         ...(hovered ? { strokeWidth: 2.5 } : {}),
     };
+    const stroke = pathStyle.stroke ?? theme.fgMuted;
 
     return (
         <>

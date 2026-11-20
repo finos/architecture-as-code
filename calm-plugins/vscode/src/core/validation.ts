@@ -200,6 +200,44 @@ function runSemanticRules(arch: CalmArchitecture): ValidationIssue[] {
 		}
 	}
 
+	// Flow rules
+	const flows = (arch as Record<string, unknown>).flows as Array<Record<string, unknown>> | undefined;
+	if (flows && Array.isArray(flows)) {
+		const flowIds = new Set<string>();
+		for (const flow of flows) {
+			const fid = flow['unique-id'] as string;
+			if (fid && flowIds.has(fid)) {
+				issues.push({ severity: 'error', message: `Duplicate flow unique-id: "${fid}"` });
+			} else if (fid) {
+				flowIds.add(fid);
+			}
+			const transitions = flow.transitions as Array<Record<string, unknown>> | undefined;
+			if (!transitions || transitions.length === 0) {
+				issues.push({ severity: 'warning', message: `Flow "${flow.name ?? fid}" has no transitions` });
+			}
+			if (transitions) {
+				for (const t of transitions) {
+					const refId = t['relationship-unique-id'] as string;
+					if (refId && !seenRelIds.has(refId)) {
+						issues.push({
+							severity: 'error',
+							message: `Flow "${flow.name ?? fid}" references unknown relationship "${refId}"`,
+						});
+					}
+				}
+				const seqNums = transitions.map((t) => t['sequence-number'] as number).filter((n) => typeof n === 'number').sort((a, b) => a - b);
+				for (let i = 1; i < seqNums.length; i++) {
+					if (seqNums[i] - seqNums[i - 1] > 2) {
+						issues.push({
+							severity: 'warning',
+							message: `Flow "${flow.name ?? fid}" has a sequence gap: ${seqNums[i - 1]} → ${seqNums[i]}`,
+						});
+					}
+				}
+			}
+		}
+	}
+
 	return issues;
 }
 

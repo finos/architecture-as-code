@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Node, Edge } from 'reactflow';
-import { flowToCalm, relayoutByPath, setLastParsedArch, type CalmArchitecture } from './calm-editor-transformer';
+import { applyLayoutFromMetadata, flowToCalm, setLastParsedArch, type CalmArchitecture } from './calm-editor-transformer';
+import { relayoutByPath } from './calm-editor-transformer';
 import { parseCALMData } from './calm-parser';
 
 describe('flowToCalm - definition-id handling', () => {
@@ -56,7 +57,7 @@ describe('flowToCalm - definition-id handling', () => {
                     description: 'A locally defined service',
                     interfaces: [],
                     controls: { 'app-id': { description: 'App ID' } },
-                    metadata: { team: 'payments' },
+                    metadata: { 'source-standard-node': 'microservice' },
                 },
             },
         ];
@@ -71,7 +72,7 @@ describe('flowToCalm - definition-id handling', () => {
             'app-id': { description: 'App ID' },
         });
         expect(calmNode.metadata).toEqual({
-            team: 'payments',
+            'source-standard-node': 'microservice',
         });
     });
 
@@ -99,7 +100,7 @@ describe('flowToCalm - definition-id handling', () => {
                     label: 'Local DB',
                     description: '',
                     controls: { encryption: { description: 'AES256' } },
-                    metadata: { engine: 'postgres' },
+                    metadata: { 'source-standard-node': 'rds' },
                 },
             },
         ];
@@ -126,7 +127,7 @@ describe('flowToCalm - definition-id handling', () => {
             encryption: { description: 'AES256' },
         });
         expect(localCalm.metadata).toEqual({
-            engine: 'postgres',
+            'source-standard-node': 'rds',
         });
     });
 
@@ -209,6 +210,49 @@ describe('flowToCalm - definition-id handling', () => {
     });
 });
 
+describe('node layout dimensions', () => {
+    beforeEach(() => setLastParsedArch(null));
+
+    it('persists and restores resized regular node dimensions', () => {
+        const resizedNode: Node = {
+            id: 'service-1',
+            type: 'service',
+            position: { x: 25, y: 40 },
+            width: 40,
+            height: 40,
+            data: { calmId: 'service-1', calmType: 'service', label: 'API' },
+        };
+
+        const architecture = flowToCalm([resizedNode], []);
+        const metadata = architecture.metadata as Record<string, unknown>;
+        expect((metadata._layout as Record<string, unknown>)['service-1']).toEqual({ x: 25, y: 40, w: 40, h: 40 });
+
+        const restored = applyLayoutFromMetadata([{
+            ...resizedNode,
+            width: 200,
+            height: 80,
+            style: { width: 200, height: 80 },
+        }], metadata);
+        expect(restored[0]).toMatchObject({
+            position: { x: 25, y: 40 },
+            width: 40,
+            height: 40,
+            style: { width: 40, height: 40 },
+        });
+    });
+
+    it('keeps parser defaults for older layout entries without dimensions', () => {
+        const restored = applyLayoutFromMetadata([{
+            id: 'service-1',
+            type: 'service',
+            position: { x: 0, y: 0 },
+            width: 200,
+            height: 80,
+        }], { _layout: { 'service-1': { x: 10, y: 20 } } });
+
+        expect(restored[0]).toMatchObject({ position: { x: 10, y: 20 }, width: 200, height: 80 });
+    });
+});
 
 describe('flowToCalm - round trip', () => {
     const fullArchitecture = (): CalmArchitecture => ({
@@ -325,7 +369,12 @@ describe('flowToCalm - round trip', () => {
                 'relationship-type': { observes: { source: { node: 'api', interfaces: ['api-http'] }, destination: { node: 'db' } } },
             },
         ],
-        flows: ['https://example.com/flow/1'],
+        flows: [{
+            'unique-id': 'read-data',
+            name: 'Read data',
+            description: 'Read data from the database',
+            transitions: [{ 'relationship-unique-id': 'api-db', 'sequence-number': 1, description: 'API reads from DB' }],
+        }],
         controls: { governance: { description: 'Doc control', requirements: [{ 'requirement-url': 'https://example.com/gov' }] } },
         metadata: { version: '1.0.0' },
     });
@@ -873,4 +922,3 @@ describe('flowToCalm - nodes with several parents', () => {
         ]);
     });
 });
-

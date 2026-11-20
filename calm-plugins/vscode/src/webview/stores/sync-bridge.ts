@@ -29,7 +29,8 @@ type DrillResultCallback = (
     json: string,
     label: string,
     filePath: string,
-    readonly?: boolean
+    readonly?: boolean,
+    solution?: unknown
 ) => void;
 type DefinitionResolvedCallback = (
     nodeId: string,
@@ -141,7 +142,8 @@ export function initBridge(): void {
                         msg.json,
                         msg.label,
                         msg.filePath,
-                        msg.readonly
+                        msg.readonly,
+                        msg.solution
                     );
                     break;
                 case 'definitionResolved':
@@ -187,6 +189,10 @@ export function notifyDrillUp(
     postMessage({ type: 'drillUp', index, filePath, readonly });
 }
 
+export function notifyRequestGenerateSpec(): void {
+    postMessage({ type: 'requestGenerateSpec' });
+}
+
 export function notifySaveStandardNode(
     filename: string,
     content: string
@@ -203,6 +209,14 @@ export function notifySavePattern(
 
 export function notifyRequestImportSvg(): void {
     postMessage({ type: 'requestImportSvg' });
+}
+
+export function notifyRequestExportBundle(): void {
+    postMessage({ type: 'requestExportBundle' });
+}
+
+export function notifyRequestImportBundle(): void {
+    postMessage({ type: 'requestImportBundle' });
 }
 
 export function notifyOpenControlInHub(ref: string): void {

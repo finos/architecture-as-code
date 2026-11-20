@@ -7,12 +7,13 @@ interface PatternEntry { id: string; name: string; description: string; category
 
 interface PatternPickerProps {
     visible: boolean;
+    mode?: 'new' | 'apply';
     patterns: PatternEntry[];
     onApply: (arch: any, patternId: string) => void;
     onClose: () => void;
 }
 
-export function PatternPicker({ visible, patterns, onApply, onClose }: PatternPickerProps) {
+export function PatternPicker({ visible, mode = 'apply', patterns, onApply, onClose }: PatternPickerProps) {
     const [search, setSearch] = useState('');
     if (!visible) return null;
 
@@ -39,7 +40,7 @@ export function PatternPicker({ visible, patterns, onApply, onClose }: PatternPi
         <div style={overlayStyle}>
             <div style={modalStyle}>
                 <div style={headerStyle}>
-                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Apply Pattern</h3>
+                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>{mode === 'new' ? 'New from Pattern' : 'Apply Pattern'}</h3>
                     <button onClick={onClose} style={closeBtnStyle}>&times;</button>
                 </div>
                 <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search patterns..." style={searchStyle} />

@@ -8,6 +8,7 @@ export interface StandardNodeDef {
     behaviour: string;
     controls: Record<string, unknown>;
     category?: string;
+    categoryPath?: string[];
     nodeType?: string;
     /** Hub namespace — present when this node was fetched from a remote CalmHub. */
     namespace?: string;
@@ -210,8 +211,9 @@ export class WorkspaceAssetService {
                             seen.add(id);
 
                             const category =
-                                this.extractCategory(file, 'standard-nodes') ||
+                                this.extractCategoryPath(file, 'standard-nodes')[0] ||
                                 'General';
+                            const categoryPath = this.extractCategoryPath(file, 'standard-nodes');
 
                             nodes.push({
                                 id,
@@ -223,6 +225,7 @@ export class WorkspaceAssetService {
                                         : 'create-node',
                                 controls: node.controls ?? {},
                                 category,
+                                categoryPath: categoryPath.length > 0 ? categoryPath : undefined,
                                 nodeType: node['node-type'] ?? 'system',
                             });
                         }
@@ -248,15 +251,16 @@ export class WorkspaceAssetService {
         return base.replace(/\.(calm|architecture)\.json$/, '');
     }
 
-    private extractCategory(uri: vscode.Uri, baseFolder: string): string {
+    private extractCategoryPath(uri: vscode.Uri, baseFolder: string): string[] {
         const parts = uri.path.split('/');
         const baseIdx = parts.findIndex((p) => p === baseFolder);
         if (baseIdx >= 0 && baseIdx + 1 < parts.length - 1) {
-            return parts[baseIdx + 1]
-                .replace(/-/g, ' ')
-                .replace(/\b\w/g, (c) => c.toUpperCase());
+            const pathParts = parts.slice(baseIdx + 1, -1);
+            return pathParts
+                .filter((p) => p.length > 0)
+                .map((p) => p.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
         }
-        return '';
+        return [];
     }
 
     private async scanPatterns(): Promise<void> {

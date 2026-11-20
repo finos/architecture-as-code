@@ -150,7 +150,7 @@ export function enrichControlWithRequirement(
     };
 }
 
-/** Whether a control needs enrichment: it has a requirement-url but no resolved property metadata. */
+/** Whether a control has a requirement reference without resolved identity and property metadata. */
 export function needsEnrichment(control: ControlEntry): boolean {
     if (!getRequirementUrl(control)) return false;
     const validation = control?.metadata?.validation;
