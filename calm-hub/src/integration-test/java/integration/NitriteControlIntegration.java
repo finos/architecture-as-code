@@ -460,7 +460,7 @@ public class NitriteControlIntegration {
                 .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
-                .body("values[0].id", equalTo(1))
+                .body("values[0].id", equalTo("1"))
                 .body("values[0].name", equalTo("Access Control"))
                 .body("values[0].description", equalTo("Ensure proper access control mechanisms"));
     }
@@ -486,8 +486,8 @@ public class NitriteControlIntegration {
                 .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
-                .body("values.find { it.id == 1 }.name", equalTo("Updated Access Control"))
-                .body("values.find { it.id == 1 }.description", equalTo("Refined access control requirement"));
+                .body("values.find { it.id == '1' }.name", equalTo("Updated Access Control"))
+                .body("values.find { it.id == '1' }.description", equalTo("Refined access control requirement"));
     }
 
     @Test
@@ -515,8 +515,8 @@ public class NitriteControlIntegration {
                 .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls")
                 .then()
                 .statusCode(200)
-                .body("values.find { it.id == 1 }.name", equalTo("Final Access Control"))
-                .body("values.find { it.id == 1 }.description", equalTo("Final"));
+                .body("values.find { it.id == '1' }.name", equalTo("Final Access Control"))
+                .body("values.find { it.id == '1' }.description", equalTo("Final"));
     }
 
     // --- Delete: requirement + configuration ---

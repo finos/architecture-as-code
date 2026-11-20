@@ -499,7 +499,7 @@ public class MongoMappingControllerIntegration {
                 .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
-                .body("values.find { it.id == " + id + " }.customId", nullValue());
+                .body("values.find { it.id == '" + id + "' }.customId", nullValue());
     }
 
     @Test
