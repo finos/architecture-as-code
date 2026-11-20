@@ -59,7 +59,7 @@ class TestDecoratorResourceGitHubModeShould {
     void answerAsTheGitHubStore() throws Exception {
         ResourceRegistry registry = mock(ResourceRegistry.class);
         when(registry.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of()), Map.of()));
-        GitHubDecoratorStore gitHubStore = new GitHubDecoratorStore(registry);
+        GitHubDecoratorStore gitHubStore = new GitHubDecoratorStore(registry, mock(org.finos.calm.store.github.access.NamespaceFileReader.class));
         doAnswer(delegatesTo(gitHubStore)).when(decoratorStore).requireWritable();
         doAnswer(delegatesTo(gitHubStore)).when(decoratorStore).getDecoratorHistory(anyString(), anyInt());
         doAnswer(delegatesTo(gitHubStore)).when(decoratorStore).deleteCurrentDecoratorHistory(anyString(), anyInt());

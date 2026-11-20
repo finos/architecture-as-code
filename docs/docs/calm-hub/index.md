@@ -54,6 +54,8 @@ CALM Hub is published as four container image variants, each combining a **JVM r
 
 In GitHub mode, CALM Hub classifies `.json` and `.md` files in each configured repository from content signals (`moments` or `$schema`) and from parent directory names (`architectures/`, `patterns/`, `standards/` or `standard-nodes/`, `flows/`, `interfaces/`, `controls/`, `adrs/`, `timelines/`, `decorators/`). See [GitHub Storage Mode](./github-storage.md) for configuration, sync, versions and access control.
 
+In GitHub mode, decorators are read from those files, one decorator object per file. A decorator's `target` matches the architecture it names whatever the version, so it keeps matching as commits change the version SHAs: the architecture's path or numeric id (as the UI sends it), its `unique-id`, or the repo-relative path of its file. Decorators are read-only in this mode: change them by committing.
+
 ### The Four Image Variants
 
 | Tag | Runtime | Storage | Use case |

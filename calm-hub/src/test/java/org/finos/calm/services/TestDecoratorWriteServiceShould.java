@@ -426,6 +426,6 @@ class TestDecoratorWriteServiceShould {
     private static GitHubDecoratorStore gitHubStore() {
         ResourceRegistry registry = mock(ResourceRegistry.class);
         lenient().when(registry.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of(NAMESPACE, List.of()), Map.of()));
-        return new GitHubDecoratorStore(registry);
+        return new GitHubDecoratorStore(registry, mock(org.finos.calm.store.github.access.NamespaceFileReader.class));
     }
 }
