@@ -13,6 +13,25 @@ graph that the service returns.
 | Notation | [`notation.json`](notation.json) | The shapes, edge markers and styles of the diagrams. Hub checks it at start-up |
 | Service | [`src/`](src) | Answers `POST /lens/{namespace}/{resourceType}/{resourceId}` with a graph reply (`src/lens.ts`). CALM Hub sends the architecture, its detailed architectures and the C4 mapping in the body (`hubData`), so the service never calls Hub for data |
 
+## Decorators
+
+Hub draws decorator badges on the C4 diagram from the `calm` ids of each element (see
+[Decorator views](../../docs/docs/calm-hub/decorator-views.md#how-hub-draws-a-view)):
+
+| C4 element | `calm` ids | Decorators that show on it |
+|---|---|---|
+| Person, software system, container, component | The CALM node | Those of the node, and of its `composed-of` and `deployed-in` relationships |
+| System or container boundary, enterprise boundary, deployment node | The CALM node | The same, on the group |
+| Relationship | Each CALM `connects` or `interacts` relationship that it merges or lifts, up to 32 | Those of each relationship. Hub draws a badge only when one of them is `error` or `warn` |
+| Implicit software system | None | None. It is not a CALM node |
+
+A node of a detailed architecture is not a node of the open architecture, so it has no `calm` id. Its
+prefixed id can be the id of a node of the open architecture, such as `api/db`. The lens then leaves out
+that id, so the node's decorators do not show on the detailed node. A decorated node that a level does not
+draw, such as a container at context level, shows no badge on another element: Hub says that it is not
+shown. An edge that merges or lifts more than 32 relationships names the first 32, so Hub counts a decorator of
+another one as not shown too.
+
 ## Run it as a sidecar
 
 The service runs next to Hub, on a private network. At start-up it copies `extension.json` and
