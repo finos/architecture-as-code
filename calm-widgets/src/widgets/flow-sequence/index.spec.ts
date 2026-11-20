@@ -97,6 +97,15 @@ describe('FlowSequenceWidget (actor → services → system)', () => {
         });
     });
 
+    it('orders transitions by sequence-number, not by their position in the array', () => {
+        const arch = makeArch();
+        arch.flows![0].transitions.reverse();
+        const vm = FlowSequenceWidget.transformToViewModel!(arch, { 'flow-id': 'flow-demo' });
+
+        expect(vm.transitions.map(t => t.relationshipId)).toEqual(['rel-1', 'rel-2', 'rel-3']);
+        expect(arch.flows![0].transitions.map(t => t['relationship-unique-id'])).toEqual(['rel-3', 'rel-2', 'rel-1']);
+    });
+
     it('reports clearly when flow-id is missing', () => {
         const arch = makeArch();
         expect(() => FlowSequenceWidget.transformToViewModel!(arch, {} as never)).toThrow(/flow-id option is required/i);

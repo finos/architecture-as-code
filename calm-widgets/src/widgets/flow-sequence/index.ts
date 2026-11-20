@@ -52,7 +52,8 @@ export const FlowSequenceWidget: CalmWidget<
         const flow = flows.find((f: CalmFlowCanonicalModel) => f['unique-id'] === flowId);
         if (!flow) throw new Error(`Flow with unique-id '${flowId}' not found in architecture.flows`);
 
-        const transitions = flow.transitions.map((transition: CalmFlowTransitionCanonicalModel) => ({
+        const ordered = [...flow.transitions].sort((a, b) => a['sequence-number'] - b['sequence-number']);
+        const transitions = ordered.map((transition: CalmFlowTransitionCanonicalModel) => ({
             relationshipId: transition['relationship-unique-id'],
             source: getSourceFromRelationship(transition['relationship-unique-id'], architecture),
             target: getTargetFromRelationship(transition['relationship-unique-id'], architecture),
