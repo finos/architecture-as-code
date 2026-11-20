@@ -539,13 +539,14 @@ multiple chat providers. This differs from search, which queries all enabled `se
 entries independently.
 
 Submitting a search starts a fresh conversation with the selected assistant in parallel with catalogue
-and extension search. Typing and empty searches send no chat request. Opening or reloading a nonempty
-search URL also asks the assistant. The answer appears above ordinary results; a slow or failed reply
+and extension search. Typing and empty searches send no chat request. A nonempty search URL also asks
+the assistant, but only in a tab that has started no conversation since it loaded and has no draft,
+such as a new tab or a reloaded page. The answer appears above ordinary results; a slow or failed reply
 does not block them. **Show more / Show less** expands a long answer without another request.
 Follow-ups keep the same conversation. Returning from a citation keeps the current answer and draft;
 submitting another search, even the same query, starts fresh. Back and Forward do not resend a query
 or discard the current conversation or draft. If that conversation belongs elsewhere, the search page
-offers **Ask** to start a new one. A change of the configured chat provider also requires an explicit
+offers **Ask &lt;provider&gt;** to start a new one. A change of the configured chat provider also requires an explicit
 submission before it receives the query. Only the current conversation stays in memory, and a reload
 clears it. Search queries are in the URL; follow-up drafts are not.
 

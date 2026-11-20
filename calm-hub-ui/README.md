@@ -28,7 +28,7 @@ Explore, visualize, and manage CALM architecture models through an interactive w
 - **Quick Visualize**: Jump from any document into the full Visualizer workspace
 - **Extension Round Trips**: A resource or extension link keeps the exact namespace, resource, version and selected element, and the next page shows **Back to …**. Browser Back and Forward select again the node that you selected, also when the URL does not name it. See [Extension Navigation](https://calm.finos.org/calm-hub/calm-hub-extension-navigation)
 - **Extension Identity**: An extension's logo, or its generated marker, shows beside its name in the menu, home cards, screen headings, inspector, search and chat
-- **Operator Branding**: The operator can set the organisation name, logo and colour, a menu at the side of each page, hidden namespace or control domain sections, and a start page. See [UI Customization](https://calm.finos.org/calm-hub/#ui-customization)
+- **Operator Branding**: The operator can set the organisation name, logo and colour, a menu at the side of each page, hidden namespace or control domain sections, and a start page. The browser tab icon and some messages still show CALM. See [UI Customization](https://calm.finos.org/calm-hub/#ui-customization)
 - **Collapsible Menu**: Collapse the desktop side menu to make more room for the page. The browser remembers the choice; narrow screens still use the menu drawer
 
 ### 🔍 Search & Filtering
@@ -55,13 +55,13 @@ Explore, visualize, and manage CALM architecture models through an interactive w
 - **Status Badges**: Visual indicators for approved, deprecated, and other statuses
 
 ### 🧩 Extensions
-- **Home Page Cards**: One card for each extension, with its name, provider, landing card figures and a link to each of its screens, and to the chat for the chat provider
+- **Home Page Cards**: One card for each extension that has a landing card or a top-level page, with its name, provider, landing card figures and a link to each of its screens, and to the chat for the chat provider
 - **Grouped Menu**: The side menu groups the screens of each extension, and the chat of the chat provider, under the extension name, in the same order as the cards
-- **Architecture Extensions**: Actions, forms and resource or node panels in the diagram-side inspector, plus decorator overlays and diagram lenses
+- **Architecture Extensions**: Actions, forms and resource or node panels in the diagram-side inspector, plus decorator overlays and diagram lenses. An extension lens draws the decorator overlays too
 - **Table Filters**: Summary tiles filter their tables. Screen filters, search and page position stay in the URL and return links
 - **Search Providers**: Extension results appear beside catalogue results, with separate loading, error and pagination states
 - **Chat**: Submitting a search also asks the operator's chosen assistant. Its answer appears above results, which remain usable while it replies or fails. Long answers have **Show more / Show less**; expansion sends no request. Follow-ups continue the conversation. A new search starts fresh and sends only its query, never an architecture. Provider charges and retention policies apply. `/chat` also supports opt-in architecture sharing, Stop, Retry and citations. Answers and drafts stay in memory only
-- **Search History**: Opening or reloading a search URL asks the assistant. Back and Forward preserve the current conversation and draft; a different search offers **Ask** instead of sending again. Changing the configured assistant also requires a new submission
+- **Search History**: A search URL asks the assistant only in a tab that has started no conversation since it loaded and has no draft, such as a new tab or a reloaded page. Back and Forward preserve the current conversation and draft; a different search offers **Ask &lt;provider&gt;** instead of sending again. Changing the configured assistant also requires a new submission
 - **Chat Provider Limit**: `calm.extensions.chat-provider` selects one chat entry for the whole Hub. Other enabled extensions can declare chat, but users cannot switch assistants and questions are not sent to multiple providers. Search can use multiple providers independently
 - See the [extension point reference](../docs/docs/calm-hub/extension-points.md) for where each contribution shows
 
