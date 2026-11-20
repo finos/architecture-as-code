@@ -91,6 +91,22 @@ describe('pushWorkspaceToHub', () => {
         expect(client.getMappedResourceVersions).toHaveBeenCalledWith('com.example', 'doc-a', 'architectures');
     });
 
+    it('does not push a document whose $id base URL differs from expectedBaseUrl, and fails the push', async () => {
+        await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
+        await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify({ $id: mappingId('doc-b').replace(BASE, 'https://other.example.com'), title: 'Doc B' }));
+        await saveManifest(bundlePath, {
+            'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+            'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+        });
+        const client = makeClient();
+
+        await expect(pushWorkspaceToHub(bundlePath, client, { expectedBaseUrl: `${BASE}/` }))
+            .rejects.toThrow('doc-b: $id base URL does not match CalmHub');
+
+        expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
+        expect(client.getMappedResourceVersions).not.toHaveBeenCalledWith('com.example', 'doc-b', 'architectures');
+    });
+
     it('warns and returns early when manifest is empty', async () => {
         await saveManifest(bundlePath, {});
         const client = makeClient();

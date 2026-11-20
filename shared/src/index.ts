@@ -120,6 +120,8 @@ export {
     documentName,
     extractDocumentMetadata,
     updateDocumentMetadata,
+    normalizeBaseUrl,
+    hasExpectedBaseUrl,
     type DocumentMetadata,
     constructControlDocumentId,
     extractControlMetadata,
