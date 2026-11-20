@@ -524,6 +524,14 @@ describe('Document ID Utils', () => {
         it('trims whitespace and trailing slashes', () => {
             expect(normalizeBaseUrl('  https://hub.example.com//  ')).toBe('https://hub.example.com');
         });
+
+        it('keeps slashes that are not trailing', () => {
+            expect(normalizeBaseUrl('https://hub.example.com/a' + '/'.repeat(10_000) + 'b')).toBe('https://hub.example.com/a' + '/'.repeat(10_000) + 'b');
+        });
+
+        it('returns an empty string for a URL of only slashes', () => {
+            expect(normalizeBaseUrl('///')).toBe('');
+        });
     });
 
     describe('hasExpectedBaseUrl', () => {

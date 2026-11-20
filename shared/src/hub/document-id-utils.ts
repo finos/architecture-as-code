@@ -257,7 +257,11 @@ export class DocumentMetadataValidationError extends Error {
 
 /** Mirrors CalmHub's normalisation of its configured `calm.hub.base-url`. */
 export function normalizeBaseUrl(url: string): string {
-    return url.trim().replace(/\/+$/, '');
+    // A loop, not /\/+$/, which backtracks polynomially on input with many '/'.
+    const trimmed = url.trim();
+    let end = trimmed.length;
+    while (end > 0 && trimmed[end - 1] === '/') end--;
+    return trimmed.slice(0, end);
 }
 
 /**
