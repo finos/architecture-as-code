@@ -11,12 +11,13 @@ vi.mock('react-router-dom', async () => {
     return { ...actual, useNavigate: vi.fn() };
 });
 
+const defaultArchitectures = [{ id: 1, name: 'Arch One', description: 'An arch', customId: 'arch-one' }];
+const mockData = vi.hoisted(() => ({ architectures: [] as unknown[] }));
+
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(function () {
         return {
-            fetchArchitectureSummaries: vi
-                .fn()
-                .mockResolvedValue([{ id: 1, name: 'Arch One', description: 'An arch', customId: 'arch-one' }]),
+            fetchArchitectureSummaries: vi.fn().mockImplementation(() => Promise.resolve(mockData.architectures)),
             fetchPatternSummaries: vi.fn().mockResolvedValue([]),
             fetchFlowSummaries: vi.fn().mockResolvedValue([]),
             fetchStandardSummaries: vi.fn().mockResolvedValue([]),
@@ -74,6 +75,7 @@ const renderPage = (initialEntries: string[] = ['/namespace/traderx'], c: Namesp
 
 beforeEach(() => {
     vi.clearAllMocks();
+    mockData.architectures = defaultArchitectures;
     (useNavigate as Mock).mockReturnValue(vi.fn());
     (resolveResourceDetailPath as Mock).mockResolvedValue('/traderx/architectures/arch-one/1.0.0');
 });
@@ -244,6 +246,107 @@ describe('NamespacePage', () => {
             renderLoading();
             // The header meta is suppressed until counts resolve — no premature zero.
             expect(screen.queryByText(/artefact/i)).not.toBeInTheDocument();
+        });
+    });
+
+    describe('view mode and filter', () => {
+        const manyArchitectures = Array.from({ length: 13 }, (_, i) => ({
+            id: i + 1,
+            name: `Arch ${i + 1}`,
+            description: i === 4 ? 'Payments gateway' : 'An arch',
+            customId: `arch-${i + 1}`,
+            versionCount: 2,
+        }));
+        const manyCounts: NamespaceCounts = { ...counts, architectures: 13, total: 14 };
+
+        it('shows tiles at or below the threshold', async () => {
+            renderPage();
+            await screen.findByText('Arch One');
+            expect(screen.getAllByTestId('item-card')).toHaveLength(1);
+            expect(screen.queryByTestId('item-table')).not.toBeInTheDocument();
+            expect(screen.getByTestId('view-toggle-tiles')).toHaveAttribute('aria-pressed', 'true');
+        });
+
+        it('defaults to the list view above the threshold', async () => {
+            mockData.architectures = manyArchitectures;
+            renderPage(['/namespace/traderx'], manyCounts);
+            expect(await screen.findByTestId('item-table')).toBeInTheDocument();
+            expect(screen.getAllByTestId('item-row')).toHaveLength(13);
+            expect(screen.queryByTestId('item-card')).not.toBeInTheDocument();
+            expect(screen.getByTestId('view-toggle-list')).toHaveAttribute('aria-pressed', 'true');
+        });
+
+        it('lets the toggle override the default', async () => {
+            mockData.architectures = manyArchitectures;
+            renderPage(['/namespace/traderx'], manyCounts);
+            await screen.findByTestId('item-table');
+            fireEvent.click(screen.getByTestId('view-toggle-tiles'));
+            expect(screen.getAllByTestId('item-card')).toHaveLength(13);
+            expect(screen.queryByTestId('item-table')).not.toBeInTheDocument();
+        });
+
+        it('honours ?view=list for a small type', async () => {
+            renderPage(['/namespace/traderx?view=list']);
+            expect(await screen.findByTestId('item-table')).toBeInTheDocument();
+        });
+
+        it('navigates when a table row is clicked', async () => {
+            const navigate = vi.fn();
+            (useNavigate as Mock).mockReturnValue(navigate);
+            mockData.architectures = manyArchitectures;
+            renderPage(['/namespace/traderx'], manyCounts);
+
+            fireEvent.click(await screen.findByText('Arch 3'));
+
+            await waitFor(() => {
+                expect(resolveResourceDetailPath).toHaveBeenCalledWith(
+                    'arch-3',
+                    'Architectures',
+                    'traderx',
+                    expect.anything(),
+                    expect.anything()
+                );
+                expect(navigate).toHaveBeenCalledTimes(1);
+            });
+        });
+
+        it('filters by name, description and id', async () => {
+            mockData.architectures = manyArchitectures;
+            renderPage(['/namespace/traderx'], manyCounts);
+            await screen.findByTestId('item-table');
+            const filter = screen.getByTestId('namespace-item-filter');
+
+            fireEvent.change(filter, { target: { value: 'payments' } });
+            expect(screen.getAllByTestId('item-row')).toHaveLength(1);
+            expect(screen.getByText('Arch 5')).toBeInTheDocument();
+
+            fireEvent.change(filter, { target: { value: 'arch-12' } });
+            expect(screen.getAllByTestId('item-row')).toHaveLength(1);
+            expect(screen.getByText('Arch 12')).toBeInTheDocument();
+        });
+
+        it('keeps the list layout while a filter narrows below the threshold', async () => {
+            mockData.architectures = manyArchitectures;
+            renderPage(['/namespace/traderx'], manyCounts);
+            await screen.findByTestId('item-table');
+            fireEvent.change(screen.getByTestId('namespace-item-filter'), { target: { value: 'Arch 1' } });
+            expect(screen.getByTestId('item-table')).toBeInTheDocument();
+        });
+
+        it('shows a no-match state when the filter excludes everything', async () => {
+            renderPage();
+            await screen.findByText('Arch One');
+            fireEvent.change(screen.getByTestId('namespace-item-filter'), { target: { value: 'zzz' } });
+            expect(screen.getByTestId('empty-state')).toHaveTextContent('No architectures match "zzz"');
+        });
+
+        it('clears the filter when switching type', async () => {
+            renderPage();
+            await screen.findByText('Arch One');
+            fireEvent.change(screen.getByTestId('namespace-item-filter'), { target: { value: 'zzz' } });
+            fireEvent.click(screen.getByTestId('type-tab-Interfaces'));
+            expect(await screen.findByText('My Interface')).toBeInTheDocument();
+            expect(screen.getByTestId('namespace-item-filter')).toHaveValue('');
         });
     });
 });
