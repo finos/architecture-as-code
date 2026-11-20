@@ -5,6 +5,9 @@ import { HubClient } from './services/hub-client';
 import { HubAuthService } from './services/hub-auth-service';
 import { HubStatusBar } from './services/hub-status-bar';
 import { SvgImportService } from './services/svg-import';
+import { CALM_FILE_SUFFIXES, isCalmDocument, isCalmFile } from './calm-document';
+
+export { CALM_FILE_SUFFIXES, isCalmFile };
 
 let canvasPanel: CanvasPanel | undefined;
 let outputChannel: vscode.OutputChannel;
@@ -12,13 +15,10 @@ let hubStatusBar: HubStatusBar | undefined;
 let hubClient: HubClient | undefined;
 let hubAuthService: HubAuthService | undefined;
 
-export const CALM_FILE_SUFFIXES = [
-    '.calm.json',
-    '.architecture.json',
-];
+export const CALM_DOCUMENT_CONTEXT_KEY = 'calm.isCalmDocument';
 
-export function isCalmFile(fsPath: string): boolean {
-    return CALM_FILE_SUFFIXES.some((suffix) => fsPath.endsWith(suffix));
+function isCalmTextDocument(document: vscode.TextDocument): boolean {
+    return isCalmDocument(document.uri.fsPath, document.getText());
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -44,18 +44,22 @@ export function activate(context: vscode.ExtensionContext): void {
         async (uri?: vscode.Uri) => {
             let document: vscode.TextDocument | undefined;
 
-            if (uri && isCalmFile(uri.fsPath)) {
-                document = await vscode.workspace.openTextDocument(uri);
-            } else {
+            if (uri) {
+                const candidate = await vscode.workspace.openTextDocument(uri);
+                if (isCalmTextDocument(candidate)) {
+                    document = candidate;
+                }
+            }
+            if (!document) {
                 const editor = vscode.window.activeTextEditor;
-                if (editor && isCalmFile(editor.document.uri.fsPath)) {
+                if (editor && isCalmTextDocument(editor.document)) {
                     document = editor.document;
                 }
             }
 
             if (!document) {
                 vscode.window.showWarningMessage(
-                    'Open a .calm.json file first.'
+                    'Open a CALM architecture first.'
                 );
                 return;
             }
@@ -85,16 +89,39 @@ export function activate(context: vscode.ExtensionContext): void {
     );
     context.subscriptions.push(importSvg);
 
-    // Inline "View in CALM Canvas" affordances on CALM documents.
+    // Inline "View in CALM Canvas" affordances on CALM documents. The provider
+    // checks the content, so a CALM architecture with any JSON file name gets them.
     const calmSelector: vscode.DocumentSelector = [
         { pattern: '**/*.calm.json' },
         { pattern: '**/*.architecture.json' },
+        { language: 'json' },
     ];
     context.subscriptions.push(
         vscode.languages.registerCodeLensProvider(
             calmSelector,
             new CalmCanvasCodeLensProvider()
         )
+    );
+
+    // Lets the editor title, editor context menu and keybinding show for CALM
+    // documents whose file name has no CALM suffix.
+    const updateCalmDocumentContext = (
+        editor: vscode.TextEditor | undefined = vscode.window.activeTextEditor
+    ) => {
+        void vscode.commands.executeCommand(
+            'setContext',
+            CALM_DOCUMENT_CONTEXT_KEY,
+            !!editor && isCalmTextDocument(editor.document)
+        );
+    };
+    updateCalmDocumentContext();
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(updateCalmDocumentContext),
+        vscode.workspace.onDidSaveTextDocument((document) => {
+            if (document === vscode.window.activeTextEditor?.document) {
+                updateCalmDocumentContext();
+            }
+        })
     );
 
     // --- CalmHub integration ---

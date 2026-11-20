@@ -20,7 +20,8 @@
   ],
   "activationEvents": [
     "workspaceContains:**/*.calm.json",
-    "workspaceContains:**/*.architecture.json"
+    "workspaceContains:**/*.architecture.json",
+    "onLanguage:json"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -57,21 +58,21 @@
         "command": "calm.openCanvas",
         "key": "ctrl+shift+k",
         "mac": "cmd+shift+k",
-        "when": "resourceFilename =~ /\\.(calm|architecture)\\.json$/"
+        "when": "resourceFilename =~ /\\.(calm|architecture)\\.json$/ || calm.isCalmDocument"
       }
     ],
     "menus": {
       "editor/title": [
         {
           "command": "calm.openCanvas",
-          "when": "resourceFilename =~ /\\.(calm|architecture)\\.json$/",
+          "when": "resourceFilename =~ /\\.(calm|architecture)\\.json$/ || calm.isCalmDocument",
           "group": "navigation"
         }
       ],
       "editor/context": [
         {
           "command": "calm.openCanvas",
-          "when": "resourceFilename =~ /\\.(calm|architecture)\\.json$/",
+          "when": "resourceFilename =~ /\\.(calm|architecture)\\.json$/ || calm.isCalmDocument",
           "group": "navigation"
         }
       ],
