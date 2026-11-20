@@ -91,4 +91,44 @@ class TestNewAdrRequestShould {
         assertThat(newAdrRequest.getDecisionOutcome(), is(decision));
     }
 
+
+    @Test
+    void sanitize_slug_requesters_and_approvers_on_set() {
+        NewAdrRequest newAdrRequest = new NewAdrRequest();
+        newAdrRequest.setSlug("use-kafka<script>");
+        newAdrRequest.setRequesters(List.of("alice<img>"));
+        newAdrRequest.setApprovers(List.of("bob<script>x</script>"));
+
+        assertThat(newAdrRequest.getSlug(), is("use-kafka"));
+        assertThat(newAdrRequest.getRequesters(), is(List.of("alice")));
+        assertThat(newAdrRequest.getApprovers(), is(List.of("bob")));
+    }
+
+    @Test
+    void leave_unset_optional_fields_null() {
+        NewAdrRequest newAdrRequest = new NewAdrRequest();
+        newAdrRequest.setSlug(null);
+        newAdrRequest.setRequesters(null);
+        newAdrRequest.setApprovers(null);
+        newAdrRequest.setDecisionDate(null);
+
+        assertThat(newAdrRequest.getSlug(), is(nullValue()));
+        assertThat(newAdrRequest.getRequesters(), is(nullValue()));
+        assertThat(newAdrRequest.getApprovers(), is(nullValue()));
+        assertThat(newAdrRequest.getDecisionDate(), is(nullValue()));
+    }
+
+    @Test
+    void carry_the_new_fields_into_an_adr() {
+        NewAdrRequest newAdrRequest = new NewAdrRequest();
+        newAdrRequest.setDecisionDate(java.time.LocalDate.of(2024, 5, 1));
+        newAdrRequest.setRequesters(List.of("alice"));
+        newAdrRequest.setApprovers(List.of("bob"));
+
+        Adr adr = new Adr.AdrBuilder(newAdrRequest).build();
+
+        assertThat(adr.getDecisionDate(), is(java.time.LocalDate.of(2024, 5, 1)));
+        assertThat(adr.getRequesters(), is(List.of("alice")));
+        assertThat(adr.getApprovers(), is(List.of("bob")));
+    }
 }

@@ -107,6 +107,11 @@ public class ArchitectureResource {
 }
 ```
 
+ADRs are on the name-based API too, addressed by an immutable slug held on the ADR header
+(not in `resource_mappings`), with integer revisions under `/versions/` and kebab-case
+`adr.json` bodies (`store/util/AdrDocumentMapper`). The `$id`-driven and semver write routes
+reject ADRs with a 400.
+
 Resource types are not limited to architectures/patterns/controls — the `resources/`
 package also covers ADR, Decorator, Domain, Flow, Interface, Standard, Timeline,
 Search, and UserAccess (per-namespace and domain-level access grants).
@@ -133,7 +138,9 @@ CALM Hub supports pluggable storage backends via CDI Producers:
   `AbstractReadOnlyGitHubStore` (reads the file at a SHA or from the clone).
 - A store with nothing to back it in GitHub mode gets a stub: `store/noop/` for stores that
   need no namespace check, or a `store/github/` store that only does `verifyNamespace` (e.g.
-  `GitHubAdrStore`, `GitHubDocumentStore`)
+  `GitHubDocumentStore`). `GitHubAdrStore` serves the `.json` files under `adrs/` (kebab-case
+  `adr.json` or camelCase); its numeric API sees one revision, `1`, and its name-based API
+  lists commit SHAs
 - Producers in `store/producer/` select the implementation at runtime from `DatabaseMode`. Every
   producer needs a `github` arm: the Mongo store is gated on the mode, so a missing arm fails
   every request in GitHub mode with an unsatisfied resolution.

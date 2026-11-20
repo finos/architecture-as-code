@@ -5,7 +5,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.adr.Adr;
+import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.audit.AuditAction;
+import org.finos.calm.domain.audit.AuditEntityType;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -21,12 +25,15 @@ import org.finos.calm.resources.CalmDocumentParser;
 import org.finos.calm.resources.CalmResourceErrorResponses;
 import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.store.*;
+import org.finos.calm.store.util.AdrDocumentMapper;
 import org.finos.calm.store.util.CanonicalVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
@@ -52,7 +59,9 @@ public class MappingControllerService {
     private final TimelineStore timelineStore;
     private final DomainStore domainStore;
     private final ControlStore controlStore;
+    private final AdrStore adrStore;
     private final CalmDocumentParser documentParser;
+    private final AdrDocumentMapper adrDocumentMapper = new AdrDocumentMapper();
 
     @Inject
     public MappingControllerService(ResourceMappingStore mappingStore,
@@ -64,6 +73,7 @@ public class MappingControllerService {
                                     TimelineStore timelineStore,
                                     DomainStore domainStore,
                                     ControlStore controlStore,
+                                    AdrStore adrStore,
                                     CalmDocumentParser documentParser) {
         this.mappingStore = mappingStore;
         this.patternStore = patternStore;
@@ -74,6 +84,7 @@ public class MappingControllerService {
         this.timelineStore = timelineStore;
         this.domainStore = domainStore;
         this.controlStore = controlStore;
+        this.adrStore = adrStore;
         this.documentParser = documentParser;
     }
 
@@ -89,6 +100,9 @@ public class MappingControllerService {
                                        String name, String requestBody,
                                        CalmDocumentParser.VersionSpec versionSpec)
             throws URISyntaxException {
+        if (resourceType == ResourceType.ADR) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(CalmDocumentParser.ADR_WRITE_MESSAGE).build();
+        }
         try {
             ResourceMapping existing;
             try {
@@ -134,8 +148,19 @@ public class MappingControllerService {
         }
     }
 
+    /**
+     * An ADR's mapping comes from its header's slug, not from the mapping store: the slug is
+     * the ADR's own, immutable identity, so a second copy could only drift from it.
+     */
     public ResourceMapping getMapping(String namespace, ResourceType type, String name)
             throws MappingNotFoundException, NamespaceNotFoundException {
+        if (type == ResourceType.ADR) {
+            try {
+                return adrMapping(namespace, name, adrStore.getAdrIdBySlug(namespace, name));
+            } catch (AdrNotFoundException e) {
+                throw new MappingNotFoundException();
+            }
+        }
         return mappingStore.getMapping(namespace, type, name);
     }
 
@@ -171,6 +196,7 @@ public class MappingControllerService {
                         .build();
                 yield timelineStore.getTimelineVersions(timeline);
             }
+            case ADR -> adrStore.getAdrVersions(mapping.getNamespace(), mapping.getNumericId());
         };
     }
 
@@ -210,12 +236,204 @@ public class MappingControllerService {
                         .build();
                 yield timelineStore.getTimelineForVersion(timeline);
             }
+            case ADR -> adrDocumentMapper.toDocument(
+                    adrStore.getAdrForVersion(mapping.getNamespace(), mapping.getNumericId(), version).getAdr(),
+                    null, mapping.getCustomId());
         };
     }
 
     public List<ResourceMapping> listMappings(String namespace, ResourceType resourceType)
             throws NamespaceNotFoundException {
+        if (resourceType == ResourceType.ADR) {
+            return adrStore.getAdrSlugs(namespace).stream()
+                    .map(slug -> adrMapping(namespace, slug.slug(), slug.adrId()))
+                    .toList();
+        }
         return mappingStore.listMappings(namespace, resourceType);
+    }
+
+    // =========================================================================
+    // ADR operations (name-based, slug-addressed)
+    // =========================================================================
+
+    /** The latest revision of the ADR with {@code slug}, as an {@code adr.json} document. */
+    public Response getLatestAdr(String namespace, String slug) {
+        try {
+            int adrId = adrStore.getAdrIdBySlug(namespace, slug);
+            AdrMeta latest = adrStore.getAdr(adrMeta(namespace, adrId));
+            return Response.ok(adrDocument(namespace, slug, adrStore.getVersionLabel(latest), latest.getAdr())).build();
+        } catch (NamespaceNotFoundException e) {
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (AdrNotFoundException | AdrRevisionNotFoundException e) {
+            return adrNotFoundResponse(slug);
+        } catch (AdrParseException e) {
+            return adrParseFailureResponse(namespace, slug, e);
+        }
+    }
+
+    /**
+     * The ADR's versions. Revision numbers sort numerically, so 10 follows 9; a store whose
+     * versions are not numbers (commit SHAs) keeps its own order.
+     */
+    public Response listAdrVersions(String namespace, String slug) {
+        try {
+            List<String> versions = adrStore.getAdrVersions(namespace, adrStore.getAdrIdBySlug(namespace, slug));
+            if (versions.stream().allMatch(version -> version.matches("[0-9]+"))) {
+                versions = versions.stream().sorted(Comparator.comparingLong(Long::parseLong)).toList();
+            }
+            return Response.ok(new ValueWrapper<>(versions)).build();
+        } catch (NamespaceNotFoundException e) {
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (AdrNotFoundException | AdrRevisionNotFoundException e) {
+            return adrNotFoundResponse(slug);
+        }
+    }
+
+    public Response getAdrVersion(String namespace, String slug, String version) {
+        try {
+            int adrId = adrStore.getAdrIdBySlug(namespace, slug);
+            AdrMeta adrMeta = adrStore.getAdrForVersion(namespace, adrId, version);
+            return Response.ok(adrDocument(namespace, slug, version, adrMeta.getAdr())).build();
+        } catch (NamespaceNotFoundException e) {
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (AdrNotFoundException e) {
+            return adrNotFoundResponse(slug);
+        } catch (AdrRevisionNotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Revision not found: " + STRICT_SANITIZATION_POLICY.sanitize(version)).build();
+        } catch (AdrParseException e) {
+            return adrParseFailureResponse(namespace, slug, e);
+        }
+    }
+
+    /**
+     * Creates an ADR from an {@code adr.json} document. The slug is the document's
+     * {@code slug} if it has one, else derived from the title. A document with no status is
+     * created as {@code draft}.
+     */
+    public Response createAdr(String namespace, String requestBody) throws URISyntaxException {
+        AdrDocumentMapper.ParsedAdrDocument document;
+        try {
+            document = adrDocumentMapper.fromDocument(requestBody);
+        } catch (AdrDocumentMapper.InvalidAdrDocumentException e) {
+            return invalidAdrResponse(e);
+        }
+        LocalDateTime now = LocalDateTime.now();
+        Adr adr = new Adr.AdrBuilder(document.request())
+                .setStatus(document.status() != null ? document.status() : Status.draft)
+                .setCreationDateTime(now)
+                .setUpdateDateTime(now)
+                .build();
+        AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
+                .setNamespace(namespace)
+                .setSlug(document.slug())
+                .setRevision(1)
+                .setAdr(adr)
+                .build();
+        try {
+            AdrMeta created = adrStore.createAdrForNamespace(adrMeta);
+            return adrWrittenResponse(created);
+        } catch (NamespaceNotFoundException e) {
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (AdrSlugExistsException e) {
+            return Response.status(Response.Status.CONFLICT)
+                    .entity("An ADR with slug " + STRICT_SANITIZATION_POLICY.sanitize(document.slug())
+                            + " already exists in namespace " + STRICT_SANITIZATION_POLICY.sanitize(namespace))
+                    .build();
+        } catch (AdrParseException e) {
+            return adrParseFailureResponse(namespace, document.slug(), e);
+        }
+    }
+
+    /**
+     * Adds a revision to the ADR with {@code slug}, with exactly the document's content,
+     * status included.
+     */
+    public Response createAdrRevision(String namespace, String slug, String requestBody) throws URISyntaxException {
+        AdrDocumentMapper.ParsedAdrDocument document;
+        try {
+            document = adrDocumentMapper.fromDocument(requestBody);
+        } catch (AdrDocumentMapper.InvalidAdrDocumentException e) {
+            return invalidAdrResponse(e);
+        }
+        if (document.slug() != null && !document.slug().equals(slug)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("The document slug " + STRICT_SANITIZATION_POLICY.sanitize(document.slug())
+                            + " does not match the slug in the path " + STRICT_SANITIZATION_POLICY.sanitize(slug))
+                    .build();
+        }
+        if (document.status() == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Invalid ADR: status is required").build();
+        }
+        try {
+            int adrId = adrStore.getAdrIdBySlug(namespace, slug);
+            Adr adr = new Adr.AdrBuilder(document.request())
+                    .setStatus(document.status())
+                    .setUpdateDateTime(LocalDateTime.now())
+                    .build();
+            AdrMeta created = adrStore.createAdrRevision(new AdrMeta.AdrMetaBuilder(adrMeta(namespace, adrId))
+                    .setAdr(adr)
+                    .build());
+            return adrWrittenResponse(new AdrMeta.AdrMetaBuilder(created).setSlug(slug).build());
+        } catch (NamespaceNotFoundException e) {
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (AdrNotFoundException | AdrRevisionNotFoundException e) {
+            return adrNotFoundResponse(slug);
+        } catch (AdrRevisionExistsException e) {
+            return Response.status(Response.Status.CONFLICT)
+                    .entity("ADR " + STRICT_SANITIZATION_POLICY.sanitize(slug)
+                            + " was updated at the same time, please retry").build();
+        } catch (AdrParseException e) {
+            return adrParseFailureResponse(namespace, slug, e);
+        }
+    }
+
+    private Response adrWrittenResponse(AdrMeta written) throws URISyntaxException {
+        String version = String.valueOf(written.getRevision());
+        // Body-derived entity: the slug is only known once the store has assigned it.
+        AuditRequestFilter.stage(new AuditRequestFilter.AuditContext(AuditEntityType.ADR,
+                written.getRevision() == 1 ? AuditAction.CREATE : AuditAction.UPDATE,
+                written.getNamespace(), null, written.getSlug(), version));
+        URI location = new URI("/calm/namespaces/" + written.getNamespace() + "/adrs/" + written.getSlug()
+                + "/versions/" + version);
+        return Response.created(location)
+                .entity(adrDocument(written.getNamespace(), written.getSlug(), version, written.getAdr()))
+                .build();
+    }
+
+    private String adrDocument(String namespace, String slug, String version, Adr adr) {
+        String id = documentParser.normalizeBase() + "/calm/namespaces/" + namespace + "/adrs/" + slug
+                + "/versions/" + version;
+        return adrDocumentMapper.toDocument(adr, id, slug);
+    }
+
+    private static AdrMeta adrMeta(String namespace, int adrId) {
+        return new AdrMeta.AdrMetaBuilder().setNamespace(namespace).setId(adrId).build();
+    }
+
+    private static ResourceMapping adrMapping(String namespace, String slug, int adrId) {
+        return new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace(namespace)
+                .setCustomId(slug)
+                .setResourceType(ResourceType.ADR)
+                .setNumericId(adrId)
+                .build();
+    }
+
+    private static Response invalidAdrResponse(AdrDocumentMapper.InvalidAdrDocumentException e) {
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Invalid ADR: " + STRICT_SANITIZATION_POLICY.sanitize(e.getMessage())).build();
+    }
+
+    private static Response adrNotFoundResponse(String slug) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("ADR not found: " + STRICT_SANITIZATION_POLICY.sanitize(slug)).build();
+    }
+
+    private Response adrParseFailureResponse(String namespace, String slug, Exception e) {
+        logger.error("Could not read or write ADR [{}] in namespace [{}]",
+                STRICT_SANITIZATION_POLICY.sanitize(slug), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Could not parse ADR JSON").build();
     }
 
     // =========================================================================
@@ -633,6 +851,7 @@ public class MappingControllerService {
                 Timeline created = timelineStore.createTimelineForNamespace(req, namespace, version);
                 yield created.getId();
             }
+            case ADR -> throw new UnsupportedOperationException(CalmDocumentParser.ADR_WRITE_MESSAGE);
         };
     }
 
@@ -696,12 +915,13 @@ public class MappingControllerService {
                         .build();
                 timelineStore.createTimelineForVersion(timeline);
             }
+            case ADR -> throw new UnsupportedOperationException(CalmDocumentParser.ADR_WRITE_MESSAGE);
         }
     }
 
     /**
      * Updates an existing version of a resource in the type-specific store.
-     * Supported for all {@link ResourceType} values.
+     * Supported for every {@link ResourceType} but {@link ResourceType#ADR}.
      */
     private void updateVersionedResourceInStore(ResourceType type, String namespace, int numericId,
                                                 String version, String json, String title, String description) throws Exception {
@@ -758,6 +978,7 @@ public class MappingControllerService {
                         .build();
                 timelineStore.updateTimelineForVersion(timeline);
             }
+            case ADR -> throw new UnsupportedOperationException(CalmDocumentParser.ADR_WRITE_MESSAGE);
             default -> throw new UnsupportedOperationException("Update not supported for resource type: " + type);
         }
     }
@@ -816,6 +1037,7 @@ public class MappingControllerService {
             case STANDARD -> standardStore.deleteStandardVersion(namespace, id, version);
             case INTERFACE -> interfaceStore.deleteInterfaceVersion(namespace, id, version);
             case TIMELINE -> timelineStore.deleteTimelineVersion(namespace, id, version);
+            case ADR -> throw new UnsupportedOperationException(CalmDocumentParser.ADR_WRITE_MESSAGE);
             default -> throw new UnsupportedOperationException(
                     "Delete not supported for resource type: " + mapping.getResourceType());
         }

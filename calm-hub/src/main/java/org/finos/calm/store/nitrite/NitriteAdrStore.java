@@ -7,22 +7,36 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.dizitart.no2.Nitrite;
+import org.dizitart.no2.collection.Document;
+import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.AdrSlugMapping;
 import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.util.AdrSlugAllocator;
 import org.finos.calm.store.util.NitriteVersionDocumentStore;
 import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
+
+import static org.dizitart.no2.filters.FluentFilter.where;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
@@ -37,6 +51,16 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  *
  * <p>As with the other Nitrite stores, revision content is held as a JSON string rather than
  * a parsed document.</p>
+ *
+ * <h2>Slug uniqueness</h2>
+ * Slug assignment is a check-then-insert under {@link #slugLock}, the same approach as
+ * {@link NitriteResourceMappingStore}. Nitrite 4.3.2 does have unique compound indexes, and
+ * {@code NitriteAdrSlugMigrationStep} creates one on {@code (namespace, slug)}, but the index
+ * cannot be partial: every header with no slug collides with every other. So it can only
+ * exist once every header has a slug, and it does not exist under {@code @QuarkusTest}, where
+ * migrations do not run. The lock is the guarantee in this process; the index, when present,
+ * also stops a second writer on the same file, and a refused insert moves on to the next
+ * suffix.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
@@ -48,18 +72,23 @@ public class NitriteAdrStore implements AdrStore {
     private static final String VERSION_COLLECTION = "adrVersions";
     private static final String ID_FIELD = "adrId";
     private static final String RESOURCE_LABEL = "ADR";
+    private static final String NAMESPACE_FIELD = "namespace";
+    private static final String SLUG_FIELD = "slug";
 
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
     private final NitriteVersionDocumentStore documentStore;
+    private final NitriteCollection headerCollection;
+    private final Lock slugLock = new ReentrantLock();
     private final ObjectMapper objectMapper;
 
     @Inject
     public NitriteAdrStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
         this.namespaceStore = namespaceStore;
         this.counterStore = counterStore;
+        this.headerCollection = db.getCollection(HEADER_COLLECTION);
         this.documentStore = new NitriteVersionDocumentStore(
-                db.getCollection(HEADER_COLLECTION),
+                headerCollection,
                 db.getCollection(VERSION_COLLECTION),
                 ID_FIELD,
                 RESOURCE_LABEL,
@@ -73,9 +102,15 @@ public class NitriteAdrStore implements AdrStore {
     public List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
+        Map<Integer, String> slugs = new HashMap<>();
+        for (AdrSlugMapping mapping : listSlugs(namespace)) {
+            slugs.put(mapping.adrId(), mapping.slug());
+        }
         List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (NamespaceResourceSummary header : documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED)) {
-            summaries.add(toAdrSummary(namespace, header.getId()));
+            NamespaceAdrSummary summary = toAdrSummary(namespace, header.getId());
+            summary.setSlug(slugs.get(header.getId()));
+            summaries.add(summary);
         }
         return summaries;
     }
@@ -123,7 +158,7 @@ public class NitriteAdrStore implements AdrStore {
     }
 
     @Override
-    public AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException {
+    public AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException, AdrSlugExistsException {
         namespaceStore.requireNamespace(adrMeta.getNamespace());
 
         String content = toContent(adrMeta);
@@ -133,18 +168,27 @@ public class NitriteAdrStore implements AdrStore {
         // content — but the header still denormalizes a copy of the title, same as every
         // other versioned type's header carries its display name. See
         // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md.
-        documentStore.createHeader(adrMeta.getNamespace(), id, headerTitle(adrMeta), null);
-        documentStore.createFirstVersion(adrMeta.getNamespace(), id,
-                String.valueOf(adrMeta.getRevision()), content);
+        String namespace = adrMeta.getNamespace();
+        String slug;
+        slugLock.lock();
+        try {
+            Set<String> taken = listSlugs(namespace).stream().map(AdrSlugMapping::slug).collect(Collectors.toSet());
+            slug = AdrSlugAllocator.allocate(adrMeta.getSlug(), adrMeta.getAdr().getTitle(), id,
+                    candidate -> !taken.contains(candidate) && documentStore.createHeaderIfUnique(
+                            namespace, id, headerTitle(adrMeta), null, Map.of(SLUG_FIELD, candidate)));
+        } finally {
+            slugLock.unlock();
+        }
+        documentStore.createFirstVersion(namespace, id, String.valueOf(adrMeta.getRevision()), content);
 
-        LOG.info("Created ADR with ID {} for namespace '{}'", id, adrMeta.getNamespace());
-        return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).build();
+        LOG.info("Created ADR with ID {} and slug '{}' for namespace '{}'", id, slug, namespace);
+        return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).setSlug(slug).build();
     }
 
     @Override
     public AdrMeta getAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
-        requireAdr(adrMeta);
-        return latestRevision(adrMeta);
+        String slug = requireAdr(adrMeta);
+        return new AdrMeta.AdrMetaBuilder(latestRevision(adrMeta)).setSlug(slug).build();
     }
 
     @Override
@@ -161,7 +205,7 @@ public class NitriteAdrStore implements AdrStore {
 
     @Override
     public AdrMeta getAdrRevision(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
-        requireAdr(adrMeta);
+        String slug = requireAdr(adrMeta);
 
         String revision = documentStore.getVersion(
                 adrMeta.getNamespace(), adrMeta.getId(), String.valueOf(adrMeta.getRevision()));
@@ -170,17 +214,30 @@ public class NitriteAdrStore implements AdrStore {
                     adrMeta.getRevision(), adrMeta.getId(), adrMeta.getNamespace());
             throw new AdrRevisionNotFoundException();
         }
-        return new AdrMeta.AdrMetaBuilder(adrMeta).setAdr(toAdr(revision)).build();
+        return new AdrMeta.AdrMetaBuilder(adrMeta).setSlug(slug).setAdr(toAdr(revision)).build();
     }
 
     @Override
     public AdrMeta updateAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException {
-        requireAdr(adrMeta);
+        return writeNextRevision(adrMeta, true);
+    }
+
+    @Override
+    public AdrMeta createAdrRevision(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException, AdrRevisionExistsException {
+        return writeNextRevision(adrMeta, false);
+    }
+
+    private AdrMeta writeNextRevision(AdrMeta adrMeta, boolean keepLatestStatus) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException, AdrRevisionExistsException {
+        String slug = requireAdr(adrMeta);
         AdrMeta latest = latestRevision(adrMeta);
 
+        Status status = keepLatestStatus || adrMeta.getAdr().getStatus() == null
+                ? latest.getAdr().getStatus()
+                : adrMeta.getAdr().getStatus();
         AdrMeta newAdrMeta = new AdrMeta.AdrMetaBuilder(adrMeta)
+                .setSlug(slug)
                 .setAdr(new Adr.AdrBuilder(adrMeta.getAdr())
-                        .setStatus(latest.getAdr().getStatus())
+                        .setStatus(status)
                         .setCreationDateTime(latest.getAdr().getCreationDateTime())
                         .build())
                 .setRevision(latest.getRevision() + 1)
@@ -192,10 +249,11 @@ public class NitriteAdrStore implements AdrStore {
 
     @Override
     public AdrMeta updateAdrStatus(AdrMeta adrMeta, Status status) throws AdrNotFoundException, NamespaceNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException {
-        requireAdr(adrMeta);
+        String slug = requireAdr(adrMeta);
         AdrMeta latest = latestRevision(adrMeta);
 
         AdrMeta newRevision = new AdrMeta.AdrMetaBuilder(latest)
+                .setSlug(slug)
                 .setRevision(latest.getRevision() + 1)
                 .setAdr(new Adr.AdrBuilder(latest.getAdr()).setStatus(status).build())
                 .build();
@@ -278,12 +336,50 @@ public class NitriteAdrStore implements AdrStore {
         }
     }
 
-    private void requireAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {
+    /**
+     * @return the ADR's slug, or {@code null} for a header the slug migration has not reached
+     * @throws AdrNotFoundException if the ADR does not exist
+     */
+    private String requireAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {
         namespaceStore.requireNamespace(adrMeta.getNamespace());
-        if (!documentStore.headerExists(adrMeta.getNamespace(), adrMeta.getId())) {
+        Document header = headerCollection.find(Filter.and(
+                where(NAMESPACE_FIELD).eq(adrMeta.getNamespace()), where(ID_FIELD).eq(adrMeta.getId()))).firstOrNull();
+        if (header == null) {
             LOG.warn("ADR with ID {} not found in namespace '{}'", adrMeta.getId(), adrMeta.getNamespace());
             throw new AdrNotFoundException();
         }
+        return header.get(SLUG_FIELD, String.class);
+    }
+
+    @Override
+    public int getAdrIdBySlug(String namespace, String slug) throws NamespaceNotFoundException, AdrNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        Document header = headerCollection.find(Filter.and(
+                where(NAMESPACE_FIELD).eq(namespace), where(SLUG_FIELD).eq(slug))).firstOrNull();
+        Integer adrId = header == null ? null : header.get(ID_FIELD, Integer.class);
+        if (adrId == null) {
+            throw new AdrNotFoundException();
+        }
+        return adrId;
+    }
+
+    @Override
+    public List<AdrSlugMapping> getAdrSlugs(String namespace) throws NamespaceNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        return listSlugs(namespace);
+    }
+
+    private List<AdrSlugMapping> listSlugs(String namespace) {
+        List<AdrSlugMapping> slugs = new ArrayList<>();
+        for (Document header : headerCollection.find(where(NAMESPACE_FIELD).eq(namespace))) {
+            String slug = header.get(SLUG_FIELD, String.class);
+            Integer adrId = header.get(ID_FIELD, Integer.class);
+            if (slug != null && adrId != null) {
+                slugs.add(new AdrSlugMapping(slug, adrId));
+            }
+        }
+        slugs.sort(Comparator.comparingInt(AdrSlugMapping::adrId));
+        return slugs;
     }
 
     @Override

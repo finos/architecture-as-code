@@ -152,6 +152,15 @@ describe('promptForDocumentId', () => {
         });
     });
 
+    it('defaults an ADR to revision 1 and builds an adrs $id', async () => {
+        queueAnswers([], ['https://hub.example.com', '1', 'finos', 'use-oauth2']);
+
+        const result = await promptForDocumentId({ documentType: 'adr' });
+
+        expect(mocks.input.mock.calls[1][0].default).toBe('1');
+        expect(result.id).toBe('https://hub.example.com/calm/namespaces/finos/adrs/use-oauth2/versions/1');
+    });
+
     it('offers only the control scopes for a control document', async () => {
         queueAnswers(['requirement'], ['https://hub.example.com', '1.0.0', 'security', 'access-control']);
 

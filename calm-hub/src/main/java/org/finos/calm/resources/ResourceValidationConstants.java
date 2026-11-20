@@ -31,6 +31,13 @@ public class ResourceValidationConstants {
             "^((0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(" + ResourceVersion.SNAPSHOT_SUFFIX + ")?|[0-9a-f]{7,40})$";
     public static final String SNAPSHOT_VERSION_OR_SHA_MESSAGE =
             "version must be semver (e.g. 1.0.0 or 1.0.0-SNAPSHOT) or a hex SHA (7-40 chars)";
+    // ADR revisions are positive integers. The name-based read also accepts a hex SHA,
+    // which is what GitHub-backed storage lists as an ADR version.
+    public static final String ADR_REVISION_REGEX = "^[1-9][0-9]*$";
+    public static final String ADR_REVISION_MESSAGE = "revision must match pattern '^[1-9][0-9]*$'";
+    public static final String ADR_REVISION_OR_SHA_REGEX = "^([1-9][0-9]*|[0-9a-f]{7,40})$";
+    public static final String ADR_REVISION_OR_SHA_MESSAGE =
+            "revision must be a positive integer (e.g. 3) or a hex SHA (7-40 chars)";
     /** Temporary narrative document types pending a shared Java-consumable contract. */
     public static final Set<String> NARRATIVE_DOCUMENT_TYPES = Set.of("knowledge", "sad");
     // First character must be a letter so slugs are never purely numeric (avoids clash with legacy numeric IDs).

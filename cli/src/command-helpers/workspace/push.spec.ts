@@ -564,10 +564,10 @@ describe('pushWorkspaceToHub', () => {
         expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
     });
 
-    it('skips documents whose $id type has no ResourceType (e.g. adrs)', async () => {
+    it('skips ADR documents, which have no semver version', async () => {
         await writeFile(
             path.join(filesPath, 'adr.json'),
-            JSON.stringify({ $id: mappingId('my-adr', '1.0.0', 'adrs'), title: 'My ADR' })
+            JSON.stringify({ $id: mappingId('my-adr', '1', 'adrs'), title: 'My ADR' })
         );
         await saveManifest(bundlePath, {
             'adr': { path: 'files/adr.json', type: 'adr', namespace: 'com.example' }

@@ -130,6 +130,7 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
             case STANDARD -> RegistryResourceType.STANDARD;
             case INTERFACE -> RegistryResourceType.INTERFACE;
             case TIMELINE -> RegistryResourceType.TIMELINE;
+            case ADR -> RegistryResourceType.ADR;
         };
     }
 

@@ -55,6 +55,15 @@ public class TestMappingControllerResourcePutShould {
     }
 
     @Test
+    void return_400_pointing_to_the_adr_endpoints_when_putting_an_adr() {
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "adrs", "use-kafka", "1.0.0", "Use Kafka"))
+                .when().put("/calm")
+                .then().statusCode(400)
+                .body(containsString("POST /calm/namespaces/{namespace}/adrs"));
+    }
+
+    @Test
     void return_201_when_updating_existing_pattern() throws Exception {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway")

@@ -59,6 +59,22 @@ The type segment is not case-sensitive in a request, so `Architectures` and `arc
 
 Writes to the name-based API require a top-level `"title"` field in the document body (or `"name"` for a flow), including for timelines.
 
+The same paths serve patterns, flows, standards, interfaces and ADRs.
+
+ADRs differ in three ways. The name is a slug the hub derives from the first title (or the
+`slug` you send), and it never changes. Versions are integer revisions that the hub assigns.
+Bodies use the kebab-case `adr.json` shape, where `decision-outcome.chosen-option` is the name
+of one of the `considered-options`.
+
+```
+POST /calm/namespaces/{namespace}/adrs            # create; 409 if the requested slug is taken
+POST /calm/namespaces/{namespace}/adrs/{slug}     # add a revision, status included
+GET  /calm/namespaces/{namespace}/adrs/{slug}     # latest revision
+GET  /calm/namespaces/{namespace}/adrs/{slug}/versions/{revision}
+```
+
+In GitHub mode, ADRs are the `.json` files under `adrs/`, and their versions are commit SHAs.
+
 The full endpoint list with request/response schemas is visible in the Swagger UI at `/q/swagger-ui`.
 
 ### Finding the architectures that implement a pattern

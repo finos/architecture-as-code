@@ -151,6 +151,37 @@ class TestMongoVersionDocumentStoreShould {
     }
 
     @Test
+    void create_a_header_with_extra_fields_when_it_is_unique() {
+        boolean created = store.createHeaderIfUnique(NAMESPACE, RESOURCE_ID, "My ADR", null, java.util.Map.of("slug", "my-adr"));
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insertOne(captor.capture());
+        assertThat(created, is(true));
+        assertThat(captor.getValue().getString("slug"), is("my-adr"));
+        assertThat(captor.getValue().getInteger("versionCount"), is(0));
+    }
+
+    @Test
+    void report_a_header_a_unique_index_refuses() {
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(headerCollection).insertOne(any(Document.class));
+
+        assertThat(store.createHeaderIfUnique(NAMESPACE, RESOURCE_ID, "My ADR", null, java.util.Map.of("slug", "a")),
+                is(false));
+    }
+
+    @Test
+    void translate_any_other_write_failure_when_creating_a_unique_header() {
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(headerCollection).insertOne(any(Document.class));
+
+        assertThrows(StorageWriteException.class,
+                () -> store.createHeaderIfUnique(NAMESPACE, RESOURCE_ID, "My ADR", null, java.util.Map.of()));
+    }
+
+    @Test
     void translate_a_write_failure_when_creating_a_header() {
         doAnswer(invocation -> {
             throw writeError(10334, "object to insert too large");

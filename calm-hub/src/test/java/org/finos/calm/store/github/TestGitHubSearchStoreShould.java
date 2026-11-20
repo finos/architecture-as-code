@@ -24,6 +24,7 @@ import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.times;
@@ -120,16 +121,20 @@ class TestGitHubSearchStoreShould {
     }
 
     @Test
-    void not_return_adrs_because_the_adr_store_cannot_serve_them() {
-        // GitHubAdrStore 404s every per-ADR lookup, so a hit here would be an id that leads nowhere.
-        RegistryEntry adr = new RegistryEntry("payment-decision", Path.of("adrs/payment-decision.md"),
-                RegistryResourceType.ADR, "Payment Decision", Instant.now());
+    void return_json_adrs_but_not_markdown_ones_the_adr_store_cannot_serve() {
+        RegistryEntry json = new RegistryEntry("payment-decision", Path.of("adrs/payment-decision.json"),
+                RegistryResourceType.ADR, "payment-decision", Instant.now());
+        RegistryEntry markdown = new RegistryEntry("payment-notes", Path.of("adrs/payment-notes.md"),
+                RegistryResourceType.ADR, "payment notes", Instant.now());
         when(registryService.getSnapshot()).thenReturn(
-                new RegistrySnapshot(Map.of("finos", List.of(adr)), Map.of()));
+                new RegistrySnapshot(Map.of("finos", List.of(json, markdown)), Map.of()));
 
         GroupedSearchResults result = store.search("payment", Optional.empty(), Optional.empty());
 
-        assertThat(result.getAdrs(), is(empty()));
+        assertThat(result.getAdrs(), hasSize(1));
+        assertThat(result.getAdrs().get(0).getName(), is("payment-decision"));
+        assertThat(result.getAdrs().get(0).getId(), is("payment-decision".hashCode() & 0x7FFFFFFF));
+        assertThat(result.getAdrs().get(0).getNamespace(), is("finos"));
     }
 
     @Test

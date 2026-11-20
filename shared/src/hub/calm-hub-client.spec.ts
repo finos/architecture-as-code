@@ -1205,6 +1205,87 @@ describe('CalmHubClient', () => {
         });
     });
 
+    // ── ADRs ──────────────────────────────────────────────────────────────────
+
+    describe('ADRs', () => {
+        const adr = { title: 'Use OAuth2', status: 'draft', 'context-and-problem-statement': 'We need auth' };
+
+        it('lists ADR slugs', async () => {
+            mock.onGet('/calm/namespaces/finos/adrs').reply(200, {
+                values: [{ customId: 'use-oauth2', numericId: 1 }, { customId: 'adr-2', numericId: 2 }]
+            });
+            expect(await client.listAdrs('finos')).toEqual(['use-oauth2', 'adr-2']);
+        });
+
+        it('lists ADR revisions, and returns [] for an unknown ADR', async () => {
+            mock.onGet('/calm/namespaces/finos/adrs/use-oauth2/versions').reply(200, { values: ['1', '2', '10'] });
+            mock.onGet('/calm/namespaces/finos/adrs/missing/versions').reply(404, 'Not found');
+            expect(await client.getAdrRevisions('finos', 'use-oauth2')).toEqual(['1', '2', '10']);
+            expect(await client.getAdrRevisions('finos', 'missing')).toEqual([]);
+        });
+
+        it('gets the latest revision when no revision is given', async () => {
+            mock.onGet('/calm/namespaces/finos/adrs/use-oauth2').reply(200, { ...adr, slug: 'use-oauth2' });
+            expect(await client.getAdr('finos', 'use-oauth2')).toEqual({ ...adr, slug: 'use-oauth2' });
+        });
+
+        it('gets a specific revision', async () => {
+            mock.onGet('/calm/namespaces/finos/adrs/use-oauth2/versions/3').reply(200, adr);
+            expect(await client.getAdr('finos', 'use-oauth2', '3')).toEqual(adr);
+        });
+
+        it('rejects a get response that is not an ADR object', async () => {
+            mock.onGet('/calm/namespaces/finos/adrs/use-oauth2').reply(200, '<html>please log in</html>');
+            await expect(client.getAdr('finos', 'use-oauth2')).rejects.toMatchObject({
+                status: 0,
+                request: 'GET /calm/namespaces/finos/adrs/use-oauth2'
+            });
+        });
+
+        it('throws HubClientError(404) for an unknown ADR', async () => {
+            mock.onGet('/calm/namespaces/finos/adrs/missing/versions/1').reply(404, 'Resource not found: missing');
+            await expect(client.getAdr('finos', 'missing', '1')).rejects.toMatchObject({
+                status: 404,
+                error: 'Resource not found: missing'
+            });
+        });
+
+        it('creates an ADR and returns the slug and revision that CALM Hub assigned', async () => {
+            mock.onPost('/calm/namespaces/finos/adrs', adr).reply(201, adr, {
+                location: 'http://localhost:8080/calm/namespaces/finos/adrs/use-oauth2/versions/1'
+            });
+            expect(await client.createAdr('finos', adr)).toEqual({
+                slug: 'use-oauth2',
+                revision: '1',
+                location: 'http://localhost:8080/calm/namespaces/finos/adrs/use-oauth2/versions/1'
+            });
+        });
+
+        it('updates an ADR and returns the new revision', async () => {
+            mock.onPost('/calm/namespaces/finos/adrs/use-oauth2', adr).reply(201, adr, {
+                location: '/calm/namespaces/finos/adrs/use-oauth2/versions/4'
+            });
+            expect(await client.updateAdr('finos', 'use-oauth2', adr)).toMatchObject({ slug: 'use-oauth2', revision: '4' });
+        });
+
+        it('rejects a write response without an ADR location', async () => {
+            mock.onPost('/calm/namespaces/finos/adrs').reply(201, adr);
+            await expect(client.createAdr('finos', adr)).rejects.toMatchObject({
+                status: 0,
+                request: 'POST /calm/namespaces/finos/adrs'
+            });
+        });
+
+        it('passes on a CALM Hub write error', async () => {
+            mock.onPost('/calm/namespaces/finos/adrs/use-oauth2').reply(400, 'chosen-option \'Nope\' is not a considered option');
+            await expect(client.updateAdr('finos', 'use-oauth2', adr)).rejects.toMatchObject({
+                status: 400,
+                error: 'chosen-option \'Nope\' is not a considered option',
+                request: 'POST /calm/namespaces/finos/adrs/use-oauth2'
+            });
+        });
+    });
+
     // ── auth plugin: domains/controls ─────────────────────────────────────────
 
     describe('auth plugin: domains/controls', () => {

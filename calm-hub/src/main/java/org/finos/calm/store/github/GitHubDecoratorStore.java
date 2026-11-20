@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * GitHub-mode {@link DecoratorStore}: like {@link GitHubAdrStore}, decorators have no
+ * GitHub-mode {@link DecoratorStore}: decorators have no
  * registry representation - no file convention exists to classify a decorator from a repo
  * checkout - so every lookup returns an empty result rather than guessing, and every write
  * is an unconditional {@link GitHubWriteNotSupportedException}. Extends only

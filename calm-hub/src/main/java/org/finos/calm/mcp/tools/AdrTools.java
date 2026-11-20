@@ -16,6 +16,8 @@ import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.store.AdrStore;
+
+import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +66,7 @@ public class AdrTools {
             return McpResponseFormatter.formatAdrList(namespace, summaries);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return ToolResponse.error("Error: Namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "' not found.");
         }
     }
 
@@ -89,10 +91,10 @@ public class AdrTools {
             return ToolResponse.success(OBJECT_MAPPER.writeValueAsString(result));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return ToolResponse.error("Error: Namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "' not found.");
         } catch (AdrNotFoundException e) {
             logger.warn("ADR [{}] not found in namespace [{}]", adrId, namespace, e);
-            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + namespace + "'.");
+            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "'.");
         } catch (AdrRevisionNotFoundException e) {
             logger.warn("No revisions found for ADR [{}] in namespace [{}]", adrId, namespace, e);
             return ToolResponse.error("Error: No revisions found for ADR " + adrId + ".");
@@ -126,10 +128,10 @@ public class AdrTools {
             return McpResponseFormatter.formatRevisionList("ADR", adrId, namespace, revisions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return ToolResponse.error("Error: Namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "' not found.");
         } catch (AdrNotFoundException e) {
             logger.warn("ADR [{}] not found in namespace [{}]", adrId, namespace, e);
-            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + namespace + "'.");
+            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "'.");
         } catch (AdrRevisionNotFoundException e) {
             logger.warn("No revisions found for ADR [{}] in namespace [{}]", adrId, namespace, e);
             return ToolResponse.error("Error: No revisions found for ADR " + adrId + ".");
@@ -160,10 +162,10 @@ public class AdrTools {
             return ToolResponse.success(OBJECT_MAPPER.writeValueAsString(result));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return ToolResponse.error("Error: Namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "' not found.");
         } catch (AdrNotFoundException e) {
             logger.warn("ADR [{}] not found in namespace [{}]", adrId, namespace, e);
-            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + namespace + "'.");
+            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "'.");
         } catch (AdrRevisionNotFoundException e) {
             logger.warn("Revision [{}] not found for ADR [{}] in namespace [{}]", revision, adrId, namespace, e);
             return ToolResponse.error("Error: Revision " + revision + " not found for ADR " + adrId + ".");
@@ -199,6 +201,7 @@ public class AdrTools {
 
             AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                     .setNamespace(namespace)
+                    .setSlug(newAdrRequest.getSlug())
                     .setRevision(1)
                     .setAdr(adr)
                     .build();
@@ -208,10 +211,13 @@ public class AdrTools {
             return ToolResponse.success("ADR created successfully with ID: " + result.getId() + " (revision 1) in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return ToolResponse.error("Error: Namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "' not found.");
         } catch (AdrParseException e) {
             logger.warn("ADR parse error in namespace [{}]", namespace, e);
             return ToolResponse.error("Error: Failed to parse ADR content. Check the JSON structure.");
+        } catch (AdrSlugExistsException e) {
+            logger.warn("ADR slug already exists in namespace [{}]", namespace, e);
+            return ToolResponse.error("Error: The requested slug already exists in namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "'. Choose a different slug or omit it to auto-generate.");
         } catch (Exception e) {
             logger.error("Unexpected error creating ADR in namespace [{}]", namespace, e);
             return ToolResponse.error("Error: Unexpected error creating ADR.");
@@ -251,10 +257,10 @@ public class AdrTools {
             return ToolResponse.success("ADR " + adrId + " updated successfully (revision " + result.getRevision() + ") in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return ToolResponse.error("Error: Namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "' not found.");
         } catch (AdrNotFoundException e) {
             logger.warn("ADR [{}] not found in namespace [{}]", adrId, namespace, e);
-            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + namespace + "'.");
+            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "'.");
         } catch (AdrRevisionNotFoundException e) {
             logger.warn("No revisions found for ADR [{}] in namespace [{}]", adrId, namespace, e);
             return ToolResponse.error("Error: No revisions found for ADR " + adrId + ".");
@@ -298,10 +304,10 @@ public class AdrTools {
             return ToolResponse.success("ADR " + adrId + " status updated to '" + adrStatus + "' in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
-            return ToolResponse.error("Error: Namespace '" + namespace + "' not found.");
+            return ToolResponse.error("Error: Namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "' not found.");
         } catch (AdrNotFoundException e) {
             logger.warn("ADR [{}] not found in namespace [{}]", adrId, namespace, e);
-            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + namespace + "'.");
+            return ToolResponse.error("Error: ADR " + adrId + " not found in namespace '" + STRICT_SANITIZATION_POLICY.sanitize(namespace) + "'.");
         } catch (AdrRevisionNotFoundException e) {
             logger.warn("No revisions found for ADR [{}] in namespace [{}]", adrId, namespace, e);
             return ToolResponse.error("Error: No revisions found for ADR " + adrId + ".");

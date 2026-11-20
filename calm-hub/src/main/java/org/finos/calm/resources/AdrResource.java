@@ -86,7 +86,9 @@ public class AdrResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Create ADR for namespace",
-            description = "Creates an ADR for a given namespace with an allocated ID and revision 1"
+            description = "Creates an ADR for a given namespace with an allocated ID and revision 1. "
+                    + "The ADR gets the optional requested slug if it is valid and free (409 if it is taken), "
+                    + "else a slug derived from the title."
     )
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createAdrForNamespace(
@@ -101,6 +103,7 @@ public class AdrResource {
 
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
+                .setSlug(newAdrRequest.getSlug())
                 .setRevision(1)
                 .setAdr(adr)
                 .build();
@@ -340,6 +343,7 @@ public class AdrResource {
                 AdrParseException.class, this::handleAdrParseException,
                 AdrPersistenceException.class, ex -> handleAdrPersistenceException(adrId, ex),
                 AdrRevisionExistsException.class, ex -> handleAdrRevisionExistsException(adrId, ex),
+                AdrSlugExistsException.class, this::handleAdrSlugExistsException,
                 StorageWriteException.class, ex -> storageWriteExceptionMapper.toResponse((StorageWriteException) ex)
         );
 
@@ -377,6 +381,11 @@ public class AdrResource {
     private Response handleAdrPersistenceException(int adrId, Exception ex) {
         logger.error("Could not persist update of ADR [{}]", adrId, ex);
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Could not persist update of ADR: [{}]:" + adrId).build();
+    }
+
+    private Response handleAdrSlugExistsException(Exception ex) {
+        logger.error("Requested ADR slug is already taken", ex);
+        return Response.status(Response.Status.CONFLICT).entity("The requested ADR slug already exists").build();
     }
 
     private Response handleAdrRevisionExistsException(int adrId, Exception ex) {

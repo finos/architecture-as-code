@@ -109,6 +109,11 @@ describe('expandCurie', () => {
         expect(result).toBe('http://hub.example.com/calm/namespaces/fae-calm/patterns/my-block/versions/a1b2c3d');
     });
 
+    it('expands an ADR CURIE with an integer revision to its canonical URL', () => {
+        expect(expandCurie('finos:adrs:use-oauth2@3', hubBaseUrl))
+            .toBe('http://hub.example.com/calm/namespaces/finos/adrs/use-oauth2/versions/3');
+    });
+
     it('throws when CURIE has no version', () => {
         expect(() => expandCurie('fae-calm:patterns:my-block', hubBaseUrl))
             .toThrow('requires a version for Hub resolution');

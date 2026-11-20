@@ -29,6 +29,8 @@ public class NitriteAdrIntegration {
 
     private final String TITLE = "<b>My ADR</b><script><img>";
     private final String EXPECTED_TITLE = "<b>My ADR</b>";
+    // Derived from the sanitised title, so the kept <b> tags become words.
+    private final String EXPECTED_SLUG = "b-my-adr-b";
     private final String PROBLEM_STATEMENT = "<a>My problem is...</a>";
     private final String EXPECTED_PROBLEM_STATEMENT = "My problem is...";
     private final List<String> DECISION_DRIVERS = List.of("a", "b", "c");
@@ -79,6 +81,7 @@ public class NitriteAdrIntegration {
         AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace("finos")
                 .setId(1)
+                .setSlug(EXPECTED_SLUG)
                 .setRevision(1)
                 .setAdr(adr)
                 .build();
@@ -107,6 +110,7 @@ public class NitriteAdrIntegration {
         AdrMeta expectedAdrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace("finos")
                 .setId(1)
+                .setSlug(EXPECTED_SLUG)
                 .setRevision(1)
                 .setAdr(adr)
                 .build();

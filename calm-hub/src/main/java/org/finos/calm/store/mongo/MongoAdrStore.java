@@ -3,25 +3,33 @@ package org.finos.calm.store.mongo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.AdrSlugMapping;
 import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.*;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.AdrStore;
 import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.util.AdrSlugAllocator;
 import org.finos.calm.store.util.MongoVersionDocumentStore;
 import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import io.quarkus.arc.lookup.LookupIfProperty;
 
 /**
@@ -53,6 +61,13 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  *       Hence {@code getLatestVersionContent}.</li>
  * </ul>
  *
+ * <h2>Slug</h2>
+ * Each header carries an immutable {@code slug}, the name the {@code /calm} API addresses the
+ * ADR by. A partial unique index on {@code (namespace, slug)} (see
+ * {@code MongoAdrSlugMigrationStep}) is the only thing that keeps slugs unique: a create
+ * inserts its header with a candidate slug and, if the index refuses it, tries the next
+ * suffix. There is no check-then-insert, so two concurrent creates cannot both win a slug.
+ *
  * <p>Consequence worth stating: listing a namespace's ADRs is no longer one document read.
  * It is one query for the headers plus two small ones per ADR to resolve and fetch the latest
  * revision. That is more round-trips and far fewer bytes — the old single read pulled every
@@ -68,18 +83,22 @@ public class MongoAdrStore implements AdrStore {
     private static final String VERSION_COLLECTION = "adrVersions";
     private static final String ID_FIELD = "adrId";
     private static final String RESOURCE_LABEL = "ADR";
+    private static final String NAMESPACE_FIELD = "namespace";
+    private static final String SLUG_FIELD = "slug";
 
     private final MongoCounterStore counterStore;
     private final MongoNamespaceStore namespaceStore;
     private final MongoVersionDocumentStore documentStore;
+    private final MongoCollection<Document> headerCollection;
     private final ObjectMapper objectMapper;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     public MongoAdrStore(MongoDatabase database, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
         this.counterStore = counterStore;
         this.namespaceStore = namespaceStore;
+        this.headerCollection = database.getCollection(HEADER_COLLECTION);
         this.documentStore = new MongoVersionDocumentStore(
-                database.getCollection(HEADER_COLLECTION),
+                headerCollection,
                 database.getCollection(VERSION_COLLECTION),
                 ID_FIELD,
                 RESOURCE_LABEL,
@@ -92,9 +111,15 @@ public class MongoAdrStore implements AdrStore {
     public List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
+        Map<Integer, String> slugs = new HashMap<>();
+        for (AdrSlugMapping mapping : listSlugs(namespace)) {
+            slugs.put(mapping.adrId(), mapping.slug());
+        }
         List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (NamespaceResourceSummary header : documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED)) {
-            summaries.add(toAdrSummary(namespace, header.getId()));
+            NamespaceAdrSummary summary = toAdrSummary(namespace, header.getId());
+            summary.setSlug(slugs.get(header.getId()));
+            summaries.add(summary);
         }
         return summaries;
     }
@@ -137,7 +162,7 @@ public class MongoAdrStore implements AdrStore {
     }
 
     @Override
-    public AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException {
+    public AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException, AdrSlugExistsException {
         namespaceStore.requireNamespace(adrMeta.getNamespace());
 
         Document content = toContent(adrMeta);
@@ -147,17 +172,19 @@ public class MongoAdrStore implements AdrStore {
         // content — but the header still denormalizes a copy of the title, same as every
         // other versioned type's header carries its display name. See
         // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md.
-        documentStore.createHeader(adrMeta.getNamespace(), id, headerTitle(adrMeta), null);
+        String slug = AdrSlugAllocator.allocate(adrMeta.getSlug(), adrMeta.getAdr().getTitle(), id,
+                candidate -> documentStore.createHeaderIfUnique(adrMeta.getNamespace(), id,
+                        headerTitle(adrMeta), null, Map.of(SLUG_FIELD, candidate)));
         documentStore.createFirstVersion(adrMeta.getNamespace(), id,
                 String.valueOf(adrMeta.getRevision()), content);
 
-        return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).build();
+        return new AdrMeta.AdrMetaBuilder(adrMeta).setId(id).setSlug(slug).build();
     }
 
     @Override
     public AdrMeta getAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
-        requireAdr(adrMeta);
-        return latestRevision(adrMeta);
+        String slug = requireAdr(adrMeta);
+        return new AdrMeta.AdrMetaBuilder(latestRevision(adrMeta)).setSlug(slug).build();
     }
 
     @Override
@@ -176,7 +203,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public AdrMeta getAdrRevision(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
-        requireAdr(adrMeta);
+        String slug = requireAdr(adrMeta);
 
         Document revision = documentStore.getVersion(
                 adrMeta.getNamespace(), adrMeta.getId(), String.valueOf(adrMeta.getRevision()));
@@ -184,17 +211,30 @@ public class MongoAdrStore implements AdrStore {
         if (revision == null) {
             throw new AdrRevisionNotFoundException();
         }
-        return new AdrMeta.AdrMetaBuilder(adrMeta).setAdr(toAdr(revision)).build();
+        return new AdrMeta.AdrMetaBuilder(adrMeta).setSlug(slug).setAdr(toAdr(revision)).build();
     }
 
     @Override
     public AdrMeta updateAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException {
-        requireAdr(adrMeta);
+        return writeNextRevision(adrMeta, true);
+    }
+
+    @Override
+    public AdrMeta createAdrRevision(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException, AdrRevisionExistsException {
+        return writeNextRevision(adrMeta, false);
+    }
+
+    private AdrMeta writeNextRevision(AdrMeta adrMeta, boolean keepLatestStatus) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException, AdrRevisionExistsException {
+        String slug = requireAdr(adrMeta);
         AdrMeta latest = latestRevision(adrMeta);
 
+        Status status = keepLatestStatus || adrMeta.getAdr().getStatus() == null
+                ? latest.getAdr().getStatus()
+                : adrMeta.getAdr().getStatus();
         AdrMeta newAdrMeta = new AdrMeta.AdrMetaBuilder(adrMeta)
+                .setSlug(slug)
                 .setAdr(new Adr.AdrBuilder(adrMeta.getAdr())
-                        .setStatus(latest.getAdr().getStatus())
+                        .setStatus(status)
                         .setCreationDateTime(latest.getAdr().getCreationDateTime())
                         .build())
                 .setRevision(latest.getRevision() + 1)
@@ -206,10 +246,11 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public AdrMeta updateAdrStatus(AdrMeta adrMeta, Status status) throws AdrNotFoundException, NamespaceNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException {
-        requireAdr(adrMeta);
+        String slug = requireAdr(adrMeta);
         AdrMeta latest = latestRevision(adrMeta);
 
         AdrMeta newRevision = new AdrMeta.AdrMetaBuilder(latest)
+                .setSlug(slug)
                 .setRevision(latest.getRevision() + 1)
                 .setAdr(new Adr.AdrBuilder(latest.getAdr()).setStatus(status).build())
                 .build();
@@ -295,11 +336,54 @@ public class MongoAdrStore implements AdrStore {
         }
     }
 
-    private void requireAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {
+    /**
+     * @return the ADR's slug, or {@code null} for a header the slug migration has not reached
+     * @throws AdrNotFoundException if the ADR does not exist
+     */
+    private String requireAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {
         namespaceStore.requireNamespace(adrMeta.getNamespace());
-        if (!documentStore.headerExists(adrMeta.getNamespace(), adrMeta.getId())) {
+        Document header = headerCollection.find(Filters.and(
+                        Filters.eq(NAMESPACE_FIELD, adrMeta.getNamespace()), Filters.eq(ID_FIELD, adrMeta.getId())))
+                .projection(Projections.include(SLUG_FIELD))
+                .first();
+        if (header == null) {
             throw new AdrNotFoundException();
         }
+        return header.getString(SLUG_FIELD);
+    }
+
+    @Override
+    public int getAdrIdBySlug(String namespace, String slug) throws NamespaceNotFoundException, AdrNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        Document header = headerCollection.find(Filters.and(
+                        Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(SLUG_FIELD, slug)))
+                .projection(Projections.include(ID_FIELD))
+                .first();
+        if (header == null || header.getInteger(ID_FIELD) == null) {
+            throw new AdrNotFoundException();
+        }
+        return header.getInteger(ID_FIELD);
+    }
+
+    @Override
+    public List<AdrSlugMapping> getAdrSlugs(String namespace) throws NamespaceNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        return listSlugs(namespace);
+    }
+
+    private List<AdrSlugMapping> listSlugs(String namespace) {
+        List<AdrSlugMapping> slugs = new ArrayList<>();
+        headerCollection.find(Filters.eq(NAMESPACE_FIELD, namespace))
+                .projection(Projections.include(ID_FIELD, SLUG_FIELD))
+                .sort(Sorts.ascending(ID_FIELD))
+                .forEach(header -> {
+                    String slug = header.getString(SLUG_FIELD);
+                    Integer adrId = header.getInteger(ID_FIELD);
+                    if (slug != null && adrId != null) {
+                        slugs.add(new AdrSlugMapping(slug, adrId));
+                    }
+                });
+        return slugs;
     }
 
     @Override

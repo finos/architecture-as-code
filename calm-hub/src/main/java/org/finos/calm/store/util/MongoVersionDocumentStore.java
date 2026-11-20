@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Shared MongoDB access for the header/version document shape: one <em>header</em>
@@ -167,19 +168,46 @@ public class MongoVersionDocumentStore {
      * atomic counter before this is called, so there is no race to lose.</p>
      */
     public void createHeader(String namespace, int resourceId, String name, String description) {
+        try {
+            headerCollection.insertOne(newHeader(namespace, resourceId, name, description, Map.of()));
+        } catch (MongoWriteException e) {
+            LOG.error("Failed to create header [namespace={}, {}={}]", namespace, idField, resourceId, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
+        }
+    }
+
+    /**
+     * As {@link #createHeader}, with {@code extraFields} added to the header, for a type that
+     * keeps a type-specific field under its own unique index (ADR's slug).
+     *
+     * @return {@code false} if a unique index refused the header; the caller decides what
+     * that means.
+     */
+    public boolean createHeaderIfUnique(String namespace, int resourceId, String name, String description,
+                                        Map<String, Object> extraFields) {
+        try {
+            headerCollection.insertOne(newHeader(namespace, resourceId, name, description, extraFields));
+            return true;
+        } catch (MongoWriteException e) {
+            if (e.getError().getCategory() == ErrorCategory.DUPLICATE_KEY) {
+                return false;
+            }
+            LOG.error("Failed to create header [namespace={}, {}={}]", namespace, idField, resourceId, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
+        }
+    }
+
+    private Document newHeader(String namespace, int resourceId, String name, String description,
+                               Map<String, Object> extraFields) {
         Document header = new Document(NAMESPACE_FIELD, namespace)
                 .append(idField, resourceId)
                 .append(NAME_FIELD, name)
                 .append(DESCRIPTION_FIELD, description)
                 .append(VERSION_COUNT_FIELD, 0)
                 .append(METADATA_FIELD, new Document());
+        header.putAll(extraFields);
         addDiscriminator(header);
-        try {
-            headerCollection.insertOne(header);
-        } catch (MongoWriteException e) {
-            LOG.error("Failed to create header [namespace={}, {}={}]", namespace, idField, resourceId, e);
-            throw MongoWriteFailures.toStorageWriteException(e);
-        }
+        return header;
     }
 
     /**

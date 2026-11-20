@@ -96,6 +96,25 @@ class TestNitriteVersionDocumentStoreShould {
     // --- createHeader ---
 
     @Test
+    void create_a_header_with_extra_fields_when_it_is_unique() {
+        boolean created = store.createHeaderIfUnique(NAMESPACE, RESOURCE_ID, "My ADR", null, java.util.Map.of("slug", "my-adr"));
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insert(captor.capture());
+        assertThat(created, is(true));
+        assertThat(captor.getValue().get("slug", String.class), is("my-adr"));
+    }
+
+    @Test
+    void report_a_header_a_unique_index_refuses() {
+        when(headerCollection.insert(any(Document.class)))
+                .thenThrow(new org.dizitart.no2.exceptions.UniqueConstraintException("duplicate"));
+
+        assertThat(store.createHeaderIfUnique(NAMESPACE, RESOURCE_ID, "My ADR", null, java.util.Map.of("slug", "a")),
+                is(false));
+    }
+
+    @Test
     void create_a_header_with_a_zero_version_count_and_empty_metadata() {
         store.createHeader(NAMESPACE, RESOURCE_ID, "My Architecture", "A description");
 

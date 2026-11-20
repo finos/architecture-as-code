@@ -16,6 +16,7 @@ import {
     HubClientError,
     extractDocumentMetadata,
     isSnapshotVersion,
+    hasIntegerRevisions,
     initLogger,
     Logger,
 } from '@finos/calm-shared';
@@ -286,6 +287,10 @@ async function pushMappingEntry(
     }
     if (!namespace) {
         logger.warn(`Skipping '${id}': document $id has no namespace.`);
+        return;
+    }
+    if (hasIntegerRevisions(resourceType)) {
+        logger.warn(`Skipping '${id}': ADRs are not pushed through the versioned mapping API.`);
         return;
     }
 

@@ -17,11 +17,14 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
+import org.finos.calm.domain.adr.AdrSlugMapping;
 import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.AdrRevisionExistsException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
+import org.finos.calm.domain.exception.AdrSlugExistsException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -481,5 +484,192 @@ public class TestMongoAdrStoreShould {
         when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
 
         assertThrows(AdrNotFoundException.class, () -> store.deleteAdr(NAMESPACE, ADR_ID));
+    }
+
+    // --- slugs ---
+
+    private void createSucceeds() {
+        when(counterStore.getNextAdrSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+    }
+
+    private List<String> slugsOfInsertedHeaders() {
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection, Mockito.atLeastOnce()).insertOne(headerCaptor.capture());
+        return headerCaptor.getAllValues().stream().map(header -> header.getString("slug")).toList();
+    }
+
+    @Test
+    void derive_the_slug_from_the_title_on_create() throws Exception {
+        createSucceeds();
+
+        AdrMeta created = store.createAdrForNamespace(adrMeta(1, adr("Use OAuth 2.0", Status.draft)));
+
+        assertThat(created.getSlug(), is("use-oauth-2-0"));
+        assertThat(slugsOfInsertedHeaders(), contains("use-oauth-2-0"));
+    }
+
+    @Test
+    void fall_back_to_the_numeric_id_when_the_title_gives_no_slug() throws Exception {
+        createSucceeds();
+
+        assertThat(store.createAdrForNamespace(adrMeta(1, adr("2024", Status.draft))).getSlug(), is("adr-99"));
+    }
+
+    @Test
+    void use_a_valid_requested_slug() throws Exception {
+        createSucceeds();
+        AdrMeta request = new AdrMeta.AdrMetaBuilder(adrMeta(1, adr("Use Kafka", Status.draft)))
+                .setSlug("event-streaming").build();
+
+        assertThat(store.createAdrForNamespace(request).getSlug(), is("event-streaming"));
+    }
+
+    @Test
+    void take_the_next_suffix_when_the_unique_index_refuses_a_derived_slug() throws Exception {
+        createSucceeds();
+        // The first two candidates lose to ADRs already holding them; the index says so.
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).doAnswer(invocation -> null).when(headerCollection).insertOne(any(Document.class));
+
+        AdrMeta created = store.createAdrForNamespace(adrMeta(1, adr("Use Kafka", Status.draft)));
+
+        assertThat(created.getSlug(), is("use-kafka-3"));
+        assertThat(slugsOfInsertedHeaders(), contains("use-kafka", "use-kafka-2", "use-kafka-3"));
+    }
+
+    @Test
+    void refuse_a_requested_slug_that_is_taken() {
+        when(counterStore.getNextAdrSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(headerCollection).insertOne(any(Document.class));
+        AdrMeta request = new AdrMeta.AdrMetaBuilder(adrMeta(1, adr("Use Kafka", Status.draft)))
+                .setSlug("taken").build();
+
+        assertThrows(AdrSlugExistsException.class, () -> store.createAdrForNamespace(request));
+        verifyNoInteractions(versionCollection);
+    }
+
+    @Test
+    void report_any_other_header_write_failure_as_a_storage_failure() {
+        when(counterStore.getNextAdrSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(10334, "too large");
+        }).when(headerCollection).insertOne(any(Document.class));
+
+        assertThrows(StorageWriteException.class,
+                () -> store.createAdrForNamespace(adrMeta(1, adr("Use Kafka", Status.draft))));
+    }
+
+    @Test
+    void return_the_slug_with_the_adr() throws Exception {
+        stubFind(headerCollection, List.of(new Document("adrId", ADR_ID).append("slug", "use-kafka")));
+        stubRevisions(List.of("1"), contentOf("Use Kafka", Status.draft));
+
+        assertThat(store.getAdr(adrMeta(1, null)).getSlug(), is("use-kafka"));
+        assertThat(store.getAdrRevision(adrMeta(1, null)).getSlug(), is("use-kafka"));
+    }
+
+    @Test
+    void resolve_a_slug_to_its_adr_id() throws Exception {
+        stubFind(headerCollection, List.of(new Document("adrId", ADR_ID).append("slug", "use-kafka")));
+
+        assertThat(store.getAdrIdBySlug(NAMESPACE, "use-kafka"), is(ADR_ID));
+    }
+
+    @Test
+    void throw_an_adr_exception_for_an_unknown_slug() {
+        stubFind(headerCollection, List.of());
+
+        assertThrows(AdrNotFoundException.class, () -> store.getAdrIdBySlug(NAMESPACE, "missing"));
+    }
+
+    @Test
+    void throw_an_adr_exception_for_a_slug_on_a_header_with_no_id() {
+        stubFind(headerCollection, List.of(new Document("slug", "use-kafka")));
+
+        assertThrows(AdrNotFoundException.class, () -> store.getAdrIdBySlug(NAMESPACE, "use-kafka"));
+    }
+
+    @Test
+    void list_slugs_skipping_headers_without_one() throws Exception {
+        stubFind(headerCollection, List.of(
+                new Document("adrId", 1).append("slug", "first"),
+                new Document("adrId", 2),
+                new Document("slug", "no-id"),
+                new Document("adrId", 3).append("slug", "third")));
+
+        assertThat(store.getAdrSlugs(NAMESPACE),
+                contains(new AdrSlugMapping("first", 1), new AdrSlugMapping("third", 3)));
+    }
+
+    @Test
+    void throw_a_namespace_exception_for_slug_lookups_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getAdrIdBySlug(NAMESPACE, "a"));
+        assertThrows(NamespaceNotFoundException.class, () -> store.getAdrSlugs(NAMESPACE));
+    }
+
+    @Test
+    void include_the_slug_in_namespace_summaries() throws Exception {
+        stubFind(headerCollection, List.of(new Document("adrId", ADR_ID).append("slug", "use-kafka")));
+        stubRevisions(List.of("1"), contentOf("Use Kafka", Status.accepted));
+
+        assertThat(store.getAdrsForNamespace(NAMESPACE),
+                contains(new NamespaceAdrSummary("Use Kafka", "accepted", ADR_ID, "use-kafka")));
+    }
+
+    // --- createAdrRevision ---
+
+    @Test
+    void take_the_status_from_the_content_on_a_new_revision() throws Exception {
+        adrExists();
+        stubRevisions(List.of("1"), contentOf("Existing", Status.draft));
+
+        AdrMeta created = store.createAdrRevision(adrMeta(1, adr("Rewritten", Status.accepted)));
+
+        assertThat(created.getRevision(), is(2));
+        assertThat(created.getAdr().getStatus(), is(Status.accepted));
+    }
+
+    @Test
+    void keep_the_latest_status_when_a_new_revision_has_none() throws Exception {
+        adrExists();
+        stubRevisions(List.of("1"), contentOf("Existing", Status.proposed));
+
+        assertThat(store.createAdrRevision(adrMeta(1, adr("Rewritten", null))).getAdr().getStatus(),
+                is(Status.proposed));
+    }
+
+    // --- name-based version labels (AdrStore defaults) ---
+
+    @Test
+    void list_revisions_as_version_labels() throws Exception {
+        adrExists();
+        stubRevisions(List.of("2", "10"), null);
+
+        assertThat(store.getAdrVersions(NAMESPACE, ADR_ID), contains("2", "10"));
+    }
+
+    @Test
+    void read_a_revision_by_its_version_label() throws Exception {
+        adrExists();
+        stubRevisions(List.of("1"), contentOf("Specific", Status.proposed));
+
+        AdrMeta revision = store.getAdrForVersion(NAMESPACE, ADR_ID, "1");
+
+        assertThat(revision.getRevision(), is(1));
+        assertThat(store.getVersionLabel(revision), is("1"));
+    }
+
+    @Test
+    void throw_a_revision_exception_for_a_non_numeric_version_label() {
+        assertThrows(AdrRevisionNotFoundException.class, () -> store.getAdrForVersion(NAMESPACE, ADR_ID, "abc1234"));
     }
 }

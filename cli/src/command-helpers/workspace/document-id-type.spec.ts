@@ -12,6 +12,7 @@ describe('document-id-type', () => {
             ['standards', 'schema'],
             ['interfaces', 'interface'],
             ['timelines', 'timeline'],
+            ['adrs', 'adr'],
         ])('maps a %s $id to the %s document type', (resourceType, documentType) => {
             expect(documentTypeForDocumentId(namespaceId(resourceType))).toBe(documentType);
         });
@@ -22,7 +23,6 @@ describe('document-id-type', () => {
         });
 
         it('returns undefined for an id that is not a conformant CalmHub id', () => {
-            expect(documentTypeForDocumentId(namespaceId('adrs'))).toBeUndefined();
             expect(documentTypeForDocumentId('https://calm.finos.org/samples/my-flow.json')).toBeUndefined();
         });
     });
@@ -32,21 +32,17 @@ describe('document-id-type', () => {
             expect(resourceTypeForDocumentType('flow')).toBe('flows');
             expect(resourceTypeForDocumentType('schema')).toBe('standards');
             expect(resourceTypeForDocumentType('timeline')).toBe('timelines');
+            expect(resourceTypeForDocumentType('adr')).toBe('adrs');
         });
 
         it('returns undefined for a document type with no namespace resource type', () => {
             expect(resourceTypeForDocumentType('control')).toBeUndefined();
-            expect(resourceTypeForDocumentType('adr')).toBeUndefined();
         });
     });
 
     describe('documentTypeHasIdType', () => {
-        it.each(['pattern', 'architecture', 'flow', 'schema', 'interface', 'timeline', 'control'] as const)('is true for %s', (type) => {
+        it.each(['pattern', 'architecture', 'flow', 'schema', 'interface', 'timeline', 'adr', 'control'] as const)('is true for %s', (type) => {
             expect(documentTypeHasIdType(type)).toBe(true);
-        });
-
-        it('is false for adr, which has no $id form', () => {
-            expect(documentTypeHasIdType('adr')).toBe(false);
         });
     });
 

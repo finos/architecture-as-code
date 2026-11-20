@@ -89,13 +89,14 @@ public class TestAdrResourceShould {
         return Stream.of(
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404, nullValue()),
                 Arguments.of("invalid", new AdrParseException(), 500, nullValue()),
+                Arguments.of("valid", new AdrSlugExistsException(), 409, nullValue()),
                 Arguments.of("valid", null, 201, containsString("/api/calm/namespaces/valid/adrs/12/revisions/1"))
         );
     }
 
     @ParameterizedTest
     @MethodSource("provideParametersForCreateAdrTests")
-    void respond_correctly_when_creating_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode, Matcher<?> locationHeader) throws NamespaceNotFoundException, AdrParseException {
+    void respond_correctly_when_creating_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode, Matcher<?> locationHeader) throws NamespaceNotFoundException, AdrParseException, AdrSlugExistsException {
         if (exceptionToThrow != null) {
             when(mockAdrStore.createAdrForNamespace(any(AdrMeta.class))).thenThrow(exceptionToThrow);
         } else {
@@ -125,6 +126,29 @@ public class TestAdrResourceShould {
                 .build();
 
         verify(mockAdrStore, times(1)).createAdrForNamespace(expectedAdrMeta);
+    }
+
+    @Test
+    void pass_the_requested_slug_and_new_fields_to_the_store_on_create() throws Exception {
+        when(mockAdrStore.createAdrForNamespace(any(AdrMeta.class))).thenReturn(SIMPLE_ADR_META);
+
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"title\": \"My ADR\", \"slug\": \"my-adr\", \"decisionDate\": \"2024-05-01\", "
+                        + "\"requesters\": [\"alice\"], \"approvers\": [\"bob\"]}")
+                .when()
+                .post("/api/calm/namespaces/finos/adrs")
+                .then()
+                .statusCode(201);
+
+        org.mockito.ArgumentCaptor<AdrMeta> captor = org.mockito.ArgumentCaptor.forClass(AdrMeta.class);
+        verify(mockAdrStore).createAdrForNamespace(captor.capture());
+        AdrMeta request = captor.getValue();
+        org.hamcrest.MatcherAssert.assertThat(request.getSlug(), org.hamcrest.Matchers.is("my-adr"));
+        org.hamcrest.MatcherAssert.assertThat(request.getAdr().getDecisionDate(),
+                org.hamcrest.Matchers.is(java.time.LocalDate.of(2024, 5, 1)));
+        org.hamcrest.MatcherAssert.assertThat(request.getAdr().getRequesters(), org.hamcrest.Matchers.is(java.util.List.of("alice")));
+        org.hamcrest.MatcherAssert.assertThat(request.getAdr().getApprovers(), org.hamcrest.Matchers.is(java.util.List.of("bob")));
     }
 
 //    //Update ADR Tests

@@ -501,8 +501,12 @@ describe('Document ID Utils', () => {
         });
 
         it('returns undefined for an unknown resource type or a non-conformant id', () => {
-            expect(resourceTypeFromDocumentId('https://example.com/calm/namespaces/finos/adrs/a/versions/1.0.0')).toBeUndefined();
+            expect(resourceTypeFromDocumentId('https://example.com/calm/namespaces/finos/widgets/a/versions/1.0.0')).toBeUndefined();
             expect(resourceTypeFromDocumentId('my-arch')).toBeUndefined();
+        });
+
+        it('returns adrs for a canonical ADR id with an integer revision', () => {
+            expect(resourceTypeFromDocumentId('https://example.com/calm/namespaces/finos/adrs/use-oauth2/versions/3')).toBe('adrs');
         });
     });
 

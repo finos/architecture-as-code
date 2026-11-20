@@ -171,7 +171,7 @@ public class GitHubControlStore implements ControlStore {
 
     // Control configurations have no registry representation - no file convention
     // exists to classify one from a repo checkout, the same shape of gap as
-    // GitHubAdrStore/GitHubDecoratorStore. These four are read (GET-backed) methods, so
+    // GitHubDecoratorStore. These four are read (GET-backed) methods, so
     // - unlike the write methods below, which correctly throw
     // GitHubWriteNotSupportedException - they answer "none exist" rather than claiming
     // writes are unsupported for a request that was never trying to write.

@@ -6,7 +6,7 @@ import { DocumentMetadata, extractDocumentMetadata, validateDocumentId } from '.
 import { ResourceType } from './resource-types.js';
 import { buildExtensionRequest, extensionProxyPath, HubExtension, HubExtensionRequest, HubExtensionRoute } from './extensions.js';
 
-export { ResourceType, RESOURCE_TYPES, isValidResourceType } from './resource-types.js';
+export { ResourceType, RESOURCE_TYPES, isValidResourceType, hasIntegerRevisions } from './resource-types.js';
 export type { HubExtension, HubExtensionCommand, HubExtensionRoute, HubExtensionRequest } from './extensions.js';
 export { buildExtensionRequest, extensionProxyPath, numberText } from './extensions.js';
 
@@ -83,6 +83,25 @@ export interface NarrativeDocumentRequest {
 export interface NarrativeDocumentVersion {
     documentMarkdown: string;
 }
+
+/** An ADR in the CALM `adr.json` (kebab-case) format that the name-based CALM Hub API sends and receives. */
+export interface HubAdrDocument {
+    $id?: string;
+    slug?: string;
+    title: string;
+    status: string;
+    'context-and-problem-statement': string;
+    [key: string]: unknown;
+}
+
+/** Where CALM Hub stored an ADR revision. */
+export interface HubAdrWriteResult {
+    slug: string;
+    revision: string;
+    location: string;
+}
+
+const ADR_LOCATION_PATTERN = /\/calm\/namespaces\/[^/]+\/adrs\/([^/]+)\/versions\/([^/]+)$/;
 
 export interface HubConventionSummary {
     id: number;
@@ -762,6 +781,61 @@ export class CalmHubClient {
         }
     }
     
+    // ── ADRs (name-based API) ───────────────────────────────────────────────
+
+    /** Lists the slugs of the ADRs in a namespace. */
+    async listAdrs(namespace: string): Promise<string[]> {
+        return this.getNamespaceMappings(namespace, 'adrs');
+    }
+
+    /** Lists the revisions of an ADR in ascending order, or [] if the ADR does not exist. */
+    async getAdrRevisions(namespace: string, slug: string): Promise<string[]> {
+        return this.getMappedResourceVersions(namespace, slug, 'adrs');
+    }
+
+    /**
+     * Gets an ADR in `adr.json` format.
+     * @param revision The revision to get. Omit it to get the latest revision.
+     */
+    async getAdr(namespace: string, slug: string, revision?: string): Promise<HubAdrDocument> {
+        const endpoint = revision === undefined
+            ? `/calm/namespaces/${namespace}/adrs/${slug}`
+            : `/calm/namespaces/${namespace}/adrs/${slug}/versions/${revision}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            if (!response.data || typeof response.data !== 'object' || Array.isArray(response.data)) {
+                throw new HubClientError(0, 'Unexpected response body from CALM Hub: expected an ADR object', `GET ${endpoint}`);
+            }
+            return response.data as HubAdrDocument;
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    /** Creates an ADR. CALM Hub assigns the slug from the document's `slug`, or else from its title. */
+    async createAdr(namespace: string, adr: HubAdrDocument): Promise<HubAdrWriteResult> {
+        return this.writeAdr(`/calm/namespaces/${namespace}/adrs`, adr);
+    }
+
+    /** Adds a revision to an existing ADR. */
+    async updateAdr(namespace: string, slug: string, adr: HubAdrDocument): Promise<HubAdrWriteResult> {
+        return this.writeAdr(`/calm/namespaces/${namespace}/adrs/${slug}`, adr);
+    }
+
+    private async writeAdr(endpoint: string, adr: HubAdrDocument): Promise<HubAdrWriteResult> {
+        try {
+            const response = await this.ax.post(endpoint, adr);
+            const location = response.headers.location as string | undefined;
+            const match = location ? ADR_LOCATION_PATTERN.exec(location) : null;
+            if (!location || !match) {
+                throw new HubClientError(0, `CALM Hub did not return the location of the ADR revision (Location: ${location ?? 'absent'})`, `POST ${endpoint}`);
+            }
+            return { slug: match[1], revision: match[2], location };
+        } catch (err) {
+            throw this.wrapError(err, `POST ${endpoint}`);
+        }
+    }
+
     /**
      * Extracts the `values` array from a Hub list-response body, treating an object with no
      * `values` key (or a genuinely absent body) as a legitimately empty list. Anything else -

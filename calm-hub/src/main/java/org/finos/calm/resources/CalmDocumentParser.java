@@ -35,18 +35,31 @@ public class CalmDocumentParser {
             "flows",         ResourceType.FLOW,
             "standards",     ResourceType.STANDARD,
             "interfaces",    ResourceType.INTERFACE,
-            "timelines",     ResourceType.TIMELINE
+            "timelines",     ResourceType.TIMELINE,
+            "adrs",          ResourceType.ADR
     );
 
     /** Maps {@link ResourceType} back to its plural URL segment. */
-    public static final Map<ResourceType, String> TYPE_PLURAL_MAP = Map.of(
-            ResourceType.PATTERN,      "patterns",
-            ResourceType.ARCHITECTURE, "architectures",
-            ResourceType.FLOW,         "flows",
-            ResourceType.STANDARD,     "standards",
-            ResourceType.INTERFACE,    "interfaces",
-            ResourceType.TIMELINE,     "timelines"
+    public static final Map<ResourceType, String> TYPE_PLURAL_MAP = Map.ofEntries(
+            Map.entry(ResourceType.PATTERN,      "patterns"),
+            Map.entry(ResourceType.ARCHITECTURE, "architectures"),
+            Map.entry(ResourceType.FLOW,         "flows"),
+            Map.entry(ResourceType.STANDARD,     "standards"),
+            Map.entry(ResourceType.INTERFACE,    "interfaces"),
+            Map.entry(ResourceType.TIMELINE,     "timelines"),
+            Map.entry(ResourceType.ADR,          "adrs")
     );
+
+    /**
+     * Why an ADR cannot be written through the {@code $id}-driven or semver endpoints: its
+     * revisions are integers the Hub assigns, and its slug comes from the title.
+     */
+    public static final String ADR_WRITE_MESSAGE = "ADRs are not written by $id or semantic version. "
+            + "Create an ADR with POST /calm/namespaces/{namespace}/adrs and add a revision with "
+            + "POST /calm/namespaces/{namespace}/adrs/{slug}";
+
+    /** The plural segments every name-based endpoint accepts, for error messages. */
+    public static final String SUPPORTED_TYPES = "patterns, architectures, flows, standards, interfaces, timelines, adrs";
 
     @ConfigProperty(name = "calm.hub.base-url", defaultValue = "http://localhost:8080")
     String baseUrl;
@@ -239,6 +252,9 @@ public class CalmDocumentParser {
         String name      = parts[2];
         String version   = parts[4];
 
+        if (TYPE_MAP.get(type.toLowerCase()) == ResourceType.ADR) {
+            throw new IllegalArgumentException(ADR_WRITE_MESSAGE);
+        }
         if (!namespace.matches(NAMESPACE_REGEX)) {
             throw new IllegalArgumentException("Invalid namespace in $id: " + namespace);
         }
@@ -258,7 +274,7 @@ public class CalmDocumentParser {
         if (resourceType == null) {
             throw new IllegalArgumentException(
                     "Unsupported resource type in $id: " + type
-                            + ". Supported: patterns, architectures, flows, standards, interfaces, timelines");
+                            + ". Supported: " + SUPPORTED_TYPES);
         }
         return new CanonicalId(namespace, resourceType, name, version);
     }

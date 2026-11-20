@@ -42,9 +42,14 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * Name-based resource controller for the CALM Hub.
  *
- * <p>Exposes CALM resources (patterns, architectures, flows, standards, interfaces, timelines) at
+ * <p>Exposes CALM resources (patterns, architectures, flows, standards, interfaces, timelines, ADRs) at
  * human-readable URLs under {@code /calm/namespaces/{namespace}/{type}/{name}}.  A mapping
  * from the friendly name to the underlying MongoDB numeric ID is maintained transparently.</p>
+ *
+ * <p>ADRs differ: the name is the ADR's slug, its versions are integer revisions the Hub
+ * assigns, and the documents are {@code adr.json} (kebab-case). They have their own routes
+ * with a literal {@code adrs} segment, which JAX-RS prefers over the generic {@code {type}}
+ * routes. The {@code $id}-driven and semver write endpoints reject ADRs.</p>
  *
  * <p>The document's {@code $id} drives the version. Three write endpoints are provided:</p>
  * <ul>
@@ -292,7 +297,10 @@ public class MappingControllerResource {
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)
-                            + ". Supported: patterns, architectures, flows, standards, interfaces, timelines").build();
+                            + ". Supported: " + CalmDocumentParser.SUPPORTED_TYPES).build();
+        }
+        if (resourceType == ResourceType.ADR) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(CalmDocumentParser.ADR_WRITE_MESSAGE).build();
         }
         if ("versions".equals(name)) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -456,6 +464,138 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
+    }
+
+    // =========================================================================
+    // ADRs — slug-addressed, integer revisions
+    // =========================================================================
+
+    // Explicit, though listNamedResources already serves it: a literal-segment template wins
+    // the match, so with only a POST on it a GET here could resolve to 405, not the list.
+    @GET
+    @Path("namespaces/{namespace}/adrs")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "List the ADRs in a namespace",
+            description = "Returns the slug-to-numeric-ID mappings for every ADR in the namespace."
+    )
+    @PermissionsAllowed(CalmHubScopes.READ)
+    public Response listAdrs(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
+    ) {
+        return listNamedResources(namespace, CalmDocumentParser.TYPE_PLURAL_MAP.get(ResourceType.ADR));
+    }
+
+    // The generic semver POST must refuse ADRs with a 400. Declared here for the same reason
+    // as listAdrs: the literal-segment GET below would otherwise win the match and 405.
+    @POST
+    @Path("namespaces/{namespace}/adrs/{slug}/versions/{version}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Not supported for ADRs",
+            description = "Always 400. Use POST /calm/namespaces/{namespace}/adrs/{slug} to add a revision."
+    )
+    @APIResponse(responseCode = "400", description = "ADR revisions are assigned by the Hub")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
+    public Response createAdrVersion(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("slug") String slug,
+            @PathParam("version") String version,
+            String requestBody
+    ) {
+        return Response.status(Response.Status.BAD_REQUEST).entity(CalmDocumentParser.ADR_WRITE_MESSAGE).build();
+    }
+
+    @POST
+    @Path("namespaces/{namespace}/adrs")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Create an ADR",
+            description = "The request body is an adr.json document. The ADR gets the document's slug if it has one "
+                    + "(409 if another ADR holds it), else a slug derived from the title. A document with no status "
+                    + "is created as draft. $id and unique-id are ignored. Returns the created document."
+    )
+    @APIResponse(responseCode = "201", description = "ADR created at revision 1")
+    @APIResponse(responseCode = "400", description = "Invalid document, or chosen-option names no considered option")
+    @APIResponse(responseCode = "404", description = "Namespace not found")
+    @APIResponse(responseCode = "409", description = "The requested slug is taken")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
+    public Response createAdr(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            String requestBody
+    ) throws URISyntaxException {
+        return service.createAdr(namespace, requestBody);
+    }
+
+    @POST
+    @Path("namespaces/{namespace}/adrs/{slug}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Add a revision to an ADR",
+            description = "The request body is an adr.json document, status included; it becomes the next revision "
+                    + "as given. A slug in the body must equal the slug in the path. Returns the new revision."
+    )
+    @APIResponse(responseCode = "201", description = "Revision created")
+    @APIResponse(responseCode = "400", description = "Invalid document")
+    @APIResponse(responseCode = "404", description = "Namespace or ADR not found")
+    @APIResponse(responseCode = "409", description = "A concurrent write created the same revision")
+    @PermissionsAllowed(CalmHubScopes.WRITE)
+    public Response createAdrRevision(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("slug") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String slug,
+            String requestBody
+    ) throws URISyntaxException {
+        return service.createAdrRevision(namespace, slug, requestBody);
+    }
+
+    @GET
+    @Path("namespaces/{namespace}/adrs/{slug}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Get the latest revision of an ADR",
+            description = "Returns the ADR as an adr.json document whose $id is the canonical URL of the revision."
+    )
+    @PermissionsAllowed(CalmHubScopes.READ)
+    public Response getAdr(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("slug") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String slug
+    ) {
+        return service.getLatestAdr(namespace, slug);
+    }
+
+    @GET
+    @Path("namespaces/{namespace}/adrs/{slug}/versions")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "List the revisions of an ADR",
+            description = "Integer revisions as strings, ascending. GitHub-backed storage lists commit SHAs instead."
+    )
+    @PermissionsAllowed(CalmHubScopes.READ)
+    public Response listAdrVersions(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("slug") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String slug
+    ) {
+        return service.listAdrVersions(namespace, slug);
+    }
+
+    @GET
+    @Path("namespaces/{namespace}/adrs/{slug}/versions/{version}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Get a revision of an ADR",
+            description = "Returns the revision (an integer, or a commit SHA in GitHub-backed storage) as an "
+                    + "adr.json document."
+    )
+    @PermissionsAllowed(CalmHubScopes.READ)
+    public Response getAdrVersion(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("slug") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String slug,
+            @PathParam("version") @Pattern(regexp = ADR_REVISION_OR_SHA_REGEX, message = ADR_REVISION_OR_SHA_MESSAGE) String version
+    ) {
+        return service.getAdrVersion(namespace, slug, version);
     }
 
     // =========================================================================

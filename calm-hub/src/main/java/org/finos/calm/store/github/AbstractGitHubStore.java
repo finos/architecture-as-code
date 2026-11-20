@@ -10,7 +10,7 @@ import org.finos.calm.store.github.registry.ResourceRegistry;
  * or trait" — and the tracking issue for this base).
  *
  * <p>Deliberately holds only what every GitHub store needs, including the ones with no
- * content to read (ADR, Decorator — both return empty results / throw for everything else,
+ * content to read (Decorator — returns empty results / throws for everything else,
  * with no clone/version/file-read collaborators). {@link AbstractReadOnlyGitHubStore} adds
  * the read-path machinery for the stores that actually resolve file content.</p>
  */

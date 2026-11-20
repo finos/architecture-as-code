@@ -641,6 +641,41 @@ public class TestAuditRequestFilterShould {
     }
 
     @Test
+    void resolve_a_denied_adr_create_to_the_namespace() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) MappingControllerResource.class);
+        when(resourceInfo.getResourceMethod())
+                .thenReturn(mockMethod(MappingControllerResource.class, "createAdr"));
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+
+        filter.filter(mockRequest("POST", pathParams), mockResponse(403, null));
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.ADR));
+        assertThat(entry.getAction(), is(AuditAction.CREATE));
+        assertThat(entry.getNamespace(), is("finos"));
+        assertNull(entry.getEntityId());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"createAdrRevision", "createAdrVersion"})
+    void resolve_a_denied_adr_revision_to_its_slug(String methodName) {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) MappingControllerResource.class);
+        when(resourceInfo.getResourceMethod())
+                .thenReturn(mockMethod(MappingControllerResource.class, methodName));
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        pathParams.putSingle("slug", "use-kafka");
+
+        filter.filter(mockRequest("POST", pathParams), mockResponse(403, null));
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.ADR));
+        assertThat(entry.getAction(), is(AuditAction.UPDATE));
+        assertThat(entry.getEntityId(), is("use-kafka"));
+    }
+
+    @Test
     void resolve_mapping_controller_domain_creation_via_location() {
         when(resourceInfo.getResourceClass()).thenReturn((Class) MappingControllerResource.class);
         when(resourceInfo.getResourceMethod())

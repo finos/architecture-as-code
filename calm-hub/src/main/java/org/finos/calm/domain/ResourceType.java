@@ -9,5 +9,6 @@ public enum ResourceType {
     FLOW,
     STANDARD,
     INTERFACE,
-    TIMELINE
+    TIMELINE,
+    ADR
 }

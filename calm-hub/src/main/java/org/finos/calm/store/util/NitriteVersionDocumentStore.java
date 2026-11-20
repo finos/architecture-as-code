@@ -1,6 +1,7 @@
 package org.finos.calm.store.util;
 
 import org.dizitart.no2.collection.Document;
+import org.dizitart.no2.exceptions.UniqueConstraintException;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.exceptions.NitriteException;
 import org.dizitart.no2.filters.Filter;
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -152,18 +154,43 @@ public class NitriteVersionDocumentStore {
     public void createHeader(String namespace, int resourceId, String name, String description) {
         lock.writeLock().lock();
         try {
-            Document header = Document.createDocument()
-                    .put(NAMESPACE_FIELD, namespace)
-                    .put(idField, resourceId)
-                    .put(NAME_FIELD, name)
-                    .put(DESCRIPTION_FIELD, description)
-                    .put(VERSION_COUNT_FIELD, 0)
-                    .put(METADATA_FIELD, Document.createDocument());
-            addDiscriminator(header);
-            headerCollection.insert(header);
+            headerCollection.insert(newHeader(namespace, resourceId, name, description, Map.of()));
         } finally {
             lock.writeLock().unlock();
         }
+    }
+
+    /**
+     * As {@link #createHeader}, with {@code extraFields} added to the header. See
+     * {@link MongoVersionDocumentStore#createHeaderIfUnique}.
+     *
+     * @return {@code false} if a unique index refused the header
+     */
+    public boolean createHeaderIfUnique(String namespace, int resourceId, String name, String description,
+                                        Map<String, Object> extraFields) {
+        lock.writeLock().lock();
+        try {
+            headerCollection.insert(newHeader(namespace, resourceId, name, description, extraFields));
+            return true;
+        } catch (UniqueConstraintException e) {
+            return false;
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    private Document newHeader(String namespace, int resourceId, String name, String description,
+                               Map<String, Object> extraFields) {
+        Document header = Document.createDocument()
+                .put(NAMESPACE_FIELD, namespace)
+                .put(idField, resourceId)
+                .put(NAME_FIELD, name)
+                .put(DESCRIPTION_FIELD, description)
+                .put(VERSION_COUNT_FIELD, 0)
+                .put(METADATA_FIELD, Document.createDocument());
+        extraFields.forEach(header::put);
+        addDiscriminator(header);
+        return header;
     }
 
     /**

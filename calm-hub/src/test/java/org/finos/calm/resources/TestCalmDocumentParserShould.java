@@ -114,6 +114,20 @@ class TestCalmDocumentParserShould {
     }
 
     @Test
+    void reject_an_adr_id_and_point_to_the_adr_endpoints() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> parser.parseCanonicalId("{\"$id\":\"http://localhost:8080/calm/namespaces/finos/adrs/use-kafka/versions/3\"}"));
+
+        assertEquals(CalmDocumentParser.ADR_WRITE_MESSAGE, e.getMessage());
+    }
+
+    @Test
+    void map_adrs_in_both_directions() {
+        assertEquals(ResourceType.ADR, parser.parseTypePlural("adrs"));
+        assertEquals("adrs", CalmDocumentParser.TYPE_PLURAL_MAP.get(ResourceType.ADR));
+    }
+
+    @Test
     void normalise_trailing_slash_in_base_url() throws JsonProcessingException {
         parser.baseUrl = "http://localhost:8080/";
         CalmDocumentParser.CanonicalId id = parser.parseCanonicalId(

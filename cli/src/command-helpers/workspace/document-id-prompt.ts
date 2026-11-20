@@ -7,11 +7,13 @@ import {
     ControlDocumentMetadata,
     RESOURCE_TYPES,
     ResourceType,
+    hasIntegerRevisions,
 } from '@finos/calm-shared';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 import { documentTypeHasIdType, resourceTypeForDocumentType } from './document-id-type';
 
 const DEFAULT_VERSION = '1.0.0';
+const DEFAULT_REVISION = '1';
 
 type Scope = 'namespace' | 'requirement' | 'configuration';
 
@@ -77,7 +79,7 @@ export async function promptForDocumentId(opts: PromptForDocumentIdOptions = {})
     const scope = knownResourceType ? 'namespace' : await select<Scope>({
         message: 'What kind of CalmHub resource is this?',
         choices: opts.documentType === 'control' ? controlChoices : [
-            { name: 'Namespace resource (pattern, architecture, flow, standard, interface, timeline)', value: 'namespace' },
+            { name: 'Namespace resource (pattern, architecture, flow, standard, interface, timeline, ADR)', value: 'namespace' },
             ...controlChoices,
         ],
     });
@@ -90,7 +92,7 @@ export async function promptForDocumentId(opts: PromptForDocumentIdOptions = {})
 
     const version = (await input({
         message: 'Version:',
-        default: opts.version ?? DEFAULT_VERSION,
+        default: opts.version ?? (knownResourceType && hasIntegerRevisions(knownResourceType) ? DEFAULT_REVISION : DEFAULT_VERSION),
         validate: segmentValidator('Version'),
     })).trim();
 

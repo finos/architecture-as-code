@@ -418,6 +418,12 @@ public class AuditRequestFilter implements ContainerResponseFilter {
                 yield entityType == null ? null : new AuditContext(entityType, AuditAction.UPDATE,
                         namespace, null, uriInfo.getPathParameters().getFirst("name"), version);
             }
+            // A successful ADR write stages its own context once the slug and revision are
+            // known; this covers a request that never reached the method (e.g. DENIED).
+            case "createAdr" -> new AuditContext(AuditEntityType.ADR, AuditAction.CREATE,
+                    namespace, null, null, null);
+            case "createAdrRevision", "createAdrVersion" -> new AuditContext(AuditEntityType.ADR, AuditAction.UPDATE,
+                    namespace, null, uriInfo.getPathParameters().getFirst("slug"), null);
             case "createDomain" -> resolveWithLocationFallback(
                     AuditEntityType.DOMAIN, null, outcome, responseContext);
             case "createRequirementVersion" -> new AuditContext(AuditEntityType.CONTROL_REQUIREMENT,

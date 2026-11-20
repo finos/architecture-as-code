@@ -9,6 +9,7 @@ const DOCUMENT_TYPE_BY_RESOURCE_TYPE: Record<ResourceType, CalmDocumentType> = {
     standards: 'schema',
     interfaces: 'interface',
     timelines: 'timeline',
+    adrs: 'adr',
 };
 
 /** The CalmHub resource type for a workspace document type, or undefined if it has none. */
@@ -27,8 +28,7 @@ export function documentTypeForDocumentId(id: string): CalmDocumentType | undefi
 }
 
 /**
- * Whether a conformant CalmHub `$id` can imply this document type. `adr` has no CalmHub `$id` form
- * of its own.
+ * Whether a conformant CalmHub `$id` can imply this document type.
  */
 export function documentTypeHasIdType(type: CalmDocumentType): boolean {
     return type === 'control' || resourceTypeForDocumentType(type) !== undefined;

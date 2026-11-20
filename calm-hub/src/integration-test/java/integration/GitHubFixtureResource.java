@@ -41,7 +41,13 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
             createRepo(originRoot.resolve("finos-repo.git"), Map.of(
                     "controls/security/access-control.json", "{}",
                     "standard-nodes/rate-limit-policy.json", "{\"name\":\"Rate Limit Policy\"}",
-                    "standards/searchable-standard.json", "{\"name\":\"Searchable Standard\"}"
+                    "standards/searchable-standard.json", "{\"name\":\"Searchable Standard\"}",
+                    "adrs/0001-use-oauth2.json", "{\"title\":\"Use OAuth2\",\"status\":\"accepted\","
+                            + "\"context-and-problem-statement\":\"We need auth\","
+                            + "\"considered-options\":[{\"name\":\"OAuth2\",\"description\":\"Standard\"}],"
+                            + "\"decision-outcome\":{\"chosen-option\":\"OAuth2\",\"rationale\":\"Common\"}}",
+                    "adrs/kafka.json", "{\"slug\":\"event-streaming\",\"title\":\"Use Kafka\",\"status\":\"proposed\","
+                            + "\"contextAndProblemStatement\":\"We need events\"}"
             ));
             createRepo(originRoot.resolve("other-repo.git"), Map.of(
                     "controls/finance/other-control.json", "{}",

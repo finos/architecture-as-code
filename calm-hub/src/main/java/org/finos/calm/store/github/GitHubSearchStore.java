@@ -81,9 +81,9 @@ public class GitHubSearchStore implements SearchStore {
                 filterByType(allEntries, RegistryResourceType.STANDARD, namespaceByEntry),
                 filterByType(allEntries, RegistryResourceType.INTERFACE, namespaceByEntry),
                 filterByType(allEntries, RegistryResourceType.CONTROL, namespaceByEntry),
-                // The registry indexes ADR files, but GitHubAdrStore 404s every per-ADR lookup;
-                // returning hits here would hand out ids that lead nowhere.
-                List.of()
+                // GitHubAdrStore serves only JSON ADRs; a markdown hit would be an id that leads nowhere.
+                filterByType(allEntries.stream().filter(e -> e.filePath().toString().endsWith(".json")).toList(),
+                        RegistryResourceType.ADR, namespaceByEntry)
         );
     }
 
