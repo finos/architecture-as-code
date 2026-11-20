@@ -41,6 +41,7 @@ export interface GraphEdge {
     technology?: string;
     tags: string[];
     tooltip?: string;
+    calm?: string[];
 }
 
 type Block =
@@ -206,14 +207,18 @@ function notes(model: C4Model, source: MappingSource, empty: string | undefined)
 
 /**
  * Builds the lens reply for one level and scope of the model. An unknown scope falls back to the first one.
- * `calmIds` are the nodes of the open architecture, which a click can select on the CALM diagram.
+ * `calmIds` are the nodes and relationships of the open architecture. A lens element names only these in `calm`, so
+ * a click selects them on the CALM diagram and Hub draws their decorators on it.
  */
 export function c4LensReply(
     model: C4Model,
     level: C4Level,
     requestedScope: string | null,
     source: MappingSource,
-    calmIds: ReadonlySet<string> = new Set([...model.elements.keys()].filter((id) => id !== C4_IMPLICIT_SYSTEM_ID)),
+    calmIds: ReadonlySet<string> = new Set([
+        ...[...model.elements.keys()].filter((id) => id !== C4_IMPLICIT_SYSTEM_ID),
+        ...model.relationships.flatMap((relationship) => relationship.ids),
+    ]),
 ): LensReply {
     const scopes = c4Scopes(model, level);
     const scope = scopes.find((element) => element.id === requestedScope) ?? scopes[0];
@@ -232,15 +237,20 @@ export function c4LensReply(
     const ids = new Set(nodes.map((entry) => entry.id));
     const edges = view.relationships
         .filter((relationship) => ids.has(relationship.source) && ids.has(relationship.target))
-        .map((relationship) => ({
-            id: `${relationship.source}->${relationship.target}`,
-            source: relationship.source,
-            target: relationship.target,
-            ...(relationship.label && { label: relationship.label }),
-            ...(relationship.technology && { technology: relationship.technology }),
-            tags: ['Relationship'],
-            ...(relationship.count > 1 && { tooltip: `${relationship.count} CALM relationships` }),
-        }));
+        .map((relationship) => {
+            // An edge stands for each CALM relationship that it merges or lifts.
+            const calm = relationship.ids.filter((id) => calmIds.has(id));
+            return {
+                id: `${relationship.source}->${relationship.target}`,
+                source: relationship.source,
+                target: relationship.target,
+                ...(relationship.label && { label: relationship.label }),
+                ...(relationship.technology && { technology: relationship.technology }),
+                tags: ['Relationship'],
+                ...(relationship.count > 1 && { tooltip: `${relationship.count} CALM relationships` }),
+                ...(calm.length > 0 && { calm }),
+            };
+        });
     const chain = scope && level !== 'context' && level !== 'deployment' ? c4ChainOf(model, scope.id).map((id) => model.elements.get(id)!.name) : [];
     const empty = nodes.length > 0 ? undefined : level === 'deployment'
         ? 'Nothing in this architecture is deployed in a deployment node.'

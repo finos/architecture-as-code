@@ -951,6 +951,7 @@ class TestExtensionProxyServiceShould {
         java.util.concurrent.atomic.AtomicBoolean first = new java.util.concurrent.atomic.AtomicBoolean(true);
         // Holds the first stream inside its constructor, before the call can see it, until the call has timed out.
         ExtensionStreamWatchdog holding = new ExtensionStreamWatchdog() {
+            // Not synchronized: it waits here while the test opens a newer stream, whose watch needs the monitor.
             @Override
             boolean watch(ExtensionEventStream stream, long delayNanos) {
                 if (first.compareAndSet(true, false)) {

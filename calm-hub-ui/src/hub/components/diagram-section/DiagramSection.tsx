@@ -270,16 +270,17 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const requestedLens = searchParams.get(LENS_PARAM);
     const lensPending = registryLoading && requestedLens !== null && !lenses.some((lens) => lens.id === requestedLens);
     const onDiagramTab = !comparing && activeTab.id === DEFAULT_DIAGRAM_TAB_ID;
-    // The layout controls, the component search and the overlays belong to the CALM lens.
+    // The layout controls and the component search belong to the CALM lens. An extension lens draws the overlays too.
     const onCalmDiagram = onDiagramTab && activeLens.id === DEFAULT_DIAGRAM_LENS_ID;
+    const onExtensionLens = onDiagramTab && !!lenses.find((lens) => lens.id === activeLens.id)?.extension;
     const tabQuery = withInspector(
         lensPending && activeTab.id === DEFAULT_DIAGRAM_TAB_ID ? pendingLensQuery(searchParams) : diagramTabQuery(activeTab, searchParams, activeLens),
         inspectorExtension,
     );
     const usedByOpen = activeTab.id === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
-    // Polled only while the diagram, the Decorators tab or the details drawer shows them.
-    const showsDecorators = onCalmDiagram || (!comparing && activeTab.id === DECORATORS_TAB_ID) || !!hasDetailsPanel;
+    // Polled only while a diagram, the Decorators tab or the details drawer shows them.
+    const showsDecorators = onCalmDiagram || onExtensionLens || (!comparing && activeTab.id === DECORATORS_TAB_ID) || !!hasDetailsPanel;
     const decoratorsState = useArchitectureDecorators(calmService, data, isArchitecture, showsDecorators);
     const allDecorators = decoratorsState.status === 'loaded' ? decoratorsState.decorators : NO_DECORATORS;
 
@@ -591,6 +592,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             />
         ),
         decorators: decoratorsState,
+        openDecoratorView,
         usedBy,
     };
 

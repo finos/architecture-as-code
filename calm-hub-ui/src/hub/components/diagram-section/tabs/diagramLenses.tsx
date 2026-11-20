@@ -52,7 +52,7 @@ function extensionLens(extension: ExtensionSummary, lens: DiagramLensContributio
         extension: { id: extension.id, name: extension.name || extension.id },
         isVisible: ({ isArchitecture }) => appliesTo(lens, isArchitecture),
         searchParams: Object.keys(lens.params ?? {}),
-        render: ({ data, selectedElement, searchParams, setTabParams, selectElement }) => (
+        render: ({ data, selectedElement, searchParams, setTabParams, selectElement, decorators, openDecoratorView }) => (
             <DiagramLensView
                 key={`${extension.id}/${lens.id}`}
                 extension={extension}
@@ -61,6 +61,9 @@ function extensionLens(extension: ExtensionSummary, lens: DiagramLensContributio
                 params={Object.fromEntries(Object.keys(lens.params ?? {}).map((name) => [name, searchParams.get(name) ?? undefined]))}
                 onParamsChange={setTabParams}
                 onSelectElement={(uniqueId) => selectElement?.(uniqueId)}
+                document={data.calmType === 'Architectures' ? data.data : undefined}
+                decorators={decorators.status === 'loaded' ? decorators.decorators : undefined}
+                onOpenDecoratorView={openDecoratorView}
             />
         ),
     };
