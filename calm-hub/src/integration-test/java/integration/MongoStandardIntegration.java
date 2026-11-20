@@ -150,7 +150,7 @@ public class MongoStandardIntegration {
         setupTestStandardForPersistenceRetrieval();
 
         Map<String, Object> expected = new HashMap<>();
-        expected.put("id", createdStandardId);
+        expected.put("id", String.valueOf(createdStandardId));
         expected.put("name", "New Name");
         expected.put("description", "New Description");
         // The standards summary now carries a versionCount; this standard has two versions

@@ -93,11 +93,11 @@ class GitHubUserAccessDomainReadIntegration {
         // domain it's addressed by) are deliberately different strings here - the exact
         // conflation TestGitHubControlStoreShould's fixtures used to hide. Proves the
         // domain-scoped route resolves real content end to end, not just a non-empty list.
-        int controlId = given()
+        String controlId = given()
                 .when().get("/api/calm/domains/security/controls")
                 .then()
                 .statusCode(200)
-                .extract().jsonPath().getInt("values[0].id");
+                .extract().jsonPath().getString("values[0].id");
 
         given()
                 .when().get("/api/calm/domains/security/controls/" + controlId + "/requirement/versions")
