@@ -42,6 +42,8 @@ export interface C4Relationship {
     technology?: string;
     /** How many CALM relationships this one stands for after lifting. */
     count: number;
+    /** The unique-ids of the CALM relationships that it stands for, each once. */
+    ids: string[];
 }
 
 export interface C4Model {
@@ -231,13 +233,15 @@ export function projectC4(
     }
 
     const merged = new Map<string, C4Relationship>();
-    const add = (source: string, target: string, label: string, technology?: string) => {
+    const add = (id: string, source: string, target: string, label: string, technology?: string) => {
         if (!nodes.has(source) || !nodes.has(target)) return;
         if (elements.get(source)!.kind === 'hidden' || elements.get(target)!.kind === 'hidden') return;
         const key = `${source}\u0000${target}`;
         const existing = merged.get(key);
-        if (existing) existing.count++;
-        else merged.set(key, { source, target, label, technology, count: 1 });
+        if (existing) {
+            existing.count++;
+            if (!existing.ids.includes(id)) existing.ids.push(id);
+        } else merged.set(key, { source, target, label, technology, count: 1, ids: [id] });
     };
     const isHidden = (id: string) => elements.get(id)?.kind === 'hidden';
     for (const relationship of relationships) {
@@ -250,8 +254,9 @@ export function projectC4(
             conflict(elements.get(id)!, 'hidden-relationship', `Hidden, so its ${name} relationship "${relationship['unique-id']}" is not drawn`);
         }
         const label = relationship.description ?? 'Uses';
-        if (type.connects) add(type.connects.source.node, type.connects.destination.node, label, relationship.protocol);
-        if (type.interacts) for (const target of type.interacts.nodes) add(type.interacts.actor, target, label, relationship.protocol);
+        const id = relationship['unique-id'];
+        if (type.connects) add(id, type.connects.source.node, type.connects.destination.node, label, relationship.protocol);
+        if (type.interacts) for (const target of type.interacts.nodes) add(id, type.interacts.actor, target, label, relationship.protocol);
     }
 
     return { elements, relationships: [...merged.values()], deployedIn, hasEnterpriseBoundary, conflicts };

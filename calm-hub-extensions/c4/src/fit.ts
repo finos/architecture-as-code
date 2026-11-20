@@ -1,5 +1,5 @@
 // The limits of lens.schema.json for hubApi 0. Hub refuses the whole reply when one field is over its limit.
-const MAX = { id: 128, calm: 256, label: 200, text: 500, technology: 200, title: 200, param: 128, itemLabel: 100, items: 200 } as const;
+const MAX = { id: 128, calm: 256, calmIds: 32, label: 200, text: 500, technology: 200, title: 200, param: 128, itemLabel: 100, items: 200 } as const;
 
 /** Cuts text to `max` UTF-16 units, as Hub counts them, and marks the cut with an ellipsis. */
 export function clip(value: string, max: number): string {
@@ -36,7 +36,7 @@ function idAllocator(ids: Iterable<string>): (id: string) => string {
     return (id) => short.get(id) ?? id;
 }
 
-const fitCalm = (calm?: string[]) => calm?.filter((id) => id.length <= MAX.calm);
+const fitCalm = (calm?: string[]) => calm?.filter((id) => id.length <= MAX.calm).slice(0, MAX.calmIds);
 const fitsParams = (params: Record<string, string>) => Object.values(params).every((value) => value.length <= MAX.param);
 
 interface Fittable {

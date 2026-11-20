@@ -128,8 +128,10 @@ function lift(
         if (!source || !target || source === target || !keep(source, target)) continue;
         const key = `${source}\u0000${target}`;
         const existing = merged.get(key);
-        if (existing) existing.count += relationship.count;
-        else merged.set(key, { ...relationship, source, target });
+        if (existing) {
+            existing.count += relationship.count;
+            existing.ids = [...new Set([...existing.ids, ...relationship.ids])];
+        } else merged.set(key, { ...relationship, source, target });
     }
     return [...merged.values()];
 }
