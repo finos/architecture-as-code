@@ -203,7 +203,7 @@ public class MongoArchitectureIntegration {
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(1))
-                .body("values[0].id", equalTo(2));
+                .body("values[0].id", equalTo("2"));
     }
 
     @Test
