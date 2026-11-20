@@ -56,6 +56,7 @@ CALM Hub classifies the `.json` and `.md` files in each repository from their co
 | `calm.github.http.connect-timeout` | `CALM_GITHUB_HTTP_CONNECT_TIMEOUT` | `10` | GitHub API connect timeout, in seconds |
 | `calm.github.http.request-timeout` | `CALM_GITHUB_HTTP_REQUEST_TIMEOUT` | `30` | GitHub API request timeout, in seconds |
 | `calm.oidc.roles.access` | `CALM_OIDC_ROLES_ACCESS` | (none) | Groups that can read a namespace whose entry lists no groups, separated by `;` |
+| `calm.oidc.roles.allow-authenticated-read` | `CALM_OIDC_ROLES_ALLOW_AUTHENTICATED_READ` | `false` | When `true`, any authenticated user can read a namespace that has no groups (neither per-namespace nor via `calm.oidc.roles.access`) |
 
 Set the token as an environment variable or secret. Do not put it in a properties file.
 
@@ -99,7 +100,7 @@ GitHub mode has no stored access grants. Read access to a namespace comes from t
 
 - A caller can read a namespace if one of their groups is in the namespace's `groups` field.
 - If the entry lists no groups, `calm.oidc.roles.access` applies instead.
-- If neither is set, no caller gets access to the namespace through groups.
+- If neither is set and `calm.oidc.roles.allow-authenticated-read` is `false` (the default), no caller gets access to the namespace through groups. When `allow-authenticated-read` is `true`, any authenticated user can read the namespace.
 - A caller can read a control domain if they can read a namespace that has controls in that domain.
 - `calm.auth.allow-public-read=true` makes every namespace readable by every caller. With `calm.auth.enabled=false` (local testing only), every namespace is visible.
 
