@@ -110,7 +110,7 @@ public class ControlResource {
         ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
         int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(new ValueWrapper<>(store.getRequirementVersions(domain, controlId))).build();
+            return Response.ok(new ValueWrapper<>(store.getRequirementVersions(domain, resourceId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving requirement versions", domain, e);
             return invalidDomainResponse(domain);
@@ -139,7 +139,7 @@ public class ControlResource {
         ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
         int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(store.getRequirementForVersion(domain, controlId, version)).build();
+            return Response.ok(store.getRequirementForVersion(domain, resourceId, version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving requirement version", domain, e);
             return invalidDomainResponse(domain);

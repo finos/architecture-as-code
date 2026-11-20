@@ -78,13 +78,13 @@ public class NitritePatternIntegration {
     @Test
     @Order(4)
     void end_to_end_list_patterns_returns_wrapper_name_and_description_from_create() {
-        int id = Integer.parseInt(createdPatternId);
+        String id = createdPatternId;
         given()
                 .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
-                .body("values.find { it.id == " + id + " }.name", equalTo("name"))
-                .body("values.find { it.id == " + id + " }.description", equalTo("description"));
+                .body("values.find { it.id == '" + id + "' }.name", equalTo("name"))
+                .body("values.find { it.id == '" + id + "' }.description", equalTo("description"));
     }
 
     @Test
@@ -104,19 +104,19 @@ public class NitritePatternIntegration {
     @Test
     @Order(6)
     void end_to_end_list_patterns_reflects_updated_name_and_description_after_new_version() {
-        int id = Integer.parseInt(createdPatternId);
+        String id = createdPatternId;
         given()
                 .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
-                .body("values.find { it.id == " + id + " }.name", equalTo("updated-pattern"))
-                .body("values.find { it.id == " + id + " }.description", equalTo("updated pattern description"));
+                .body("values.find { it.id == '" + id + "' }.name", equalTo("updated-pattern"))
+                .body("values.find { it.id == '" + id + "' }.description", equalTo("updated pattern description"));
     }
 
     @Test
     @Order(7)
     void end_to_end_create_pattern_version_stores_only_inner_patternJson_and_updates_wrapper() {
-        int id = Integer.parseInt(createdPatternId);
+        String id = createdPatternId;
         String inner = "{\"nodes\": [], \"relationships\": []}";
         String envelope = "{\"name\": \"third-name\", \"description\": \"third description\", \"patternJson\": \"" + inner.replace("\"", "\\\"") + "\"}";
 
@@ -139,8 +139,8 @@ public class NitritePatternIntegration {
                 .when().get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
-                .body("values.find { it.id == " + id + " }.name", equalTo("third-name"))
-                .body("values.find { it.id == " + id + " }.description", equalTo("third description"));
+                .body("values.find { it.id == '" + id + "' }.name", equalTo("third-name"))
+                .body("values.find { it.id == '" + id + "' }.description", equalTo("third description"));
     }
 
     @Test
