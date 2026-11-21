@@ -4,6 +4,8 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { CanvasPanel } from './canvas-panel';
+import type { HubClient } from '../services/hub-client';
+import { ShaCacheService } from '../services/sha-cache-service';
 import type { ExtToWebviewMessage, WebviewToExtMessage } from '../types/messages';
 
 function makeDoc(filePath: string, initialText: string) {
@@ -425,6 +427,110 @@ describe('CanvasPanel detailed-architecture navigation (#3654)', () => {
             type: 'modelUpdated',
             json: parentContent,
             source: 'file',
+        });
+    });
+
+    describe('Hub string resource ids', () => {
+        const tags = { path: 'aws/prod', variant: 'markdown' };
+
+        function hubClientFixture(standardId = 'aws/prod/gw'): HubClient {
+            return {
+                getBaseUrl: () => 'https://hub.example.com',
+                getNamespaces: vi.fn().mockResolvedValue([{ name: 'finos' }]),
+                getResources: vi.fn().mockImplementation((_ns: string, type: string) =>
+                    Promise.resolve(type === 'standards'
+                        ? [{ uniqueId: 'api-gateway', name: 'Gateway', id: standardId, tags: { path: 'aws/prod' } }]
+                        : [])
+                ),
+                getVersions: vi.fn().mockResolvedValue(['v1']),
+                getResourceAtVersion: vi.fn().mockResolvedValue({ nodes: [{ 'node-type': 'service', controls: {} }] }),
+                getDomains: vi.fn().mockResolvedValue([]),
+                getControlsForDomain: vi.fn().mockResolvedValue([]),
+                resolveControlId: vi.fn(),
+                getRequirementVersions: vi.fn().mockResolvedValue(['v1']),
+                getRequirementAtVersion: vi.fn().mockResolvedValue({ properties: {} }),
+            } as unknown as HubClient;
+        }
+
+        beforeEach(() => {
+            panel.reveal(docs.get(parentPath)! as unknown as vscode.TextDocument);
+            vi.spyOn(ShaCacheService.prototype, 'getPalette').mockResolvedValue(null);
+            vi.spyOn(ShaCacheService.prototype, 'putPalette').mockResolvedValue(undefined);
+            vi.spyOn(ShaCacheService.prototype, 'get').mockResolvedValue(null);
+            vi.spyOn(ShaCacheService.prototype, 'put').mockResolvedValue(undefined);
+        });
+
+        it('uses the supplied Hub id and tags for requirement versions', async () => {
+            const client = hubClientFixture();
+            await panel.setHubConnection(client);
+            messageHandler!({
+                type: 'requestControlVersions', requestId: 'r1',
+                domain: 'security', controlName: 'seg',
+                hubId: 'aws/prod/seg', ...tags,
+            });
+            await vi.waitFor(() => {
+                expect(postedMessages.some((m) => m.type === 'controlVersionsResult')).toBe(true);
+            });
+            expect(client.getRequirementVersions).toHaveBeenCalledWith('security', 'aws/prod/seg', tags);
+            expect(client.resolveControlId).not.toHaveBeenCalled();
+        });
+
+        it('uses the supplied Hub id and tags when resolving a control', async () => {
+            const client = hubClientFixture();
+            await panel.setHubConnection(client);
+            messageHandler!({
+                type: 'requestControlResolve', requestId: 'r2',
+                ref: 'security:controls:seg',
+                hubId: 'aws/prod/seg', ...tags,
+            });
+            await vi.waitFor(() => {
+                expect(postedMessages.some((m) => m.type === 'controlResolveResult')).toBe(true);
+            });
+            expect(client.getRequirementVersions).toHaveBeenCalledWith('security', 'aws/prod/seg', tags);
+            expect(client.getRequirementAtVersion).toHaveBeenCalledWith('security', 'aws/prod/seg', 'v1', tags);
+            expect(client.resolveControlId).not.toHaveBeenCalled();
+        });
+
+        it('appends path and variant to the Hub UI detail link', async () => {
+            const client = hubClientFixture();
+            await panel.setHubConnection(client);
+            const openExternal = vi.fn();
+            (vscode as unknown as { env: unknown }).env = { openExternal };
+            (vscode.Uri as unknown as { parse: (value: string) => unknown }).parse = (value: string) => value;
+            try {
+                messageHandler!({
+                    type: 'openControlInHub', ref: 'security:controls:seg',
+                    hubId: 'aws/prod/seg', ...tags,
+                });
+                await vi.waitFor(() => expect(openExternal).toHaveBeenCalled());
+                const url = openExternal.mock.calls[0][0] as string;
+                expect(url).toBe(
+                    'https://hub.example.com/#/security/controls/aws%2Fprod%2Fseg/detail?path=aws%2Fprod&variant=markdown'
+                );
+            } finally {
+                delete (vscode as unknown as { env?: unknown }).env;
+                delete (vscode.Uri as unknown as { parse?: unknown }).parse;
+            }
+        });
+
+        it('resolves definitions with a string hubId and a tag-aware cache key', async () => {
+            const client = hubClientFixture();
+            await panel.setHubConnection(client);
+            const cacheGet = vi.spyOn(ShaCacheService.prototype, 'get');
+            const cachePut = vi.spyOn(ShaCacheService.prototype, 'put');
+
+            messageHandler!({
+                type: 'resolveDefinitionId', nodeId: 'n1',
+                curie: 'finos:standards:api-gateway@v1',
+            });
+            await vi.waitFor(() => {
+                expect(postedMessages.some((m) => m.type === 'definitionResolved')).toBe(true);
+            });
+            expect(client.getResourceAtVersion).toHaveBeenCalledWith(
+                'finos', 'standards', 'aws/prod/gw', 'v1', { path: 'aws/prod' }
+            );
+            expect(cacheGet.mock.calls[0][3]).toBe('aws/prod/gw~aws/prod~');
+            expect(cachePut.mock.calls[0][3]).toBe('aws/prod/gw~aws/prod~');
         });
     });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { HubClient, HubApiError } from './hub-client';
+import { HubClient, HubApiError, describeHubError } from './hub-client';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -128,21 +128,36 @@ describe('HubClient', () => {
             );
         });
 
-        it('maps item.id to numericId', async () => {
+        it('maps a string id and tags from the new Hub contract', async () => {
             mockFetch.mockResolvedValueOnce(
-                jsonResponse({ values: [{ name: 'svc', customId: 'my-svc', id: 42, versionCount: 3 }] })
+                jsonResponse({ values: [{ name: 'api-gateway', id: 'aws/prod/api-gateway', customId: 'gw', versionCount: 2, tags: { path: 'aws/prod', variant: 'markdown' } }] })
             );
             const result = await client.getResources('finos', 'standards');
-            expect(result[0].numericId).toBe(42);
-            expect(result[0].uniqueId).toBe('my-svc');
+            expect(result[0]).toEqual({
+                name: 'api-gateway',
+                uniqueId: 'gw',
+                id: 'aws/prod/api-gateway',
+                versionCount: 2,
+                tags: { path: 'aws/prod', variant: 'markdown' },
+            });
         });
 
-        it('falls back to numericId when id is absent', async () => {
+        it('coerces a legacy numeric id to a string and ignores numericId', async () => {
             mockFetch.mockResolvedValueOnce(
-                jsonResponse({ values: [{ name: 'svc', numericId: 7 }] })
+                jsonResponse({ values: [{ name: 'svc', customId: 'my-svc', id: 42, numericId: 7 }] })
             );
             const result = await client.getResources('finos', 'standards');
-            expect(result[0].numericId).toBe(7);
+            expect(result[0].id).toBe('42');
+            expect(result[0].uniqueId).toBe('my-svc');
+            expect(result[0]).not.toHaveProperty('numericId');
+        });
+
+        it('uses the string id as uniqueId when customId is absent', async () => {
+            mockFetch.mockResolvedValueOnce(
+                jsonResponse({ values: [{ name: 'svc', id: 'aws/prod/svc' }] })
+            );
+            const result = await client.getResources('finos', 'standards');
+            expect(result[0].uniqueId).toBe('aws/prod/svc');
         });
     });
 
@@ -163,6 +178,19 @@ describe('HubClient', () => {
                 expect.any(Object)
             );
         });
+
+        it('appends encoded path and variant tags', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: ['v1'] }));
+
+            await client.getVersions('finos', 'standards', 'aws/prod/api-gateway', {
+                path: 'aws/prod',
+                variant: 'markdown file',
+            });
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/api/calm/namespaces/finos/standards/aws%2Fprod%2Fapi-gateway/versions?path=aws%2Fprod&variant=markdown+file',
+                expect.any(Object)
+            );
+        });
     });
 
     describe('getResourceAtVersion', () => {
@@ -179,6 +207,19 @@ describe('HubClient', () => {
             expect(result).toEqual(resource);
             expect(mockFetch).toHaveBeenCalledWith(
                 'https://hub.example.com/api/calm/namespaces/finos/architectures/my-arch/versions/1.0',
+                expect.any(Object)
+            );
+        });
+
+        it('appends encoded path and variant tags', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({ nodes: [] }));
+
+            await client.getResourceAtVersion('finos', 'standards', 'aws/prod/svc', 'v1', {
+                path: 'aws/prod',
+                variant: 'markdown',
+            });
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/api/calm/namespaces/finos/standards/aws%2Fprod%2Fsvc/versions/v1?path=aws%2Fprod&variant=markdown',
                 expect.any(Object)
             );
         });
@@ -237,40 +278,65 @@ describe('HubClient', () => {
     });
 
     describe('resolveControlId', () => {
-        it('resolves a control name to its numeric ID and domain', async () => {
+        it('resolves a control name to its string ID, domain and tags', async () => {
             mockFetch.mockResolvedValueOnce(
-                jsonResponse({ values: [{ id: 42, name: 'micro-segmentation', description: 'd' }] })
+                jsonResponse({ values: [{ id: 'control-42', name: 'micro-segmentation', description: 'd', tags: { path: 'aws/prod' } }] })
             );
             const result = await client.resolveControlId('security', 'micro-segmentation');
-            expect(result).toEqual({ id: 42, domain: 'security' });
+            expect(result).toEqual({ id: 'control-42', domain: 'security', tags: { path: 'aws/prod' } });
+        });
+
+        it('prefers a matching path when a domain has several same-named controls', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({
+                values: [
+                    { id: 'aws/prod/seg', name: 'seg', description: '', tags: { path: 'aws/prod' } },
+                    { id: 'aws/dev/seg', name: 'seg', description: '', tags: { path: 'aws/dev' } },
+                ],
+            }));
+            const result = await client.resolveControlId('security', 'seg', { path: 'aws/dev' });
+            expect(result.id).toBe('aws/dev/seg');
+            expect(result.tags).toEqual({ path: 'aws/dev' });
         });
 
         it('falls back to searching other domains when primary domain 404s', async () => {
             mockFetch.mockResolvedValueOnce(jsonResponse({}, 404));
             mockFetch.mockResolvedValueOnce(jsonResponse({ values: ['platform', 'network'] }));
-            mockFetch.mockResolvedValueOnce(jsonResponse({ values: [{ id: 99, name: 'seg', description: '' }] }));
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: [{ id: '99', name: 'seg', description: '' }] }));
             const result = await client.resolveControlId('bad-domain', 'seg');
-            expect(result).toEqual({ id: 99, domain: 'platform' });
+            expect(result).toEqual({ id: '99', domain: 'platform', tags: undefined });
         });
 
         it('throws when not found in any domain', async () => {
             mockFetch.mockResolvedValueOnce(jsonResponse({}, 404));
             mockFetch.mockResolvedValueOnce(jsonResponse({ values: ['platform'] }));
-            mockFetch.mockResolvedValueOnce(jsonResponse({ values: [{ id: 1, name: 'other', description: '' }] }));
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: [{ id: '1', name: 'other', description: '' }] }));
             await expect(client.resolveControlId('bad', 'missing')).rejects.toThrow('not found');
         });
     });
 
     describe('getRequirementVersions', () => {
-        it('constructs the numeric-ID requirement versions URL', async () => {
+        it('constructs the string-id requirement versions URL', async () => {
             mockFetch.mockResolvedValueOnce(
                 jsonResponse({ values: ['1.0.0', '1.1.0'] })
             );
 
-            const result = await client.getRequirementVersions('security', 42);
+            const result = await client.getRequirementVersions('security', 'control-42');
             expect(result).toEqual(['1.0.0', '1.1.0']);
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://hub.example.com/api/calm/domains/security/controls/42/requirement/versions',
+                'https://hub.example.com/api/calm/domains/security/controls/control-42/requirement/versions',
+                expect.any(Object)
+            );
+        });
+
+        it('appends encoded path and variant tags', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: ['v1'] }));
+
+            await client.getRequirementVersions('security', 'aws/prod/seg', {
+                path: 'aws/prod',
+                variant: 'markdown',
+            });
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/api/calm/domains/security/controls/aws%2Fprod%2Fseg/requirement/versions?path=aws%2Fprod&variant=markdown',
                 expect.any(Object)
             );
         });
@@ -281,18 +347,28 @@ describe('HubClient', () => {
             const schema = { $id: 'x', properties: {} };
             mockFetch.mockResolvedValueOnce(jsonResponse(schema));
 
-            const result = await client.getRequirementAtVersion('security', 42, '1.0.0');
+            const result = await client.getRequirementAtVersion('security', 'control-42', '1.0.0');
             expect(result).toEqual(schema);
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://hub.example.com/api/calm/domains/security/controls/42/requirement/versions/1.0.0',
+                'https://hub.example.com/api/calm/domains/security/controls/control-42/requirement/versions/1.0.0',
+                expect.any(Object)
+            );
+        });
+
+        it('appends tags after the version', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({}));
+
+            await client.getRequirementAtVersion('security', 'aws/prod/seg', 'v1', { path: 'aws/prod' });
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/api/calm/domains/security/controls/aws%2Fprod%2Fseg/requirement/versions/v1?path=aws%2Fprod',
                 expect.any(Object)
             );
         });
     });
 
     describe('ADR methods', () => {
-        it('getAdrs unwraps the summary list', async () => {
-            const adrs = [{ id: 1, title: 'Use X', status: 'accepted' }];
+        it('getAdrs unwraps the summary list with string ids', async () => {
+            const adrs = [{ id: 'adr-1', title: 'Use X', status: 'accepted' }];
             mockFetch.mockResolvedValueOnce(jsonResponse({ values: adrs }));
 
             const result = await client.getAdrs('finos');
@@ -303,32 +379,49 @@ describe('HubClient', () => {
             );
         });
 
-        it('getAdr returns the AdrMeta wrapper with nested adr content', async () => {
+        it('getAdr returns the AdrMeta wrapper with a string id and numeric revision', async () => {
             const meta = {
                 namespace: 'finos',
-                id: 3,
+                id: 'adr-3',
                 revision: 2,
                 adr: { title: 'Use X', status: 'accepted' },
             };
             mockFetch.mockResolvedValueOnce(jsonResponse(meta));
 
-            const result = await client.getAdr('finos', 3);
+            const result = await client.getAdr('finos', 'adr-3');
             expect(result).toEqual(meta);
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://hub.example.com/api/calm/namespaces/finos/adrs/3',
+                'https://hub.example.com/api/calm/namespaces/finos/adrs/adr-3',
                 expect.any(Object)
             );
         });
 
-        it('getAdrRevisions unwraps numeric revisions', async () => {
+        it('getAdrRevisions keeps revisions numeric with a string ADR id', async () => {
             mockFetch.mockResolvedValueOnce(jsonResponse({ values: [1, 2, 3] }));
 
-            const result = await client.getAdrRevisions('finos', 3);
+            const result = await client.getAdrRevisions('finos', 'adr-3');
             expect(result).toEqual([1, 2, 3]);
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://hub.example.com/api/calm/namespaces/finos/adrs/3/revisions',
+                'https://hub.example.com/api/calm/namespaces/finos/adrs/adr-3/revisions',
                 expect.any(Object)
             );
+        });
+    });
+
+    describe('describeHubError', () => {
+        it('gives actionable guidance for an ambiguous resource id (400)', () => {
+            const err = new HubApiError(400, 'https://hub/.../controls/seg/requirement/versions', 'bad');
+            expect(describeHubError(err)).toContain('add a folder path or variant');
+        });
+
+        it('gives actionable guidance when a resource id cannot be found (404)', () => {
+            const err = new HubApiError(404, 'https://hub/.../namespaces/finos/standards/seg/versions', 'bad');
+            expect(describeHubError(err)).toContain('add a folder path or variant');
+        });
+
+        it('does not add resource-id guidance to unrelated 404s', () => {
+            const err = new HubApiError(404, 'https://hub/calm/domains', 'bad');
+            expect(describeHubError(err)).toBe('Hub request failed (404)');
         });
     });
 });

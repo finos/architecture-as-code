@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { makeControlMapKey } from '../../extension/services/control-curie';
+import { buildControlIdentity, entryKey, groupByPath } from './ControlPicker';
+import type { ControlBrowseEntry } from '../../extension/services/control-asset-service';
 
 describe('ControlPicker helpers', () => {
     describe('buildRef', () => {
@@ -85,6 +87,58 @@ describe('ControlPicker helpers', () => {
 
         it('returns false when nothing matches', () => {
             expect(filterEntry(entry, 'encryption')).toBe(false);
+        });
+    });
+
+    describe('control identity', () => {
+        const hubEntry: ControlBrowseEntry = {
+            source: 'hub', domain: 'security', controlName: 'seg',
+            hubId: 'aws/prod/seg', tags: { path: 'aws/prod', variant: 'markdown' },
+            title: 'Seg', description: '',
+        };
+
+        it('derives the full identity from a Hub entry', () => {
+            expect(buildControlIdentity(hubEntry)).toEqual({
+                domain: 'security', controlName: 'seg',
+                hubId: 'aws/prod/seg', path: 'aws/prod', variant: 'markdown',
+            });
+        });
+
+        it('has no identity for local controls', () => {
+            expect(buildControlIdentity({
+                source: 'local', domain: 'Local', controlName: 'seg', title: 'Seg', description: '',
+            })).toBeUndefined();
+        });
+
+        it('gives same-named entries in different folders distinct keys', () => {
+            const dev: ControlBrowseEntry = { ...hubEntry, hubId: 'aws/dev/seg', tags: { path: 'aws/dev' } };
+            expect(entryKey(hubEntry)).not.toBe(entryKey(dev));
+        });
+    });
+
+    describe('path groups', () => {
+        const entry = (id: string, path?: string): ControlBrowseEntry => ({
+            source: 'hub', domain: 'security', controlName: 'seg', hubId: id,
+            ...(path ? { tags: { path } } : {}), title: id, description: '',
+        });
+
+        it('groups by path and puts untagged entries in Ungrouped', () => {
+            const groups = groupByPath([
+                entry('prod', 'aws/prod'), entry('dev', 'aws/dev'),
+                entry('other', 'aws/prod'), entry('local'),
+            ]);
+            expect(groups.map((g) => g.label)).toEqual(['aws/prod', 'aws/dev', 'Ungrouped']);
+            expect(groups[0].controls.map((c) => c.hubId)).toEqual(['prod', 'other']);
+            expect(groups[2].controls).toHaveLength(1);
+        });
+
+        it('does not split by variant', () => {
+            const groups = groupByPath([
+                { ...entry('md'), tags: { path: 'aws/prod', variant: 'markdown' } },
+                { ...entry('json'), tags: { path: 'aws/prod', variant: 'json' } },
+            ]);
+            expect(groups).toHaveLength(1);
+            expect(groups[0].controls).toHaveLength(2);
         });
     });
 });

@@ -8,6 +8,7 @@ import type {
     RequirementIdentity,
     RequirementPropertyDef,
 } from '../../extension/services/requirement-parser';
+import type { ControlIdentity } from '../../extension/types/messages';
 
 export interface ControlRequirement {
     'requirement-url'?: string;
@@ -24,6 +25,8 @@ export interface ControlEntry {
     description?: string;
     requirements?: ControlRequirement[];
     metadata?: { validation?: unknown };
+    /** Hub identity from the picker, used to resolve enrichment without parsing the CURIE. */
+    hubIdentity?: ControlIdentity;
 }
 
 /** Base fields seeded into inline config from a requirement's identity constants. */
@@ -92,9 +95,11 @@ export function setPropertyValue(
  */
 export function buildControlEntry(
     ref: string,
-    parsed: ParsedRequirement
+    parsed: ParsedRequirement,
+    identity?: ControlIdentity
 ): ControlEntry {
     return {
+        ...(identity ? { hubIdentity: identity } : {}),
         description: parsed.identity.description,
         requirements: [
             {

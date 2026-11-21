@@ -1,4 +1,4 @@
-import { HubClient, describeHubError } from './hub-client';
+import { HubClient, describeHubError, type Tags } from './hub-client';
 import { buildControlCurie } from './control-curie';
 import { humanize } from './hub-asset-service';
 import type { LocalControlDef } from './workspace-asset-service';
@@ -9,6 +9,10 @@ export interface ControlBrowseEntry {
     domain: string;
     /** Hub slug or local file stem. */
     controlName: string;
+    /** Hub string resource id; absent for locally-authored controls. */
+    hubId?: string;
+    /** Folder path and variant used to disambiguate same-named Hub controls. */
+    tags?: Tags;
     title: string;
     description: string;
     /** Only set for local controls (their relative path). Hub refs are built after version selection. */
@@ -90,6 +94,8 @@ export class ControlAssetService {
                     source: 'hub',
                     domain,
                     controlName: c.name,
+                    hubId: c.id == null ? undefined : String(c.id),
+                    tags: c.tags,
                     title: c.title && c.title !== c.name ? c.title : humanize(c.name),
                     description: c.description ?? '',
                 })),
