@@ -1,5 +1,6 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.conventions.ConventionDefault;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.CreateConventionRequest;
@@ -142,6 +143,6 @@ class TestGitHubConventionStoreShould {
     }
 
     private static int id(RegistryEntry entry) {
-        return Integer.parseInt(entry.uniqueId());
+        return ResourceIds.parseNumeric(entry.uniqueId());
     }
 }
