@@ -30,11 +30,16 @@ public class GitHubStoreConfig {
     private final String cloneDirectory;
     private final String apiUrl;
 
+    public static String defaultCloneDirectory() {
+        return Path.of(System.getProperty("user.home"), ".calm-hub", "clones").toString();
+    }
+
     @Inject
     public GitHubStoreConfig(Config config) {
         this(
                 config.getOptionalValue("calm.github.service-token", String.class).orElse(""),
-                config.getOptionalValue("calm.github.clone-directory", String.class).orElse("/tmp/calm-hub-clones"),
+                config.getOptionalValue("calm.github.clone-directory", String.class)
+                        .orElseGet(GitHubStoreConfig::defaultCloneDirectory),
                 config.getOptionalValue("calm.github.api-url", String.class).orElse("https://api.github.com")
         );
     }
