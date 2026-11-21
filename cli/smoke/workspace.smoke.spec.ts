@@ -129,3 +129,83 @@ describe('Flow 3: workspace check -> bump -> push', () => {
         expect(err.stderr).toContain('failed validation');
     });
 });
+
+// CalmHub rejects a $id whose base URL is not its calm.hub.base-url. Before #3838, check reported
+// such a document as needing a bump, and bump then gave it a version that push could not publish.
+describe('Flow 3b: workspace commands reject a $id base URL mismatch', () => {
+    const BASE_NS = 'smoke-workspace-base-url';
+    const MAPPING = 'base-url-arch';
+    const WRONG_BASE = 'http://127.0.0.1:8080';
+    const id = (v: string, base?: string) => hubDocId(BASE_NS, 'architectures', MAPPING, v, base);
+
+    let cli: CliInstall;
+    let wsDir: string;
+    let file: string;
+
+    const run = (args: string[]) => cli.run(args, { cwd: wsDir });
+    const fail = (args: string[]) => run(args).then(
+        () => { throw new Error(`expected 'calm ${args.join(' ')}' to fail`); },
+        e => e
+    );
+
+    beforeAll(async () => {
+        cli = installPackedCli(CLI_ROOT, 'calm-smoke-workspace-base-url');
+        wsDir = path.join(cli.tempDir, 'repo');
+        fs.mkdirSync(wsDir, { recursive: true });
+        execSync('git init', { cwd: wsDir, stdio: 'inherit' });
+
+        file = path.join(wsDir, `${MAPPING}.architecture.json`);
+        writeJson(file, {
+            $schema: 'https://calm.finos.org/release/1.0/meta/calm.json',
+            $id: id('1.0.0'),
+            title: MAPPING,
+            nodes: [{ 'unique-id': 'svc', 'node-type': 'service', name: 'Service', description: 'initial' }],
+            relationships: [],
+        });
+
+        await cli.run(['hub', 'create', 'namespace', '--name', BASE_NS, '--description', 'smoke workspace base url', '-c', SMOKE_HUB_URL]);
+        await run(['workspace', 'init', 'smoke-ws-base-url']);
+        await run(['workspace', 'add', file, '--id', id('1.0.0'), '--type', 'architecture', '--namespace', BASE_NS]);
+        await run(['workspace', 'push', '--calm-hub-url', SMOKE_HUB_URL]);
+        expect(await api.listVersions(BASE_NS, 'architectures', MAPPING)).toEqual(['1.0.0']);
+
+        const doc = readJson(file);
+        doc.$id = id('1.0.0', WRONG_BASE);
+        writeJson(file, doc);
+    }, 120_000);
+
+    afterAll(() => cli?.cleanup());
+
+    test('check fails on the mismatch and does not report it as needing a bump', async () => {
+        const err = await fail(['workspace', 'check', '--calm-hub-url', SMOKE_HUB_URL]);
+        expect(err.exitCode).toBe(1);
+        expect(err.stderr).toContain(`$id base URL '${WRONG_BASE}' does not match CalmHub base URL '${SMOKE_HUB_URL}'`);
+        expect(err.stderr).not.toContain('changed on disk but not bumped');
+    });
+
+    test('bump fails and does not change the document', async () => {
+        const before = fs.readFileSync(file, 'utf8');
+        const err = await fail(['workspace', 'bump', '--minor', '--calm-hub-url', SMOKE_HUB_URL]);
+        expect(err.exitCode).toBe(1);
+        expect(err.stderr).toContain('does not match CalmHub base URL');
+        expect(fs.readFileSync(file, 'utf8')).toBe(before);
+    });
+
+    test('push fails without sending the document', async () => {
+        const err = await fail(['workspace', 'push', '--calm-hub-url', SMOKE_HUB_URL]);
+        expect(err.exitCode).toBe(1);
+        expect(err.stderr).toContain('does not match CalmHub base URL');
+        expect(await api.listVersions(BASE_NS, 'architectures', MAPPING)).toEqual(['1.0.0']);
+    });
+
+    // Guards the CLI check against CalmHub itself: with the CLI check satisfied, CalmHub still rejects.
+    test('CalmHub rejects the document when --base-url matches it instead of CalmHub', async () => {
+        const doc = readJson(file);
+        doc.$id = id('1.1.0', WRONG_BASE);
+        writeJson(file, doc);
+        const err = await fail(['workspace', 'push', '--base-url', WRONG_BASE, '--calm-hub-url', SMOKE_HUB_URL]);
+        expect(err.exitCode).toBe(1);
+        expect(err.stderr).not.toContain('does not match CalmHub base URL');
+        expect(await api.listVersions(BASE_NS, 'architectures', MAPPING)).toEqual(['1.0.0']);
+    });
+});
