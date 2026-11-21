@@ -22,7 +22,12 @@ public final class ResourceIds {
      */
     public static int parseNumeric(String id) {
         if (id != null && id.matches("\\d{1,9}")) {
-            return Integer.parseInt(id);
+            try {
+                return Integer.parseInt(id);
+            } catch (NumberFormatException e) {
+                // Unreachable for 1-9 digits, but fail closed rather than propagate a runtime parse error.
+                throw new InvalidResourceIdException("This storage backend requires a numeric resource id");
+            }
         }
         throw new InvalidResourceIdException("This storage backend requires a numeric resource id");
     }
