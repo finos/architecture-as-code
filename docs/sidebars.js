@@ -93,6 +93,14 @@ const sidebars = {
         'working-with-calm/visualizing-architectures',
       ],
     },
+    {
+      type: 'category',
+      label: 'Use Cases',
+      link: {type: 'doc', id: 'use-cases/use-cases-index'},
+      items: [
+        'use-cases/calm-misp',
+      ],
+    },
   ],
 
   // Extensions sidebar - reached via the Extensions navbar item
