@@ -3,6 +3,7 @@ package org.finos.calm.services;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.finos.calm.domain.CustomIdentifiable;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.store.ResourceMappingStore;
@@ -58,7 +59,7 @@ public class CustomIdEnrichmentService {
                 .map(CustomIdentifiable::getId)
                 .filter(Objects::nonNull)
                 .filter(id -> id.matches("\\d{1,9}"))
-                .map(Integer::parseInt)
+                .map(id -> ResourceIds.parseNumeric(id))
                 .toList();
 
         if (numericIds.isEmpty()) {
