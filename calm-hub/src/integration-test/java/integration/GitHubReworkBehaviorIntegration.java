@@ -90,7 +90,7 @@ class GitHubReworkBehaviorIntegration {
     @Test
     @TestSecurity(user = "alice", roles = "group1")
     void never_return_the_literal_latest_in_a_version_list_and_return_a_real_sha_instead() {
-        int standardId = rateLimitPolicyStandardId();
+        String standardId = rateLimitPolicyStandardId();
 
         List<String> versions = given()
                 .when().get("/api/calm/namespaces/finos/standards/" + standardId + "/versions")
@@ -107,7 +107,7 @@ class GitHubReworkBehaviorIntegration {
     @Test
     @TestSecurity(user = "alice", roles = "group1")
     void reject_the_latest_version_alias_with_a_400_in_github_mode_too() {
-        int standardId = rateLimitPolicyStandardId();
+        String standardId = rateLimitPolicyStandardId();
 
         given()
                 .when().get("/api/calm/namespaces/finos/standards/" + standardId + "/versions/latest")
@@ -149,11 +149,11 @@ class GitHubReworkBehaviorIntegration {
                 .body("standards.name", containsInAnyOrder("Searchable Standard", "Searchable Other"));
     }
 
-    private int rateLimitPolicyStandardId() {
+    private String rateLimitPolicyStandardId() {
         return given()
                 .when().get("/api/calm/namespaces/finos/standards")
                 .then()
                 .statusCode(200)
-                .extract().jsonPath().getInt("values.find { it.name == 'Rate Limit Policy' }.id");
+                .extract().jsonPath().getString("values.find { it.name == 'Rate Limit Policy' }.id");
     }
 }

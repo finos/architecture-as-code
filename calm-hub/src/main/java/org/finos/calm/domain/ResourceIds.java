@@ -15,7 +15,11 @@ public final class ResourceIds {
         throw new InvalidResourceIdException("This storage backend requires a numeric resource id");
     }
 
-    /** Parses the string form of a numeric-mode id. Non-numeric (GitHub) ids are not accepted. */
+    /**
+     * Parses the string form of a numeric-mode id. Non-numeric (GitHub) ids are not accepted.
+     * The 1–9 digit bound matches the counter range used by the numeric stores; ids beyond it
+     * are rejected rather than silently accepted as a wrong resource.
+     */
     public static int parseNumeric(String id) {
         if (id != null && id.matches("\\d{1,9}")) {
             try {

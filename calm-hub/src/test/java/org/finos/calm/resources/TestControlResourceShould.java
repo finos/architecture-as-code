@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -105,7 +106,7 @@ public class TestControlResourceShould {
                 .then()
                 .statusCode(201)
                 .header("Location", containsString("/api/calm/domains/" + VALID_DOMAIN + "/controls/5"))
-                .body("id", equalTo(5))
+                .body("id", equalTo("5"))
                 .body("name", equalTo("New Control"))
                 .body("description", equalTo("New Description"));
 
@@ -162,9 +163,9 @@ public class TestControlResourceShould {
     @MethodSource("provideParametersForRequirementVersionTests")
     void respond_correctly_to_get_requirement_versions_query(String domain, Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
         if (exceptionToThrow != null) {
-            when(mockControlStore.getRequirementVersions(anyString(), anyInt())).thenThrow(exceptionToThrow);
+            when(mockControlStore.getRequirementVersions(anyString(), any(ResourceId.class))).thenThrow(exceptionToThrow);
         } else {
-            when(mockControlStore.getRequirementVersions(anyString(), anyInt())).thenReturn(List.of("1.0.0"));
+            when(mockControlStore.getRequirementVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
         }
 
         if (expectedStatusCode == 200) {
@@ -183,7 +184,7 @@ public class TestControlResourceShould {
                     .statusCode(expectedStatusCode);
         }
 
-        verify(mockControlStore).getRequirementVersions(domain, 1);
+        verify(mockControlStore).getRequirementVersions(eq(domain), any(ResourceId.class));
     }
 
     // --- Requirement for specific version ---
@@ -243,9 +244,9 @@ public class TestControlResourceShould {
     @MethodSource("provideParametersForGetRequirementTests")
     void respond_correctly_to_get_requirement_for_version(String domain, Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
         if (exceptionToThrow != null) {
-            when(mockControlStore.getRequirementForVersion(anyString(), anyInt(), anyString())).thenThrow(exceptionToThrow);
+            when(mockControlStore.getRequirementForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(exceptionToThrow);
         } else {
-            when(mockControlStore.getRequirementForVersion(anyString(), anyInt(), anyString())).thenReturn("{\"type\": \"requirement\"}");
+            when(mockControlStore.getRequirementForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"type\": \"requirement\"}");
         }
 
         if (expectedStatusCode == 200) {
@@ -263,7 +264,7 @@ public class TestControlResourceShould {
                     .statusCode(expectedStatusCode);
         }
 
-        verify(mockControlStore).getRequirementForVersion(domain, 1, "1.0.0");
+        verify(mockControlStore).getRequirementForVersion(eq(domain), any(ResourceId.class), eq("1.0.0"));
     }
 
     // --- Configuration Endpoints ---
@@ -305,10 +306,10 @@ public class TestControlResourceShould {
                     .then()
                     .statusCode(expectedStatusCode)
                     .body("values", hasSize(2))
-                    .body("values[0].id", equalTo(10))
+                    .body("values[0].id", equalTo("10"))
                     .body("values[0].name", equalTo("config-a"))
                     .body("values[0].title", equalTo("Config A Title"))
-                    .body("values[1].id", equalTo(20))
+                    .body("values[1].id", equalTo("20"))
                     .body("values[1].name", equalTo("config-b"));
         } else {
             given()

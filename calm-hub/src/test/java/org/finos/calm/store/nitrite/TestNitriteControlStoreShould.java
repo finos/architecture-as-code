@@ -147,7 +147,7 @@ public class TestNitriteControlStoreShould {
         List<ControlDetail> result = store.getControlsForDomain(DOMAIN);
 
         assertThat(result, hasSize(2));
-        assertThat(result.get(0).getId(), is(1));
+        assertThat(result.get(0).getId(), is("1"));
         assertThat(result.get(0).getName(), is("Access Control"));
         assertThat(result.get(0).getDescription(), is("Manage user access"));
         assertThat(result.get(0).getTitle(), is("Access Title"));
@@ -171,7 +171,7 @@ public class TestNitriteControlStoreShould {
         CreateControlRequirement request = new CreateControlRequirement("New Control", "New Description", "{\"type\": \"control\"}");
         ControlDetail result = store.createControlRequirement(request, DOMAIN);
 
-        assertThat(result.getId(), is(5));
+        assertThat(result.getId(), is("5"));
         assertThat(result.getName(), is("New Control"));
         assertThat(result.getDescription(), is("New Description"));
 
@@ -341,7 +341,7 @@ public class TestNitriteControlStoreShould {
         List<ControlConfigDetail> details = store.getConfigurationDetailsForControl(DOMAIN, CONTROL_ID);
 
         assertThat(details, hasSize(1));
-        assertThat(details.get(0).getId(), is(10));
+        assertThat(details.get(0).getId(), is("10"));
         assertThat(details.get(0).getName(), is("encryption-config"));
         assertThat(details.get(0).getTitle(), is("Encryption Title"));
     }

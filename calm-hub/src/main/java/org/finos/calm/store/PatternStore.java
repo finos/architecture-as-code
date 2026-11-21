@@ -35,6 +35,16 @@ public interface PatternStore {
     Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace, String version) throws NamespaceNotFoundException, JsonParseException;
     List<String> getPatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException;
     String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException;
+
+    default List<String> getPatternVersions(String namespace, ResourceId id) throws NamespaceNotFoundException, PatternNotFoundException {
+        return getPatternVersions(new Pattern.PatternBuilder()
+                .setNamespace(namespace).setId(ResourceIds.numeric(id)).build());
+    }
+
+    default String getPatternForVersion(String namespace, ResourceId id, String version) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
+        return getPatternForVersion(new Pattern.PatternBuilder()
+                .setNamespace(namespace).setId(ResourceIds.numeric(id)).setVersion(version).build());
+    }
     Pattern createPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException;
     Pattern updatePatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException;
 

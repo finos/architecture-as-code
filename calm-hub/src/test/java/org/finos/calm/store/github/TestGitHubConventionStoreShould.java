@@ -1,5 +1,6 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.conventions.ConventionDefault;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.CreateConventionRequest;
@@ -41,9 +42,9 @@ class TestGitHubConventionStoreShould {
 
     private static final ConventionType C4 = ConventionType.C4_MAPPING;
     private static final String SHA = "abc1234";
-    private static final RegistryEntry ACME = entry("acme", "conventions/c4-mapping/acme.json");
-    private static final RegistryEntry DEFAULT = entry("org-default", "conventions/c4-mapping/default.json");
-    private static final RegistryEntry OTHER_TYPE = entry("theme", "conventions/theme/theme.json");
+    private static final RegistryEntry ACME = entry("acme", 101, "conventions/c4-mapping/101.json");
+    private static final RegistryEntry DEFAULT = entry("org-default", 102, "conventions/c4-mapping/default.json");
+    private static final RegistryEntry OTHER_TYPE = entry("theme", 103, "conventions/theme/103.json");
 
     @Mock
     private ResourceRegistry registryService;
@@ -59,7 +60,7 @@ class TestGitHubConventionStoreShould {
     @BeforeEach
     void setup() {
         store = new GitHubConventionStore(registryService, cloneManager, versionService, fileReader);
-        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of()), Map.of()));
+        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of())));
         when(registryService.listByType("finos", RegistryResourceType.CONVENTION)).thenReturn(List.of(ACME, DEFAULT, OTHER_TYPE));
         when(cloneManager.headSha("finos")).thenReturn(SHA);
     }
@@ -90,7 +91,7 @@ class TestGitHubConventionStoreShould {
 
     @Test
     void use_default_json_as_the_namespace_default_at_the_head_sha() {
-        assertThat(store.getDefault("finos", C4), is(Optional.of(new ConventionDefault("c4-mapping", "finos", id(DEFAULT), SHA))));
+        assertThat(store.getDefault("finos", C4), is(Optional.of(new ConventionDefault("c4-mapping", "finos", 0, SHA))));
 
         when(registryService.listByType("finos", RegistryResourceType.CONVENTION)).thenReturn(List.of(ACME));
         assertThat(store.getDefault("finos", C4).isPresent(), is(false));
@@ -101,7 +102,7 @@ class TestGitHubConventionStoreShould {
 
     @Test
     void read_default_json_as_the_default_when_another_file_has_the_same_unique_id() throws Exception {
-        RegistryEntry copy = entry("acme", "conventions/c4-mapping/default.json");
+        RegistryEntry copy = entry("acme-copy", 101, "conventions/c4-mapping/default.json");
         when(registryService.listByType("finos", RegistryResourceType.CONVENTION)).thenReturn(List.of(ACME, copy));
         when(fileReader.readContained("finos", ACME.filePath())).thenReturn("{\"unique-id\":\"acme\",\"nesting\":\"demote\"}");
         when(fileReader.readContained("finos", copy.filePath())).thenReturn("{\"unique-id\":\"acme\",\"nesting\":\"strict\"}");
@@ -137,11 +138,11 @@ class TestGitHubConventionStoreShould {
         assertThrows(GitHubWriteNotSupportedException.class, () -> store.deleteDefault("finos", C4));
     }
 
-    private static RegistryEntry entry(String uniqueId, String path) {
-        return new RegistryEntry(uniqueId, Path.of(path), RegistryResourceType.CONVENTION, uniqueId, Instant.EPOCH);
+    private static RegistryEntry entry(String name, int id, String path) {
+        return new RegistryEntry(String.valueOf(id), Path.of(path), RegistryResourceType.CONVENTION, name, Instant.EPOCH);
     }
 
     private static int id(RegistryEntry entry) {
-        return entry.uniqueId().hashCode() & 0x7FFFFFFF;
+        return ResourceIds.parseNumeric(entry.uniqueId());
     }
 }

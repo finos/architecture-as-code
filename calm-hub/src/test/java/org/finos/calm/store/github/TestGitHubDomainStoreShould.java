@@ -45,8 +45,7 @@ class TestGitHubDomainStoreShould {
         RegistryEntry entry = new RegistryEntry("tls-policy", Path.of("controls/security/tls-policy.json"),
                 RegistryResourceType.CONTROL, "TLS Policy", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:tls-policy", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
@@ -70,8 +69,7 @@ class TestGitHubDomainStoreShould {
         RegistryEntry entry = new RegistryEntry("ctrl", Path.of("controls/security/ctrl.json"),
                 RegistryResourceType.CONTROL, "Ctrl", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:ctrl", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
@@ -93,8 +91,7 @@ class TestGitHubDomainStoreShould {
         RegistryEntry restrictedEntry = new RegistryEntry("ctrl-b", Path.of("controls/compliance/ctrl-b.json"),
                 RegistryResourceType.CONTROL, "Control B", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(accessibleEntry), "private", List.of(restrictedEntry)),
-                Map.of("finos:ctrl-a", accessibleEntry, "private:ctrl-b", restrictedEntry));
+                Map.of("finos", List.of(accessibleEntry), "private", List.of(restrictedEntry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 

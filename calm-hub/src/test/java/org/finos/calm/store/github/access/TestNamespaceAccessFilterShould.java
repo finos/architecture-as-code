@@ -44,8 +44,7 @@ class TestNamespaceAccessFilterShould {
     void return_all_namespaces_when_auth_disabled() {
         NamespaceAccessFilter filter = filterWithAuth(false);
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(), "private", List.of()),
-                Map.of());
+                Map.of("finos", List.of(), "private", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         Set<String> result = filter.getAccessibleNamespaces();
@@ -57,7 +56,7 @@ class TestNamespaceAccessFilterShould {
     void return_empty_when_identity_is_anonymous() {
         NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()), Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(identity.isAnonymous()).thenReturn(true);
 
@@ -70,8 +69,7 @@ class TestNamespaceAccessFilterShould {
     void return_only_the_namespaces_the_access_validator_says_are_readable() {
         NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(), "private", List.of(), "restricted", List.of()),
-                Map.of());
+                Map.of("finos", List.of(), "private", List.of(), "restricted", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(identity.isAnonymous()).thenReturn(false);
         when(identity.getPrincipal()).thenReturn(principal);
@@ -93,8 +91,7 @@ class TestNamespaceAccessFilterShould {
         // grant for.
         NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(), "private", List.of()),
-                Map.of());
+                Map.of("finos", List.of(), "private", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(identity.isAnonymous()).thenReturn(false);
         when(identity.getPrincipal()).thenReturn(principal);
@@ -115,7 +112,7 @@ class TestNamespaceAccessFilterShould {
         // couldn't actually read anything from.
         NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()), Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(identity.isAnonymous()).thenReturn(false);
         when(identity.getPrincipal()).thenReturn(principal);
@@ -133,7 +130,7 @@ class TestNamespaceAccessFilterShould {
     void return_empty_when_no_namespaces_are_readable() {
         NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("private", List.of()), Map.of());
+                Map.of("private", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(identity.isAnonymous()).thenReturn(false);
         when(identity.getPrincipal()).thenReturn(principal);

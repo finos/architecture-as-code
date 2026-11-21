@@ -49,6 +49,13 @@ public class CalmResourceErrorResponses {
                 .build();
     }
 
+    /** Generic 404 for an ambiguous id: the candidates are logged, never echoed to the caller. */
+    public static Response ambiguousResourceIdResponse() {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("The resource id matches more than one resource. Add path and variant to identify one resource")
+                .build();
+    }
+
     public static Response decoratorNotFoundResponse(String namespace, int id) {
         return Response.status(Response.Status.NOT_FOUND).entity("Decorator with ID " + id + " does not exist in namespace: " + namespace).build();
     }

@@ -23,6 +23,7 @@ import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.MappingControllerService;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.services.PatternImplementationService;
 import org.finos.calm.domain.implementations.PatternImplementations;
 import org.finos.calm.security.UserAccessValidator;
@@ -71,6 +72,7 @@ public class MappingControllerResource {
     private final Logger logger = LoggerFactory.getLogger(MappingControllerResource.class);
 
     private final MappingControllerService service;
+    private final ResourceIdResolver resourceIdResolver;
     private final CalmDocumentParser documentParser;
     private final CalmHubPermissionChecker permissionChecker;
     private final PatternImplementationService patternImplementationService;
@@ -88,11 +90,13 @@ public class MappingControllerResource {
 
     @Inject
     public MappingControllerResource(MappingControllerService service,
+                                     ResourceIdResolver resourceIdResolver,
                                      CalmDocumentParser documentParser,
                                      CalmHubPermissionChecker permissionChecker,
                                      PatternImplementationService patternImplementationService,
                                      Instance<UserAccessValidator> userAccessValidatorInstance) {
         this.service = service;
+        this.resourceIdResolver = resourceIdResolver;
         this.documentParser = documentParser;
         this.permissionChecker = permissionChecker;
         this.patternImplementationService = patternImplementationService;
@@ -273,7 +277,7 @@ public class MappingControllerResource {
     public Response createResourceVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
-            @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
+            @PathParam("name") @Pattern(regexp = RESOURCE_STEM_REGEX, message = RESOURCE_STEM_MESSAGE) String name,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
             String requestBody
     ) throws URISyntaxException {
@@ -316,6 +320,71 @@ public class MappingControllerResource {
     }
 
     // =========================================================================
+    // GET – latest version (unversioned)
+    // =========================================================================
+
+    @GET
+    @Path("namespaces/{namespace}/{type}/{name}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Get the latest version of a named resource",
+            description = "Resolves the concrete latest version (highest version in MongoDB/standalone, "
+                    + "the current clone HEAD in GitHub mode) and returns its content. A GitHub namespace "
+                    + "with no local clone yields 404. The returned $id is the versioned canonical URL. "
+                    + "Optional path and variant disambiguate GitHub resources with the same stem."
+    )
+    @PermissionsAllowed(CalmHubScopes.READ)
+    public Response getResource(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("type") String type,
+            @PathParam("name") @Pattern(regexp = RESOURCE_STEM_REGEX, message = RESOURCE_STEM_MESSAGE) String name,
+            @QueryParam("path") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String path,
+            @QueryParam("variant") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String variant
+    ) {
+        ResourceType resourceType = documentParser.parseTypePlural(type);
+        if (resourceType == null) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
+        }
+        try {
+            ResourceId resourceId = resourceIdResolver.forName(namespace, resourceType, name, path, variant);
+            String version = service.resolveLatestVersion(namespace, resourceType, resourceId);
+            if (version == null) {
+                logger.warn("No latest version for [{}] in namespace [{}]",
+                        STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(namespace));
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
+            }
+            String json = service.getResourceJson(namespace, resourceType, resourceId, version);
+            return Response.ok(documentParser.rewriteId(json, namespace, resourceType, name, version)).build();
+        } catch (MappingNotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when getting latest resource version",
+                    STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException
+                 | StandardNotFoundException | InterfaceNotFoundException | TimelineNotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
+        } catch (PatternVersionNotFoundException | ArchitectureVersionNotFoundException
+                 | FlowVersionNotFoundException | StandardVersionNotFoundException
+                 | InterfaceVersionNotFoundException | TimelineVersionNotFoundException e) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Invalid version provided").build();
+        } catch (AmbiguousResourceIdException e) {
+            throw e; // let the 404 mapper produce the generic response
+        } catch (InvalidResourceIdException e) {
+            return CalmResourceErrorResponses.invalidResourceIdResponse(e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error retrieving latest resource [{}] in namespace [{}]",
+                    STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // =========================================================================
     // GET – list all versions
     // =========================================================================
 
@@ -330,7 +399,9 @@ public class MappingControllerResource {
     public Response listResourceVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
-            @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name
+            @PathParam("name") @Pattern(regexp = RESOURCE_STEM_REGEX, message = RESOURCE_STEM_MESSAGE) String name,
+            @QueryParam("path") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String path,
+            @QueryParam("variant") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String variant
     ) {
         ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
@@ -338,8 +409,8 @@ public class MappingControllerResource {
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
         }
         try {
-            ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
-            List<String> versions = service.getVersionsForMapping(mapping);
+            ResourceId resourceId = resourceIdResolver.forName(namespace, resourceType, name, path, variant);
+            List<String> versions = service.getVersions(namespace, resourceType, resourceId);
             // VERSION_REGEX's optional separators make an all-digit string like "1234567"
             // valid semver *and* SHA-shaped. Only treat a version as a real git SHA - and so
             // skip semver sorting for the whole list - when it isn't also a valid semver on
@@ -367,6 +438,10 @@ public class MappingControllerResource {
                  | StandardNotFoundException | InterfaceNotFoundException | TimelineNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
+        } catch (AmbiguousResourceIdException e) {
+            throw e; // let the 404 mapper produce the generic response
+        } catch (InvalidResourceIdException e) {
+            return CalmResourceErrorResponses.invalidResourceIdResponse(e.getMessage());
         } catch (Exception e) {
             logger.error("Error listing versions for [{}] in namespace [{}]",
                     STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -390,8 +465,10 @@ public class MappingControllerResource {
     public Response getResourceVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
-            @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
-            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
+            @PathParam("name") @Pattern(regexp = RESOURCE_STEM_REGEX, message = RESOURCE_STEM_MESSAGE) String name,
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version,
+            @QueryParam("path") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String path,
+            @QueryParam("variant") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String variant
     ) {
         ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
@@ -399,8 +476,8 @@ public class MappingControllerResource {
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
         }
         try {
-            ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
-            String json = service.getResourceJsonForVersion(mapping, version);
+            ResourceId resourceId = resourceIdResolver.forName(namespace, resourceType, name, path, variant);
+            String json = service.getResourceJson(namespace, resourceType, resourceId, version);
             String rewrittenJson = documentParser.rewriteId(json, namespace, resourceType, name, version);
             return Response.ok(rewrittenJson).build();
         } catch (MappingNotFoundException e) {
@@ -419,6 +496,10 @@ public class MappingControllerResource {
                  | InterfaceVersionNotFoundException | TimelineVersionNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Invalid version provided: " + version).build();
+        } catch (AmbiguousResourceIdException e) {
+            throw e; // let the 404 mapper produce the generic response
+        } catch (InvalidResourceIdException e) {
+            return CalmResourceErrorResponses.invalidResourceIdResponse(e.getMessage());
         } catch (Exception e) {
             logger.error("Error retrieving resource [{}] version [{}] in namespace [{}]",
                     STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(version),
@@ -450,7 +531,10 @@ public class MappingControllerResource {
         }
         try {
             List<ResourceMapping> mappings = service.listMappings(namespace, resourceType);
-            return Response.ok(new ValueWrapper<>(mappings)).build();
+            List<ResourceMappingView> views = mappings.stream()
+                    .map(m -> ResourceMappingView.from(m, resourceIdResolver.isGitHub()))
+                    .toList();
+            return Response.ok(new ValueWrapper<>(views)).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when listing named resources",
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -783,7 +867,7 @@ public class MappingControllerResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getPatternImplementations(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
+            @PathParam("name") @Pattern(regexp = RESOURCE_STEM_REGEX, message = RESOURCE_STEM_MESSAGE) String name,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
             @Valid @BeanParam PaginationQueryParams page
     ) {

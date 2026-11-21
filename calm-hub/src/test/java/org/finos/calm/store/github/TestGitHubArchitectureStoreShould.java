@@ -64,8 +64,7 @@ class TestGitHubArchitectureStoreShould {
                 RegistryResourceType.ARCHITECTURE, "My Architecture", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:my-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
 
@@ -121,13 +120,15 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
 
-        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
-        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "test-arch";
+
+        when(registryService.find("finos", RegistryResourceType.ARCHITECTURE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getArchitectureVersions(arch);
 
         assertThat(versions, is(empty()));
@@ -138,14 +139,16 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
-        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
-        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "test-arch";
+
+        when(registryService.find("finos", RegistryResourceType.ARCHITECTURE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getArchitectureVersions(arch);
 
         assertThat(versions, hasSize(1));
@@ -157,18 +160,20 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
         when(versionService.getFileVersions("finos/architecture-as-code", "main", "architectures/test.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
-        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
-        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "test-arch";
+
+        when(registryService.find("finos", RegistryResourceType.ARCHITECTURE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getArchitectureVersions(arch);
 
         assertThat(versions, hasSize(2));
@@ -184,16 +189,18 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubArchitectureStore realFileReaderStore = new GitHubArchitectureStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
-        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
-        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "test-arch";
+
+        when(registryService.find("finos", RegistryResourceType.ARCHITECTURE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
 
         String content = realFileReaderStore.getArchitectureForVersion(arch);
         assertThat(content, equalTo("{\"nodes\":[],\"relationships\":[]}"));
@@ -204,18 +211,20 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
         when(versionService.getFileAtVersion("finos/repo", "architectures/test.json", "abc1234"))
                 .thenReturn("{\"nodes\":[{\"name\":\"old\"}]}");
 
-        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
+        String stem = "test-arch";
+
+        when(registryService.find("finos", RegistryResourceType.ARCHITECTURE, stem, null, null))
+                .thenReturn(List.of(entry));
+
         Architecture arch = new Architecture.ArchitectureBuilder()
-                .setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+                .setNamespace("finos").setName(stem).setVersion("abc1234").build();
         String content = store.getArchitectureForVersion(arch);
 
         assertThat(content, equalTo("{\"nodes\":[{\"name\":\"old\"}]}"));
@@ -226,13 +235,15 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
 
-        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
-        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
+        String stem = "test-arch";
+
+        when(registryService.find("finos", RegistryResourceType.ARCHITECTURE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setName(stem).setVersion("1.0.0").build();
 
         assertThrows(ArchitectureVersionNotFoundException.class, () -> store.getArchitectureForVersion(arch));
     }
@@ -242,16 +253,18 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/nonexistent.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubArchitectureStore realFileReaderStore = new GitHubArchitectureStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
-        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
-        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "test-arch";
+
+        when(registryService.find("finos", RegistryResourceType.ARCHITECTURE, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
 
         assertThrows(ArchitectureVersionNotFoundException.class, () -> realFileReaderStore.getArchitectureForVersion(arch));
     }
@@ -261,12 +274,10 @@ class TestGitHubArchitectureStoreShould {
         RegistryEntry entry = new RegistryEntry("test-arch", Path.of("architectures/test.json"),
                 RegistryResourceType.ARCHITECTURE, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-arch", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
 
-        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(99999).build();
+        Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setName("nonexistent").build();
         assertThrows(ArchitectureNotFoundException.class, () -> store.getArchitectureVersions(arch));
     }
 

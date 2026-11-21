@@ -1,6 +1,11 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.resources.params.UserAccessIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+import org.finos.calm.domain.ResourceId;
+
 import io.quarkus.security.PermissionsAllowed;
+import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -27,9 +32,12 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.security.CalmHubPermissionChecker.GLOBAL_ACCESS;
 
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 public class UserAccessResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final UserAccessStore store;
     private final Logger logger = LoggerFactory.getLogger(UserAccessResource.class);
@@ -111,7 +119,9 @@ public class UserAccessResource {
     )
     @PermissionsAllowed(CalmHubScopes.ADMIN)
     public Response getUserAccessForNamespaceAndId(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-                                                   @PathParam("userAccessId") @NotNull Integer userAccessId) {
+                                                   @Valid @BeanParam UserAccessIdParam userAccessIdParam) {
+        ResourceId resourceId = userAccessIdParam.toResourceId(resourceIdResolver);
+        int userAccessId = resourceIdResolver.numericForWrite(resourceId);
 
         try {
             return Response.ok(store.getUserAccessForNamespaceAndId(namespace, userAccessId))
@@ -134,7 +144,9 @@ public class UserAccessResource {
     )
     @PermissionsAllowed(CalmHubScopes.ADMIN)
     public Response deleteUserAccessForNamespace(@PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-                                                 @PathParam("userAccessId") @NotNull Integer userAccessId) {
+                                                 @Valid @BeanParam UserAccessIdParam userAccessIdParam) {
+        ResourceId resourceId = userAccessIdParam.toResourceId(resourceIdResolver);
+        int userAccessId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deleteUserAccessForNamespace(namespace, userAccessId);
             return Response.noContent().build();

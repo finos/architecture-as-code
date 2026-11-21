@@ -3,28 +3,18 @@ package org.finos.calm.store.github.registry;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * An immutable point-in-time view of every {@link RegistryEntry} across every configured
  * namespace, as of the last {@link ResourceRegistry#rebuild}. Immutability matters here more
  * than in most snapshots: {@code rebuild} runs on a scheduler thread while request threads are
  * concurrently reading, and a mutable, partially-rebuilt map would let a request see some
- * entries from the old scan and some from the new one. {@code entriesByNamespace} and
- * {@code entriesByQualifiedId} (keyed {@code "namespace:uniqueId"}) are two indices over the
- * same entries, not two sources of truth - built together, in {@code rebuild}, from a single
- * pass over the clone.
+ * entries from the old scan and some from the new one. Direct lookups go through
+ * {@link #find}, which returns every match so callers can fail closed on ambiguity.
  */
-public record RegistrySnapshot(
-        Map<String, List<RegistryEntry>> entriesByNamespace,
-        Map<String, RegistryEntry> entriesByQualifiedId
-) {
-    public static final RegistrySnapshot EMPTY = new RegistrySnapshot(
-            Collections.emptyMap(), Collections.emptyMap());
+public record RegistrySnapshot(Map<String, List<RegistryEntry>> entriesByNamespace) {
 
-    public Optional<RegistryEntry> findByUniqueId(String namespace, String uniqueId) {
-        return Optional.ofNullable(entriesByQualifiedId.get(namespace + ":" + uniqueId));
-    }
+    public static final RegistrySnapshot EMPTY = new RegistrySnapshot(Collections.emptyMap());
 
     public List<RegistryEntry> listByType(String namespace, RegistryResourceType type) {
         return entriesByNamespace.getOrDefault(namespace, Collections.emptyList())
@@ -35,6 +25,20 @@ public record RegistrySnapshot(
 
     public List<RegistryEntry> listAll(String namespace) {
         return entriesByNamespace.getOrDefault(namespace, Collections.emptyList());
+    }
+
+    /**
+     * Returns every entry matching the supplied parts of the composite identity. A {@code null}
+     * part is not supplied and therefore does not filter; every supplied part must match. Callers
+     * never pick a winner from more than one match — ambiguity is resolved as a 404 above this layer.
+     */
+    public List<RegistryEntry> find(String namespace, RegistryResourceType type, String name, String path, String variant) {
+        return entriesByNamespace.getOrDefault(namespace, Collections.emptyList()).stream()
+                .filter(e -> type == null || e.type() == type)
+                .filter(e -> name == null || name.equals(e.stem()))
+                .filter(e -> path == null || path.equals(e.path()))
+                .filter(e -> variant == null || variant.equals(e.variant()))
+                .toList();
     }
 
     public List<String> getNamespaces() {

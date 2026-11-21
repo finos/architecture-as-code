@@ -1,4 +1,8 @@
 package org.finos.calm.store.github;
+import org.finos.calm.domain.Tags;
+import org.finos.calm.domain.GitHubResourceId;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
@@ -50,7 +54,7 @@ public class GitHubArchitectureStore extends AbstractReadOnlyGitHubStore impleme
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.ARCHITECTURE);
         return entries.stream()
-                .map(e -> new NamespaceResourceSummary(e.name(), null, (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
+                .map(e -> new NamespaceResourceSummary(e.name(), null, Tags.of(e.path(), e.variant()), e.stem(), 0))
                 .toList();
     }
 
@@ -61,19 +65,31 @@ public class GitHubArchitectureStore extends AbstractReadOnlyGitHubStore impleme
 
     @Override
     public List<String> getArchitectureVersions(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
-        verifyNamespace(architecture.getNamespace());
-        RegistryEntry entry = findEntry(architecture.getNamespace(), RegistryResourceType.ARCHITECTURE, architecture.getId())
-                .orElseThrow(ArchitectureNotFoundException::new);
-        return getVersions(architecture.getNamespace(), entry);
+        return getArchitectureVersions(architecture.getNamespace(),
+                new GitHubResourceId(architecture.getName(), null, null));
     }
 
     @Override
     public String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException {
-        verifyNamespace(architecture.getNamespace());
-        RegistryEntry entry = findEntry(architecture.getNamespace(), RegistryResourceType.ARCHITECTURE, architecture.getId())
+        return getArchitectureForVersion(architecture.getNamespace(),
+                new GitHubResourceId(architecture.getName(), null, null), architecture.getDotVersion());
+    }
+
+    @Override
+    public List<String> getArchitectureVersions(String namespace, ResourceId id) throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        verifyNamespace(namespace);
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.ARCHITECTURE, ResourceIds.github(id))
+                .orElseThrow(ArchitectureNotFoundException::new);
+        return getVersions(namespace, entry);
+    }
+
+    @Override
+    public String getArchitectureForVersion(String namespace, ResourceId id, String version) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException {
+        verifyNamespace(namespace);
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.ARCHITECTURE, ResourceIds.github(id))
                 .orElseThrow(ArchitectureNotFoundException::new);
         try {
-            return readAtVersion(architecture.getNamespace(), entry, architecture.getDotVersion())
+            return readAtVersion(namespace, entry, version)
                     .orElseThrow(ArchitectureVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read architecture file: {}", entry.filePath(), e);

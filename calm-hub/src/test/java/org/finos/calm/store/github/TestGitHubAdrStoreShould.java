@@ -39,8 +39,7 @@ class TestGitHubAdrStoreShould {
     @Test
     void return_empty_adrs_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<NamespaceAdrSummary> result = store.getAdrsForNamespace("finos");
@@ -51,8 +50,7 @@ class TestGitHubAdrStoreShould {
     @Test
     void return_zero_count_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThat(store.countAdrsForNamespace("finos"), equalTo(0));
@@ -88,7 +86,7 @@ class TestGitHubAdrStoreShould {
 
     @Test
     void throw_adr_not_found_on_get_adr() {
-        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", List.of()), Map.of());
+        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThrows(AdrNotFoundException.class,
@@ -97,7 +95,7 @@ class TestGitHubAdrStoreShould {
 
     @Test
     void throw_adr_not_found_on_get_adr_revisions() {
-        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", List.of()), Map.of());
+        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThrows(AdrNotFoundException.class,
@@ -106,7 +104,7 @@ class TestGitHubAdrStoreShould {
 
     @Test
     void throw_adr_not_found_on_get_adr_revision() {
-        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", List.of()), Map.of());
+        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThrows(AdrNotFoundException.class,

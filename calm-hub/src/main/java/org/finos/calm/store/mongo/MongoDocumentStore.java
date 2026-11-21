@@ -5,6 +5,7 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.documents.CreateDocumentRequest;
 import org.finos.calm.domain.exception.DocumentNotFoundException;
 import org.finos.calm.domain.exception.DocumentVersionExistsException;
@@ -42,7 +43,7 @@ public class MongoDocumentStore implements DocumentStore {
             throws NamespaceNotFoundException {
         requireNamespace(namespace);
         return store(documentType).listSummariesPaged(namespace, PageRequest.UNPAGED).stream()
-                .map(summary -> summary.getId())
+                .map(summary -> ResourceIds.parseNumeric(summary.getId()))
                 .toList();
     }
 

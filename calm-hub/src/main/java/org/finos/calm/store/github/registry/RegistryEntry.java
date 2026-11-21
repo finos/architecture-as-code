@@ -5,11 +5,11 @@ import java.time.Instant;
 
 /**
  * One CALM resource classified out of a namespace's clone: a {@code filePath} relative to the
- * clone root, the {@link RegistryResourceType} {@link CalmContentDetector} assigned it, and
- * the display {@code name} and {@code uniqueId} every store's numeric id is derived from
- * (via {@code uniqueId().hashCode() & 0x7FFFFFFF}). Produced only by
- * {@link ResourceRegistry#rebuild}, held only inside a {@link RegistrySnapshot} - a store never
- * constructs one directly, only reads entries back out of the snapshot it was given.
+ * clone root, the {@link RegistryResourceType} {@link CalmContentDetector} assigned it, and the
+ * display {@code name} and {@code uniqueId} used by listings and mappings. Identity for direct
+ * lookups is the filename stem plus optional path and variant, derived from {@code filePath} via
+ * {@link ResourcePathHelper}; the document's {@code unique-id} is no longer part of that identity.
+ * Produced only by {@link ResourceRegistry#rebuild}, held only inside a {@link RegistrySnapshot}.
  */
 public record RegistryEntry(
         String uniqueId,
@@ -17,4 +17,16 @@ public record RegistryEntry(
         RegistryResourceType type,
         String name,
         Instant lastModified
-) {}
+) {
+    public String stem() {
+        return ResourcePathHelper.stem(filePath);
+    }
+
+    public String path() {
+        return ResourcePathHelper.path(filePath);
+    }
+
+    public String variant() {
+        return ResourcePathHelper.variant(filePath);
+    }
+}

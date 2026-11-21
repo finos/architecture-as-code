@@ -7,6 +7,7 @@ import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.controls.ControlConfigDetail;
@@ -32,6 +33,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,7 +82,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class)))
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenReturn("{ \"$id\": \"old-id\", \"name\": \"original\" }");
 
         given()
@@ -97,7 +99,8 @@ public class TestMappingControllerResourceWithBaseUrlShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{ \"name\": \"original\" }");
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString()))
+                .thenReturn("{ \"name\": \"original\" }");
 
         given()
                 .when()
@@ -115,11 +118,11 @@ public class TestMappingControllerResourceWithBaseUrlShould {
             ResourceType type, String pathType, String plural) throws Exception {
         when(mockMappingStore.getMapping("finos", type, "my-resource")).thenReturn(new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-resource").setResourceType(type).setNumericId(1).build());
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{}");
-        when(mockArchitectureStore.getArchitectureForVersion(any(Architecture.class))).thenReturn("{}");
-        when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenReturn("{}");
-        when(mockStandardStore.getStandardForVersion("finos", 1, "1.0.0")).thenReturn("{}");
-        when(mockInterfaceStore.getInterfaceForVersion("finos", 1, "1.0.0")).thenReturn("{}");
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{}");
+        when(mockArchitectureStore.getArchitectureForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{}");
+        when(mockFlowStore.getFlowForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{}");
+        when(mockStandardStore.getStandardForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{}");
+        when(mockInterfaceStore.getInterfaceForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{}");
 
         given()
                 .when()

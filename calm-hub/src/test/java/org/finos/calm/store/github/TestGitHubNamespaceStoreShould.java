@@ -37,8 +37,7 @@ class TestGitHubNamespaceStoreShould {
     @Test
     void return_namespaces_from_registry() {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(), "team", List.of()),
-                Map.of());
+                Map.of("finos", List.of(), "team", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<NamespaceInfo> result = store.getNamespaces();
@@ -49,8 +48,7 @@ class TestGitHubNamespaceStoreShould {
     @Test
     void return_true_when_namespace_exists() {
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()),
-                Map.of());
+                Map.of("finos", List.of()));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThat(store.namespaceExists("finos"), is(true));

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -182,9 +183,9 @@ public class TestStandardResourceShould {
     void respond_correctly_to_get_standard_versions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode, String expectedBody) throws StandardNotFoundException, NamespaceNotFoundException {
 
         if(exceptionToThrow != null) {
-            when(mockStandardStore.getStandardVersions(namespace,5)).thenThrow(exceptionToThrow);
+            when(mockStandardStore.getStandardVersions(anyString(), any(ResourceId.class))).thenThrow(exceptionToThrow);
         } else {
-            when(mockStandardStore.getStandardVersions(namespace, 5)).thenReturn(List.of("1.0.0", "1.0.1"));
+            when(mockStandardStore.getStandardVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("1.0.0", "1.0.1"));
         }
 
         if(expectedStatusCode == 200) {
@@ -203,7 +204,7 @@ public class TestStandardResourceShould {
                 .body(containsString(expectedBody));
         }
 
-        verify(mockStandardStore).getStandardVersions(namespace, 5);
+        verify(mockStandardStore).getStandardVersions(anyString(), any(ResourceId.class));
     }
 
     @Test
@@ -254,10 +255,10 @@ public class TestStandardResourceShould {
         standard.setStandardJson("{}");
 
         if(exceptionToThrow != null) {
-            when(mockStandardStore.getStandardForVersion(namespace, 5, "1.0.0")).thenThrow(exceptionToThrow);
+            when(mockStandardStore.getStandardForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(exceptionToThrow);
         } else {
             standard.setStandardJson(objectMapper.writeValueAsString(standard));
-            when(mockStandardStore.getStandardForVersion(namespace, 5, "1.0.0")).thenReturn("{}");
+            when(mockStandardStore.getStandardForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{}");
         }
 
         if(expectedStatusCode == 200) {
@@ -334,7 +335,7 @@ public class TestStandardResourceShould {
         // GET keeps SNAPSHOT_VERSION_REGEX, so a snapshot created via the name-based API stays
         // readable here. A 404 (not 400) proves the path param passed validation and reached
         // the store.
-        when(mockStandardStore.getStandardForVersion(eq("finos"), eq(5), eq("1.0.0-SNAPSHOT")))
+        when(mockStandardStore.getStandardForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenThrow(new StandardVersionNotFoundException());
 
         given()

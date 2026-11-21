@@ -64,10 +64,10 @@ class TestSearchToolsShould {
     @Test
     void return_grouped_results_for_valid_query() {
         List<SearchResult> archResults = List.of(
-                new SearchResult("workshop", 1, "Trade Platform", "Trading architecture")
+                new SearchResult("workshop", "1", "Trade Platform", "Trading architecture")
         );
         List<SearchResult> controlResults = List.of(
-                new SearchResult("api-threats", 2, "BOLA", "Broken Object Level Authorization")
+                new SearchResult("api-threats", "2", "BOLA", "Broken Object Level Authorization")
         );
 
         GroupedSearchResults grouped = new GroupedSearchResults(
@@ -142,7 +142,7 @@ class TestSearchToolsShould {
     @Test
     void skip_empty_groups_in_results() {
         List<SearchResult> archResults = List.of(
-                new SearchResult("workshop", 1, "My Arch", "desc")
+                new SearchResult("workshop", "1", "My Arch", "desc")
         );
 
         GroupedSearchResults grouped = new GroupedSearchResults(

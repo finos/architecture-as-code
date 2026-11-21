@@ -24,8 +24,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
-import static org.finos.calm.resources.ResourceValidationConstants.CUSTOM_ID_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.RESOURCE_STEM_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.Matchers.contains;
@@ -346,9 +346,9 @@ class TestPatternImplementationsEndpointShould {
     }
 
     @Test
-    void reject_a_pattern_name_that_is_not_a_valid_identifier() {
-        given().when().get("/calm/namespaces/finos/patterns/Not_Valid/versions/1.0.0/implementations")
-                .then().statusCode(400).body(containsString(CUSTOM_ID_MESSAGE));
+    void reject_a_pattern_name_that_is_not_a_valid_resource_stem() {
+        given().when().get("/calm/namespaces/finos/patterns/Not.Valid/versions/1.0.0/implementations")
+                .then().statusCode(400).body(containsString(RESOURCE_STEM_MESSAGE));
     }
 
     @Test
