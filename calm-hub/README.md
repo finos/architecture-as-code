@@ -104,10 +104,13 @@ GitHub storage mode serves none from `/calm/schemas`.
 
 ### Storage Modes
 
-Calm Hub supports two different storage modes:
+Calm Hub supports three different storage modes:
 
 1. **MongoDB Mode (Default)**: Uses MongoDB for data persistence. This is the default mode and is suitable for production deployments.
 2. **Standalone Mode**: Uses NitriteDB (an embedded NoSQL database) for data persistence. This mode is useful for development and testing without requiring an external MongoDB instance.
+3. **GitHub Mode**: Read-only; namespaces map to cloned repositories. Versions are commit SHAs.
+
+Resource IDs are strings on the wire. MongoDB and standalone modes parse `{id}` as a decimal number (a non-numeric value returns `400`); GitHub mode resolves the filename stem with optional `?path=` and `?variant=` query parameters. Existing numeric URLs stay valid, and no MongoDB migration is required. `id` fields in listing and search responses are strings in every mode. See [MCP & API Reference](../docs/docs/calm-hub/mcp-and-api.md#resource-ids-in-responses-breaking-change) for the full contract.
 
 #### Selecting Storage Mode
 

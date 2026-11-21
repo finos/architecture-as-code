@@ -1,22 +1,25 @@
 export interface ControlDetail {
-    id: number;
+    id: string;
     name: string;
     description: string;
     title?: string;
+    tags?: { path?: string; variant?: string };
 }
 
 export interface ControlConfigDetail {
-    id: number;
+    id: string;
     name?: string;
     title?: string;
 }
 
 export interface ControlData {
     domain: string;
-    controlId: number;
+    controlId: string;
     controlName: string;
     controlDescription: string;
     controlTitle?: string;
+    path?: string;
+    variant?: string;
 }
 
 /**

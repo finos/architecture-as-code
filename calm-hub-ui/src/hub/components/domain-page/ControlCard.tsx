@@ -6,7 +6,7 @@ interface ControlCardProps {
     name: string;
     description?: string;
     /** The control's numeric id, shown as the mono footer meta (`#5`). */
-    controlId: number;
+    controlId: string;
     /** Deep link to the control's detail route. */
     href: string;
 }

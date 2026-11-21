@@ -32,9 +32,9 @@ The Swagger UI is always included in the image (`quarkus.swagger-ui.always-inclu
 
 CALM Hub exposes two REST surfaces:
 
-**Numeric-id storage API** — `/api/calm/...`
+**Storage API** — `/api/calm/...`
 
-The primary CRUD interface for namespaces, architectures, patterns, flows, standards, and other artefacts. Resources are addressed by server-assigned numeric IDs.
+The primary CRUD interface for namespaces, architectures, patterns, flows, standards, and other artefacts. The `{id}` path segment is a string that resolves against the active backend: a decimal number in MongoDB and standalone modes (a non-numeric value returns `400`), or a filename stem in GitHub mode. In GitHub mode the optional `?path=` and `?variant=` query parameters disambiguate resources that share a stem.
 
 ```
 GET    /api/calm/namespaces
@@ -46,20 +46,36 @@ GET    /api/calm/namespaces/{namespace}/architectures/{id}/versions/{version}
 
 **Name-based API** — `/calm/...`
 
-A user-facing layer that maps human-readable names (slugs) to their numeric IDs and provides versioned access by name. All paths include a `/versions/` segment.
+A user-facing layer that addresses resources by name. MongoDB and standalone modes resolve the slug through the mapping store; GitHub mode uses the filename stem and the optional `path`/`variant` query parameters. An ID that matches more than one GitHub file is ambiguous and returns `404` — the hub never picks a winner.
 
 ```
 POST /calm/namespaces/{namespace}/architectures/{name}/versions/{version}
 GET  /calm/namespaces/{namespace}/architectures/{name}/versions
 GET  /calm/namespaces/{namespace}/architectures/{name}/versions/{version}
+GET  /calm/namespaces/{namespace}/architectures/{name}
 GET  /calm/namespaces/{namespace}/architectures
 ```
+
+The unversioned `GET /calm/namespaces/{namespace}/{type}/{name}` resolves the concrete latest version — the highest version in MongoDB/standalone, the current clone HEAD in GitHub mode — and returns it with a versioned `$id`. A GitHub namespace with no local clone returns `404`.
 
 The type segment is not case-sensitive in a request, so `Architectures` and `architectures` name the same resource. This also applies to the type segment in a `$id` that you send. CALM Hub always writes the type segment in lowercase, in the `$id` of a returned document and in the `Location` header. The CALM CLI reads only the lowercase form.
 
 Writes to the name-based API require a top-level `"title"` field in the document body (or `"name"` for a flow), including for timelines.
 
 The full endpoint list with request/response schemas is visible in the Swagger UI at `/q/swagger-ui`.
+
+### Resource IDs in responses (breaking change)
+
+`id` fields in listing and search responses are strings in every mode — the decimal form of the stored numeric ID in MongoDB/standalone, the filename stem in GitHub mode. The following response shapes changed; update typed clients accordingly:
+
+| Field | Old | New |
+|:------|:----|:----|
+| `SearchResult.id` | integer | string, plus optional `tags: { path?, variant? }` |
+| `ResourceMapping` listing | `numericId` always present | `id` string; `numericId` omitted in GitHub mode; optional `tags` |
+| `ControlDetail.id`, `ControlConfigDetail.id` | integer | string |
+| `CustomIdentifiable.getId()` | integer | string (namespace listing summaries) |
+
+Existing numeric URLs under `/api/calm/...` remain valid in MongoDB and standalone modes. In GitHub mode there are no stored numeric ids, so the mapping-by-numeric-id endpoints have no match (`MappingNotFoundException`) and enrichment by numeric id returns nothing. No MongoDB migration is needed: counters, `_id`, the `resource_mappings` collection and its indexes are unchanged. The document-level `unique-id` no longer determines GitHub resource identity; identity is the filename stem plus optional path and variant.
 
 ### Finding the architectures that implement a pattern
 
