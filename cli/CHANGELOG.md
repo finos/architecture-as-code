@@ -5,6 +5,12 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.74.1](https://github.com/finos/architecture-as-code/compare/cli-v1.74.0...cli-v1.74.1) (2026-11-23)
+
+### 🐛 Bug Fixes
+
+* check workspace $id base URLs against CalmHub ([#3839](https://github.com/finos/architecture-as-code/issues/3839)) ([b7cdaca](https://github.com/finos/architecture-as-code/commit/b7cdacacc2076a10d21bdca9555769e4acde8628))
+
 ## [1.74.0](https://github.com/finos/architecture-as-code/compare/cli-v1.73.0...cli-v1.74.0) (2026-11-18)
 
 ### 🚀 Features
