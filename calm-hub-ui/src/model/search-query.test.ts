@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasQualifiers, segmentQuery, suggest } from './search-query.js';
+import { hasQualifiers, hasUnfinishedQualifier, segmentQuery, suggest } from './search-query.js';
 
 describe('segmentQuery', () => {
     it('marks qualifier keys and values', () => {
@@ -42,8 +42,9 @@ describe('suggest', () => {
         expect(suggest('ns', namespaces).map((s) => s.apply)).toEqual(['namespace:']);
     });
 
-    it('suggests nothing for other words', () => {
+    it('suggests nothing for other words, or for one letter', () => {
         expect(suggest('trade', namespaces)).toEqual([]);
+        expect(suggest('n', namespaces)).toEqual([]);
         expect(suggest('', namespaces)).toEqual([]);
     });
 
@@ -52,6 +53,11 @@ describe('suggest', () => {
             'namespace:card-services ',
             'namespace:payments.cards ',
         ]);
+    });
+
+    it('suggests at most 12 values', () => {
+        const many = Array.from({ length: 20 }, (_, i) => `ns${i}`);
+        expect(suggest('ns:ns', many)).toHaveLength(12);
     });
 
     it('puts an exact namespace match first', () => {
@@ -64,7 +70,7 @@ describe('suggest', () => {
 
     it('suggests types with descriptions', () => {
         const suggestions = suggest('type: pat', namespaces);
-        expect(suggestions).toEqual([{ kind: 'value', label: 'pattern', description: 'Patterns', apply: 'type: pattern ' }]);
+        expect(suggestions).toEqual([{ label: 'pattern', description: 'Patterns', apply: 'type: pattern ' }]);
     });
 
     it('suggests nothing after a value is complete', () => {
@@ -81,5 +87,17 @@ describe('hasQualifiers', () => {
     it('ignores a key without a value and plain text', () => {
         expect(hasQualifiers('type:')).toBe(false);
         expect(hasQualifiers('trade types')).toBe(false);
+    });
+});
+
+describe('hasUnfinishedQualifier', () => {
+    it('is true while the last qualifier has no value', () => {
+        expect(hasUnfinishedQualifier('trade namespace:')).toBe(true);
+        expect(hasUnfinishedQualifier('ns: ')).toBe(true);
+    });
+
+    it('is false once the qualifier has a value', () => {
+        expect(hasUnfinishedQualifier('type:flow')).toBe(false);
+        expect(hasUnfinishedQualifier('trade')).toBe(false);
     });
 });

@@ -70,8 +70,6 @@ function matchRank(label: string, partial: string): number {
 }
 
 export interface Suggestion {
-    /** A `key` completes a qualifier name, a `value` completes what follows its colon. */
-    kind: 'key' | 'value';
     label: string;
     description?: string;
     /** The query after the suggestion is accepted. */
@@ -93,16 +91,31 @@ export function suggest(query: string, namespaces: string[]): Suggestion[] {
         return options
             .filter((o) => o.label.toLowerCase().includes(partial))
             .sort((a, b) => matchRank(a.label, partial) - matchRank(b.label, partial))
-            .map((o) => ({ ...o, kind: 'value' as const, apply: `${before}${o.label} ` }));
+            .slice(0, 12)
+            .map((o) => ({ ...o, apply: `${before}${o.label} ` }));
     }
 
-    const keyMatch = /(?:^|\s)([A-Za-z]+)$/.exec(query);
+    // Two letters at least, so the list does not flash open on the first letter of a word.
+    const keyMatch = /(?:^|\s)([A-Za-z]{2,})$/.exec(query);
     if (keyMatch) {
         const partial = keyMatch[1].toLowerCase();
         const before = query.slice(0, query.length - keyMatch[1].length);
         return QUALIFIERS
             .filter((q) => q.key.startsWith(partial) || (partial === 'ns' && q.key === 'namespace'))
-            .map((q) => ({ kind: 'key' as const, label: `${q.key}:`, description: q.description, apply: `${before}${q.key}:` }));
+            .map((q) => ({ label: `${q.key}:`, description: q.description, apply: `${before}${q.key}:` }));
     }
     return [];
+}
+
+/** Tailwind classes for each kind of query segment, shared by every highlighted query. */
+export const SEGMENT_CLASS = {
+    text: 'text-base-content',
+    key: 'text-primary',
+    value: 'text-accent',
+    invalid: 'text-error underline decoration-wavy',
+} as const;
+
+/** True while the last qualifier has no value yet, such as `namespace:`. Searching then shows nothing useful. */
+export function hasUnfinishedQualifier(query: string): boolean {
+    return /(?:^|\s)(namespace|ns|type):\s*$/i.test(query);
 }

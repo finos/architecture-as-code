@@ -575,7 +575,17 @@ describe('GlobalSearchBar', () => {
             expect(input.value).toBe('namespace:payments.cards ');
         });
 
-        it('submits a plain word on Enter, though it starts like a qualifier key', async () => {
+        it('completes a partly typed key on Enter, as Tab does', async () => {
+            const input = renderWithNamespaces();
+            await type(input, 'ty');
+
+            await act(async () => {
+                fireEvent.keyDown(input, { key: 'Enter' });
+            });
+            expect(input.value).toBe('type:');
+        });
+
+        it('closes the suggestions on a delete, so Enter searches what is left', async () => {
             const searchFn = vi.fn().mockResolvedValue(emptyResults);
             render(
                 <MemoryRouter>
@@ -587,8 +597,13 @@ describe('GlobalSearchBar', () => {
                 </MemoryRouter>
             );
             const input = screen.getByPlaceholderText(PLACEHOLDER) as HTMLInputElement;
-            await type(input, 'name');
+            await type(input, 'names');
             expect(screen.getByRole('option', { name: /namespace:/ })).toBeInTheDocument();
+
+            await act(async () => {
+                fireEvent.input(input, { target: { value: 'name' }, inputType: 'deleteContentBackward' });
+            });
+            expect(screen.queryByRole('option')).not.toBeInTheDocument();
 
             await act(async () => {
                 fireEvent.keyDown(input, { key: 'Enter' });
@@ -596,16 +611,21 @@ describe('GlobalSearchBar', () => {
             expect(screen.getByTestId('location')).toHaveTextContent('/search?q=name');
         });
 
-        it('accepts a qualifier key on Enter after the user picks it', async () => {
-            const input = renderWithNamespaces();
-            await type(input, 'ty');
-
-            for (const key of ['ArrowDown', 'Enter']) {
-                await act(async () => {
-                    fireEvent.keyDown(input, { key });
-                });
-            }
-            expect(input.value).toBe('type:');
+        it('does not search while a qualifier has no value', async () => {
+            const searchFn = vi.fn().mockResolvedValue(emptyResults);
+            render(
+                <MemoryRouter>
+                    <GlobalSearchBar
+                        searchService={createMockSearchService(searchFn)}
+                        calmService={{ fetchNamespaces: vi.fn().mockResolvedValue([]) } as unknown as CalmService}
+                    />
+                </MemoryRouter>
+            );
+            await type(screen.getByPlaceholderText(PLACEHOLDER) as HTMLInputElement, 'trade type:');
+            await act(async () => {
+                vi.advanceTimersByTime(300);
+            });
+            expect(searchFn).not.toHaveBeenCalled();
         });
 
         it('accepts a type suggestion with a click', async () => {

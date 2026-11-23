@@ -41,7 +41,7 @@ export function SearchSuggestionList({ listboxId, suggestions, selectedIndex, op
                 className="px-3 py-1 font-mono-jb text-[10px] border-t border-base-300"
                 style={{ color: colors.redesign.faintAlt }}
             >
-                Tab to accept · ↑↓ to move
+                Tab or Enter to accept · ↑↓ to move
             </div>
         </>
     );

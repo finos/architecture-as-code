@@ -102,7 +102,7 @@ The hub answers on demand and caches nothing, reading the architectures you are 
 
 A space after the colon is allowed. The other text is the search term. A query with only qualifiers lists all that they allow, for example `ns:workshop type:architecture`. An unknown type gives a 400 that lists the valid types.
 
-The search bars in the UI suggest the qualifiers and their values as you type. Tab accepts a suggestion. Enter accepts a value, or a qualifier that you select with the arrow keys; otherwise Enter searches. The search page does not query [extension search providers](extension-points.md#search-provider) when the query has a qualifier.
+The search bars in the UI suggest the qualifiers and their values as you type. Tab or Enter accepts a suggestion. Backspace or Esc closes the list, so that Enter searches for the text as typed. The search page does not query [extension search providers](extension-points.md#search-provider) when the query has a qualifier.
 
 ### Snapshot Versions
 

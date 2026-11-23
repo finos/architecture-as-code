@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SearchQueryError, SearchService } from '../../../service/search-service.js';
 import { hasQualifiers } from '../../../model/search-query.js';
+import { QueryText } from '../../../components/navbar/search/QueryHighlight.js';
 import { GroupedSearchResults, SearchResult } from '../../../model/search.js';
 import { TYPE_LABELS, flattenResults, useSearchNavigation } from '../../../hooks/useSearchNavigation.js';
 import { colors } from '../../../theme/colors.js';
@@ -73,7 +74,10 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                     <h1 className="text-[28px] font-bold" style={{ color: colors.redesign.ink }}>
                         {query ? (
                             <>
-                                Results for <span style={{ color: colors.redesign.primaryText }}>“{query}”</span>
+                                Results for{' '}
+                                <span className="font-mono-jb text-[20px] font-medium break-all">
+                                    <QueryText query={query} />
+                                </span>
                             </>
                         ) : (
                             'Search'

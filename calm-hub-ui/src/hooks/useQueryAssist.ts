@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, KeyboardEvent } from 'react';
 import { CalmService } from '../service/calm-service.js';
 import { suggest, Suggestion } from '../model/search-query.js';
@@ -35,8 +35,6 @@ export function useQueryAssist(
     const [focused, setFocused] = useState(false);
     const [dismissed, setDismissed] = useState(false);
     const [suggestionIndex, setSuggestionIndex] = useState(0);
-    // Set when the user moves through the suggestions, so Enter on a plain word such as `name` still searches.
-    const [picked, setPicked] = useState(false);
     const [namespaces, setNamespaces] = useState<string[] | null>(null);
 
     const suggestions = useMemo(
@@ -60,11 +58,13 @@ export function useQueryAssist(
         }
     }, []);
 
+    // Before paint, so the coloured text never lags the input by a frame.
+    useLayoutEffect(syncHighlightScroll, [query, syncHighlightScroll]);
+
     const acceptSuggestion = useCallback(
         (suggestion: Suggestion) => {
             updateQuery(suggestion.apply);
             setSuggestionIndex(0);
-            setPicked(false);
             setDismissed(false);
             requestAnimationFrame(() => {
                 const input = inputRef.current;
@@ -83,8 +83,9 @@ export function useQueryAssist(
             onInputChange(e);
             setFocused(true);
             setSuggestionIndex(0);
-            setPicked(false);
-            setDismissed(false);
+            // Deleting closes the list, so Enter searches what is left. Typing again opens it.
+            const inputType = (e.nativeEvent as InputEvent).inputType ?? '';
+            setDismissed(inputType.startsWith('delete'));
         },
         [onInputChange]
     );
@@ -96,13 +97,11 @@ export function useQueryAssist(
                 e.preventDefault();
                 const delta = e.key === 'ArrowDown' ? 1 : -1;
                 setSuggestionIndex((i) => (i + delta + suggestions.length) % suggestions.length);
-                setPicked(true);
                 return true;
             }
-            const suggestion = suggestions[suggestionIndex] ?? suggestions[0];
-            if (e.key === 'Tab' || (e.key === 'Enter' && (picked || suggestion.kind === 'value'))) {
+            if (e.key === 'Tab' || e.key === 'Enter') {
                 e.preventDefault();
-                acceptSuggestion(suggestion);
+                acceptSuggestion(suggestions[suggestionIndex] ?? suggestions[0]);
                 return true;
             }
             if (e.key === 'Escape') {
@@ -111,7 +110,7 @@ export function useQueryAssist(
             }
             return false;
         },
-        [suggestions, suggestionIndex, picked, acceptSuggestion]
+        [suggestions, suggestionIndex, acceptSuggestion]
     );
 
     return {

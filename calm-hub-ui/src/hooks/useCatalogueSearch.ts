@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react';
 import { SearchQueryError, SearchService } from '../service/search-service.js';
 import { GroupedSearchResults } from '../model/search.js';
 import { FlatResult, flattenResults } from './useSearchNavigation.js';
+import { hasUnfinishedQualifier } from '../model/search-query.js';
 
 const DEBOUNCE_MS = 300;
 
@@ -66,6 +67,8 @@ export function useCatalogueSearch(searchService?: SearchService): UseCatalogueS
                 setLoading(false);
                 return;
             }
+
+            if (hasUnfinishedQualifier(searchQuery)) return;
 
             abortRef.current?.abort();
             const controller = new AbortController();
