@@ -94,7 +94,7 @@
         <dependency>
             <groupId>com.unboundid</groupId>
             <artifactId>unboundid-ldapsdk</artifactId>
-            <version>7.0.5</version>
+            <version>7.0.6</version>
         </dependency>
 
         <!-- JGit via its Quarkus extension, which configures JGit for native builds -->
