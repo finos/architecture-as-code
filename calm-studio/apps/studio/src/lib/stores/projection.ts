@@ -42,6 +42,10 @@ import {
 } from '$lib/canvas/containment';
 import { mergeContainmentRelationships } from './mergeContainmentRelationships';
 import {
+	allocateRelationshipId,
+	storedRelationshipIdFromEdge,
+} from '$lib/relationships/relationshipId';
+import {
 	estimateRectangleNodeSize,
 	resolveRectangleNodeWidth,
 	ARCHIMATE_ICON_WIDTH,
@@ -367,21 +371,29 @@ function inferContainmentEdgesFromParentIds(nodes: Node[], edges: Edge[]): Edge[
 	return inferred.length > 0 ? [...edges, ...inferred] : edges;
 }
 
-function relationshipIdForEdge(e: Edge): string {
-	const d = (e.data ?? {}) as { calmRelId?: string };
-	if (d.calmRelId) return d.calmRelId;
-	const hash = e.id.indexOf('#');
-	if (hash > 0) return e.id.slice(0, hash);
-	const underscore = e.id.indexOf('__');
-	if (underscore > 0) return e.id.slice(0, underscore);
-	return e.id;
+function relationshipIdForEdge(
+	e: Edge,
+	sourceId: string,
+	targetId: string,
+	variant: string,
+	taken: Set<string>,
+): string {
+	const stored = storedRelationshipIdFromEdge(e);
+	if (stored) {
+		taken.add(stored);
+		return stored;
+	}
+	const id = allocateRelationshipId(sourceId, variant, targetId, taken);
+	taken.add(id);
+	return id;
 }
 
 function edgeToRelationship(
 	e: Edge,
 	variant: CalmRelationshipVariant,
 	sourceId: string,
-	targetId: string
+	targetId: string,
+	takenIds: Set<string>,
 ): CalmRelationship {
 	const edgeData = (e.data ?? {}) as {
 		protocol?: string;
@@ -391,7 +403,7 @@ function edgeToRelationship(
 		originalRelationshipType?: CalmRelationshipType;
 	};
 	const rel: CalmRelationship = {
-		'unique-id': relationshipIdForEdge(e),
+		'unique-id': relationshipIdForEdge(e, sourceId, targetId, variant, takenIds),
 		'relationship-type':
 			edgeData.originalRelationshipType ?? buildRelationshipType(variant, sourceId, targetId),
 	};
@@ -453,6 +465,7 @@ export function flowToCalm(nodes: Node[], edges: Edge[]): CalmArchitecture {
 		return node;
 	});
 
+	const takenIds = new Set<string>();
 	const nonContainment: CalmRelationship[] = [];
 	type OptionsGroup = {
 		rel: CalmRelationship;
@@ -475,7 +488,7 @@ export function flowToCalm(nodes: Node[], edges: Edge[]): CalmArchitecture {
 			((e.type as CalmRelationshipVariant | undefined) ?? 'connects');
 		const sourceId = flowIdToCalmId.get(e.source) ?? e.source;
 		const targetId = flowIdToCalmId.get(e.target) ?? e.target;
-		const rel = edgeToRelationship(e, variant, sourceId, targetId);
+		const rel = edgeToRelationship(e, variant, sourceId, targetId, takenIds);
 
 		if (variant === 'options') {
 			const data = (e.data ?? {}) as {

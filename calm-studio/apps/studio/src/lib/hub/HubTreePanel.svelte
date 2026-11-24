@@ -2,7 +2,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { subscribePackRegistry } from '@calmstudio/extensions';
 	import { getProjectConfig } from '$lib/project/projectStore.svelte';
 	import { CALM_NODE_REF_MIME, type CalmNodeRefDragPayload } from '$lib/explorer/types';
@@ -38,6 +38,8 @@
 	let rootError = $state<string | null>(null);
 	let packRevision = $state(0);
 	let versionClickTimer: ReturnType<typeof setTimeout> | undefined;
+	let scroller = $state<HTMLElement | null>(null);
+	let selectedKey = $state<string | null>(null);
 
 	onMount(() => subscribePackRegistry(() => {
 		packRevision += 1;
@@ -138,6 +140,85 @@
 		}
 	}
 
+	async function refreshTree() {
+		const url = hubUrl;
+		if (!url) return;
+		const scrollTop = scroller?.scrollTop ?? 0;
+		loading = 'root';
+		try {
+			const list = await listHubNamespaces(url);
+			namespaces = list.map((ns) => ns.name);
+			const openNamespaces = { ...openNs };
+			for (const ns of Object.keys(openNamespaces)) {
+				if (!openNamespaces[ns]) continue;
+				if (!namespaces.includes(ns)) {
+					openNamespaces[ns] = false;
+					continue;
+				}
+				architectures = { ...architectures, [ns]: await listHubArchitectures(url, ns) };
+			}
+			openNs = openNamespaces;
+			const openArchitectures = { ...openArch };
+			for (const key of Object.keys(openArchitectures)) {
+				if (!openArchitectures[key]) continue;
+				const slash = key.indexOf('/');
+				const ns = key.slice(0, slash);
+				const id = key.slice(slash + 1);
+				const arch = (architectures[ns] ?? []).find((item) => item.id === id);
+				if (!arch) {
+					openArchitectures[key] = false;
+					continue;
+				}
+				versions = { ...versions, [key]: await listHubArchitectureVersions(url, ns, arch.id) };
+			}
+			openArch = openArchitectures;
+			const openVersions = { ...openVersion };
+			for (const key of Object.keys(openVersions)) {
+				if (!openVersions[key]) continue;
+				const parts = key.split('/');
+				const version = parts.pop() ?? '';
+				const id = parts.pop() ?? '';
+				const ns = parts.join('/');
+				const arch = (architectures[ns] ?? []).find((item) => item.id === id);
+				if (!arch || !(versions[archKey(ns, id)] ?? []).includes(version)) {
+					openVersions[key] = false;
+					continue;
+				}
+				const docUrl = hubArchitectureUrl(url, ns, arch.id, version);
+				const doc = await fetchHubArchitecture(docUrl);
+				nodesByVersion = { ...nodesByVersion, [key]: hubNodesFromArchitecture(doc) };
+			}
+			openVersion = openVersions;
+			if (selectedKey && !selectionStillPresent(selectedKey)) selectedKey = null;
+		} catch (e) {
+			rootError = e instanceof Error ? e.message : 'Failed to refresh Hub';
+		} finally {
+			loading = null;
+			await tick();
+			if (scroller) scroller.scrollTop = scrollTop;
+		}
+	}
+
+	function selectionStillPresent(key: string): boolean {
+		if (namespaces.includes(key)) return true;
+		for (const ns of namespaces) {
+			if ((architectures[ns] ?? []).some((arch) => archKey(ns, arch.id) === key)) return true;
+			for (const arch of architectures[ns] ?? []) {
+				const aKey = archKey(ns, arch.id);
+				if ((versions[aKey] ?? []).some((version) => versionKey(ns, arch.id, version) === key)) {
+					return true;
+				}
+				for (const version of versions[aKey] ?? []) {
+					const vKey = versionKey(ns, arch.id, version);
+					if ((nodesByVersion[vKey] ?? []).some((node) => `${vKey}/${node.uniqueId}` === key)) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
 	function onVersionClick(ns: string, arch: HubArchitectureSummary, version: string) {
 		clearTimeout(versionClickTimer);
 		versionClickTimer = setTimeout(() => {
@@ -177,7 +258,12 @@
 	}
 </script>
 
-<div class="hub-tree">
+<div class="hub-tree" bind:this={scroller}>
+	<div class="toolbar">
+		<button type="button" class="refresh" onclick={() => void refreshTree()} disabled={!hubUrl || loading === 'root'}>
+			Refresh
+		</button>
+	</div>
 	{#if rootError}
 		<p class="error" role="alert">{rootError}</p>
 	{/if}
@@ -187,7 +273,7 @@
 	<ul class="tree" role="tree">
 		{#each namespaces as ns (ns)}
 			<li>
-				<button type="button" class="row" title={ns} onclick={() => void toggleNamespace(ns)}>
+				<button type="button" class="row" class:selected={selectedKey === ns} title={ns} onclick={() => { selectedKey = ns; void toggleNamespace(ns); }}>
 					<span class="chevron">{openNs[ns] ? '▼' : '▶'}</span>
 					<span class="label">{ns}</span>
 				</button>
@@ -199,7 +285,7 @@
 						{#each architectures[ns] ?? [] as arch (arch.id)}
 							{@const aKey = archKey(ns, arch.id)}
 							<li>
-								<button type="button" class="row" title={arch.name} onclick={() => void toggleArchitecture(ns, arch)}>
+								<button type="button" class="row" class:selected={selectedKey === aKey} title={arch.name} onclick={() => { selectedKey = aKey; void toggleArchitecture(ns, arch); }}>
 									<span class="chevron">{openArch[aKey] ? '▼' : '▶'}</span>
 									<span class="label">{arch.name}</span>
 								</button>
@@ -215,7 +301,8 @@
 													type="button"
 													class="row"
 													title={version}
-													onclick={() => onVersionClick(ns, arch, version)}
+													class:selected={selectedKey === vKey}
+													onclick={() => { selectedKey = vKey; onVersionClick(ns, arch, version); }}
 													ondblclick={() => onVersionDblClick(ns, arch, version)}
 												>
 													<span class="chevron">{openVersion[vKey] ? '▼' : '▶'}</span>
@@ -234,6 +321,8 @@
 																	tabindex="0"
 																	draggable="true"
 																	title={node.name}
+																	class:selected={selectedKey === `${vKey}/${node.uniqueId}`}
+																	onclick={() => (selectedKey = `${vKey}/${node.uniqueId}`)}
 																	ondragstart={(e) => dragNode(e, node, versionUrl(ns, arch, version))}
 																>
 																	{#if iconMarkup(node.nodeType)}
@@ -271,11 +360,27 @@
 		font-size: 12px;
 	}
 
+	.toolbar {
+		position: sticky;
+		top: 0;
+		z-index: 1;
+		margin-bottom: 6px;
+		background: var(--color-surface-primary, #fff);
+	}
+
+	.refresh {
+		font-size: 12px;
+	}
+
+	.row.selected {
+		background: var(--color-surface-tertiary, rgba(0, 0, 0, 0.06));
+	}
+
 	.tree,
 	.hub-tree ul {
 		list-style: none;
 		margin: 0;
-		padding: 0 0 0 12px;
+		padding: 0 0 0 2ch;
 	}
 
 	.row {

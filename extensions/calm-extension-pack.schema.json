@@ -257,10 +257,35 @@
             "options"
           ]
         },
+        "line-style": {
+          "type": "string",
+          "enum": ["solid", "dashed", "dotted"],
+          "description": "Drawn line style. Applied while the pack is loaded. Not written onto the relationship."
+        },
+        "routing": {
+          "type": "string",
+          "enum": ["bezier", "smoothstep", "straight"],
+          "description": "Drawn routing. Applied while the pack is loaded. Not written onto the relationship."
+        },
+        "line-color": {
+          "type": "string",
+          "pattern": "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Drawn stroke color. Applied while the pack is loaded. Not written onto the relationship."
+        },
+        "text-color": {
+          "type": "string",
+          "pattern": "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+          "description": "Drawn description color. Applied while the pack is loaded. Not written onto the relationship."
+        },
+        "description-display": {
+          "type": "string",
+          "enum": ["tooltip", "label"],
+          "description": "How the description is drawn. Applied while the pack is loaded. Not written onto the relationship."
+        },
         "defaults": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Values written onto a new relationship of this type. Appearance keys live under metadata.",
+          "description": "Values written onto a new relationship of this type. Do not put line style, routing, or colors here.",
           "properties": {
             "metadata": {
               "type": "object"

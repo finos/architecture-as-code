@@ -157,9 +157,62 @@ V17
         "routing": "smoothstep":  stejen jako je to v pluginu pro vscode calm canvas umožni pro tyto hodnotry nastavit default value v extenzion a navic pdoporovat obarveni "line-color": "#a9e22c",
 "text-color": "#6a2216".  Routing enum values Curve,Elbow,Straight. Line-style enum values Solid,Dashed,Dotted. A umožnit nastaveni zobrazeni decription vazby. Default bude definovat extenzion. 
 - podpora custmon vazeb. takové vazby se  nesmi ztracet  i s nedefinovanou  realtions type. Vazba se musi vykreslit  odpovidáli strukturou vazbě typu options. graficky reprezentace custom vazby muže byt definovana v extenzion pack. stenej tak je potřeba tyto vazby nabýzet comboboxu typ vazby dle schematu a aktivnich extenzions. 
+V18
 
+Strom souborů se po práci mimo editor (jiný program, git) a po přesunu sám neaktualizuje. Obnova stromu nesmí ztratit místo, kde uživatel je. Nová vazba se do JSON zapíše se stejným `unique-id` `xy-edge` (id z plátna se ořízne na `__`). Změna typu vazby se do `relationship-type` nepropíše. Alt+tažení z V7 nevytvoří `composed-of`. Metadata nemají jeden dialog pro celý objekt podle schématu.
 
-Vxx
+**Strom — Files i Hub**
+- Tlačítko Obnovit na záložce Files i Hub. Obnovení znovu načte obsah stromu (Files z disku, Hub znovu načte rozbalené úrovně).
+- Po obnovení zůstane scroll, sada rozbalených uzlů a vybraný uzel. Uzel, který na zdroji už není, se nevybere znovu.
+- Obnovení nemění neuložený obsah otevřené záložky.
+
+**Sledování souborů projektu**
+- Editor sleduje změny souborů v otevřené složce projektu a aktualizuje strom Files.
+- Záložka bez neuložených úprav, jejíž soubor se na disku změnil, se načte z disku.
+- Záložka s neuloženými úpravami se sama nepřepisuje. Dialog: **Načíst z disku** nebo **Ponechat moje úpravy**.
+- Hub se na pozadí nesleduje. Obnoví ho jen tlačítko Obnovit.
+
+**Přesun tažením**
+- Tažení souboru i složky ve Files se před provedením zeptá. Dialog ukáže zdrojovou a cílovou cestu.
+- Zrušení dialogu nic nepřesune a reference nezmění.
+- Po potvrzení je po dobu přesunu blokující hláška, že přesun probíhá. Po dokončení platí V11: strom, relativní `detailed-architecture` a reference v ostatních souborech se přepíší.
+- Samotné tažení uzlu na plátně dialog nepřidává.
+
+**Vazby**
+- Nová vazba nedostane `unique-id` `xy-edge` ani jiné id odvozené z id plátna.
+- Základ id je slug stejným pravidlem jako `{{name}}` u nového souboru (`normalizeSlug`): `{zdroj}-{typ}-{cíl}`. `naming.patterns` zůstává šablona cesty souboru, ne id vazby.
+- Id musí být v daném dokumentu jediné. Když základ už existuje, na konec se přidá `-2`, `-3`, … (první volné).
+- Už uložené duplicitní `xy-edge` se při otevření samy nepřejmenují.
+- Combobox typu v properties a kontextové menu na plátně udělají totéž: `relationship-type` v JSON odpovídá zvolenému typu a kresba se změní ve stejném kroku (čára vs. kontejner).
+- Stejný krok přepíše metadata, která patří k typu vazby, na hodnoty nového typu. Jde o `defaults.metadata` z aktivní extenze (včetně `line-style`, `routing`, `line-color`, `text-color`, `description-display`) a o značku typu v metadata (např. `archimate.relationship`, `calm-core-variant`). Klíče vázané jen na předchozí typ, které nový typ nemá, se smažou. Ostatní metadata a `description` zůstanou.
+- Do nového `relationship-type` se nezapíše tvar, který zvolený typ nemá (např. `protocol` nebo seznam členů u `connects`).
+- Alt+tažení platí podle V7. Oprava: vazba se vytvoří a zapíše do JSON (první vazba na kontejner otevře výběr `composed-of` / `deployed-in`, další prvek se přidá k existující vazbě, vytažení s Alt prvek z vazby odebere).
+
+**Metadata**
+- V properties uzlu i vazby je jeden dialog pro celý objekt `metadata`.
+- Pole dialogu se sestaví ze schématu prvku: enum jako výběr, vnořený objekt jako vnořená pole, pole jako seznam Add/Remove (V15).
+- Dialog nesahá na klíče, které ve schématu nejsou. Dnešní dialogy po skupinách zůstávají.
+
+**Mimo V18**
+- Přejmenování už uložených `xy-edge` a hromadná oprava duplicit.
+- Sledování Hubu a vzdálených souborů.
+- Potvrzení při posunu prvku na plátně.
+- Mazání dialogů metadat po skupinách a nový volný JSON editor pro klíče mimo schéma.
+
+V19
+- Najetí myší na nakreslenou vazbu v editoru ji zvýrazní výrazně modrým rozplývajícím se stínem. Stejný stín dostanou oba uzly na koncích té čáry.
+- Světlo zmizí, jakmile kurzor čáru opustí. Výběr, barva čáry a dokument se nemění.
+- Vazba `options` nakreslená jako víc čar zvýrazní jen čáru pod kurzorem a její dva konce.
+- Skrytá containment vazba nemá čáru, na kterou jde najet, takže se nezvýrazní.
+
+V20
+- V paletě je pod komponentami sekce Relationships. Typy vazeb jsou rozdělené podle zapnutých extenzí, stejně jako komponenty. Extenze bez vazeb se nezobrazí.
+- Klik na typ ho vybere pro zbytek relace. Nadpis sekce ukazuje jeho název. Dokud uživatel nic nevybere, tažení kreslí `connects`.
+- Další vazba tažením z uzlu na uzel vznikne podle vybraného typu: varianta CALM, uložená `defaults.metadata` a styl i barva čáry z typu. Styl a barva se do souboru nezapíšou.
+- Výběr `composed-of` nebo `deployed-in` uzel vnoří a čáru skryje. Alt+tažení se tímto výběrem nemění.
+- Po uložení a znovuotevření zůstane typ v comboboxu, když je v metadatech značka `metadata.<extenze>.relationship`.
+
+Vxx - neimplementovat
 - použivat  namessapce v detailed-architecture. Namespace pro projekt umisti do konfigurace.Pro namespace root adresař je v konfiguraci. Adreasře v tomto rootu už odpovifdajicestev namespace. Artefakty z tohoto namespace prekladej na lokálni soubory projektu. Priklad mapovani namesapce na adresařovou strukturu ns: https://architecture.creditas.cz/ je mapovana na adresař : v projekt architecture-model tj vysledná namespace pro soubor architecture-model/onebank/components-ext/test.architecture.json je https://architecture.creditas.cz/onebank/components-ext/test.architecture.json
 ```
 ## fix

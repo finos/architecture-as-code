@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+import type { ListedFileStamp } from './fileStamps';
 import type { CalmNodePreview, ExplorerDirectoryEntry, ExplorerFileEntry, ExplorerTreeEntry } from './types';
 
 function joinPath(parent: string, name: string): string {
@@ -59,6 +60,28 @@ export async function scanDirectoryTree(
 
 	entries.sort(compareEntries);
 	return entries;
+}
+
+/** Last-modified times of the files the explorer lists. Used to notice external edits. */
+export async function collectListedFileStamps(
+	dirHandle: FileSystemDirectoryHandle,
+	basePath = '',
+): Promise<ListedFileStamp[]> {
+	const stamps: ListedFileStamp[] = [];
+	for await (const [name, handle] of dirHandle.entries()) {
+		if (name.startsWith('.')) continue;
+		if (handle.kind === 'directory') {
+			stamps.push(
+				...(await collectListedFileStamps(handle as FileSystemDirectoryHandle, joinPath(basePath, name))),
+			);
+			continue;
+		}
+		if (!explorerListedFileKind(name)) continue;
+		const file = await (handle as FileSystemFileHandle).getFile();
+		stamps.push({ relativePath: joinPath(basePath, name), modified: file.lastModified });
+	}
+	stamps.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+	return stamps;
 }
 
 function compareEntries(a: ExplorerTreeEntry, b: ExplorerTreeEntry): number {

@@ -40,7 +40,16 @@ export interface RelationshipTypeEntry {
   label: string;
   description?: string;
   calmCoreVariant?: 'connects' | 'composed-of' | 'deployed-in' | 'interacts' | 'options';
-  /** Appearance and other metadata written onto a new relationship of this type. */
+  /**
+   * Drawn appearance. Applied while this pack is loaded.
+   * These keys are not written onto the relationship.
+   */
+  'line-style'?: 'solid' | 'dashed' | 'dotted';
+  routing?: 'bezier' | 'smoothstep' | 'straight';
+  'line-color'?: string;
+  'text-color'?: string;
+  'description-display'?: 'tooltip' | 'label';
+  /** Values written onto a new relationship of this type. Not appearance. */
   defaults?: {
     metadata?: Record<string, unknown>;
   };

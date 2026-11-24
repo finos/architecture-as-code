@@ -8,6 +8,7 @@
 import type { CalmRelationshipVariant } from '@calmstudio/calm-core';
 import { getAllPacks, type RelationshipTypeEntry } from '@calmstudio/extensions';
 import { buildRelationshipTypeForVariant } from '$lib/metadata/relationshipVariantSync';
+import { isContainmentType } from '$lib/canvas/containment';
 import { APPEARANCE_KEYS, mergeMissingMetadata } from './relationshipAppearance';
 import { relationshipTypeRecord, soleRelationshipKey } from './optionsRelationship';
 
@@ -20,6 +21,7 @@ const CORE: { value: CalmRelationshipVariant; label: string }[] = [
 ];
 
 const CORE_KEYS = new Set<string>(CORE.map((item) => item.value));
+const VISUAL_KEYS = new Set<string>(APPEARANCE_KEYS);
 
 export interface RelationshipTypeChoice {
 	value: string;
@@ -50,8 +52,38 @@ export function relationshipTypeChoices(currentKey: string | undefined): Relatio
 	return options;
 }
 
+function visualFromEntry(entry: RelationshipTypeEntry): Record<string, unknown> {
+	const visual: Record<string, unknown> = {};
+	for (const key of APPEARANCE_KEYS) {
+		const value = entry[key];
+		if (value !== undefined) visual[key] = value;
+	}
+	const stored = entry.defaults?.metadata;
+	if (stored) {
+		for (const key of APPEARANCE_KEYS) {
+			if (visual[key] === undefined && stored[key] !== undefined) visual[key] = stored[key];
+		}
+	}
+	return visual;
+}
+
+/** Drawn appearance for a relationship type. Not written onto the relationship. */
 export function appearanceDefaultsForType(typeId: string): Record<string, unknown> | undefined {
-	return findRelationshipTypeEntry(typeId)?.defaults?.metadata;
+	const entry = findRelationshipTypeEntry(typeId);
+	if (!entry) return undefined;
+	const visual = visualFromEntry(entry);
+	return Object.keys(visual).length > 0 ? visual : undefined;
+}
+
+/** Metadata from `defaults` that is stored on the relationship. Appearance keys are omitted. */
+function persistableDefaultsForType(typeId: string): Record<string, unknown> {
+	const stored = findRelationshipTypeEntry(typeId)?.defaults?.metadata ?? {};
+	const persistable: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(stored)) {
+		if (VISUAL_KEYS.has(key)) continue;
+		persistable[key] = value;
+	}
+	return persistable;
 }
 
 function hasAppearanceDefault(metadata: Record<string, unknown> | undefined): boolean {
@@ -190,7 +222,36 @@ export function metadataForRelationshipChoice(
 	return undefined;
 }
 
-/** Combobox value: ArchiMate metadata name when set, otherwise the relationship-type key. */
+/**
+ * Replace metadata that belongs to the previous relationship type with the next
+ * type's stored defaults and type marker. Appearance stays on the type and is
+ * not written. A stored appearance value is removed when it matches the previous
+ * type, so the new type's visualization applies. Other keys stay.
+ */
+export function replaceTypeBoundMetadata(
+	metadata: Record<string, unknown> | undefined,
+	previousTypeId: string,
+	nextTypeId: string,
+	canvasVariant: string,
+): Record<string, unknown> | undefined {
+	const prevDefaults = persistableDefaultsForType(previousTypeId);
+	const nextDefaults = persistableDefaultsForType(nextTypeId);
+	const prevVisual = appearanceDefaultsForType(previousTypeId) ?? {};
+	const next: Record<string, unknown> = { ...(metadata ?? {}) };
+	for (const key of Object.keys(prevDefaults)) {
+		if (!(key in nextDefaults)) delete next[key];
+	}
+	for (const key of APPEARANCE_KEYS) {
+		if (next[key] !== undefined && next[key] === prevVisual[key]) delete next[key];
+	}
+	for (const [key, value] of Object.entries(nextDefaults)) {
+		next[key] = value;
+	}
+	const marked = metadataForRelationshipChoice(next, nextTypeId, canvasVariant) ?? next;
+	return Object.keys(marked).length > 0 ? marked : undefined;
+}
+
+/** Combobox value: pack marker when set, otherwise the relationship-type key. */
 export function storedRelationshipTypeKey(
 	relationshipType: unknown,
 	metadata: Record<string, unknown> | undefined,
@@ -199,27 +260,65 @@ export function storedRelationshipTypeKey(
 	if (typeof name === 'string' && name.length > 0) {
 		return name.startsWith('archimate:') ? name : `archimate:${name}`;
 	}
+	const fromPack = packRelationshipTypeId(metadata);
+	if (fromPack) return fromPack;
 	const raw = relationshipTypeRecord(relationshipType);
 	return raw ? soleRelationshipKey(raw) : null;
 }
 
-const VISUAL_KEYS = new Set<string>(APPEARANCE_KEYS);
+function packRelationshipTypeId(metadata: Record<string, unknown> | undefined): string | null {
+	if (!metadata) return null;
+	for (const pack of getAllPacks()) {
+		const name = metadataRecord(metadata[pack.id])?.relationship;
+		if (typeof name !== 'string' || name.length === 0) continue;
+		const typeId = name.includes(':') ? name : `${pack.id}:${name}`;
+		if (findRelationshipTypeEntry(typeId)) return typeId;
+	}
+	return null;
+}
+
+export interface DrawnRelationshipFields {
+	canvasVariant: CalmRelationshipVariant;
+	relationshipTypeKey: string;
+	metadata?: Record<string, unknown>;
+	originalRelationshipType?: Record<string, unknown>;
+	hidden: boolean;
+}
+
+/**
+ * Fields for a relationship drawn after a palette choice.
+ * A core CALM type keeps scaffold metadata. A pack type replaces that scaffold
+ * with the type's stored defaults. Appearance stays on the type.
+ */
+export function fieldsForDrawnRelationship(
+	typeId: string,
+	source: string,
+	target: string,
+	scaffold: Record<string, unknown> | undefined,
+): DrawnRelationshipFields {
+	const chosen = relationshipTypeForChoice(typeId, source, target);
+	const metadata = CORE_KEYS.has(typeId)
+		? metadataWithTypeDefaults(scaffold, typeId)
+		: replaceTypeBoundMetadata(scaffold, 'connects', typeId, chosen.canvasVariant);
+	return {
+		canvasVariant: chosen.canvasVariant,
+		relationshipTypeKey: typeId,
+		metadata,
+		originalRelationshipType: chosen.preserveType ? chosen.relationshipType : undefined,
+		hidden: isContainmentType(chosen.canvasVariant),
+	};
+}
 
 /**
  * Copy non-visual type defaults onto a new relationship.
- * Line style, routing, colors, and description display stay on the extension
- * and are applied only while that extension is loaded.
+ * Line style, routing, colors, and description display stay on the type
+ * and are applied only while that pack is loaded.
  */
 export function metadataWithTypeDefaults(
 	metadata: Record<string, unknown> | undefined,
 	typeId: string,
 ): Record<string, unknown> | undefined {
-	const defaults = appearanceDefaultsForType(typeId);
-	if (!defaults) return metadata;
-	const persistable: Record<string, unknown> = {};
-	for (const [key, value] of Object.entries(defaults)) {
-		if (VISUAL_KEYS.has(key)) continue;
-		persistable[key] = value;
-	}
+	const persistable = persistableDefaultsForType(typeId);
+	if (Object.keys(persistable).length === 0) return metadata;
 	return mergeMissingMetadata(metadata, persistable);
 }

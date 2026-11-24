@@ -2,7 +2,7 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { resolvePackNode } from '@calmstudio/extensions';
 	import {
 		ensureReadPermission,
@@ -14,10 +14,14 @@
 	import {
 		loadCalmNodesForFile,
 		readFileContent,
+		collectListedFileStamps,
 		scanDirectoryTree,
 		updateFileInTree,
 		findFileInTree,
+		findDirectoryInTree,
+		listExplorerFiles,
 	} from '$lib/explorer/folderScan';
+	import { changedStampPaths, type ListedFileStamp } from '$lib/explorer/fileStamps';
 	import { setExplorerTree, setSelectedExplorerPath } from '$lib/explorer/explorerTree.svelte';
 	import type {
 		CalmNodePreview,
@@ -25,7 +29,7 @@
 		ExplorerFileEntry,
 		ExplorerTreeEntry,
 	} from '$lib/explorer/types';
-	import { CALM_FILE_MOVE_MIME, CALM_NODE_REF_MIME } from '$lib/explorer/types';
+	import { CALM_DIR_MOVE_MIME, CALM_FILE_MOVE_MIME, CALM_NODE_REF_MIME } from '$lib/explorer/types';
 	import {
 		createProjectFile,
 		getProjectLoadError,
@@ -57,13 +61,13 @@
 		type TreeMenuTarget,
 	} from '$lib/explorer/treeMenu';
 	import ExplorerContextMenu from '$lib/explorer/ExplorerContextMenu.svelte';
-	import { listExplorerFiles, findDirectoryInTree } from '$lib/explorer/folderScan';
 	import {
 		PROJECT_ROOT_FIELD,
 		fileMoveDestination,
 		folderPathFromMoveField,
 	} from '$lib/explorer/moveDialogTarget';
 	import { splitRelativePath } from '$lib/project/projectFs';
+	import { isNestedUnder } from '$lib/explorer/rewriteDetailedArchitecture';
 
 	interface Props {
 		currentFileRelativePath?: string | null;
@@ -78,9 +82,10 @@
 		onhubbrowse?: () => void;
 		onbeforefoldermove?: (movedPaths: string[]) => boolean;
 		onfoldermove?: (mapping: Record<string, string>, sourcePrefix: string, destPrefix: string) => void;
+		onfileschanged?: (changes: { relativePath: string; content: string }[]) => void;
 	}
 
-	let { currentFileRelativePath = null, onopenfile, onprojectchange, onhubbrowse, onbeforefoldermove, onfoldermove }: Props = $props();
+	let { currentFileRelativePath = null, onopenfile, onprojectchange, onhubbrowse, onbeforefoldermove, onfoldermove, onfileschanged }: Props = $props();
 
 	let rootHandle = $state<FileSystemDirectoryHandle | null>(null);
 	let tree = $state<ExplorerTreeEntry[]>([]);
@@ -102,6 +107,12 @@
 		| null
 	>(null);
 	let treeMenu = $state<{ x: number; y: number; target: TreeMenuTarget } | null>(null);
+	let treeList = $state<HTMLElement | null>(null);
+	let dragMove = $state<{ kind: 'file' | 'folder'; source: string; dest: string } | null>(null);
+	let moveBusy = $state(false);
+	let fileStamps = $state<ListedFileStamp[]>([]);
+	let stampsReady = false;
+	let watchTimer: ReturnType<typeof setInterval> | undefined;
 
 	const fsSupported = isDirectoryPickerSupported();
 
@@ -111,7 +122,38 @@
 
 	onMount(() => {
 		void restorePersistedFolder();
+		watchTimer = setInterval(() => {
+			void pollFiles();
+		}, 3000);
 	});
+
+	onDestroy(() => {
+		if (watchTimer) clearInterval(watchTimer);
+	});
+
+	async function pollFiles() {
+		if (!rootHandle || moveBusy || dragMove) return;
+		const next = await collectListedFileStamps(rootHandle);
+		if (!stampsReady) {
+			fileStamps = next;
+			stampsReady = true;
+			return;
+		}
+		const changed = changedStampPaths(fileStamps, next);
+		if (changed.length === 0) return;
+		await rescanTree();
+		const updates: { relativePath: string; content: string }[] = [];
+		for (const path of changed) {
+			const file = findFileInTree(tree, path);
+			if (!file) continue;
+			try {
+				updates.push({ relativePath: path, content: await readFileContent(file) });
+			} catch {
+				// The file disappeared between the stamp and the read.
+			}
+		}
+		if (updates.length > 0) onfileschanged?.(updates);
+	}
 
 	async function restorePersistedFolder() {
 		if (!fsSupported) return;
@@ -181,10 +223,28 @@
 	}
 
 	/** Full tree rescan after extract creates new files (R27). */
+	function pathStillInTree(path: string): boolean {
+		return !!findFileInTree(tree, path) || !!findDirectoryInTree(tree, path);
+	}
+
 	export async function rescanTree(): Promise<void> {
 		if (!rootHandle) return;
+		const scrollTop = treeList?.scrollTop ?? 0;
+		const keepSelected = selectedPath;
+		const keepExpandedDirs = expandedDirs;
+		const keepExpandedFiles = expandedFiles;
 		tree = await scanDirectoryTree(rootHandle);
 		setExplorerTree(tree);
+		expandedDirs = keepExpandedDirs;
+		expandedFiles = keepExpandedFiles;
+		if (keepSelected && !pathStillInTree(keepSelected)) {
+			selectedPath = null;
+			setSelectedExplorerPath(null);
+		}
+		await tick();
+		if (treeList) treeList.scrollTop = scrollTop;
+		fileStamps = await collectListedFileStamps(rootHandle);
+		stampsReady = true;
 	}
 
 	export function getRootHandle(): FileSystemDirectoryHandle | null {
@@ -429,25 +489,82 @@
 		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
 	}
 
+	function handleDirMoveDragStart(event: DragEvent, relativePath: string) {
+		event.stopPropagation();
+		event.dataTransfer?.setData(CALM_DIR_MOVE_MIME, relativePath);
+		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+	}
+
 	function handleDirDragOver(event: DragEvent) {
 		const types = event.dataTransfer?.types;
-		if (!types || ![...types].includes(CALM_FILE_MOVE_MIME)) return;
+		if (!types) return;
+		const list = [...types];
+		if (!list.includes(CALM_FILE_MOVE_MIME) && !list.includes(CALM_DIR_MOVE_MIME)) return;
 		event.preventDefault();
 		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
 	}
 
-	async function handleDirDrop(event: DragEvent, dirPath: string) {
-		const source = event.dataTransfer?.getData(CALM_FILE_MOVE_MIME);
-		if (!source) return;
-		event.preventDefault();
-		event.stopPropagation();
-		const name = source.split('/').pop() ?? source;
-		const dest = dirPath ? `${dirPath}/${name}` : name;
+	function queueDragMove(kind: 'file' | 'folder', source: string, dest: string) {
+		if (!source || source === dest) return;
+		if (kind === 'folder' && isNestedUnder(source, dest)) {
+			errorMessage = 'Cannot move a folder into itself';
+			return;
+		}
+		errorMessage = null;
+		dragMove = { kind, source, dest };
+	}
+
+	async function confirmDragMove() {
+		const pending = dragMove;
+		dragMove = null;
+		if (!pending || !rootHandle) return;
+		moveBusy = true;
 		try {
-			await runFileMove(source, dest);
+			if (pending.kind === 'file') {
+				await runFileMove(pending.source, pending.dest);
+				return;
+			}
+			const movedPaths = listExplorerFiles(tree)
+				.filter(
+					(file) =>
+						file.relativePath === pending.source ||
+						file.relativePath.startsWith(`${pending.source}/`),
+				)
+				.map((file) => file.relativePath);
+			if (onbeforefoldermove && !onbeforefoldermove(movedPaths)) return;
+			const result = await moveProjectFolder({
+				root: rootHandle,
+				sourcePrefix: pending.source,
+				destPrefix: pending.dest,
+				files: listExplorerFiles(tree),
+			});
+			await rescanTree();
+			selectPath(pending.dest);
+			onfoldermove?.(result.mapping, pending.source, pending.dest);
+			onprojectchange?.();
 		} catch (e) {
 			errorMessage = (e as Error).message;
+		} finally {
+			moveBusy = false;
 		}
+	}
+
+	async function handleDirDrop(event: DragEvent, dirPath: string) {
+		const fileSource = event.dataTransfer?.getData(CALM_FILE_MOVE_MIME);
+		const dirSource = event.dataTransfer?.getData(CALM_DIR_MOVE_MIME);
+		if (!fileSource && !dirSource) return;
+		event.preventDefault();
+		event.stopPropagation();
+		if (fileSource) {
+			const name = fileSource.split('/').pop() ?? fileSource;
+			const dest = dirPath ? `${dirPath}/${name}` : name;
+			queueDragMove('file', fileSource, dest);
+			return;
+		}
+		if (!dirSource) return;
+		const name = dirSource.split('/').pop() ?? dirSource;
+		const dest = dirPath ? `${dirPath}/${name}` : name;
+		queueDragMove('folder', dirSource, dest);
 	}
 
 	async function confirmFolderPrompt(value: string, extra?: string) {
@@ -598,6 +715,16 @@
 		<button
 			type="button"
 			class="reveal-btn"
+			onclick={() => void rescanTree()}
+			disabled={!rootHandle || moveBusy}
+			title="Refresh the file tree"
+			aria-label="Refresh the file tree"
+		>
+			↻
+		</button>
+		<button
+			type="button"
+			class="reveal-btn"
 			onclick={() => void reveal()}
 			disabled={!canReveal}
 			title={canReveal
@@ -655,9 +782,9 @@
 	{:else if tree.length === 0}
 		<p class="hint">No folder selected. Open a project folder to browse CALM files.</p>
 	{:else}
-		<ul class="tree tree-scroll" role="tree">
+		<ul class="tree tree-scroll" role="tree" bind:this={treeList}>
 			{#each tree as entry (entry.relativePath)}
-				{@render treeEntry(entry, 0)}
+				{@render treeEntry(entry)}
 			{/each}
 		</ul>
 	{/if}
@@ -736,6 +863,26 @@
 	/>
 {/if}
 
+{#if dragMove}
+	<div class="move-overlay" role="presentation">
+		<div class="move-dialog" role="dialog" aria-modal="true" aria-labelledby="drag-move-title">
+			<h2 id="drag-move-title">Move {dragMove.kind === 'folder' ? 'folder' : 'file'}</h2>
+			<p>From <code>{dragMove.source}</code></p>
+			<p>To <code>{dragMove.dest}</code></p>
+			<div class="move-actions">
+				<button type="button" onclick={() => (dragMove = null)}>Cancel</button>
+				<button type="button" onclick={() => void confirmDragMove()}>Move</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if moveBusy}
+	<div class="move-overlay" role="presentation">
+		<div class="move-dialog" role="status" aria-live="polite">Moving…</div>
+	</div>
+{/if}
+
 {#if treeMenu}
 	<ExplorerContextMenu
 		x={treeMenu.x}
@@ -760,8 +907,8 @@
 	/>
 {/if}
 
-{#snippet treeEntry(entry: ExplorerTreeEntry, depth: number)}
-	<li class="tree-item" style="padding-left: {depth * 12}px" role="none">
+{#snippet treeEntry(entry: ExplorerTreeEntry)}
+	<li class="tree-item" role="none">
 		{#if entry.kind === 'directory'}
 			<button
 				type="button"
@@ -770,6 +917,8 @@
 				role="treeitem"
 				title={entry.name}
 				aria-expanded={expandedDirs[entry.relativePath] ?? false}
+				draggable="true"
+				ondragstart={(e) => handleDirMoveDragStart(e, entry.relativePath)}
 				onclick={() => {
 					selectPath(entry.relativePath);
 					toggleDir(entry.relativePath);
@@ -785,7 +934,7 @@
 			{#if expandedDirs[entry.relativePath]}
 				<ul class="tree" role="group">
 					{#each entry.children as child (child.relativePath)}
-						{@render treeEntry(child, depth + 1)}
+						{@render treeEntry(child)}
 					{/each}
 				</ul>
 			{/if}
@@ -1077,8 +1226,11 @@
 		}
 	}
 
+	.tree-item > .tree {
+		padding-left: 2ch;
+	}
+
 	.tree-row.node {
-		padding-left: 28px;
 		cursor: grab;
 	}
 
@@ -1127,7 +1279,7 @@
 
 	.non-calm {
 		margin: 0;
-		padding: 2px 6px 2px 28px;
+		padding: 2px 6px 2px 2ch;
 		font-size: 10px;
 		color: var(--color-text-secondary);
 		font-style: italic;
@@ -1136,6 +1288,43 @@
 	.node-list {
 		list-style: none;
 		margin: 0;
-		padding: 0;
+		padding: 0 0 0 2ch;
+	}
+
+	.move-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(0, 0, 0, 0.35);
+	}
+
+	.move-dialog {
+		min-width: 280px;
+		max-width: 420px;
+		padding: 16px;
+		border-radius: 8px;
+		background: var(--color-surface-primary, #fff);
+		color: var(--color-text-primary);
+	}
+
+	.move-dialog h2 {
+		margin: 0 0 8px;
+		font-size: 14px;
+	}
+
+	.move-dialog p {
+		margin: 4px 0;
+		font-size: 12px;
+		word-break: break-all;
+	}
+
+	.move-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+		margin-top: 12px;
 	}
 </style>

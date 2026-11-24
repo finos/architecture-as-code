@@ -170,13 +170,15 @@ describe('relationship appearance', () => {
 					typeId: 'difa-arch:impacts-new',
 					label: 'Impacts: New',
 					calmCoreVariant: 'connects',
-					defaults: { metadata: { 'line-style': 'solid', 'line-color': '#dc2626' } },
+					'line-style': 'solid',
+					'line-color': '#dc2626',
 				},
 				{
 					typeId: 'difa-arch:impacts-remove',
 					label: 'Impacts: Remove',
 					calmCoreVariant: 'connects',
-					defaults: { metadata: { 'line-style': 'dashed', 'line-color': '#dc2626' } },
+					'line-style': 'dashed',
+					'line-color': '#dc2626',
 				},
 				{
 					typeId: 'difa-arch:association',

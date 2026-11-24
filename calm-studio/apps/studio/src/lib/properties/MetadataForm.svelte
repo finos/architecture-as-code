@@ -74,6 +74,7 @@
 	const schemaPaths = $derived(effectiveFields.map((f) => f.path));
 	const extraEntries = $derived(extraMetadataEntries(metadata, schemaPaths));
 	const grouped = $derived(groupMetadataFields(effectiveFields));
+	let editAll = $state(false);
 	let nestedEdit = $state<
 		| { kind: 'schema'; key: string; fields: MetadataFieldDescriptor[] }
 		| { kind: 'extra'; key: string; raw: unknown }
@@ -193,6 +194,11 @@
 <div class="section">
 	<div class="section-header">
 		<span class="section-label">Metadata</span>
+		{#if !readonly && onCommit && effectiveFields.length > 0}
+			<button type="button" class="add-btn" onclick={() => (editAll = true)}>
+				Edit metadata…
+			</button>
+		{/if}
 	</div>
 
 		<div class="fields">
@@ -360,6 +366,19 @@
 			{/if}
 		</div>
 	</div>
+
+{#if editAll}
+	<NestedMetadataDialog
+		title="Edit metadata"
+		fields={effectiveFields}
+		{metadata}
+		onconfirm={(next) => {
+			commitExtra(next);
+			editAll = false;
+		}}
+		oncancel={() => (editAll = false)}
+	/>
+{/if}
 
 {#if nestedEdit}
 	<NestedMetadataDialog

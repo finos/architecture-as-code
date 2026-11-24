@@ -20,6 +20,7 @@
 	} from '../edgeRouting/routedEdgePath';
 	import { appearanceForEdgeData, markerId, paintStyle } from './edgeVisual';
 	import EdgeDecoration from './EdgeDecoration.svelte';
+	import RelationshipHoverGlow from './RelationshipHoverGlow.svelte';
 
 	let {
 		id,
@@ -76,7 +77,8 @@
 	style={dimmed ? 'opacity: 0.3' : ''}
 	onmouseenter={() => (hovered = true)}
 	onmouseleave={() => (hovered = false)}
->
+	>
+	<RelationshipHoverGlow {source} {target} path={edgePath} {hovered} />
 	<BaseEdge
 		{id}
 		path={edgePath}

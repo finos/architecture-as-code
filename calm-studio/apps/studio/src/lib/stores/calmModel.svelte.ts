@@ -18,6 +18,7 @@
 import type { Node, Edge } from '@xyflow/svelte';
 import type { CalmArchitecture, CalmInterface, CalmNode, CalmRelationship } from '@calmstudio/calm-core';
 import { flowToCalm } from '$lib/stores/projection';
+import { storedRelationshipIdFromEdge } from '$lib/relationships/relationshipId';
 import { mergeContainmentRelationships } from '$lib/stores/mergeContainmentRelationships';
 import {
 	ensureSchemaOnFirstElement,
@@ -134,14 +135,8 @@ function mergeContainmentFromInferred(
 function representedModelRelIds(flowEdges: Edge[]): Set<string> {
 	const ids = new Set<string>();
 	for (const e of flowEdges) {
-		const d = (e.data ?? {}) as { calmRelId?: string };
-		const hash = e.id.indexOf('#');
-		const underscore = e.id.indexOf('__');
-		const cut = hash > 0 ? hash : underscore > 0 ? underscore : -1;
-		const base = d.calmRelId ?? (cut > 0 ? e.id.slice(0, cut) : e.id);
-		if (!base.startsWith('inferred-')) {
-			ids.add(base);
-		}
+		const base = storedRelationshipIdFromEdge(e);
+		if (base) ids.add(base);
 	}
 	return ids;
 }
@@ -305,6 +300,19 @@ export function updateEdgeProperty(edgeId: string, key: string, value: unknown):
 		relationships: model.relationships.map((r) =>
 			r['unique-id'] === edgeId ? { ...r, [key]: value } : r
 		),
+	};
+}
+
+/** Remove a relationship field so a type change does not keep a shape the new type lacks. */
+export function deleteEdgeProperty(edgeId: string, key: 'protocol'): void {
+	model = {
+		...model,
+		relationships: model.relationships.map((r) => {
+			if (r['unique-id'] !== edgeId) return r;
+			const next = { ...r };
+			delete next[key];
+			return next;
+		}),
 	};
 }
 

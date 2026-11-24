@@ -578,6 +578,76 @@
 
 	// ─── Diagram tabs (P1 R15) ───────────────────────────────────────────────
 
+	let diskConflict = $state<{ relativePath: string; content: string; label: string } | null>(null);
+	const keptDiskContent = new Map<string, string>();
+
+	function applyDiskContent(tab: DiagramTabState, content: string) {
+		let parsed: CalmArchitecture;
+		try {
+			parsed = JSON.parse(content) as CalmArchitecture;
+		} catch {
+			return;
+		}
+		if (!Array.isArray(parsed.nodes)) return;
+		const positionMap = layoutMapToPositionMap(
+			readLayoutMap((parsed as ArchitectureWithMetadata).metadata),
+		);
+		const projected = calmToFlow(parsed, positionMap);
+		const modelJson = JSON.stringify(parsed, null, 2);
+		if (tab.id === activeTabId && activeKind !== 'adr') {
+			applyFromJson(parsed);
+			nodes = projected.nodes;
+			edges = projected.edges;
+			markDocumentClean(tab.label, tab.fileHandle, tab.relativePath);
+			diagramTabs = patchTabState(diagramTabs, tab.id, {
+				nodes,
+				edges,
+				modelJson: getModelJson(),
+				cleanSnapshot: getModelJson(),
+			});
+			return;
+		}
+		diagramTabs = patchTabState(diagramTabs, tab.id, {
+			nodes: projected.nodes,
+			edges: projected.edges,
+			modelJson,
+			cleanSnapshot: modelJson,
+		});
+	}
+
+	function handleFilesChanged(changes: { relativePath: string; content: string }[]) {
+		persistActiveTab();
+		for (const change of changes) {
+			const tab = diagramTabs.find(
+				(item) => item.relativePath === change.relativePath && item.kind !== 'adr',
+			);
+			if (!tab) continue;
+			if (isTabDirty(tab)) {
+				if (keptDiskContent.get(change.relativePath) === change.content) continue;
+				diskConflict = { relativePath: change.relativePath, content: change.content, label: tab.label };
+				return;
+			}
+			keptDiskContent.delete(change.relativePath);
+			applyDiskContent(tab, change.content);
+		}
+	}
+
+	function keepDiskEdits() {
+		if (!diskConflict) return;
+		keptDiskContent.set(diskConflict.relativePath, diskConflict.content);
+		diskConflict = null;
+	}
+
+	function loadDiskConflict() {
+		const pending = diskConflict;
+		if (!pending) return;
+		diskConflict = null;
+		keptDiskContent.delete(pending.relativePath);
+		persistActiveTab();
+		const tab = diagramTabs.find((item) => item.relativePath === pending.relativePath);
+		if (tab) applyDiskContent(tab, pending.content);
+	}
+
 	function isTabDirty(tab: DiagramTabState): boolean {
 		if (tab.kind === 'adr') return false;
 		if (tab.id === activeTabId && activeKind !== 'adr') {
@@ -2661,6 +2731,7 @@
 								onopenhubversion={(url, name) => void openHubArchitectureTab(url, name)}
 								onbeforefoldermove={confirmDirtyFolderMove}
 								onfoldermove={handleFolderMove}
+								onfileschanged={handleFilesChanged}
 							/>
 						</div>
 						<button type="button" class="pane-split" aria-label="Resize files pane" onpointerdown={(event) => startPaneDrag('left', event)}></button>
@@ -2900,6 +2971,22 @@
 			/>
 		{/if}
 
+		{#if diskConflict}
+			<div
+				role="presentation"
+				style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35)"
+			>
+				<div role="dialog" aria-modal="true" aria-labelledby="disk-conflict-title" style="max-width:420px;padding:16px;border-radius:8px;background:var(--color-surface-primary,#fff);color:var(--color-text-primary)">
+					<h2 id="disk-conflict-title" style="margin:0 0 8px;font-size:14px">{diskConflict.label} changed on disk</h2>
+					<p style="margin:0 0 12px;font-size:13px">This diagram has unsaved edits. Load the file from disk, or keep your edits.</p>
+					<div style="display:flex;justify-content:flex-end;gap:8px">
+						<button type="button" onclick={keepDiskEdits}>Keep my edits</button>
+						<button type="button" onclick={loadDiskConflict}>Load from disk</button>
+					</div>
+				</div>
+			</div>
+		{/if}
+
 		{#if showUnsavedDialog}
 			<UnsavedChangesDialog
 				filename={unsavedDialogFilename ?? getFileName()}
@@ -2969,7 +3056,7 @@
 			<span class="status-text">CalmStudio is open source under Apache 2.0</span>
 			<a
 				class="report-link"
-				href="https://github.com/opsflo/calmstudio/issues"
+				href="https://github.com/krninsky/architecture-as-code/issues"
 				target="_blank"
 				rel="noopener noreferrer"
 			>Report an issue</a>

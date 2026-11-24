@@ -10,17 +10,16 @@
 	import type { Edge } from '@xyflow/svelte';
 	import type { CalmRelationshipVariant } from '@calmstudio/calm-core';
 	import { getContainerAndNodes } from '@calmstudio/calm-core';
-	import { updateEdgeProperty, getModel } from '$lib/stores/calmModel.svelte';
+	import { deleteEdgeProperty, updateEdgeProperty, getModel } from '$lib/stores/calmModel.svelte';
 	import ControlsList from './ControlsList.svelte';
 	import MetadataForm from './MetadataForm.svelte';
 	import { asCalmFlowEdgeData } from '$lib/canvas/flowTypes';
 	import { getMetadataFieldsForRelationship } from '$lib/metadata/metadataForm';
 	import { resolveVariantSyncFromMetadata } from '$lib/metadata/relationshipVariantSync';
 	import {
-		metadataForRelationshipChoice,
-		metadataWithTypeDefaults,
 		relationshipTypeChoices,
 		relationshipTypeForChoice,
+		replaceTypeBoundMetadata,
 	} from '$lib/relationships/relationshipTypeChoice';
 
 	const SWAPPABLE_VARIANTS: CalmRelationshipVariant[] = [
@@ -148,6 +147,7 @@
 	function handleRelTypeChange(e: Event) {
 		const value = (e.target as HTMLSelectElement).value;
 		signalFirstEdit();
+		const previousType = typeKey;
 		const chosen = relationshipTypeForChoice(value, edge.source, edge.target);
 		updateEdgeProperty(calmRelId, 'relationship-type', chosen.relationshipType);
 		const rel = getModel().relationships.find((r) => r['unique-id'] === calmRelId);
@@ -156,9 +156,11 @@
 			currentMeta && !Array.isArray(currentMeta)
 				? (currentMeta as Record<string, unknown>)
 				: undefined;
-		const withChoice = metadataForRelationshipChoice(metaRecord, value, chosen.canvasVariant);
-		const nextMeta = metadataWithTypeDefaults(withChoice ?? metaRecord, value);
-		if (nextMeta) updateEdgeProperty(calmRelId, 'metadata', nextMeta);
+		const nextMeta = replaceTypeBoundMetadata(metaRecord, previousType, value, chosen.canvasVariant);
+		updateEdgeProperty(calmRelId, 'metadata', nextMeta ?? {});
+		if (chosen.canvasVariant !== 'connects' && chosen.canvasVariant !== 'interacts') {
+			deleteEdgeProperty(calmRelId, 'protocol');
+		}
 		onmutate?.();
 	}
 

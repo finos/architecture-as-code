@@ -80,7 +80,7 @@
 		<div
 			class="row"
 			class:selected={selectedFieldValue === node.fieldValue}
-			style="padding-left: {8 + depth * 14}px"
+			style="padding-left: {depth * 2}ch"
 		>
 			{#if node.children.length > 0}
 				<button

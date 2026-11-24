@@ -15,6 +15,10 @@
 
 import type { Node, Edge } from '@xyflow/svelte';
 import { nanoid } from 'nanoid';
+import {
+	allocateRelationshipId,
+	storedRelationshipIdFromEdge,
+} from '$lib/relationships/relationshipId';
 
 /** Default dimensions when promoting a node to a container. */
 export const CONTAINER_DEFAULT_WIDTH = 300;
@@ -184,9 +188,11 @@ export function ensureContainmentEdge(
 	if (exists) return edges;
 
 	const sibling = edges.find((e) => e.source === parentId && e.type === variant);
-	const calmRelId = String(
-		(sibling?.data as { calmRelId?: string } | undefined)?.calmRelId ?? sibling?.id ?? nanoid()
-	);
+	const siblingId = sibling ? storedRelationshipIdFromEdge(sibling) : null;
+	const taken = edges
+		.map((edge) => storedRelationshipIdFromEdge(edge))
+		.filter((id): id is string => id != null);
+	const calmRelId = siblingId ?? allocateRelationshipId(parentId, variant, childId, taken);
 
 	return [
 		...edges,

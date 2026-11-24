@@ -5,7 +5,8 @@
 	import { onDestroy } from 'svelte';
 	import { useDnD } from './DnDProvider.svelte';
 	import { getAllPacks, initAllPacks, subscribePackRegistry } from '@calmstudio/extensions';
-	import type { PackDefinition, NodeTypeEntry } from '@calmstudio/extensions';
+	import type { PackDefinition, NodeTypeEntry, RelationshipTypeEntry } from '@calmstudio/extensions';
+	import { drawRelationshipType, setDrawRelationshipType } from './drawRelationshipType.svelte';
 
 	// Register all packs on import so they're available immediately
 	initAllPacks();
@@ -22,18 +23,30 @@
 	let customTypeValue = $state('');
 
 	// Track expand/collapse state per pack id. Core starts expanded; others collapsed.
-	let expandedSections = $state<Record<string, boolean>>({ core: true });
+	let expandedSections = $state<Record<string, boolean>>({ core: true, 'rel:core': true });
+	const selectedRelationship = $derived(drawRelationshipType());
 
 	const allPacks = $derived.by(() => {
 		void registryTick;
 		return getAllPacks();
 	});
 
-	/** Flat list of all nodes across all packs for search */
-	interface SearchResult {
-		node: NodeTypeEntry;
-		pack: PackDefinition;
-	}
+	const relationshipPacks = $derived(
+		allPacks.filter((pack) => (pack.relationships?.length ?? 0) > 0),
+	);
+
+	const selectedRelationshipLabel = $derived.by(() => {
+		for (const pack of relationshipPacks) {
+			const found = pack.relationships?.find((rel) => rel.typeId === selectedRelationship);
+			if (found) return found.label;
+		}
+		return selectedRelationship;
+	});
+
+	/** Flat list of nodes and relationship types across all packs for search */
+	type SearchResult =
+		| { kind: 'node'; node: NodeTypeEntry; pack: PackDefinition }
+		| { kind: 'relationship'; rel: RelationshipTypeEntry; pack: PackDefinition };
 
 	const searchResults = $derived((): SearchResult[] => {
 		if (searchQuery.trim() === '') return [];
@@ -45,7 +58,15 @@
 					node.label.toLowerCase().includes(query) ||
 					node.typeId.toLowerCase().includes(query)
 				) {
-					results.push({ node, pack });
+					results.push({ kind: 'node', node, pack });
+				}
+			}
+			for (const rel of pack.relationships ?? []) {
+				if (
+					rel.label.toLowerCase().includes(query) ||
+					rel.typeId.toLowerCase().includes(query)
+				) {
+					results.push({ kind: 'relationship', rel, pack });
 				}
 			}
 		}
@@ -78,6 +99,10 @@
 
 	function handleClick(typeId: string) {
 		onplacenode?.(typeId);
+	}
+
+	function selectRelationship(typeId: string) {
+		setDrawRelationshipType(typeId);
 	}
 
 	function handleCustomKeydown(event: KeyboardEvent) {
@@ -129,32 +154,56 @@
 		{#if isSearching}
 			<!-- Search results: flat list with pack badge attribution -->
 			<ul class="palette-list" role="list" aria-label="Search results">
-				{#each searchResults() as { node, pack } (node.typeId)}
+				{#each searchResults() as hit (hit.kind === 'node' ? hit.node.typeId : `rel:${hit.rel.typeId}`)}
 					<li>
-						<button
-							type="button"
-							draggable="true"
-							ondragstart={(e) => handleDragStart(e, node.typeId)}
-							ondragend={handleDragEnd}
-							ondblclick={() => handleClick(node.typeId)}
-							class="palette-item"
-							aria-label="Drag or double-click to place {node.label} node"
-							title={node.description ?? node.label}
-						>
-							<span
-								class="item-icon"
-								class:archimate-icon={pack.id === 'archimate'}
-								style="background: {node.color.border}20; color: {node.color.stroke};"
+						{#if hit.kind === 'node'}
+							<button
+								type="button"
+								draggable="true"
+								ondragstart={(e) => handleDragStart(e, hit.node.typeId)}
+								ondragend={handleDragEnd}
+								ondblclick={() => handleClick(hit.node.typeId)}
+								class="palette-item"
+								aria-label="Drag or double-click to place {hit.node.label} node"
+								title={hit.node.description ?? hit.node.label}
 							>
-								{@html node.icon}
-							</span>
-							<span class="item-label">{node.label}</span>
-							{#if pack.color.badge}
-								<span class="pack-badge" style="color: {pack.color.stroke}; border-color: {pack.color.border}40;">
-									{pack.color.badge}
+								<span
+									class="item-icon"
+									class:archimate-icon={hit.pack.id === 'archimate'}
+									style="background: {hit.node.color.border}20; color: {hit.node.color.stroke};"
+								>
+									{@html hit.node.icon}
 								</span>
-							{/if}
-						</button>
+								<span class="item-label">{hit.node.label}</span>
+								{#if hit.pack.color.badge}
+									<span class="pack-badge" style="color: {hit.pack.color.stroke}; border-color: {hit.pack.color.border}40;">
+										{hit.pack.color.badge}
+									</span>
+								{/if}
+							</button>
+						{:else}
+							<button
+								type="button"
+								class="palette-item"
+								class:is-selected={selectedRelationship === hit.rel.typeId}
+								aria-pressed={selectedRelationship === hit.rel.typeId}
+								onclick={() => selectRelationship(hit.rel.typeId)}
+								aria-label="Draw {hit.rel.label} relationships"
+								title={hit.rel.description ?? hit.rel.label}
+							>
+								<span
+									class="rel-swatch"
+									style:border-top-color={hit.rel['line-color'] ?? hit.pack.color.stroke}
+									style:border-top-style={hit.rel['line-style'] ?? 'solid'}
+								></span>
+								<span class="item-label">{hit.rel.label}</span>
+								{#if hit.pack.color.badge}
+									<span class="pack-badge" style="color: {hit.pack.color.stroke}; border-color: {hit.pack.color.border}40;">
+										{hit.pack.color.badge}
+									</span>
+								{/if}
+							</button>
+						{/if}
 					</li>
 				{/each}
 
@@ -227,6 +276,64 @@
 					{/if}
 				</div>
 			{/each}
+
+			{#if relationshipPacks.length > 0}
+				<div class="palette-subheader">
+					<span class="header-label">Relationships</span>
+					<span class="draw-type" title="Next drag uses this type">{selectedRelationshipLabel}</span>
+				</div>
+				{#each relationshipPacks as pack (`rel:${pack.id}`)}
+					<div class="pack-section">
+						<button
+							type="button"
+							class="section-header"
+							class:expanded={isSectionExpanded(`rel:${pack.id}`)}
+							onclick={() => toggleSection(`rel:${pack.id}`)}
+							aria-expanded={isSectionExpanded(`rel:${pack.id}`)}
+							aria-label="Toggle {pack.label} relationships"
+							style="--pack-color: {pack.color.border};"
+						>
+							<svg
+								class="chevron"
+								class:rotated={isSectionExpanded(`rel:${pack.id}`)}
+								viewBox="0 0 16 16"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								aria-hidden="true"
+							>
+								<path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+							<span class="section-label">{pack.label}</span>
+							<span class="section-count">{pack.relationships?.length ?? 0}</span>
+						</button>
+						{#if isSectionExpanded(`rel:${pack.id}`)}
+							<ul class="palette-list section-body" role="list" aria-label="{pack.label} relationships">
+								{#each pack.relationships ?? [] as rel (rel.typeId)}
+									<li>
+										<button
+											type="button"
+											class="palette-item"
+											class:is-selected={selectedRelationship === rel.typeId}
+											aria-pressed={selectedRelationship === rel.typeId}
+											onclick={() => selectRelationship(rel.typeId)}
+											aria-label="Draw {rel.label} relationships"
+											title={rel.description ?? rel.label}
+										>
+											<span
+												class="rel-swatch"
+												style:border-top-color={rel['line-color'] ?? pack.color.stroke}
+												style:border-top-style={rel['line-style'] ?? 'solid'}
+											></span>
+											<span class="item-label">{rel.label}</span>
+										</button>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					</div>
+				{/each}
+			{/if}
 		{/if}
 	</div>
 
@@ -414,6 +521,15 @@
 		background: var(--color-surface-tertiary);
 	}
 
+	.palette-item.is-selected {
+		background: var(--color-accent-subtle);
+	}
+
+	.palette-item.is-selected .item-label {
+		color: var(--color-text-primary);
+		font-weight: 600;
+	}
+
 	.palette-item:active {
 		cursor: grabbing;
 	}
@@ -472,6 +588,43 @@
 	}
 
 	/* Pack badge in search results */
+	.rel-swatch {
+		width: 22px;
+		height: 0;
+		border-top-width: 2px;
+		flex-shrink: 0;
+		margin-left: 4px;
+		margin-right: 4px;
+	}
+
+	.palette-subheader {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 12px 16px 6px;
+		border-top: 1px solid var(--color-border);
+		position: sticky;
+		top: 0;
+		background: var(--color-surface);
+		z-index: 1;
+	}
+
+	:global(.dark) .palette-subheader {
+		background: #0f1320;
+		border-color: #1e293b;
+	}
+
+	.draw-type {
+		margin-left: auto;
+		font-size: 10px;
+		font-weight: 600;
+		color: var(--color-accent);
+		max-width: 46%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
 	.pack-badge {
 		font-size: 9px;
 		font-weight: 600;

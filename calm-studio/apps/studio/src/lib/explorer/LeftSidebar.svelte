@@ -24,9 +24,10 @@
 		onbeforefoldermove?: (movedPaths: string[]) => boolean;
 		onfoldermove?: (mapping: Record<string, string>, sourcePrefix: string, destPrefix: string) => void;
 		onopenhubversion?: (url: string, name: string) => void;
+		onfileschanged?: (changes: { relativePath: string; content: string }[]) => void;
 	}
 
-	let { onplacenode, currentFileRelativePath = null, onopenexplorerfile, onhubbrowse, onbeforefoldermove, onfoldermove, onopenhubversion }: Props = $props();
+	let { onplacenode, currentFileRelativePath = null, onopenexplorerfile, onhubbrowse, onbeforefoldermove, onfoldermove, onopenhubversion, onfileschanged }: Props = $props();
 
 	function loadInitialTab(): LeftPanelTab {
 		if (typeof sessionStorage === 'undefined') return 'palette';
@@ -115,6 +116,7 @@
 				{onhubbrowse}
 				{onbeforefoldermove}
 				{onfoldermove}
+				{onfileschanged}
 			/>
 		</div>
 		<div class="panel-slot" class:hidden={activeTab !== 'hub'}>

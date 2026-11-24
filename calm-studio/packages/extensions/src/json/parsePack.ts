@@ -156,6 +156,36 @@ function parseRelationship(
 			rel.calmCoreVariant = variant as NonNullable<RelationshipTypeEntry['calmCoreVariant']>;
 		}
 	}
+	const lineStyle = value['line-style'];
+	if (lineStyle === 'solid' || lineStyle === 'dashed' || lineStyle === 'dotted') {
+		rel['line-style'] = lineStyle;
+	} else if (lineStyle !== undefined) {
+		errors.push(`${path}.line-style must be solid, dashed, or dotted`);
+	}
+	const routing = value['routing'];
+	if (routing === 'bezier' || routing === 'smoothstep' || routing === 'straight') {
+		rel.routing = routing;
+	} else if (routing !== undefined) {
+		errors.push(`${path}.routing must be bezier, smoothstep, or straight`);
+	}
+	const lineColor = value['line-color'];
+	if (typeof lineColor === 'string' && COLOR_PATTERN.test(lineColor)) {
+		rel['line-color'] = lineColor;
+	} else if (lineColor !== undefined) {
+		errors.push(`${path}.line-color must be a hex color`);
+	}
+	const textColor = value['text-color'];
+	if (typeof textColor === 'string' && COLOR_PATTERN.test(textColor)) {
+		rel['text-color'] = textColor;
+	} else if (textColor !== undefined) {
+		errors.push(`${path}.text-color must be a hex color`);
+	}
+	const descriptionDisplay = value['description-display'];
+	if (descriptionDisplay === 'tooltip' || descriptionDisplay === 'label') {
+		rel['description-display'] = descriptionDisplay;
+	} else if (descriptionDisplay !== undefined) {
+		errors.push(`${path}.description-display must be tooltip or label`);
+	}
 	if (isRecord(value['defaults']) && isRecord(value['defaults']['metadata'])) {
 		rel.defaults = { metadata: value['defaults']['metadata'] };
 	}

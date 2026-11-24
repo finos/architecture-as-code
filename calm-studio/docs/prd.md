@@ -5,8 +5,8 @@
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Owner / DRI**        | TBD                                                                                                                                                                                                                                                                                    |
 | **Status**             | Draft                                                                                                                                                                                                                                                                                  |
-| **Version**            | 0.36                                                                                                                                                                                                                                                                                   |
-| **Last updated**       | 2026-10-27                                                                                                                                                                                                                                                                             |
+| **Version**            | 0.39                                                                                                                                                                                                                                                                                   |
+| **Last updated**       | 2026-11-24                                                                                                                                                                                                                                                                             |
 | **Target release**     | TBD                                                                                                                                                                                                                                                                                    |
 | **Reviewers**          | eng lead, design                                                                                                                                                                                                                                                                       |
 | **Supported browsers** | **Chrome**, **Safari** (current + previous major versions)                                                                                                                                                                                                                             |
@@ -20,7 +20,7 @@
 - [1. Problem and context](#1-problem-and-context)
 - [2. Goals, non-goals, and success metrics](#2-goals-non-goals-and-success-metrics)
 - [3. Target users and use cases](#3-target-users-and-use-cases)
-- [4. Proposed solution](#4-proposed-solution) — includes [§4.31 JSON extension packs (V9)](#431-json-extension-packs-p1--bbr-v9), [§4.32 Hub-compatible layout (V8)](#432-hub-compatible-layout-and-container-grid-p1--bbr-v8), [§4.33 Hub patterns and browse (V8.1)](#433-hub-patterns-and-document-browse-p1--bbr-v81), [§4.34 Pattern canvas and generic metadata (V8.2)](#434-pattern-canvas-generic-metadata-and-ctrl-copy-freeze-p1p0--bbr-v82), [§4.35 Project folders, config overlay, and Hub read-only (V10)](#435-project-folders-config-overlay-multi-select-and-hub-read-only-p1--bbr-v10), [§4.36 Pointer, Hub tree, file move, edges, layout (V11)](#436-pointer-hub-tree-file-move-edges-and-layout-p1--bbr-v11), [§4.37 Defining file and Move tree (V12)](#437-defining-file-and-move-tree-p1--bbr-v12), [§4.38 Demo UI gate (V13)](#438-demo-ui-gate-p1--v13), [§4.39 Mermaid export (V14)](#439-mermaid-export-p1--v14), [§4.40 Array properties and pretty nested JSON (V15)](#440-array-properties-and-pretty-nested-json-p1--v15), [§4.41 ADR, editor limit, and chrome (V16)](#441-adr-links-editor-limit-and-layout-chrome-p1--v16), [§4.42 Relationship appearance and custom types (V17)](#442-relationship-appearance-and-custom-types-p1--v17)
+- [4. Proposed solution](#4-proposed-solution) — includes [§4.31 JSON extension packs (V9)](#431-json-extension-packs-p1--bbr-v9), [§4.32 Hub-compatible layout (V8)](#432-hub-compatible-layout-and-container-grid-p1--bbr-v8), [§4.33 Hub patterns and browse (V8.1)](#433-hub-patterns-and-document-browse-p1--bbr-v81), [§4.34 Pattern canvas and generic metadata (V8.2)](#434-pattern-canvas-generic-metadata-and-ctrl-copy-freeze-p1p0--bbr-v82), [§4.35 Project folders, config overlay, and Hub read-only (V10)](#435-project-folders-config-overlay-multi-select-and-hub-read-only-p1--bbr-v10), [§4.36 Pointer, Hub tree, file move, edges, layout (V11)](#436-pointer-hub-tree-file-move-edges-and-layout-p1--bbr-v11), [§4.37 Defining file and Move tree (V12)](#437-defining-file-and-move-tree-p1--bbr-v12), [§4.38 Demo UI gate (V13)](#438-demo-ui-gate-p1--v13), [§4.39 Mermaid export (V14)](#439-mermaid-export-p1--v14), [§4.40 Array properties and pretty nested JSON (V15)](#440-array-properties-and-pretty-nested-json-p1--v15), [§4.41 ADR, editor limit, and chrome (V16)](#441-adr-links-editor-limit-and-layout-chrome-p1--v16), [§4.42 Relationship appearance and custom types (V17)](#442-relationship-appearance-and-custom-types-p1--v17), [§4.43 Tree refresh, relationship identity, and metadata (V18)](#443-tree-refresh-relationship-identity-and-metadata-p1--v18), [§4.44 Relationship hover (V19)](#444-relationship-hover-p1--v19), [§4.45 Palette relationship type (V20)](#445-palette-relationship-type-p1--v20)
 - [5. Requirements](#5-requirements)
 - [6. UX and design](#6-ux-and-design)
 - [7. Technical aspects](#7-technical-aspects)
@@ -148,13 +148,15 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **V15:** Edit **array** properties as a list of individual values (including object items). Show nested JSON as **pretty-printed** multi-line text in the panel preview and in edit dialogs.
 - **V16:** When nothing is selected, properties shows the document `adrs` list (view, add from Hub or a relative local file, remove, edit the string, reorder). **View** opens a read-only editor tab: rendered Markdown for a local `.md`, labeled Hub ADR fields for a Hub URL. The open-editor cap is `.calmrj` `ui.maxOpenEditors` (default 10) and includes those preview tabs. Save is asked only on tab close and window close. Files and Hub show the full `name` on hover and scroll horizontally. The left splitter resizes the left pane and the editor; the right splitter resizes the editor and properties. Every column list has a header, a full-value cell tooltip, and adjacent-column resize. Find neighbors is resizable.
 - **V17:** Relationship properties edit `line-style`, `routing`, `line-color`, and `text-color` in `metadata`, using the same stored values as the VS Code canvas. Each relationship type in an extension pack sets the defaults. Description shows in a hover tooltip unless the type or the relationship sets a permanent label. An unknown `relationship-type` key is kept on load and save. A body shaped like CALM `options` is drawn as an options edge. The relationship-type combobox lists core variants and types from enabled packs.
+- **V18:** **Refresh** on Files and Hub reloads the tree and keeps scroll, expanded rows, and the selected row. The open project folder is watched: the Files tree updates, a clean diagram tab reloads, and a dirty tab asks **Load from disk** or **Keep my edits**. Dragging a file or folder asks for the source and destination paths, then shows a blocking **Moving…** state; V11 reference rewrite still runs. A new relationship id is `{source}-{type}-{target}` slugified like a file name, with `-2`, `-3`, … when taken. It is never `xy-edge`. Changing the relationship type from properties or the canvas menu writes `relationship-type`, the drawing, and the type’s metadata. Alt+drag still follows V7 and the relationship is stored. Node and relationship metadata each have one schema-built **Edit metadata** dialog; per-group dialogs stay.
+- **V19:** Hovering a drawn relationship lights that line with a strong blue soft shadow and lights the node at each end the same way. The light goes away when the pointer leaves. Selection, line color, and the document do not change.
 
 **Non-goals**
 
 - Desktop (Tauri) folder panel version — deferred; first iteration web only (File System Access API).
 - Full extension pack management in UI (install, marketplace).
 - ArchiMate / C4 specific workflows beyond the existing mode.
-- Automatic file sync on disk when changes occur in another window (watch mode).
+- Watching CALM Hub or files outside the open project folder — V18 watches the project folder only (R99). Hub reloads from its Refresh button (R98).
 - File tree virtualization for folders with 100+ JSON files — risk accepted in v1.
 - **Split view** (two diagrams side by side) — deferred; v1 uses tabs only.
 - **Duplicate tabs for the same file** — one file = one tab; reopening only switches to the active tab.
@@ -203,7 +205,7 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **Overwrite prompt when a moved file’s name already exists** — the move aborts (R77). Folder overwrite confirm (R60) is unchanged.
 - **Searching the whole project for another definition of the same `unique-id`** — V12 follows the `detailed-architecture` chain from the inserted node only (R82).
 - **Turning an `http(s)` `detailed-architecture` into a local path on insert** — copy the URL and stop. Do not consult `url-mapping.json` for this (R82).
-- **Clicking a folder in the Move dialog to move immediately** — the tree fills the destination. **Move** still confirms (R83). Drag onto a folder in the Files tree is unchanged (R77).
+- **Clicking a folder in the Move dialog to move immediately** — the tree fills the destination. **Move** still confirms (R83). Drag onto a folder also confirms before the move (R100).
 - **Picking a file as the Move destination** — folders and the project root only (R83).
 - **Namespace URL mapping** (BBR lines 136–137) — not this iteration.
 - **Deleting the Demos feature or `/demos` assets** — V13 only **hides** them when `ui.demo` is false (R84). The load path stays for `ui.demo: true`.
@@ -1755,6 +1757,86 @@ For each such decision, draw an options edge from `nodes[0]` to every later id t
 
 **Out of scope for V17:** a new renderer for a custom key whose body is `connects`, `interacts`, `composed-of`, or `deployed-in` (the key and body are kept, the edge is not drawn); arrow style other than the options open arrow and the existing markers; a hidden description mode; writing appearance defaults into the file on load.
 
+### 4.43 Tree refresh, relationship identity, and metadata (P1 — V18)
+
+**Refresh (R98)**
+
+- Files and Hub each have a **Refresh** control.
+- Files re-reads the project folder. Hub re-fetches namespaces and every expanded architecture and version.
+- After refresh, scroll position, expanded rows, and the selected row are unchanged.
+- A selected row that no longer exists is cleared. Refresh does not reload an open editor.
+
+**Project watch (R99)**
+
+- While a project folder is open, Studio notices added, removed, and modified listed files (`.json`, `.md`).
+- The Files tree updates.
+- An open diagram tab with no unsaved edits reloads from disk.
+- A dirty diagram tab is not overwritten. The dialog is **Load from disk** or **Keep my edits**.
+- Hub is not watched.
+
+**Drag move (R100)** — amends R77.
+
+- Dragging a file or a folder onto a directory asks before the move. The dialog shows the source path and the destination path.
+- Cancel moves nothing and rewrites no references.
+- After confirm, a blocking **Moving…** message stays up until the move finishes. Relative `detailed-architecture` links are rewritten as in V11.
+- Dragging a node on the canvas does not use this dialog.
+
+**Relationship id (R101)**
+
+- A new relationship’s `unique-id` is `normalizeSlug("{source}-{type}-{target}")`, the same slug rule as `{{name}}` on a new file. `naming.patterns` remains a file-path template.
+- If that id is already in the document, append `-2`, then `-3`, and so on.
+- A Svelte Flow id (`xy-edge__…`) is not stored and is not cut at `__` into `xy-edge`.
+- Opening a file does not rename an existing `xy-edge` id.
+
+**Relationship type (R102)**
+
+- The properties combobox and the canvas type menu do the same thing.
+- `relationship-type` becomes the object for the chosen type, and the drawing updates in that step (line or container).
+- Metadata that belongs to the type is replaced by the new type’s `defaults.metadata` (including `line-style`, `routing`, `line-color`, `text-color`, `description-display`) and by the type marker (`archimate.relationship`, `calm-core-variant`).
+- Keys that only the previous type defined are removed. Other metadata and `description` stay.
+- The new `relationship-type` does not keep a shape the chosen type does not have (`protocol`, or a member list on `connects`).
+
+**Alt+drag (R103)** — confirms V7.
+
+- Alt+drag onto a node creates the containment relationship and writes it. The first drop on a node asks `composed-of` or `deployed-in`. A later drop adds the node to the existing relationship. Alt+drag out removes it.
+
+**Metadata dialog (R104)**
+
+- Node and relationship properties have **Edit metadata…** when the schema has fields.
+- One dialog edits the whole `metadata` object: enum, nested object, and array (V15).
+- Keys that are not in the schema are not fields in that dialog. The existing per-group dialogs stay.
+
+**Out of scope for V18:** renaming stored `xy-edge` ids on open; watching Hub; a confirm dialog when moving a node on the canvas; removing the per-group metadata dialogs.
+
+### 4.44 Relationship hover (P1 — V19)
+
+**Hover (R105)**
+
+- Moving the pointer onto a drawn relationship lights that line with a strong blue shadow that spreads off the stroke.
+- The node at each end of that line gets the same blue shadow.
+- Moving the pointer off the line removes the light from the line and from both nodes.
+- An `options` relationship drawn as several lines lights only the line under the pointer and that line’s two ends.
+- A relationship that is not drawn (hidden containment) has nothing to hover, so it does not light.
+- The existing selection chrome, relationship color, tooltip, and the document stay as they are.
+- Read-only diagrams use the same hover.
+
+**Out of scope for V19:** lighting every relationship of a node when the pointer is on the node; lighting every segment of one `options` relationship at once; a new selected-state color.
+
+### 4.45 Palette relationship type (P1 — V20)
+
+**Draw type (R106)**
+
+- The palette has a **Relationships** section under the component packs.
+- Relationship types are grouped by enabled extension pack, the same way components are. A pack with no relationship types is omitted. Core starts expanded.
+- A click selects that type. The selected row stays highlighted, and the section heading shows its label. The choice lasts for the browser session and is not written to a file. Until a choice, the draw type is `connects`.
+- The next relationship created by dragging from one node to another uses that type: the CALM variant (`calmCoreVariant`), the stored `defaults.metadata`, and the type’s line style and color. Line style and color are not written into the file.
+- A containment variant (`composed-of`, `deployed-in`) drawn this way nests the target in the source and hides the line, as a containment relationship already does.
+- Alt+drag containment (V7, R103) does not use this choice.
+- Search matches relationship labels and type ids. Choosing a result selects the draw type. It does not place a node.
+- Opening a document restores the combobox value from a pack marker in `metadata` (`metadata.<pack>.relationship`), so a drawn type stays that type after save and reload.
+
+**Out of scope for V20:** a separate relationship drag from the palette onto the canvas; remembering the choice after a reload; changing an existing line when the user draws again between the same two nodes.
+
 ## 5. Requirements
 
 ### Iteration 1 — P0
@@ -1933,7 +2015,7 @@ For each such decision, draw an options edge from `nodes[0]` to every later id t
 | ID  | User story                                                                                         | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
 | --- | -------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | R82 | As an architect I want an inserted reference to point at the file that defines the node.           | P1       | - [ ] Applies to Files-tree drag, Hub-tree drag, and Find neighbors - [ ] Follow relative `detailed-architecture` until the node has none - [ ] The written path is relative from the current file to that defining file - [ ] `http(s)` is copied and not followed; `url-mapping.json` is not consulted - [ ] Missing file, path outside the project, missing `unique-id`, or a cycle → link the document you inserted from - [ ] Hub node with no `detailed-architecture` still uses that version URL (R78) - [ ] Palette drop and same-file Ctrl+drag are unchanged - [ ] Stubs already on the canvas are not rewritten | Open   |
-| R83 | As an architect I want to pick the Move destination from the project folder tree.                  | P1       | - [ ] File Move and folder Move dialogs show the project folder tree, including the root - [ ] Only folders are selectable - [ ] A selected folder fills the destination-folder field; the text field stays editable - [ ] **Move** still confirms; the tree click does not move - [ ] Drag onto a folder in the Files tree is unchanged (R77, R60) - [ ] Name clash, dirty cancel, and relative-link rewrite stay as R77 / R60 | Open   |
+| R83 | As an architect I want to pick the Move destination from the project folder tree.                  | P1       | - [ ] File Move and folder Move dialogs show the project folder tree, including the root - [ ] Only folders are selectable - [ ] A selected folder fills the destination-folder field; the text field stays editable - [ ] **Move** still confirms; the tree click does not move - [ ] Drag onto a folder in the Files tree asks before the move (R100) - [ ] Name clash, dirty cancel, and relative-link rewrite stay as R77 / R60 | Open   |
 
 
 ### Iteration 15 — P1 (V13 — demo UI gate)
@@ -1984,14 +2066,42 @@ For each such decision, draw an options edge from `nodes[0]` to every later id t
 | R96 | As an architect I want a relationship’s line, routing, colors, and description to follow its metadata and the extension type. | P1       | - [ ] Properties edit `line-style` (`solid`/`dashed`/`dotted`), `routing` (`bezier`/`smoothstep`/`straight` labeled Curve/Elbow/Straight), `line-color`, `text-color`, and `description-display` (`tooltip`/`label`) - [ ] Values are stored on relationship `metadata` with the keys above - [ ] `line-color` paints the stroke and the arrow; `text-color` paints the description - [ ] Empty description draws no text - [ ] Effective value is relationship metadata, then that type’s `defaults.metadata`, then solid + bezier + tooltip and theme colors - [ ] Load does not write defaults into the file - [ ] Pack schema accepts `defaults.metadata` on a relationship type - [ ] Read-only tabs do not write - [ ] Obstacle avoidance still applies (R79) | Open   |
 | R97 | As an architect I want a custom relationship type to survive load and to be drawn when its body matches options. | P1       | - [ ] Load keeps every relationship, including a missing `relationship-type` and an unknown key - [ ] Save writes the same key and the same value; an unknown key is not rewritten to `{ "options": [] }` - [ ] An options-shaped body (array of decisions; `nodes` has at least two ids), including core `options`, draws an options edge from the first node to each later node on the diagram - [ ] The relationship-type combobox lists the five core variants and `typeId`s from enabled packs - [ ] A stored type stays listed when its pack is disabled - [ ] Choosing a pack type with `calmCoreVariant` `options` or omitted writes `{ "<typeId>": [decision] }` using the current endpoints - [ ] Choosing another `calmCoreVariant` writes that core key’s body | Open   |
 
+### Iteration 20 — P1 (V18 — tree refresh, relationship identity, metadata)
 
-### Iteration 20 — P2
+| ID   | User story                                                                                          | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| ---- | --------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R98  | As an architect I want to refresh Files and Hub without losing my place in the tree.               | P1       | - [ ] Files and Hub have Refresh - [ ] Files re-reads the folder; Hub re-fetches expanded levels - [ ] Scroll, expanded rows, and the selected row stay - [ ] A missing selected row is cleared - [ ] Refresh does not change an open editor | Open   |
+| R99  | As an architect I want the project tree and open diagrams to follow changes on disk.               | P1       | - [ ] Listed project files are watched - [ ] The Files tree updates - [ ] A clean diagram tab reloads - [ ] A dirty diagram tab asks Load from disk or Keep my edits and is not overwritten - [ ] Hub is not watched | Open   |
+| R100 | As an architect I want a drag move of a file or folder to be confirmed and visible while it runs. | P1       | - [ ] Drag of a file or a folder asks, showing source and destination - [ ] Cancel changes nothing - [ ] Confirm shows a blocking Moving… state until done - [ ] Relative `detailed-architecture` links are rewritten (V11) - [ ] Canvas node drag does not ask | Open   |
+| R101 | As an architect I want each new relationship to get its own id.                                    | P1       | - [ ] New id is the slug `{source}-{type}-{target}` - [ ] A taken id gets `-2`, `-3`, … - [ ] The stored id is never `xy-edge` from a canvas id - [ ] An existing `xy-edge` id is not renamed on open | Open   |
+| R102 | As an architect I want a relationship type change to update the JSON and the type’s metadata.      | P1       | - [ ] Properties combobox and the canvas menu write the chosen `relationship-type` and update the drawing - [ ] Type `defaults.metadata` and the type marker replace the previous type’s metadata - [ ] Keys only the previous type defined are removed - [ ] Other metadata and `description` stay - [ ] The new type object does not keep `protocol` or a member list the type does not have | Open   |
+| R103 | As an architect I want Alt+drag to create a containment relationship.                              | P1       | - [ ] Alt+drag onto a node writes `composed-of` or `deployed-in` (V7: first drop asks, later drops add, Alt+drag out removes) - [ ] The relationship is in the document JSON | Open   |
+| R104 | As an architect I want one dialog that edits all schema metadata on a node or relationship.        | P1       | - [ ] **Edit metadata…** opens one dialog built from the schema (enum, nested object, array) - [ ] It is on node and relationship properties - [ ] Keys outside the schema are not fields in that dialog - [ ] Per-group dialogs remain | Open   |
+
+
+### Iteration 21 — P2
 
 
 | ID  | User story                                             | Priority | Acceptance criteria                                   | Status |
 | --- | ------------------------------------------------------ | -------- | ----------------------------------------------------- | ------ |
 | R13 | As a desktop user I want the same file panel in Tauri. | P2       | - [ ] Parity with web version via Tauri FS API        | Open   |
 | R14 | As a user I want to watch file changes on disk.        | P2       | - [ ] File watcher for open folder (optional refresh) | Open   |
+
+
+### Iteration 22 — P1 (V19 — relationship hover)
+
+
+| ID   | User story                                                                                 | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                 | Status |
+| ---- | ------------------------------------------------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R105 | As an architect I want a relationship to light up when I point at it, including both ends. | P1       | - [ ] Hover lights the line with a strong blue spreading shadow - [ ] Both endpoint nodes get the same shadow - [ ] Leaving the line clears the line and both nodes - [ ] An options fan-out lights only the line under the pointer and its two ends - [ ] A hidden containment line does not light - [ ] Selection, stored color, and the document stay unchanged | Open   |
+
+
+### Iteration 23 — P1 (V20 — palette relationship type)
+
+
+| ID   | User story                                                                                          | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                 | Status |
+| ---- | --------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R106 | As an architect I want to pick a relationship type in the palette and draw that type by dragging. | P1       | - [ ] Relationships section lists types grouped by enabled pack - [ ] Click selects the type for the session; default is `connects` - [ ] The next node-to-node drag creates that type, including its stored defaults and its line style and color - [ ] Line style and color are not stored - [ ] A containment type nests and hides the line - [ ] Alt+drag is unchanged - [ ] Reload keeps the type when metadata has the pack marker | Open   |
 
 
 **Assumptions**
@@ -3300,6 +3410,13 @@ Extend / add:
 | 104 | How description is shown on a relationship                                                       | —        | PM     | **Resolved** — tooltip by default, or a permanent label. No hidden mode. Type default, then relationship metadata (R96). |
 | 105 | What happens to an unknown `relationship-type` key                                               | —        | PM     | **Resolved** — keep the key and the body on load and save. Draw when the body is options-shaped, with the options edge. Do not draw other custom bodies (R97). |
 | 106 | Where appearance defaults live                                                                   | —        | PM     | **Resolved** — `defaults.metadata` on each relationship type in the pack, not one pack-wide default (R96). |
+| 107 | What a tree refresh keeps                                                                        | —        | PM     | **Resolved** — Files and Hub. Scroll, expanded rows, and the selected row (R98). |
+| 108 | Dirty diagram when the file changes on disk                                                      | —        | PM     | **Resolved** — ask: Load from disk or Keep my edits (R99). |
+| 109 | Drag-move confirm                                                                                | —        | PM     | **Resolved** — always, for a file and a folder, then a blocking Moving… state (R100). |
+| 110 | New relationship id                                                                              | —        | PM     | **Resolved** — slug `{source}-{type}-{target}`, suffix `-2` when taken. Do not repair stored `xy-edge` on open (R101). |
+| 111 | Metadata when the relationship type changes                                                      | —        | PM     | **Resolved** — replace type-bound metadata, including appearance defaults and the type marker. Keep other metadata and description (R102). |
+| 112 | What a relationship hover lights                                                                 | —        | PM     | **Resolved** — the line under the pointer and its two endpoint nodes. Options fan-out does not light the other segments. Hidden containment has no hover (R105). |
+| 113 | Where the next drawn relationship type is chosen                                                 | —        | PM     | **Resolved** — a Relationships section in the palette, grouped by pack. Click selects the type for the session. Default `connects`. The next node-to-node drag uses it. Alt+drag does not (R106). |
 | 66  | Canvas overview: none vs mini-map click-to-pan                                                   | —        | PM     | **Resolved** — always-visible mini-map (bottom-right); click pans viewport to that point (centered); zoom unchanged; no hide/zoom-from-minimap (#66). |
 | 67  | How Studio finds a local file for a canonical `$id` URL                                          | —        | PM     | **Resolved** — `.calmrj` `urlMapping.path` → `url-mapping.json` (CALM CLI `-u` / CEngineering-App shape); values relative to the mapping file; Hub instance URLs skip the map; no network fetch (#67). |
 
@@ -3430,6 +3547,9 @@ Extend / add:
 50. **V15 array properties + pretty nested** (R86)
 51. **V16 ADR, limit, chrome** (R87–R95) — document `adrs`, preview tab, `ui.maxOpenEditors`, save-on-close, tree tooltip, horizontal scroll, splitters, column lists, resizable Find neighbors
 52. **P2 desktop / watch** (R13, R14)
+53. **V18 tree, move, relationship id, type metadata, Alt+drag, metadata dialog** (R98–R104)
+54. **V19 relationship hover** (R105)
+55. **V20 palette relationship type** (R106)
 
 ### Constraints for AI coding agent
 
@@ -3534,7 +3654,10 @@ Extend / add:
 | 2026-09-30 | 0.33    | stakeholder      | **V14:** R85. Replace calmscript stub with Mermaid flowchart export (`.mmd` + `.md`) and read-only Code-panel Mermaid tab; leave `packages/calmscript`. R13–R14 → Iteration 17 |
 | 2026-10-01 | 0.34    | stakeholder      | **V15:** R86. Array properties edited per element (inline list; objects included); nested JSON pretty in preview and dialog. R13–R14 → Iteration 18 |
 | 2026-10-13 | 0.35    | stakeholder      | **V16:** R87–R95. Document `adrs` (Hub URL without revision, relative local path, remove/edit/reorder); read-only preview tab; `ui.maxOpenEditors` (default 10); save prompt only on tab close and window close; tree name tooltip; Files/Hub horizontal scroll; splitter direction; column headers, cell tooltip, adjacent-column resize; resizable Find neighbors. R13–R14 → Iteration 19 |
-| 2026-10-27 | 0.36    | stakeholder      | **V17:** R96–R97. Relationship `metadata` line-style, routing, line-color, text-color, description tooltip or label; per-type pack defaults. Unknown `relationship-type` key kept; options-shaped body drawn as an options edge. Combobox adds enabled pack types. R13–R14 → Iteration 20 |
+| 2026-10-27 | 0.36    | stakeholder      | **V17:** R96–R97. Relationship `metadata` line-style, routing, line-color, text-color, description tooltip or label; per-type pack defaults. Unknown `relationship-type` key kept; options-shaped body drawn as an options edge. Combobox adds enabled pack types. R13–R14 → Iteration 21 |
+| 2026-11-19 | 0.37    | stakeholder      | **V18:** R98–R104. Refresh Files and Hub in place. Watch the project folder. Confirm file and folder drag-move. Relationship id slug, not `xy-edge`. Type change updates type metadata. Alt+drag writes containment. One schema metadata dialog. |
+| 2026-11-24 | 0.38    | stakeholder      | **V19:** R105. Hover lights the relationship and both endpoint nodes with a blue spreading shadow. Options fan-out lights one segment. |
+| 2026-11-24 | 0.39    | stakeholder      | **V20:** R106. Palette Relationships section grouped by pack. The selected type is what the next node-to-node drag creates. |
 
 
 ### Session decisions (2026-06-28)
@@ -3841,6 +3964,6 @@ Extend / add:
 | When to draw a custom key    | Only when the body is an options decision array. Draw as an options edge from the first node to each later node (#105, R97).    |
 | Combobox                     | Core five variants plus enabled pack `typeId`s. `options` or omitted `calmCoreVariant` stores the type id with an options body. Other variants store the core key (R97). |
 | V17                          | **In scope** (R96–R97). Drawing a non-options custom body is not.                                                               |
-| Iteration priority           | V17 = Iteration 19; Tauri/watch R13–R14 = Iteration 20                                                                          |
+| Iteration priority           | V20 = Iteration 23; V19 = Iteration 22; V18 = Iteration 20; V17 = Iteration 19; Tauri/watch R13–R14 = Iteration 21               |
 
 

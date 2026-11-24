@@ -132,7 +132,10 @@ describe('parsePackJson', () => {
 					label: 'Connects',
 					description: 'link',
 					calmCoreVariant: 'connects',
-					defaults: { metadata: { 'line-style': 'dashed', routing: 'smoothstep' } },
+					'line-style': 'dashed',
+					routing: 'smoothstep',
+					'line-color': '#2563eb',
+					defaults: { metadata: { kind: 'link' } },
 				},
 			],
 			relationshipDefaults: { metadata: { kind: 'assoc' } },
@@ -151,10 +154,10 @@ describe('parsePackJson', () => {
 		expect(parsed.pack.relationshipDefaults?.metadata).toEqual({ kind: 'assoc' });
 		expect(parsed.pack.relationships?.[0]?.description).toBe('link');
 		expect(parsed.pack.relationships?.[0]?.calmCoreVariant).toBe('connects');
-		expect(parsed.pack.relationships?.[0]?.defaults?.metadata).toEqual({
-			'line-style': 'dashed',
-			routing: 'smoothstep',
-		});
+		expect(parsed.pack.relationships?.[0]?.['line-style']).toBe('dashed');
+		expect(parsed.pack.relationships?.[0]?.routing).toBe('smoothstep');
+		expect(parsed.pack.relationships?.[0]?.['line-color']).toBe('#2563eb');
+		expect(parsed.pack.relationships?.[0]?.defaults?.metadata).toEqual({ kind: 'link' });
 	});
 
 	it('rejects invalid colors, icons, and relationship variants', () => {

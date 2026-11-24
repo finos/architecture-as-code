@@ -39,6 +39,8 @@
 	import { nanoid } from 'nanoid';
 	import { setContext } from 'svelte';
 
+	import { applyRelationshipHoverClass } from './relationshipHover';
+	import { relationshipHoverEnds } from './relationshipHover.svelte';
 	import { nodeTypes, resolveNodeType } from './nodeTypes';
 	import { edgeTypes, DEFAULT_EDGE_TYPE } from './edgeTypes';
 	import { makeContainment, isContainmentType, ensureContainmentEdge, syncContainmentRelData, applyContainmentVisibility, extractChildFromParent } from './containment';
@@ -46,15 +48,21 @@
 	import { resolvePackNode, scaffoldNodeMetadata, scaffoldRelationshipMetadata } from '@calmstudio/extensions';
 	import {
 		metadataForRelationshipChoice,
-		metadataWithTypeDefaults,
+		fieldsForDrawnRelationship,
 		relationshipTypeChoices,
 		relationshipTypeForChoice,
+		replaceTypeBoundMetadata,
 	} from '$lib/relationships/relationshipTypeChoice';
+	import { drawRelationshipType } from '$lib/palette/drawRelationshipType.svelte';
 	import EdgeMarkers from './edges/EdgeMarkers.svelte';
 	import NodeSearch from '$lib/search/NodeSearch.svelte';
 	import { pushSnapshot, undo, redo } from '$lib/stores/history.svelte';
 	import { copy, paste } from '$lib/stores/clipboard.svelte';
 	import { applyFromCanvas, setSchemaHintForNodeType, getModel } from '$lib/stores/calmModel.svelte';
+	import {
+		allocateRelationshipId,
+		storedRelationshipIdFromEdge,
+	} from '$lib/relationships/relationshipId';
 	import { relativePathBetween } from '$lib/explorer/relativePath';
 	import { resolveDefiningHrefFromProject } from '$lib/explorer/definingHref';
 	import { isHttpHref } from '$lib/explorer/rewriteDetailedArchitecture';
@@ -130,21 +138,6 @@
 			data.metadata = metadata;
 		}
 		return data;
-	}
-
-	function edgeDataWithScaffold(sourceId: string, targetId: string): Record<string, unknown> {
-		const sourceType = String(nodes.find((n) => n.id === sourceId)?.data?.calmType ?? '');
-		const targetType = String(nodes.find((n) => n.id === targetId)?.data?.calmType ?? '');
-		const base: Record<string, unknown> = { protocol: '', description: '' };
-		const metadata = metadataWithTypeDefaults(
-			scaffoldRelationshipMetadata(sourceType, targetType),
-			DEFAULT_EDGE_TYPE,
-		);
-		if (metadata) {
-			base.metadata = metadata;
-		}
-		base.relationshipTypeKey = DEFAULT_EDGE_TYPE;
-		return base;
 	}
 
 	// ─── Container scaffold helper ──────────────────────────────────────────
@@ -249,6 +242,12 @@
 	});
 
 	setContext(CANVAS_NODES_CONTEXT, (() => nodes) satisfies CanvasNodesGetter);
+
+	$effect(() => {
+		const ends = relationshipHoverEnds();
+		const next = applyRelationshipHoverClass(nodes, ends?.source ?? null, ends?.target ?? null);
+		if (next !== nodes) nodes = next;
+	});
 
 	/**
 	 * Notify parent of canvas changes. Guards against readonly mode to prevent
@@ -665,6 +664,22 @@
 
 	// ─── Edge creation ───────────────────────────────────────────────────────
 
+	function calmEndpointId(flowId: string): string {
+		const node = nodes.find((item) => item.id === flowId);
+		const calmId = node?.data?.calmId;
+		return typeof calmId === 'string' && calmId.length > 0 ? calmId : flowId;
+	}
+
+	function takenRelationshipIds(): Set<string> {
+		const taken = new Set<string>();
+		for (const rel of getModel().relationships ?? []) taken.add(rel['unique-id']);
+		for (const edge of edges) {
+			const stored = storedRelationshipIdFromEdge(edge);
+			if (stored) taken.add(stored);
+		}
+		return taken;
+	}
+
 	function handleConnect(connection: Connection) {
 		if (readonly) return;
 
@@ -672,6 +687,32 @@
 
 		const applyConnection = () => {
 			// Svelte Flow may auto-add an edge via bind:edges before this callback fires.
+			// That id is `xy-edge__…` and must not be stored as unique-id.
+			const sourceId = calmEndpointId(connection.source);
+			const targetId = calmEndpointId(connection.target);
+			const typeId = drawRelationshipType();
+			const sourceType = String(nodes.find((n) => n.id === connection.source)?.data?.calmType ?? '');
+			const targetType = String(nodes.find((n) => n.id === connection.target)?.data?.calmType ?? '');
+			const drawn = fieldsForDrawnRelationship(
+				typeId,
+				sourceId,
+				targetId,
+				scaffoldRelationshipMetadata(sourceType, targetType),
+			);
+			const calmRelId = allocateRelationshipId(
+				sourceId,
+				typeId,
+				targetId,
+				takenRelationshipIds(),
+			);
+			const drawnData = {
+				protocol: drawn.canvasVariant === 'connects' || drawn.canvasVariant === 'interacts' ? '' : undefined,
+				description: '',
+				metadata: drawn.metadata,
+				relationshipTypeKey: drawn.relationshipTypeKey,
+				originalRelationshipType: drawn.originalRelationshipType,
+				calmVariant: drawn.canvasVariant,
+			};
 			const existing = edges.find(
 				(e) =>
 					(e.source === connection.source && e.target === connection.target) ||
@@ -683,11 +724,13 @@
 					e.id === existing.id
 						? {
 								...e,
-								type: e.type || DEFAULT_EDGE_TYPE,
+								type: e.type || drawn.canvasVariant,
+								hidden: e.hidden,
 								data: {
-									...edgeDataWithScaffold(connection.source, connection.target),
+									...drawnData,
 									...e.data,
-									calmVariant: DEFAULT_EDGE_TYPE,
+									calmVariant: drawn.canvasVariant,
+									calmRelId: storedRelationshipIdFromEdge(e) ?? calmRelId,
 								},
 							}
 						: e
@@ -699,17 +742,19 @@
 					target: connection.target,
 					sourceHandle: connection.sourceHandle ?? undefined,
 					targetHandle: connection.targetHandle ?? undefined,
-					type: DEFAULT_EDGE_TYPE,
+					type: drawn.canvasVariant,
+					hidden: drawn.hidden,
 					data: {
-						...edgeDataWithScaffold(connection.source, connection.target),
-						calmVariant: DEFAULT_EDGE_TYPE,
+						...drawnData,
+						calmRelId,
 					},
 				};
 				edges = [...edges, newEdge];
 			}
 
-			if (isContainmentType(DEFAULT_EDGE_TYPE)) {
+			if (isContainmentType(drawn.canvasVariant) && !existing) {
 				nodes = makeContainment(connection.source, connection.target, nodes);
+				nodes = syncContainmentRelData(nodes, edges);
 			}
 			applyFromCanvas(nodes, edges);
 			notifyChange();
@@ -727,13 +772,21 @@
 
 		const edge = edges.find((e) => e.id === edgeId);
 		if (!edge) return;
+		const previousType = String(
+			(edge.data as { relationshipTypeKey?: string } | undefined)?.relationshipTypeKey ??
+				edge.type ??
+				'',
+		);
 		const chosen = relationshipTypeForChoice(newType, edge.source, edge.target);
 		const previous = (edge.data ?? {}) as Record<string, unknown>;
 		const previousMeta = previous.metadata as Record<string, unknown> | undefined;
-		const metadata = metadataWithTypeDefaults(
-			metadataForRelationshipChoice(previousMeta, newType, chosen.canvasVariant) ?? previousMeta,
+		const metadata = replaceTypeBoundMetadata(
+			previousMeta,
+			previousType,
 			newType,
+			chosen.canvasVariant,
 		);
+		const keepProtocol = chosen.canvasVariant === 'connects' || chosen.canvasVariant === 'interacts';
 
 		edges = applyContainmentVisibility(
 			edges.map((e) =>
@@ -749,7 +802,8 @@
 								originalRelationshipType: chosen.preserveType
 									? chosen.relationshipType
 									: undefined,
-								...(metadata ? { metadata } : {}),
+								metadata,
+								protocol: keepProtocol ? previous.protocol : undefined,
 							},
 						}
 					: e
@@ -973,26 +1027,30 @@
 
 	function findContainmentParent(
 		dropPos: { x: number; y: number },
-		excludeId: string
+		excludeId: string,
+		allowAnyNode = false,
 	): string | null {
+		let best: { id: string; area: number } | null = null;
 		for (const candidate of nodes) {
 			if (candidate.id === excludeId) continue;
-			if (
+			const width = candidate.measured?.width ?? candidate.width ?? (allowAnyNode ? 200 : 0);
+			const height = candidate.measured?.height ?? candidate.height ?? (allowAnyNode ? 60 : 0);
+			const eligible =
+				allowAnyNode ||
 				candidate.type === 'container' ||
-				(candidate.measured?.width && candidate.measured.width > 100)
-			) {
-				const bounds = {
-					x: candidate.position.x,
-					y: candidate.position.y,
-					width: candidate.measured?.width ?? candidate.width ?? 200,
-					height: candidate.measured?.height ?? candidate.height ?? 150,
-				};
-				if (isInsideBounds(dropPos, bounds)) {
-					return candidate.id;
-				}
-			}
+				(candidate.measured?.width != null && candidate.measured.width > 100);
+			if (!eligible) continue;
+			const bounds = {
+				x: candidate.position.x,
+				y: candidate.position.y,
+				width: width || 200,
+				height: height || 60,
+			};
+			if (!isInsideBounds(dropPos, bounds)) continue;
+			const area = bounds.width * bounds.height;
+			if (!best || area < best.area) best = { id: candidate.id, area };
 		}
-		return null;
+		return best?.id ?? null;
 	}
 
 	function handleNodeDragStop({
@@ -1053,7 +1111,15 @@
 			return;
 		}
 
-		const dropParentId = findContainmentParent(draggedNode.position, draggedNode.id);
+		const dropWidth = draggedNode.measured?.width ?? draggedNode.width ?? 40;
+		const dropHeight = draggedNode.measured?.height ?? draggedNode.height ?? 40;
+		const dropPoint = alt
+			? {
+					x: draggedNode.position.x + dropWidth / 2,
+					y: draggedNode.position.y + dropHeight / 2,
+				}
+			: draggedNode.position;
+		const dropParentId = findContainmentParent(dropPoint, draggedNode.id, alt);
 
 		if (alt) {
 			if (dropParentId && dropParentId !== originalParentId) {
@@ -1162,6 +1228,7 @@
 		let nextEdges: Edge[] = edges;
 
 		if (result.duplicateRelationships) {
+			const taken = takenRelationshipIds();
 			const clonedEdges = edges
 				.filter((e) => e.source === oldId || e.target === oldId || e.source === source.id || e.target === source.id)
 				.map((e) => {
@@ -1170,12 +1237,13 @@
 					edgeClone.selected = false;
 					if (edgeClone.source === oldId || edgeClone.source === source.id) edgeClone.source = newId;
 					if (edgeClone.target === oldId || edgeClone.target === source.id) edgeClone.target = newId;
-					if (edgeClone.data) {
-						edgeClone.data = {
-							...edgeClone.data,
-							calmRelId: nanoid(),
-						};
-					}
+					const relType = String(edgeClone.type ?? DEFAULT_EDGE_TYPE);
+					const calmRelId = allocateRelationshipId(edgeClone.source, relType, edgeClone.target, taken);
+					taken.add(calmRelId);
+					edgeClone.data = {
+						...(edgeClone.data ?? {}),
+						calmRelId,
+					};
 					return edgeClone;
 				});
 			nextEdges = [...edges, ...clonedEdges];
@@ -1623,6 +1691,13 @@
 
 	:global(.dark) .edge-menu-item:hover {
 		background: #1e293b;
+	}
+
+	:global(.svelte-flow__node.calm-rel-hover) {
+		filter:
+			drop-shadow(0 0 3px #1d4ed8)
+			drop-shadow(0 0 10px rgba(37, 99, 235, 0.9))
+			drop-shadow(0 0 18px rgba(96, 165, 250, 0.65));
 	}
 
 </style>

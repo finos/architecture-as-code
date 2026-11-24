@@ -43,3 +43,4 @@ export interface CalmNodeRefDragPayload {
 
 export const CALM_NODE_REF_MIME = 'application/calm-node-ref';
 export const CALM_FILE_MOVE_MIME = 'application/calm-file-move';
+export const CALM_DIR_MOVE_MIME = 'application/calm-dir-move';

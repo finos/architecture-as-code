@@ -15,7 +15,11 @@
 #
 
 # Stable nginx without the optional modules that pull libxml2 and curl.
-FROM nginx:1.30.6-alpine-slim
+# 1.30.8 fixes the HTTP/2 CVEs in 1.30.6 (CVE-2026-123007 and the related set).
+# zlib 1.4 and musl 1.2.6-r6 are not in this image yet. musl r6 is only in Alpine 3.25.
+FROM nginx:1.30.8-alpine-slim
+RUN apk add --no-cache --upgrade zlib \
+ && apk add --no-cache --upgrade --repository https://dl-cdn.alpinelinux.org/alpine/v3.25/main 'musl=1.2.6-r6' 'musl-utils=1.2.6-r6'
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY apps/studio/build /usr/share/nginx/html

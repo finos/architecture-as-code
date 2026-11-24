@@ -3,8 +3,9 @@
 # From this directory, after `../mvnw package`:
 #   docker compose --profile jvm -f docker-compose.yml -f docker-compose.local.yml up -d --build
 #
-# Port 8080 is the gateway from docker-compose.yml. Hub is only on the
-# compose network. Calm Studio is http://localhost:8080/studio/ .
+# The gateway publishes HTTP 8080 and HTTPS 8443. Hub is only on the
+# compose network. HTTP redirects to HTTPS.
+# Calm Studio is https://localhost:8443/studio/ (also hub.creditas.cz).
 #
 # Mongo also mounts ../mongo/controls so init-mongo.js can seed controls
 # (the published compose does not, and the seed script then exits the container).
@@ -37,7 +38,20 @@ services:
     environment:
       # Applied at JVM start — no image rebuild needed. Matches application-no-auth CORS.
       # JAVA_OPTS replaces the base compose value (this image ignores JAVA_OPTS_APPEND).
-      # Regex: localhost / 127.0.0.1 any port; *.creditasgroup.cz http/https optional port.
-      - "JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017 -Dquarkus.profile=no-auth -Dquarkus.http.cors.enabled=true -Dquarkus.http.cors.origins=/http:\\\\/\\\\/(localhost|127\\\\.0\\\\.0\\\\.1)(:\\\\d+)?/,/https?:\\\\/\\\\/([a-zA-Z0-9-]+\\\\.)*creditasgroup\\\\.cz(:\\\\d+)?/ -Dquarkus.http.cors.methods=GET,POST,PUT,DELETE,PATCH,OPTIONS -Dquarkus.http.cors.headers=accept,authorization,content-type"
+      # Regex: localhost / 127.0.0.1 any port; *.creditasgroup.cz and *.creditas.cz http/https optional port.
+      # Proxy flags so Hub sees the gateway's https scheme and host.
+      - "JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017 -Dquarkus.profile=no-auth -Dquarkus.http.cors.enabled=true -Dquarkus.http.cors.origins=/http:\\\\/\\\\/(localhost|127\\\\.0\\\\.0\\\\.1)(:\\\\d+)?/,/https?:\\\\/\\\\/([a-zA-Z0-9-]+\\\\.)*creditasgroup\\\\.cz(:\\\\d+)?/,/https?:\\\\/\\\\/([a-zA-Z0-9-]+\\\\.)*creditas\\\\.cz(:\\\\d+)?/ -Dquarkus.http.cors.methods=GET,POST,PUT,DELETE,PATCH,OPTIONS -Dquarkus.http.cors.headers=accept,authorization,content-type -Dquarkus.http.proxy.proxy-address-forwarding=true -Dquarkus.http.proxy.allow-x-forwarded=true -Dquarkus.http.proxy.enable-forwarded-host=true -Dquarkus.http.proxy.trusted-proxies=0.0.0.0/0"
       - QUARKUS_HTTP_CORS_ENABLED=true
-      - "QUARKUS_HTTP_CORS_ORIGINS=/http:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?/,/https?:\\/\\/([a-zA-Z0-9-]+\\.)*creditasgroup\\.cz(:\\d+)?/"
+      - "QUARKUS_HTTP_CORS_ORIGINS=/http:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?/,/https?:\\/\\/([a-zA-Z0-9-]+\\.)*creditasgroup\\.cz(:\\d+)?/,/https?:\\/\\/([a-zA-Z0-9-]+\\.)*creditas\\.cz(:\\d+)?/"
+
+  gateway:
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./nginx/local-https.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/https-entrypoint.sh:/https-entrypoint.sh:ro
+      - gateway-dev-certs:/etc/nginx/certs
+    entrypoint: ["/bin/sh", "/https-entrypoint.sh"]
+
+volumes:
+  gateway-dev-certs:
