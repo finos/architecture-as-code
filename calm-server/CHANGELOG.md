@@ -5,6 +5,12 @@ All notable changes to the CALM Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.1](https://github.com/finos/architecture-as-code/compare/calm-server-v0.11.0...calm-server-v0.11.1) (2026-11-24)
+
+### 🐛 Bug Fixes
+
+* quote Mermaid flowchart labels instead of entity-escaping special characters ([#3792](https://github.com/finos/architecture-as-code/issues/3792)) ([fb6b445](https://github.com/finos/architecture-as-code/commit/fb6b44568af202b3eb45fe258ce78be07ff54ea5))
+
 ## [0.11.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.10.0...calm-server-v0.11.0) (2026-11-17)
 
 ### 🚀 Features
