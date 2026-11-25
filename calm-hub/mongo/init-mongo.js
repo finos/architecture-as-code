@@ -6834,21 +6834,15 @@ if (isEmptyDatabase && db.adrs.countDocuments() === 0) {
 }
 
 logSection("Decorators");
-// One document per decorator (ADR 0020). `type` and `target` are copied to the top level for
-// the (namespace, target, type) index — decoratorDocument() does this, so each seed entry below
-// is only the decorator itself.
+// One document per decorator (ADR 0020). decoratorDocument() copies `type` and `target` to the
+// top level for the (namespace, target, type) index. Keep `decoratorId: NumberInt(<n>)` literal in
+// each entry: scripts/validate-mongo-seed-counters.js reads the seeded IDs from that text.
 const DEPLOYMENT_STANDARD = "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json";
 const FINOS_ARCHITECTURE_1 = "/calm/namespaces/finos/architectures/1/versions/1-0-0";
 const WORKSHOP_ARCHITECTURE_2 = "/calm/namespaces/workshop/architectures/2/versions/1-0-0";
 
-function decoratorDocument(namespace, decoratorId, decorator) {
-    return {
-        namespace: namespace,
-        decoratorId: NumberInt(decoratorId),
-        type: decorator.type,
-        target: decorator.target,
-        decorator: decorator
-    };
+function decoratorDocument(key, decorator) {
+    return Object.assign({}, key, { type: decorator.type, target: decorator.target, decorator: decorator });
 }
 
 if (db.decorators.countDocuments() === 0) {
@@ -6856,7 +6850,7 @@ if (db.decorators.countDocuments() === 0) {
 
         // ── finos ─────────────────────────────────────────────────────────────────
 
-        decoratorDocument("finos", 1, {
+        decoratorDocument({ namespace: "finos", decoratorId: NumberInt(1) }, {
             "$schema":     DEPLOYMENT_STANDARD,
             "unique-id":   "finos-architecture-1-deployment",
             "type":        "deployment",
@@ -6873,7 +6867,7 @@ if (db.decorators.countDocuments() === 0) {
             }
         }),
 
-        decoratorDocument("finos", 2, {
+        decoratorDocument({ namespace: "finos", decoratorId: NumberInt(2) }, {
             "$schema":     DEPLOYMENT_STANDARD,
             "unique-id":   "finos-architecture-1-deployment-v2",
             "type":        "deployment",
@@ -6888,7 +6882,7 @@ if (db.decorators.countDocuments() === 0) {
             }
         }),
 
-        decoratorDocument("finos", 3, {
+        decoratorDocument({ namespace: "finos", decoratorId: NumberInt(3) }, {
             "$schema":     DEPLOYMENT_STANDARD,
             "unique-id":   "finos-architecture-1-deployment-v3",
             "type":        "deployment",
@@ -6907,7 +6901,7 @@ if (db.decorators.countDocuments() === 0) {
 
         // ── workshop ──────────────────────────────────────────────────────────────
 
-        decoratorDocument("workshop", 1, {
+        decoratorDocument({ namespace: "workshop", decoratorId: NumberInt(1) }, {
             "$schema":     DEPLOYMENT_STANDARD,
             "unique-id":   "workshop-conference-deployment",
             "type":        "deployment",
@@ -6923,7 +6917,7 @@ if (db.decorators.countDocuments() === 0) {
             }
         }),
 
-        decoratorDocument("workshop", 2, {
+        decoratorDocument({ namespace: "workshop", decoratorId: NumberInt(2) }, {
             "unique-id":   "workshop-conference-monitoring",
             "type":        "observability",
             "target":      [WORKSHOP_ARCHITECTURE_2],
