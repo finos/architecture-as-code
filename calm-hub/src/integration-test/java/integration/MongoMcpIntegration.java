@@ -172,7 +172,6 @@ public class MongoMcpIntegration {
             // flows and timelines are header collections now, so they need no priming — and a
             // primed per-namespace document is harmful, carrying no id and so surfacing as a
             // phantom "Flow null" / "Timeline null" row in every listing for that namespace.
-            // decorators above keeps the old shape by ADR 0004, so its priming stays.
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("flows")) {
                 database.createCollection("flows");
             }
