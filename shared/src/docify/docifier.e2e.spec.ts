@@ -1,8 +1,9 @@
-import { describe, it, afterEach } from 'vitest';
+import { describe, it, afterEach, beforeAll, afterAll } from 'vitest';
 import { Docifier } from './docifier.js';
 import { rmSync } from 'fs';
 import { join } from 'path';
 import { expectDirectoryMatch } from '../test/file-comparison';
+import { calmSite } from '../test/mocks/calm-site.js';
 
 const INPUT_DIR = join(
     __dirname,
@@ -27,6 +28,11 @@ const NON_SECURE_VERSION_DOC_WEBSITE = join(OUTPUT_DIR, 'non-secure');
 const SECURE_VERSION_DOC_WEBSITE = join(OUTPUT_DIR, 'secure');
 
 describe('Docifier E2E - Real Model and Template', () => {
+    // The URL mapping does not have all the documents. Docify gets the others from calm.finos.org.
+    const site = calmSite();
+    beforeAll(() => site.listen({ onUnhandledRequest: 'error' }));
+    afterAll(() => site.close());
+
     afterEach(() => {
         rmSync(OUTPUT_DIR, { recursive: true, force: true });
     });
