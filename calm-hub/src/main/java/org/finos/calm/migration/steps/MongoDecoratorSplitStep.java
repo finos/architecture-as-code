@@ -24,6 +24,7 @@ import java.util.Set;
 import static org.finos.calm.store.mongo.MongoDecoratorStore.DECORATOR_FIELD;
 import static org.finos.calm.store.mongo.MongoDecoratorStore.DECORATOR_ID_FIELD;
 import static org.finos.calm.store.mongo.MongoDecoratorStore.NAMESPACE_FIELD;
+import static org.finos.calm.store.mongo.MongoDecoratorStore.SUPERSEDES_FIELD;
 import static org.finos.calm.store.mongo.MongoDecoratorStore.TARGET_FIELD;
 import static org.finos.calm.store.mongo.MongoDecoratorStore.TYPE_FIELD;
 
@@ -119,7 +120,10 @@ public class MongoDecoratorSplitStep implements SchemaMigrationStep {
         decorators.createIndex(new Document(NAMESPACE_FIELD, 1).append(DECORATOR_ID_FIELD, 1),
                 new IndexOptions().unique(true));
         decorators.createIndex(new Document(NAMESPACE_FIELD, 1).append(TARGET_FIELD, 1).append(TYPE_FIELD, 1));
-        LOG.info("Ensured indexes on decorators.(namespace, decoratorId) and decorators.(namespace, target, type)");
+        // The supersede lock: a decorator has at most one successor.
+        decorators.createIndex(new Document(NAMESPACE_FIELD, 1).append(SUPERSEDES_FIELD, 1),
+                new IndexOptions().unique(true).partialFilterExpression(Filters.exists(SUPERSEDES_FIELD)));
+        LOG.info("Ensured indexes on decorators.(namespace, decoratorId), (namespace, target, type) and (namespace, supersedes)");
     }
 
     private int splitNamespaceDocument(Document old) {

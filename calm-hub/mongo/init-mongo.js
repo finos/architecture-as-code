@@ -300,6 +300,9 @@ if (isEmptyDatabase) {
     // "decorators for this target" — target is an array, so it is a multikey index.
     db.decorators.createIndex({ namespace: 1, decoratorId: 1 }, unique);
     db.decorators.createIndex({ namespace: 1, target: 1, type: 1 });
+    // The supersede lock: a decorator has at most one successor.
+    db.decorators.createIndex({ namespace: 1, supersedes: 1 },
+        { unique: true, partialFilterExpression: { supersedes: { $exists: true } } });
 
     // Two partial indexes rather than one compound: namespace-scoped and domain-scoped
     // grant documents share no discriminating field.

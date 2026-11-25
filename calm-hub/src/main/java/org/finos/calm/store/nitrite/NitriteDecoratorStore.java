@@ -164,6 +164,8 @@ public class NitriteDecoratorStore implements DecoratorStore {
         }
     }
 
+    // As in MongoDecoratorStore, the successor goes first: a failure between the writes leaves both
+    // decorators current, never a mark that points to nothing.
     @Override
     public int supersedeDecorator(String namespace, int id, String decoratorJson)
             throws NamespaceNotFoundException, DecoratorNotFoundException, DecoratorSupersededException {
@@ -174,12 +176,12 @@ public class NitriteDecoratorStore implements DecoratorStore {
             requireCurrent(namespace, id);
             int newId = counterStore.getNextDecoratorSequenceValue();
             String now = DecoratorTimestamps.now();
-            decoratorCollection.update(byId(namespace, id), Document.createDocument(SUPERSEDED_BY_FIELD, newId)
-                    .put(SUPERSEDED_DATE_TIME_FIELD, now));
             decoratorCollection.insert(toStoredDocument(namespace, newId, decorator)
                     .put(SUPERSEDES_FIELD, id)
                     .put(CREATION_DATE_TIME_FIELD, now)
                     .put(UPDATE_DATE_TIME_FIELD, now));
+            decoratorCollection.update(byId(namespace, id), Document.createDocument(SUPERSEDED_BY_FIELD, newId)
+                    .put(SUPERSEDED_DATE_TIME_FIELD, now));
             LOG.debug("Decorator with ID {} supersedes decorator {} in namespace '{}'", newId, id, namespace);
             return newId;
         } finally {

@@ -5,6 +5,7 @@ import com.mongodb.ServerAddress;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.ReplaceOptions;
 import org.bson.BsonDocument;
@@ -26,7 +27,9 @@ import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -122,6 +125,11 @@ class TestMongoDecoratorSplitStepShould {
         verify(decorators).dropIndex("namespace_1");
         verify(decorators).createIndex(eq(new Document("namespace", 1).append("decoratorId", 1)), any(IndexOptions.class));
         verify(decorators).createIndex(new Document("namespace", 1).append("target", 1).append("type", 1));
+        ArgumentCaptor<IndexOptions> lock = ArgumentCaptor.forClass(IndexOptions.class);
+        verify(decorators).createIndex(eq(new Document("namespace", 1).append("supersedes", 1)), lock.capture());
+        assertTrue(lock.getValue().isUnique());
+        assertEquals(Filters.exists("supersedes").toBsonDocument(),
+                lock.getValue().getPartialFilterExpression().toBsonDocument());
     }
 
     @Test

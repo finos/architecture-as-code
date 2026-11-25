@@ -1,5 +1,6 @@
 package org.finos.calm.store.mongo;
 
+import com.mongodb.ErrorCategory;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -193,8 +194,9 @@ public class MongoDecoratorStore implements DecoratorStore {
     }
 
     /**
-     * Two writes, because a standalone MongoDB has no transactions. The mark on the old decorator
-     * is the lock: a concurrent supersede of the same decorator then matches nothing.
+     * Two writes, because a standalone MongoDB has no transactions. The successor goes first: the unique
+     * {@code (namespace, supersedes)} index is the lock, so two supersedes of one decorator cannot both succeed.
+     * A failure between the writes leaves both decorators current, never a mark that points to nothing.
      */
     @Override
     public int supersedeDecorator(String namespace, int id, String decoratorJson)
@@ -209,24 +211,30 @@ public class MongoDecoratorStore implements DecoratorStore {
         int newId = counterStore.getNextDecoratorSequenceValue();
         String now = DecoratorTimestamps.now();
 
-        long matched = write(namespace, () -> decoratorCollection.updateOne(currentById(namespace, id),
-                Updates.combine(Updates.set(SUPERSEDED_BY_FIELD, newId), Updates.set(SUPERSEDED_DATE_TIME_FIELD, now))))
-                .getMatchedCount();
-        if (matched == 0) {
-            throwSupersededOrNotFound(namespace, id);
-        }
-
         Document successor = toStoredDocument(namespace, newId, parsedDecorator)
                 .append(SUPERSEDES_FIELD, id)
                 .append(CREATION_DATE_TIME_FIELD, now)
                 .append(UPDATE_DATE_TIME_FIELD, now);
         try {
-            write(namespace, () -> decoratorCollection.insertOne(successor));
-        } catch (RuntimeException e) {
-            // With no successor, the old decorator must be current again.
-            decoratorCollection.updateOne(Filters.and(byId(namespace, id), Filters.eq(SUPERSEDED_BY_FIELD, newId)),
-                    Updates.combine(Updates.unset(SUPERSEDED_BY_FIELD), Updates.unset(SUPERSEDED_DATE_TIME_FIELD)));
-            throw e;
+            decoratorCollection.insertOne(successor);
+        } catch (MongoWriteException e) {
+            if (e.getError().getCategory() == ErrorCategory.DUPLICATE_KEY) {
+                throw new DecoratorSupersededException();
+            }
+            LOG.error("Failed to write a decorator of namespace [{}]", namespace, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
+        } catch (BsonMaximumSizeExceededException e) {
+            LOG.error("Failed to write a decorator of namespace [{}]", namespace, e);
+            throw MongoWriteFailures.toStorageWriteException(e);
+        }
+
+        long matched = write(namespace, () -> decoratorCollection.updateOne(currentById(namespace, id),
+                Updates.combine(Updates.set(SUPERSEDED_BY_FIELD, newId), Updates.set(SUPERSEDED_DATE_TIME_FIELD, now))))
+                .getMatchedCount();
+        if (matched == 0) {
+            // Deleted since the check: the successor has nothing to supersede.
+            decoratorCollection.deleteOne(byId(namespace, newId));
+            throwSupersededOrNotFound(namespace, id);
         }
 
         LOG.debug("Decorator with ID {} supersedes decorator {} in namespace '{}'", newId, id, namespace);
@@ -245,20 +253,30 @@ public class MongoDecoratorStore implements DecoratorStore {
         return history;
     }
 
+    /**
+     * Deletes the head first, only while it is current, so that a successor written meanwhile is kept. A head
+     * whose {@code supersededBy} points to no decorator counts as current: only a failed delete leaves one.
+     */
     @Override
     public void deleteCurrentDecoratorHistory(String namespace, int currentId)
             throws NamespaceNotFoundException, DecoratorNotFoundException, DecoratorSupersededException {
         namespaceStore.requireNamespace(namespace);
 
-        List<Integer> olderIds = DecoratorHistoryChain.of(historyEntries(namespace, currentId, LINK_FIELDS), currentId)
-                .stream()
+        List<DecoratorHistoryEntry> entries = historyEntries(namespace, currentId, LINK_FIELDS);
+        DecoratorHistoryEntry head = entries.stream().filter(entry -> entry.getId() == currentId).findFirst()
+                .orElseThrow(DecoratorNotFoundException::new);
+        Integer successorId = head.getSupersededBy();
+        if (successorId != null && entries.stream().anyMatch(entry -> entry.getId() == successorId)) {
+            throw new DecoratorSupersededException();
+        }
+        List<Integer> olderIds = DecoratorHistoryChain.of(entries, currentId).stream()
                 .map(DecoratorHistoryEntry::getId)
                 .filter(historyId -> historyId != currentId)
                 .toList();
 
-        // Delete the head only while it is current, so that a successor written meanwhile is kept.
-        long deleted = write(namespace, () -> decoratorCollection.deleteOne(currentById(namespace, currentId)))
-                .getDeletedCount();
+        Bson stillCurrent = successorId == null ? currentById(namespace, currentId)
+                : Filters.and(byId(namespace, currentId), Filters.eq(SUPERSEDED_BY_FIELD, successorId));
+        long deleted = write(namespace, () -> decoratorCollection.deleteOne(stillCurrent)).getDeletedCount();
         if (deleted == 0) {
             throwSupersededOrNotFound(namespace, currentId);
         }

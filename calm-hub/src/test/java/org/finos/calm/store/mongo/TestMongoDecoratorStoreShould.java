@@ -403,7 +403,7 @@ class TestMongoDecoratorStoreShould {
     }
 
     @Test
-    void mark_the_old_decorator_before_it_inserts_the_successor() throws Exception {
+    void insert_the_successor_before_it_marks_the_old_decorator() throws Exception {
         when(decoratorCollection.countDocuments(any(Bson.class))).thenReturn(1L);
         when(counterStore.getNextDecoratorSequenceValue()).thenReturn(5);
         ArgumentCaptor<Bson> mark = ArgumentCaptor.forClass(Bson.class);
@@ -414,28 +414,52 @@ class TestMongoDecoratorStoreShould {
 
         assertEquals(5, newId);
         InOrder order = inOrder(decoratorCollection);
-        order.verify(decoratorCollection).updateOne(any(Bson.class), any(Bson.class));
         order.verify(decoratorCollection).insertOne(inserted.capture());
+        order.verify(decoratorCollection).updateOne(any(Bson.class), any(Bson.class));
         assertEquals(5, bson(mark.getValue()).getDocument("$set").getInt32("supersededBy").getValue());
         assertEquals(5, inserted.getValue().getInteger("decoratorId"));
         assertEquals(1, inserted.getValue().getInteger("supersedes"));
         assertEquals("control-evaluation", inserted.getValue().getString("type"));
+        verify(decoratorCollection, never()).deleteOne(any(Bson.class));
     }
 
     @Test
-    void remove_the_mark_when_the_successor_cannot_be_inserted() {
+    void leave_the_old_decorator_unmarked_when_the_successor_cannot_be_inserted() {
         when(decoratorCollection.countDocuments(any(Bson.class))).thenReturn(1L);
         when(counterStore.getNextDecoratorSequenceValue()).thenReturn(5);
         when(decoratorCollection.insertOne(any(Document.class))).thenThrow(writeError(12));
-        ArgumentCaptor<Bson> updates = ArgumentCaptor.forClass(Bson.class);
-        when(decoratorCollection.updateOne(any(Bson.class), updates.capture())).thenReturn(matched(1));
 
         assertThrows(StorageWriteException.class,
                 () -> decoratorStore.supersedeDecorator(NAMESPACE, 1, "{\"type\": \"control-evaluation\"}"));
 
-        BsonDocument unmark = bson(updates.getAllValues().getLast());
-        assertTrue(unmark.getDocument("$unset").containsKey("supersededBy"));
-        assertTrue(unmark.getDocument("$unset").containsKey("supersededDateTime"));
+        verify(decoratorCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void leave_both_decorators_current_when_the_mark_fails() {
+        when(decoratorCollection.countDocuments(any(Bson.class))).thenReturn(1L);
+        when(counterStore.getNextDecoratorSequenceValue()).thenReturn(5);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class))).thenThrow(writeError(12));
+
+        assertThrows(StorageWriteException.class,
+                () -> decoratorStore.supersedeDecorator(NAMESPACE, 1, "{\"type\": \"control-evaluation\"}"));
+
+        verify(decoratorCollection, never()).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void remove_the_successor_when_the_old_decorator_was_deleted_before_the_mark() {
+        when(decoratorCollection.countDocuments(any(Bson.class))).thenReturn(1L, 0L);
+        when(counterStore.getNextDecoratorSequenceValue()).thenReturn(5);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(matched(0));
+        ArgumentCaptor<Bson> removed = ArgumentCaptor.forClass(Bson.class);
+        when(decoratorCollection.deleteOne(removed.capture())).thenReturn(DeleteResult.acknowledged(1));
+
+        assertThrows(DecoratorNotFoundException.class,
+                () -> decoratorStore.supersedeDecorator(NAMESPACE, 1, "{\"type\": \"control-evaluation\"}"));
+
+        assertThat(bson(removed.getValue()), is(bson(Filters.and(
+                Filters.eq("namespace", NAMESPACE), Filters.eq("decoratorId", 5)))));
     }
 
     @Test
@@ -460,15 +484,15 @@ class TestMongoDecoratorStoreShould {
     }
 
     @Test
-    void throw_superseded_and_insert_nothing_when_a_supersede_loses_the_race_to_another() {
-        when(decoratorCollection.countDocuments(any(Bson.class))).thenReturn(1L, 1L);
+    void throw_superseded_and_mark_nothing_when_a_supersede_loses_the_race_to_another() {
+        when(decoratorCollection.countDocuments(any(Bson.class))).thenReturn(1L);
         when(counterStore.getNextDecoratorSequenceValue()).thenReturn(5);
-        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(matched(0));
+        when(decoratorCollection.insertOne(any(Document.class))).thenThrow(duplicateKey());
 
         assertThrows(DecoratorSupersededException.class,
                 () -> decoratorStore.supersedeDecorator(NAMESPACE, 1, "{\"type\": \"control-evaluation\"}"));
 
-        verify(decoratorCollection, never()).insertOne(any(Document.class));
+        verify(decoratorCollection, never()).updateOne(any(Bson.class), any(Bson.class));
     }
 
     @Test
@@ -544,6 +568,33 @@ class TestMongoDecoratorStoreShould {
     }
 
     @Test
+    void delete_what_a_failed_delete_left_when_the_successor_no_longer_exists() throws Exception {
+        stubDecorators(superseded(2, 3).append("supersedes", 1), superseded(1, 2));
+        ArgumentCaptor<Bson> head = ArgumentCaptor.forClass(Bson.class);
+        when(decoratorCollection.deleteOne(head.capture())).thenReturn(DeleteResult.acknowledged(1));
+        ArgumentCaptor<Bson> older = ArgumentCaptor.forClass(Bson.class);
+        when(decoratorCollection.deleteMany(older.capture())).thenReturn(DeleteResult.acknowledged(1));
+
+        decoratorStore.deleteCurrentDecoratorHistory(NAMESPACE, 2);
+
+        assertThat(bson(head.getValue()), is(bson(Filters.and(
+                Filters.and(Filters.eq("namespace", NAMESPACE), Filters.eq("decoratorId", 2)),
+                Filters.eq("supersededBy", 3)))));
+        assertThat(bson(older.getValue()), is(bson(Filters.and(
+                Filters.eq("namespace", NAMESPACE), Filters.in("decoratorId", List.of(1))))));
+    }
+
+    @Test
+    void throw_superseded_and_delete_nothing_when_the_successor_exists() {
+        stubDecorators(superseded(1, 2), current(2, 1));
+
+        assertThrows(DecoratorSupersededException.class, () -> decoratorStore.deleteCurrentDecoratorHistory(NAMESPACE, 1));
+
+        verify(decoratorCollection, never()).deleteOne(any(Bson.class));
+        verify(decoratorCollection, never()).deleteMany(any(Bson.class));
+    }
+
+    @Test
     void keep_the_history_when_the_decorator_was_superseded_before_the_delete() {
         stubDecorators(current(1, null));
         when(decoratorCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
@@ -552,6 +603,15 @@ class TestMongoDecoratorStoreShould {
         assertThrows(DecoratorSupersededException.class, () -> decoratorStore.deleteCurrentDecoratorHistory(NAMESPACE, 1));
 
         verify(decoratorCollection, never()).deleteMany(any(Bson.class));
+    }
+
+    @Test
+    void throw_not_found_when_deleting_a_missing_decorator() {
+        stubDecorators();
+
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteCurrentDecoratorHistory(NAMESPACE, 1));
+
+        verify(decoratorCollection, never()).deleteOne(any(Bson.class));
     }
 
     @Test
@@ -646,6 +706,10 @@ class TestMongoDecoratorStoreShould {
         when(decoratorCollection.deleteOne(any(Bson.class))).thenThrow(writeError(12));
 
         assertThrows(StorageWriteException.class, () -> decoratorStore.deleteCurrentDecoratorHistory(NAMESPACE, 1));
+    }
+
+    private static MongoWriteException duplicateKey() {
+        return writeError(11000);
     }
 
     private static MongoWriteException writeError(int code) {

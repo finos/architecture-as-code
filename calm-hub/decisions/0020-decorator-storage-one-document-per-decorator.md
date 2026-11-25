@@ -21,6 +21,7 @@ Store one document per decorator. Copy `type` and `target` to the top level, and
 |---|---|
 | `(namespace, decoratorId)` unique | `getDecoratorById`, update, delete |
 | `(namespace, target, type)` | Filtered reads. `target` is an array, so this is a multikey index |
+| `(namespace, supersedes)` unique, partial | The supersede lock: a decorator has at most one successor |
 
 `target` on the decorator stays the only record of what a decorator applies to. We do not
 keep a list of decorator IDs on the architecture (option A in #3696), because each decorator
@@ -35,10 +36,12 @@ A list filters out superseded decorators in the query. History and delete follow
 one indexed find for each decorator. We do not use `$graphLookup`, because it puts the full
 history in one result document, which fails when the history is larger than 16 MB.
 
-A supersede is now two writes, because a standalone MongoDB has no transactions. Hub marks the
-old decorator first, then inserts the successor. The mark is the lock, so two concurrent
-supersedes of one decorator cannot both succeed. If the insert fails, Hub removes the mark.
-Between the two writes, a list does not return the decorator.
+A supersede is now two writes, because a standalone MongoDB has no transactions. Hub inserts the
+successor first, then marks the old decorator. The unique `(namespace, supersedes)` index is the
+lock, so two concurrent supersedes of one decorator cannot both succeed. If Hub stops between the
+two writes, both decorators stay current, and a delete of the successor removes both. A
+`supersededBy` that points to no decorator can then come only from a failed delete, so a delete
+accepts such a decorator as current and removes what is left of its history.
 
 ## Consequences
 
@@ -54,5 +57,5 @@ Between the two writes, a list does not return the decorator.
 - `init-mongo.js` seeds the new shape and pins schema version 18.
 - `NitriteDecoratorSplitStep` does the same split for NitriteDB, with the same rules, so the
   two stores keep the same shape. Nitrite has no indexes here, so it filters by target in memory.
-  Nitrite writes hold one lock, so a supersede there is still one step.
+  Nitrite writes hold one lock, and a supersede writes in the same order as MongoDB.
   Read-only images are seeded at build time, so they get the new shape when they are rebuilt.

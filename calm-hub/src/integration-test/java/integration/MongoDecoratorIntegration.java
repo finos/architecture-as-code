@@ -1,5 +1,7 @@
 package integration;
 
+import com.mongodb.ErrorCategory;
+import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
@@ -32,6 +34,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
@@ -412,6 +415,20 @@ public class MongoDecoratorIntegration {
                 .when().get("/api/calm/namespaces/finos/decorators/" + firstId)
                 .then()
                 .statusCode(404);
+    }
+
+    @Test
+    @Order(15)
+    void end_to_end_allow_only_one_successor_for_a_decorator() throws Exception {
+        int id = decoratorStore.createDecorator("finos", reservedDecorator("open"));
+        decoratorStore.supersedeDecorator("finos", id, reservedDecorator("closed"));
+
+        try (MongoClient mongoClient = MongoClients.create(mongoTestConnection.connectionString())) {
+            MongoDatabase database = mongoClient.getDatabase(mongoTestConnection.database());
+            MongoWriteException e = assertThrows(MongoWriteException.class, () -> database.getCollection("decorators")
+                    .insertOne(new Document("namespace", "finos").append("decoratorId", 99_999).append("supersedes", id)));
+            assertEquals(ErrorCategory.DUPLICATE_KEY, e.getError().getCategory());
+        }
     }
 
     private static String largeDecorator(String blob, int revision) {
