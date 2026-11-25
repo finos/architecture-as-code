@@ -8,6 +8,7 @@ import { ExtensionsProvider } from '../ExtensionsContext.js';
 import { ExtensionSlot } from '../ExtensionSlot.js';
 import { useExtensionRevision } from '../extensionRefresh.js';
 import { FormPoint } from './FormBlock.js';
+import { FormDrafts, FormDraftsContext } from './formDrafts.js';
 
 const REVIEW: ExtensionForm = {
     id: 'request-review',
@@ -167,6 +168,26 @@ describe('FormBlock', () => {
         expect(screen.getByTestId('revision')).toHaveTextContent('1');
         expect(screen.getByLabelText(/Note/)).toHaveValue('');
         expect(submitButton()).toHaveFocus();
+    });
+
+    it('checks and sends the input that the draft holds when the form has not shown the edit', async () => {
+        // As between the first render of a form and its effects: the form does not listen to its draft yet.
+        const drafts = new FormDrafts();
+        vi.spyOn(drafts, 'subscribe').mockReturnValue(() => {});
+        await show(
+            <ExtensionsProvider>
+                <FormDraftsContext.Provider value={drafts}>
+                    <ExtensionSlot extension={extension} contribution={panel} context={API} point="detail-panel" headingLevel={3} />
+                </FormDraftsContext.Provider>
+            </ExtensionsProvider>
+        );
+        await fill();
+        expect(screen.getByLabelText(/Note/)).toHaveValue('');
+
+        await sendConfirmed();
+
+        expect(submissions).toHaveLength(1);
+        expect(submissions[0].input).toEqual({ reviewType: 'design', note: 'Check the ledger', urgent: false });
     });
 
     it('keeps the input after a refusal and does not refresh', async () => {
