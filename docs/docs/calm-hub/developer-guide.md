@@ -205,6 +205,12 @@ This is how the published `latest-read-only-static` and `latest-read-only-native
 ## Upgrade and Rollback Notes
 
 - **Audit log values:** the audit log stores each enum value by name. The extensions release ([#3396](https://github.com/finos/architecture-as-code/issues/3396)) adds the action `READ`, the entity type `EXTENSION` and the outcomes `FAILURE` and `UNKNOWN`. An older CALM Hub fails when it reads an entry that has one of these values. Before you roll back, delete or archive these entries in the `auditLogs` collection (MongoDB) or store (NitriteDB).
+- **Decorator storage (schema version 18):** at startup, CALM Hub moves each decorator to its own document ([ADR 0020](https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0020-decorator-storage-one-document-per-decorator.md)). You cannot roll back after this step: an older CALM Hub cannot read the new shape. Before you upgrade, back up the `decorators` collection (MongoDB) or the NitriteDB data file.
+- **Duplicate decorator IDs:** if a namespace has two decorators with the same ID, the step stops with an error that names the namespace and the ID. CALM Hub keeps the migration lock and refuses requests. To continue with MongoDB:
+  1. Stop CALM Hub.
+  2. In the `decorators` document of that namespace, which still has the old `decorators` array, delete one of the two entries, or give it an ID that is higher than `sequence_value` of `decoratorStoreCounter` in `counters` and raise that value to the new ID.
+  3. Clear the lock: `db.calm.updateOne({ _id: "migrationLock" }, { $unset: { holder: "", acquiredAt: "" } })`.
+  4. Start CALM Hub. The step runs again, and the namespaces that it already moved are not changed.
 
 ---
 
