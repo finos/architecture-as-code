@@ -274,6 +274,12 @@ cd calm-hub && ../mvnw -P integration verify
 All new code needs tests covering both success and error cases. Aim for >80% coverage on new code,
 100% on critical paths.
 
+A test must not need the internet, because a slow or failed request fails PRs that did not cause it.
+Mock the HTTP layer (`calmSite()` in `shared`) or serve the data from a local server. A check that must
+read a registry goes in its own workflow, with a `paths` filter and a schedule, as
+`validate-docify-template-deps.yml` does. Do not wait for a set time or send a set quantity of data
+to let another thread finish. Wait for the condition.
+
 ## Commit Messages
 
 **Conventional Commits**, enforced by commitlint via husky — invalid messages are rejected at commit

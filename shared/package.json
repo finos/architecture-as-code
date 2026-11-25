@@ -25,6 +25,7 @@
         "clean": "rimraf dist tsconfig.build.tsbuildinfo",
         "test": "node scripts/check-browser-entry.mjs && vitest run",
         "check:browser-entry": "node scripts/check-browser-entry.mjs",
+        "check:docify-template-deps": "node scripts/check-docify-template-deps.mjs",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix"
     },

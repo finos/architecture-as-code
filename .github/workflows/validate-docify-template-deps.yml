@@ -1,0 +1,40 @@
+name: Validate Docify Template Dependencies
+
+# Resolves the dependencies of the docusaurus template bundle against the npm registry. A pull request runs it only when
+# it changes the bundle's package.json. The schedule finds a conflict that a new release of a dependency causes.
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        branches:
+            - 'main'
+            - 'release*'
+        paths:
+            - 'shared/src/docify/template-bundles/docusaurus/package.json'
+            - 'shared/scripts/check-docify-template-deps.mjs'
+            - '.github/workflows/validate-docify-template-deps.yml'
+    schedule:
+        - cron: '15 6 * * 1'
+    workflow_dispatch:
+
+jobs:
+    template-deps:
+        name: Resolve Docify Template Dependencies
+        if: github.event_name != 'schedule' || github.repository == 'finos/architecture-as-code'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+
+        steps:
+            - name: Checkout PR Branch
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: Setup Node.js
+              uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version-file: '.nvmrc'
+
+            # The script uses only Node built-ins, so it needs no workspace install.
+            - name: Resolve the template bundle dependencies
+              run: node shared/scripts/check-docify-template-deps.mjs
