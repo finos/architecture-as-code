@@ -971,11 +971,7 @@ class TestExtensionProxyServiceShould {
             register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofMillis(500), 1024, 1024,
                     32, 2, 2, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
             CountDownLatch gate = new CountDownLatch(1);
-            List<String> parts = new java.util.ArrayList<>(List.of("data: first\n\n"));
-            for (int i = 0; i < 200; i++) {
-                parts.add("data: " + "x".repeat(1000) + "\n\n");
-            }
-            backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+            backend.stream(FixtureBackend.Stream.untilClosed("data: first\n\n", "data: " + "x".repeat(1000) + "\n\n", gate));
 
             CompletableFuture<Integer> call = CompletableFuture.supplyAsync(() -> status(eventStream("GET", "/screen")));
             assertThat(opening.await(5, TimeUnit.SECONDS), is(true));
@@ -1140,11 +1136,7 @@ class TestExtensionProxyServiceShould {
     @Test
     void close_the_backend_connection_when_the_caller_closes_the_stream() throws Exception {
         CountDownLatch gate = new CountDownLatch(1);
-        List<String> parts = new java.util.ArrayList<>(List.of("data: first\n\n"));
-        for (int i = 0; i < 200; i++) {
-            parts.add("data: " + "x".repeat(1000) + "\n\n");
-        }
-        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+        backend.stream(FixtureBackend.Stream.untilClosed("data: first\n\n", "data: " + "x".repeat(1000) + "\n\n", gate));
         ExtensionProxyResponse reply = service.call(alice, eventStream("GET", "/screen"));
 
         reply.stream().close();
@@ -1282,11 +1274,8 @@ class TestExtensionProxyServiceShould {
         registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 1, 1, 1,
                 Duration.ofSeconds(5), Duration.ofSeconds(30)));
         CountDownLatch gate = new CountDownLatch(1);
-        List<String> parts = new java.util.ArrayList<>(List.of("event: error\ndata: {\"message\":\"No model\"}\n\n"));
-        for (int i = 0; i < 200; i++) {
-            parts.add("event: delta\ndata: {\"text\":\"" + "x".repeat(1000) + "\"}\n\n");
-        }
-        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+        backend.stream(FixtureBackend.Stream.untilClosed("event: error\ndata: {\"message\":\"No model\"}\n\n",
+                "event: delta\ndata: {\"text\":\"" + "x".repeat(1000) + "\"}\n\n", gate));
         StringBuffer written = new StringBuffer();
 
         chat(QUESTION).stream().writeTo(collect(written));

@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -41,14 +42,30 @@ public final class FixtureBackend implements AutoCloseable {
 
     /**
      * A reply that the backend writes in parts, flushing each one. After the first part it waits for {@code gate}, when
-     * there is one, so a test can read the first part while the backend has not finished.
+     * there is one, so a test can read the first part while the backend has not finished. With {@code untilClosed},
+     * it then writes the last part again until the caller closes the connection.
      */
-    public record Stream(int status, String contentType, List<String> parts, CountDownLatch gate) {
+    public record Stream(int status, String contentType, List<String> parts, CountDownLatch gate, boolean untilClosed) {
+
+        public Stream(int status, String contentType, List<String> parts, CountDownLatch gate) {
+            this(status, contentType, parts, gate, false);
+        }
 
         public static Stream events(String... parts) {
             return new Stream(200, "text/event-stream", List.of(parts), null);
         }
+
+        /**
+         * An event stream for a test that needs {@link #streamBroken()}: {@code first}, then {@code next} until a
+         * write fails. The JDK HTTP client completes the close of a connection on its selector thread. Until then
+         * the socket buffers take the writes of the backend, so a stream of a set size can end with no failed write.
+         */
+        public static Stream untilClosed(String first, String next, CountDownLatch gate) {
+            return new Stream(200, "text/event-stream", List.of(first, next), gate, true);
+        }
     }
+
+    private static final Duration UNTIL_CLOSED_LIMIT = Duration.ofSeconds(30);
 
     private final HttpServer server;
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -167,6 +184,16 @@ public final class FixtureBackend implements AutoCloseable {
                 out.flush();
                 if (i == 0 && parts.gate() != null && !parts.gate().await(10, TimeUnit.SECONDS)) {
                     throw new IOException("The test did not open the gate");
+                }
+            }
+            if (parts.untilClosed()) {
+                byte[] next = parts.parts().getLast().getBytes(StandardCharsets.UTF_8);
+                // A limit for a caller that reads and does not close the connection. A write to a caller that does
+                // not read waits past this limit, until close() stops the server.
+                long deadline = System.nanoTime() + UNTIL_CLOSED_LIMIT.toNanos();
+                while (System.nanoTime() < deadline) {
+                    out.write(next);
+                    out.flush();
                 }
             }
         } catch (IOException e) {

@@ -17,8 +17,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -82,12 +80,8 @@ class TestExtensionStreamWatchdogShutdownShould {
     @TestSecurity(user = "alice")
     void close_each_open_stream_and_end_the_watchdog_thread_when_hub_shuts_down() throws Exception {
         CountDownLatch gate = new CountDownLatch(1);
-        List<String> parts = new ArrayList<>(List.of("event: delta\ndata: {\"text\":\"Hel\"}\n\n"));
-        // Enough data that a write of the backend fails after Hub closes the connection.
-        for (int i = 0; i < 300; i++) {
-            parts.add("data: " + "x".repeat(1000) + "\n\n");
-        }
-        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+        backend.stream(FixtureBackend.Stream.untilClosed("event: delta\ndata: {\"text\":\"Hel\"}\n\n",
+                "data: " + "x".repeat(1000) + "\n\n", gate));
         HttpClient client = HttpClient.newHttpClient();
         try {
             Stream<String> proxied = open(client, HttpRequest.newBuilder(uri(SCREEN)).header("Accept", "text/event-stream"));

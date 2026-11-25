@@ -523,7 +523,8 @@ from; it fails if there is none.
   refuses a bearer token with `typ: calm-ext+jwt` in every auth mode, and sends the 401 challenge for it itself, so
   that an OIDC provider that is down cannot make it a 500
 - Tests generate key pairs at run time (`ExtensionTestKeys`); `*.pem` is git-ignored. `FixtureBackend` is a
-  loopback backend for proxy tests
+  loopback backend for proxy tests. A test that waits for `streamBroken()` or `brokenStreams()` must use
+  `FixtureBackend.Stream.untilClosed`: a stream of a set size can end before Hub's close takes effect
 - `calm-hub-extensions/` holds the extensions we own (`c4`, `ea-layers`): real services, each with its own notation.
   Each runs as a sidecar and copies its folder to the shared `calm.extensions.dir` volume (`deploy/docker-compose.yml`).
   `TestExtensionManifestLoaderShould` loads that folder, so a manifest or notation that Hub refuses fails the Java tests
