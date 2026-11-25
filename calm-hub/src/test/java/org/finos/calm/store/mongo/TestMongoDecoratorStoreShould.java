@@ -3,11 +3,11 @@ package org.finos.calm.store.mongo;
 import com.mongodb.MongoWriteException;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteError;
-import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.client.result.UpdateResult;
@@ -15,6 +15,7 @@ import org.bson.BsonBinaryWriter;
 import org.bson.BsonDocument;
 import org.bson.BsonMaximumSizeExceededException;
 import org.bson.BsonSerializationException;
+import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.codecs.DocumentCodec;
 import org.bson.codecs.EncoderContext;
@@ -40,7 +41,9 @@ import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,6 +66,7 @@ import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -74,9 +78,6 @@ class TestMongoDecoratorStoreShould {
     }
 
     private interface DocumentFindIterable extends FindIterable<Document> {
-    }
-
-    private interface DocumentAggregateIterable extends AggregateIterable<Document> {
     }
 
     private static final String NAMESPACE = "finos";
@@ -133,12 +134,45 @@ class TestMongoDecoratorStoreShould {
         return filter;
     }
 
-    /** Stubs the $graphLookup result: the matched decorator with the ones after and before it. */
-    private void stubHistory(Document match, List<Document> newer, List<Document> older) {
-        AggregateIterable<Document> iterable = mock(DocumentAggregateIterable.class);
-        when(decoratorCollection.aggregate(anyList())).thenReturn(iterable);
-        when(iterable.first()).thenReturn(match == null ? null
-                : new Document(match).append("newer", newer).append("older", older));
+    /** Stubs each find by ID, as the history walk reads one decorator at a time. Returns the projections used. */
+    private List<Bson> stubDecorators(Document... decorators) {
+        Map<Integer, Document> byId = new HashMap<>();
+        for (Document decorator : decorators) {
+            byId.put(decorator.getInteger("decoratorId"), decorator);
+        }
+        List<Bson> projections = new ArrayList<>();
+        when(decoratorCollection.find(any(Bson.class))).thenAnswer(find -> {
+            Document found = byId.get(decoratorIdIn(find.<Bson>getArgument(0).toBsonDocument()));
+            return mock(DocumentFindIterable.class, call -> switch (call.getMethod().getName()) {
+                case "first" -> found;
+                case "projection" -> {
+                    projections.add(call.getArgument(0));
+                    yield call.getMock();
+                }
+                default -> null;
+            });
+        });
+        return projections;
+    }
+
+    private static Integer decoratorIdIn(BsonValue filter) {
+        if (filter.isDocument()) {
+            for (Map.Entry<String, BsonValue> field : filter.asDocument().entrySet()) {
+                Integer id = field.getKey().equals("decoratorId") && field.getValue().isInt32()
+                        ? Integer.valueOf(field.getValue().asInt32().getValue()) : decoratorIdIn(field.getValue());
+                if (id != null) {
+                    return id;
+                }
+            }
+        } else if (filter.isArray()) {
+            for (BsonValue item : filter.asArray()) {
+                Integer id = decoratorIdIn(item);
+                if (id != null) {
+                    return id;
+                }
+            }
+        }
+        return null;
     }
 
     private static Document current(int id, Integer supersedes) {
@@ -439,26 +473,49 @@ class TestMongoDecoratorStoreShould {
 
     @Test
     void return_the_history_of_a_decorator_current_first() throws Exception {
-        stubHistory(superseded(1, 2), List.of(current(2, 1)), List.of());
+        stubDecorators(superseded(1, 2), current(2, 1).append("supersededBy", 3), current(3, 2));
+
+        List<DecoratorHistoryEntry> history = decoratorStore.getDecoratorHistory(NAMESPACE, 2);
+
+        assertEquals(List.of(3, 2, 1), history.stream().map(DecoratorHistoryEntry::getId).toList());
+        assertEquals(2, history.get(0).getSupersedes());
+        assertEquals(2, history.get(2).getSupersededBy());
+        assertEquals("eval-1", history.get(2).getDecorator().getUniqueId());
+        verify(decoratorCollection, times(3)).find(any(Bson.class));
+        verify(decoratorCollection, never()).aggregate(anyList());
+    }
+
+    @Test
+    void stop_the_history_at_a_link_to_a_missing_decorator() throws Exception {
+        stubDecorators(superseded(1, 9).append("supersedes", 8));
 
         List<DecoratorHistoryEntry> history = decoratorStore.getDecoratorHistory(NAMESPACE, 1);
 
-        assertEquals(List.of(2, 1), history.stream().map(DecoratorHistoryEntry::getId).toList());
-        assertEquals(1, history.get(0).getSupersedes());
-        assertEquals(2, history.get(1).getSupersededBy());
-        assertEquals("eval-1", history.get(1).getDecorator().getUniqueId());
+        assertEquals(List.of(1), history.stream().map(DecoratorHistoryEntry::getId).toList());
+    }
+
+    @Test
+    void stop_the_history_at_a_cycle_in_damaged_data() throws Exception {
+        stubDecorators(superseded(1, 2).append("supersedes", 2), superseded(2, 1).append("supersedes", 1));
+
+        List<DecoratorHistoryEntry> history = decoratorStore.getDecoratorHistory(NAMESPACE, 1);
+
+        assertEquals(2, history.size());
+        verify(decoratorCollection, times(2)).find(any(Bson.class));
     }
 
     @Test
     void throw_not_found_for_the_history_of_a_missing_decorator() {
-        stubHistory(null, List.of(), List.of());
+        stubDecorators();
 
         assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.getDecoratorHistory(NAMESPACE, 1));
     }
 
     @Test
     void delete_the_current_decorator_then_its_history() throws Exception {
-        stubHistory(current(3, 2), List.of(), List.of(superseded(2, 3).append("supersedes", 1), superseded(1, 2)));
+        List<Bson> projections = stubDecorators(current(3, 2), superseded(2, 3).append("supersedes", 1), superseded(1, 2));
+        ArgumentCaptor<Bson> head = ArgumentCaptor.forClass(Bson.class);
+        when(decoratorCollection.deleteOne(head.capture())).thenReturn(DeleteResult.acknowledged(1));
         ArgumentCaptor<Bson> older = ArgumentCaptor.forClass(Bson.class);
         when(decoratorCollection.deleteMany(older.capture())).thenReturn(DeleteResult.acknowledged(2));
 
@@ -467,13 +524,18 @@ class TestMongoDecoratorStoreShould {
         InOrder order = inOrder(decoratorCollection);
         order.verify(decoratorCollection).deleteOne(any(Bson.class));
         order.verify(decoratorCollection).deleteMany(any(Bson.class));
+        assertThat(bson(head.getValue()), is(bson(Filters.and(
+                Filters.and(Filters.eq("namespace", NAMESPACE), Filters.eq("decoratorId", 3)), NOT_SUPERSEDED))));
         assertThat(bson(older.getValue()), is(bson(Filters.and(
                 Filters.eq("namespace", NAMESPACE), Filters.in("decoratorId", List.of(2, 1))))));
+        assertEquals(3, projections.size());
+        projections.forEach(projection -> assertThat(bson(projection),
+                is(bson(Projections.include("decoratorId", "supersedes", "supersededBy")))));
     }
 
     @Test
     void delete_only_the_decorator_when_it_has_no_history() throws Exception {
-        stubHistory(current(1, null), List.of(), List.of());
+        stubDecorators(current(1, null));
 
         decoratorStore.deleteCurrentDecoratorHistory(NAMESPACE, 1);
 
@@ -483,7 +545,7 @@ class TestMongoDecoratorStoreShould {
 
     @Test
     void keep_the_history_when_the_decorator_was_superseded_before_the_delete() {
-        stubHistory(current(1, null), List.of(), List.of());
+        stubDecorators(current(1, null));
         when(decoratorCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
         when(decoratorCollection.countDocuments(any(Bson.class))).thenReturn(1L);
 
@@ -494,7 +556,7 @@ class TestMongoDecoratorStoreShould {
 
     @Test
     void throw_not_found_when_a_delete_loses_to_another_delete() {
-        stubHistory(null, List.of(), List.of());
+        stubDecorators(current(1, null));
         when(decoratorCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
         when(decoratorCollection.countDocuments(any(Bson.class))).thenReturn(0L);
 
@@ -580,7 +642,7 @@ class TestMongoDecoratorStoreShould {
 
     @Test
     void map_a_write_error_on_delete() {
-        stubHistory(current(1, null), List.of(), List.of());
+        stubDecorators(current(1, null));
         when(decoratorCollection.deleteOne(any(Bson.class))).thenThrow(writeError(12));
 
         assertThrows(StorageWriteException.class, () -> decoratorStore.deleteCurrentDecoratorHistory(NAMESPACE, 1));

@@ -1,11 +1,10 @@
 package org.finos.calm.store.mongo;
 
 import com.mongodb.MongoWriteException;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.GraphLookupOptions;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
@@ -34,14 +33,15 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.finos.calm.store.util.DecoratorTimestamps.CREATION_DATE_TIME_FIELD;
 import static org.finos.calm.store.util.DecoratorTimestamps.SUPERSEDED_DATE_TIME_FIELD;
@@ -73,6 +73,7 @@ public class MongoDecoratorStore implements DecoratorStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDecoratorStore.class);
     private static final int DECIMAL128_DIGITS = 34;
+    private static final Bson LINK_FIELDS = Projections.include(DECORATOR_ID_FIELD, SUPERSEDES_FIELD, SUPERSEDED_BY_FIELD);
 
     private final MongoCollection<Document> decoratorCollection;
     private final MongoNamespaceStore namespaceStore;
@@ -237,7 +238,7 @@ public class MongoDecoratorStore implements DecoratorStore {
             throws NamespaceNotFoundException, DecoratorNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
-        List<DecoratorHistoryEntry> history = DecoratorHistoryChain.of(historyEntries(namespace, id), id);
+        List<DecoratorHistoryEntry> history = DecoratorHistoryChain.of(historyEntries(namespace, id, null), id);
         if (history.isEmpty()) {
             throw new DecoratorNotFoundException();
         }
@@ -249,7 +250,8 @@ public class MongoDecoratorStore implements DecoratorStore {
             throws NamespaceNotFoundException, DecoratorNotFoundException, DecoratorSupersededException {
         namespaceStore.requireNamespace(namespace);
 
-        List<Integer> olderIds = DecoratorHistoryChain.of(historyEntries(namespace, currentId), currentId).stream()
+        List<Integer> olderIds = DecoratorHistoryChain.of(historyEntries(namespace, currentId, LINK_FIELDS), currentId)
+                .stream()
                 .map(DecoratorHistoryEntry::getId)
                 .filter(historyId -> historyId != currentId)
                 .toList();
@@ -289,25 +291,35 @@ public class MongoDecoratorStore implements DecoratorStore {
         throw new DecoratorNotFoundException();
     }
 
-    // The history through id in one query: id, then each decorator after it and before it.
-    private List<DecoratorHistoryEntry> historyEntries(String namespace, int id) {
-        GraphLookupOptions inNamespace = new GraphLookupOptions()
-                .restrictSearchWithMatch(Filters.eq(NAMESPACE_FIELD, namespace));
-        Document result = decoratorCollection.aggregate(List.of(
-                Aggregates.match(byId(namespace, id)),
-                Aggregates.graphLookup(COLLECTION_NAME, "$" + SUPERSEDED_BY_FIELD,
-                        SUPERSEDED_BY_FIELD, DECORATOR_ID_FIELD, "newer", inNamespace),
-                Aggregates.graphLookup(COLLECTION_NAME, "$" + SUPERSEDES_FIELD,
-                        SUPERSEDES_FIELD, DECORATOR_ID_FIELD, "older", inNamespace)
-        )).first();
-        if (result == null) {
+    private Document find(String namespace, int id, Bson projection) {
+        FindIterable<Document> found = decoratorCollection.find(byId(namespace, id));
+        return (projection == null ? found : found.projection(projection)).first();
+    }
+
+    /**
+     * The history through id, one indexed find for each decorator. Not {@code $graphLookup}: it puts the whole
+     * chain in one result document, which fails when the history is larger than 16 MB.
+     */
+    private List<DecoratorHistoryEntry> historyEntries(String namespace, int id, Bson projection) {
+        Document start = find(namespace, id, projection);
+        if (start == null) {
             return List.of();
         }
-        return Stream.of(Stream.of(result),
-                        result.getList("newer", Document.class, List.of()).stream(),
-                        result.getList("older", Document.class, List.of()).stream())
-                .flatMap(entries -> entries)
-                .filter(doc -> doc.getInteger(DECORATOR_ID_FIELD) != null)
+        List<Document> chain = new ArrayList<>(List.of(start));
+        // The visited set guards against a cycle in damaged data.
+        Set<Integer> visited = new HashSet<>(Set.of(id));
+        for (String link : List.of(SUPERSEDED_BY_FIELD, SUPERSEDES_FIELD)) {
+            Integer next = start.getInteger(link);
+            while (next != null && visited.add(next)) {
+                Document doc = find(namespace, next, projection);
+                if (doc == null) {
+                    break;
+                }
+                chain.add(doc);
+                next = doc.getInteger(link);
+            }
+        }
+        return chain.stream()
                 .map(doc -> new DecoratorHistoryEntry(
                         doc.getInteger(DECORATOR_ID_FIELD),
                         doc.getInteger(SUPERSEDES_FIELD),

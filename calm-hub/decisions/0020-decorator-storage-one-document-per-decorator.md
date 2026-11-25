@@ -31,8 +31,9 @@ The REST API does not change.
 
 The history fields of [ADR 0017](0017-reserved-decorator-types-and-decorator-history.md)
 (`supersedes`, `supersededBy` and the Hub-set times) move to the top level of each document.
-A list filters out superseded decorators in the query. The history endpoint follows the links
-with one `$graphLookup`.
+A list filters out superseded decorators in the query. History and delete follow the links with
+one indexed find for each decorator. We do not use `$graphLookup`, because it puts the full
+history in one result document, which fails when the history is larger than 16 MB.
 
 A supersede is now two writes, because a standalone MongoDB has no transactions. Hub marks the
 old decorator first, then inserts the successor. The mark is the lock, so two concurrent

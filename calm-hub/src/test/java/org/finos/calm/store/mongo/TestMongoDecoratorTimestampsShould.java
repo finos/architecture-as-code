@@ -1,6 +1,5 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -28,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
@@ -58,9 +56,6 @@ class TestMongoDecoratorTimestampsShould {
 
     @Mock
     private FindIterable<Document> findIterable;
-
-    @Mock
-    private AggregateIterable<Document> aggregateIterable;
 
     private MongoDecoratorStore decoratorStore;
 
@@ -124,8 +119,8 @@ class TestMongoDecoratorTimestampsShould {
     void return_the_stored_times_on_every_read() throws Exception {
         Document old = stored(1, "eval-1").append("supersededBy", 2).append("supersededDateTime", SUPERSEDED);
         Document current = stored(2, "eval-2").append("supersedes", 1);
-        mockFind(current);
-        mockHistory(current, List.of(), List.of(old));
+        // By ID, then the history: current, then the one it supersedes.
+        mockFind(current, current, old);
 
         Decorator byId = decoratorStore.getDecoratorById("finos", 2).orElseThrow();
         assertEquals(CREATED, byId.getCreationDateTime());
@@ -144,7 +139,6 @@ class TestMongoDecoratorTimestampsShould {
         Document legacy = MongoDecoratorStore.toStoredDocument("finos", 1,
                 new Document("unique-id", "legacy").append("type", "deployment"));
         mockFind(legacy);
-        mockHistory(legacy, List.of(), List.of());
 
         Decorator decorator = decoratorStore.getDecoratorById("finos", 1).orElseThrow();
 
@@ -153,20 +147,16 @@ class TestMongoDecoratorTimestampsShould {
         assertNull(decoratorStore.getDecoratorHistory("finos", 1).getFirst().getSupersededDateTime());
     }
 
-    private void mockFind(Document result) {
+    /** {@code first()} returns the results in read order, then the last one again. */
+    private void mockFind(Document result, Document... laterResults) {
         when(decoratorCollection.find(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.sort(any())).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(result);
+        when(findIterable.first()).thenReturn(result, laterResults);
         doAnswer(invocation -> {
             Collection<Document> target = invocation.getArgument(0);
             target.add(result);
             return target;
         }).when(findIterable).into(any());
-    }
-
-    private void mockHistory(Document match, List<Document> newer, List<Document> older) {
-        when(decoratorCollection.aggregate(anyList())).thenReturn(aggregateIterable);
-        when(aggregateIterable.first()).thenReturn(new Document(match).append("newer", newer).append("older", older));
     }
 
     private static Document stored(int id, String uniqueId) {

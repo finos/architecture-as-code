@@ -385,6 +385,41 @@ public class MongoDecoratorIntegration {
                 .body(equalTo(DecoratorKeyRefusedException.nulCharacter().getMessage()));
     }
 
+    @Test
+    @Order(14)
+    void end_to_end_read_and_delete_a_history_larger_than_16_mb() throws Exception {
+        String blob = "x".repeat(900_000);
+        int id = decoratorStore.createDecorator("finos", largeDecorator(blob, 0));
+        int firstId = id;
+        for (int i = 1; i < 20; i++) {
+            id = decoratorStore.supersedeDecorator("finos", id, largeDecorator(blob, i));
+        }
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + firstId + "/history")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(20))
+                .body("values[0].id", equalTo(id))
+                .body("values[19].id", equalTo(firstId));
+
+        given()
+                .when().delete("/api/calm/namespaces/finos/decorators/" + id)
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/api/calm/namespaces/finos/decorators/" + firstId)
+                .then()
+                .statusCode(404);
+    }
+
+    private static String largeDecorator(String blob, int revision) {
+        return """
+                {"unique-id": "large-history", "type": "integration-evaluation", "data": {"revision": %d, "blob": "%s"}}
+                """.formatted(revision, blob);
+    }
+
     private static String reservedDecorator(String status) {
         return """
                 {
