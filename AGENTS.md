@@ -280,6 +280,20 @@ read a registry goes in its own workflow, with a `paths` filter and a schedule, 
 `validate-docify-template-deps.yml` does. Do not wait for a set time or send a set quantity of data
 to let another thread finish. Wait for the condition.
 
+### Maven downloads in CI
+
+Maven Central limits the request rate of the GitHub runners (HTTP 429). Two settings keep the
+builds away from that limit:
+
+- `.mvn/maven.config` raises the number of times Maven tries a download again after a 429 or 503.
+  Maven reads it for each `mvn` and `./mvnw` command in the repository. It sets the limit under
+  two names, because Maven 3.10 renamed the property and some workflows use the `mvn` of the
+  runner, not the wrapper. Keep both.
+- Each workflow caches `~/.m2` with a key that names its Maven build, for example
+  `calm-hub-integration`. Give a new Maven build its own name. `actions/cache` does not save again
+  after an exact hit, so builds that share a key share the cache of the build that saved first,
+  and the others download their missing artifacts in each run.
+
 ## Commit Messages
 
 **Conventional Commits**, enforced by commitlint via husky — invalid messages are rejected at commit

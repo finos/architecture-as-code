@@ -77,8 +77,11 @@ jobs:
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ~/.m2
-                  key: ${{ runner.os }}-${{ matrix.arch }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
+                  # The key names the Maven build. A cache that another build saved does not hold all that this
+                  # build needs, and an exact hit is not saved again.
+                  key: ${{ runner.os }}-${{ matrix.arch }}-m2-calm-hub-native-image-${{ hashFiles('pom.xml', 'calm-hub/pom.xml') }}
                   restore-keys: |
+                      ${{ runner.os }}-${{ matrix.arch }}-m2-calm-hub-native-image-
                       ${{ runner.os }}-${{ matrix.arch }}-m2-
 
             # Step 4: Compile the native binary for this runner's architecture.
