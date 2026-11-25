@@ -5,6 +5,25 @@ All notable changes to the CALM Hub will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0](https://github.com/finos/architecture-as-code/compare/calm-hub-v0.8.0...calm-hub-v0.9.0) (2026-11-24)
+
+### 🚀 Features
+
+* add declarative extension forms ([#3815](https://github.com/finos/architecture-as-code/issues/3815)) ([ced8547](https://github.com/finos/architecture-as-code/commit/ced854794e44c67c835fbb9aa64f865a179f0c5c))
+* add extension search providers ([#3818](https://github.com/finos/architecture-as-code/issues/3818)) ([338d62e](https://github.com/finos/architecture-as-code/commit/338d62ed9cd028576d3f5d386afb066d68bc34e3))
+* add safe extension logos ([#3810](https://github.com/finos/architecture-as-code/issues/3810)) ([a71aebf](https://github.com/finos/architecture-as-code/commit/a71aebf4ea549e4065da280811ac0215677aab48))
+* answer searches with extension chat ([#3819](https://github.com/finos/architecture-as-code/issues/3819)) ([63393cf](https://github.com/finos/architecture-as-code/commit/63393cf1067088baace44b70163fff66a47890bc))
+* filter extension tables from summary tiles ([#3814](https://github.com/finos/architecture-as-code/issues/3814)) ([12507f8](https://github.com/finos/architecture-as-code/commit/12507f829a185f006e3c9564345b28b8996a2c8d))
+* group extension screens and cards ([#3811](https://github.com/finos/architecture-as-code/issues/3811)) ([68629a6](https://github.com/finos/architecture-as-code/commit/68629a6128dac2a364bbdec37176d1fd777fae4f))
+* open extension views beside diagrams ([#3817](https://github.com/finos/architecture-as-code/issues/3817)) ([bde34e5](https://github.com/finos/architecture-as-code/commit/bde34e5389a42869f2cd9f2aba48ff0b246e847f))
+* preserve extension navigation context ([#3813](https://github.com/finos/architecture-as-code/issues/3813)) ([789408f](https://github.com/finos/architecture-as-code/commit/789408fab859eab9e3f112c9f67947d7d1ddbada))
+* show decorators on C4 diagram lenses ([#3820](https://github.com/finos/architecture-as-code/issues/3820)) ([4fadc77](https://github.com/finos/architecture-as-code/commit/4fadc7743e292f892a445428f7fc1a09dda90fff))
+* support organisation branding and navigation ([#3812](https://github.com/finos/architecture-as-code/issues/3812)) ([7791971](https://github.com/finos/architecture-as-code/commit/7791971f9cbe0e48e79f5e9eb1f0f33def9afbfe)), closes [#3795](https://github.com/finos/architecture-as-code/issues/3795)
+
+### 🐛 Bug Fixes
+
+* find pattern form targets in allOf ([#3825](https://github.com/finos/architecture-as-code/issues/3825)) ([98f2e06](https://github.com/finos/architecture-as-code/commit/98f2e06f8aaa7190955e95054383e394eb133a1f))
+* harden inspector recovery and responsive state ([#3827](https://github.com/finos/architecture-as-code/issues/3827)) ([97a6320](https://github.com/finos/architecture-as-code/commit/97a6320e83c5c9238689bf05e6bab501f35697af))
 ## [0.8.0](https://github.com/finos/architecture-as-code/compare/calm-hub-v0.7.7...calm-hub-v0.8.0) (2026-11-17)
 
 ### ⚠ BREAKING CHANGES
