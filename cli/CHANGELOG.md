@@ -5,6 +5,12 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.74.2](https://github.com/finos/architecture-as-code/compare/cli-v1.74.1...cli-v1.74.2) (2026-11-25)
+
+### ⚡ Performance Improvements
+
+* load the schema directory once per generation ([#3847](https://github.com/finos/architecture-as-code/issues/3847)) ([6729bf8](https://github.com/finos/architecture-as-code/commit/6729bf887fd3f43b7e6af2e069f1ca6d93992eec))
+
 ## [1.74.1](https://github.com/finos/architecture-as-code/compare/cli-v1.74.0...cli-v1.74.1) (2026-11-23)
 
 ### 🐛 Bug Fixes
