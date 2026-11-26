@@ -336,15 +336,18 @@ All tool prompts must:
 
 ## Running skill evals
 
-The live Vitest suite needs Node 26, Git, and an authenticated Codex CLI with
-`codex exec --ignore-user-config` support on macOS or Linux. Run from the repo root.
+The live Vitest suite needs Node 26, Git, and an authenticated assistant CLI
+on macOS or Linux. Codex is the default and requires
+`codex exec --ignore-user-config` support. Claude Code requires a `claude` CLI
+with `--restricted` support. Run from the repo root.
 
 ```bash
 npm run build:cli
 npm run test:eval --workspace calm-ai
+CALM_EVAL_ASSISTANT=claude npm run test:eval --workspace calm-ai
 ```
 
-Set `CALM_EVAL_MODEL` to override the Codex CLI model default. Each case makes
+Set `CALM_EVAL_MODEL` to override the selected assistant's default model. Each case makes
 one live attempt. The suite deletes its artifacts after all selected tests pass.
 Failed or interrupted runs preserve the generated files and logs for every case
 under `sandbox/calm-ai-evals/`.
@@ -353,6 +356,7 @@ To inspect artifacts from a passing run, set the retention option:
 
 ```bash
 CALM_EVAL_KEEP_ARTIFACTS=1 npm run test:eval --workspace calm-ai
+CALM_EVAL_ASSISTANT=claude CALM_EVAL_MODEL=sonnet CALM_EVAL_KEEP_ARTIFACTS=1 npm run test:eval --workspace calm-ai
 ```
 
 The suite prints the directory for retained artifacts. The regular workspace

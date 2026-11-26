@@ -22,23 +22,50 @@ interface RunOptions {
 
 interface Assistant {
     provider: string;
+    skillPath: string;
     run(prompt: string, options: RunOptions): Promise<{ stdout: string; stderr: string }>;
 }
 
-export const codex: Assistant = {
+function runAssistant(command: string, args: string[], prompt: string, options: RunOptions) {
+    const model = options.env.CALM_EVAL_MODEL;
+    const execution = execute(command, [
+        ...args, ...(model ? ['--model', model] : []), '--', prompt,
+    ], { ...options, maxBuffer: 16 * 1024 * 1024 });
+    execution.child.stdin?.end();
+    return execution;
+}
+
+const codex: Assistant = {
     provider: 'codex',
+    skillPath: '.agents/skills/calm/SKILL.md',
     run(prompt, options) {
-        const model = process.env.CALM_EVAL_MODEL;
-        const execution = execute('codex', [
+        return runAssistant('codex', [
             '--ask-for-approval', 'never', 'exec', '--sandbox', 'workspace-write',
             '--ignore-user-config', '--ephemeral', '--json',
-            ...(model ? ['--model', model] : []),
-            '--', prompt,
-        ], { ...options, maxBuffer: 16 * 1024 * 1024 });
-        execution.child.stdin?.end();
-        return execution;
+        ], prompt, options);
     },
 };
+
+const claude: Assistant = {
+    provider: 'claude',
+    skillPath: '.claude/skills/calm/SKILL.md',
+    run(prompt, options) {
+        return runAssistant('claude', [
+            '--print', '--output-format', 'json', '--no-session-persistence',
+            '--restricted', '--strict-mcp-config', '--permission-mode', 'dontAsk',
+            '--tools', 'Read,Glob,Grep,Write,Edit,Bash',
+            '--allowedTools', 'Read,Glob,Grep,Write,Edit,Bash(which calm),Bash(command -v calm),Bash(calm validate *)',
+        ], prompt, options);
+    },
+};
+
+export function selectAssistant(name = process.env.CALM_EVAL_ASSISTANT ?? 'codex'): Assistant {
+    switch (name) {
+        case 'codex': return codex;
+        case 'claude': return claude;
+        default: throw new Error(`Unsupported CALM_EVAL_ASSISTANT "${name}". Choose codex or claude.`);
+    }
+}
 
 export async function runEval(
     assistant: Assistant,
@@ -68,7 +95,8 @@ export async function runEval(
         await log(await execute(process.execPath, [cli, 'init-ai', '-p', assistant.provider], commandOptions));
 
         stage = 'assistant execution';
-        await log(await assistant.run(prompt, { cwd, env, timeout: 300_000 }));
+        const skillPrompt = `Use the CALM skill installed at ${assistant.skillPath}.\n\n${prompt}`;
+        await log(await assistant.run(skillPrompt, { cwd, env, timeout: 300_000 }));
 
         stage = 'CALM validation';
         await log(await execute(process.execPath, [cli, 'validate', '--architecture', filename, '--strict'], commandOptions));
@@ -81,6 +109,9 @@ export async function runEval(
             await log(error as { stdout?: string; stderr?: string });
             const code = 'code' in error ? error.code : undefined;
             const status = code ?? ('signal' in error ? error.signal : undefined);
+            if (stage === 'assistant execution' && code === 'ENOENT') {
+                throw new Error(`assistant execution failed: "${assistant.provider}" executable not found on PATH. Artifacts and logs: ${run}`);
+            }
             throw new Error(`${stage} failed (command status ${status ?? 'unknown'}). Artifacts and logs: ${run}`);
         }
         const detail = error instanceof Error ? error.message.split('\n')[0] : String(error);

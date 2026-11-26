@@ -2,7 +2,7 @@ import { expect } from 'vitest';
 
 export const filename = 'three-tier.architecture.json';
 
-export const prompt = `Use the CALM skill installed at .agents/skills/calm/SKILL.md to create ${filename} as a CALM 1.3 architecture.
+export const prompt = `Create ${filename} as a CALM 1.3 architecture.
 Include exactly three nodes: a web frontend (frontend), a backend API (api), and a database (database).
 Include exactly two relationships: the frontend connects to the API over HTTPS, and the API connects to the database over JDBC.
 Model the database listener on port 5432 as an interface and reference it from the JDBC connection.
