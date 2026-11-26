@@ -164,6 +164,39 @@ describe('osv-fix-pr.sh', () => {
         assert.deepEqual(ghCalls(), []);
     });
 
+    // A commit on main after the fix branch was cut, such as a suppression that makes the re-scan clean.
+    function mainMoves() {
+        writeFileSync(join(clone, 'osv-scanner.toml'), '# suppression\n');
+        git('add', 'osv-scanner.toml');
+        commitAs('A Maintainer', 'chore: suppress a finding');
+        git('push', '--quiet', 'origin', 'main');
+    }
+    const remoteHas = (file) => spawnSync('git', ['cat-file', '-e', `${FIX_BRANCH}:${file}`], { cwd: join(root, 'origin.git'), env }).status === 0;
+
+    it('moves the open pull request onto the new main when the lockfile is the same', () => {
+        existingFixBranch(UPDATED_LOCKFILE);
+        mainMoves();
+
+        const result = run('true', { GH_OPEN_PR: '77' });
+
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(remoteHas('osv-scanner.toml'), true);
+        assert.equal(remoteLockfile(), UPDATED_LOCKFILE);
+        assert.deepEqual(ghCalls().map((call) => call.replace(/ --title .*/, '')), ['pr edit 77', 'pr ready 77']);
+    });
+
+    it('does not push to a fix branch behind main when it has no open pull request', () => {
+        existingFixBranch(UPDATED_LOCKFILE);
+        const before = remoteHead();
+        mainMoves();
+
+        const result = run('true');
+
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(remoteHead(), before);
+        assert.deepEqual(ghCalls(), []);
+    });
+
     it('leaves a fix branch with commits by a maintainer as it is', () => {
         existingFixBranch('{"lockfile":"earlier fix"}\n', { maintainerCommit: true });
         const before = remoteHead();

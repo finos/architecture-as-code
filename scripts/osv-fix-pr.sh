@@ -12,7 +12,8 @@ RUN_URL="$3"
 SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/null}"
 
 # The scan fails twice a day until the fix merges. Do not force-push the open
-# branch when it already has this lockfile, or when a maintainer has added to it.
+# branch when it already has this lockfile and is not behind main, or when a
+# maintainer has added to it.
 # Drop the ref from checkout time so a failed fetch cannot leave a stale one.
 git update-ref -d "refs/remotes/origin/$FIX_BRANCH"
 git fetch origin "+refs/heads/$FIX_BRANCH:refs/remotes/origin/$FIX_BRANCH" 2>/dev/null || true
@@ -34,6 +35,12 @@ fi
 # --head alone also matches a fork branch with the same name, so check the owner.
 NUMBER=$(gh pr list --head "$FIX_BRANCH" --state open --json number,headRepositoryOwner \
   --jq ".[] | select(.headRepositoryOwner.login == \"$GITHUB_REPOSITORY_OWNER\") | .number" | head -n 1)
+
+# The re-scan is of main. If the open pull request is behind main, push it onto main, so
+# that its state and its osv-scanner check are for the same tree.
+if [ "$PUSH" = "false" ] && [ -n "$NUMBER" ] && ! git merge-base --is-ancestor main "origin/$FIX_BRANCH"; then
+  PUSH=true
+fi
 
 if [ "$PUSH" = "true" ]; then
   git config user.name "github-actions[bot]"
