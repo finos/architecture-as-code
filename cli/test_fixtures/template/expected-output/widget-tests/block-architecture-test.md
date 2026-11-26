@@ -36,9 +36,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
     conference-website["Conference Website"]:::node
 
-    conference-website -->|Request attendee details| load-balancer
-    load-balancer -->|Forward| attendees
-    attendees -->|Store or request attendee details| attendees-store
+    conference-website -->|"Request attendee details"| load-balancer
+    load-balancer -->|"Forward"| attendees
+    attendees -->|"Store or request attendee details"| attendees-store
 
 
 
@@ -74,9 +74,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
     conference-website["Conference Website"]:::node
 
-    conference-website -->|Request attendee details| load-balancer
-    load-balancer -->|Forward| attendees
-    attendees -->|Store or request attendee details| attendees-store
+    conference-website -->|"Request attendee details"| load-balancer
+    load-balancer -->|"Forward"| attendees
+    attendees -->|"Store or request attendee details"| attendees-store
 
 
     class attendees highlight
@@ -108,8 +108,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     conference-website["Conference Website"]:::node
     load-balancer["Load Balancer"]:::node
 
-    conference-website -->|Request attendee details| load-balancer
-    load-balancer -->|Forward| attendees
+    conference-website -->|"Request attendee details"| load-balancer
+    load-balancer -->|"Forward"| attendees
 
 
     class load-balancer highlight
@@ -151,9 +151,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     conference-website["Conference Website"]:::node
         conference-website__iface__conference-website-url["◻ conference-website-url"]:::iface
 
-    conference-website -->|Request attendee details| load-balancer
-    load-balancer -->|Forward| attendees
-    attendees -->|Store or request attendee details| attendees-store
+    conference-website -->|"Request attendee details"| load-balancer
+    load-balancer -->|"Forward"| attendees
+    attendees -->|"Store or request attendee details"| attendees-store
 
     conference-website -.- conference-website__iface__conference-website-url
     load-balancer -.- load-balancer__iface__load-balancer-host-port

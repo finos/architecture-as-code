@@ -124,6 +124,12 @@ public class NitriteAuditLogStore implements AuditLogStore {
         if (entry.getJti() != null) {
             document.put("jti", entry.getJti());
         }
+        if (entry.getResourceType() != null) {
+            document.put("resourceType", entry.getResourceType());
+        }
+        if (entry.getResourceId() != null) {
+            document.put("resourceId", entry.getResourceId());
+        }
         return document;
     }
 
@@ -146,6 +152,8 @@ public class NitriteAuditLogStore implements AuditLogStore {
         entry.setSourceIp(doc.get("sourceIp", String.class));
         entry.setRoute(doc.get("route", String.class));
         entry.setJti(doc.get("jti", String.class));
+        entry.setResourceType(doc.get("resourceType", String.class));
+        entry.setResourceId(doc.get("resourceId", String.class));
         return entry;
     }
 

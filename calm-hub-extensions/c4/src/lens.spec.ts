@@ -143,6 +143,34 @@ describe('c4LensReply', () => {
         expect(value.graph.edges.find((edge) => edge.id === 'shop->payments')?.tooltip).toBe('2 CALM relationships');
     });
 
+    it('names on each edge the CALM relationships that it merges or lifts, so Hub draws their decorators on it', () => {
+        const merged = projectC4({
+            ...SHOP,
+            relationships: [...SHOP.relationships!, connects('mailer', 'payments', 'Sends receipts'), connects('api', 'payments', 'Refunds')],
+        }, defaultC4Mapping(), { namespace: 'finos' });
+        const edge = (value: LensReply, id: string) => value.graph.edges.find((entry) => entry.id === id);
+
+        const context = c4LensReply(merged, 'context', 'shop', source);
+        expect(edge(context, 'customer->shop')?.calm).toEqual(['customer-web']);
+        expect(edge(context, 'shop->payments')?.calm?.sort()).toEqual(['api-payments', 'mailer-payments']);
+        const container = c4LensReply(merged, 'container', 'shop', source);
+        expect(edge(container, 'api->db')?.calm).toEqual(['api-db']);
+        // A relationship that is not in the open architecture, such as one of a detailed architecture, is not named.
+        const own = c4LensReply(merged, 'container', 'shop', source, new Set(['api', 'api-db']));
+        expect(edge(own, 'api->db')?.calm).toEqual(['api-db']);
+        expect(edge(own, 'web->api')?.calm).toBeUndefined();
+    });
+
+    it('names at most 32 CALM relationships on an edge, as the lens schema allows', () => {
+        const many = projectC4({
+            nodes: [calmNode('a', 'system'), calmNode('b', 'system')],
+            relationships: Array.from({ length: 40 }, (_, index) => ({ ...connects('a', 'b'), 'unique-id': `r${index}` })),
+        }, defaultC4Mapping());
+        const value = c4LensReply(many, 'context', 'a', source);
+        expect(validate(value), JSON.stringify(validate.errors)).toBe(true);
+        expect(value.graph.edges[0].calm).toEqual(Array.from({ length: 32 }, (_, index) => `r${index}`));
+    });
+
     it('selects only the nodes of the open architecture', () => {
         const value = c4LensReply(model, 'container', 'shop', source, new Set(['api']));
         expect(node(value, 'api')?.calm).toEqual(['api']);

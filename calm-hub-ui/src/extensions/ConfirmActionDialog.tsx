@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { ExtensionContext } from '../model/extensions.js';
+import { useSlotHost } from './slotActivity.js';
 
 interface ConfirmActionDialogProps {
     title: string;
@@ -7,9 +8,21 @@ interface ConfirmActionDialogProps {
     target: ExtensionContext;
     onConfirm: () => void;
     onCancel: () => void;
+    /** The wording for a write other than an action, such as a form submission. */
+    heading?: string;
+    question?: string;
+    confirmLabel?: string;
 }
 
-export function ConfirmActionDialog({ title, target, onConfirm, onCancel }: ConfirmActionDialogProps) {
+export function ConfirmActionDialog({
+    title,
+    target,
+    onConfirm,
+    onCancel,
+    heading = 'Confirm action',
+    question = `Run ${title}?`,
+    confirmLabel = 'Run',
+}: ConfirmActionDialogProps) {
     const ref = useRef<HTMLDialogElement>(null);
     const headingId = useId();
     const cancel = useRef<HTMLButtonElement>(null);
@@ -19,9 +32,20 @@ export function ConfirmActionDialog({ title, target, onConfirm, onCancel }: Conf
         // showModal gives Escape and a focus trap. jsdom does not have it.
         if (typeof dialog.showModal === 'function') dialog.showModal();
         else dialog.setAttribute('open', '');
-        // showModal focuses Run, the first button, so an Enter would confirm a write.
+        // showModal focuses the confirm button, the first button, so an Enter would confirm a write.
         cancel.current?.focus();
     }, []);
+    // A move to another host ends the modal state of the dialog, and it stays open. Show it modally again, with focus on
+    // Cancel. A layout effect, so it goes above a new host dialog, which opens in an earlier layout effect.
+    const host = useSlotHost();
+    useLayoutEffect(() => {
+        const dialog = ref.current;
+        if (!dialog?.open || dialog.matches(':modal') || typeof dialog.showModal !== 'function' || typeof dialog.close !== 'function') return;
+        // showModal throws on an open dialog.
+        dialog.close();
+        dialog.showModal();
+        cancel.current?.focus();
+    }, [host]);
 
     // close() first: while the dialog is modal the page is inert, so the caller cannot move focus out of it.
     const closeThen = (next: () => void) => {
@@ -49,9 +73,9 @@ export function ConfirmActionDialog({ title, target, onConfirm, onCancel }: Conf
         >
             <div className="modal-box">
                 <h3 id={headingId} className="font-bold text-lg">
-                    Confirm action
+                    {heading}
                 </h3>
-                <p className="pt-4">Run {title}?</p>
+                <p className="pt-4">{question}</p>
                 {rows.length > 0 && (
                     <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 py-4 text-sm" aria-label="Target">
                         {rows.map(([label, value]) => (
@@ -64,7 +88,7 @@ export function ConfirmActionDialog({ title, target, onConfirm, onCancel }: Conf
                 )}
                 <div className="modal-action">
                     <button type="button" className="btn btn-primary" onClick={() => closeThen(onConfirm)}>
-                        Run
+                        {confirmLabel}
                     </button>
                     <button ref={cancel} type="button" className="btn btn-ghost" onClick={() => closeThen(onCancel)}>
                         Cancel

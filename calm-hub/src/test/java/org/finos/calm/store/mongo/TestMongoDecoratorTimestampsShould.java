@@ -3,7 +3,6 @@ package org.finos.calm.store.mongo;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.BsonDocument;
 import org.bson.Document;
@@ -17,7 +16,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,13 +28,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class TestMongoDecoratorTimestampsShould {
 
     private static final String UTC_MILLIS = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z";
@@ -68,62 +70,57 @@ class TestMongoDecoratorTimestampsShould {
     @Test
     void record_both_times_beside_the_decorator_when_creating() throws Exception {
         when(counterStore.getNextDecoratorSequenceValue()).thenReturn(1);
-        ArgumentCaptor<Bson> update = ArgumentCaptor.forClass(Bson.class);
+        ArgumentCaptor<Document> inserted = ArgumentCaptor.forClass(Document.class);
 
         decoratorStore.createDecorator("finos", "{\"unique-id\": \"d1\", \"type\": \"deployment\"}");
 
-        verify(decoratorCollection).updateOne(any(Bson.class), update.capture(), any(UpdateOptions.class));
-        BsonDocument entry = update.getValue().toBsonDocument().getDocument("$push").getDocument("decorators");
-        String created = entry.getString("creationDateTime").getValue();
+        verify(decoratorCollection).insertOne(inserted.capture());
+        String created = inserted.getValue().getString("creationDateTime");
         assertTrue(created.matches(UTC_MILLIS), created);
-        assertEquals(created, entry.getString("updateDateTime").getValue());
-        assertFalse(entry.getDocument("decorator").containsKey("creationDateTime"));
+        assertEquals(created, inserted.getValue().getString("updateDateTime"));
+        assertFalse(inserted.getValue().get("decorator", Document.class).containsKey("creationDateTime"));
     }
 
     @Test
     void set_only_the_update_time_when_updating_in_place() throws Exception {
-        UpdateResult updateResult = mock(UpdateResult.class);
-        when(updateResult.getMatchedCount()).thenReturn(1L);
         ArgumentCaptor<Bson> update = ArgumentCaptor.forClass(Bson.class);
-        when(decoratorCollection.updateOne(any(Bson.class), update.capture())).thenReturn(updateResult);
+        when(decoratorCollection.updateOne(any(Bson.class), update.capture()))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
 
         decoratorStore.updateDecorator("finos", 1, "{\"unique-id\": \"d1\", \"type\": \"deployment\"}");
 
         BsonDocument set = update.getValue().toBsonDocument().getDocument("$set");
-        assertTrue(set.getString("decorators.$.updateDateTime").getValue().matches(UTC_MILLIS));
-        assertFalse(set.containsKey("decorators.$.creationDateTime"));
-        assertFalse(set.getDocument("decorators.$.decorator").containsKey("updateDateTime"));
+        assertTrue(set.getString("updateDateTime").getValue().matches(UTC_MILLIS));
+        assertFalse(set.containsKey("creationDateTime"));
+        assertFalse(set.getDocument("decorator").containsKey("updateDateTime"));
     }
 
     @Test
-    void record_the_supersession_time_on_the_old_entry_and_new_times_on_the_successor() throws Exception {
+    void record_the_supersession_time_on_the_old_decorator_and_new_times_on_the_successor() throws Exception {
         when(decoratorCollection.countDocuments(any(Bson.class))).thenReturn(1L);
         when(counterStore.getNextDecoratorSequenceValue()).thenReturn(2);
-        UpdateResult updateResult = mock(UpdateResult.class);
-        when(updateResult.getModifiedCount()).thenReturn(1L);
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<? extends Bson>> pipeline = ArgumentCaptor.forClass(List.class);
-        when(decoratorCollection.updateOne(any(Bson.class), pipeline.capture())).thenReturn(updateResult);
+        ArgumentCaptor<Bson> mark = ArgumentCaptor.forClass(Bson.class);
+        when(decoratorCollection.updateOne(any(Bson.class), mark.capture()))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+        ArgumentCaptor<Document> successor = ArgumentCaptor.forClass(Document.class);
 
         decoratorStore.supersedeDecorator("finos", 1, "{\"type\": \"control-evaluation\"}");
 
-        var arrays = pipeline.getValue().getFirst().toBsonDocument()
-                .getDocument("$set").getDocument("decorators").getArray("$concatArrays");
-        BsonDocument successor = arrays.get(1).asDocument().getArray("$literal").getFirst().asDocument();
-        BsonDocument marked = arrays.getFirst().asDocument().getDocument("$map").getDocument("in")
-                .getArray("$cond").get(1).asDocument().getArray("$mergeObjects").get(1).asDocument();
+        verify(decoratorCollection).insertOne(successor.capture());
+        BsonDocument marked = mark.getValue().toBsonDocument().getDocument("$set");
         String superseded = marked.getString("supersededDateTime").getValue();
         assertTrue(superseded.matches(UTC_MILLIS), superseded);
-        assertEquals(superseded, successor.getString("creationDateTime").getValue());
-        assertEquals(superseded, successor.getString("updateDateTime").getValue());
+        assertEquals(superseded, successor.getValue().getString("creationDateTime"));
+        assertEquals(superseded, successor.getValue().getString("updateDateTime"));
         assertFalse(marked.containsKey("updateDateTime"));
     }
 
     @Test
     void return_the_stored_times_on_every_read() throws Exception {
-        Document old = entry(1, "eval-1").append("supersededBy", 2).append("supersededDateTime", SUPERSEDED);
-        Document current = entry(2, "eval-2").append("supersedes", 1);
-        mockNamespaceDocument(old, current);
+        Document old = stored(1, "eval-1").append("supersededBy", 2).append("supersededDateTime", SUPERSEDED);
+        Document current = stored(2, "eval-2").append("supersedes", 1);
+        // By ID, then the history: current, then the one it supersedes.
+        mockFind(current, current, old);
 
         Decorator byId = decoratorStore.getDecoratorById("finos", 2).orElseThrow();
         assertEquals(CREATED, byId.getCreationDateTime());
@@ -139,8 +136,9 @@ class TestMongoDecoratorTimestampsShould {
 
     @Test
     void return_no_times_for_a_decorator_stored_before_hub_recorded_them() throws Exception {
-        mockNamespaceDocument(new Document("decoratorId", 1)
-                .append("decorator", new Document("unique-id", "legacy").append("type", "deployment")));
+        Document legacy = MongoDecoratorStore.toStoredDocument("finos", 1,
+                new Document("unique-id", "legacy").append("type", "deployment"));
+        mockFind(legacy);
 
         Decorator decorator = decoratorStore.getDecoratorById("finos", 1).orElseThrow();
 
@@ -149,15 +147,21 @@ class TestMongoDecoratorTimestampsShould {
         assertNull(decoratorStore.getDecoratorHistory("finos", 1).getFirst().getSupersededDateTime());
     }
 
-    private void mockNamespaceDocument(Document... decorators) {
+    /** {@code first()} returns the results in read order, then the last one again. */
+    private void mockFind(Document result, Document... laterResults) {
         when(decoratorCollection.find(any(Bson.class))).thenReturn(findIterable);
-        lenient().when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(new Document("namespace", "finos").append("decorators", List.of(decorators)));
+        when(findIterable.sort(any())).thenReturn(findIterable);
+        when(findIterable.first()).thenReturn(result, laterResults);
+        doAnswer(invocation -> {
+            Collection<Document> target = invocation.getArgument(0);
+            target.add(result);
+            return target;
+        }).when(findIterable).into(any());
     }
 
-    private static Document entry(int id, String uniqueId) {
-        return new Document("decoratorId", id)
-                .append("decorator", new Document("unique-id", uniqueId).append("type", "control-evaluation"))
+    private static Document stored(int id, String uniqueId) {
+        return MongoDecoratorStore.toStoredDocument("finos", id,
+                        new Document("unique-id", uniqueId).append("type", "control-evaluation"))
                 .append("creationDateTime", CREATED)
                 .append("updateDateTime", UPDATED);
     }

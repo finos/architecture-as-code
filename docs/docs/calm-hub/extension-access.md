@@ -73,7 +73,7 @@ that it signs, in the `X-Calm-Hub-Identity` header. The public keys are at
 | `sub` | The user. When `auth` is `none`, one shared principal |
 | `auth` | `none`, `oidc` or `proxy` |
 | `iat`, `exp` | Issue and expiry time. The lifetime is `calm.extensions.identity.ttl-seconds`, by default 60 seconds |
-| `jti` | A unique id for this call. The audit log records it for a route that is not `readOnly`. Hub does not audit `readOnly` routes |
+| `jti` | A unique id for this call. The audit log records it for a route that is not `readOnly` and for a chat message. Hub does not audit other `readOnly` routes |
 | `htm`, `htp` | The method, and the path and query relative to the backend URL. CALM Hub sorts the query by name |
 | `hubApi`, `route`, `scope` | The manifest `hubApi`, the route `id`, and the route `scope` |
 | `ns` | The namespace that CALM Hub checked. Only for a `read`, `write` or `admin` route |
@@ -109,6 +109,15 @@ reads data with a service account, return only what `sub` may see in `ns`.
 
 With `calm.auth.allow-public-read=true`, each signed-in user can read every namespace. Thus on a
 `read` route, `ns` does not mean that `sub` has a grant on the namespace.
+
+A [`search-provider`](extension-points.md#search-provider) route has no path parameters, so the
+scope check does not show which records the caller may see. The provider and CALM Hub share the
+check:
+
+| Who | Checks |
+|---|---|
+| The provider | Returns only the records that `sub` may see. This is the only check for a record with no `namespace`, such as an external record |
+| CALM Hub | Leaves out each result whose `namespace`, `hub.namespace` or `screen.context.namespace` the caller cannot read, before any title, summary or count leaves CALM Hub |
 
 ### Write the routes
 

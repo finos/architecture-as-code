@@ -1,5 +1,6 @@
 package org.finos.calm.extensions;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.json.DecodeException;
@@ -10,6 +11,7 @@ import io.vertx.json.schema.JsonSchemaOptions;
 import io.vertx.json.schema.OutputFormat;
 import io.vertx.json.schema.OutputUnit;
 import io.vertx.json.schema.Validator;
+import org.finos.calm.assets.ImageAsset;
 import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +49,7 @@ public class ExtensionManifestLoader {
     /** The tool name limit of common MCP clients. The MCP specification allows 128. */
     static final int MAX_TOOL_NAME_LENGTH = 64;
     /** Ids that would clash with the static {@code calm.extensions.*} settings. */
-    static final Set<String> RESERVED_IDS = Set.of("dir", "identity", "http", "allow-without-auth");
+    static final Set<String> RESERVED_IDS = Set.of("dir", "identity", "http", "allow-without-auth", "chat-provider");
 
     private static final Logger LOG = LoggerFactory.getLogger(ExtensionManifestLoader.class);
     private static final String SCHEMA_PATH = "META-INF/calm-extensions/schema/%d/extension.schema.json";
@@ -64,8 +66,8 @@ public class ExtensionManifestLoader {
             "selectedElement");
 
     /** Query parameters that the Diagram tab or the extension context already use. A lens param must not take one. */
-    static final Set<String> RESERVED_LENS_PARAMS = Set.of("tab", "lens", "node", "type", "schema", "q", "namespace",
-            "resource", "resourceType", "resourceId", "version", "selectedElement");
+    static final Set<String> RESERVED_LENS_PARAMS = Set.of("tab", "lens", "node", "extension", "exact", "type", "schema",
+            "q", "namespace", "resource", "resourceType", "resourceId", "version", "selectedElement");
     /** The lenses that ship with Hub UI. */
     static final Set<String> RESERVED_LENS_IDS = Set.of("calm", "json");
     private static final NotationChecker NOTATIONS = NotationChecker.SHARED;
@@ -101,7 +103,7 @@ public class ExtensionManifestLoader {
             } catch (IOException e) {
                 throw new UncheckedIOException("Cannot read extension manifest " + file, e);
             }
-            manifests.add(parse(json, folder.getFileName().toString(), file.toString(), name -> readFile(folder.resolve(name))));
+            manifests.add(parse(json, folder.getFileName().toString(), file.toString(), name -> openFile(folder.resolve(name))));
         }
         return manifests;
     }
@@ -127,7 +129,7 @@ public class ExtensionManifestLoader {
                 throw new IllegalStateException("Built-in extension " + line + " has no classpath resource " + resource);
             }
             String folder = base + line + "/";
-            manifests.add(parse(json, line, "classpath:" + resource, name -> readResource(classLoader, folder + name)));
+            manifests.add(parse(json, line, "classpath:" + resource, name -> classLoader.getResourceAsStream(folder + name)));
         }
         return manifests;
     }
@@ -141,10 +143,10 @@ public class ExtensionManifestLoader {
     }
 
     /**
-     * @param siblings reads a file next to the manifest by name, or returns null when there is none. The schema
+     * @param siblings opens a file next to the manifest by name, or returns null when there is none. The schema
      *                 allows only a plain file name, so a name cannot leave the extension folder.
      */
-    ExtensionManifest parse(String json, String expectedId, String source, Function<String, String> siblings) {
+    ExtensionManifest parse(String json, String expectedId, String source, Function<String, InputStream> siblings) {
         JsonObject raw;
         try {
             raw = new JsonObject(json);
@@ -161,13 +163,16 @@ public class ExtensionManifestLoader {
         }
         ExtensionManifest manifest;
         try {
-            manifest = mapper.convertValue(raw.getMap(), ExtensionManifest.class);
-        } catch (IllegalArgumentException e) {
+            // From the text, not from raw: raw holds each decimal as its nearest double, and the form checks need
+            // the number as written.
+            manifest = mapper.readValue(json, ExtensionManifest.class);
+        } catch (JsonProcessingException e) {
             // The schema and the records disagree, which is a Hub defect, not an author error.
             throw new IllegalStateException("Cannot read extension manifest " + source, e);
         }
         List<String> problems = check(manifest, expectedId);
         manifest = withNotations(manifest, siblings, problems);
+        manifest = withLogo(manifest, siblings, problems);
         if (!problems.isEmpty()) {
             throw invalid(source, problems);
         }
@@ -187,7 +192,46 @@ public class ExtensionManifestLoader {
         checkRoutes(manifest, problems);
         checkCommands(manifest, problems);
         checkContributions(manifest, problems);
+        ExtensionForms.check(manifest, problems);
+        checkDedicatedRoutes(manifest, problems);
         return problems;
+    }
+
+    /**
+     * Only its dedicated Hub endpoint calls a dedicated route, so that its checks run on each call. Another entry or
+     * a command that names the route would call it through the generic proxy, which refuses it.
+     */
+    private static void checkDedicatedRoutes(ExtensionManifest manifest, List<String> problems) {
+        Map<String, List<String>> users = new HashMap<>();
+        manifest.contributes().byRoutePoint().forEach((point, entries) -> entries.forEach(entry ->
+                users.computeIfAbsent(entry.route(), r -> new ArrayList<>()).add(point + " '" + entry.id() + "'")));
+        manifest.commands().forEach((name, command) ->
+                users.computeIfAbsent(command.route(), r -> new ArrayList<>()).add("command '" + name + "'"));
+        if (manifest.contributes().diagramLens() != null) {
+            manifest.contributes().diagramLens().forEach(lens ->
+                    users.computeIfAbsent(lens.route(), r -> new ArrayList<>()).add("diagram-lens '" + lens.id() + "'"));
+        }
+        if (manifest.contributes().form() != null) {
+            manifest.contributes().form().forEach(form ->
+                    users.computeIfAbsent(form.route(), r -> new ArrayList<>()).add("form '" + form.id() + "'"));
+        }
+        manifest.dedicatedRoutes().stream().sorted().forEach(route -> {
+            List<String> names = users.getOrDefault(route, List.of());
+            if (names.size() > 1) {
+                problems.add("route '" + route + "' is named by " + String.join(", ", names)
+                        + ". Only CALM Hub calls this route, through the endpoint of one entry, so no other entry or command may name it");
+            }
+        });
+        List<ExtensionManifest.RouteContribution> chats = manifest.contributes().chat();
+        for (ExtensionManifest.RouteContribution chat : chats == null ? List.<ExtensionManifest.RouteContribution>of() : chats) {
+            manifest.route(chat.route()).ifPresent(route -> {
+                if (!"POST".equals(route.method()) || !route.readOnly() || route.sendsHubData()
+                        || !pathParams(route.path()).isEmpty()) {
+                    problems.add("chat '" + chat.id() + "' must name a readOnly POST route with no path parameters and "
+                            + "no hubData, but route '" + route.id() + "' is not one");
+                }
+            });
+        }
     }
 
     private static void checkRoutes(ExtensionManifest manifest, List<String> problems) {
@@ -325,6 +369,12 @@ public class ExtensionManifestLoader {
                     if (GET_ONLY_POINTS.contains(point) && !"GET".equals(route.method())) {
                         problems.add(where + " must name a GET route, but route '" + route.id() + "' is " + route.method());
                     }
+                    // Hub sends the query as the body, and the search page has no context for a path parameter.
+                    if ("search-provider".equals(point) && (!"POST".equals(route.method()) || !route.readOnly()
+                            || !pathParams(route.path()).isEmpty() || route.sendsHubData())) {
+                        problems.add(where + " must name a readOnly POST route with no path parameters and no hubData, "
+                                + "but route '" + route.id() + "' is not");
+                    }
                 }, () -> problems.add(where + " names route '" + entry.route() + "', which is not declared"));
             }
         });
@@ -386,7 +436,7 @@ public class ExtensionManifestLoader {
         });
     }
 
-    private static ExtensionManifest withNotations(ExtensionManifest manifest, Function<String, String> siblings,
+    private static ExtensionManifest withNotations(ExtensionManifest manifest, Function<String, InputStream> siblings,
                                                    List<String> problems) {
         List<ExtensionManifest.DiagramLens> lenses = manifest.contributes().diagramLens();
         if (lenses == null) {
@@ -395,7 +445,12 @@ public class ExtensionManifestLoader {
         List<ExtensionManifest.DiagramLens> loaded = new ArrayList<>();
         for (ExtensionManifest.DiagramLens lens : lenses) {
             String where = "diagram-lens '" + lens.id() + "' notation " + lens.notation();
-            String text = siblings.apply(lens.notation());
+            byte[] text;
+            try (InputStream in = siblings.apply(lens.notation())) {
+                text = in == null ? null : in.readAllBytes();
+            } catch (IOException e) {
+                throw new UncheckedIOException("Cannot read " + where, e);
+            }
             if (text == null) {
                 problems.add(where + " is not in the extension folder");
                 loaded.add(lens);
@@ -403,7 +458,7 @@ public class ExtensionManifestLoader {
             }
             Map<String, Object> notation;
             try {
-                notation = new JsonObject(text).getMap();
+                notation = new JsonObject(new String(text, StandardCharsets.UTF_8)).getMap();
             } catch (DecodeException | ClassCastException e) {
                 problems.add(where + " is not a JSON object");
                 loaded.add(lens);
@@ -413,16 +468,47 @@ public class ExtensionManifestLoader {
             loaded.add(lens.withNotationContent(notation));
         }
         return new ExtensionManifest(manifest.id(), manifest.version(), manifest.hubApi(), manifest.name(),
-                manifest.description(), manifest.provider(), manifest.routes(), manifest.commands(),
+                manifest.description(), manifest.provider(), manifest.logo(), manifest.routes(), manifest.commands(),
                 manifest.contributes().withDiagramLens(loaded));
     }
 
-    private static String readFile(Path file) {
+    /** Reads and checks each logo file, so that the registry serves only images that passed {@link ImageAsset#read}. */
+    private static ExtensionManifest withLogo(ExtensionManifest manifest, Function<String, InputStream> siblings,
+                                              List<String> problems) {
+        ExtensionManifest.Logo logo = manifest.logo();
+        if (logo == null) {
+            return manifest;
+        }
+        return manifest.withLogo(logo.withImages(logoImage(ExtensionManifest.Logo.LIGHT, logo.light(), siblings, problems),
+                logoImage(ExtensionManifest.Logo.DARK, logo.dark(), siblings, problems)));
+    }
+
+    private static ImageAsset logoImage(String variant, String file, Function<String, InputStream> siblings,
+                                        List<String> problems) {
+        if (file == null) {
+            return null;
+        }
+        String where = "logo " + variant + " " + file;
+        try (InputStream in = siblings.apply(file)) {
+            if (in == null) {
+                problems.add(where + " is not in the extension folder");
+                return null;
+            }
+            return ImageAsset.read(file, in);
+        } catch (IllegalArgumentException e) {
+            problems.add(where + " " + e.getMessage());
+            return null;
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read " + where, e);
+        }
+    }
+
+    private static InputStream openFile(Path file) {
         if (!Files.isRegularFile(file)) {
             return null;
         }
         try {
-            return Files.readString(file, StandardCharsets.UTF_8);
+            return Files.newInputStream(file);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + file, e);
         }
@@ -507,8 +593,13 @@ public class ExtensionManifestLoader {
     }
 
     private static String readResource(ClassLoader classLoader, String name) {
+        byte[] bytes = readResourceBytes(classLoader, name);
+        return bytes == null ? null : new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    private static byte[] readResourceBytes(ClassLoader classLoader, String name) {
         try (InputStream in = classLoader.getResourceAsStream(name)) {
-            return in == null ? null : new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            return in == null ? null : in.readAllBytes();
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read classpath resource " + name, e);
         }

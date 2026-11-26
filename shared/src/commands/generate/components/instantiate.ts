@@ -131,7 +131,7 @@ async function instantiateFromProperties(
  *
  * The method:
  * - Loads the pattern file from the given path.
- * - Loads and registers schemas from the given directory (if provided).
+ * - Uses the schema directory as loaded by the caller (generate() loads it once).
  * - Resolves `$ref` references in the pattern using the schema directory.
  * - Merges defined fields in the pattern with required fields in the pattern and from the referenced schemas.
  * - Generates placeholder values for fields that are required but not defined in the pattern.
@@ -148,8 +148,6 @@ export async function instantiate(
     debug: boolean,
     schemaDirectory: SchemaDirectory
 ): Promise<unknown> {
-    await schemaDirectory.loadSchemas();
-
     // Pattern should already be flattened by caller (generate.ts)
     const pattern = patternObj as PatternDocument;
     schemaDirectory.loadCurrentPatternAsSchema(pattern);

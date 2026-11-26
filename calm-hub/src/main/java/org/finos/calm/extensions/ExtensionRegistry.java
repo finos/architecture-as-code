@@ -6,6 +6,7 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
 import org.finos.calm.config.ExtensionsConfig;
+import org.finos.calm.domain.extensions.ChatProvider;
 import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +38,8 @@ public class ExtensionRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(ExtensionRegistry.class);
     private static final List<String> PER_ID_KEYS = List.of("enabled", "order", "backend-url", "allow-http", "send-identity",
             "connect-timeout-seconds", "request-timeout-seconds", "max-request-bytes", "max-response-bytes",
-            "max-concurrent-calls");
+            "max-concurrent-calls", "max-concurrent-streams", "max-concurrent-chat-streams", "max-concurrent-streams-per-user",
+            "stream-idle-timeout-seconds", "max-stream-seconds");
     private static final Pattern PER_ID_SETTING = Pattern.compile(
             "^calm\\.extensions\\.(?:\"([a-z][a-z0-9-]*)\"|([a-z][a-z0-9-]*))\\.(?:" + String.join("|", PER_ID_KEYS) + ")$");
     /** The same settings as environment variables, such as {@code CALM_EXTENSIONS__TEAM_SERVICES__ENABLED}. */
@@ -52,6 +54,7 @@ public class ExtensionRegistry {
     private final ClassLoader classLoader;
     private final String builtinBase;
     private volatile List<RegisteredExtension> extensions = List.of();
+    private volatile ChatProvider chatProvider;
     private volatile boolean readOnly;
 
     @Inject
@@ -135,12 +138,14 @@ public class ExtensionRegistry {
             errors.add("an enabled extension has routes, but calm.auth.enabled is false. Every caller would be a global "
                     + "admin. Turn auth on, or set calm.extensions.allow-without-auth=true for local development");
         }
+        ChatProvider chat = chatProvider(enabled, errors);
         warnAboutUnknownIds(ids);
         if (!errors.isEmpty()) {
             throw new IllegalStateException("Invalid calm.extensions configuration: " + String.join("; ", errors));
         }
         enabled.sort(Comparator.comparingInt(RegisteredExtension::order).thenComparing(RegisteredExtension::id));
         extensions = List.copyOf(enabled);
+        chatProvider = chat;
         if (!extensions.isEmpty()) {
             LOG.info("Enabled extensions: {}", extensions.stream().map(RegisteredExtension::id).toList());
         }
@@ -168,6 +173,47 @@ public class ExtensionRegistry {
             return Optional.of(id.toLowerCase(Locale.ROOT).replace('_', '-'));
         }
         return Optional.empty();
+    }
+
+    /**
+     * The chat entry that the operator chose with {@code calm.extensions.chat-provider}. Hub never picks one itself, so
+     * with no setting there is no chat in Hub UI.
+     */
+    public Optional<ChatProvider> chatProvider() {
+        return Optional.ofNullable(chatProvider);
+    }
+
+    /** {@code <extension-id>} or {@code <extension-id>/<chat-entry-id>}, which must name a chat entry of an enabled extension. */
+    private ChatProvider chatProvider(List<RegisteredExtension> enabled, List<String> errors) {
+        String value = config.chatProvider().map(String::trim).filter(v -> !v.isEmpty()).orElse(null);
+        if (value == null) {
+            return null;
+        }
+        String[] parts = value.split("/", -1);
+        String extensionId = parts[0];
+        Optional<RegisteredExtension> extension = enabled.stream().filter(e -> e.id().equals(extensionId)).findFirst();
+        List<ExtensionManifest.RouteContribution> entries = extension
+                .map(e -> e.manifest().contributes().chat())
+                .orElse(null);
+        if (parts.length > 2 || entries == null || entries.isEmpty()) {
+            errors.add("calm.extensions.chat-provider must name an enabled extension with a chat entry, as <extension-id> "
+                    + "or <extension-id>/<chat-entry-id>");
+            return null;
+        }
+        if (parts.length == 1) {
+            if (entries.size() > 1) {
+                errors.add("calm.extensions.chat-provider must name a chat entry of extension '" + extensionId
+                        + "', which has more than one: <extension-id>/<chat-entry-id>");
+                return null;
+            }
+            return new ChatProvider(extensionId, entries.getFirst().id());
+        }
+        Optional<ExtensionManifest.RouteContribution> entry = entries.stream().filter(e -> e.id().equals(parts[1])).findFirst();
+        if (entry.isEmpty()) {
+            errors.add("calm.extensions.chat-provider names a chat entry that extension '" + extensionId + "' does not declare");
+            return null;
+        }
+        return new ChatProvider(extensionId, entry.get().id());
     }
 
     /** True on a read-only Hub, where the proxy allows a non-GET method only on a {@code readOnly} route. */
@@ -242,12 +288,24 @@ public class ExtensionRegistry {
 
     private ExtensionLimits limits(String id, List<String> errors) {
         ExtensionsConfig.Http defaults = config.http();
-        return new ExtensionLimits(
+        ExtensionLimits limits = new ExtensionLimits(
                 Duration.ofSeconds(positiveSetting(id, "connect-timeout-seconds", defaults.connectTimeoutSeconds(), errors)),
                 Duration.ofSeconds(positiveSetting(id, "request-timeout-seconds", defaults.requestTimeoutSeconds(), errors)),
                 positiveSetting(id, "max-request-bytes", defaults.maxRequestBytes(), errors),
                 positiveSetting(id, "max-response-bytes", defaults.maxResponseBytes(), errors),
-                positiveSetting(id, "max-concurrent-calls", defaults.maxConcurrentCalls(), errors));
+                positiveSetting(id, "max-concurrent-calls", defaults.maxConcurrentCalls(), errors),
+                positiveSetting(id, "max-concurrent-streams", defaults.maxConcurrentStreams(), errors),
+                positiveSetting(id, "max-concurrent-chat-streams", defaults.maxConcurrentChatStreams(), errors),
+                positiveSetting(id, "max-concurrent-streams-per-user", defaults.maxConcurrentStreamsPerUser(), errors),
+                Duration.ofSeconds(positiveSetting(id, "stream-idle-timeout-seconds", defaults.streamIdleTimeoutSeconds(), errors)),
+                Duration.ofSeconds(positiveSetting(id, "max-stream-seconds", defaults.maxStreamSeconds(), errors)));
+        // The per-user limit applies inside each pool.
+        if (limits.maxConcurrentStreamsPerUser() > Math.min(limits.maxConcurrentStreams(), limits.maxConcurrentChatStreams())) {
+            errors.add(key(id, "max-concurrent-streams-per-user") + " must not be more than max-concurrent-streams ("
+                    + limits.maxConcurrentStreams() + ") or max-concurrent-chat-streams (" + limits.maxConcurrentChatStreams()
+                    + "), but was " + limits.maxConcurrentStreamsPerUser());
+        }
+        return limits;
     }
 
     private int positiveSetting(String id, String name, int fallback, List<String> errors) {

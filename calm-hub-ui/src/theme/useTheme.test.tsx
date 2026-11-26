@@ -171,6 +171,15 @@ describe('useTheme', () => {
         expect(result.current.theme).toBe('dark');
         expect(themeAttr()).toBe('dark');
     });
+
+    it('keeps the choice in localStorage by default', () => {
+        mockPrefersDark(false);
+        const { result } = renderHook(() => useTheme());
+
+        act(() => result.current.toggleTheme());
+
+        expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
+    });
 });
 
 describe('useResolvedTheme', () => {

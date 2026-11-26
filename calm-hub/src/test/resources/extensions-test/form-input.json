@@ -1,0 +1,78 @@
+{
+  "description": "The form input rules that Hub (ExtensionForms) and the UI (formRules.ts) share. TestExtensionFormsShould and formRules.test.ts both read these cases. Some JSON parsers refuse a lone surrogate, so the cases have none.",
+  "form": {
+    "id": "request-review",
+    "title": "Request a review",
+    "route": "request-review",
+    "target": "resource",
+    "fields": [
+      { "id": "reviewType", "type": "choice", "label": "Review type", "required": true, "default": "security",
+        "options": [ { "value": "security", "label": "Security" }, { "value": "design", "label": "Design" } ] },
+      { "id": "note", "type": "multiline", "label": "Note", "required": true, "minLength": 5, "maxLength": 50 },
+      { "id": "title", "type": "text", "label": "Title" },
+      { "id": "priority", "type": "number", "label": "Priority", "minimum": 1, "maximum": 5, "integer": true, "default": 3 },
+      { "id": "budget", "type": "number", "label": "Budget", "minimum": 0.5 },
+      { "id": "sequence", "type": "number", "label": "Sequence", "integer": true },
+      { "id": "confirm", "type": "checkbox", "label": "I checked the diagram", "required": true, "default": false }
+    ]
+  },
+  "cases": [
+    {
+      "name": "valid input with line breaks in multiline text",
+      "input": { "reviewType": "design", "note": "Line one\r\nLine\ttwo", "title": "Ledger", "priority": 5, "budget": 0.5, "confirm": true },
+      "errors": {}
+    },
+    {
+      "name": "a message for each field that fails",
+      "input": { "reviewType": "cost", "note": "   ", "title": "a\nb", "priority": 2.5, "budget": 0.25, "confirm": false },
+      "errors": {
+        "reviewType": "Choose one of the options.",
+        "note": "Enter a value.",
+        "title": "Enter one line of text.",
+        "priority": "Enter a whole number.",
+        "budget": "Enter 0.5 or more.",
+        "confirm": "Tick this box to continue."
+      }
+    },
+    {
+      "name": "missing required values and a number out of range",
+      "input": { "note": "tiny", "priority": 6 },
+      "errors": {
+        "reviewType": "Choose an option.",
+        "note": "Enter at least 5 characters.",
+        "priority": "Enter a number from 1 to 5.",
+        "confirm": "Tick this box to continue."
+      }
+    },
+    {
+      "name": "text over the field maximum",
+      "input": { "reviewType": "security", "note": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "confirm": true },
+      "errors": { "note": "Enter at most 50 characters." }
+    },
+    {
+      "name": "the largest whole number that JavaScript holds exactly",
+      "input": { "reviewType": "security", "note": "Check it", "confirm": true, "sequence": 9007199254740991 },
+      "errors": {}
+    },
+    {
+      "name": "the smallest whole number that JavaScript holds exactly",
+      "input": { "reviewType": "security", "note": "Check it", "confirm": true, "sequence": -9007199254740991 },
+      "errors": {}
+    },
+    {
+      "name": "a whole number past the safe limit",
+      "input": { "reviewType": "security", "note": "Check it", "confirm": true, "sequence": 9007199254740992 },
+      "errors": { "sequence": "Enter a whole number from -9007199254740991 to 9007199254740991." }
+    },
+    {
+      "name": "a negative whole number past the safe limit",
+      "input": { "reviewType": "security", "note": "Check it", "confirm": true, "sequence": -9007199254740992 },
+      "errors": { "sequence": "Enter a whole number from -9007199254740991 to 9007199254740991." }
+    },
+    {
+      "name": "control characters",
+      "input": { "reviewType": "security", "note": "Bell \u0007 here", "title": "Tab\there", "confirm": true },
+      "errors": { "note": "Remove the control characters.", "title": "Enter one line of text." }
+    }
+  ]
+}

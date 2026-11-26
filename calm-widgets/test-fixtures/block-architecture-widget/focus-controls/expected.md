@@ -24,9 +24,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     payment-processor["Payment Processing Service"]:::node
     web-server["Web Server"]:::node
 
-    web-server -->|Web server connects to API service| api-service
-    api-service -->|API service connects to database| database-server
-    frontend-app -->|Frontend connects to payment processor| payment-processor
+    web-server -->|"Web server connects to API service"| api-service
+    api-service -->|"API service connects to database"| database-server
+    frontend-app -->|"Frontend connects to payment processor"| payment-processor
 
 
 
@@ -82,7 +82,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     api-service["API Service"]:::node
     web-server["Web Server"]:::node
 
-    web-server -->|Web server connects to API service| api-service
+    web-server -->|"Web server connects to API service"| api-service
 
 
 
@@ -112,8 +112,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     database-server["Database Server"]:::node
     web-server["Web Server"]:::node
 
-    web-server -->|Web server connects to API service| api-service
-    api-service -->|API service connects to database| database-server
+    web-server -->|"Web server connects to API service"| api-service
+    api-service -->|"API service connects to database"| database-server
 
 
 
@@ -168,7 +168,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     frontend-app["Frontend Application"]:::node
     payment-processor["Payment Processing Service"]:::node
 
-    frontend-app -->|Frontend connects to payment processor| payment-processor
+    frontend-app -->|"Frontend connects to payment processor"| payment-processor
 
 
 
@@ -199,8 +199,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     payment-processor["Payment Processing Service"]:::node
     web-server["Web Server"]:::node
 
-    web-server -->|Web server connects to API service| api-service
-    frontend-app -->|Frontend connects to payment processor| payment-processor
+    web-server -->|"Web server connects to API service"| api-service
+    frontend-app -->|"Frontend connects to payment processor"| payment-processor
 
 
 

@@ -61,6 +61,7 @@ const sidebars = {
             'calm-hub/calm-hub-mcp-api',
             'calm-hub/calm-hub-extension-points',
             'calm-hub/calm-hub-extension-blocks',
+            'calm-hub/calm-hub-extension-navigation',
             'calm-hub/calm-hub-decorator-views',
             'calm-hub/calm-hub-extension-access',
             'calm-hub/calm-hub-github-storage',
@@ -96,6 +97,7 @@ const sidebars = {
 
   // Extensions sidebar - reached via the Extensions navbar item
   extensionsSidebar: [
+    'extensions/why',
     'extensions/install',
     {
       type: 'category',

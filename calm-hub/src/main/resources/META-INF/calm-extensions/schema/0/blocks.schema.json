@@ -83,6 +83,9 @@
                         "string",
                         "number"
                       ]
+                    },
+                    "filter": {
+                      "$ref": "#/$defs/statFilter"
                     }
                   },
                   "required": [
@@ -105,6 +108,10 @@
               "type": {
                 "const": "table"
               },
+              "id": {
+                "description": "Names the table, so that a stat filter can select it. Unique in the reply. Required with search or source. CALM Hub keeps the filters of the table in the screen URL as <id>.filter, <id>.q and <id>.page.",
+                "$ref": "#/$defs/tableId"
+              },
               "columns": {
                 "type": "array",
                 "items": {
@@ -119,6 +126,43 @@
                     "$ref": "#/$defs/cell"
                   }
                 }
+              },
+              "search": {
+                "description": "Shows a text filter for the rows. It combines with the stat filter: a row must match both.",
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "columns": {
+                    "description": "The columns that the text filter searches. Default: all columns.",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              "source": {
+                "description": "Loads the rows one page at a time from a GET route with readOnly, which filters the whole dataset. CALM Hub sends the context and filter, q, page and pageSize in the query; the route replies with $defs/tableRowsReply. Without a source, rows are the whole dataset and CALM Hub filters them in the browser. A CALM Hub that does not read source shows rows.",
+                "type": "object",
+                "properties": {
+                  "route": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$"
+                  },
+                  "pageSize": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20
+                  }
+                },
+                "required": [
+                  "route"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
@@ -126,6 +170,14 @@
               "columns",
               "rows"
             ],
+            "dependentRequired": {
+              "search": [
+                "id"
+              ],
+              "source": [
+                "id"
+              ]
+            },
             "additionalProperties": false
           },
           {
@@ -205,6 +257,25 @@
               "items"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "description": "A form that the extension declares in contributes.form. Hub draws the fields and sends the input to the form route.",
+            "properties": {
+              "type": {
+                "const": "form"
+              },
+              "form": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$",
+                "description": "The id of a form in contributes.form of the same extension."
+              }
+            },
+            "required": [
+              "type",
+              "form"
+            ],
+            "additionalProperties": false
           }
         ]
       }
@@ -216,20 +287,42 @@
   ],
   "additionalProperties": false,
   "$defs": {
-    "hub": {
+    "segment": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "not": {
+        "enum": [
+          ".",
+          ".."
+        ]
+      }
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "resource": {
+      "description": "One version of a Hub resource, and optionally an element in it.",
       "type": "object",
       "properties": {
         "namespace": {
-          "type": "string"
+          "$ref": "#/$defs/segment"
         },
         "type": {
-          "type": "string"
+          "$ref": "#/$defs/segment"
         },
         "id": {
-          "type": "string"
+          "$ref": "#/$defs/segment"
         },
         "version": {
-          "type": "string"
+          "$ref": "#/$defs/segment"
+        },
+        "element": {
+          "description": "The CALM unique-id of a node or relationship in that version.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
         }
       },
       "required": [
@@ -240,7 +333,132 @@
       ],
       "additionalProperties": false
     },
+    "hub": {
+      "description": "A Hub resource page. extension opens the contextual view of that extension with the resource.",
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "$ref": "#/$defs/segment"
+        },
+        "type": {
+          "$ref": "#/$defs/segment"
+        },
+        "id": {
+          "$ref": "#/$defs/segment"
+        },
+        "version": {
+          "$ref": "#/$defs/segment"
+        },
+        "element": {
+          "description": "The CALM unique-id of a node or relationship in that version.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "extension": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "required": [
+        "namespace",
+        "type",
+        "id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "screen": {
+      "description": "A top-level extension screen, optionally for a resource, with view parameters: screen params (no dot) and table keys. maxProperties bounds only the total. Hub checks in code that there are at most 8 screen params and 12 table keys, and that the resource context and screen params take at most 2048 characters form-encoded.",
+      "type": "object",
+      "properties": {
+        "extension": {
+          "$ref": "#/$defs/id"
+        },
+        "screen": {
+          "$ref": "#/$defs/id"
+        },
+        "context": {
+          "$ref": "#/$defs/resource"
+        },
+        "params": {
+          "type": "object",
+          "maxProperties": 20,
+          "propertyNames": {
+            "not": {
+              "enum": [
+                "namespace",
+                "resource",
+                "resourceType",
+                "resourceId",
+                "version",
+                "selectedElement"
+              ]
+            }
+          },
+          "patternProperties": {
+            "^[A-Za-z][A-Za-z0-9_-]{0,63}$": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "^[a-z][a-z0-9-]{0,63}\\.filter$": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "^[a-z][a-z0-9-]{0,63}\\.q$": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "^[a-z][a-z0-9-]{0,63}\\.page$": {
+              "type": "string",
+              "pattern": "^(?:[2-9]|[1-9][0-9]{1,3}|10000)$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "extension",
+        "screen"
+      ],
+      "additionalProperties": false
+    },
+    "destination": {
+      "description": "Where a link goes: exactly one of an external href, a Hub resource page or an extension screen. Search results and chat citations use it too.",
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^https?://"
+        },
+        "hub": {
+          "$ref": "#/$defs/hub"
+        },
+        "screen": {
+          "$ref": "#/$defs/screen"
+        }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "href"
+          ]
+        },
+        {
+          "required": [
+            "hub"
+          ]
+        },
+        {
+          "required": [
+            "screen"
+          ]
+        }
+      ]
+    },
     "link": {
+      "description": "A destination with a label.",
       "type": "object",
       "properties": {
         "label": {
@@ -248,10 +466,14 @@
         },
         "href": {
           "type": "string",
+          "maxLength": 2048,
           "pattern": "^https?://"
         },
         "hub": {
           "$ref": "#/$defs/hub"
+        },
+        "screen": {
+          "$ref": "#/$defs/screen"
         }
       },
       "required": [
@@ -262,22 +484,17 @@
         {
           "required": [
             "href"
-          ],
-          "not": {
-            "required": [
-              "hub"
-            ]
-          }
+          ]
         },
         {
           "required": [
             "hub"
-          ],
-          "not": {
-            "required": [
-              "href"
-            ]
-          }
+          ]
+        },
+        {
+          "required": [
+            "screen"
+          ]
         }
       ]
     },
@@ -314,6 +531,71 @@
           "$ref": "#/$defs/link"
         }
       ]
+    },
+    "tableId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$"
+    },
+    "statFilter": {
+      "description": "Makes the tile a button that filters the table with this id in the same reply. A tile without id shows all rows. For a table with rows, column and value select the rows whose cell in column shows value. For a table with a source, CALM Hub sends id as the filter query parameter. The tile value stays the figure of the extension.",
+      "type": "object",
+      "properties": {
+        "table": {
+          "$ref": "#/$defs/tableId"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "column": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "table"
+      ],
+      "dependentRequired": {
+        "column": [
+          "id",
+          "value"
+        ],
+        "value": [
+          "column"
+        ]
+      },
+      "additionalProperties": false
+    },
+    "tableRowsReply": {
+      "description": "The reply of a table source route: one page of rows, and total, the number of rows that match the filters.",
+      "type": "object",
+      "properties": {
+        "hubApi": {
+          "const": 0
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/cell"
+            }
+          }
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "hubApi",
+        "rows",
+        "total"
+      ],
+      "additionalProperties": false
     }
   }
 }

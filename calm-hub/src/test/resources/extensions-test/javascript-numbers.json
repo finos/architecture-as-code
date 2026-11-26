@@ -1,0 +1,31 @@
+{
+  "description": "Number literals and the string that JavaScript writes for each: String(JSON.parse(literal)), from Node 26.13.1. formRules.test.ts checks the strings against the JavaScript that runs the tests. TestExtensionFormsShould checks that ExtensionForms writes the same strings, and that the loader takes a form limit or default only when it is the same number as the string.",
+  "cases": [
+    { "literal": "4.9e-324", "javascript": "5e-324" },
+    { "literal": "5e-324", "javascript": "5e-324" },
+    { "literal": "-4.9e-324", "javascript": "-5e-324" },
+    { "literal": "9.9e-324", "javascript": "1e-323" },
+    { "literal": "1e-323", "javascript": "1e-323" },
+    { "literal": "1.5e-323", "javascript": "1.5e-323" },
+    { "literal": "2e-323", "javascript": "2e-323" },
+    { "literal": "2.2250738585072014e-308", "javascript": "2.2250738585072014e-308" },
+    { "literal": "1.7976931348623157e308", "javascript": "1.7976931348623157e+308" },
+    { "literal": "1e400", "javascript": "Infinity" },
+    { "literal": "1e-400", "javascript": "0" },
+    { "literal": "0", "javascript": "0" },
+    { "literal": "-0.0", "javascript": "0" },
+    { "literal": "0.1", "javascript": "0.1" },
+    { "literal": "0.30000000000000001", "javascript": "0.3" },
+    { "literal": "-2.50", "javascript": "-2.5" },
+    { "literal": "2.0", "javascript": "2" },
+    { "literal": "5.0000000000000001", "javascript": "5" },
+    { "literal": "0.000001", "javascript": "0.000001" },
+    { "literal": "1e-7", "javascript": "1e-7" },
+    { "literal": "1e20", "javascript": "100000000000000000000" },
+    { "literal": "1e21", "javascript": "1e+21" },
+    { "literal": "1e23", "javascript": "1e+23" },
+    { "literal": "9007199254740991", "javascript": "9007199254740991" },
+    { "literal": "-9007199254740991.0", "javascript": "-9007199254740991" },
+    { "literal": "9007199254740993", "javascript": "9007199254740992" }
+  ]
+}

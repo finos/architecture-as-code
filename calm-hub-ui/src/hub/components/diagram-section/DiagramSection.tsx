@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { createSearchParams, useNavigate, useSearchParams, useLocation, type SetURLSearchParams } from 'react-router-dom';
 import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useExtensions, useExtensionsStatus } from '../../../extensions/ExtensionsContext.js';
-import { resourceExtensions } from '../../../extensions/contributions.js';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
 import { Drawer } from '../../../visualizer/components/drawer/Drawer.js';
@@ -35,12 +34,16 @@ import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
 import { useArchitectureDecorators } from './decorators/useArchitectureDecorators.js';
-import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS, EXTENSIONS_TAB_ID, extensionContext } from './tabs/diagramTabs.js';
+import { DECORATORS_TAB_ID, decoratorFilterParams, DIAGRAM_TAB_REDIRECTS, DIAGRAM_TABS } from './tabs/diagramTabs.js';
 import { diagramLenses } from './tabs/diagramLenses.js';
+import { carryReturnPoints, EXACT_VERSION_STATE, isExactVersion } from '../../../navigation/returnPoints.js';
 import { LensMenu } from './tabs/LensMenu.js';
+import { InspectorHandle } from '../inspector/InspectorHandle.js';
 import {
     DEFAULT_DIAGRAM_LENS_ID,
     DEFAULT_DIAGRAM_TAB_ID,
+    EXACT_VERSION_PARAM,
+    EXTENSION_PARAM,
     LENS_PARAM,
     withoutLens,
     lensGroups,
@@ -73,6 +76,8 @@ interface DiagramSectionProps {
      */
     onDecoratorsChange?: (decorators: Decorator[]) => void;
     onDroppedFileChange?: (dropped: boolean) => void;
+    /** The inspector beside the diagram, which Hub owns. The section shows its handle on the right edge. */
+    inspector?: { open: boolean; controls: string; onToggle: () => void };
 }
 
 const iconMap = {
@@ -85,6 +90,14 @@ const NO_DECORATORS: Decorator[] = [];
 const JOINED_TAB = '!flex items-center h-8 text-sm whitespace-nowrap shrink-0';
 const NO_MOMENTS: TimelineMoment[] = [];
 
+/** The query with the inspector's `?extension=` added, so that a change of tab or version keeps the inspector open on it. */
+function withInspector(query: string, extension: string | null): string {
+    if (extension === null) return query;
+    const next = new URLSearchParams(query);
+    next.set(EXTENSION_PARAM, extension);
+    return `?${next.toString()}`;
+}
+
 const subscribeToNothing = () => () => {};
 const getNavbarSlot = () => document.getElementById('navbar-actions');
 const getNoNavbarSlot = () => null;
@@ -95,12 +108,23 @@ const getNoNavbarSlot = () => null;
  */
 function pendingLensQuery(searchParams: URLSearchParams): string {
     const query = new URLSearchParams(searchParams);
-    for (const name of ['node', 'tab', ...DIAGRAM_TABS.flatMap((tab) => tab.searchParams ?? [])]) query.delete(name);
+    for (const name of ['node', 'tab', EXACT_VERSION_PARAM, ...DIAGRAM_TABS.flatMap((tab) => tab.searchParams ?? [])]) query.delete(name);
     return `?${query.toString()}`;
 }
 
-export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange, onDecoratorsChange, onDroppedFileChange, selectedElement }: DiagramSectionProps) {
-    const [urlSearchParams, setSearchParams] = useSearchParams();
+export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange, onDecoratorsChange, onDroppedFileChange, selectedElement, inspector }: DiagramSectionProps) {
+    const [urlSearchParams, setUrlSearchParams] = useSearchParams();
+    // `exact` says how the page was opened, not what it shows, so a change of tab or lens keeps it in the URL.
+    const setSearchParams = useCallback<SetURLSearchParams>(
+        (next, options) =>
+            setUrlSearchParams((current) => {
+                const query = createSearchParams(typeof next === 'function' ? next(current) : next);
+                const exact = current.get(EXACT_VERSION_PARAM);
+                if (exact !== null) query.set(EXACT_VERSION_PARAM, exact);
+                return query;
+            }, options),
+        [setUrlSearchParams]
+    );
     // An old tab link opens its replacement at once; the effect below then fixes the URL.
     const redirectedQuery = redirectedTabQuery(DIAGRAM_TAB_REDIRECTS, urlSearchParams);
     const searchParams = redirectedQuery ?? urlSearchParams;
@@ -232,17 +256,13 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
 
     const implementationService = useMemo(() => new PatternImplementationService(), []);
     const extensions = useExtensions();
-    const extensionCount = useMemo(() => resourceExtensions(extensions, extensionContext(data)).length, [extensions, data]);
-    const hasExtensions = !showsDroppedFile && extensionCount > 0;
-    const tabScope = { isArchitecture, patternName, hasExtensions };
+    const tabScope = { isArchitecture, patternName };
     const visibleTabs = visibleDiagramTabs(DIAGRAM_TABS, tabScope);
     const activeTab = resolveDiagramTab(DIAGRAM_TABS, searchParams.get('tab'), tabScope);
-    // The Extensions tab is hidden until the registry loads, so a version change keeps it while the registry loads.
     const registryStatus = useExtensionsStatus();
     const registryLoading = registryStatus === 'loading';
-    const carriedTab = registryLoading && searchParams.get('tab') === EXTENSIONS_TAB_ID
-        ? DIAGRAM_TABS.find((tab) => tab.id === EXTENSIONS_TAB_ID) ?? activeTab
-        : activeTab;
+    // The inspector's extension, which a change of tab, lens or version keeps.
+    const inspectorExtension = searchParams.get(EXTENSION_PARAM);
     const lenses = useMemo(() => diagramLenses(extensions, registryStatus), [extensions, registryStatus]);
     const visibleLenses = visibleDiagramTabs(lenses, tabScope);
     const activeLens = resolveDiagramTab(lenses, searchParams.get(LENS_PARAM), tabScope, DEFAULT_DIAGRAM_LENS_ID);
@@ -250,15 +270,17 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const requestedLens = searchParams.get(LENS_PARAM);
     const lensPending = registryLoading && requestedLens !== null && !lenses.some((lens) => lens.id === requestedLens);
     const onDiagramTab = !comparing && activeTab.id === DEFAULT_DIAGRAM_TAB_ID;
-    // The layout controls, the component search and the overlays belong to the CALM lens.
+    // The layout controls and the component search belong to the CALM lens. An extension lens draws the overlays too.
     const onCalmDiagram = onDiagramTab && activeLens.id === DEFAULT_DIAGRAM_LENS_ID;
-    const tabQuery = lensPending && activeTab.id === DEFAULT_DIAGRAM_TAB_ID
-        ? pendingLensQuery(searchParams)
-        : diagramTabQuery(carriedTab, searchParams, activeLens);
+    const onExtensionLens = onDiagramTab && !!lenses.find((lens) => lens.id === activeLens.id)?.extension;
+    const tabQuery = withInspector(
+        lensPending && activeTab.id === DEFAULT_DIAGRAM_TAB_ID ? pendingLensQuery(searchParams) : diagramTabQuery(activeTab, searchParams, activeLens),
+        inspectorExtension,
+    );
     const usedByOpen = activeTab.id === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
-    // Polled only while the diagram, the Decorators tab or the details drawer shows them.
-    const showsDecorators = onCalmDiagram || (!comparing && activeTab.id === DECORATORS_TAB_ID) || !!hasDetailsPanel;
+    // Polled only while a diagram, the Decorators tab or the details drawer shows them.
+    const showsDecorators = onCalmDiagram || onExtensionLens || (!comparing && activeTab.id === DECORATORS_TAB_ID) || !!hasDetailsPanel;
     const decoratorsState = useArchitectureDecorators(calmService, data, isArchitecture, showsDecorators);
     const allDecorators = decoratorsState.status === 'loaded' ? decoratorsState.decorators : NO_DECORATORS;
 
@@ -266,18 +288,19 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     // The panel reads it on mount only, and clears it once it took focus, so a later visit does not take focus.
     const [focusPanel, setFocusPanel] = useState(false);
     const clearFocusPanel = useCallback(() => setFocusPanel(false), []);
+    const inspectorParam: Record<string, string> = inspectorExtension === null ? {} : { [EXTENSION_PARAM]: inspectorExtension };
     const setActiveTab = (tab: DiagramTab) => {
         setFocusPanel(false);
-        setSearchParams({ tab: tab.id }, { replace: true, state: location.state });
+        setSearchParams({ tab: tab.id, ...inspectorParam }, { replace: true, state: location.state });
     };
     const setTabParams = (params: Record<string, string>) => {
-        setSearchParams({ tab: activeTab.id, ...params }, { replace: true, state: location.state });
+        setSearchParams({ tab: activeTab.id, ...params, ...inspectorParam }, { replace: true, state: location.state });
     };
     // A lens change keeps the other parameters, such as `node`, so the selection stays.
     // From another tab, it starts from a clean URL, as a tab change does.
     // A node to select goes in the same URL as `node`, which Hub opens as a link does.
     const setLens = (lens: DiagramLens, params: Record<string, string> = {}, selectNode?: string) => {
-        const next = activeTab.id === DEFAULT_DIAGRAM_TAB_ID ? withoutLens(lenses, searchParams) : new URLSearchParams();
+        const next = activeTab.id === DEFAULT_DIAGRAM_TAB_ID ? withoutLens(lenses, searchParams) : new URLSearchParams(inspectorParam);
         next.delete('tab');
         if (lens.id !== DEFAULT_DIAGRAM_LENS_ID) next.set(LENS_PARAM, lens.id);
         for (const [name, value] of Object.entries(params)) next.set(name, value);
@@ -298,7 +321,12 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const openDecoratorView = useCallback((view: DecoratorView) => {
         setFocusPanel(true);
         setSearchParams(
-            { tab: DECORATORS_TAB_ID, ...decoratorFilterParams(view.match.type, view.match.schema) },
+            (current) => {
+                const extension = current.get(EXTENSION_PARAM);
+                const next: Record<string, string> = { tab: DECORATORS_TAB_ID, ...decoratorFilterParams(view.match.type, view.match.schema) };
+                if (extension !== null) next[EXTENSION_PARAM] = extension;
+                return next;
+            },
             { replace: true, state: location.state }
         );
     }, [setSearchParams, location.state]);
@@ -348,15 +376,15 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         if (version === data.version) return;
         // Preserve the active tab and breadcrumb state when switching version.
         navigate(`/${data.name}/${urlType}/${data.id}/${version}${tabQuery}`, {
-            state: { ...(location.state as object | null), timelineSelection: true },
+            state: { ...(location.state as object | null), ...EXACT_VERSION_STATE },
         });
     };
 
     const handleBreadcrumbClick = useCallback((crumb: BreadcrumbItem, index: number) => {
         navigate(`/${crumb.namespace}/${crumb.type}/${crumb.id}/${crumb.version}`, {
-            state: { breadcrumbs: (breadcrumbs || []).slice(0, index) }
+            state: { ...carryReturnPoints(location.state), breadcrumbs: (breadcrumbs || []).slice(0, index) }
         });
-    }, [navigate, breadcrumbs]);
+    }, [navigate, breadcrumbs, location.state]);
 
     const startCompare = (from: string, to: string) => {
         setCompareFrom(from);
@@ -504,7 +532,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     }, [data.name, data.id]);
     useEffect(() => {
         if (!isArchitecture) return;
-        if ((location.state as { timelineSelection?: boolean } | null)?.timelineSelection) return;
+        if (isExactVersion(location)) return;
         if (!timelineIsExplicit || !timelineCurrentMomentId) return;
         if (versions.length === 0 || moments.length === 0) return;
         const resourceKey = `${data.name}/${data.id}`;
@@ -533,7 +561,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         urlType,
         tabQuery,
         navigate,
-        location.state,
+        location,
     ]);
 
     const Icon = iconMap[data.calmType];
@@ -564,6 +592,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             />
         ),
         decorators: decoratorsState,
+        openDecoratorView,
         usedBy,
     };
 
@@ -803,6 +832,9 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         );
     };
 
+    // The inspector holds the details and the extensions. It opens beside the diagram, so the diagram stays as it is.
+    const inspectorHandle = inspector && <InspectorHandle {...inspector} />;
+
     const ActiveViewIcon = activeTab.icon;
     const activeViewIcon = <ActiveViewIcon size={20} />;
 
@@ -965,7 +997,10 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                         onBreadcrumbClick={handleBreadcrumbClick}
                     />
                     {layoutSaveError}
-                    <div className="flex-1 min-h-0 overflow-hidden">{content}</div>
+                    <div className="flex flex-1 min-h-0 overflow-hidden">
+                        <div className="relative flex-1 min-w-0 min-h-0 overflow-hidden">{content}</div>
+                        {inspectorHandle}
+                    </div>
                     {timelineBar}
                 </div>
             </div>
@@ -1000,8 +1035,9 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                     </button>
                 )}
                 {layoutSaveError}
-                <div className="flex-1 min-h-0 overflow-hidden relative">
-                    {content}
+                <div className="flex flex-1 min-h-0 overflow-hidden">
+                    <div className="relative flex-1 min-w-0 min-h-0 overflow-hidden">{content}</div>
+                    {inspectorHandle}
                 </div>
             </div>
 

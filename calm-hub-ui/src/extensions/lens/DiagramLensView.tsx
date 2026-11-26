@@ -1,13 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import type { Decorator, DecoratorView } from '../../visualizer/contracts/contracts.js';
+import { DecoratorOverlayContext, type DecoratorOverlayState } from '../../visualizer/context/DecoratorOverlayContext.js';
+import { useDecoratorViews } from '../../visualizer/overlay/decoratorViews.js';
+import { useOverlayVisibility } from '../../visualizer/overlay/useOverlayVisibility.js';
+import { OverlayLegend } from '../../visualizer/components/reactflow/overlay/OverlayLegend.js';
+import { lensOverlays } from './overlays.js';
 import { useNavigate } from 'react-router-dom';
 import type { ExtensionContext, ExtensionSummary } from '../../model/extensions.js';
 import type { DiagramLensContribution, LensNode, LensReply } from '../../model/lens.js';
-import { resourcePath } from '../../hub/routes.js';
 import { ExtensionCallError } from '../../service/extension-service.js';
 import { useResolvedTheme } from '../../theme/useTheme.js';
 import { useExtensionService } from '../ExtensionsContext.js';
 import { ScreenErrorBoundary } from '../ScreenErrorBoundary.js';
-import { safeHref } from '../ScreenLink.js';
+import { destinationLocation, safeHref } from '../../navigation/destinations.js';
+import { linkState, ReturnPointContext } from '../../navigation/returnPoints.js';
 import { BlockRenderer } from '../blocks/BlockRenderer.js';
 import { resetElk, sharedElk } from './elk.js';
 import { LayoutTimeout, layoutLens, type Layout } from './layout.js';
@@ -16,6 +22,7 @@ import { LensKey } from './LensKey.js';
 import { LensToolbar } from './LensToolbar.js';
 import { isParamsLinkAllowed, lensParams, parseLensReply } from './reply.js';
 import { keyEntries, type ResolvedNotation } from './styles.js';
+import { viewKey as viewKeyOf, viewTitle as viewTitleOf } from '../../visualizer/overlay/overlayEngine.js';
 
 export interface DiagramLensViewProps {
     extension: ExtensionSummary;
@@ -26,7 +33,16 @@ export interface DiagramLensViewProps {
     /** Sets the view parameters. `select` names a CALM element to select in the same navigation. */
     onParamsChange: (params: Record<string, string>, select?: string) => void;
     onSelectElement: (uniqueId: string) => void;
+    /** The CALM document of an architecture. Its containment relationships fold decorators as on the CALM diagram. */
+    document?: unknown;
+    /** The decorators of the architecture version, drawn on the lens elements whose `calm` ids they apply to. */
+    decorators?: Decorator[];
+    onOpenDecoratorView?: (view: DecoratorView) => void;
+    /** Where the overlay legend keeps its choices. The same key as on the CALM diagram. */
+    storage?: Storage;
 }
+
+const NO_DECORATORS: Decorator[] = [];
 
 type Fetched =
     | { status: 'loading' }
@@ -41,10 +57,13 @@ type State = Exclude<Fetched, { status: 'fetched' }> | Ready;
  * A diagram lens of an extension. Its route returns a graph, and Hub lays it out and draws it with the notation of
  * the lens. No extension code or markup runs: Hub builds each element from the data.
  */
-export function DiagramLensView({ extension, lens, context, params, onParamsChange, onSelectElement }: DiagramLensViewProps) {
+export function DiagramLensView({
+    extension, lens, context, params, onParamsChange, onSelectElement, document, decorators = NO_DECORATORS, onOpenDecoratorView, storage,
+}: DiagramLensViewProps) {
     const service = useExtensionService();
     const theme = useResolvedTheme();
     const navigate = useNavigate();
+    const here = useContext(ReturnPointContext);
     const [fetched, setFetched] = useState<Fetched>({ status: 'loading' });
     const [laidOut, setLaidOut] = useState<LaidOut>();
     const [hiddenTags, setHiddenTags] = useState<ReadonlySet<string>>(new Set());
@@ -107,6 +126,21 @@ export function DiagramLensView({ extension, lens, context, params, onParamsChan
         return keyEntries(state.notation, new Set(graph.nodes.flatMap((node) => node.tags ?? [])), new Set(graph.edges.flatMap((edge) => edge.tags ?? [])));
     }, [state]);
 
+    const views = useDecoratorViews();
+    const { hiddenViews, toggleView, setViewsShown } = useOverlayVisibility(views, storage);
+    const readyGraph = state.status === 'ready' ? state.reply.graph : undefined;
+    const overlays = useMemo(
+        () => (readyGraph ? lensOverlays(views, decorators, (document as { relationships?: unknown } | undefined)?.relationships, readyGraph) : []),
+        [views, decorators, document, readyGraph],
+    );
+    const overlayState = useMemo(
+        (): DecoratorOverlayState => ({ overlays: overlays.filter(({ elements, notDrawn: ids }) => elements.size > 0 || ids.length > 0), hiddenViews, toggleView, setViewsShown, onOpenView: onOpenDecoratorView }),
+        [overlays, hiddenViews, toggleView, setViewsShown, onOpenDecoratorView],
+    );
+    // A decorator on a CALM element that this view does not draw is not moved to another element. Its view keeps a
+    // legend row, so a view turned off here can be turned on again.
+    const notDrawn = overlays.filter(({ view, notDrawn: ids }) => ids.length > 0 && !hiddenViews.has(viewKeyOf(view)));
+
     const setParam = (param: string, value: string) => onParamsChange({ ...values, [param]: value });
     const activate = (node: LensNode) => {
         const select = node.calm?.[0];
@@ -117,7 +151,8 @@ export function DiagramLensView({ extension, lens, context, params, onParamsChan
             return;
         }
         if (select) onSelectElement(select);
-        if (link?.hub?.version) navigate(resourcePath({ ...link.hub, version: link.hub.version }));
+        const to = link?.hub?.version ? destinationLocation({ hub: { ...link.hub, version: link.hub.version } }) : undefined;
+        if (to) navigate(to, { state: linkState(here, to) });
         else if (link?.href) {
             const href = safeHref(link.href);
             if (href?.startsWith('https://')) window.open(href, '_blank', 'noopener,noreferrer');
@@ -154,11 +189,22 @@ export function DiagramLensView({ extension, lens, context, params, onParamsChan
                 )}
                 {state.status === 'ready' && (
                     <>
-                        <div className="relative min-h-0 min-w-0 flex-1">
-                            <LensCanvas layout={state.layout} notation={state.notation} theme={theme} selectedElement={selectedElement}
-                                hiddenTags={hiddenTags} onActivateNode={activate} onSelect={(calm) => onSelectElement(calm[0])} />
-                            <LensKey entries={entries} notation={state.notation} theme={theme} hidden={hiddenTags} onToggle={toggleTag} />
-                        </div>
+                        <DecoratorOverlayContext.Provider value={overlayState}>
+                            <div className="relative min-h-0 min-w-0 flex-1">
+                                <LensCanvas layout={state.layout} notation={state.notation} theme={theme} selectedElement={selectedElement}
+                                    hiddenTags={hiddenTags} onActivateNode={activate} onSelect={(calm) => onSelectElement(calm[0])} />
+                                <LensKey entries={entries} notation={state.notation} theme={theme} hidden={hiddenTags} onToggle={toggleTag} />
+                                {/* At the top: the zoom controls and the key are at the bottom. */}
+                                <div className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-col items-start gap-2" onPointerDown={(event) => event.stopPropagation()}>
+                                    {notDrawn.length > 0 && (
+                                        <p role="status" data-testid="lens-overlays-not-drawn" className="max-w-md rounded-md border border-base-300 bg-base-100/95 px-3 py-1.5 text-xs shadow-sm">
+                                            {notDrawn.map(({ view, notDrawn: ids }) => `${viewTitleOf(view)}: ${ids.length} decorated element${ids.length === 1 ? ' is' : 's are'} not shown`).join('. ')}.
+                                        </p>
+                                    )}
+                                    <OverlayLegend />
+                                </div>
+                            </div>
+                        </DecoratorOverlayContext.Provider>
                         {panelsOpen && state.reply.panels.length > 0 && (
                             <aside className="flex max-h-[40%] shrink-0 flex-col gap-4 overflow-auto border-t border-base-300 p-3 lg:max-h-none lg:w-80 lg:border-l lg:border-t-0" aria-label="Lens notes">
                                 <button type="button" className="btn btn-ghost btn-xs self-end" onClick={() => setPanelsOpen(false)}>

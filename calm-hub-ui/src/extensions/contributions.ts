@@ -1,5 +1,6 @@
 import { ExtensionContext, ExtensionContribution, ExtensionSummary } from '../model/extensions.js';
 import { extensionRequest } from '../service/extension-service.js';
+import { CHAT_PATH, screenRoutePath } from '../hub/routes.js';
 
 function canFill(extension: ExtensionSummary, contribution: ExtensionContribution, context: ExtensionContext): boolean {
     const route = extension.routes.find((entry) => entry.id === contribution.route);
@@ -53,14 +54,16 @@ export function tabContributions(extension: ExtensionSummary): ExtensionContribu
 export interface ResourceExtension {
     extension: ExtensionSummary;
     actions: ExtensionContribution[];
-    /** Actions that wait for a selected element. They keep the extension listed, so a change of selection does not hide the tab. */
+    /** Actions that wait for a selected element. They keep the extension listed, so a change of selection does not hide it. */
     needsSelection: ExtensionContribution[];
     tabs: ExtensionContribution[];
     /** Designer tabs that wait for a selected element, as `needsSelection` does for actions. */
     tabsNeedSelection: ExtensionContribution[];
+    /** The detail panels that a selected node can fill. They keep the extension listed while no node is selected. */
+    panels: ExtensionContribution[];
 }
 
-/** The extensions that show in a resource's Extensions tab: each with an action or a designer tab for it. */
+/** The extensions that show in a resource's inspector: each with an action, a designer tab or a detail panel for it. */
 export function resourceExtensions(extensions: readonly ExtensionSummary[], context: ExtensionContext): ResourceExtension[] {
     const selected = { ...context, selectedElement: 'selected-element' };
     return extensions
@@ -75,13 +78,56 @@ export function resourceExtensions(extensions: readonly ExtensionSummary[], cont
                 needsSelection: selectionActions(extension, context),
                 tabs: allTabs.filter((contribution) => !tabsNeedSelection.includes(contribution)),
                 tabsNeedSelection,
+                panels: slotContributions(extension, 'detail-panel', selected),
             };
         })
         .filter(
-            ({ actions, needsSelection, tabs, tabsNeedSelection }) =>
-                actions.length + needsSelection.length + tabs.length + tabsNeedSelection.length > 0
+            ({ actions, needsSelection, tabs, tabsNeedSelection, panels }) =>
+                actions.length + needsSelection.length + tabs.length + tabsNeedSelection.length + panels.length > 0
         );
 }
 
 export const screenPath = (extension: ExtensionSummary, contribution: ExtensionContribution) =>
-    `/extensions/${encodeURIComponent(extension.id)}/${encodeURIComponent(contribution.id)}`;
+    screenRoutePath(extension.id, contribution.id);
+
+/** The chat provider that the operator selected, as the registry names it. */
+export interface ChatSelection {
+    extension: string;
+    contribution: Pick<ExtensionContribution, 'id' | 'title'>;
+}
+
+export interface ExtensionNavLink {
+    key: string;
+    title: string;
+    to: string;
+}
+
+/**
+ * The top-level pages of an extension: its screens in manifest order, then the chat if it is the selected chat
+ * provider. Its menu group and its home page card show this list, so both have the same labels in the same order.
+ */
+export function extensionNavLinks(extension: ExtensionSummary, chat?: ChatSelection): ExtensionNavLink[] {
+    const links = (extension.contributes.screen ?? []).map((contribution) => ({
+        key: `screen/${contribution.id}`,
+        title: contribution.title,
+        to: screenPath(extension, contribution),
+    }));
+    if (chat?.extension === extension.id) {
+        links.push({ key: `chat/${chat.contribution.id}`, title: chat.contribution.title, to: CHAT_PATH });
+    }
+    return links;
+}
+
+export interface SearchProvider {
+    extension: ExtensionSummary;
+    provider: ExtensionContribution;
+}
+
+/** The search providers of the enabled extensions, in registry order. One whose route the registry left out is left out. */
+export function searchProviders(extensions: readonly ExtensionSummary[]): SearchProvider[] {
+    return extensions.flatMap((extension) =>
+        (extension.contributes['search-provider'] ?? [])
+            .filter((provider) => extension.routes.some((route) => route.id === provider.route))
+            .map((provider) => ({ extension, provider }))
+    );
+}

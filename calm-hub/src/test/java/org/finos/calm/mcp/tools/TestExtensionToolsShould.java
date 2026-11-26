@@ -149,7 +149,7 @@ class TestExtensionToolsShould {
 
     // A client such as curl can encode !*'(), which encodeURIComponent and MCP leave as they are.
     private static String strictlyEncoded(String value) {
-        return ExtensionTools.encodePathValue(value).replace("!", "%21").replace("*", "%2A").replace("'", "%27")
+        return ExtensionPaths.encodePathValue(value).replace("!", "%21").replace("*", "%2A").replace("'", "%27")
                 .replace("(", "%28").replace(")", "%29");
     }
 
@@ -1031,7 +1031,7 @@ class TestExtensionToolsShould {
 
         assertThat(e.getMessage(), is("Input property 'name' " + PATH_RULE + ", because it fills the path "
                 + tool("remove-service").route().path()));
-        for (String encoded : List.of(ExtensionTools.encodePathValue(value), strictlyEncoded(value))) {
+        for (String encoded : List.of(ExtensionPaths.encodePathValue(value), strictlyEncoded(value))) {
             assertThrows(ExtensionProxyException.class, () -> ExtensionPaths.checkPath("/x/" + encoded + "/y"), encoded);
         }
     }
@@ -1042,9 +1042,9 @@ class TestExtensionToolsShould {
         ExtensionProxyRequest request = ExtensionTools.request(tool("remove-service"),
                 new JsonObject().put("namespace", "finos").put("name", value));
 
-        assertThat(request.path(), is("/namespaces/finos/services/" + ExtensionTools.encodePathValue(value)));
+        assertThat(request.path(), is("/namespaces/finos/services/" + ExtensionPaths.encodePathValue(value)));
         // Hub accepts and keeps !*'() both raw and encoded.
-        for (String encoded : List.of(ExtensionTools.encodePathValue(value), strictlyEncoded(value))) {
+        for (String encoded : List.of(ExtensionPaths.encodePathValue(value), strictlyEncoded(value))) {
             assertThat(ExtensionPaths.checkPath("/x/" + encoded + "/y"), is("/x/" + encoded + "/y"));
         }
     }
@@ -1063,12 +1063,12 @@ class TestExtensionToolsShould {
         List<String> encodedNever = PATH_VALUES.getJsonArray("encodedNever").stream().map(String.class::cast).toList();
         for (String part : ExtensionPaths.FORBIDDEN) {
             boolean covered = refusedPathValues().anyMatch(value -> value.toLowerCase(Locale.ROOT).contains(part)
-                    || ExtensionTools.encodePathValue(value).toLowerCase(Locale.ROOT).contains(part));
+                    || ExtensionPaths.encodePathValue(value).toLowerCase(Locale.ROOT).contains(part));
             assertThat(part, covered || encodedNever.contains(part), is(true));
         }
         for (String part : encodedNever) {
             assertThat(part, ExtensionPaths.FORBIDDEN.contains(part), is(true));
-            assertThat(part, ExtensionTools.encodePathValue(part).contains(part), is(false));
+            assertThat(part, ExtensionPaths.encodePathValue(part).contains(part), is(false));
         }
     }
 

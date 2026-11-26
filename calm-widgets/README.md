@@ -124,10 +124,10 @@ Renders relationships as Mermaid graph diagrams, showing connections between nod
 - For `relationship-id`: The specified relationship must exist in the `relationships` array.
 
 **Supported relationship types:**
-- **Interacts**: Actor-to-node interactions (e.g., "User[User] -- Interacts --> Frontend[Frontend App]")
-- **Connects**: Direct connections between services (e.g., "api[API] -- Connects --> db[Database]")
-- **Composed-of**: Container composition relationships (e.g., "sys[System] -- Composed Of --> svc[Service]")
-- **Deployed-in**: Deployment relationships (e.g., "svc[Service] -- Deployed In --> cluster[Cluster]")
+- **Interacts**: Actor-to-node interactions (e.g., `User["User"] -- Interacts --> Frontend["Frontend App"]`)
+- **Connects**: Direct connections between services (e.g., `api["API"] -- Connects --> db["Database"]`)
+- **Composed-of**: Container composition relationships (e.g., `sys["System"] -- Composed Of --> svc["Service"]`)
+- **Deployed-in**: Deployment relationships (e.g., `svc["Service"] -- Deployed In --> cluster["Cluster"]`)
 
 **Output behavior:**
 - **Node perspective**: When using `node-id`, shows the node highlighted with all its related connections
@@ -140,10 +140,10 @@ Renders relationships as Mermaid graph diagrams, showing connections between nod
 *Node view (`node-id="load-balancer"`)* - Shows the load balancer and all its connections:
 ```mermaid
 graph TD;
-load-balancer[Load Balancer]:::highlight;
-conference-website[Conference Website] -- Connects --> load-balancer[Load Balancer];
-load-balancer[Load Balancer] -- Connects --> attendees[Attendees Service];
-load-balancer[Load Balancer] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
+load-balancer["Load Balancer"]:::highlight;
+conference-website["Conference Website"] -- Connects --> load-balancer["Load Balancer"];
+load-balancer["Load Balancer"] -- Connects --> attendees["Attendees Service"];
+load-balancer["Load Balancer"] -- Deployed In --> k8s-cluster["Kubernetes Cluster"];
 classDef highlight fill:#f2bbae;
 ```
 
@@ -371,9 +371,9 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
         class enterprise-bank boundary
 
 
-    trading-ui__iface__web-ui -->|Place Trade| trade-svc__iface__api
-    trade-svc__iface__jdbc -->|Persist| trading-db__iface__sql
-    trade-svc__iface__events -->|Publish Events| message-bus__iface__trade-events-topic
+    trading-ui__iface__web-ui -->|"Place Trade"| trade-svc__iface__api
+    trade-svc__iface__jdbc -->|"Persist"| trading-db__iface__sql
+    trade-svc__iface__events -->|"Publish Events"| message-bus__iface__trade-events-topic
 
     trading-ui -.- trading-ui__iface__web-ui
     trade-svc -.- trade-svc__iface__api
@@ -429,9 +429,9 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
         class enterprise-bank boundary
 
 
-    trading-ui -->|Place Trade| trade-svc
-    trade-svc -->|Persist| trading-db
-    trade-svc -->|Publish Events| message-bus
+    trading-ui -->|"Place Trade"| trade-svc
+    trade-svc -->|"Persist"| trading-db
+    trade-svc -->|"Publish Events"| message-bus
 
 
     class trade-svc highlight

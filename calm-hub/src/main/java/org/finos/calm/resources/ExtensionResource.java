@@ -6,17 +6,23 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Request;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
-import org.finos.calm.domain.ValueWrapper;
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import org.finos.calm.domain.extensions.ChatProvider;
+import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.finos.calm.extensions.ExtensionRegistry;
 import org.finos.calm.extensions.NotationChecker;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @Tag(name = "Extensions", description = "Extensions that the operator enabled on this CALM Hub")
@@ -77,6 +83,24 @@ public class ExtensionResource {
                 .orElse(Response.status(Response.Status.NOT_FOUND).build());
     }
 
+    @GET
+    @Path("{id}/logo/{variant: light|dark}")
+    @Produces({"image/png", "image/jpeg", "image/webp", "image/svg+xml"})
+    @Authenticated
+    @Operation(summary = "Get a logo of an extension",
+            description = "The light or dark theme logo that the manifest declares. CALM Hub checked the image at start up. "
+                    + "The reply is private, and a browser checks it again with its ETag.")
+    public Response logo(@PathParam("id") String id, @PathParam("variant") String variant, @Context Request request) {
+        return registry.available().stream()
+                .filter(manifest -> manifest.id().equals(id))
+                .map(ExtensionManifest::logo)
+                .filter(Objects::nonNull)
+                .flatMap(logo -> logo.image(variant).stream())
+                .findFirst()
+                .map(image -> image.response(request, null))
+                .orElse(Response.status(Response.Status.NOT_FOUND).build());
+    }
+
     static Response schemaResponse(InputStream stream) throws IOException {
         try (stream) {
             if (stream == null) {
@@ -93,9 +117,13 @@ public class ExtensionResource {
             summary = "List the enabled extensions",
             description = "Returns the enabled extensions in order, with their routes, commands and contributions. "
                     + "Leaves out backend URLs, and the routes and commands that this CALM Hub cannot run, such as "
-                    + "write routes on a read-only CALM Hub."
+                    + "write routes on a read-only CALM Hub. chat names the chat entry that the operator chose, if any."
     )
     public Response listExtensions() {
-        return Response.ok(new ValueWrapper<>(registry.available())).build();
+        return Response.ok(new ExtensionList(registry.available(), registry.chatProvider().orElse(null))).build();
     }
+
+    /** The registry reply. {@code chat} is left out when the operator chose no chat. */
+    @RegisterForReflection
+    public record ExtensionList(List<ExtensionManifest> values, ChatProvider chat) {}
 }

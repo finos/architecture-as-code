@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useRef, useState, type ComponentProps, type MouseEvent } from 'react';
+import { useStoreApi } from '@xyflow/react';
 import { THEME } from '../theme.js';
 import { scalePx } from '../../../../theme/useDiagramTextScale.js';
 import { statusText, viewTitle } from '../../../overlay/overlayEngine.js';
@@ -15,6 +16,18 @@ function BadgeMarker({ colour, size }: { colour: string; size: string }) {
             style={{ width: size, height: size, borderRadius: '2px', flexShrink: 0, background: colour }}
         />
     );
+}
+
+/** The details of a badge on the CALM diagram. They close when the diagram pans or zooms. */
+function FlowBadgeDetails(props: Omit<ComponentProps<typeof OverlayBadgeDetails>, 'subscribeToMoves'>) {
+    const store = useStoreApi();
+    const subscribeToMoves = useCallback((onMove: () => void) => {
+        const [x, y, zoom] = store.getState().transform;
+        return store.subscribe(({ transform }) => {
+            if (transform[0] !== x || transform[1] !== y || transform[2] !== zoom) onMove();
+        });
+    }, [store]);
+    return <OverlayBadgeDetails {...props} subscribeToMoves={subscribeToMoves} />;
 }
 
 /** The badge a decorator view draws beside a node's label. A click shows what it means. */
@@ -71,7 +84,7 @@ export function OverlayBadge({ shown, presenting, scale }: { shown: ShownOverlay
                 <Icon aria-hidden="true" style={{ width: size, height: size }} />
                 <span>{label}</span>
             </button>
-            {anchor && <OverlayBadgeDetails shown={shown} anchor={anchor} trigger={button} onClose={close} />}
+            {anchor && <FlowBadgeDetails shown={shown} anchor={anchor} trigger={button} onClose={close} />}
         </>
     );
 }

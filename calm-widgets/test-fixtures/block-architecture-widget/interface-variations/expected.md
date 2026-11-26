@@ -21,7 +21,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     inventory-svc["Inventory Service"]:::node
     order-svc["Order Service"]:::node
 
-    order-svc -->|REST API call to reserve stock| inventory-svc
+    order-svc -->|"REST API call to reserve stock"| inventory-svc
 
 
 
@@ -52,7 +52,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     order-svc["Order Service"]:::node
         order-svc__iface__rest["◻ REST API"]:::iface
 
-    order-svc -->|REST API call to reserve stock| inventory-svc__iface__rest
+    order-svc -->|"REST API call to reserve stock"| inventory-svc__iface__rest
 
     order-svc -.- order-svc__iface__rest
     inventory-svc -.- inventory-svc__iface__rest
@@ -89,7 +89,7 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
         class retail-platform boundary
 
 
-    order-svc -->|REST API call to reserve stock| inventory-svc__iface__rest
+    order-svc -->|"REST API call to reserve stock"| inventory-svc__iface__rest
 
     order-svc -.- order-svc__iface__rest
     inventory-svc -.- inventory-svc__iface__rest

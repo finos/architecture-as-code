@@ -3,14 +3,13 @@ import type { IconType } from 'react-icons';
 import type { Data } from '../../../../model/calm.js';
 import type { ImplementationsState } from '../used-by/usePatternImplementations.js';
 import type { ArchitectureDecoratorsState } from '../decorators/useArchitectureDecorators.js';
+import type { DecoratorView } from '../../../../visualizer/contracts/contracts.js';
 
 /** What is known about the resource before any tab content loads. Visibility depends only on this. */
 export interface DiagramTabScope {
     isArchitecture: boolean;
     /** The pattern's name on the name-based API. Undefined for architectures, and until the summary loads. */
     patternName?: string;
-    /** Some extension contributes an action or a designer tab for this resource. */
-    hasExtensions?: boolean;
 }
 
 export interface DiagramTabContext extends DiagramTabScope {
@@ -27,6 +26,8 @@ export interface DiagramTabContext extends DiagramTabScope {
     /** The diagram, built by the section because it owns the layout state. For a tab, the active lens; for a lens, the CALM diagram. */
     diagram: ReactNode;
     decorators: ArchitectureDecoratorsState;
+    /** Opens the Decorators tab on the decorators of one view, as "View all" in the overlay legend does. */
+    openDecoratorView?: (view: DecoratorView) => void;
     usedBy: ImplementationsState;
     /** The tab opened from a control that it replaces, such as "View all", so its content takes focus. */
     focusPanel?: boolean;
@@ -59,9 +60,23 @@ export function lensGroups<T extends DiagramLens>(lenses: readonly T[]): { built
 }
 
 export const DEFAULT_DIAGRAM_TAB_ID = 'diagram';
+/** The old Extensions tab. Its content is now in the inspector beside the diagram. */
+export const EXTENSIONS_TAB_ID = 'extensions';
+/** `?extension=<id>` opens the inspector on that extension. An empty value opens it on the first extension. */
+export const EXTENSION_PARAM = 'extension';
+/**
+ * `?exact=1` opens the version in the URL as it is. Without it, the latest version of an architecture with a timeline
+ * opens the timeline's current moment. Typed Hub links and returns add it, so a copied link or a new tab keeps it.
+ */
+export const EXACT_VERSION_PARAM = 'exact';
 export const DEFAULT_DIAGRAM_LENS_ID = 'calm';
 export const JSON_LENS_ID = 'json';
 export const LENS_PARAM = 'lens';
+
+/** The extension that a query opens in the inspector: `?extension=<id>`, or '' for an old `?tab=extensions` link. Null when it names none. */
+export function inspectorExtension(searchParams: URLSearchParams): string | null {
+    return searchParams.get(EXTENSION_PARAM) ?? (searchParams.get('tab') === EXTENSIONS_TAB_ID ? '' : null);
+}
 
 export function visibleDiagramTabs(tabs: readonly DiagramTab[], scope: DiagramTabScope): DiagramTab[] {
     return tabs.filter((tab) => tab.isVisible?.(scope) ?? true);
@@ -93,7 +108,8 @@ export function redirectedTabQuery(
     const redirect = tab !== null && Object.hasOwn(redirects, tab) ? redirects[tab] : undefined;
     if (!redirect) return undefined;
     const query = new URLSearchParams(searchParams);
-    for (const [name, value] of Object.entries(redirect)) query.set(name, value);
+    // An empty value only adds the parameter, so a value that the link gives stays.
+    for (const [name, value] of Object.entries(redirect)) if (value !== '' || !query.has(name)) query.set(name, value);
     // The default tab has no `tab` parameter, as when a user opens it.
     if (query.get('tab') === DEFAULT_DIAGRAM_TAB_ID) query.delete('tab');
     return query;

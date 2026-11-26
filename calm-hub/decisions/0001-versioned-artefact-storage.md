@@ -6,13 +6,13 @@ backends, each with its own migration step, so an existing deployment's data
 moves on first startup after upgrading. Schema versions 2 → 9, one pair of
 steps per type.
 
-`decorators` is the only namespace-scoped collection still on the
-one-document-per-namespace shape, and deliberately so: it is not versioned at
-all, so it never had the growth problem this ADR addresses. `controls` keeps
-the old shape too. Both are excluded by
-[ADR 0004](0004-defer-control-and-decorator-storage.md), which is now worth
-revisiting with the implementation experience it was waiting for. Tracked in
-[#2884](https://github.com/finos/architecture-as-code/issues/2884).
+No namespace-scoped collection keeps the one-document-per-namespace shape.
+Control and Decorator were excluded by
+[ADR 0004](0004-defer-control-and-decorator-storage.md), and later moved by
+their own ADRs: Control to a header/version split
+([ADR 0007](0007-control-storage-header-version-split.md)), and Decorator,
+which is not versioned, to one document per decorator
+([ADR 0020](0020-decorator-storage-one-document-per-decorator.md)).
 
 The "nothing is ever deleted" premise below described the old shape and no
 longer holds: every type this ADR covers, plus Control and Decorator, now

@@ -41,6 +41,7 @@ const EXTENSIONS = [
 ];
 
 const BUILD_LINKS = [
+    {to: '/extensions/why', label: 'Why build one'},
     {to: '/tutorials/advanced/hub-extension', label: 'Tutorial', primary: true},
     {to: '/calm-hub/calm-hub-extension-points', label: 'Extension points'},
     {to: '/calm-hub/calm-hub-extension-blocks', label: 'Extension blocks'},
@@ -89,8 +90,10 @@ export default function Extensions() {
                         <div className={clsx(shared.card, shared.cardTint)}>
                             <h3>Build your own</h3>
                             <p style={{marginBottom: 10}}>
-                                An extension is an HTTP service and a manifest. CALM Hub draws
-                                what it returns, so no extension code runs in the browser.
+                                Show your architectures in your own notation, with data from your
+                                tools, or start your own processes from them. An extension is an
+                                HTTP service and a manifest. CALM Hub draws what it returns, so no
+                                extension code runs in the browser.
                             </p>
                             <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
                                 {BUILD_LINKS.map((link) => (

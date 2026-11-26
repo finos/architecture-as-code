@@ -6,6 +6,7 @@ import {
 import type { Control } from './control-contracts.js';
 import type { ControlEvaluationDecorator, Decorator } from './decorator-contracts.js';
 import type { DecoratorOverlay, DecoratorView } from './decorator-view-contracts.js';
+import type { ReactNode } from 'react';
 import { Data } from '../../model/calm.js';
 import type { StoredNodePosition } from '../services/node-position-service.js';
 import type { PresentationModeStore } from '../../theme/usePresentationMode.js';
@@ -77,11 +78,15 @@ export type SelectedItem = {
 } | null;
 
 /**
- * Props for Sidebar component
+ * Props for Sidebar component, the resizable panel that holds the inspector on a wide screen
  */
 export interface SidebarProps {
-    selectedData: CalmNodeSchema | CalmRelationshipSchema;
-    closeSidebar: () => void;
+    children: ReactNode;
+    id?: string;
+    /** The accessible name of the panel. */
+    label: string;
+    /** Hides the panel and keeps its content mounted. */
+    hidden?: boolean;
     /** Storage instance for persisting the panel width. Defaults to sessionStorage. Inject a fake in tests. */
     storage?: Storage;
 }

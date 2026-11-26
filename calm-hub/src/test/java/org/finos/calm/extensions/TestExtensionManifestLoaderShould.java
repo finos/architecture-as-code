@@ -2,6 +2,7 @@ package org.finos.calm.extensions;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.finos.calm.assets.ImageAsset;
 import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -10,13 +11,20 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -33,6 +41,8 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -191,7 +201,7 @@ class TestExtensionManifestLoaderShould {
         m.getJsonArray("routes").add(route("hub-lens", "POST", "/hub-lens/{namespace}/{resourceType}/{resourceId}", "read")
                 .put("readOnly", true).put("hubData", new JsonArray().add("document").add("detailed-architectures").add("c4-mapping")));
 
-        ExtensionManifest manifest = loader.parse(m.encode(), ID, "test", Map.of("notation.json", NOTATION.encode())::get);
+        ExtensionManifest manifest = loader.parse(m.encode(), ID, "test", files("notation.json", NOTATION.encode()));
 
         assertThat(manifest.route("hub-lens").orElseThrow().hubData(), contains("document", "detailed-architectures", "c4-mapping"));
         assertThat(manifest.route("lens").orElseThrow().hubData(), nullValue());
@@ -200,7 +210,7 @@ class TestExtensionManifestLoaderShould {
     @Test
     void reject_a_lens_with_the_id_of_a_lens_of_hub() {
         IllegalStateException e = assertThrows(IllegalStateException.class,
-                () -> loader.parse(withLens(lens("json")).encode(), ID, "test", Map.of("notation.json", NOTATION.encode())::get));
+                () -> loader.parse(withLens(lens("json")).encode(), ID, "test", files("notation.json", NOTATION.encode())));
 
         assertThat(e.getMessage(), containsString("diagram-lens 'json' has an id that CALM Hub uses for its own lens"));
     }
@@ -243,6 +253,8 @@ class TestExtensionManifestLoaderShould {
     void reject_a_lens_param_with_a_reserved_name_a_bad_pattern_or_a_default_it_does_not_allow() {
         JsonObject params = new JsonObject()
                 .put("node", new JsonObject().put("values", new JsonArray().add("a")))
+                .put("extension", new JsonObject().put("values", new JsonArray().add("a")))
+                .put("exact", new JsonObject().put("values", new JsonArray().add("1")))
                 .put("level", new JsonObject().put("values", new JsonArray().add("context")).put("default", "container"))
                 .put("scope", new JsonObject().put("pattern", "^[a-z]+$").put("default", "Shop"))
                 .put("depth", new JsonObject().put("pattern", "(["));
@@ -251,6 +263,8 @@ class TestExtensionManifestLoaderShould {
                 () -> loader.parse(withLens(lens("c4").put("params", params)).encode(), ID, "test"));
 
         assertThat(e.getMessage(), containsString("param 'node' is reserved by CALM Hub"));
+        assertThat(e.getMessage(), containsString("param 'extension' is reserved by CALM Hub"));
+        assertThat(e.getMessage(), containsString("param 'exact' is reserved by CALM Hub"));
         assertThat(e.getMessage(), containsString("param 'level' default is not one of its values"));
         assertThat(e.getMessage(), containsString("param 'scope' default does not match its pattern"));
         assertThat(e.getMessage(), containsString("param 'depth' pattern is not a valid regular expression"));
@@ -260,10 +274,10 @@ class TestExtensionManifestLoaderShould {
     void reject_a_lens_notation_that_is_missing_not_json_or_names_an_unknown_shape() {
         JsonObject bad = new JsonObject().put("styles", new JsonObject().put("elements", new JsonArray()
                 .add(new JsonObject().put("tag", "Person").put("shape", "Person"))));
-        Map<String, String> files = Map.of("bad.json", bad.encode(), "text.json", "not json");
         JsonObject m = withLens(lens("missing"), lens("text").put("notation", "text.json"), lens("bad").put("notation", "bad.json"));
 
-        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test", files::get));
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(m.encode(), ID, "test", files("bad.json", bad.encode(), "text.json", "not json")));
 
         assertThat(e.getMessage(), containsString("diagram-lens 'missing' notation notation.json is not in the extension folder"));
         assertThat(e.getMessage(), containsString("diagram-lens 'text' notation text.json is not a JSON object"));
@@ -278,6 +292,144 @@ class TestExtensionManifestLoaderShould {
         IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(m.encode(), ID, "test"));
 
         assertThat(e.getMessage(), containsString("/contributes/diagram-lens/0/notation"));
+    }
+
+    @Test
+    void read_and_check_the_logo_files_of_an_operator_manifest() throws IOException {
+        write(ID, valid().put("logo", new JsonObject().put("light", "logo.svg").put("dark", "logo-dark.png")));
+        Files.writeString(tempDir.resolve(ID).resolve("logo.svg"), LOGO_SVG);
+        Files.copy(Path.of("src/test/resources/assets/logo-24x12.png"), tempDir.resolve(ID).resolve("logo-dark.png"));
+
+        ExtensionManifest.Logo logo = loader.loadDirectory(tempDir).getFirst().logo();
+
+        assertThat(logo.light(), equalTo("logo.svg"));
+        assertThat(logo.dark(), equalTo("logo-dark.png"));
+        assertThat(logo.image("light").orElseThrow().mediaType(), equalTo("image/svg+xml"));
+        assertThat(logo.image("dark").orElseThrow().mediaType(), equalTo("image/png"));
+    }
+
+    @Test
+    void keep_a_manifest_without_a_logo_and_a_logo_without_a_dark_file() {
+        assertThat(loader.parse(valid().encode(), ID, "test").logo(), nullValue());
+
+        ExtensionManifest.Logo logo = loader.parse(valid().put("logo", new JsonObject().put("light", "logo.svg")).encode(), ID,
+                "test", files("logo.svg", LOGO_SVG)).logo();
+
+        assertThat(logo.dark(), nullValue());
+        assertThat(logo.image("dark").isEmpty(), is(true));
+        assertThat(logo.image("light").isPresent(), is(true));
+    }
+
+    @Test
+    void reject_a_logo_file_that_is_missing_or_not_a_safe_image() {
+        JsonObject m = valid().put("logo", new JsonObject().put("light", "logo.svg").put("dark", "missing.png"));
+        String script = "<svg xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>";
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(m.encode(), ID, "test", files("logo.svg", script)));
+
+        assertThat(e.getMessage(), containsString("logo light logo.svg has a script element"));
+        assertThat(e.getMessage(), containsString("logo dark missing.png is not in the extension folder"));
+    }
+
+    @Test
+    void refuse_a_logo_file_over_the_size_limit_without_reading_all_of_it_but_not_limit_a_notation_file() throws IOException {
+        write(ID, withLens(lens("c4")).put("logo", new JsonObject().put("light", "logo.svg").put("dark", "logo-dark.svg")));
+        Path dir = tempDir.resolve(ID);
+        Files.writeString(dir.resolve("notation.json"), NOTATION.encode() + " ".repeat(ImageAsset.MAX_BYTES));
+        String start = "<svg xmlns='http://www.w3.org/2000/svg'><!--";
+        String end = "--></svg>";
+        Files.writeString(dir.resolve("logo.svg"), start + "x".repeat(ImageAsset.MAX_BYTES - start.length() - end.length()) + end);
+        // Sparse, and larger than a Java array can be, so a read of all of it fails.
+        try (RandomAccessFile file = new RandomAccessFile(dir.resolve("logo-dark.svg").toFile(), "rw")) {
+            file.setLength(3L * 1024 * 1024 * 1024);
+        }
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.loadDirectory(tempDir));
+
+        assertThat(e.getMessage(), containsString("logo dark logo-dark.svg is more than the limit of 262144 bytes"));
+        assertThat(e.getMessage(), not(containsString("logo light")));
+        assertThat(e.getMessage(), not(containsString("notation")));
+    }
+
+    @Test
+    void read_no_more_of_a_built_in_logo_than_the_size_limit_and_one_byte() {
+        long[] read = {0};
+        boolean[] closed = {false};
+        InputStream large = new InputStream() {
+            private long left = 16L * 1024 * 1024;
+
+            @Override
+            public int read() {
+                byte[] one = new byte[1];
+                return read(one, 0, 1) < 0 ? -1 : one[0];
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) {
+                if (left == 0) {
+                    return -1;
+                }
+                int n = (int) Math.min(len, left);
+                Arrays.fill(b, off, off + n, (byte) ' ');
+                left -= n;
+                read[0] += n;
+                return n;
+            }
+
+            @Override
+            public void close() {
+                closed[0] = true;
+            }
+        };
+        String manifest = valid().put("logo", new JsonObject().put("light", "logo.svg")).encode();
+        ClassLoader builtins = new ClassLoader(null) {
+            @Override
+            public InputStream getResourceAsStream(String name) {
+                return switch (name) {
+                    case "large/index.txt" -> new ByteArrayInputStream(ID.getBytes(StandardCharsets.UTF_8));
+                    case "large/" + ID + "/extension.json" -> new ByteArrayInputStream(manifest.getBytes(StandardCharsets.UTF_8));
+                    case "large/" + ID + "/logo.svg" -> large;
+                    default -> null;
+                };
+            }
+        };
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.loadClasspath(builtins, "large/"));
+
+        assertThat(e.getMessage(), containsString("logo light logo.svg is more than the limit of 262144 bytes"));
+        assertThat(read[0], lessThanOrEqualTo(ImageAsset.MAX_BYTES + 1L));
+        assertThat(closed[0], is(true));
+    }
+
+    @ParameterizedTest
+    @MethodSource("logosTheSchemaRefuses")
+    void reject_a_logo_that_the_schema_refuses(JsonObject logo, String location) {
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(valid().put("logo", logo).encode(), ID, "test", files("logo.svg", LOGO_SVG)));
+
+        assertThat(e.getMessage(), containsString(location));
+    }
+
+    static Stream<Arguments> logosTheSchemaRefuses() {
+        return Stream.of(
+                Arguments.of(new JsonObject().put("light", "../logo.svg"), "/logo/light"),
+                Arguments.of(new JsonObject().put("light", "https://example.com/logo.svg"), "/logo/light"),
+                Arguments.of(new JsonObject().put("light", "logo.gif"), "/logo/light"),
+                Arguments.of(new JsonObject().put("dark", "logo.svg"), "/logo"),
+                Arguments.of(new JsonObject().put("light", "logo.svg").put("alt", "Logo"), "/logo"));
+    }
+
+    private static final String LOGO_SVG = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'>"
+            + "<circle cx='8' cy='8' r='6' fill='#0f766e'/></svg>";
+
+    /** Sibling files by name, as the loader reads them. */
+    private static Function<String, InputStream> files(String... namesAndTexts) {
+        Map<String, byte[]> files = new HashMap<>();
+        for (int i = 0; i < namesAndTexts.length; i += 2) {
+            files.put(namesAndTexts[i], namesAndTexts[i + 1].getBytes(StandardCharsets.UTF_8));
+        }
+        return name -> files.containsKey(name) ? new ByteArrayInputStream(files.get(name)) : null;
     }
 
     private static JsonObject withLens(JsonObject... lenses) {
@@ -363,8 +515,38 @@ class TestExtensionManifestLoaderShould {
                 invalid("a contribution with an unknown route", m -> m.getJsonObject("contributes").getJsonArray("screen").add(contribution("x", "missing")), "screen 'x' names route 'missing', which is not declared"),
                 invalid("a screen on a POST route", m -> m.getJsonObject("contributes").getJsonArray("screen").add(contribution("x", "add-service")), "screen 'x' must name a GET route"),
                 invalid("a duplicate contribution id", m -> m.getJsonObject("contributes").getJsonArray("screen").add(contribution("services", "screen")), "screen 'services' is declared more than once"),
-                invalid("a duplicate decorator view id", m -> m.getJsonObject("contributes").getJsonArray("decorator-views").add(decoratorView("control-evaluation")), "decorator-views 'control-evaluation' is declared more than once")
+                invalid("a duplicate decorator view id", m -> m.getJsonObject("contributes").getJsonArray("decorator-views").add(decoratorView("control-evaluation")), "decorator-views 'control-evaluation' is declared more than once"),
+                invalid("a search provider on a GET route", m -> searchProvider(m, "screen"),
+                        "search-provider 'find' must name a readOnly POST route with no path parameters and no hubData, but route 'screen' is not"),
+                invalid("a search provider on a route that writes", m -> searchProvider(m, "add-service"),
+                        "search-provider 'find' must name a readOnly POST route"),
+                invalid("a search provider route with a path parameter", m -> {
+                    m.getJsonArray("routes").add(route("search", "POST", "/search/{kind}", "authenticated").put("readOnly", true));
+                    searchProvider(m, "search");
+                }, "search-provider 'find' must name a readOnly POST route with no path parameters"),
+                invalid("a command on a search provider route", m -> {
+                    withSearch(m);
+                    m.getJsonObject("commands").put("find", command(m).copy().put("route", "search")
+                            .put("input", new JsonObject().put("type", "object")));
+                }, "route 'search' is named by search-provider 'find', command 'find'. Only CALM Hub calls this route"),
+                invalid("an action on a search provider route", m -> {
+                    withSearch(m);
+                    m.getJsonObject("contributes").getJsonArray("action").add(contribution("run-search", "search"));
+                }, "route 'search' is named by action 'run-search', search-provider 'find'"),
+                invalid("two search providers on one route", m -> {
+                    withSearch(m);
+                    m.getJsonObject("contributes").getJsonArray("search-provider").add(contribution("again", "search"));
+                }, "route 'search' is named by search-provider 'find', search-provider 'again'")
         );
+    }
+
+    private static void searchProvider(JsonObject manifest, String route) {
+        manifest.getJsonObject("contributes").put("search-provider", new JsonArray().add(contribution("find", route)));
+    }
+
+    private static void withSearch(JsonObject manifest) {
+        manifest.getJsonArray("routes").add(route("search", "POST", "/search", "authenticated").put("readOnly", true));
+        searchProvider(manifest, "search");
     }
 
     private static Arguments invalid(String name, Consumer<JsonObject> change, String expected) {
@@ -395,6 +577,64 @@ class TestExtensionManifestLoaderShould {
         assertThat(e.getMessage(), equalTo("Invalid extension manifest test: "
                 + "/: Instance does not have required property \"version\"; "
                 + "/routes/0/readonly: Property \"readonly\" does not match additional properties schema"));
+    }
+
+    static JsonObject withChat() {
+        JsonObject manifest = valid();
+        manifest.getJsonArray("routes").add(route("chat", "POST", "/chat", "authenticated").put("readOnly", true));
+        manifest.getJsonObject("contributes").put("chat", new JsonArray().add(contribution("atlas", "chat")));
+        return manifest;
+    }
+
+    @Test
+    void accept_a_chat_on_a_read_only_post_route_and_dedicate_the_route_to_it() {
+        ExtensionManifest manifest = loader.parse(withChat().encode(), ID, "test");
+
+        assertThat(manifest.dedicatedRoutes(), equalTo(java.util.Set.of("chat")));
+    }
+
+    @Test
+    void refuse_a_chat_route_that_can_write_has_path_parameters_or_has_hub_data() {
+        JsonObject writes = withChat();
+        writes.getJsonArray("routes").getJsonObject(4).remove("readOnly");
+        JsonObject get = withChat();
+        get.getJsonArray("routes").getJsonObject(4).put("method", "GET");
+        JsonObject parameters = withChat();
+        parameters.getJsonArray("routes").getJsonObject(4).put("path", "/chat/{namespace}");
+
+        for (JsonObject manifest : List.of(writes, get, parameters)) {
+            IllegalStateException e = assertThrows(IllegalStateException.class, () -> loader.parse(manifest.encode(), ID, "test"));
+            assertThat(e.getMessage(), containsString("chat 'atlas' must name a readOnly POST route with no path parameters and "
+                    + "no hubData, but route 'chat' is not one"));
+        }
+    }
+
+    @Test
+    void refuse_a_command_or_another_entry_that_names_a_chat_route() {
+        JsonObject command = withChat();
+        command.getJsonObject("commands").put("ask", new JsonObject()
+                .put("route", "chat").put("description", "Ask").put("input", new JsonObject().put("type", "object")));
+        JsonObject search = withChat();
+        search.getJsonObject("contributes").put("search-provider", new JsonArray().add(contribution("find", "chat")));
+        JsonObject twoChats = withChat();
+        twoChats.getJsonObject("contributes").getJsonArray("chat").add(contribution("other", "chat"));
+
+        assertThat(assertThrows(IllegalStateException.class, () -> loader.parse(command.encode(), ID, "test")).getMessage(),
+                containsString("route 'chat' is named by chat 'atlas', command 'ask'. Only CALM Hub calls this route"));
+        assertThat(assertThrows(IllegalStateException.class, () -> loader.parse(search.encode(), ID, "test")).getMessage(),
+                containsString("route 'chat' is named by chat 'atlas', search-provider 'find'. Only CALM Hub calls this route"));
+        assertThat(assertThrows(IllegalStateException.class, () -> loader.parse(twoChats.encode(), ID, "test")).getMessage(),
+                containsString("route 'chat' is named by chat 'atlas', chat 'other'. Only CALM Hub calls this route"));
+    }
+
+    @Test
+    void reserve_the_chat_provider_id() {
+        JsonObject manifest = valid().put("id", "chat-provider");
+
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> loader.parse(manifest.encode(), "chat-provider", "test"));
+
+        assertThat(e.getMessage(), containsString("id 'chat-provider' is reserved for calm.extensions.chat-provider"));
     }
 
     @Test
@@ -525,7 +765,7 @@ class TestExtensionManifestLoaderShould {
         assertThat(manifests.stream().map(ExtensionManifest::id).toList(), contains("release-tracker"));
         ExtensionManifest releases = manifests.get(0);
         assertThat(releases.contributes().byRoutePoint().keySet(),
-                contains("action", "designer-tab", "detail-panel", "landing-card", "screen"));
+                contains("action", "designer-tab", "detail-panel", "landing-card", "screen", "search-provider"));
         assertThat(releases.contributes().decoratorViews(), hasSize(1));
         assertThat(releases.contributes().decoratorViews().get(0).match().type(), equalTo("release-risk"));
     }

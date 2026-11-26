@@ -1,4 +1,5 @@
 import { IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5';
+import { PanelRight } from 'lucide-react';
 import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import { NodeDetails } from './NodeDetails.js';
 import { RelationshipDetails } from './RelationshipDetails.js';
@@ -13,6 +14,8 @@ export interface NodeSheetProps {
     onPrev?: () => void;
     /** Step to the next node; absent/undefined disables the › stepper. */
     onNext?: () => void;
+    /** Opens the full-screen inspector, with the extensions, for this selection. */
+    onOpenInspector?: () => void;
 }
 
 /**
@@ -26,7 +29,7 @@ export interface NodeSheetProps {
  * and match the desktop drawer; the sheet only owns the grab handle, the
  * prev/next steppers and the close affordance.
  */
-export function NodeSheet({ selectedData, closeSheet, onPrev, onNext }: NodeSheetProps) {
+export function NodeSheet({ selectedData, closeSheet, onPrev, onNext, onOpenInspector }: NodeSheetProps) {
     const isNode = isCALMNode(selectedData);
 
     return (
@@ -57,8 +60,14 @@ export function NodeSheet({ selectedData, closeSheet, onPrev, onNext }: NodeShee
                     />
                 </div>
 
-                {/* Steppers (node-only) + close. */}
+                {/* Inspector, steppers (node-only) + close. */}
                 <div className="flex items-center justify-end gap-1 px-3 pb-1 shrink-0">
+                    {onOpenInspector && (
+                        <button type="button" onClick={onOpenInspector} className="btn btn-ghost btn-xs gap-1 mr-auto text-primary">
+                            <PanelRight size={14} aria-hidden="true" />
+                            Inspector
+                        </button>
+                    )}
                     {isNode && (
                         <>
                             <button
