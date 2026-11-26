@@ -83,7 +83,9 @@ export function hasChanges(diff: DiffResult): boolean {
         (diff.undiffableItems?.nodes.length ?? 0) > 0 ||
         (diff.undiffableItems?.relationships.length ?? 0) > 0 ||
         (diff.obligationChanged?.nodes.length ?? 0) > 0 ||
-        (diff.obligationChanged?.relationships.length ?? 0) > 0
+        (diff.obligationChanged?.relationships.length ?? 0) > 0 ||
+        diff.minItemsChanged?.nodes !== undefined ||
+        diff.minItemsChanged?.relationships !== undefined
     );
 }
 
@@ -150,6 +152,9 @@ export function formatDiff(
         `Nodes:         +${diff.nodesAdded.length}  -${diff.nodesRemoved.length}  ~${nodesModified}  ↔${diff.nodesRenamed.length}  =${diff.nodesSame.length}`,
         `Relationships: +${diff.edgesAdded.length}  -${diff.edgesRemoved.length}  ~${edgesModified}  ↔${diff.edgesRenamed.length}  =${diff.edgesSame.length}`,
     ];
+    const minItems = diff.minItemsChanged;
+    if (minItems?.nodes) lines.push(`Nodes minItems:         ${minItems.nodes.from} -> ${minItems.nodes.to}`);
+    if (minItems?.relationships) lines.push(`Relationships minItems: ${minItems.relationships.from} -> ${minItems.relationships.to}`);
     const flows = {
         added: diff.flowsAdded?.length ?? 0,
         removed: diff.flowsRemoved?.length ?? 0,

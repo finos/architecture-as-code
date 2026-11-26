@@ -202,6 +202,7 @@ describe('runDiff', () => {
         expect(result.hasChanges).toBe(true);
         expect(result.formatted).toContain('Nodes:         +0  -0  ~1  ↔0  =0');
         expect(result.formatted).toContain('Nodes modified:\n  - cache (required -> catalogue)');
+        expect(result.formatted).toContain('Nodes minItems:         1 -> 0');
     });
 
     it('diffs two pattern files and reports a pattern-titled summary', async () => {
@@ -307,6 +308,11 @@ describe('hasChanges', () => {
         expect(hasChanges(r)).toBe(true);
     });
 
+    it('returns true when only a minItems change is present', () => {
+        const r: NodesAndRelationshipsDiffResult = { ...emptyResult, minItemsChanged: { relationships: { from: 1, to: 2 } } };
+        expect(hasChanges(r)).toBe(true);
+    });
+
     it('returns true when only obligation changes are present', () => {
         const r: NodesAndRelationshipsDiffResult = {
             ...emptyResult,
@@ -379,7 +385,7 @@ describe('formatDiff', () => {
             obligationChanged: {
                 nodes: [
                     { item: { 'unique-id': 'db' }, from: 'required', to: 'alternative' },
-                    { item: { 'unique-id': 'new' }, from: 'optional', to: 'catalogue' },
+                    { item: { 'unique-id': 'new' }, from: 'alternative', to: 'catalogue' },
                     { item: { 'unique-id': 'cache' }, from: 'catalogue', to: 'required' },
                 ] as never,
                 relationships: [],
@@ -388,7 +394,7 @@ describe('formatDiff', () => {
         const out = formatDiff(r, 'summary', 'pattern');
         expect(out).toContain('Nodes:         +0  -0  ~2  ↔1  =0');
         expect(out).toContain('Nodes modified:\n  - db (required -> alternative)\n  - cache (catalogue -> required)');
-        expect(out).toContain('Nodes renamed:\n  - old -> new (optional -> catalogue)');
+        expect(out).toContain('Nodes renamed:\n  - old -> new (alternative -> catalogue)');
     });
 
     it('surfaces architecture-level ADR, control, and metadata counts in the summary view', () => {
