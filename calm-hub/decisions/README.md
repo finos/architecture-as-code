@@ -20,7 +20,7 @@ assuming anything here reflects current behaviour.
 | [0001](0001-versioned-artefact-storage.md) | Versioned artefact storage redesign | Implemented |
 | [0002](0002-version-key-encoding.md) | Version field encoding — dots, not dashes | Implemented |
 | [0003](0003-shared-version-store-helper.md) | Shared header/version store helper | Implemented |
-| [0004](0004-defer-control-and-decorator-storage.md) | Defer Control and Decorator storage redesign | Accepted — fulfilled for Control by 0007; Decorator still deferred |
+| [0004](0004-defer-control-and-decorator-storage.md) | Defer Control and Decorator storage redesign | Accepted — fulfilled for Control by 0007 and for Decorator by 0020 |
 | [0005](0005-layout-is-hub-internal-not-a-calm-schema.md) | Layout is a Hub-internal shape, not a CALM schema | Implemented |
 | [0006](0006-denormalize-adr-title-onto-header.md) | Denormalize ADR title onto the header | Implemented |
 | [0007](0007-control-storage-header-version-split.md) | Control storage — header/version split via two composed helper instances | Implemented |
@@ -33,6 +33,7 @@ assuming anything here reflects current behaviour.
 | [0014](0014-extension-commands-in-the-cli-and-mcp.md) | Extension commands in the CLI and MCP | Accepted — CLI and MCP built |
 | [0015](0015-architecture-validation-is-a-hub-feature-behind-an-spi.md) | Architecture validation is a Hub feature behind an SPI, recorded async first | Accepted — not built |
 | [0016](0016-store-write-seam-and-outbox-for-post-write-events.md) | Store write seam and outbox for post-write events | Accepted — not built |
-| [0017](0017-reserved-decorator-types-and-decorator-history.md) | Reserved decorator types and decorator history | Accepted — reserved types, Standard check and `supersedes` history built; `validation`, `system` flag, key supersede, #3639 not built |
+| [0017](0017-reserved-decorator-types-and-decorator-history.md) | Reserved decorator types and decorator history | Accepted — reserved types, Standard check, `supersedes` history and one document per decorator built; `validation`, `system` flag, key supersede not built |
 | [0018](0018-personal-namespaces.md) | Personal namespaces | Accepted |
 | [0019](0019-convention-type-registry-and-namespace-defaults.md) | Convention type registry and namespace defaults | Implemented |
+| [0020](0020-decorator-storage-one-document-per-decorator.md) | Decorator storage — one document per decorator | Implemented |
