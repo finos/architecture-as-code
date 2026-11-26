@@ -16,7 +16,28 @@ describe('computeChanges', () => {
             pattern({ prefixItems: [], items: { anyOf: [cache] } }),
             pattern({ prefixItems: [cache] })
         );
-        expect(changes).toEqual([{ kind: 'mod', text: 'Node cache changed from catalogue to required' }]);
+        expect(changes).toEqual([
+            { kind: 'mod', text: 'Modified node cache (catalogue → required)' },
+            { kind: 'mod', text: 'Changed nodes minItems 0 → 1' },
+        ]);
+    });
+
+    it('shows the obligation change of a modified node on its one row', () => {
+        const database = { properties: { 'unique-id': { const: 'cache' }, 'node-type': { const: 'service' } } };
+        const changes = computeChanges('Patterns', pattern({ prefixItems: [cache] }), pattern({ prefixItems: [], items: { anyOf: [database] } }));
+        expect(changes).toEqual([
+            { kind: 'mod', text: 'Modified node cache (required → catalogue)' },
+            { kind: 'mod', text: 'Changed nodes minItems 1 → 0' },
+        ]);
+    });
+
+    it('shows the obligation change of a renamed node on its one row', () => {
+        const renamed = { properties: { 'unique-id': { const: 'cache-v2' }, 'node-type': { const: 'database' } } };
+        const changes = computeChanges('Patterns', pattern({ prefixItems: [cache] }), pattern({ prefixItems: [], items: { anyOf: [renamed] } }));
+        expect(changes).toEqual([
+            { kind: 'mod', text: 'Renamed node cache → cache-v2 (required → catalogue)' },
+            { kind: 'mod', text: 'Changed nodes minItems 1 → 0' },
+        ]);
     });
 
     it('returns no changes when a version is missing', () => {

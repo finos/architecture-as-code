@@ -93,7 +93,11 @@ export function InlineDiffSummary({ diffResult }: InlineDiffSummaryProps) {
     const edgeDels = diffResult.edgesRemoved.length;
     const totalNodes = nodeAdds + nodeMods + nodeDels;
     const totalEdges = edgeAdds + edgeMods + edgeDels;
-    const total = totalNodes + totalEdges;
+    const minItems = (['nodes', 'relationships'] as const).flatMap((key) => {
+        const change = diffResult.minItemsChanged?.[key];
+        return change ? [{ key, change }] : [];
+    });
+    const total = totalNodes + totalEdges + minItems.length;
     const unchanged = diffResult.nodesSame.length + diffResult.edgesSame.length;
 
     return (
@@ -210,6 +214,13 @@ export function InlineDiffSummary({ diffResult }: InlineDiffSummaryProps) {
                                 name={relationshipName(e)}
                                 type={relationshipType(e)}
                             />
+                        ))}
+                    </Section>
+                )}
+                {minItems.length > 0 && (
+                    <Section label={`MINITEMS CHANGED (${minItems.length})`}>
+                        {minItems.map(({ key, change }) => (
+                            <Pill key={`min-items-${key}`} kind="mod" name={key} type={`${change.from} → ${change.to}`} />
                         ))}
                     </Section>
                 )}

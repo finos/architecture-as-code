@@ -35,6 +35,13 @@ describe('InlineDiffSummary', () => {
         expect(screen.getByText('(catalogue → alternative)')).toBeInTheDocument();
     });
 
+    it('shows a minItems change and counts it in the total', () => {
+        render(<InlineDiffSummary diffResult={{ ...emptyDiff, minItemsChanged: { nodes: { from: 1, to: 2 } } }} />);
+        expect(screen.getByText('MINITEMS CHANGED (1)')).toBeInTheDocument();
+        expect(screen.getByText('(1 → 2)')).toBeInTheDocument();
+        expect(screen.getByText('Total Changes').previousSibling).toHaveTextContent('1');
+    });
+
     it('shows the obligation change of a modified node on its one pill', () => {
         const original = { 'unique-id': 'cache', 'node-type': 'service' };
         const updated = { 'unique-id': 'cache', 'node-type': 'database' };
