@@ -233,13 +233,12 @@ describe('obligation changes', () => {
         type: 'object',
         properties: { 'unique-id': { const: id } },
     });
-    const pattern = (
-        nodes: { prefixItems: unknown[]; items?: unknown },
-        relationships: { prefixItems: unknown[]; items?: unknown } = { prefixItems: [] },
-    ) => ({
+    type ArraySchema = { prefixItems: unknown[]; items?: unknown; minItems?: number };
+    const array = (field: ArraySchema) => ({ type: 'array', minItems: field.prefixItems.length, ...field });
+    const pattern = (nodes: ArraySchema, relationships: ArraySchema = { prefixItems: [] }) => ({
         properties: {
-            nodes: { type: 'array', ...nodes },
-            relationships: { type: 'array', ...relationships },
+            nodes: array(nodes),
+            relationships: array(relationships),
         },
     });
 
@@ -297,6 +296,30 @@ describe('obligation changes', () => {
         expect(result.obligationChanged?.nodes).toEqual([
             { item: { 'unique-id': 'cache-v2', 'node-type': 'service' }, from: 'required', to: 'catalogue' },
         ]);
+    });
+
+    it('treats an entry after minItems as optional', () => {
+        const optional = pattern({ prefixItems: [node('webapp'), node('cache')], minItems: 1 });
+        expect(diffPatterns(optional, catalogue).obligationChanged?.nodes.map((c) => [c.from, c.to]))
+            .toEqual([['optional', 'catalogue']]);
+    });
+
+    it('reports an entry that a change to minItems makes required', () => {
+        const optional = pattern({ prefixItems: [node('webapp'), node('cache')], minItems: 1 });
+        const result = diffPatterns(optional, required);
+        expect(result.obligationChanged?.nodes.map((c) => [c.item['unique-id'], c.from, c.to]))
+            .toEqual([['cache', 'optional', 'required']]);
+        expect(result.nodesSame.map((n) => n['unique-id'])).toEqual(['webapp']);
+    });
+
+    it('reads minItems from an allOf branch', () => {
+        const split = {
+            allOf: [
+                { properties: { nodes: { type: 'array', prefixItems: [node('webapp'), node('cache')] } } },
+                { properties: { nodes: { minItems: 1 } } },
+            ],
+        };
+        expect(diffPatterns(split, catalogue).obligationChanged?.nodes.map((c) => c.from)).toEqual(['optional']);
     });
 
     it('does not report a node that stays at the same obligation', () => {

@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { computeChanges } from './perVersionChanges.js';
 
 const cache = { properties: { 'unique-id': { const: 'cache' }, 'node-type': { const: 'database' } } };
-const pattern = (nodes: Record<string, unknown>) => ({
-    properties: { nodes: { type: 'array', ...nodes }, relationships: { type: 'array', prefixItems: [] } },
+const pattern = (nodes: { prefixItems: unknown[]; items?: unknown }) => ({
+    properties: {
+        nodes: { type: 'array', minItems: nodes.prefixItems.length, ...nodes },
+        relationships: { type: 'array', prefixItems: [] },
+    },
 });
 
 describe('computeChanges', () => {

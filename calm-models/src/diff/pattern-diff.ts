@@ -80,6 +80,12 @@ function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
     return (field?.['prefixItems'] as SchemaObject[]) ?? [];
 }
 
+/** Only the first `minItems` entries of `prefixItems` must be present. */
+function getMinItems(pattern: SchemaObject, key: string): number {
+    const field = findField(pattern, key, (f) => typeof f['minItems'] === 'number');
+    return (field?.['minItems'] as number | undefined) ?? 0;
+}
+
 /** A catalogue declares its members as the alternatives of `items`. */
 function getCatalogueMembers(pattern: SchemaObject, key: string): SchemaObject[] {
     const field = findField(pattern, key, (f) => alternativesOf(f['items']) !== undefined);
@@ -87,7 +93,7 @@ function getCatalogueMembers(pattern: SchemaObject, key: string): SchemaObject[]
 }
 
 /** A pattern can declare an id more than once. The strongest obligation counts. */
-const OBLIGATION_STRENGTH: Record<PatternObligation, number> = { required: 2, alternative: 1, catalogue: 0 };
+const OBLIGATION_STRENGTH: Record<PatternObligation, number> = { required: 3, optional: 2, alternative: 1, catalogue: 0 };
 
 interface Declaration {
     schema: SchemaObject;
@@ -101,14 +107,15 @@ interface Declaration {
  */
 function declarationsFor(pattern: SchemaObject, key: string): Declaration[] {
     const declarations: Declaration[] = [];
-    for (const item of getPrefixItems(pattern, key)) {
+    const minItems = getMinItems(pattern, key);
+    for (const [index, item] of getPrefixItems(pattern, key).entries()) {
         const alternatives = alternativesOf(item);
         if (alternatives) {
             for (const alt of alternatives) {
                 if (isObject(alt)) declarations.push({ schema: alt, obligation: 'alternative' });
             }
         } else {
-            declarations.push({ schema: item, obligation: 'required' });
+            declarations.push({ schema: item, obligation: index < minItems ? 'required' : 'optional' });
         }
     }
     for (const member of getCatalogueMembers(pattern, key)) {

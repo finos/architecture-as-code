@@ -60,10 +60,11 @@ export interface UndiffableDiffItems {
 }
 
 /**
- * How a pattern declares an item: a plain `prefixItems` entry, one alternative
- * of a `oneOf`/`anyOf` entry, or a member of the `items` catalogue.
+ * How a pattern declares an item: a plain `prefixItems` entry inside `minItems`
+ * (`required`) or after it (`optional`), one alternative of a `oneOf`/`anyOf`
+ * entry, or a member of the `items` catalogue.
  */
-export type PatternObligation = 'required' | 'alternative' | 'catalogue';
+export type PatternObligation = 'required' | 'optional' | 'alternative' | 'catalogue';
 
 export interface ObligationChange<T> {
     item: T;
