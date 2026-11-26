@@ -41,22 +41,7 @@ jobs:
               run: bash scripts/osv-install.sh
 
             - name: Scan dependencies
-              run: |
-                  set +e
-                  ./osv-scanner scan source \
-                    --config osv-scanner.toml \
-                    --lockfile package-lock.json \
-                    --lockfile calm-hub/pom.xml \
-                    --lockfile calm-models/pom.xml \
-                    --format json \
-                    --output-file osv-results.json
-                  STATUS=$?
-                  set -e
-                  # 0 = nothing found, 1 = vulnerabilities found; anything else is a scan error.
-                  if [ "$STATUS" -gt 1 ]; then
-                    echo "❌ osv-scanner failed with exit code $STATUS."
-                    exit "$STATUS"
-                  fi
+              run: bash scripts/osv-scan.sh osv-results.json
 
             - name: Apply severity threshold
               run: bash scripts/osv-threshold.sh osv-results.json "$CVSS_THRESHOLD"
