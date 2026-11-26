@@ -345,8 +345,18 @@ npm run test:eval --workspace calm-ai
 ```
 
 Set `CALM_EVAL_MODEL` to override the Codex CLI model default. Each case makes
-one live attempt. Failed runs report a path under `sandbox/calm-ai-evals/`
-with the workspace and logs. The regular workspace test command runs offline.
+one live attempt. The suite deletes its artifacts after all selected tests pass.
+Failed or interrupted runs preserve the generated files and logs for every case
+under `sandbox/calm-ai-evals/`.
+
+To inspect artifacts from a passing run, set the retention option:
+
+```bash
+CALM_EVAL_KEEP_ARTIFACTS=1 npm run test:eval --workspace calm-ai
+```
+
+The suite prints the directory for retained artifacts. The regular workspace
+test command runs offline.
 
 To add a case, create an `evals/*.eval.ts` Vitest test that calls `runEval` with
 a prompt, output filename, and artifact assertions. The runner installs the

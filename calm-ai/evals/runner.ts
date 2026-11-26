@@ -1,12 +1,18 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, symlink, writeFile } from 'node:fs/promises';
 import { delimiter, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { inject } from 'vitest';
 
 const execute = promisify(execFile);
-const sandbox = fileURLToPath(new URL('../../sandbox/calm-ai-evals/', import.meta.url));
 const cli = fileURLToPath(new URL('../../cli/dist/index.js', import.meta.url));
+
+declare module 'vitest' {
+    interface ProvidedContext {
+        evalRunDirectory: string;
+    }
+}
 
 interface RunOptions {
     cwd: string;
@@ -40,8 +46,7 @@ export async function runEval(
     filename: string,
     assertArtifact: (path: string) => Promise<void>,
 ): Promise<void> {
-    await mkdir(sandbox, { recursive: true });
-    const run = await mkdtemp(join(sandbox, `${assistant.provider}-`));
+    const run = await mkdtemp(join(inject('evalRunDirectory'), `${assistant.provider}-`));
     const cwd = join(run, 'workspace');
     const bin = join(run, 'bin');
     const env = { ...process.env, PATH: [bin, process.env.PATH].join(delimiter) };
@@ -81,6 +86,4 @@ export async function runEval(
         const detail = error instanceof Error ? error.message.split('\n')[0] : String(error);
         throw new Error(`${stage} failed: ${detail}. Artifacts and logs: ${run}`, { cause: error });
     }
-
-    await rm(run, { recursive: true, force: true });
 }
