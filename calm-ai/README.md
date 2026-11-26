@@ -333,3 +333,21 @@ All tool prompts must:
 - **CALM Schema**: https://calm.finos.org/release/1.3/meta/calm.json
 - **User Docs**: https://calm.finos.org
 - **VSCode Extension**: See `calm-plugins/vscode/AGENTS.md`
+
+## Running skill evals
+
+The live Vitest suite needs Node 26, Git, and an authenticated Codex CLI with
+`codex exec --ignore-user-config` support on macOS or Linux. Run from the repo root.
+
+```bash
+npm run build:cli
+npm run test:eval --workspace calm-ai
+```
+
+Set `CALM_EVAL_MODEL` to override the Codex CLI model default. Each case makes
+one live attempt. Failed runs report a path under `sandbox/calm-ai-evals/`
+with the workspace and logs. The regular workspace test command runs offline.
+
+To add a case, create an `evals/*.eval.ts` Vitest test that calls `runEval` with
+a prompt, output filename, and artifact assertions. The runner installs the
+assistant's CALM skill and runs strict CALM validation before the assertions.
