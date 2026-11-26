@@ -26,10 +26,10 @@ interface Assistant {
     run(prompt: string, options: RunOptions): Promise<{ stdout: string; stderr: string }>;
 }
 
-function runAssistant(command: string, args: string[], prompt: string, options: RunOptions) {
+function runAssistant(command: string, args: string[], promptArgs: string[], options: RunOptions) {
     const model = options.env.CALM_EVAL_MODEL;
     const execution = execute(command, [
-        ...args, ...(model ? ['--model', model] : []), '--', prompt,
+        ...args, ...(model ? ['--model', model] : []), ...promptArgs,
     ], { ...options, maxBuffer: 16 * 1024 * 1024 });
     execution.child.stdin?.end();
     return execution;
@@ -42,7 +42,7 @@ const codex: Assistant = {
         return runAssistant('codex', [
             '--ask-for-approval', 'never', 'exec', '--sandbox', 'workspace-write',
             '--ignore-user-config', '--ephemeral', '--json',
-        ], prompt, options);
+        ], ['--', prompt], options);
     },
 };
 
@@ -55,7 +55,29 @@ const claude: Assistant = {
             '--restricted', '--strict-mcp-config', '--permission-mode', 'dontAsk',
             '--tools', 'Read,Glob,Grep,Write,Edit,Bash',
             '--allowedTools', 'Read,Glob,Grep,Write,Edit,Bash(which calm),Bash(command -v calm),Bash(calm validate *)',
-        ], prompt, options);
+        ], ['--', prompt], options);
+    },
+};
+
+const copilot: Assistant = {
+    provider: 'copilot',
+    skillPath: '.github/agents/CALM.agent.md',
+    run(prompt, options) {
+        return runAssistant('copilot', [
+            '--output-format', 'json', '--no-ask-user',
+            '--no-custom-instructions', '--disable-builtin-mcps', '--disallow-temp-dir',
+            '--available-tools=bash,view,glob,grep,create,edit,apply_patch',
+            `--allow-tool=write(${options.cwd}/**),shell(calm validate:*),shell(which calm),shell(command -v calm)`,
+        ], ['--prompt', prompt], {
+            ...options,
+            env: {
+                ...options.env,
+                COPILOT_ALLOW_ALL: 'false',
+                COPILOT_ASSISTED_APPROVAL: 'false',
+                COPILOT_AUTO_UPDATE: 'false',
+                COPILOT_DISABLE_LOGIN_SHELL_ENV: '1',
+            },
+        });
     },
 };
 
@@ -63,7 +85,8 @@ export function selectAssistant(name = process.env.CALM_EVAL_ASSISTANT ?? 'codex
     switch (name) {
         case 'codex': return codex;
         case 'claude': return claude;
-        default: throw new Error(`Unsupported CALM_EVAL_ASSISTANT "${name}". Choose codex or claude.`);
+        case 'copilot': return copilot;
+        default: throw new Error(`Unsupported CALM_EVAL_ASSISTANT "${name}". Choose codex, claude, or copilot.`);
     }
 }
 

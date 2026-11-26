@@ -339,12 +339,14 @@ All tool prompts must:
 The live Vitest suite needs Node 26, Git, and an authenticated assistant CLI
 on macOS or Linux. Codex is the default and requires
 `codex exec --ignore-user-config` support. Claude Code requires a `claude` CLI
-with `--restricted` support. Run from the repo root.
+with `--restricted` support. GitHub Copilot requires the standalone `copilot`
+CLI with `--prompt` and `--output-format json` support. Run from the repo root.
 
 ```bash
 npm run build:cli
 npm run test:eval --workspace calm-ai
 CALM_EVAL_ASSISTANT=claude npm run test:eval --workspace calm-ai
+CALM_EVAL_ASSISTANT=copilot npm run test:eval --workspace calm-ai
 ```
 
 Set `CALM_EVAL_MODEL` to override the selected assistant's default model. Each case makes
