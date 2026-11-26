@@ -298,33 +298,57 @@ describe('obligation changes', () => {
         ]);
     });
 
-    it('treats an entry after minItems as optional', () => {
-        const optional = pattern({ prefixItems: [node('webapp'), node('cache')], minItems: 1 });
-        expect(diffPatterns(optional, catalogue).obligationChanged?.nodes.map((c) => [c.from, c.to]))
-            .toEqual([['optional', 'catalogue']]);
-    });
-
-    it('reports an entry that a change to minItems makes required', () => {
-        const optional = pattern({ prefixItems: [node('webapp'), node('cache')], minItems: 1 });
-        const result = diffPatterns(optional, required);
-        expect(result.obligationChanged?.nodes.map((c) => [c.item['unique-id'], c.from, c.to]))
-            .toEqual([['cache', 'optional', 'required']]);
-        expect(result.nodesSame.map((n) => n['unique-id'])).toEqual(['webapp']);
-    });
-
-    it('reads minItems from an allOf branch', () => {
-        const split = {
-            allOf: [
-                { properties: { nodes: { type: 'array', prefixItems: [node('webapp'), node('cache')] } } },
-                { properties: { nodes: { minItems: 1 } } },
-            ],
-        };
-        expect(diffPatterns(split, catalogue).obligationChanged?.nodes.map((c) => c.from)).toEqual(['optional']);
-    });
-
     it('does not report a node that stays at the same obligation', () => {
         const oneOfSlot = pattern({ prefixItems: [node('webapp'), { oneOf: [node('cache')] }] });
         expect(diffPatterns(anyOfSlot, oneOfSlot).obligationChanged).toBeUndefined();
         expect(diffPatterns(catalogue, catalogue).obligationChanged).toBeUndefined();
+    });
+});
+
+describe('minItems changes', () => {
+    const node = (id: string) => ({
+        type: 'object',
+        properties: { 'unique-id': { const: id }, 'node-type': { const: 'service' } },
+    });
+    const pattern = (nodes: Record<string, unknown>, relationships: Record<string, unknown> = { prefixItems: [] }) => ({
+        properties: {
+            nodes: { type: 'array', ...nodes },
+            relationships: { type: 'array', ...relationships },
+        },
+    });
+
+    it.each([
+        ['plain entries', { prefixItems: [node('webapp'), node('cache')] }],
+        ['an alternative entry', { prefixItems: [node('webapp'), { oneOf: [node('cache'), node('queue')] }] }],
+        ['a catalogue', { prefixItems: [node('webapp')], items: { anyOf: [node('cache')] } }],
+    ])('reports a minItems change on %s, and no item change', (_, nodes) => {
+        const result = diffPatterns(pattern({ ...nodes, minItems: 1 }), pattern({ ...nodes, minItems: 2 }));
+        expect(result.minItemsChanged).toEqual({ nodes: { from: 1, to: 2 } });
+        expect(result.obligationChanged).toBeUndefined();
+        expect(result.nodesAdded.length + result.nodesRemoved.length + result.nodesModified.length).toBe(0);
+    });
+
+    it('reports a minItems change on relationships', () => {
+        const result = diffPatterns(pattern({ prefixItems: [] }), pattern({ prefixItems: [] }, { prefixItems: [], minItems: 1 }));
+        expect(result.minItemsChanged).toEqual({ relationships: { from: 0, to: 1 } });
+    });
+
+    it('reports a minItems larger than the number of prefixItems entries', () => {
+        const catalogue = { prefixItems: [node('webapp')], items: { anyOf: [node('cache')] } };
+        expect(diffPatterns(pattern({ ...catalogue, minItems: 1 }), pattern({ ...catalogue, minItems: 3 })).minItemsChanged)
+            .toEqual({ nodes: { from: 1, to: 3 } });
+    });
+
+    it('treats a missing minItems as 0', () => {
+        expect(diffPatterns(pattern({ prefixItems: [] }), pattern({ prefixItems: [], minItems: 0 })).minItemsChanged)
+            .toBeUndefined();
+    });
+
+    it('uses the largest minItems when the pattern sets it in more than one place', () => {
+        const split = {
+            properties: { nodes: { type: 'array', prefixItems: [node('webapp')], minItems: 1 } },
+            allOf: [{ properties: { nodes: { minItems: 2 } } }],
+        };
+        expect(diffPatterns(split, pattern({ prefixItems: [node('webapp')], minItems: 2 })).minItemsChanged).toBeUndefined();
     });
 });

@@ -60,11 +60,22 @@ export interface UndiffableDiffItems {
 }
 
 /**
- * How a pattern declares an item: a plain `prefixItems` entry inside `minItems`
- * (`required`) or after it (`optional`), one alternative of a `oneOf`/`anyOf`
- * entry, or a member of the `items` catalogue.
+ * How a pattern declares an item: a plain `prefixItems` entry, one alternative
+ * of a `oneOf`/`anyOf` entry, or a member of the `items` catalogue. `minItems`
+ * decides how many entries an architecture must have.
  */
-export type PatternObligation = 'required' | 'optional' | 'alternative' | 'catalogue';
+export type PatternObligation = 'required' | 'alternative' | 'catalogue';
+
+/** A pattern without `minItems` counts as 0. */
+export interface MinItemsChange {
+    from: number;
+    to: number;
+}
+
+export interface MinItemsChanged {
+    nodes?: MinItemsChange;
+    relationships?: MinItemsChange;
+}
 
 export interface ObligationChange<T> {
     item: T;
@@ -124,6 +135,7 @@ export interface NodesAndRelationshipsDiffResult {
     invalidItems?: InvalidDiffItems;
     undiffableItems?: UndiffableDiffItems;
     obligationChanged?: ObligationChangedItems;
+    minItemsChanged?: MinItemsChanged;
 }
 
 /**

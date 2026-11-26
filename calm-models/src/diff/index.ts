@@ -42,4 +42,6 @@ export type {
     ObligationChange,
     ObligationChangedItems,
     PatternObligation,
+    MinItemsChange,
+    MinItemsChanged,
 } from './diff-types.js';

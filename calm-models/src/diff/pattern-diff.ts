@@ -1,5 +1,5 @@
 import type { CalmNodeSchema, CalmRelationshipSchema } from '../types/index.js';
-import type { NodesAndRelationshipsDiffResult, ObligationChange, PatternObligation } from './diff-types.js';
+import type { MinItemsChange, NodesAndRelationshipsDiffResult, ObligationChange, PatternObligation } from './diff-types.js';
 import { canonicalKey, diffNodesAndRelationships } from './diff.js';
 
 type SchemaObject = Record<string, unknown>;
@@ -80,10 +80,17 @@ function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
     return (field?.['prefixItems'] as SchemaObject[]) ?? [];
 }
 
-/** Only the first `minItems` entries of `prefixItems` must be present. */
+/** JSON Schema applies every `minItems` it finds, so the largest one is the limit. */
 function getMinItems(pattern: SchemaObject, key: string): number {
-    const field = findField(pattern, key, (f) => typeof f['minItems'] === 'number');
-    return (field?.['minItems'] as number | undefined) ?? 0;
+    const branches = [pattern, ...(Array.isArray(pattern['allOf']) ? pattern['allOf'] : [])];
+    let minItems = 0;
+    for (const branch of branches) {
+        const field = isObject(branch) && isObject(branch['properties']) ? branch['properties'][key] : undefined;
+        if (isObject(field) && typeof field['minItems'] === 'number') {
+            minItems = Math.max(minItems, field['minItems']);
+        }
+    }
+    return minItems;
 }
 
 /** A catalogue declares its members as the alternatives of `items`. */
@@ -93,7 +100,7 @@ function getCatalogueMembers(pattern: SchemaObject, key: string): SchemaObject[]
 }
 
 /** A pattern can declare an id more than once. The strongest obligation counts. */
-const OBLIGATION_STRENGTH: Record<PatternObligation, number> = { required: 3, optional: 2, alternative: 1, catalogue: 0 };
+const OBLIGATION_STRENGTH: Record<PatternObligation, number> = { required: 2, alternative: 1, catalogue: 0 };
 
 interface Declaration {
     schema: SchemaObject;
@@ -107,15 +114,14 @@ interface Declaration {
  */
 function declarationsFor(pattern: SchemaObject, key: string): Declaration[] {
     const declarations: Declaration[] = [];
-    const minItems = getMinItems(pattern, key);
-    for (const [index, item] of getPrefixItems(pattern, key).entries()) {
+    for (const item of getPrefixItems(pattern, key)) {
         const alternatives = alternativesOf(item);
         if (alternatives) {
             for (const alt of alternatives) {
                 if (isObject(alt)) declarations.push({ schema: alt, obligation: 'alternative' });
             }
         } else {
-            declarations.push({ schema: item, obligation: index < minItems ? 'required' : 'optional' });
+            declarations.push({ schema: item, obligation: 'required' });
         }
     }
     for (const member of getCatalogueMembers(pattern, key)) {
@@ -239,6 +245,12 @@ function contentMultisetDiff(
     return { added, removed, same };
 }
 
+function minItemsChange(patternA: unknown, patternB: unknown, key: string): MinItemsChange | undefined {
+    const from = isObject(patternA) ? getMinItems(patternA, key) : 0;
+    const to = isObject(patternB) ? getMinItems(patternB, key) : 0;
+    return from === to ? undefined : { from, to };
+}
+
 /** Items that both patterns pin, by `unique-id` or by rename, at a different obligation. */
 function obligationChanges(
     a: PatternPartition,
@@ -320,6 +332,14 @@ export function diffPatterns(patternA: unknown, patternB: unknown): NodesAndRela
             nodes: nodeObligations as unknown as ObligationChange<CalmNodeSchema>[],
             relationships: relObligations as unknown as ObligationChange<CalmRelationshipSchema>[],
         };
+    }
+
+    const minItems = {
+        nodes: minItemsChange(patternA, patternB, 'nodes'),
+        relationships: minItemsChange(patternA, patternB, 'relationships'),
+    };
+    if (minItems.nodes || minItems.relationships) {
+        result.minItemsChanged = minItems;
     }
 
     // Undiffable: legitimate pattern slots that pin nothing comparable.
