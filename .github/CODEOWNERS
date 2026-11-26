@@ -2,7 +2,7 @@
 
 /calm/ @finos/architecture-as-code-maintainers
 
-/calm-hub/ @jpgough-ms @rocketstack-matt @grahampacker-ms @Thels @markscott-ms @willosborne @byrash
+/calm-hub/ @jpgough-ms @rocketstack-matt @grahampacker-ms @Thels @markscott-ms @willosborne @byrash @rohithashok
 
 /calm-server/ @rocketstack-matt @markscott-ms
 
@@ -12,7 +12,7 @@
 
 /shared/ @aidanm3341 @lbulanti-ms @willosborne @grahampacker-ms @jpgough-ms @rocketstack-matt @Thels @LeighFinegold @markscott-ms @byrash
 
-/calm-plugins/vscode @byrash @rocketstack-matt @markscott-ms
+/calm-plugins/vscode @byrash @rocketstack-matt @markscott-ms @rohithashok
 
 /calm-guard/ @gjs-opsflo @eddie-knight @rocketstack-matt @markscott-ms @jpgough-ms
 
