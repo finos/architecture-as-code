@@ -194,14 +194,14 @@ describe('runDiff', () => {
             type: 'object',
             properties: { nodes: { type: 'array', ...nodes }, relationships: { type: 'array', prefixItems: [] } },
         });
-        const a = writeArch('a.pattern.json', pattern({ prefixItems: [cache] }));
+        const a = writeArch('a.pattern.json', pattern({ prefixItems: [cache], minItems: 1 }));
         const b = writeArch('b.pattern.json', pattern({ prefixItems: [], items: { anyOf: [cache] } }));
 
         const result = await runDiff(a, b, { format: 'summary' });
 
         expect(result.hasChanges).toBe(true);
-        expect(result.formatted).toContain('Obligation changed: 1 node(s) + 0 relationship(s)');
-        expect(result.formatted).toContain('Nodes with a changed obligation:\n  - cache (required -> catalogue)');
+        expect(result.formatted).toContain('Nodes:         +0  -0  ~1  ↔0  =0');
+        expect(result.formatted).toContain('Nodes modified:\n  - cache (required -> catalogue)');
     });
 
     it('diffs two pattern files and reports a pattern-titled summary', async () => {
@@ -369,6 +369,26 @@ describe('formatDiff', () => {
         };
         const out = formatDiff(r, 'summary');
         expect(out).toContain('Undiffable items: 1 node(s) + 1 relationship(s)');
+    });
+
+    it('counts an obligation change once, on the line of a modified or renamed item', () => {
+        const r: NodesAndRelationshipsDiffResult = {
+            ...emptyResult,
+            nodesModified: [{ original: { 'unique-id': 'db' }, updated: { 'unique-id': 'db' } }] as never,
+            nodesRenamed: [{ oldId: 'old', newId: 'new' }] as never,
+            obligationChanged: {
+                nodes: [
+                    { item: { 'unique-id': 'db' }, from: 'required', to: 'alternative' },
+                    { item: { 'unique-id': 'new' }, from: 'optional', to: 'catalogue' },
+                    { item: { 'unique-id': 'cache' }, from: 'catalogue', to: 'required' },
+                ] as never,
+                relationships: [],
+            },
+        };
+        const out = formatDiff(r, 'summary', 'pattern');
+        expect(out).toContain('Nodes:         +0  -0  ~2  ↔1  =0');
+        expect(out).toContain('Nodes modified:\n  - db (required -> alternative)\n  - cache (catalogue -> required)');
+        expect(out).toContain('Nodes renamed:\n  - old -> new (optional -> catalogue)');
     });
 
     it('surfaces architecture-level ADR, control, and metadata counts in the summary view', () => {

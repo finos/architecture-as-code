@@ -59,15 +59,16 @@ The symbols are: `+` added, `-` removed, `~` modified, `↔` renamed and `=` unc
 
 ## Pattern Obligations
 
-A pattern declares each node and relationship at one of three obligations:
+A pattern declares each node and relationship at one of four obligations. See [Choices and optional elements](../core-concepts/patterns.md#choices-and-optional-elements).
 
 | Obligation | Declared as | An architecture has the item |
 |---|---|---|
-| `required` | An entry in `prefixItems` | Always, once, at that position |
+| `required` | An entry in `prefixItems`, inside `minItems` | Always, once, at that position |
+| `optional` | An entry in `prefixItems`, after `minItems` | At most once, at that position |
 | `alternative` | An option of a `oneOf` or `anyOf` entry in `prefixItems` | Only if chosen, then once, at that position |
 | `catalogue` | An option of `items` | Any number of times, or not at all |
 
-When both versions declare an item at a different obligation, the diff reports it under `obligationChanged`, with `from` and `to`, and not as unchanged. If its content also changed, it is also modified. For example, a node that moves from `catalogue` to `required` makes each architecture without it invalid.
+When both versions declare an item at a different obligation, the diff counts it as modified and shows the change, for example `cache (catalogue -> required)`. This change makes each architecture without `cache` invalid. The JSON output lists the change under `obligationChanged`, with `from` and `to`. A change to `minItems` can change the obligation of an entry.
 
 ## Using `diff` in CI
 
