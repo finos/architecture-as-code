@@ -154,6 +154,14 @@ included, because the npm command that Renovate runs for them fails. Lock file m
 | `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser` | `typescript-eslint` in the workspaces pins them to its own version (`ERESOLVE`) | `npm update` the two and `typescript-eslint` together |
 | `packageManager` | Renovate writes the lockfile with this npm, and CI runs `npm ci` with the npm that Node bundles | Renovate raises `.nvmrc` updates in their own PR. Set `packageManager` in that PR to the npm of the new Node version |
 
+To check a change to `renovate.json`, use the latest Renovate image, as the
+`Validate Renovate Configuration` workflow does. `npm install -g renovate` installs an old release
+and gives no error when the Node version is too old for the latest release:
+
+```bash
+docker run --rm --pull=always --volume "$PWD:/usr/src/app:ro" ghcr.io/renovatebot/renovate:latest renovate-config-validator
+```
+
 ## CALM Schema Updates
 
 The tools get the CALM schema from the `@finos/calm-schema` npm package. The root `package.json`
