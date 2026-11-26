@@ -5,8 +5,10 @@ import jakarta.validation.constraints.Pattern;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.services.ResourceIdResolver;
 
-import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.PATH_QUERY_PARAM_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.PATH_QUERY_PARAM_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.VARIANT_QUERY_PARAM_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VARIANT_QUERY_PARAM_REGEX;
 
 /**
  * Common shape of a storage-route id bean. Subclasses bind one named path parameter; the optional
@@ -16,11 +18,11 @@ import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_N
 public abstract class ResourceIdParam {
 
     @QueryParam("path")
-    @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE)
+    @Pattern(regexp = PATH_QUERY_PARAM_REGEX, message = PATH_QUERY_PARAM_MESSAGE)
     private String path;
 
     @QueryParam("variant")
-    @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE)
+    @Pattern(regexp = VARIANT_QUERY_PARAM_REGEX, message = VARIANT_QUERY_PARAM_MESSAGE)
     private String variant;
 
     public abstract String rawId();

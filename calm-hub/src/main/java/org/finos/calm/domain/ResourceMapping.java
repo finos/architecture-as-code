@@ -61,12 +61,13 @@ public class ResourceMapping {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ResourceMapping that = (ResourceMapping) o;
-        return numericId == that.numericId && Objects.equals(namespace, that.namespace) && Objects.equals(customId, that.customId) && resourceType == that.resourceType;
+        return numericId == that.numericId && Objects.equals(namespace, that.namespace) && Objects.equals(customId, that.customId)
+                && resourceType == that.resourceType && Objects.equals(path, that.path) && Objects.equals(variant, that.variant);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, customId, resourceType, numericId);
+        return Objects.hash(namespace, customId, resourceType, numericId, path, variant);
     }
 
     @Override
@@ -76,6 +77,8 @@ public class ResourceMapping {
                 ", customId='" + customId + '\'' +
                 ", resourceType=" + resourceType +
                 ", numericId=" + numericId +
+                ", path='" + path + '\'' +
+                ", variant='" + variant + '\'' +
                 '}';
     }
 

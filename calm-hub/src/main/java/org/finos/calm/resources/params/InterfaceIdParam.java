@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_REGEX;
 
-/** Storage-route id for a interface, bound from {interfaceId}. */
+/** Storage-route id for an interface, bound from {interfaceId}. */
 public class InterfaceIdParam extends ResourceIdParam {
 
     @PathParam("interfaceId")

@@ -5,6 +5,8 @@ import org.finos.calm.domain.exception.InvalidResourceIdException;
 /** Unwraps a {@link ResourceId} to the shape a store backend needs. */
 public final class ResourceIds {
 
+    private static final String NUMERIC_REQUIRED = "This storage backend requires a numeric resource id";
+
     private ResourceIds() {
     }
 
@@ -12,20 +14,22 @@ public final class ResourceIds {
         if (id instanceof NumericResourceId numeric) {
             return numeric.value();
         }
-        throw new InvalidResourceIdException("This storage backend requires a numeric resource id");
+        throw new InvalidResourceIdException(NUMERIC_REQUIRED);
     }
 
-    /** Parses the string form of a numeric-mode id. Non-numeric (GitHub) ids are not accepted. */
+    /** Parses a positive int from the string form of a numeric-mode id. */
     public static int parseNumeric(String id) {
-        if (id != null && id.matches("\\d{1,9}")) {
+        if (id != null) {
             try {
-                return Integer.parseInt(id);
-            } catch (NumberFormatException e) {
-                // Unreachable for 1-9 digits, but fail closed rather than propagate a runtime parse error.
-                throw new InvalidResourceIdException("This storage backend requires a numeric resource id");
+                int value = Integer.parseInt(id);
+                if (value > 0) {
+                    return value;
+                }
+            } catch (NumberFormatException ignored) {
+                // Fall through to the shared error below.
             }
         }
-        throw new InvalidResourceIdException("This storage backend requires a numeric resource id");
+        throw new InvalidResourceIdException(NUMERIC_REQUIRED);
     }
 
     public static GitHubResourceId github(ResourceId id) {

@@ -41,8 +41,14 @@ class TestResourceIdResolverShould {
 
     @Test
     void reject_a_non_numeric_storage_id_in_numeric_mode() {
-        assertThrows(InvalidResourceIdException.class, () -> resolver.forStorage("not-a-number", null, null));
-        assertThrows(InvalidResourceIdException.class, () -> resolver.forStorage("", null, null));
+        for (String rawId : new String[]{"not-a-number", "", "-5", "0", "9999999999"}) {
+            assertThrows(InvalidResourceIdException.class, () -> resolver.forStorage(rawId, null, null));
+        }
+    }
+
+    @Test
+    void resolve_a_large_valid_numeric_storage_id() {
+        assertThat(resolver.forStorage("1234567890", null, null), equalTo(new NumericResourceId(1234567890)));
     }
 
     @Test
@@ -74,11 +80,5 @@ class TestResourceIdResolverShould {
     void reject_a_blank_name() {
         assertThrows(InvalidResourceIdException.class,
                 () -> resolver.forName("finos", ResourceType.ARCHITECTURE, "", null, null));
-    }
-
-    @Test
-    void provide_a_safe_numeric_form_for_write_paths() {
-        assertThat(resolver.numericForWrite(new NumericResourceId(9)), equalTo(9));
-        assertThat(resolver.numericForWrite(new GitHubResourceId("api", null, null)), equalTo(0));
     }
 }

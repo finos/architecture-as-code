@@ -43,6 +43,13 @@ public class ResourceValidationConstants {
     public static final String RESOURCE_STEM_MESSAGE = "resource name must match pattern '^[A-Za-z0-9_-]+$'";
     public static final String QUERY_PARAM_NO_WHITESPACE_REGEX = "^[A-Za-z0-9_/.-]+$";
     public static final String QUERY_PARAM_NO_WHITESPACE_MESSAGE = "Query parameter must match pattern '^[A-Za-z0-9_/.-]+$'";
+    // Each path segment must start with a safe character, so a leading '/', an empty segment or a
+    // '.'/'..' segment cannot reach the GitHub store. Dots inside a segment are allowed for folder
+    // names such as "v1.2".
+    public static final String PATH_QUERY_PARAM_REGEX = "^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*)?$";
+    public static final String PATH_QUERY_PARAM_MESSAGE = "path must be a '/'-separated list of folder names";
+    public static final String VARIANT_QUERY_PARAM_REGEX = "^[A-Za-z0-9_-]+$";
+    public static final String VARIANT_QUERY_PARAM_MESSAGE = "variant must be a single token of letters, digits, '-' or '_'";
     public static final String LIMIT_MESSAGE = "limit must be greater than or equal to 1";
     public static final String OFFSET_MESSAGE = "offset must be greater than or equal to 0";
     public static final PolicyFactory STRICT_SANITIZATION_POLICY = new HtmlPolicyBuilder().toFactory();

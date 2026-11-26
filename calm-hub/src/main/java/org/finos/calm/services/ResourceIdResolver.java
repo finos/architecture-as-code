@@ -6,6 +6,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.domain.NumericResourceId;
 import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.MappingNotFoundException;
@@ -32,7 +33,7 @@ public class ResourceIdResolver {
         return "github".equalsIgnoreCase(databaseMode);
     }
 
-    /** Resolves a storage-route path id. Numeric modes reject anything that is not an int. */
+    /** Resolves a storage-route path id. Numeric modes accept only a positive int. */
     public ResourceId forStorage(String rawId, String path, String variant) {
         if (rawId == null || rawId.isBlank()) {
             throw new InvalidResourceIdException("The resource id is required");
@@ -40,11 +41,7 @@ public class ResourceIdResolver {
         if (isGitHub()) {
             return new GitHubResourceId(rawId, path, variant);
         }
-        try {
-            return new NumericResourceId(Integer.parseInt(rawId));
-        } catch (NumberFormatException e) {
-            throw new InvalidResourceIdException("The resource id must be an integer");
-        }
+        return new NumericResourceId(ResourceIds.parseNumeric(rawId));
     }
 
     /** Resolves a name-based route slug. Numeric modes resolve it through the mapping store. */
@@ -57,13 +54,5 @@ public class ResourceIdResolver {
             return new GitHubResourceId(name, path, variant);
         }
         return new NumericResourceId(mappingService.getMapping(namespace, type, name).getNumericId());
-    }
-
-    /** Numeric form for write paths; GitHub writes are unsupported, so id 0 is never used for a read. */
-    public int numericForWrite(ResourceId id) {
-        if (id instanceof NumericResourceId numeric) {
-            return numeric.value();
-        }
-        return 0;
     }
 }

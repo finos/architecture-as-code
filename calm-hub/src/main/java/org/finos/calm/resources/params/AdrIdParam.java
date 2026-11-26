@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.QUERY_PARAM_NO_WHITESPACE_REGEX;
 
-/** Storage-route id for a ADR, bound from {adrId}. */
+/** Storage-route id for an ADR, bound from {adrId}. */
 public class AdrIdParam extends ResourceIdParam {
 
     @PathParam("adrId")
