@@ -91,6 +91,10 @@ function sortNodesByHierarchy(
     return sorted;
 }
 
+/**
+ * @deprecated Use `projectC4` from `@finos/calm-models/c4`, which follows the CALM C4 standard. The next release
+ * removes `C4Model`.
+ */
 export class C4Model {
     public elements: Record<string, C4Element> = {};
     public relationships: C4Relationship[] = [];

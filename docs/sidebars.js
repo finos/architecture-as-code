@@ -41,7 +41,8 @@ const sidebars = {
         'core-concepts/decorators',
         'core-concepts/metadata',
         'core-concepts/patterns',
-        'core-concepts/widgets'
+        'core-concepts/widgets',
+        'core-concepts/c4'
       ],
     },
     {
@@ -60,8 +61,10 @@ const sidebars = {
             'calm-hub/calm-hub-mcp-api',
             'calm-hub/calm-hub-extension-points',
             'calm-hub/calm-hub-extension-blocks',
+            'calm-hub/calm-hub-extension-navigation',
             'calm-hub/calm-hub-decorator-views',
             'calm-hub/calm-hub-extension-access',
+            'calm-hub/calm-hub-github-storage',
             'working-with-calm/calm-hub-entitlements',
           ],
         },
@@ -89,6 +92,18 @@ const sidebars = {
         'working-with-calm/voice-mode',
         'working-with-calm/visualizing-architectures',
       ],
+    },
+  ],
+
+  // Extensions sidebar - reached via the Extensions navbar item
+  extensionsSidebar: [
+    'extensions/why',
+    'extensions/install',
+    {
+      type: 'category',
+      label: 'Extensions',
+      collapsed: false,
+      items: ['extensions/c4', 'extensions/ea-layers'],
     },
   ],
 
@@ -155,6 +170,7 @@ const sidebars = {
             'tutorials/build-a-calm-architecture/generate-documentation',
             'tutorials/build-a-calm-architecture/tutorial-key-takeaways',
             'tutorials/build-a-calm-architecture/architecture-discovery-skill-tutorial',
+            'tutorials/build-a-calm-architecture/converting-controls',
            ],
         }
       ],

@@ -8,6 +8,7 @@ import type { UserAccess, UserAccessPermission } from '../../../model/user-acces
 import type { UserAccessService } from '../../../service/user-access-service.js';
 import { UserAccessProvider } from '../../../admin/context/UserAccessContext.js';
 import { colors } from '../../../theme/colors.js';
+import { UiConfigContext } from '../../../components/ui-config/UiConfigContext.js';
 
 // Counts are owned by Hub and passed in as props; the rail no longer fetches them.
 const namespaceCounts = [
@@ -410,5 +411,25 @@ describe('ExploreRail text filter on control domains', () => {
         await screen.findByRole('link', { name: /finos/ });
         fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'finos' } });
         expect(screen.getByText('No control domains match your filter')).toBeInTheDocument();
+    });
+});
+
+describe('ExploreRail navigation settings', () => {
+    it.each([
+        [true, false],
+        [false, true],
+    ])('shows namespaces %s and control domains %s as the operator sets', (showNamespaces, showControlDomains) => {
+        render(
+            <UiConfigContext.Provider value={{ navigation: { layout: 'menu', showNamespaces, showControlDomains } }}>
+                <MemoryRouter>
+                    <ExploreRail namespaceCounts={namespaceCounts} domainCounts={domainCounts} storage={createMemoryStorage()} />
+                </MemoryRouter>
+            </UiConfigContext.Provider>
+        );
+
+        expect(screen.queryByText('NAMESPACES') !== null).toBe(showNamespaces);
+        expect(screen.queryByText('traderx') !== null).toBe(showNamespaces);
+        expect(screen.queryByText('CONTROL DOMAINS') !== null).toBe(showControlDomains);
+        expect(screen.queryByText('security') !== null).toBe(showControlDomains);
     });
 });

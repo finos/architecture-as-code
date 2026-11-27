@@ -126,7 +126,7 @@ jobs:
                   load: true
                   tags: calm-hub:smoke
                   cache-from: type=gha,scope=readonly-native-${{ matrix.arch }}
-                  cache-to: type=gha,mode=max,scope=readonly-native-${{ matrix.arch }}
+                  cache-to: ${{ inputs.version == '' && format('type=gha,mode=max,scope=readonly-native-{0}', matrix.arch) || '' }}
 
             # Step 8: Smoke test — start the self-contained read-only native container
             # and assert the API contract: reads return 200, all mutating methods are
@@ -151,6 +151,8 @@ jobs:
               uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
               with:
                   images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
+                  labels: |
+                      org.opencontainers.image.revision=${{ inputs.ref || github.sha }}
 
             # Step 9: Push this architecture's image by digest (no tag).
             # Tags are applied in the merge job once both arch digests are available.
@@ -167,7 +169,7 @@ jobs:
                   provenance: mode=max
                   labels: ${{ steps.meta-labels.outputs.labels }}
                   cache-from: type=gha,scope=readonly-native-${{ matrix.arch }}
-                  cache-to: type=gha,mode=max,scope=readonly-native-${{ matrix.arch }}
+                  cache-to: ${{ inputs.version == '' && format('type=gha,mode=max,scope=readonly-native-{0}', matrix.arch) || '' }}
 
             # Step 10: Export the pushed digest to a file for the merge job.
             - name: Export digest
@@ -212,16 +214,24 @@ jobs:
                   username: ${{ secrets.DOCKER_USERNAME }}
                   password: ${{ secrets.DOCKER_PASSWORD }}
 
+            # The checkout can be a bare SHA, so the metadata action cannot read the commit from git.
+            - name: Resolve the commit
+              id: commit
+              env:
+                  SHA: ${{ inputs.ref || github.sha }}
+              run: echo "short=${SHA::7}" >> "$GITHUB_OUTPUT"
+
             - name: Extract Docker metadata
               id: meta
               uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
               with:
-                  context: git
                   images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
+                  labels: |
+                      org.opencontainers.image.revision=${{ inputs.ref || github.sha }}
                   flavor: latest=false
                   tags: |
                       type=raw,value=main-read-only-native,enable=${{ inputs.version == '' }}
-                      type=sha,format=short,suffix=-read-only-native,enable=${{ inputs.version == '' }}
+                      type=raw,value=sha-${{ steps.commit.outputs.short }}-read-only-native,enable=${{ inputs.version == '' }}
                       type=raw,value=${{ inputs.version }}-read-only-native,enable=${{ inputs.version != '' }}
                       type=raw,value=${{ needs.build.outputs.minor }}-read-only-native,enable=${{ inputs.version != '' }}
                       type=raw,value=latest-read-only-native,enable=${{ inputs.version != '' }}

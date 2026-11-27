@@ -52,6 +52,15 @@ class TestOidcRoleResolverShould {
     }
 
     @Test
+    void return_read_when_no_access_groups_configured_and_allow_authenticated_read() {
+        when(mockIdentity.isAnonymous()).thenReturn(false);
+        resolver.globalAccessGroups = Optional.empty();
+        resolver.allowAuthenticatedRead = true;
+
+        assertThat(resolver.resolve(mockIdentity, Set.of()), equalTo(OidcRoleResolver.AccessLevel.READ));
+    }
+
+    @Test
     void return_none_when_user_has_no_groups() {
         when(mockIdentity.isAnonymous()).thenReturn(false);
         when(mockIdentity.getRoles()).thenReturn(Set.of());
@@ -103,10 +112,19 @@ class TestOidcRoleResolverShould {
     }
 
     @Test
-    void parse_blank_global_config_as_empty() {
+    void return_none_when_global_config_is_blank() {
         when(mockIdentity.isAnonymous()).thenReturn(false);
         resolver.globalAccessGroups = Optional.of("   ");
 
         assertThat(resolver.resolve(mockIdentity, Set.of()), equalTo(OidcRoleResolver.AccessLevel.NONE));
+    }
+
+    @Test
+    void return_read_when_global_config_is_blank_and_allow_authenticated_read() {
+        when(mockIdentity.isAnonymous()).thenReturn(false);
+        resolver.globalAccessGroups = Optional.of("   ");
+        resolver.allowAuthenticatedRead = true;
+
+        assertThat(resolver.resolve(mockIdentity, Set.of()), equalTo(OidcRoleResolver.AccessLevel.READ));
     }
 }

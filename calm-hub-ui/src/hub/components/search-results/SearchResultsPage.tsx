@@ -4,6 +4,10 @@ import { SearchService } from '../../../service/search-service.js';
 import { GroupedSearchResults, SearchResult } from '../../../model/search.js';
 import { TYPE_LABELS, flattenResults, useSearchNavigation } from '../../../hooks/useSearchNavigation.js';
 import { colors } from '../../../theme/colors.js';
+import { useExtensions } from '../../../extensions/ExtensionsContext.js';
+import { searchProviders } from '../../../extensions/contributions.js';
+import { ProviderResults } from './ProviderResults.js';
+import { SearchAnswer } from '../../../extensions/chat/SearchAnswer.js';
 
 interface SearchResultsPageProps {
     /** Injected for tests. */
@@ -11,8 +15,9 @@ interface SearchResultsPageProps {
 }
 
 /**
- * Full-page catalogue search results at `/search?q=…`, inside Hub's normal chrome.
- * Selecting a result deep-links via the shared {@link useSearchNavigation}.
+ * Full-page search results at `/search?q=…`, inside Hub's normal chrome: the catalogue groups, then one group for each
+ * extension search provider. Each provider loads and fails on its own, so the catalogue never waits for one.
+ * Selecting a catalogue result deep-links via the shared {@link useSearchNavigation}.
  */
 export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
     const [searchParams] = useSearchParams();
@@ -32,6 +37,8 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
 
     const service = useMemo(() => searchService ?? new SearchService(), [searchService]);
     const { navigateToResult } = useSearchNavigation();
+    const extensions = useExtensions();
+    const providers = useMemo(() => searchProviders(extensions), [extensions]);
 
     useEffect(() => {
         if (!query) return;
@@ -55,7 +62,7 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
     const totalCount = results ? flattenResults(results).length : 0;
 
     return (
-        <div className="h-full overflow-auto bg-base-100" style={{ padding: '44px 48px' }}>
+        <div className="h-full overflow-auto bg-base-100 px-4 py-6 sm:px-12 sm:py-11">
             <div className="max-w-[880px] mx-auto flex flex-col gap-8">
                 <header>
                     <h1 className="text-[28px] font-bold" style={{ color: colors.redesign.ink }}>
@@ -69,10 +76,13 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                     </h1>
                     {query && !loading && !error && (
                         <p className="text-[14px] mt-2" style={{ color: colors.redesign.muted }}>
-                            {totalCount} {totalCount === 1 ? 'result' : 'results'}
+                            {totalCount} {providers.length > 0 && 'catalogue '}
+                            {totalCount === 1 ? 'result' : 'results'}
                         </p>
                     )}
                 </header>
+
+                <SearchAnswer query={query} />
 
                 {!query && (
                     <p className="text-sm" style={{ color: colors.redesign.muted }}>
@@ -90,12 +100,14 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                 )}
 
                 {query && !loading && error && (
-                    <div className="text-sm text-error">Search failed, please try again.</div>
+                    <div className="text-sm text-error">
+                        {providers.length > 0 ? 'Catalogue search failed, please try again.' : 'Search failed, please try again.'}
+                    </div>
                 )}
 
                 {query && !loading && !error && results !== null && groups.length === 0 && (
                     <div className="text-sm" style={{ color: colors.redesign.muted }}>
-                        No results found for “{query}”.
+                        {providers.length > 0 ? 'No catalogue results' : 'No results found'} for “{query}”.
                     </div>
                 )}
 
@@ -117,7 +129,7 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                                             style={{ border: `1px solid ${colors.redesign.border}` }}
                                             onClick={() => navigateToResult({ type, result: item })}
                                         >
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                                 <span
                                                     className="font-medium truncate min-w-0"
                                                     style={{ color: colors.redesign.ink }}
@@ -126,7 +138,7 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                                                 </span>
                                                 <span
                                                     data-testid="result-namespace-chip"
-                                                    className="ml-auto shrink-0 font-mono-jb text-[10px] rounded-[6px] px-1.5 py-0.5"
+                                                    className="ml-auto min-w-0 max-w-full wrap-anywhere font-mono-jb text-[10px] rounded-[6px] px-1.5 py-0.5"
                                                     style={{
                                                         backgroundColor: colors.redesign.badgeBg,
                                                         color: colors.redesign.mutedAlt,
@@ -150,6 +162,11 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                         ))}
                     </div>
                 )}
+
+                {query &&
+                    providers.map(({ extension, provider }) => (
+                        <ProviderResults key={`${extension.id}/${provider.id}`} extension={extension} provider={provider} query={query} />
+                    ))}
             </div>
         </div>
     );

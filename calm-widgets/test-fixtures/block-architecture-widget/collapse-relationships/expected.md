@@ -21,8 +21,8 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     database["Database"]:::node
     frontend-app["Frontend App"]:::node
 
-    frontend-app -->|Authentication requests, Data queries, File uploads| backend-api
-    backend-api -->|Read operations, Write operations| database
+    frontend-app -->|"Authentication requests, Data queries, File uploads"| backend-api
+    backend-api -->|"Read operations, Write operations"| database
 
 
 

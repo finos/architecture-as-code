@@ -1,6 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { useStoreApi } from '@xyflow/react';
 import { THEME } from '../theme.js';
 import { statusText, viewTitle } from '../../../overlay/overlayEngine.js';
 import { OVERLAY_STYLES, STATUS_NAMES, viewMarkerColour } from './overlayStyle.js';
@@ -22,17 +21,18 @@ interface OverlayBadgeDetailsProps {
     trigger?: RefObject<Element | null>;
     /** `restoreFocus` is true when the details close from the keyboard or their own link, so focus goes back to the badge. */
     onClose: (restoreFocus: boolean) => void;
+    /** Calls `onMove` when the diagram pans or zooms, and returns the unsubscribe. The details then close. */
+    subscribeToMoves?: (onMove: () => void) => () => void;
 }
 
 /**
  * What a badge means: its extension and view, and each decorator's status, scale, label and time. The details are placed
  * where the badge was when it was clicked, so they close when the diagram pans or zooms.
  */
-export function OverlayBadgeDetails({ shown, anchor, trigger, onClose }: OverlayBadgeDetailsProps) {
+export function OverlayBadgeDetails({ shown, anchor, trigger, onClose, subscribeToMoves }: OverlayBadgeDetailsProps) {
     const { view, overlay } = shown;
     const { onOpenView } = useDecoratorOverlays();
     const ref = useRef<HTMLDivElement>(null);
-    const store = useStoreApi();
 
     useEffect(() => {
         ref.current?.focus();
@@ -49,14 +49,7 @@ export function OverlayBadgeDetails({ shown, anchor, trigger, onClose }: Overlay
         };
     }, [onClose, trigger]);
 
-    useEffect(() => {
-        const [x, y, zoom] = store.getState().transform;
-        return store.subscribe(({ transform }) => {
-            if (transform[0] !== x || transform[1] !== y || transform[2] !== zoom) {
-                onClose(!!ref.current?.contains(document.activeElement));
-            }
-        });
-    }, [store, onClose]);
+    useEffect(() => subscribeToMoves?.(() => onClose(!!ref.current?.contains(document.activeElement))), [subscribeToMoves, onClose]);
 
     // A portal still sends React events up the React tree, to the node: a click would select it, an arrow key move it.
     const stop = (event: SyntheticEvent) => event.stopPropagation();

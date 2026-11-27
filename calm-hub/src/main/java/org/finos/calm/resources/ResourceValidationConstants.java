@@ -36,8 +36,20 @@ public class ResourceValidationConstants {
     // First character must be a letter so slugs are never purely numeric (avoids clash with legacy numeric IDs).
     public static final String CUSTOM_ID_REGEX = "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$";
     public static final String CUSTOM_ID_MESSAGE = "customId must match pattern '^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$'";
+    // Resource-name stems may start with a digit and contain '-' or '_', but never a dot,
+    // slash or backslash — those characters separate the stem from a path/variant. Applied
+    // only to the name-based resource routes; control/config names keep CUSTOM_ID_REGEX.
+    public static final String RESOURCE_STEM_REGEX = "^[A-Za-z0-9_-]+$";
+    public static final String RESOURCE_STEM_MESSAGE = "resource name must match pattern '^[A-Za-z0-9_-]+$'";
     public static final String QUERY_PARAM_NO_WHITESPACE_REGEX = "^[A-Za-z0-9_/.-]+$";
     public static final String QUERY_PARAM_NO_WHITESPACE_MESSAGE = "Query parameter must match pattern '^[A-Za-z0-9_/.-]+$'";
+    // Each path segment must start with a safe character, so a leading '/', an empty segment or a
+    // '.'/'..' segment cannot reach the GitHub store. Dots inside a segment are allowed for folder
+    // names such as "v1.2".
+    public static final String PATH_QUERY_PARAM_REGEX = "^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*)?$";
+    public static final String PATH_QUERY_PARAM_MESSAGE = "path must be a '/'-separated list of folder names";
+    public static final String VARIANT_QUERY_PARAM_REGEX = "^[A-Za-z0-9_-]+$";
+    public static final String VARIANT_QUERY_PARAM_MESSAGE = "variant must be a single token of letters, digits, '-' or '_'";
     public static final String LIMIT_MESSAGE = "limit must be greater than or equal to 1";
     public static final String OFFSET_MESSAGE = "offset must be greater than or equal to 0";
     public static final PolicyFactory STRICT_SANITIZATION_POLICY = new HtmlPolicyBuilder().toFactory();

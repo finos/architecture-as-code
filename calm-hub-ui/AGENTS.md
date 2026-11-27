@@ -168,6 +168,34 @@ hidden tab falls back to `diagram`. An unknown tab id is also dropped from the U
 `searchParams`, so a version change keeps them. Add a tab there, not as a new branch in
 `DiagramSection`.
 
+### Diagram lenses
+
+A different picture of the same architecture is a **lens** of the Diagram tab, not a tab. A lens has the same
+shape as a `DIAGRAM_TABS` entry (`diagram-section/tabs/diagramLenses.tsx`). Hub's own lenses are `calm`, the CALM
+diagram, and `json` (`?tab=json` redirects to it) (`HUB_LENSES`). An extension adds a lens with a `diagram-lens`
+entry in its manifest, such as the `c4` extension, and `DiagramLensView` draws its graph reply with its notation.
+`diagramLenses()` lists Hub's lenses, then the lenses of the enabled extensions from the registry. Until the
+registry loads, or if it fails, it lists only Hub's lenses, and `DiagramSection` keeps an unknown `?lens=` while the
+registry loads. The backend refuses a lens id that two extensions declare, or `calm` or `json`. Do not add a
+lens drawing for one extension: extension code must not run in Hub's origin (ADR 0013).
+
+The URL is `?lens=<id>` plus the lens's own `searchParams`, with no `tab`. An unknown or hidden lens falls back to
+`calm`. A version change keeps the lens and its parameters (`diagramTabQuery`). A lens change keeps the other query
+parameters, such as `node`, and Hub keeps the selection when only the lens or its parameters change
+(`withoutLens`). A lens click that selects a node and changes the lens parameters is one navigation that names the
+node (`setLens`): two navigations from one click both start from the old URL, so the second undoes the first. A
+choice that leaves the query as it is does not navigate, because Hub reloads the resource on a new location key.
+Each lens fits its own view. The layout controls, the component search and the version compare belong
+to the `calm` lens. An extension lens draws the decorator overlays too (`extensions/lens/overlays.ts`): a lens
+element shows only the decorators of the CALM ids in its `calm` list, and a decorated id that no element names is
+reported on the diagram, never moved to another element. `DiagramSection` polls decorators while an extension
+lens shows. An extension lens draws its controls on its canvas (`LensToolbar`). On desktop,
+the Diagram tab names the open lens, and its chevron opens `LensMenu`: the lenses, with a text filter, so many
+lenses take no more space in the header. The list and the mobile View sheet show Hub's lenses first, then the
+extension lenses (`DiagramLens.extension`) under an "Extensions" heading, with the extension name on each row
+(`lensGroups`). The layout controls keep their space (`invisible`) on another lens, so the tabs do not move when the
+lens changes.
+
 `src/decorator-renderer/` renders any decorator by the shape of its `data`. It must not import Hub
 code, so that it can move to a package that the VS Code extension shares. The UI calls them
 "Decorators", never "Metadata", which is the CALM `metadata` field (`MetadataPanel` is the panel
@@ -192,7 +220,8 @@ built-in off (`calm.extensions."<id>".enabled=false`), so the fallback draws bot
 the version every 5 s while the diagram, the Decorators tab or the details drawer shows (`useArchitectureDecorators`, one request;
 after three failures in a row it backs off to 30 s, also when the view shows again) and gives the one list to the Decorators tab, the
 details drawer and `Drawer`. Do not add a second request. `Drawer` gives the overlays to the diagram through
-`DecoratorOverlayContext`. Nodes and
+`DecoratorOverlayContext`, and `DiagramLensView` does the same for a lens, keyed by `lensOverlayKey()`.
+`OverlayBadgeDetails` takes `subscribeToMoves`, so it closes on a pan or zoom of either canvas. Nodes and
 edges read `useElementOverlays(id)`; do not add a type-specific badge. The badge details are a portal, but React still sends their events up to the node, so the details root
 stops a click, a double click and a key (it handles Escape itself). The decision callouts, the hover list and the
 Evaluations panel read control-evaluation fields, so they use `isControlEvaluationView()`: the id and
@@ -215,12 +244,43 @@ mean "no extension", for example `ExtensionScreenPage` on a deep link.
 Each contribution kind has one place (see `docs/docs/calm-hub/extension-points.md`). Do not add a
 per-extension toolbar button or tab: it does not scale to many extensions.
 
-- Home: `IntroBrowse` shows an `ExtensionCard` per extension with a `landing-card` or a `screen`.
-  `cardHeadline()` (`extensions/landingCard.ts`) picks what the card shows.
-- Menu: `ExtensionMenuGroup` in the navbar drawer.
-- Architecture: one `extensions` tab in `DIAGRAM_TABS`, hidden (not unknown) until the registry loads, so a link
-  to it keeps the tab. `resourceExtensions()` decides if it shows.
-- Actions: `ExtensionActionButton`, only in the Extensions tab, so each action runs with a resource context. There
+- Home: `IntroBrowse` shows an `ExtensionCard` per extension with a `landing-card` or a top-level page.
+  `cardHeadline()` (`extensions/landingCard.ts`) picks what the card shows. The card is not a link: it lists a link
+  to each page, so a card with no page has no destination.
+- Menu: `ExtensionMenuGroup` in the navbar drawer: a group for each extension with a top-level page, labelled by the
+  extension `name`, under an optional `heading`. It omits an extension with no page.
+- Both list the pages from `extensionNavLinks()` (`extensions/contributions.ts`): the screens in manifest order, then
+  the selected chat. Add a top-level page there, not in one of them, so the labels and the order stay the same in
+  both. Both keep registry order, which is the operator `order`. The extension `id` is the group key; do not add a
+  second grouping field to the manifest.
+- Architecture: the inspector beside the diagram (`hub/components/inspector/DiagramInspector`, in Hub's `Sidebar` on a
+  wide screen and `MobileInspector` on a narrow one). `InspectorHandle` on the right edge of the diagram canvas opens
+  it on both widths; do not add a toolbar toggle. Keep the handle in a separate layout column, outside the view's positioned container, so it cannot cover lens notes or tab controls. The handle stays in the page, hidden, while the inspector is open, so
+  focus can go back to it. `InspectorMenu` lists Details first, then individual views grouped by extension name. `resourceExtensions()` decides which extensions show; `inspectorViews()` keeps resource views before node views, in manifest order within each kind. An action-only extension has an Actions entry. `MobileInspector` is a
+  `<dialog>` that opens with `showModal()`, so focus stays in it and the page behind it is inert. It stays in the page
+  when it closes, so slot state stays. Its `cancel` handler ignores the cancel of a dialog in a slot, which closes only
+  that dialog. Hub owns the inspector, so the
+  diagram stays mounted while it opens and closes. Hub renders the inspector once, with `createPortal`, into one node
+  (`inspectorNode`) that the `Sidebar` or the `MobileInspector` holds. A change of breakpoint moves that node, so the
+  chosen views and the slot state stay. Do not render the inspector as a child of either one: a new parent remounts it.
+  A move ends the modal state of an open `<dialog>` in a slot, and the dialog stays open. `SlotHostContext` names the
+  host; when it changes, `ConfirmActionDialog` shows itself modally again, on top, with focus on Cancel. A new dialog in
+  a slot must do the same. `placeInspector` does not move the node to the host that holds it: StrictMode attaches the
+  ref of a new host twice, and a second move ends the modal state again.
+  `?extension=<id>` (`EXTENSION_PARAM`) opens it on an extension;
+  Details and each extension's chosen view stay in memory only. A fresh `?extension=` link shows the extension's first view. A change of only `extension` keeps the selection.
+  The router shows a replace in a transition, so a close can come before the choice before it shows, also while a
+  render of it waits. Hub shows the latest choice at once (`inspectorChoice`) and sends one replace at a time. It never
+  sends a replace to the URL that shows: that loads the resource again and clears the selection. Set each choice as a
+  whole value, not with an update that reads the state: a render that has not shown can change what React reads. Each
+  replace adds its id (`inspectorWrite`) to the history state. A location is Hub's replace only if it is a replace in
+  the same browser entry with that id. Never compare URLs: another navigation can have the URL of the replace. Every
+  other navigation drops the choice, and its URL decides the inspector. A selection that takes `node` out of the URL
+  (`handleItemSelect`) is one of these replaces: it takes the latest choice, and the place and the id of a replace that
+  has not shown. It reads them from a ref, so its identity stays. The old
+  `?tab=extensions` redirects to `?extension=` (`DIAGRAM_TAB_REDIRECTS`). Do not add an extension tab to
+  `DIAGRAM_TABS`, and keep diagram lenses (`?lens=`) apart from the inspector.
+- Actions: `ExtensionActionButton`, only in the inspector, so each action runs with a resource context. There
   is no home placement. A route that is not `readOnly` asks in `ConfirmActionDialog`, not
   `window.confirm`. The dialog opens with `showModal()`, gives Cancel the focus, and names the target context. Do not abort a confirmed
   write: the backend can still finish it, so a retry can write twice. The busy state and the last result live in
@@ -233,22 +293,156 @@ per-extension toolbar button or tab: it does not scale to many extensions.
   dialog. While the dialog is modal the page is inert and `focus()` outside it does nothing: the dialog calls
   `close()` before its callback, and the button takes focus in an effect after the dialog unmounts. jsdom has no
   modal dialogs, so a test that checks focus must model inertness (see `ExtensionSlot.test.tsx`).
-- Node details: `ExtensionDetailPanels`.
-- Both use `ExtensionSections`: the first section is open, a choice is kept in `localStorage` per extension, and a
-  closed section renders nothing, so it sends no request.
-  Give `ExtensionSections` and `ExtensionSlot` a `headingLevel` one below the heading of the place that holds
-  them: `h3`/`h4` in the Extensions tab, `h5`/`h6` in the node details, `h1` on a screen page (nothing else
-  there is an `h1`).
+- Stat tiles and tables: a stat `filter` names a table `id` in the same reply; the schema requires an `id` with
+  `search` or `source`. `ExtensionSlot` gives the reply to its blocks through `BlockScopeContext`
+  (`blocks/BlockScope.tsx`) and keys each filterable table by its `id`, so a reply that moves a table keeps its search
+  box with it, also text not sent yet; outside a slot a tile is a figure and a table has no filters.
+  `blocks/tableFilters.ts` holds the rules. Inline `rows` are the whole dataset, so the browser filters them; a table
+  with a `source` gets each page from a `GET` `readOnly` route and never filters a page. It sends no page request over
+  Hub's request-line limit (`fitsRequestLine`, `MAX_REQUEST_LINE` 4096, after the browser's own URL encoding): it says
+  the search is too long and keeps it. Tile figures are the extension's numbers, never recounted. `UrlTableState`
+  (screen page only) keeps `<table>.filter|q|page` in the URL with `replace: true` and the fields of the current
+  `location.state`, at most 12 such keys (the limit #3799's return points keep); over that, or with a value that
+  `isTableStateEntry` refuses (page 10001), the table keeps its filters in memory and says so. Other slots keep them in
+  memory for one context (`useTableStateStore(view)`): a query change on an architecture page clears the selection.
+  The router shows a navigation in a transition, so the page can show a query late: `UrlTableState` keeps the newest
+  filters in its own state, the tables read them there, and `update(tableId, change)` changes them. Of the changes in
+  one render, only the last goes to the router. Each write adds its id (`tableStateWrite`, unique to the page load, the mounted store and the write) to the history state, and
+  the store keeps a list of the writes it sent. A location is a write of the store only if it is a replace on the same
+  page with the id of a write that has not shown yet (`showLocation`). Never compare queries: another navigation can
+  have the query of a write. It knows a location by its key, path and query, because React Router keys every location
+  that the browser makes, such as an address typed in, `default`. Every other navigation, such as a link or Back, sets
+  the filters from the address, also when its query is that of a write. It ends the filters in memory and changes
+  `origin`. A search box replaces its text only when `origin` or Clear filters changes its `resetKey`.
+- Reload: `ExtensionRefresh` (`extensions/extensionRefresh.ts`), one per `ExtensionsProvider`. Call
+  `refresh(extensionId)` only after a confirmed 2xx write, never after a failure or an unknown outcome. Slots and
+  source tables read `useExtensionRevision()` and load again through `useRefreshingRequest`, which keeps the earlier
+  value, shows a value only for the view (context, filters) it was loaded for, and drops a late reply. Do not add a
+  second refresh store.
+- Chat: one chat page at `/chat` (`extensions/chat/`), for the chat entry that the operator chose
+  (`calm.extensions.chat-provider`, `useChatProvider()` from the registry `chat`). With no choice there is no chat
+  and no link. `SearchChatEntry` names the recipient, charges and retention before submission, without waiting for catalogue results; it is not a chat action. `useSearchNavigation.submitSearch()` calls `startSearch()` before navigating, including for a repeated query. Do not clear the session and let the old search page's effect restart it while Router's transition waits. `SearchAnswer` starts an initial query once, after effect replay; catalogue and provider searches never wait for it. Automatic startup cannot replace an existing conversation or draft, or send after a provider change. Back and Forward reuse a matching session or show Ask for an explicit fresh start. `ChatAnswerText` hides long answer content from keyboard and accessibility navigation until expanded, without a request; keep its toggle and composer mounted while streaming. `ChatEntryLink` is the shared link, labelled with the entry `title` and no fixed prefix. It offers
+  the resource of the page in router state, never in the URL, and the user must tick Share for each new resource.
+  `ChatSessionProvider` sits above the router and holds the conversation in memory only, so it stays while the user
+  follows a citation and comes back, and goes on a reload. The page is a `{ kind: 'chat' }` return point, so a
+  citation page shows **Back to** the chat; `parseCitation` accepts a citation only when `isDestination()` does. Do
+  not store history. `sendChatMessage` uses `fetch`, not axios, because it reads the event stream as it arrives.
+  Stop marks the attempt stopped at once, also while sign-in is pending, then aborts the fetch; the partial reply
+  stays. Each callback changes only a streaming turn of its own attempt (`update()`). Retry sends the same
+  `messageId` again and replaces the failed reply, so the question shows once. The live status says only the state of
+  the reply (replying, complete, stopped), never its text; a failure has its own alert.
+- Identity: `ExtensionLogo` (`extensions/ExtensionLogo.tsx`) is the mark beside an extension name everywhere, also in
+  search and chat attribution. It is the `ExtensionMarker` when the manifest has no `logo`, and while a logo loads or
+  after it fails. A logo has loaded when its `img` fires `load` or is `complete`, not when its bytes arrive: Firefox
+  draws nothing for a large SVG until then. It is decorative (`aria-hidden`), so keep the name as text beside it. Do
+  not fetch a logo yourself: `useImageAsset()` (`assets/`) reads Hub assets with the user's credentials through
+  `ImageAssetLoader`, which has its own axios instance (a failure must not open the sign-in prompt), accepts only a
+  same-origin `/api/calm/` path and the image types of `ImageAsset`, and gives a `data:` URL. Never use a `blob:` URL
+  or put asset bytes in markup: an SVG opened from a `blob:` URL as a page runs with Hub's origin. Tests inject a
+  loader with `ImageAssetContext` (`test-support/fake-image-assets.tsx`).
+- Forms: a `form` block draws `FormBlock` (`extensions/forms/`) from `contributes.form`. It shows only in a slot
+  that passes its `point` (`screen`, `designer-tab`, `detail-panel`), not in a landing card. The draft lives in the
+  provider's `FormDrafts`, keyed by extension, form and `<point>:<contribution id>`, so a remount, a closed section or
+  a page change keeps the input and a submission in flight. Never put form values in the URL, history state or
+  `localStorage`. The first edit pins the target: a change of selection shows a notice and never retargets by
+  itself. `submitForm()` never throws and never aborts. It reads `Calm-Extension-Dispatch`, not the body, to tell a
+  refusal from an unknown outcome. After an unknown outcome, `FormDrafts.submit` sends only a repeat of the same
+  target and input, with the same id, and the form holds changed input until the user changes it back or forgets the
+  earlier submission (`forget`). Do not keep more than one unresolved submission. Only a 2xx, a backend reply
+  (`sent: true`) to that id or `forget` settles it: a Hub refusal before it sent the repeat keeps the warning, the id
+  and the beforeunload prompt, also for input that the user did not edit. Read field-id dictionaries (values, errors,
+  backend `fields`) with `own()`: a field can be called `constructor` or `toString`. A
+  screen form fills its target picker from the slot context. The picker lists a pattern's nodes with `getPrefixItems()`
+  (`patternTransformer.ts`), so it finds them where the diagram does: at the root, else in the first `allOf` branch
+  that declares them. Call `useExtensionRefresh().refresh(id)` only after a 2xx. `formRules.ts` copies the messages of
+  `ExtensionForms` in calm-hub, and `formRules.test.ts` reads the shared cases.
+- `ExtensionInspector` shows one extension at a time; `ExtensionInspectorSection` shows its actions and one chosen resource or node view. Each view mounts when it first shows and stays mounted, hidden, after
+  that, also while the inspector is closed, so slot state stays. `SlotActiveContext` is false for a hidden slot:
+  `ExtensionSlot` and its `SourceTable`s then pass no `load` to `useRefreshingRequest`, so they send no request, and
+  load when they show again if their context, revision or table query changed. A failed request does not load again
+  when it shows: the slot and the table show **Try again**, also for a first load. A reply that cannot render shows
+  **Try again** too (`ScreenErrorBoundary` with `retry`): it mounts the slot content again, which loads the reply again
+  for the same context and sends no write. Form drafts and their targets stay in `FormDrafts`. Give `retry` only where
+  the children load again on mount. Keep the inspector's tree the same when it closes, or React remounts the slots.
+- On a wide screen, each selection that the user makes opens the inspector, also a click on the item that is already
+  selected (`selections` in `Hub`). `handleItemSelect` counts it with a functional update, so its identity stays.
+  Each link, and each Back or Forward, whose URL names the selected node opens it too, also a link to the URL that
+  shows (`useLinkKey()` in `hooks/entrySelection.ts`: a count of the new `location` values and the browser moves of
+  `useBrowserEntry()`). A replace that changes the URL, such as closing the inspector or Hub taking `node` out when
+  the user selects another node, updates the page in place and is not a link: the open extension, its chosen view and
+  the slots stay. React Router makes a link to the URL that shows a replace, so a replace that keeps the URL is a link.
+- The `ExtensionSlot` key is the extension and the contribution, not the context, so a change of selection keeps
+  the slot mounted. `useRefreshingRequest` shows a reply only for the context it was loaded for, so a slot shows
+  Loading, never the earlier target's data, beside actions that follow the new context. `ScreenErrorBoundary`
+  takes the context and screen parameters as its `resetKey`. Key a slot in a list as `<point>:<contribution id>`.
+  Give `ExtensionSlot` a `headingLevel` one below the heading of the place that holds it: `h3` in the inspector
+  (the extension name is the `h2`), `h1` on a screen page (nothing else there is an `h1`).
   A block slot shows its title and its named region in every state (loading, failed, a reply it cannot show:
   the error boundary takes a `frame`), and the screen page has
   an `h1` in the same region (`SlotFrame`) before the registry loads, so the outline does not change. The heading is
   the contribution title; a reply `title` shows under it.
+- Search: `SearchResultsPage` shows the catalogue groups, then a `ProviderResults` group per `search-provider`
+  (`searchProviders()`). Each group has its own `useProviderSearch` state, so a slow or failed provider does not hold
+  back the catalogue or another provider. A generation guard drops a stale reply and aborts its request. Show only
+  what Hub returns: do not add a total or a count of hidden results. A catalogue result (`useSearchNavigation`, also
+  in the navbar search) calls `linkState(here, to)` with the path that it opens. Any version of the resource on show
+  is the same page, as for a version change: its latest version can redirect back to the current moment.
 - Overlays: `fetchDecoratorViews()` adds `source` (the extension) to each view. Key a view with `viewKey()`, never
   `view.id` alone. Hub does not start when two enabled extensions declare the same view id, but a disabled one frees
   its id for another extension, and a stored legend choice must not move to it.
   `extensionMarkerColour()` gives the marker colour.
   When there is no stored choice, `useOverlayVisibility` switches on the built-in views and the first 3 extension
   views in registry order. It takes the registered views, not the views drawn, so a default is the same on each diagram.
+- Diagram lens: `DiagramLensView` (`extensions/lens/`) draws a `diagram-lens`. `parseLensReply()` checks the reply
+  and the limits, `layoutLens()` runs ELK in a web worker (`elk.ts`; tests have no `Worker`, so ELK runs in the
+  test), and `LensCanvas` draws SVG elements built from the notation data. Never put notation or reply text into
+  markup or a style sheet. Node sizes come from `textWidth()`, an estimate, so layout is the same in every browser
+  and in jsdom. An element that takes a click has `data-clickable`: a press on it must not start a drag-pan,
+  because pointer capture would send the click to the pane.
+
+### Navigation and return points
+
+A link from an extension, a search result or a chat citation names a typed `Destination` (`model/extensions.ts`):
+exactly one of `href`, `hub` (namespace, type, id, version, optional `element` and `extension`) or `screen`
+(extension, screen, optional resource `context` and `params`). Never accept or build an internal URL from extension
+data. `navigation/destinations.ts` is the one place that maps a destination to a route (`destinationLocation()`),
+checks one (`isDestination()`, the same rules as `blocks.schema.json#/$defs/destination`) and reads a screen URL
+(`readScreenQuery()`). Screen params (no dot, at most 8) go to the screen route; table keys (`<table>.filter|q|page`,
+at most 12, `isTableStateEntry()`) stay in the browser and do not reload the screen. The context and the screen params
+have at most 2048 characters form-encoded (`SCREEN_STATE_LIMITS.routeQuery`): the extension's query budget inside Hub's
+4096-byte request line. Every length counts Unicode code points, as JSON Schema `maxLength` does (`isWithin()`), not
+UTF-16 units. `resourceContext()` maps a target to the `ExtensionContext` names. The server applies the same limits to search
+results and chat citations in `ExtensionDestinations` (calm-hub); change both together.
+
+Render links with `DestinationLink` (or `ScreenLink` for a block link with a label). A Hub or screen link records the
+current page as a return point in `location.state.returnTo` (`navigation/returnPoints.ts`, at most 5), never in the
+URL: a page, its query and a label. A page declares itself with `ReturnPointProvider` (the screen page, `Hub` for
+resource pages and `/search`; the chat view adds `{ kind: 'chat' }`). `ReturnLink` shows **Back to …**. A navigation
+that is not a new destination, such as a breadcrumb or a detailed-architecture hop, keeps the points with
+`carryReturnPoints(location.state)`, and a URL state change uses `{ replace: true, state: location.state }`. Pass the
+target to `useLinkState(to)`: a link to the same page, such as a filter, keeps the points and adds none. A link whose
+target is known only on a click, such as a lens node, reads `const here = useContext(ReturnPointContext)` during render
+and calls `linkState(here, to)` in the click handler. A typed
+Hub link (`destinationLocation()`) and a return to a resource (`returnPointLocation()`) add `exact=1`
+(`EXACT_VERSION_PARAM`) to the URL, so DiagramSection's timeline redirect (`isExactVersion(location)`) leaves the
+version, also for a copied link. A plain latest-version URL keeps the redirect; a timeline pick still uses
+`EXACT_VERSION_STATE` in history state. DiagramSection keeps `exact` through tab and lens changes, and a lens param
+cannot take the name. `boundLabel()` shortens a label to 200 code points on write and
+read; a long title never costs the return point. `safeHref()` takes `unknown`: extension data is untyped at run time. Form
+input never goes in a URL, a param or a return point. `ReturnBar` shows the return link and the notices for a linked
+`node` that is not in the version or a linked `extension` that does not apply. Hub finds a linked `node` of a pattern
+with `findPatternElement()` (`patternTransformer.ts`), which gives the data that a diagram click gives the details
+panel. A node that the user selects is not in the URL: Hub keeps it per history entry (`hooks/entrySelection.ts`,
+session storage keyed by `location.key`), so browser Back and Forward select it again. The browser makes an entry with
+no state for a first visit or a pasted URL, and the router gives each one the key `default`: such an entry gets its own
+id in `history.state` (`calmHubEntry`, next to the router's fields), which a reload keeps. Do not detect an entry
+change with the key or the `location` value alone: the router gives two entries that the browser made at the same URL
+the same `location` and does not render again. `useBrowserEntry()` counts the `popstate` events and sets its count in
+a transition, as the router sets its location, so one render gets both. After Back, Forward or a URL that the user
+opens, the entry decides: Hub opens its kept selection or none. A lens change keeps the selection only on the page. Hub
+reads the selection on each new `location` value and each browser move, and the effect that keeps it waits while
+`hasMoved()`, so a restore comes before a write. A `node` in the URL comes first, and a node of a dropped file is
+never kept.
 
 ### Namespace conventions
 
@@ -264,6 +458,29 @@ fails. The `EnvironmentPill` shows in the `Navbar` and on the `IntroScreen`, whi
 name in full, because a touch screen has no hover for its `title`. The pill is a button only while the name is truncated.
 Identity and items show at the bottom of the navbar drawer (`MenuInfo`). The drawer identity is
 the server's principal, not the OIDC token profile that `UserMenu` shows.
+
+`useUiConfigStatus()` tells `loading`, `loaded` or `failed`. `BrandLockup` shows nothing while it loads, so the CALM
+logo does not flash before the organisation's. A request that has no reply after `UI_CONFIG_WAIT_MS` (3 s) counts as
+`failed`, so the page continues with the defaults. A later reply still applies.
+
+- **Branding** (`components/branding/`): `BrandTheme` turns `branding.colour` into a `<style>` that replaces the
+  interaction tokens (`--color-primary`, `--color-interaction`, `--calm-interaction-text`,
+  `--calm-redesign-active-text`, `--calm-redesign-tint-bg`, `--calm-rail-accent`) for each theme. `brand-colours.ts`
+  moves the colour only as far as it must for 4.5:1 text and 3:1 focus rings; `brand-colours.test.ts` checks this.
+  `useProductName()` gives the name that the UI uses for the product, "CALM Hub" by default. Logos load through
+  `useImageAsset`, never through a plain `<img src>`, because the logo endpoint needs the auth header. `BrandLockup`
+  also handles the `<img>` `error` event: the browser can refuse a `data:` URL that loaded (a CSP without `data:`, or
+  bytes it cannot decode). Without a dark logo, the dark theme puts the light logo on a white plate.
+- **Navigation** (`components/navigation/`): `NavigationMenu` is the one menu, used by the navbar drawer and by the
+  `AppLayout` sidebar. Its desktop toggle stores `calm-navigation-collapsed` in the injected storage and hides the menu from keyboard navigation; storage failure must not break toggling. It does not change the mobile drawer. A page uses `AppLayout`, not `Navbar`. `useNavigationSettings()` gives the settings with their
+  defaults. `show-namespaces` and `show-control-domains` only hide entries: routes, deep links and access checks must
+  not read them. `StartPageRedirect` sends a user to `start-page` only on the first load of `/`. It wraps the routes in
+  `App`, not the `/` route, so it decides once for the life of the app: a route unmounts when the user leaves it, and
+  Back to the first entry gives `/` the `default` key again. It decides after `START_PAGE_WAIT_MS` (3 s) at most, so a
+  slow config or registry neither keeps the page empty nor moves the user later. `App.test.tsx` checks this through the
+  real routes and browser history. The navbar drawer is a `<dialog>` opened with `showModal()`: the rest of the page is inert, and a click outside
+  the drawer only closes it. It has its own close button, which takes the focus, and Tab stays in the drawer. When it
+  closes, the focus goes back to the menu button. jsdom has no modal dialogs, so `Navbar.test.tsx` models them.
 
 ## Theming (light + dark)
 
@@ -289,6 +506,8 @@ aesthetic choice:
 - **Chromatic** values (node-type hues, risk/status, brand accents) stay **hex**,
   because they are alpha-concatenated (`` `${color}20` ``) — `var(--x)20` is not a
   colour — and because ReactFlow serialises some into SVG presentation attributes.
+  The exception is `redesign.primary`, which is `var(--color-interaction)` so that it follows the operator's brand
+  colour. Mix it with `color-mix(in srgb, … N%, transparent)`, never with a hex suffix.
 
 ### Adding a colour
 
@@ -304,7 +523,8 @@ aesthetic choice:
 ### Three traps that have already bitten
 
 1. **SVG presentation attributes ignore `var()`.** ReactFlow writes `<Background color>`
-   and `<MiniMap nodeColor/maskColor>` straight into `fill`/`stroke` attributes. Don't
+   and `<MiniMap maskColor>` straight into `fill`/`stroke` attributes (`nodeColor` and
+   `nodeStrokeColor` go into a `style`, so `var()` works there). Don't
    pass theme colours through those props — omit them and style
    `.react-flow__background circle`, `.react-flow__minimap-mask` etc. in `index.css`,
    where a CSS *property* beats the attribute.
@@ -426,11 +646,17 @@ Two defences, and new code needs both:
    `viewportStore.ts` all accept an optional `Storage`, defaulting to `localStorage` /
    `sessionStorage`. In services and utilities take it as an argument; in components take
    it as a `storage?: Storage` prop. Tests pass `createMemoryStorage()` from
-   `src/test-support/memory-storage.ts`.
+   `src/test-support/memory-storage.ts`. In a browser that blocks site data, reading the
+   `localStorage` global itself throws, and a default parameter is read outside any
+   `try`. So resolve a default with a `defaultStorage()` helper that returns `undefined`
+   on failure (see `theme/useMotion.ts`, `theme/useTheme.ts` and `AppLayout`), and treat
+   `undefined` as no storage: the control still works, but the choice is not kept. To
+   test it, make the `localStorage` getter throw (see `AppLayout.test.tsx`).
 2. **The safety net.** `vitest.setup.ts` stubs both globals with `createMemoryStorage()`
    for the whole run via `vi.stubGlobal`, so a test that forgets to inject still sees a
    working Storage rather than a throwing one. Do not rely on this in new code — it exists
-   to stop the failure mode being silent.
+   to stop the failure mode being silent. It also hides a default that reads the global
+   outside a `try`, so test that case as item 1 says.
 
 ### Test both desktop and mobile
 
@@ -441,6 +667,7 @@ mobile viewport** — never just one.
   renders. Drive the breakpoint by mocking `window.matchMedia` (returning
   `matches: true` simulates mobile, `false` desktop). `ControlDetailSection.test.tsx`
   and `hub/Hub.test.tsx` show the `mockViewport`/`mockMobileViewport` helper pattern.
+  For a change of breakpoint in one render, `resizableViewport` in `hub/Hub.test.tsx` fires the change event.
   The default (no mock) reports desktop, so add explicit mobile cases.
 - **Manual/visual check**: run `npm run start --workspace calm-hub-ui` and confirm the
   change at a desktop width and at a mobile width (≤1023px — e.g. a 390px-wide device

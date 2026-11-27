@@ -27,9 +27,9 @@ title: "Deployed In K8s Cluster"
 ## Related Nodes
 ```mermaid
 graph TD;
-load-balancer[Load Balancer] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
-attendees[Attendees Service] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
-attendees-store[Attendees Store] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
+load-balancer["Load Balancer"] -- Deployed In --> k8s-cluster["Kubernetes Cluster"];
+attendees["Attendees Service"] -- Deployed In --> k8s-cluster["Kubernetes Cluster"];
+attendees-store["Attendees Store"] -- Deployed In --> k8s-cluster["Kubernetes Cluster"];
 classDef highlight fill:#f2bbae;
 ```
 

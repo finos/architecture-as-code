@@ -1,19 +1,35 @@
 import axios, { AxiosInstance, isAxiosError } from 'axios';
 import { getAuthHeaders } from '../authService.js';
 import { isBuiltInExtension } from '../extensions/extensionIdentity.js';
-import { ExtensionContext, ExtensionPoint, ExtensionRoute, ExtensionSummary } from '../model/extensions.js';
+import type { FormInput } from '../extensions/forms/formRules.js';
+import {
+    ChatProviderRef,
+    ChatRequest,
+    ExtensionContext,
+    ExtensionPoint,
+    ExtensionRoute,
+    ExtensionSummary,
+} from '../model/extensions.js';
+import type { Notation } from '../model/lens.js';
+import type { ExtensionSearchPage } from '../model/search.js';
 import type { DecoratorView } from '../visualizer/contracts/contracts.js';
 import { authStore } from './utils/auth-store.js';
 
 /** The extension contract version this UI reads. The registry and each blocks reply give theirs. */
 export const SUPPORTED_HUB_API = 0;
 
+/**
+ * Hub refuses a longer request line (the method, the target with its query, and HTTP/1.1) with 414. The MCP tools
+ * apply the same Vert.x limit (`ExtensionTools.MAX_REQUEST_LINE_LENGTH`).
+ */
+export const MAX_REQUEST_LINE = 4096;
+
 type RegistryEntry = ExtensionSummary & { contributes: { 'decorator-views'?: unknown } };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const UI_POINTS: readonly ExtensionPoint[] = ['screen', 'designer-tab', 'landing-card', 'detail-panel', 'action'];
+const UI_POINTS: readonly ExtensionPoint[] = ['screen', 'designer-tab', 'landing-card', 'detail-panel', 'action', 'search-provider', 'chat'];
 
 const hasStrings = (value: unknown, fields: readonly string[]) =>
     isObject(value) && fields.every((field) => typeof value[field] === 'string');
@@ -27,7 +43,21 @@ function isRegistryEntry(value: unknown): value is RegistryEntry {
         && UI_POINTS.every((point) => {
             const entries = contributes[point];
             return entries === undefined || (Array.isArray(entries) && entries.every((entry) => hasStrings(entry, ['id', 'title', 'route'])));
-        });
+        })
+        && (contributes['diagram-lens'] === undefined || (Array.isArray(contributes['diagram-lens'])
+            && contributes['diagram-lens'].every((entry) => isObject(entry) && hasStrings(entry, ['id', 'title', 'route', 'notation'])
+                && (entry.params === undefined || isObject(entry.params)))))
+        && (contributes.form === undefined || (Array.isArray(contributes.form)
+            && contributes.form.every((entry) => hasStrings(entry, ['id', 'title', 'route', 'target'])
+                && Array.isArray(entry.fields) && entry.fields.every((field: unknown) => hasStrings(field, ['id', 'type', 'label'])))));
+}
+
+// A logo is decoration: a malformed one goes, and the extension stays.
+function withValidLogo(entry: RegistryEntry): RegistryEntry {
+    const { logo } = entry as { logo?: unknown };
+    const valid = logo === undefined
+        || (hasStrings(logo, ['light']) && ((logo as { dark?: unknown }).dark === undefined || hasStrings(logo, ['dark'])));
+    return valid ? entry : { ...entry, logo: undefined };
 }
 
 function keepRegistryEntry(value: unknown): value is RegistryEntry {
@@ -44,7 +74,40 @@ export class ExtensionRegistryError extends Error {
     }
 }
 
+/** A failed extension call. `problem` holds the title and detail of an `application/problem+json` reply. */
+export class ExtensionCallError extends Error {
+    constructor(readonly problem?: { title?: string; detail?: string }) {
+        super('Error calling extension');
+    }
+}
+
+function problemOf(error: unknown): ExtensionCallError['problem'] {
+    const data: unknown = isAxiosError(error) ? error.response?.data : undefined;
+    if (!isObject(data)) return undefined;
+    const text = (value: unknown) => (typeof value === 'string' ? value.slice(0, 500) : undefined);
+    // A refusal by Hub itself has an error message, not a problem title.
+    const problem = { title: text(data.title) ?? text(data.error), detail: text(data.detail) };
+    return problem.title || problem.detail ? problem : undefined;
+}
+
 const isSignedOut = (error: unknown) => isAxiosError(error) && error.response?.status === 401;
+
+/** A failed search provider. `timedOut` is true when the provider did not reply in time. */
+export class ExtensionSearchError extends Error {
+    constructor(readonly timedOut: boolean) {
+        super('Error searching with an extension');
+    }
+}
+
+const optionalString = (value: unknown) => value === undefined || typeof value === 'string';
+
+// Hub checked the reply and copied only the fields it knows. The page renders it, so check its shape here too.
+function isSearchPage(value: unknown): value is ExtensionSearchPage {
+    return isObject(value) && Array.isArray(value.results) && optionalString(value.next)
+        && value.results.every((result: unknown) => isObject(result) && hasStrings(result, ['id', 'title'])
+            && optionalString(result.summary) && optionalString(result.namespace)
+            && (result.link === undefined || isObject(result.link)));
+}
 
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
@@ -56,13 +119,16 @@ function isPathValue(value: string): boolean {
         && !/\.\.|[/\\%@\u0000-\u001f\u007f\u037e\u2024-\u2026\u2044\u2100\u2101\u2105\u2106\u2215\u2216\u29f5\u29f8\ufe14\ufe19\ufe30\ufe52\ufe54\ufe68\ufe6a\ufe6b\uff05\uff0e\uff0f\uff1b\uff20\uff3c]/.test(value);
 }
 
-// Hub refuses an encoded control character in a query, and axios throws on a lone surrogate.
-function isQueryValue(value: string): boolean {
+/** Hub refuses an encoded control character in a query, and axios throws on a lone surrogate. */
+export function isQueryValue(value: string): boolean {
     // eslint-disable-next-line no-control-regex
     return !LONE_SURROGATE.test(value) && !/[\u0000-\u001f\u007f]/.test(value);
 }
 
-export function extensionRequest(id: string, route: ExtensionRoute, context: ExtensionContext) {
+/** The resource context, and for a lens its view parameters. Hub reserves the context names, so they cannot clash. */
+export type ExtensionQuery = ExtensionContext & Record<string, string | undefined>;
+
+export function extensionRequest(id: string, route: ExtensionRoute, context: ExtensionQuery) {
     const values: Record<string, string | undefined> = { ...context };
     const path = route.path.replace(/\{([^}]+)\}/g, (_, key: string) => {
         const value = values[key];
@@ -79,20 +145,134 @@ export function extensionRequest(id: string, route: ExtensionRoute, context: Ext
     return { url: `/api/calm/extensions/${encodeURIComponent(id)}/api${path}`, params: context };
 }
 
+/** The body of a form submission. `context` is the pinned target; `input` holds only the field values. */
+export interface FormSubmission {
+    submission: string;
+    context: ExtensionContext;
+    input: FormInput;
+}
+
+/**
+ * How a submission ended. `failed` means that this request saved nothing: Hub refused it before it sent it
+ * (`sent: false`), or the backend refused it with a 4xx (`sent: true`). `unknown` means that the backend may have acted
+ * on it, such as after a timeout or a 5xx, so the UI must not send it again by itself.
+ */
+export type FormOutcome =
+    | { kind: 'success'; message?: string }
+    | { kind: 'failed'; sent: boolean; message?: string; fields?: Record<string, string> }
+    | { kind: 'unknown' };
+
+/** The header in which Hub says whether it sent a submission to the backend. A backend cannot set it. */
+export const DISPATCH_HEADER = 'calm-extension-dispatch';
+
+const text = (value: unknown) => (typeof value === 'string' && value.trim() ? value.slice(0, 500) : undefined);
+
+export function formOutcome(status: number, dispatch: unknown, data: unknown): FormOutcome {
+    if (status >= 200 && status < 300) return { kind: 'success', message: isObject(data) ? text(data.message) : undefined };
+    // Only the header tells a refusal by Hub from a backend reply: a backend can copy the body of a Hub error, not the header.
+    // A 5xx from the backend, or from a proxy in front of Hub, can come after the backend acted.
+    if (dispatch !== 'not-sent' && (dispatch === 'unknown' || status >= 500)) return { kind: 'unknown' };
+    const body = isObject(data) ? data : {};
+    const fields = isObject(body.fields)
+        ? Object.fromEntries(Object.entries(body.fields).flatMap(([id, message]) => (text(message) ? [[id, text(message)!]] : [])))
+        : undefined;
+    const message = [text(body.title) ?? text(body.error), text(body.detail)].filter(Boolean).join(' ') || undefined;
+    // Without the header, the 4xx did not come through Hub's dispatch, such as an auth refusal or a proxy in front of Hub.
+    return { kind: 'failed', sent: dispatch === 'sent', message, fields: fields && Object.keys(fields).length > 0 ? fields : undefined };
+}
+
+interface Registry {
+    values: RegistryEntry[];
+    chat?: ChatProviderRef;
+}
+
+const chatProviderRef = (value: unknown): ChatProviderRef | undefined =>
+    isObject(value) && typeof value.extension === 'string' && typeof value.contribution === 'string'
+        ? { extension: value.extension, contribution: value.contribution }
+        : undefined;
+
+/** A failed chat message. `status` is the HTTP status, or undefined when no reply came. */
+export class ChatCallError extends Error {
+    constructor(message: string, readonly status?: number) {
+        super(message);
+    }
+}
+
+/** One event of a chat reply stream. */
+export interface ChatStreamEvent {
+    name: string;
+    data: string;
+}
+
+/** Calls `onEvent` for each event of a `text/event-stream` body, with the rules of the HTML event stream format. */
+export async function readEventStream(body: ReadableStream<Uint8Array>, onEvent: (event: ChatStreamEvent) => void): Promise<void> {
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let name = '';
+    let data: string[] | undefined;
+    const line = (text: string) => {
+        if (text === '') {
+            if (data) onEvent({ name: name || 'message', data: data.join('\n') });
+            name = '';
+            data = undefined;
+            return;
+        }
+        if (text.startsWith(':')) return;
+        const colon = text.indexOf(':');
+        const field = colon < 0 ? text : text.slice(0, colon);
+        const value = colon < 0 ? '' : text.slice(colon + 1).replace(/^ /, '');
+        if (field === 'event') name = value;
+        else if (field === 'data') (data ??= []).push(value);
+    };
+    for (;;) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        if (done) {
+            // A last event without its blank line is incomplete, so it is dropped, as a browser does.
+            return;
+        }
+        // A CR at the end may be the first half of a CRLF, so it waits for the next part.
+        const lines = buffer.split(/\r\n|\n|\r(?!$)/);
+        buffer = lines.pop() ?? '';
+        lines.forEach(line);
+    }
+}
+
+async function chatError(response: Response): Promise<ChatCallError> {
+    let message: string | undefined;
+    try {
+        const data: unknown = await response.json();
+        if (isObject(data)) {
+            const text = data.detail ?? data.title ?? data.message ?? data.error;
+            if (typeof text === 'string') message = text.slice(0, 500);
+        }
+    } catch {
+        // Not JSON: the status alone says enough.
+    }
+    return new ChatCallError(message ?? `The chat provider failed (HTTP ${response.status})`, response.status);
+}
+
 export class ExtensionService {
     private readonly ax: AxiosInstance;
-    private registry?: Promise<RegistryEntry[]>;
+    private readonly fetchFn: typeof fetch;
+    private registry?: Promise<Registry>;
+    private core?: Promise<Notation>;
 
-    constructor(axiosInstance?: AxiosInstance) {
+    constructor(axiosInstance?: AxiosInstance, fetchFn?: typeof fetch) {
         // Not apiClient: an extension failure stays in its slot and must not open the global auth or outage page.
         this.ax = axiosInstance ?? axios.create();
+        // fetch, not axios, because only fetch reads a reply while it streams.
+        this.fetchFn = fetchFn ?? ((input, init) => fetch(input, init));
     }
 
-    private loadRegistry(): Promise<RegistryEntry[]> {
+    private loadRegistry(): Promise<Registry> {
         this.registry ??= getAuthHeaders()
-            .then((headers) => this.ax.get<{ values?: unknown }>('/api/calm/extensions', { headers }))
-            .then((res) => (Array.isArray(res.data?.values) ? (res.data.values as unknown[]) : []))
-            .then((values) => values.filter(keepRegistryEntry))
+            .then((headers) => this.ax.get<{ values?: unknown; chat?: unknown }>('/api/calm/extensions', { headers }))
+            .then((res) => ({
+                values: (Array.isArray(res.data?.values) ? (res.data.values as unknown[]) : []).filter(keepRegistryEntry).map(withValidLogo),
+                chat: chatProviderRef(res.data?.chat),
+            }))
             .catch((error) => {
                 this.registry = undefined;
                 // The registry is a Hub call, so a 401 means the Hub session ended. An extension call keeps its 401 in its slot.
@@ -103,15 +283,58 @@ export class ExtensionService {
     }
 
     public async fetchExtensions(): Promise<ExtensionSummary[]> {
-        return this.loadRegistry().catch((error) => {
+        return this.loadRegistry().then((registry) => registry.values).catch((error) => {
             console.error('%s', 'Error fetching extensions:', error);
             return Promise.reject(new ExtensionRegistryError('Error fetching extensions', isSignedOut(error)));
         });
     }
 
+    /** The chat entry that the operator chose, from the registry that `fetchExtensions` loaded. Never a second request. */
+    public async fetchChatProvider(): Promise<ChatProviderRef | undefined> {
+        return this.registry?.then((registry) => registry.chat);
+    }
+
+    /**
+     * Sends a chat message and calls `onEvent` for each event of the reply while it streams. `signal` stops the reply:
+     * Hub then closes the call to the extension. Rejects with a `ChatCallError` when Hub or the extension refuses the
+     * message, or when the reply cannot be read.
+     */
+    public async sendChatMessage(
+        extensionId: string,
+        entryId: string,
+        request: ChatRequest,
+        onEvent: (event: ChatStreamEvent) => void,
+        signal?: AbortSignal
+    ): Promise<void> {
+        const headers = await getAuthHeaders();
+        // The user can stop the reply while sign-in is pending. Then Hub gets no request.
+        signal?.throwIfAborted();
+        let response: Response;
+        try {
+            response = await this.fetchFn(`/api/calm/extensions/${encodeURIComponent(extensionId)}/chat/${encodeURIComponent(entryId)}`, {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+                body: JSON.stringify(request),
+                signal,
+            });
+        } catch (error) {
+            if (signal?.aborted) throw error;
+            throw new ChatCallError('CALM Hub could not be reached');
+        }
+        if (!response.ok) {
+            // The chat endpoint is a Hub call, so a 401 means the Hub session ended. Hub turns an extension 401 into 502.
+            if (response.status === 401) authStore.setAuthError(401);
+            throw await chatError(response);
+        }
+        if (!response.body || !(response.headers.get('Content-Type') ?? '').startsWith('text/event-stream')) {
+            throw new ChatCallError('The chat provider sent a reply that CALM Hub cannot show', response.status);
+        }
+        await readEventStream(response.body, onEvent);
+    }
+
     public async fetchDecoratorViews(): Promise<DecoratorView[]> {
         return this.loadRegistry()
-            .then((values) =>
+            .then(({ values }) =>
                 values.flatMap((extension) => {
                     const views = extension.contributes['decorator-views'];
                     // One bad value must not fail the load, which would replace every view with the built-in ones.
@@ -131,7 +354,83 @@ export class ExtensionService {
             });
     }
 
-    public async call(id: string, route: ExtensionRoute, context: ExtensionContext, signal?: AbortSignal): Promise<unknown> {
+    /** The notation of a lens. Hub checked it at start-up. */
+    public async fetchLensNotation(id: string, lens: string, signal?: AbortSignal): Promise<Notation> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get<Notation>(`/api/calm/extensions/${encodeURIComponent(id)}/lenses/${encodeURIComponent(lens)}/notation`, { headers, signal })
+            .then((res) => res.data);
+    }
+
+    /** Hub's core notation, behind every lens notation. It changes only with Hub, so the UI reads it once. */
+    public fetchCoreNotation(): Promise<Notation> {
+        this.core ??= getAuthHeaders()
+            .then((headers) => this.ax.get<Notation>('/api/calm/extensions/notations/core', { headers }))
+            .then((res) => res.data)
+            .catch((error) => {
+                this.core = undefined;
+                return Promise.reject(error);
+            });
+        return this.core;
+    }
+
+    /** Never rejects and never aborts: a write that may have reached the backend must not be sent again by itself. */
+    public async submitForm(id: string, form: string, body: FormSubmission): Promise<FormOutcome> {
+        let headers: Record<string, string>;
+        try {
+            headers = await getAuthHeaders();
+        } catch (error) {
+            console.error('%s', 'Error signing a form submission:', error);
+            return { kind: 'failed', sent: false, message: 'Sign in again, then send the form.' };
+        }
+        return this.ax
+            .post(`/api/calm/extensions/${encodeURIComponent(id)}/forms/${encodeURIComponent(form)}`, body, {
+                headers,
+                validateStatus: () => true,
+            })
+            .then((res) => formOutcome(res.status, res.headers?.[DISPATCH_HEADER], res.data))
+            .catch((error): FormOutcome => {
+                // No reply: the request may have reached Hub and the backend.
+                console.error('%s', 'Error submitting extension form:', error);
+                return { kind: 'unknown' };
+            });
+    }
+
+    /** One page of results from a search provider. Hub leaves out each result that the caller cannot read. */
+    public async search(id: string, provider: string, query: string, cursor?: string, signal?: AbortSignal): Promise<ExtensionSearchPage> {
+        const headers = await getAuthHeaders();
+        return this.ax
+            .get<unknown>(`/api/calm/extensions/${encodeURIComponent(id)}/search/${encodeURIComponent(provider)}`, {
+                headers,
+                signal,
+                params: cursor === undefined ? { q: query } : { q: query, cursor },
+            })
+            .then((res) => {
+                if (!isSearchPage(res.data)) throw new Error('The search reply is not valid');
+                return res.data;
+            })
+            .catch((error) => {
+                console.error('%s', `Error searching with ${id} ${provider}:`, error);
+                return Promise.reject(new ExtensionSearchError(isAxiosError(error) && error.response?.status === 504));
+            });
+    }
+
+    /**
+     * The request line of the call is within `MAX_REQUEST_LINE`. It counts the target as the browser sends it, after
+     * the browser's own encoding. A call that is not valid fits: `call` refuses it.
+     */
+    public fitsRequestLine(id: string, route: ExtensionRoute, context: ExtensionQuery): boolean {
+        let uri: string;
+        try {
+            uri = this.ax.getUri({ ...extensionRequest(id, route, context), method: route.method });
+        } catch {
+            return true;
+        }
+        const { pathname, search } = new URL(uri, window.location.href);
+        return `${route.method} ${pathname}${search} HTTP/1.1`.length <= MAX_REQUEST_LINE;
+    }
+
+    public async call(id: string, route: ExtensionRoute, context: ExtensionQuery, signal?: AbortSignal): Promise<unknown> {
         const headers = await getAuthHeaders();
         const request = extensionRequest(id, route, context);
         return this.ax
@@ -145,7 +444,7 @@ export class ExtensionService {
             .then((res) => res.data)
             .catch((error) => {
                 console.error('%s', 'Error calling extension:', error);
-                return Promise.reject(new Error('Error calling extension'));
+                return Promise.reject(new ExtensionCallError(problemOf(error)));
             });
     }
 }

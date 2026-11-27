@@ -9,6 +9,8 @@ import {
 import { createEdge } from './edgeFactory';
 import { GRAPH_LAYOUT } from './constants';
 import { THEME } from '../theme';
+import type { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
+import { toSidebarEdgeData, toSidebarNodeData } from './patternClickHandlers.js';
 
 /**
  * Result of parsing pattern data into ReactFlow elements
@@ -43,7 +45,8 @@ function findDeclarations(pattern: SchemaObject, key: string, member: string): S
     return undefined;
 }
 
-function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
+/** The `prefixItems` of `nodes` or `relationships` that the diagram reads. A form's node chooser reads them too. */
+export function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
     return findDeclarations(pattern, key, 'prefixItems')?.['prefixItems'] ?? [];
 }
 
@@ -295,6 +298,22 @@ function extractRelTypeFromConst(relTypeConst: SchemaObject): Omit<ExtractedRela
     return null;
 }
 
+function extractConstValue(schema: SchemaObject): unknown {
+    if (schema['const'] !== undefined) return schema['const'];
+    if (Array.isArray(schema['prefixItems'])) {
+        return schema['prefixItems'].map((item: SchemaObject) => extractConstValue(item));
+    }
+    if (schema['properties'] && typeof schema['properties'] === 'object') {
+        const value: SchemaObject = {};
+        for (const [key, property] of Object.entries(schema['properties'])) {
+            const propertyValue = extractConstValue(property as SchemaObject);
+            if (propertyValue !== undefined) value[key] = propertyValue;
+        }
+        return Object.keys(value).length > 0 ? value : undefined;
+    }
+    return undefined;
+}
+
 function isOptionsRelationship(item: SchemaObject): boolean {
     return item['properties']?.['relationship-type']?.['properties']?.['options'] !== undefined;
 }
@@ -307,8 +326,10 @@ function extractSingleRelationship(item: SchemaObject): ExtractedRelationship | 
     const protocol = readSchemaValue(item, 'protocol');
     const controls = extractPatternControls(item);
 
-    // relationship-type can be in a const or in properties
-    const relTypeConst = item['properties']?.['relationship-type']?.['const'];
+    // Relationship types may be literal values or schemas constrained by nested consts.
+    const relationshipType = item['properties']?.['relationship-type'];
+    const relTypeConst = relationshipType?.['const'] ??
+        (relationshipType?.['properties'] ? extractConstValue(relationshipType) : undefined);
     if (relTypeConst) {
         const relInfo = extractRelTypeFromConst(relTypeConst);
         if (relInfo) {
@@ -406,6 +427,35 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
 
 // ---- ReactFlow conversion ----
 
+// Build CALM-style node data for the graph and sidebar
+function buildNodeData(node: ExtractedNode): Record<string, unknown> {
+    const data: Record<string, unknown> = {
+        // label is read by CustomNode for display
+        label: node.name,
+        // CALM schema fields
+        'unique-id': node.uniqueId,
+        'node-type': node.nodeType,
+        name: node.name,
+        description: node.description,
+    };
+    if (node.interfaces) data['interfaces'] = node.interfaces;
+    if (node.controls) data['controls'] = node.controls;
+    if (node.details) data['details'] = node.details;
+    return data;
+}
+
+// CALM-style relationship data for an edge and the sidebar. Only a connects edge shows its protocol.
+function buildRelationshipData(rel: ExtractedRelationship): Record<string, unknown> {
+    const data: Record<string, unknown> = {
+        'unique-id': rel.uniqueId,
+        description: rel.description,
+        'relationship-type': rel.relationshipTypeConst,
+    };
+    if (rel.protocol && rel.type === 'connects') data['protocol'] = rel.protocol;
+    if (rel.controls) data['controls'] = rel.controls;
+    return data;
+}
+
 interface ContainerInfo {
     containerNodeIds: Set<string>;
     parentMap: Map<string, string>;
@@ -456,23 +506,6 @@ function createReactFlowNodes(
         });
     });
 
-    // Build CALM-style node data for the graph and sidebar
-    function buildNodeData(node: ExtractedNode): Record<string, unknown> {
-        const data: Record<string, unknown> = {
-            // label is read by CustomNode for display
-            label: node.name,
-            // CALM schema fields
-            'unique-id': node.uniqueId,
-            'node-type': node.nodeType,
-            name: node.name,
-            description: node.description,
-        };
-        if (node.interfaces) data['interfaces'] = node.interfaces;
-        if (node.controls) data['controls'] = node.controls;
-        if (node.details) data['details'] = node.details;
-        return data;
-    }
-
     // Create system/container group nodes
     extractedNodes.forEach((node) => {
         if (containerNodeIds.has(node.uniqueId)) {
@@ -521,13 +554,7 @@ function createReactFlowEdges(
             if (!allNodeIds.has(rel.sourceNode) || !allNodeIds.has(rel.destinationNode)) return;
 
             const color = rel.decisionGroupId ? THEME.colors.decision.oneOf : THEME.colors.accent;
-            const edgeData: Record<string, unknown> = {
-                'unique-id': rel.uniqueId,
-                description: rel.description,
-                'relationship-type': rel.relationshipTypeConst,
-            };
-            if (rel.protocol) edgeData['protocol'] = rel.protocol;
-            if (rel.controls) edgeData['controls'] = rel.controls;
+            const edgeData = buildRelationshipData(rel);
             edges.push(
                 createEdge({
                     id: `pattern-edge-${edgeIndex++}`,
@@ -545,12 +572,7 @@ function createReactFlowEdges(
             rel.targetNodes.forEach((targetId, targetIndex) => {
                 if (!allNodeIds.has(rel.actor!) || !allNodeIds.has(targetId)) return;
 
-                const edgeData: Record<string, unknown> = {
-                    'unique-id': rel.uniqueId,
-                    description: rel.description,
-                    'relationship-type': rel.relationshipTypeConst,
-                };
-                if (rel.controls) edgeData['controls'] = rel.controls;
+                const edgeData = buildRelationshipData(rel);
                 edges.push(
                     createEdge({
                         id: `pattern-edge-${edgeIndex++}-${targetIndex}`,
@@ -661,6 +683,22 @@ function applyPatternLayout(regularNodes: Node[], groupNodes: Node[], edges: Edg
 }
 
 // ---- Public API ----
+
+/**
+ * The node or relationship with this unique-id that a pattern declares, with the data that a click on it in the
+ * diagram gives the details panel. A relationship with no edge, such as `composed-of`, is found too.
+ */
+export function findPatternElement(pattern: SchemaObject, uniqueId: string): CalmNodeSchema | CalmRelationshipSchema | undefined {
+    try {
+        const node = extractNodesFromPattern(pattern).nodes.find((entry) => entry.uniqueId === uniqueId);
+        if (node) return toSidebarNodeData(buildNodeData(node));
+        const relationship = extractRelationshipsFromPattern(pattern).relationships.find((entry) => entry.uniqueId === uniqueId);
+        return relationship && toSidebarEdgeData(buildRelationshipData(relationship));
+    } catch {
+        // A pattern that parsePatternData cannot read declares no element that the diagram shows.
+        return undefined;
+    }
+}
 
 /**
  * Parses a CALM pattern JSON Schema into ReactFlow nodes and edges.

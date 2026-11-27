@@ -13,3 +13,19 @@
     padding-right: max(0.5rem, env(safe-area-inset-right));
     max-width: 100vw;
 }
+
+/* The drawer is a modal <dialog> under the navbar. The backdrop leaves the navbar clear: a click on it, as on
+   the rest of the backdrop, only closes the drawer. */
+.navbar-drawer::backdrop {
+    background: linear-gradient(transparent 4rem, rgb(0 0 0 / 30%) 4rem);
+}
+
+.navbar-drawer[open] {
+    animation: navbar-drawer-in 0.3s ease-out;
+}
+
+@keyframes navbar-drawer-in {
+    from {
+        transform: translateX(-100%);
+    }
+}

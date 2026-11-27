@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
 import { RailItem } from './RailItem.js';
+import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import { colors } from '../../../theme/colors.js';
 
 const renderItem = (props: { label: string; count: number; active: boolean; to: string }) =>
@@ -23,7 +24,7 @@ describe('RailItem', () => {
         renderItem({ label: 'finos', count: 5, active: true, to: '/namespace/finos' });
         const link = screen.getByRole('link', { name: /finos/ });
         expect(link).toHaveStyle({ backgroundColor: colors.redesign.tintBg });
-        expect(link).toHaveStyle({ boxShadow: 'inset 3px 0 0 #2563EB' });
+        expect(link).toHaveStyle({ boxShadow: redesignTokens.shadow.railAccent });
         expect(link).toHaveAttribute('aria-current', 'page');
     });
 

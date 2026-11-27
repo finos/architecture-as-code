@@ -65,9 +65,11 @@ Once running, you can access the Hub at:
 
 The CALM Hub dashboard is divided into three primary zones:
 
-1. **Top Navbar:** Displays the branding, navigation links (Hub explorer, standalone Visualizer), and a global search bar.
+1. **Top Navbar:** Displays the branding, navigation links (Hub explorer, standalone Visualizer), and a global search bar. Its results page shows the catalogue results, then the results of each [extension search provider](../calm-hub/extension-points.md#search-provider). With a chat provider, the answer of its assistant shows above them (see [Chat](#chat)).
 2. **Explore Sidebar (Left):** Allows hierarchical or flat navigation of Namespaces, Resource Types, and Compliance Control Domains.
 3. **Main Content Area (Center/Right):** Dynamically updates depending on the selected resource, rendering visual diagrams, JSON documents, or interactive schema forms.
+
+Your operator can change the name, logo and colours, show the menu at the left of each page, hide namespaces or control domains from the menus, and choose the first page. See [UI Customization](../calm-hub/index.md#ui-customization).
 
 ![CALM Hub Explorer Dashboard](/img/hub-ui/home.png)
 
@@ -138,11 +140,29 @@ When you select an **Architecture** or **Pattern** artifact, CALM Hub renders th
 
 ### Tab Views
 
-* **Diagram Tab:** The interactive visual representation of the model.
-* **JSON Tab:** The raw, validated CALM JSON backing the diagram.
+* **Diagram Tab:** The interactive visual representation of the model. Select the arrow on the **Diagram** tab to choose a lens. Type in the box to filter the list. The tab shows the name of the open lens.
+  * **CALM:** the CALM diagram.
+  * **JSON:** the raw, validated CALM JSON backing the diagram (`?lens=json`).
+  * Under **Extensions**, the lenses of the enabled extensions, with the extension name. For example, **C4**, from the **C4 model** extension, shows the architecture as a C4 model (see [C4 lens](#c4-lens)). The operator installs extensions (see [Install an extension](../extensions/install.md)).
 * **Decorators Tab:** Lists all decorators of the architecture version, of every type. Each shows its type (or "(no type)"), `applies-to`, its created and updated times when Hub returns them, and `data`, with links, dates, lists, tables and collapsible nested values. The JSON view shows the decorator as a write takes it, without the Hub-owned times, so you can copy it into a `PUT`. Filter by type and by `$schema`. The filters are in the URL, for example `?tab=decorators&type=deployment`.
 
-An unknown `?tab=` value opens the Diagram tab. The old `?tab=deployments` link opens the Decorators tab filtered to `deployment`.
+An unknown `?tab=` value opens the Diagram tab. The old `?tab=deployments` link opens the Decorators tab filtered to `deployment`, and the old `?tab=json` link opens the JSON lens. An unknown `?lens=` value opens the CALM lens.
+
+### C4 lens
+
+The **C4** lens of the Diagram tab shows the architecture as a C4 context, container, component or deployment diagram. The [CALM C4 standard](../core-concepts/c4.md) sets the C4 kind of each node. The lens comes from the [C4 extension](../extensions/c4.md), so it shows only when the operator installs that extension. On a screen narrower than 1024 pixels, select the lens in the **Lens** group of the **View** menu.
+
+![The C4 lens at container level](/img/hub-ui/c4-view.png)
+
+* **Level and scope:** select a level in **Level**, then the system or container in scope in the list next to it. Click an element to open the next level down. The next level is a `composed-of` child, or the detailed architecture of the node. The title of the diagram names the systems and containers above the scope.
+* **Selection:** click an element to select its CALM node, as on the CALM diagram. A node that you select stays selected when you change the lens, and the lens marks its element with a blue outline. Each lens fits its diagram to the view, so the zoom does not stay.
+* **Key:** the key lists the kinds of element on the diagram. Click a kind to dim it or show it again.
+* **Notes:** the **C4 notes** panel names the C4 mapping in use, and lists the conflicts with the standard and why an element shows at a different kind than its mapping. **Hide** closes it.
+* **Mapping:** the lens uses the `c4-mapping` default convention of the namespace, or of its nearest parent namespace. When no namespace sets one, it uses the default mapping of the standard. When the mapping, or a mapping that it extends, does not load or is not valid, the lens shows the error and no diagram.
+* **Guessed elements:** an element with a **Guessed** badge has a node type that the mapping does not name. Its kind comes from the structure of the architecture. Add the node type to the mapping to fix the kind.
+* **External elements:** a grey element is outside the enterprise or owned by another team. Its badge gives the reason.
+
+The lens, the level and the scope are in the URL, for example `?lens=c4&level=container&scope=trading-system`. A link to another version keeps them. The lens draws the decorator overlays (see [Overlays on an extension lens](#overlays-on-an-extension-lens)). The layout controls, the component search and the version compare use the CALM lens only.
 
 ### Decorator Overlays
 
@@ -153,9 +173,20 @@ Some decorator types are drawn on the diagram as an overlay. Each node or relati
 | Control evaluations | `control-evaluation` | The latest result of each control: see [Control Evaluations](#control-evaluations) |
 | Deployments | `deployment` | The status of the latest deployment, by `start-time`: completed (OK), pending or in progress (Info), rolled back (Warning), failed (Error) |
 
-The legend at the bottom of the diagram lists each overlay that has decorators on screen, with how many elements show each status. Clear an overlay's checkbox to hide it. On a screen narrower than 1024 pixels, the legend starts closed: tap **Overlays** to open it. **View all** opens the Decorators tab filtered to the type and the `$schema` of that overlay. While the diagram, the Decorators tab or the details drawer is open, they refresh every 5 seconds.
+The legend at the bottom of the diagram lists each overlay that has decorators on screen, with how many elements show each status. Clear an overlay's checkbox to hide it. On a screen narrower than 1024 pixels, the legend starts closed: tap **Overlays** to open it. **View all** opens the Decorators tab filtered to the type and the `$schema` of that overlay. While the CALM diagram, an extension lens, the Decorators tab or the details drawer is open, they refresh every 5 seconds.
 
 ![CALM Hub Raw JSON Viewer](/img/hub-ui/json-view.png)
+
+#### Overlays on an extension lens
+
+An extension lens of an architecture, such as **C4** or **Layers**, draws the same overlays:
+
+* **Badges:** each element shows the badges of the CALM nodes or relationships that it stands for. An error also gives a node or a group a red outline, and a warning an amber one. A relationship shows the badge of an overlay only when one of its results is an error or a warning. The details of that badge also list its other results.
+* **Details:** click a badge to see up to five results, each with its status and any label or time. The details give the number of the others. For the full list, select **View all** in the legend, or the **View all** link under the results.
+* **Legend:** the legend is at the top left of the lens. It uses the choices that you make on the CALM diagram.
+* **Not shown:** when no element of the lens stands for a decorated node or relationship, a notice above the legend says so, for example "Deployments · Built-in: 1 decorated element is not shown." The lens does not move the badge to another element. A `deployed-in` or `composed-of` relationship counts as its container, as on the CALM diagram. To see the decorators, change the level or the view of the lens, or select **View all**.
+
+The decision overlay and presentation mode are on the CALM lens only.
 
 ### Control Evaluations
 
@@ -249,11 +280,22 @@ Selecting a control from a **Control Domain** (e.g. `security` or `ai-governance
 An operator can install extensions (see [Extensions](../calm-hub/index.md#extensions), and the
 [extension tutorial](../tutorials/advanced/hub-extension.md)). The UI groups what they add:
 
-* **Home page:** an **Extensions** section under **Namespaces**, with one card per extension. A card shows the extension name, its provider and up to three figures, or one line of text. If the extension has a screen, click the card to open it.
-* **Side menu:** an **Extensions** group with one entry per extension screen.
-* **Architecture and pattern pages:** one **Extensions** tab. Each extension has a collapsible section with its actions and its tab content. Actions show only here, not on the home page, and each runs with the context of the architecture or pattern. An action or a tab that needs a selected node shows a hint until a node is selected. With more than five extensions, a filter shows above the sections.
-* **Node details:** one **Extensions** section, with a collapsible part for each extension.
+* **Home page:** a card for each extension with a landing card or a top-level page, with its name, provider and a link to each page. A card can also show up to three figures or one line of text. A card without a page has no link.
+* **Side menu:** pages grouped under their extension name, in the same order as the cards.
+* **Architecture and pattern pages:** the **Details & extensions** handle on the right edge opens the inspector beside the diagram. Its view menu lists **Details** first, then resource and node views grouped by extension, with a filter when there are more than five extension entries. Select one view at a time; its extension's actions stay with it. Actions run only here, with the architecture's or pattern's context. An action or view that needs a selected node shows a hint until a node is selected. Views retain their state without fetching while hidden. The diagram and its selection stay when the inspector opens and closes. On a narrow screen, the inspector fills the screen, and **Back to diagram** or Escape closes it. A link opens an extension with `?extension=<extension id>`. The old `?tab=extensions` link opens the inspector on the first extension. Closing the inspector or selecting another node keeps the open extension and its chosen view.
 * **Diagram overlays:** each extension has a colour marker on its badges and legend rows. Click a node's badge to see what it means.
+
+A link in an extension can open an exact architecture version, with a node selected, or an extension screen for an architecture. The page that it opens shows **Back to &lt;page&gt;**, which returns to the list or architecture that you came from, with its filters, page and selected node. Back, Forward and a refresh keep this link; a copied link does not have it. If the link names a node that is not in the version, or an extension that is not enabled, the page says so and shows the rest. See [Extension navigation](../calm-hub/extension-navigation.md).
+
+### Chat
+
+An extension can add a chat with an assistant. The operator chooses one [chat provider](../calm-hub/extension-points.md#chat) for the CALM Hub. With no chat provider, the UI shows no chat.
+
+* **Chat page:** the side menu, the home page card of the extension and the **Details** view of the inspector link to the chat page, `/chat`, with the name that the extension gives its chat. The operator can also make it the start page. Type a question and select **Send**. **Stop** ends a reply and keeps its text. **Retry** sends the question again after a reply that stopped or failed. The links under a reply are its sources. A link to a CALM Hub page shows **Back to** the chat on that page.
+* **Share an architecture:** when you open the chat from the **Details** view of an architecture or a pattern, tick **Share** to send that version, and the selected node, with your messages. The box starts clear. Without it, the provider gets only your messages.
+* **Search page:** when you submit a search, CALM Hub also sends the query, and nothing else, to the chat provider. The search box names the provider while you type, and sends nothing to the chat provider until you submit. **Assistant answer** shows above the results, which do not wait for it. You can ask a follow-up there. A new search starts a new conversation.
+* **Search links:** a search URL asks the assistant only in a tab that has started no conversation since it loaded and has no draft, such as a new tab or a reloaded page. In another tab, CALM Hub sends nothing, also after **New conversation**, and the conversation and the draft stay. When the search page does not show the answer for its query, select **Ask &lt;provider&gt;** to send the query.
+* **Your data:** the conversation stays in the browser tab until you select **New conversation**, submit a search, or reload the page. CALM Hub does not store it. The provider can have charges, and can keep the messages under its own retention policy.
 
 ---
 

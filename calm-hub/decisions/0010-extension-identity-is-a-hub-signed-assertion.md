@@ -59,6 +59,19 @@ gives the service account the least grants it needs. OAuth 2.0 Token Exchange
 (RFC 8693) cannot be the default, because `no-auth` and `proxy-auth` have no
 token endpoint. It can come later, for the OIDC profiles only.
 
+A read-only route that needs only a Hub resource can instead declare `hubData`.
+Hub reads the resource, and the conventions and links that the route names, with
+the scope of the caller, and sends them as the body. `bdh` covers that body. The
+service then needs no account and no route to Hub, so one service can serve many
+Hubs.
+
+Such a service can be open to any caller: it draws only what it is sent, and a
+signature from an unknown Hub proves nothing. For it, the operator sets
+`calm.extensions."<id>".send-identity=false`, and Hub sends no assertion and needs
+no keys for it. Hub allows this only when every route is a `GET` or `readOnly`
+route, because a service that changes data must know who asked. Hub still checks
+the route scope for the user, and reads `hubData` with that scope.
+
 ## Consequences
 
 - An extension verifies a request in a few lines of code, with the JWKS only. It

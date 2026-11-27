@@ -13,6 +13,22 @@
     { "id": "add-service", "method": "POST", "path": "/namespaces/{namespace}/services", "scope": "write" },
     { "id": "search", "method": "POST", "path": "/search", "scope": "authenticated", "readOnly": true },
     { "id": "admin", "method": "GET", "path": "/admin", "scope": "global_admin" },
-    { "id": "domain-services", "method": "GET", "path": "/domains/{domain}/services", "scope": "domain_read" }
-  ]
+    { "id": "domain-services", "method": "GET", "path": "/domains/{domain}/services", "scope": "domain_read" },
+    { "id": "request-review", "method": "POST", "path": "/namespaces/{namespace}/reviews", "scope": "write" },
+    { "id": "preview", "method": "POST", "path": "/preview", "scope": "authenticated", "readOnly": true },
+    { "id": "ask", "method": "POST", "path": "/chat", "scope": "authenticated", "readOnly": true }
+  ],
+  "contributes": {
+    "form": [
+      {
+        "id": "request-review", "title": "Request a review", "route": "request-review", "target": "resource",
+        "fields": [{ "id": "note", "type": "multiline", "label": "Note", "required": true }]
+      },
+      {
+        "id": "preview", "title": "Preview", "route": "preview",
+        "fields": [{ "id": "query", "type": "text", "label": "Query" }]
+      }
+    ],
+    "chat": [{ "id": "assistant", "title": "Ask Atlas", "route": "ask" }]
+  }
 }

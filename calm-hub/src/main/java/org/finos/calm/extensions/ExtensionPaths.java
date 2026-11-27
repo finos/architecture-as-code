@@ -1,6 +1,7 @@
 package org.finos.calm.extensions;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -33,6 +34,36 @@ public final class ExtensionPaths {
     public static final String NOT_ALLOWED = "The extension path or query is not allowed";
 
     private ExtensionPaths() {
+    }
+
+    /**
+     * Encodes a path value as encodeURIComponent in the shared client does, so that both clients send, and Hub signs,
+     * the same path for one input. It leaves the RFC 3986 unreserved characters and {@code !*'()} as they are, so a
+     * value cannot add a path segment.
+     */
+    public static String encodePathValue(String value) {
+        return encode(value, "-._~!*'()", false);
+    }
+
+    /** Encodes a query name or value as URLSearchParams in the shared client does: a space becomes {@code +}. */
+    public static String encodeQueryText(String value) {
+        return encode(value, "*-._", true);
+    }
+
+    private static String encode(String value, String unencoded, boolean plusForSpace) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : value.getBytes(StandardCharsets.UTF_8)) {
+            int c = b & 0xff;
+            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || unencoded.indexOf(c) >= 0) {
+                sb.append((char) c);
+            } else if (c == ' ' && plusForSpace) {
+                sb.append('+');
+            } else {
+                sb.append('%').append(Character.toUpperCase(Character.forDigit(c >> 4, 16)))
+                        .append(Character.toUpperCase(Character.forDigit(c & 0xf, 16)));
+            }
+        }
+        return sb.toString();
     }
 
     /** Returns the path when it is safe to send to a backend, or throws 400. */

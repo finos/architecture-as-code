@@ -1,6 +1,10 @@
 package org.finos.calm.store.nitrite;
 
 import org.dizitart.no2.Nitrite;
+import org.dizitart.no2.collection.Document;
+import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.exceptions.NitriteIOException;
+import org.dizitart.no2.filters.Filter;
 import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.DecoratorHistoryEntry;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
@@ -18,9 +22,12 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 class TestNitriteDecoratorHistoryShould {
@@ -28,13 +35,15 @@ class TestNitriteDecoratorHistoryShould {
     private static final String NAMESPACE = "finos";
 
     private Nitrite database;
+    private NitriteNamespaceStore namespaceStore;
+    private NitriteCounterStore counterStore;
     private NitriteDecoratorStore store;
 
     @BeforeEach
     void setup() throws NamespaceNotFoundException {
         database = Nitrite.builder().openOrCreate();
-        NitriteNamespaceStore namespaceStore = mock(NitriteNamespaceStore.class);
-        NitriteCounterStore counterStore = mock(NitriteCounterStore.class);
+        namespaceStore = mock(NitriteNamespaceStore.class);
+        counterStore = mock(NitriteCounterStore.class);
         doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
         when(counterStore.getNextDecoratorSequenceValue()).thenReturn(1, 2, 3, 4);
@@ -82,6 +91,22 @@ class TestNitriteDecoratorHistoryShould {
 
         assertThrows(DecoratorSupersededException.class,
                 () -> store.supersedeDecorator(NAMESPACE, 1, decorator("third")));
+    }
+
+    @Test
+    void leave_both_decorators_current_when_the_mark_fails_and_delete_both_from_the_successor() throws Exception {
+        NitriteCollection failingMark = spy(database.getCollection(NitriteDecoratorStore.COLLECTION_NAME));
+        doThrow(new NitriteIOException("disk full")).when(failingMark).update(any(Filter.class), any(Document.class));
+        Nitrite failingDatabase = mock(Nitrite.class);
+        when(failingDatabase.getCollection(NitriteDecoratorStore.COLLECTION_NAME)).thenReturn(failingMark);
+        NitriteDecoratorStore failingStore = new NitriteDecoratorStore(failingDatabase, namespaceStore, counterStore);
+        failingStore.createDecorator(NAMESPACE, decorator("first"));
+
+        assertThrows(NitriteIOException.class, () -> failingStore.supersedeDecorator(NAMESPACE, 1, decorator("second")));
+
+        assertThat(store.getDecoratorsForNamespace(NAMESPACE, null, null), contains(1, 2));
+        store.deleteCurrentDecoratorHistory(NAMESPACE, 2);
+        assertThat(store.getDecoratorsForNamespace(NAMESPACE, null, null), is(empty()));
     }
 
     @Test

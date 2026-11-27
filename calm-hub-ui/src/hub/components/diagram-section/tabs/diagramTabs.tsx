@@ -1,10 +1,8 @@
-import { IoAppsOutline, IoCodeOutline, IoEyeOutline, IoGitNetworkOutline, IoPricetagsOutline } from 'react-icons/io5';
-import { ExtensionsTabPanel } from '../../../../extensions/sections/ExtensionsTabPanel.js';
-import { JsonRenderer } from '../../json-renderer/JsonRenderer.js';
+import { IoEyeOutline, IoGitNetworkOutline, IoPricetagsOutline } from 'react-icons/io5';
 import { DecoratorsPanel } from '../decorators/DecoratorsPanel.js';
 import { UsedByPanel } from '../used-by/UsedByPanel.js';
 import { USED_BY_TOOLTIP, usedByLabel } from '../used-by/usedBy.js';
-import { DEFAULT_DIAGRAM_TAB_ID, type DiagramTab } from './diagramTabRegistry.js';
+import { DEFAULT_DIAGRAM_TAB_ID, EXTENSION_PARAM, EXTENSIONS_TAB_ID, JSON_LENS_ID, LENS_PARAM, type DiagramTab } from './diagramTabRegistry.js';
 import type { Data } from '../../../../model/calm.js';
 import type { ExtensionContext } from '../../../../model/extensions.js';
 
@@ -20,12 +18,15 @@ export const decoratorFilterParams = (type: string | null | undefined, schema: s
     ...(schema ? { [DECORATOR_SCHEMA_PARAM]: schema } : {}),
 });
 
-/** Old `?tab=` values, and the query that replaces each. Deployments became a decorator view. */
+/**
+ * Old `?tab=` values, and the query that replaces each. Deployments became a decorator view, JSON a lens, and the
+ * Extensions tab the inspector beside the diagram.
+ */
 export const DIAGRAM_TAB_REDIRECTS: Readonly<Record<string, Record<string, string>>> = {
     deployments: { tab: DECORATORS_TAB_ID, [DECORATOR_TYPE_PARAM]: 'deployment' },
+    json: { tab: DEFAULT_DIAGRAM_TAB_ID, [LENS_PARAM]: JSON_LENS_ID },
+    [EXTENSIONS_TAB_ID]: { tab: DEFAULT_DIAGRAM_TAB_ID, [EXTENSION_PARAM]: '' },
 };
-
-export const EXTENSIONS_TAB_ID = 'extensions';
 
 export const extensionContext = (data: Data, selectedElement?: string): ExtensionContext => {
     const resourceType = data.calmType.toLowerCase();
@@ -46,16 +47,6 @@ export const DIAGRAM_TABS: readonly DiagramTab[] = [
         label: 'Diagram',
         icon: IoEyeOutline,
         render: ({ diagram }) => <div className="w-full h-full">{diagram}</div>,
-    },
-    {
-        id: 'json',
-        label: 'JSON',
-        icon: IoCodeOutline,
-        render: ({ data }) => (
-            <div className="h-full bg-base-200 overflow-auto">
-                <JsonRenderer json={data} />
-            </div>
-        ),
     },
     {
         id: DECORATORS_TAB_ID,
@@ -86,13 +77,5 @@ export const DIAGRAM_TABS: readonly DiagramTab[] = [
         icon: IoGitNetworkOutline,
         isVisible: ({ isArchitecture, patternName }) => !isArchitecture && patternName !== undefined,
         render: ({ usedBy }) => <UsedByPanel state={usedBy} />,
-    },
-    {
-        id: EXTENSIONS_TAB_ID,
-        label: 'Extensions',
-        icon: IoAppsOutline,
-        // Hidden, not unknown, until the registry loads, so a link to the tab keeps it.
-        isVisible: ({ hasExtensions }) => !!hasExtensions,
-        render: ({ data, selectedElement }) => <ExtensionsTabPanel context={extensionContext(data, selectedElement)} />,
     },
 ];

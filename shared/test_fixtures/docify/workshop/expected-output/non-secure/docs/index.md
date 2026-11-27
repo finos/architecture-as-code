@@ -39,9 +39,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
     conference-website["Conference Website"]:::node
 
-    conference-website -->|Request attendee details| load-balancer
-    load-balancer -->|Forward| attendees
-    attendees -->|Store or request attendee details| attendees-store
+    conference-website -->|"Request attendee details"| load-balancer
+    load-balancer -->|"Forward"| attendees
+    attendees -->|"Store or request attendee details"| attendees-store
 
 
 

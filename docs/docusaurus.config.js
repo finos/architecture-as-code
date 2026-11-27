@@ -113,6 +113,12 @@ const config = {
                         activeBaseRegex: '/(tools|working-with-calm|calm-hub)(/|$)',
                     },
                     {
+                        to: '/extensions',
+                        label: 'Extensions',
+                        position: 'left',
+                        activeBaseRegex: '/extensions(/|$)',
+                    },
+                    {
                         to: '/community',
                         label: 'Community',
                         position: 'left',

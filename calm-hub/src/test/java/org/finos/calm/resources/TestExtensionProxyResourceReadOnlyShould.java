@@ -70,6 +70,18 @@ class TestExtensionProxyResourceReadOnlyShould {
 
     @Test
     @TestSecurity(user = "alice")
+    void allow_a_chat_message_on_a_read_only_hub() {
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+
+        given().contentType("application/json")
+                .body("{\"conversationId\":\"c1\",\"messageId\":\"m1\",\"messages\":[{\"role\":\"user\",\"content\":\"Hi\"}]}")
+                .when().post("/api/calm/extensions/proxy-test/chat/assistant")
+                .then().statusCode(200)
+                .body(equalTo("event: done\ndata: {}\n\n"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
     void leave_a_post_with_no_slash_after_api_to_the_proxy() {
         // Not the read-only 405. JAX-RS gives the 404: the proxy resource needs a slash after "api".
         given().contentType("application/json").body("{}")
@@ -119,6 +131,30 @@ class TestExtensionProxyResourceReadOnlyShould {
                 .then().statusCode(405);
         given().contentType("application/json").body("{}").urlEncodingEnabled(false)
                 .when().post(BASE + "/../../namespaces")
+                .then().statusCode(405);
+
+        assertThat(backend.received(), nullValue());
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void send_a_read_only_form_and_refuse_a_write_form_in_the_proxy() {
+        String forms = "/api/calm/extensions/proxy-test/forms/";
+        given().contentType("application/json")
+                .body("{\"submission\":\"3f1beb2b-bded-4fda-96cc-1af7192f24b6\",\"input\":{\"query\":\"pay\"}}")
+                .when().post(forms + "preview")
+                .then().statusCode(200).header("Calm-Extension-Dispatch", "sent");
+        backend.reset();
+
+        given().contentType("application/json")
+                .body("{\"submission\":\"3f1beb2b-bded-4fda-96cc-1af7192f24b6\",\"context\":{\"namespace\":\"finos\","
+                        + "\"resourceType\":\"architectures\",\"resourceId\":\"1\",\"version\":\"1.0.0\"},\"input\":{\"note\":\"x\"}}")
+                .when().post(forms + "request-review")
+                .then().statusCode(405)
+                .header("Calm-Extension-Dispatch", "not-sent")
+                .body("error", equalTo("This CALM Hub instance is read-only"));
+        given().contentType("application/json").body("{}").urlEncodingEnabled(false)
+                .when().post(forms + "../../../namespaces")
                 .then().statusCode(405);
 
         assertThat(backend.received(), nullValue());

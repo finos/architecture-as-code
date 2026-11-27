@@ -27,6 +27,22 @@
       "type": "string",
       "minLength": 1
     },
+    "logo": {
+      "description": "The logo of the extension: image files in the extension folder, next to extension.json. CALM Hub shows light in the light theme, and dark, if set, in the dark theme. It checks each file at start up (see ImageAsset).",
+      "type": "object",
+      "properties": {
+        "light": {
+          "$ref": "#/$defs/imageFile"
+        },
+        "dark": {
+          "$ref": "#/$defs/imageFile"
+        }
+      },
+      "required": [
+        "light"
+      ],
+      "additionalProperties": false
+    },
     "routes": {
       "type": "array",
       "items": {
@@ -92,6 +108,19 @@
           "items": {
             "$ref": "#/$defs/decoratorView"
           }
+        },
+        "diagram-lens": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/diagramLens"
+          }
+        },
+        "form": {
+          "description": "Forms that a form block in a blocks reply shows. CALM Hub checks the input against the fields before it calls the route.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/form"
+          }
         }
       },
       "required": [],
@@ -142,6 +171,19 @@
         "readOnly": {
           "type": "boolean",
           "default": false
+        },
+        "hubData": {
+          "description": "The data that CALM Hub reads, with the scope of the caller, and sends as the body of a POST route: document (the resource version in the path, which needs a version query parameter), detailed-architectures (the detailed architectures that its nodes link to, in the same namespace), or the name of a convention type (the namespace default, with each CALM Hub convention that it extends). The route must be a readOnly POST with the read scope and {namespace}/{resourceType}/{resourceId} in its path. The service then needs no account and no route back to CALM Hub.",
+          "type": "array",
+          "items": {
+            "enum": [
+              "document",
+              "detailed-architectures",
+              "c4-mapping"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
         }
       },
       "required": [
@@ -188,6 +230,151 @@
         "route",
         "description",
         "input"
+      ],
+      "additionalProperties": false
+    },
+    "form": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "route": {
+          "description": "A POST, PUT or PATCH route. Only the form endpoint can call it: the proxy and the CLI and MCP commands cannot.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "target": {
+          "description": "The context that the form sends: none, a resource version (resource), or a node of a resource version (element). The route path can use only the parameters that the target gives.",
+          "enum": [
+            "none",
+            "resource",
+            "element"
+          ],
+          "default": "none"
+        },
+        "submitLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/formField"
+          },
+          "minItems": 1,
+          "maxItems": 20
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "route",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "formField": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The key of the value in the input. Not a context name and not submission.",
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$"
+        },
+        "type": {
+          "enum": [
+            "text",
+            "multiline",
+            "number",
+            "choice",
+            "checkbox"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "required": {
+          "description": "A required text or choice needs a value, a required number needs a number, and a required checkbox must be ticked.",
+          "type": "boolean",
+          "default": false
+        },
+        "default": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "maxLength": {
+          "description": "For text and multiline. The default is 1000 for text and 10000 for multiline, which is also the most.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "integer": {
+          "type": "boolean"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "value",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "label"
       ],
       "additionalProperties": false
     },
@@ -316,6 +503,112 @@
         "label"
       ],
       "additionalProperties": false
+    },
+    "diagramLens": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "type": "string",
+          "minLength": 1
+        },
+        "appliesTo": {
+          "type": "object",
+          "properties": {
+            "resourceTypes": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "architectures",
+                  "patterns"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "params": {
+          "description": "The view parameters that the lens owns. Hub keeps them in the URL, checks them, and sends them to the route.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/lensParam"
+          },
+          "maxProperties": 8
+        },
+        "notation": {
+          "description": "A JSON file in the extension folder, next to extension.json, that matches notation.schema.json: the shapes, markers and styles of the lens.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}\\.json$"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "route",
+        "notation"
+      ],
+      "additionalProperties": false
+    },
+    "lensParam": {
+      "type": "object",
+      "properties": {
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "default": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "values"
+          ]
+        },
+        {
+          "required": [
+            "pattern"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    },
+    "imageFile": {
+      "description": "A PNG, JPEG, WebP or SVG file name in the extension folder. The file must hold the type of its extension.",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}\\.(png|jpg|jpeg|webp|svg)$"
     }
   }
 }

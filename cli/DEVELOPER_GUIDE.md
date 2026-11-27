@@ -132,11 +132,14 @@ gh release create <version> --title "<release_title>" --notes "<release_descript
 
 ## Dependency vulnerability scanning
 
-[OSV Scanner](https://google.github.io/osv-scanner/) runs on every pull request and on `main` (`.github/workflows/osv-scanner.yml`). To run the same scan locally, install `osv-scanner` and run this from the repository root:
+[OSV Scanner](https://google.github.io/osv-scanner/) runs on every pull request and on `main` (`.github/workflows/osv-scanner.yml`). To run the same scan locally, install `osv-scanner` and `jq`, and run this from the repository root:
 
 ```bash
-osv-scanner scan source --config osv-scanner.toml -L package-lock.json
+OSV_SCANNER=osv-scanner bash scripts/osv-scan.sh /tmp/osv-results.json
+bash scripts/osv-threshold.sh /tmp/osv-results.json 5
 ```
+
+The first command scans the root npm lockfile and the Maven projects. The second applies the CVSS threshold of the check.
 
 Suppressions go in `osv-scanner.toml`, with a justification. See `SECURITY.md`.
 

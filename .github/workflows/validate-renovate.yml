@@ -9,18 +9,26 @@ on:
       - 'renovate.json'
       - '.github/renovate.json5'
       - '.renovaterc*'
+      - '.github/workflows/validate-renovate.yml'
   pull_request:
     paths:
       - 'renovate.json'
       - '.github/renovate.json5'
       - '.renovaterc*'
+      - '.github/workflows/validate-renovate.yml'
   workflow_dispatch:
 
 jobs:
   validate-renovate:
     name: Validate Renovate Config
     runs-on: ubuntu-latest
-    
+    env:
+      # The image has the Node version that this Renovate release needs. Do not install Renovate
+      # from npm with the Node version in .nvmrc: if that Node is too old for the latest release,
+      # npm installs an old release and gives no error. The Renovate app moves to a new release
+      # some hours to a week after `latest`, and later for a major release.
+      RENOVATE_IMAGE: ghcr.io/renovatebot/renovate:latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -28,16 +36,15 @@ jobs:
           # For PRs, this checks out the PR branch/commit
           # For pushes, this checks out the pushed commit
           fetch-depth: 0
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          
-      - name: Install Renovate CLI
-        run: npm install -g renovate
+          # The container below reads the checkout
+          persist-credentials: false
+
+      - name: Pull the Renovate image and show its version
+        run: |
+          docker pull --quiet "$RENOVATE_IMAGE"
+          docker run --rm "$RENOVATE_IMAGE" renovate --version
+
       - name: Validate Renovate configuration
         run: |
           echo "Validating renovate.json configuration..."
-          renovate-config-validator
+          docker run --rm --volume "$GITHUB_WORKSPACE:/usr/src/app:ro" "$RENOVATE_IMAGE" renovate-config-validator

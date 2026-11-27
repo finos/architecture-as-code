@@ -3,9 +3,11 @@ name: OSV Fix
 # Opens a pull request that updates package-lock.json after the OSV Scanner run on
 # main fails. It only tries `npm update <package> --package-lock-only` for the
 # blocking npm findings, so a finding that needs a new major version, an override,
-# a Maven change, or a suppression still needs a maintainer. The branch
-# name is fixed, so a later failure updates the open pull request instead of
-# opening another. See SECURITY.md, "Dependency and Code Scanning Policy".
+# a Maven change, or a suppression still needs a maintainer. It then scans every
+# dependency tree again, as the osv-scanner check does. If blocking findings
+# remain, the pull request is a draft, because that check cannot pass on it. The
+# branch name is fixed, so a later failure updates the open pull request instead
+# of opening another. See SECURITY.md, "Dependency and Code Scanning Policy".
 
 permissions:
     contents: read
@@ -70,21 +72,8 @@ jobs:
             - name: Install osv-scanner
               run: bash scripts/osv-install.sh
 
-            - name: Scan package-lock.json
-              run: |
-                  set +e
-                  ./osv-scanner scan source \
-                    --config osv-scanner.toml \
-                    --lockfile package-lock.json \
-                    --format json \
-                    --output-file osv-before.json
-                  STATUS=$?
-                  set -e
-                  # 0 = nothing found, 1 = vulnerabilities found; anything else is a scan error.
-                  if [ "$STATUS" -gt 1 ]; then
-                    echo "❌ osv-scanner failed with exit code $STATUS."
-                    exit "$STATUS"
-                  fi
+            - name: Scan dependencies
+              run: bash scripts/osv-scan.sh osv-before.json
 
             - name: Update vulnerable npm packages
               run: bash scripts/osv-fix-npm.sh osv-before.json "$CVSS_THRESHOLD"
@@ -99,22 +88,13 @@ jobs:
                     echo "changed=true" >> "$GITHUB_OUTPUT"
                   fi
 
-            - name: Re-scan package-lock.json
+            # The same scan as the osv-scanner check, so a finding outside package-lock.json
+            # (a Maven dependency) also counts.
+            - name: Re-scan dependencies
               if: steps.changes.outputs.changed == 'true'
               id: after
               run: |
-                  set +e
-                  ./osv-scanner scan source \
-                    --config osv-scanner.toml \
-                    --lockfile package-lock.json \
-                    --format json \
-                    --output-file osv-after.json
-                  STATUS=$?
-                  set -e
-                  if [ "$STATUS" -gt 1 ]; then
-                    echo "❌ osv-scanner failed with exit code $STATUS."
-                    exit "$STATUS"
-                  fi
+                  bash scripts/osv-scan.sh osv-after.json
                   set +e
                   bash scripts/osv-threshold.sh osv-after.json "$CVSS_THRESHOLD" | tee osv-after.txt
                   STATUS=${PIPESTATUS[0]}
@@ -132,68 +112,4 @@ jobs:
                   GH_TOKEN: ${{ steps.app-token.outputs.token }}
                   CLEAN: ${{ steps.after.outputs.clean }}
                   RUN_URL: ${{ github.event.workflow_run.html_url || 'manual run' }}
-              run: |
-                  # The scan fails twice a day until the fix merges. Do not force-push the open
-                  # branch when it already has this lockfile, or when a maintainer has added to it.
-                  # Drop the ref from checkout time so a failed fetch cannot leave a stale one.
-                  git update-ref -d "refs/remotes/origin/$FIX_BRANCH"
-                  git fetch origin "+refs/heads/$FIX_BRANCH:refs/remotes/origin/$FIX_BRANCH" 2>/dev/null || true
-                  EXPECTED=""
-                  if git rev-parse --verify -q "origin/$FIX_BRANCH" >/dev/null; then
-                    EXPECTED=$(git rev-parse "origin/$FIX_BRANCH")
-                    if git diff --quiet "origin/$FIX_BRANCH" -- package-lock.json; then
-                      echo "The open fix branch already has this lockfile. Nothing to push." | tee -a "$GITHUB_STEP_SUMMARY"
-                      exit 0
-                    fi
-                    OTHER_AUTHORS=$(git log --format=%an "origin/$FIX_BRANCH" ^main | grep -v '^github-actions\[bot\]$' || true)
-                    if [ -n "$OTHER_AUTHORS" ]; then
-                      echo "The open fix branch has commits by a maintainer. Leaving it as it is." | tee -a "$GITHUB_STEP_SUMMARY"
-                      exit 0
-                    fi
-                  fi
-
-                  git config user.name "github-actions[bot]"
-                  git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git checkout -B "$FIX_BRANCH"
-                  git add package-lock.json
-                  git commit -m "fix(deps): update vulnerable npm packages in package-lock.json"
-                  # Fails if the branch moved since the fetch above (empty EXPECTED = must not exist yet).
-                  git push --force-with-lease="$FIX_BRANCH:$EXPECTED" origin "$FIX_BRANCH"
-
-                  {
-                    echo "## Description"
-                    echo "Automated update of \`package-lock.json\` after the OSV Scanner run on \`main\` failed: ${RUN_URL}"
-                    echo
-                    echo "Only \`npm update <package> --package-lock-only\` was applied. The manifests are unchanged."
-                    echo
-                    if [ "$CLEAN" = "true" ]; then
-                      echo "The re-scan after the update has no blocking findings."
-                    else
-                      echo "Blocking findings remain after the update. They need a maintainer: a new major version, an override, or a suppression with a VEX statement (see SECURITY.md)."
-                    fi
-                    echo
-                    echo '```'
-                    cat osv-after.txt
-                    echo '```'
-                    echo
-                    echo "## Type of Change"
-                    echo "- [x] 🔧 Chore (maintenance, dependencies, CI, etc.)"
-                    echo
-                    echo "## Affected Components"
-                    echo "- [x] Dependencies"
-                    echo
-                    echo "## Testing"
-                    echo "- [x] Re-scanned \`package-lock.json\` with osv-scanner after the update (result above)"
-                    echo "- [ ] Build and tests run on this pull request"
-                  } > pr-body.md
-
-                  TITLE="fix(deps): update vulnerable npm packages in package-lock.json"
-                  # --head alone also matches a fork branch with the same name, so check the owner.
-                  NUMBER=$(gh pr list --head "$FIX_BRANCH" --state open --json number,headRepositoryOwner \
-                    --jq ".[] | select(.headRepositoryOwner.login == \"$GITHUB_REPOSITORY_OWNER\") | .number" | head -n 1)
-                  if [ -n "$NUMBER" ]; then
-                    gh pr edit "$NUMBER" --title "$TITLE" --body-file pr-body.md
-                    echo "Updated pull request #$NUMBER." | tee -a "$GITHUB_STEP_SUMMARY"
-                  else
-                    gh pr create --base main --head "$FIX_BRANCH" --title "$TITLE" --body-file pr-body.md | tee -a "$GITHUB_STEP_SUMMARY"
-                  fi
+              run: bash scripts/osv-fix-pr.sh "$CLEAN" osv-after.txt "$RUN_URL"

@@ -16,7 +16,7 @@ describe('generate core', () => {
         };
         const schemaDirectory = { loadSchemas: vi.fn(), getSchema: vi.fn(), getDefinition: vi.fn(), loadCurrentPatternAsSchema: vi.fn() } as unknown as SchemaDirectory;
         const result = await generate(pattern, schemaDirectory) as { nodes: { 'unique-id': string }[] };
-        expect(schemaDirectory.loadSchemas).toHaveBeenCalled();
+        expect(schemaDirectory.loadSchemas).toHaveBeenCalledTimes(1);
         expect(result.nodes[0]['unique-id']).toBe('a');
     });
 

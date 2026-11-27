@@ -1,0 +1,12 @@
+{
+    "title": "Shop",
+    "nodes": [
+        { "unique-id": "shop", "node-type": "system", "name": "Shop System", "description": "Sells things" },
+        { "unique-id": "clerk", "node-type": "actor", "name": "Clerk | Till", "description": "Runs the till" },
+        { "unique-id": "web", "node-type": "webclient", "name": "Web", "description": "Shop front" }
+    ],
+    "relationships": [
+        { "unique-id": "shop-composed-of", "relationship-type": { "composed-of": { "container": "shop", "nodes": ["clerk", "web"] } } },
+        { "unique-id": "clerk-web", "description": "Uses", "relationship-type": { "interacts": { "actor": "clerk", "nodes": ["web"] } } }
+    ]
+}

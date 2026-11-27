@@ -6,8 +6,9 @@ interface ZoomControlsProps {
     onReset: () => void;
     isInteractive: boolean;
     onToggleInteractive: () => void;
-    minimapHidden: boolean;
-    onToggleMinimap: () => void;
+    /** Leave out both to show no minimap button. */
+    minimapHidden?: boolean;
+    onToggleMinimap?: () => void;
 }
 
 /** Cells match ReactFlow's 26px controls, not daisyUI button sizes. */
@@ -64,16 +65,18 @@ export function ZoomControls({
             >
                 {isInteractive ? <IoLockOpenOutline size={ICON_SIZE} /> : <IoLockClosedOutline size={ICON_SIZE} />}
             </button>
-            <button
-                type="button"
-                className={BUTTON_CLASS}
-                title={minimapLabel}
-                aria-label={minimapLabel}
-                aria-pressed={!minimapHidden}
-                onClick={onToggleMinimap}
-            >
-                <IoMapOutline size={ICON_SIZE} className={minimapHidden ? 'opacity-40' : undefined} />
-            </button>
+            {onToggleMinimap && (
+                <button
+                    type="button"
+                    className={BUTTON_CLASS}
+                    title={minimapLabel}
+                    aria-label={minimapLabel}
+                    aria-pressed={!minimapHidden}
+                    onClick={onToggleMinimap}
+                >
+                    <IoMapOutline size={ICON_SIZE} className={minimapHidden ? 'opacity-40' : undefined} />
+                </button>
+            )}
         </div>
     );
 }

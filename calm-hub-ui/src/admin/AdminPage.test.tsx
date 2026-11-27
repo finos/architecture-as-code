@@ -7,9 +7,6 @@ import { CurrentUserAccessState } from './hooks/useCurrentUserAccess.js';
 import { UserAccess } from '../model/user-access.js';
 import { colors } from '../theme/colors.js';
 
-// The redesign blue, as jsdom serialises it from inline style.
-const REDESIGN_BLUE_RGB = 'rgb(37, 99, 235)';
-
 const globalAdminGrant: UserAccess = { userAccessId: 1, username: 'alice', permission: 'admin', namespace: 'GLOBAL' };
 const nsAdminGrant: UserAccess = { userAccessId: 2, username: 'bob', permission: 'admin', namespace: 'finos' };
 const readOnlyGrant: UserAccess = { userAccessId: 3, username: 'carol', permission: 'read', namespace: 'finos' };
@@ -101,7 +98,7 @@ describe('AdminPage (active-state consistency, problem #8)', () => {
         // The label is text, so it takes the text-role token, which lightens on dark.
         expect(activeLink).toHaveStyle({ color: colors.redesign.primaryText });
         // Guard against regressing to the global navy brand or a neutral pill.
-        expect(colors.redesign.primary).toBe('#2563EB');
+        expect(colors.redesign.primary).toBe('var(--color-interaction)');
         expect(activeLink).not.toHaveClass('menu-active');
     });
 
@@ -117,7 +114,7 @@ describe('AdminPage (active-state consistency, problem #8)', () => {
         const activeTab = screen.getByRole('link', { name: /namespaces/i });
         expect(activeTab).toHaveStyle({ color: colors.redesign.primaryText });
         // The underline is a border, not text, so it keeps the chromatic blue.
-        expect(activeTab).toHaveStyle({ borderBottomColor: REDESIGN_BLUE_RGB });
+        expect(activeTab).toHaveStyle({ borderBottomColor: colors.redesign.primary });
     });
 });
 

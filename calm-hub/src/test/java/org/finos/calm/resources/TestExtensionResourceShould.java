@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.contains;
 
 @QuarkusTest
@@ -29,6 +30,7 @@ class TestExtensionResourceShould {
                 .then()
                 .statusCode(200)
                 .body("values.id", contains("control-evaluation", "deployment"))
+                .body("chat", nullValue())
                 .body("values[0].routes.size()", equalTo(0))
                 .body("values[0].contributes.decorator-views[0].overlay.hide", contains("not-applicable"))
                 .body("values[0].contributes.decorator-views[0].overlay.key", equalTo("/control/unique-id"))
@@ -39,6 +41,19 @@ class TestExtensionResourceShould {
     void serve_the_versioned_blocks_schema() {
         given().when().get("/api/calm/extensions/schema/0/blocks.schema.json")
                 .then().statusCode(200).body("properties.hubApi.const", equalTo(0));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void serve_the_lens_and_notation_schemas_and_the_core_notation() {
+        given().when().get("/api/calm/extensions/schema/0/lens.schema.json")
+                .then().statusCode(200).body("properties.kind.const", equalTo("graph"));
+        given().when().get("/api/calm/extensions/schema/0/notation.schema.json")
+                .then().statusCode(200).body("$id", equalTo("https://calm.finos.org/calm-hub/extensions/hub-api-0/notation.schema.json"));
+        given().when().get("/api/calm/extensions/notations/core")
+                .then().statusCode(200).body("shapes.Box.viewBox", contains(0, 0, 200, 120));
+        given().when().get("/api/calm/extensions/notations/c4-shapes").then().statusCode(404);
+        given().when().get("/api/calm/extensions/control-evaluation/lenses/c4/notation").then().statusCode(404);
     }
 
     @Test

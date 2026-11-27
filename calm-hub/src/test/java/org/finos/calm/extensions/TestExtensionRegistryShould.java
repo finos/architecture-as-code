@@ -7,6 +7,7 @@ import io.smallrye.config.SmallRyeConfigBuilder;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.finos.calm.config.ExtensionsConfig;
+import org.finos.calm.domain.extensions.ChatProvider;
 import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -30,6 +31,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -87,6 +89,10 @@ class TestExtensionRegistryShould {
         assertThat(ExtensionRegistry.settingId("CALM_EXTENSIONS__TEAM_SERVICES__CONNECT_TIMEOUT_SECONDS"),
                 equalTo(Optional.of("team-services")));
         assertThat(ExtensionRegistry.settingId("CALM_EXTENSIONS_TEAM_SERVICES_ALLOW_HTTP"), equalTo(Optional.of("team-services")));
+        assertThat(ExtensionRegistry.settingId("CALM_EXTENSIONS_TEAM_SERVICES_MAX_CONCURRENT_STREAMS_PER_USER"),
+                equalTo(Optional.of("team-services")));
+        assertThat(ExtensionRegistry.settingId("calm.extensions.\"team-services\".max-concurrent-chat-streams"),
+                equalTo(Optional.of("team-services")));
         assertThat(ExtensionRegistry.settingId("calm.extensions.dir"), equalTo(Optional.empty()));
         assertThat(ExtensionRegistry.settingId("CALM_EXTENSIONS_IDENTITY_TTL_SECONDS"), equalTo(Optional.empty()));
         assertThat(ExtensionRegistry.settingId("calm.extensions.\"team-services\".colour"), equalTo(Optional.empty()));
@@ -250,6 +256,22 @@ class TestExtensionRegistryShould {
     }
 
     @Test
+    void reject_a_diagram_lens_id_that_two_enabled_extensions_declare() throws IOException {
+        Path c4 = Path.of("../calm-hub-extensions/c4");
+        for (String id : List.of("c4", "c4-copy")) {
+            Path dir = Files.createDirectories(tempDir.resolve(id));
+            Files.writeString(dir.resolve("extension.json"),
+                    new JsonObject(Files.readString(c4.resolve("extension.json"))).put("id", id).encodePrettily());
+            Files.copy(c4.resolve("notation.json"), dir.resolve("notation.json"));
+            properties.put("calm.extensions.\"" + id + "\".backend-url", "http://localhost:8093");
+        }
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS));
+
+        assertThat(e.getMessage(), containsString("diagram lens id 'c4' is declared by extensions 'c4' and 'c4-copy'"));
+    }
+
+    @Test
     void allow_a_decorator_view_id_of_a_disabled_extension() throws IOException {
         write("scanner", decoratorViewsOnly("scanner", "deployment"));
         properties.put("calm.extensions.\"builtin-views\".enabled", "false");
@@ -316,6 +338,113 @@ class TestExtensionRegistryShould {
         properties.remove("calm.extensions.\"team-services\".max-concurrent-calls");
         assertThat(registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().limits().maxConcurrentCalls(),
                 equalTo(32));
+    }
+
+    @Test
+    void read_the_stream_limits_with_their_defaults() throws IOException {
+        write("team-services", valid());
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-streams", "2");
+        properties.put("calm.extensions.http.stream-idle-timeout-seconds", "12");
+
+        ExtensionLimits limits = registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().limits();
+
+        assertThat(limits.maxConcurrentStreams(), equalTo(2));
+        assertThat(limits.maxConcurrentChatStreams(), equalTo(8));
+        assertThat(limits.maxConcurrentStreamsPerUser(), equalTo(2));
+        assertThat(limits.streamIdleTimeout(), equalTo(Duration.ofSeconds(12)));
+        assertThat(limits.maxStreamDuration(), equalTo(Duration.ofSeconds(300)));
+    }
+
+    @Test
+    void read_the_chat_stream_pool_and_the_per_user_stream_limit() throws IOException {
+        write("team-services", valid());
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-chat-streams", "4");
+        properties.put("calm.extensions.http.max-concurrent-streams-per-user", "3");
+
+        ExtensionLimits limits = registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().limits();
+
+        assertThat(limits.maxConcurrentChatStreams(), equalTo(4));
+        assertThat(limits.maxConcurrentStreamsPerUser(), equalTo(3));
+        assertThat(limits.maxConcurrentStreams(), equalTo(8));
+    }
+
+    @Test
+    void refuse_a_per_user_stream_limit_over_either_pool_and_a_chat_pool_under_1() throws IOException {
+        write("team-services", valid());
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-chat-streams", "3");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-streams-per-user", "4");
+
+        assertThat(assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS)).getMessage(),
+                containsString("calm.extensions.\"team-services\".max-concurrent-streams-per-user must not be more than "
+                        + "max-concurrent-streams (8) or max-concurrent-chat-streams (3), but was 4"));
+
+        properties.put("calm.extensions.\"team-services\".max-concurrent-chat-streams", "8");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-streams", "3");
+        assertThat(assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS)).getMessage(),
+                containsString("max-concurrent-streams (3) or max-concurrent-chat-streams (8), but was 4"));
+
+        properties.put("calm.extensions.\"team-services\".max-concurrent-streams-per-user", "3");
+        properties.put("calm.extensions.\"team-services\".max-concurrent-chat-streams", "0");
+        assertThat(assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS)).getMessage(),
+                containsString("calm.extensions.\"team-services\".max-concurrent-chat-streams must be at least 1, but was 0"));
+    }
+
+    @Test
+    void have_no_chat_until_the_operator_chooses_one() throws IOException {
+        write("team-services", TestExtensionManifestLoaderShould.withChat());
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+
+        assertThat(registry(dir(), NO_BUILTINS).chatProvider(), equalTo(Optional.empty()));
+    }
+
+    @Test
+    void choose_the_chat_by_extension_id_or_by_extension_and_entry_id() throws IOException {
+        JsonObject manifest = TestExtensionManifestLoaderShould.withChat();
+        write("team-services", manifest);
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+        properties.put("calm.extensions.chat-provider", "team-services");
+
+        assertThat(registry(dir(), NO_BUILTINS).chatProvider().orElseThrow(),
+                equalTo(new ChatProvider("team-services", "atlas")));
+
+        manifest.getJsonArray("routes").add(TestExtensionManifestLoaderShould.route("chat-2", "POST", "/chat-2", "authenticated")
+                .put("readOnly", true));
+        manifest.getJsonObject("contributes").getJsonArray("chat").add(TestExtensionManifestLoaderShould.contribution("ops", "chat-2"));
+        write("team-services", manifest);
+        properties.put("calm.extensions.chat-provider", "team-services/ops");
+
+        assertThat(registry(dir(), NO_BUILTINS).chatProvider().orElseThrow(), equalTo(new ChatProvider("team-services", "ops")));
+    }
+
+    @Test
+    void refuse_a_chat_provider_that_names_no_chat_entry_of_an_enabled_extension() throws IOException {
+        JsonObject manifest = TestExtensionManifestLoaderShould.withChat();
+        manifest.getJsonArray("routes").add(TestExtensionManifestLoaderShould.route("chat-2", "POST", "/chat-2", "authenticated")
+                .put("readOnly", true));
+        manifest.getJsonObject("contributes").getJsonArray("chat").add(TestExtensionManifestLoaderShould.contribution("ops", "chat-2"));
+        write("team-services", manifest);
+        write("alpha", decoratorViewsOnly("alpha"));
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.internal");
+
+        Map<String, String> refusals = Map.of(
+                "missing", "must name an enabled extension with a chat entry",
+                "alpha", "must name an enabled extension with a chat entry",
+                "team-services/atlas/x", "must name an enabled extension with a chat entry",
+                "team-services", "must name a chat entry of extension 'team-services', which has more than one",
+                "team-services/unknown", "names a chat entry that extension 'team-services' does not declare");
+        for (Map.Entry<String, String> refusal : refusals.entrySet()) {
+            properties.put("calm.extensions.chat-provider", refusal.getKey());
+            IllegalStateException e = assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS));
+            assertThat(refusal.getKey(), e.getMessage(), containsString(refusal.getValue()));
+        }
+
+        properties.put("calm.extensions.chat-provider", "team-services/atlas");
+        properties.put("calm.extensions.\"team-services\".enabled", "false");
+        assertThat(assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS)).getMessage(),
+                containsString("calm.extensions.chat-provider must name an enabled extension with a chat entry"));
     }
 
     @Test
@@ -389,6 +518,24 @@ class TestExtensionRegistryShould {
         properties.put("calm.extensions.allow-without-auth", "true");
 
         assertThat(ids(registry(dir(), NO_BUILTINS)), contains("alpha", "team-services"));
+    }
+
+    @Test
+    void send_no_identity_only_to_an_extension_whose_routes_change_nothing() throws IOException {
+        JsonObject manifest = valid();
+        write("team-services", manifest);
+        properties.put("calm.extensions.\"team-services\".backend-url", "https://services.example.com");
+
+        assertThat(registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().sendsIdentity(), is(true));
+
+        properties.put("calm.extensions.\"team-services\".send-identity", "false");
+        IllegalStateException e = assertThrows(IllegalStateException.class, () -> registry(dir(), NO_BUILTINS));
+        assertThat(e.getMessage(), containsString("calm.extensions.\"team-services\".send-identity=false is allowed only "
+                + "when every route of extension 'team-services' is a GET or readOnly route"));
+
+        manifest.getJsonArray("routes").getJsonObject(3).put("readOnly", true);
+        write("team-services", manifest);
+        assertThat(registry(dir(), NO_BUILTINS).find("team-services").orElseThrow().sendsIdentity(), is(false));
     }
 
     private static JsonObject withReadOnlySearch() {

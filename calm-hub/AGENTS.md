@@ -393,6 +393,8 @@ All four workflows:
 **Native workflows** (`-native.yml`) use a per-architecture build matrix (`ubuntu-latest` for `amd64`, `ubuntu-24.04-arm` for `arm64`). Each runner builds for its own arch, pushes by digest, and a final merge job assembles the multi-arch manifest via `docker buildx imagetools create`.
 
 The EC2 demo (`ec2/`) runs `main-read-only-native`, so it changes on every merge, not on a release.
+`docker-publish-calm-hub-extensions.yml` publishes each folder of `calm-hub-extensions/` as
+`finos/calm-hub-<id>`, with the `main` and `sha-<short>` tags on each merge. They have no release.
 
 ## Releasing
 
@@ -445,6 +447,13 @@ from; it fails if there is none.
   they stop CSS injection and `javascript:` links in the UI
 - The response leaves out a section that is not configured or not enabled. The server does not
   read `SecurityIdentity` unless `calm.ui.identity.enabled=true`
+- `calm.ui.branding.*` and `calm.ui.navigation.*` brand the UI and set its menus. `BrandingLogos` reads the logo files
+  one time, with the shared `assets/ImageAsset` checks, and `GET /api/calm/ui/branding/logo/{variant}` serves them.
+  The config gives each logo as that URL with `?v=<version>`, so a new image gets a new URL
+- `navigation.show-*` only hides menu entries. Do not use it in an access check: a deep link to a hidden section
+  must still open
+- `navigation.start-page` accepts only the UI routes in `UiConfigValidator.START_PAGE`. Add a route there when the
+  UI gets a new top-level page that an operator may open first
 
 ### Extensions
 - ADRs 0009–0014 in `decisions/` are the design. `ExtensionRegistry` loads manifests at start up from
@@ -464,13 +473,83 @@ from; it fails if there is none.
 - `mcp/tools/ExtensionTools` registers the command tools after `ExtensionRegistry` loads (observer priority).
   `ToolManager` lists them after the `@Tool` methods, in registration order, so it registers them sorted.
   The MCP server does not check arguments against `inputSchema`, so the handler does
-- `ReadOnlyRequestFilter` exempts only `^/api/calm/extensions/[^/]+/api(/|$)`, in normal form. The proxy
-  then allows a non-GET method only on a `readOnly` route
+- `ReadOnlyRequestFilter` exempts only the proxy and form paths, `^/api/calm/extensions/[^/]+/(api|forms)(/|$)`, and the chat endpoint, `^/api/calm/extensions/[^/]+/chat/<entry id>$`, in normal form. The proxy then allows a non-GET method only on a `readOnly` route
+- A form route (`contributes.form`) is a dedicated route: `ExtensionManifest.dedicatedRoutes()`. Only
+  `ExtensionFormService` calls it, through `ExtensionProxyService.callDedicated`, after it checks the target and the
+  input. `authorise(..., dedicatedRoute)` refuses it on the generic proxy and MCP with a 404, and
+  `checkDedicatedRoutes` in the loader refuses a command or another contribution that names it. A new endpoint
+  of this kind adds its routes to `dedicatedRoutes()` and calls the proxy with its route id
+- `ExtensionForms` holds the form rules. `calm-hub-ui/src/extensions/forms/formRules.ts` copies its messages, and
+  `extensions-test/form-input.json` holds the cases that both test. Change both, and the cases, together. An `integer`
+  field takes only whole numbers that JavaScript holds exactly (`MAX_SAFE_INTEGER`), and the loader refuses limits and
+  defaults outside that range
+- The loader reads the manifest records from the text, not from the Vert.x `JsonObject`, which holds each decimal as
+  a double. So a form `minimum`, `maximum` and `default` keep their digits, and the loader refuses a number that
+  JavaScript would read as another number. The schema still validates the `JsonObject`
+- `ExtensionForms.javaScriptString` writes a double as JavaScript does. Do not use `Double.toString` or Jackson's
+  Schubfach port for this check: they keep at least two digits and write 4.9E-324 where JavaScript writes 5e-324.
+  `extensions-test/javascript-numbers.json` holds the cases: `formRules.test.ts` checks them against JavaScript, and
+  `TestExtensionFormsShould` against Hub
+- `ExtensionFormResource` sets `Calm-Extension-Dispatch` on each reply: `not-sent`, `sent`, or `unknown` (a proxy
+  502 or 504). The UI reads only the header to tell a Hub refusal from a backend reply, so keep it on every path
+- `ExtensionSearch` (endpoint `ExtensionSearchResource`, a `GET`, so no read-only exemption) owns the search
+  contract: it copies only known fields, READ-checks each namespace a result names (`namespace`, `hub.namespace`,
+  `screen.context.namespace`) and drops `next` when it filtered out a whole page. Route scope alone does not show
+  what the caller may see. It refuses a reply whose `next` makes the request for the next page longer than
+  `MAX_REQUEST_LINE` (3584 bytes, under the HTTP server's 4096-byte request line), so the UI can always send a
+  cursor back; it counts a byte that can be percent-encoded as three. Its route is also in `dedicatedRoutes()`
+- A `200` `text/event-stream` reply streams through `ExtensionEventStream` (JAX-RS can skip the body of another 2xx), only to a caller that accepts it and to
+  a dedicated endpoint that passes an `ExtensionEventStream.Policy` (the chat). With a policy, the backend must stream,
+  and the policy filters the events and names the ones that end the stream. It writes each event again with only
+  `event` and `data`, and ends the stream with an `error` event at a limit. Each open stream holds a slot of its pool
+  (`max-concurrent-streams` for the proxy and MCP, `max-concurrent-chat-streams` for the chat), a per-user count
+  (`max-concurrent-streams-per-user`, in each pool) and its backend connection until `close()`, and its writer holds a
+  worker thread until `writeTo` returns. A count of 0 removes the user's entry, so the map holds only users with an
+  open stream. In no-auth mode every caller is the `no-auth` principal, so all callers share one per-user count. Keep the heartbeat comment: a failed write is how Hub sees that the
+  caller went away, and `close()` then cancels the backend call. The writer closes a stream that Hub passes on, and the end of the Vert.x
+  exchange closes it too, because a failed response filter skips the writer. Vert.x does not call an end handler that is
+  added after the exchange ended (the caller left while Hub waited for the backend), so `ExtensionProxyResource` then
+  closes the stream at once. `ExtensionStreamWatchdog` (application scoped, started and stopped with Hub; a stop closes
+  every open stream) calls `close()` `max-stream-seconds` after the stream opens, also when no writer runs. It sends no
+  `error` event: only a running writer does. The call and its stream share one release-once callback for the slot and the user's count, and
+  a stream that the backend opens after its call has failed (a timeout) closes at once. A write to the caller has no
+  time limit (RESTEasy Classic writes block), so a caller that stops reading holds a worker thread until the
+  connection fails, also after `close()`. JAX-RS does not call the writer for `HEAD`, so `ExtensionProxyResource`
+  closes the stream itself. `ExtensionChat` checks the chat body, reads the
+  shared document with the caller's read scope, and drops a citation that `ExtensionDestinations.link` refuses or that
+  names a namespace the caller cannot read. It parses the citation strictly (no duplicate key, nothing after it),
+  because Hub sends the data on as it came
 - `ExtensionIdentitySigner` signs with the JDK, not a JWT library. `ExtensionAssertionRejectingMechanism`
   refuses a bearer token with `typ: calm-ext+jwt` in every auth mode, and sends the 401 challenge for it itself, so
   that an OIDC provider that is down cannot make it a 500
 - Tests generate key pairs at run time (`ExtensionTestKeys`); `*.pem` is git-ignored. `FixtureBackend` is a
   loopback backend for proxy tests
+- `calm-hub-extensions/` holds the extensions we own (`c4`, `ea-layers`): real services, each with its own notation.
+  Each runs as a sidecar and copies its folder to the shared `calm.extensions.dir` volume (`deploy/docker-compose.yml`).
+  `TestExtensionManifestLoaderShould` loads that folder, so a manifest or notation that Hub refuses fails the Java tests
+- A manifest `logo` names image files next to `extension.json`. `ExtensionManifestLoader` reads each one with
+  `assets/ImageAsset.read`, which checks the type from the bytes, the size and the pixel size, and refuses active or
+  external SVG content. `ExtensionResource` serves the result at `{id}/logo/{light|dark}`. `ImageAsset` is shared with
+  organisation branding: use it for every image that Hub serves, and do not add a remote image fetch. Give
+  `ImageAsset.read` an `InputStream`, not the whole file, so that it stops reading at the size limit
+- `ExtensionHubData` builds the body of a `hubData` route, with the scope of the caller: the document, detailed
+  architectures in the same namespace only, and conventions only where `permissions.canRead` allows. The proxy
+  replaces the caller's body with it before it signs, so `bdh` covers it. Keep both limits (`MAX_*`).
+- `ExtensionDestinations` checks a link that Hub passes on to the UI (a search result, a chat citation) against
+  `blocks.schema.json` `$defs/destination` or `$defs/link`, then the limits that the schema cannot express: 8 screen
+  params and 12 table keys counted apart, 2048 form-encoded characters to the screen route, no control character
+  or lone surrogate, and an `href` whose host and port a browser accepts (an IDN host goes through `IDN.toASCII`).
+  The schema and the UI count lengths in code points. It returns the namespaces that the caller must READ-check. calm-hub-ui
+  `navigation/destinations.ts` has the same limits; change both together
+- `send-identity=false` (`RegisteredExtension.sendsIdentity`) skips the assertion for an open service. The registry
+  allows it only when every route is `GET` or `readOnly`. An audited call to such an extension, such as a chat call or
+  a `GET` that is not `readOnly`, then has no `jti` in its entry.
+- Every authenticated chat call is audited as a `READ` (`ExtensionProxyService.chat`), even though its route is `readOnly`.
+  A `401` from `@Authenticated` comes before the audit and sends nothing out, as for the proxy and forms. This differs
+  from core CRUD, where `AuditRequestFilter` records a `401` as `DENIED`.
+  `ExtensionChat.body` gives the validated context to the proxy before its read check, so the entry names the shared
+  resource (`resourceType`, `resourceId`, namespace and version) and a refused one is `DENIED`. Never put message text
+  in an entry. `AuditService` skips the store on a read-only Hub, so the log line is the only record there.
 - Try it: see `local-dev/extensions/example-services/README.md`. `local-dev/demo-extensions/` holds a demo
   (release-tracker) that uses every UI extension point, to test the UI layout.
   Keep it out of `local-dev/extensions`: it has routes, so a Hub that loads it without its `backend-url` does

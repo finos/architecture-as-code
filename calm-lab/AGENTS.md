@@ -41,6 +41,9 @@ side of it. The lab's half is `vite.config.ts`:
 - `fs` and `path` resolve to `src/shims/empty.ts`, `buffer` to `src/shims/buffer.ts`. The shared
   browser entry's dependency chain asks for them at bundle time but never calls them at runtime.
 - `resolve.mainFields` puts `browser` first.
+- `build.minify` is `esbuild`. Spectral's `nimma` pastes a function's source into a template literal,
+  and the default minifier writes strings as backticks, which breaks `calm validate -p`. Only the
+  production build shows it: `e2e/validate-pattern.spec.ts` guards it.
 - `__CALM_CLI_VERSION__` is a `define` reading `cli/package.json` at config time, so `src/`
   never imports a manifest from outside its own tree. Declared in `src/vite-env.d.ts`.
 

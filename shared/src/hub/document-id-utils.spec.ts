@@ -15,7 +15,9 @@ import {
     updateControlDocumentMetadata,
     isConformantDocumentId,
     namespaceFromDocumentId,
-    isControlDocumentId
+    isControlDocumentId,
+    normalizeBaseUrl,
+    hasExpectedBaseUrl
 } from './document-id-utils';
 import { ResourceType } from './resource-types';
 
@@ -515,6 +517,34 @@ describe('Document ID Utils', () => {
         it('returns false for a namespace-resource id or a non-conformant id', () => {
             expect(isControlDocumentId(DOCUMENT_ID)).toBe(false);
             expect(isControlDocumentId('my-arch')).toBe(false);
+        });
+    });
+
+    describe('normalizeBaseUrl', () => {
+        it('trims whitespace and trailing slashes', () => {
+            expect(normalizeBaseUrl('  https://hub.example.com//  ')).toBe('https://hub.example.com');
+        });
+
+        it('keeps slashes that are not trailing', () => {
+            expect(normalizeBaseUrl('https://hub.example.com/a' + '/'.repeat(10_000) + 'b')).toBe('https://hub.example.com/a' + '/'.repeat(10_000) + 'b');
+        });
+
+        it('returns an empty string for a URL of only slashes', () => {
+            expect(normalizeBaseUrl('///')).toBe('');
+        });
+    });
+
+    describe('hasExpectedBaseUrl', () => {
+        it('matches a base URL equal to the normalised expected base', () => {
+            expect(hasExpectedBaseUrl({ baseUrl: 'https://hub.example.com' }, 'https://hub.example.com/')).toBe(true);
+        });
+
+        it('does not match a different base URL', () => {
+            expect(hasExpectedBaseUrl({ baseUrl: 'http://localhost:8080' }, 'https://hub.example.com')).toBe(false);
+        });
+
+        it('does not normalise the document base URL, as CalmHub requires an exact match', () => {
+            expect(hasExpectedBaseUrl({ baseUrl: 'https://hub.example.com/' }, 'https://hub.example.com')).toBe(false);
         });
     });
 });
