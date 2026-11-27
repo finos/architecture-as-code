@@ -52,16 +52,39 @@ public class ResourceRegistry {
 
     public void rebuild(Map<String, Path> namespaceClonePaths) {
         Map<String, List<RegistryEntry>> byNamespace = new HashMap<>();
+        Map<String, RegistryEntry> byQualifiedId = new HashMap<>();
 
         for (Map.Entry<String, Path> entry : namespaceClonePaths.entrySet()) {
             String namespace = entry.getKey();
             Path clonePath = entry.getValue();
-            byNamespace.put(namespace, scanDirectory(namespace, clonePath));
+
+            List<RegistryEntry> entries = scanDirectory(namespace, clonePath);
+            byNamespace.put(namespace, entries);
+
+            for (RegistryEntry registryEntry : entries) {
+                // A uniqueId is only guaranteed unique when a document sets its own
+                // "unique-id" - the path-derived fallback is just the filename minus
+                // extension, so two files with the same name in different subdirectories
+                // collide here. listByType still lists both; a direct findByUniqueId can
+                // only resolve one, so log the collision rather than serve the wrong file
+                // silently.
+                String qualifiedId = namespace + ":" + registryEntry.uniqueId();
+                RegistryEntry previous = byQualifiedId.put(qualifiedId, registryEntry);
+                if (previous != null && !previous.filePath().equals(registryEntry.filePath())) {
+                    LOG.warn("uniqueId collision in namespace [{}]: [{}] and [{}] both resolve to id [{}] - "
+                                    + "only [{}] is reachable via a direct id lookup",
+                            namespace, previous.filePath(), registryEntry.filePath(), registryEntry.uniqueId(),
+                            registryEntry.filePath());
+                }
+            }
         }
 
-        this.snapshot = new RegistrySnapshot(Map.copyOf(byNamespace));
-        int total = byNamespace.values().stream().mapToInt(List::size).sum();
-        LOG.info("Registry rebuilt: {} namespaces, {} total entries", byNamespace.size(), total);
+        this.snapshot = new RegistrySnapshot(Map.copyOf(byNamespace), Map.copyOf(byQualifiedId));
+        LOG.info("Registry rebuilt: {} namespaces, {} total entries", byNamespace.size(), byQualifiedId.size());
+    }
+
+    public Optional<RegistryEntry> findByUniqueId(String namespace, String uniqueId) {
+        return snapshot.findByUniqueId(namespace, uniqueId);
     }
 
     public List<RegistryEntry> listByType(String namespace, RegistryResourceType type) {
