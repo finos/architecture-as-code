@@ -298,6 +298,22 @@ function extractRelTypeFromConst(relTypeConst: SchemaObject): Omit<ExtractedRela
     return null;
 }
 
+function extractConstValue(schema: SchemaObject): unknown {
+    if (schema['const'] !== undefined) return schema['const'];
+    if (Array.isArray(schema['prefixItems'])) {
+        return schema['prefixItems'].map((item: SchemaObject) => extractConstValue(item));
+    }
+    if (schema['properties'] && typeof schema['properties'] === 'object') {
+        const value: SchemaObject = {};
+        for (const [key, property] of Object.entries(schema['properties'])) {
+            const propertyValue = extractConstValue(property as SchemaObject);
+            if (propertyValue !== undefined) value[key] = propertyValue;
+        }
+        return Object.keys(value).length > 0 ? value : undefined;
+    }
+    return undefined;
+}
+
 function isOptionsRelationship(item: SchemaObject): boolean {
     return item['properties']?.['relationship-type']?.['properties']?.['options'] !== undefined;
 }
@@ -310,8 +326,10 @@ function extractSingleRelationship(item: SchemaObject): ExtractedRelationship | 
     const protocol = readSchemaValue(item, 'protocol');
     const controls = extractPatternControls(item);
 
-    // relationship-type can be in a const or in properties
-    const relTypeConst = item['properties']?.['relationship-type']?.['const'];
+    // Relationship types may be literal values or schemas constrained by nested consts.
+    const relationshipType = item['properties']?.['relationship-type'];
+    const relTypeConst = relationshipType?.['const'] ??
+        (relationshipType?.['properties'] ? extractConstValue(relationshipType) : undefined);
     if (relTypeConst) {
         const relInfo = extractRelTypeFromConst(relTypeConst);
         if (relInfo) {

@@ -26,6 +26,10 @@ public class OidcRoleResolver {
     @ConfigProperty(name = "calm.oidc.roles.access", defaultValue = "")
     Optional<String> globalAccessGroups;
 
+    @Inject
+    @ConfigProperty(name = "calm.oidc.roles.allow-authenticated-read", defaultValue = "false")
+    boolean allowAuthenticatedRead;
+
     public enum AccessLevel { READ, NONE }
 
     /**
@@ -40,6 +44,10 @@ public class OidcRoleResolver {
         Set<String> requiredGroups = accessGroups.isEmpty() ? parseConfig(globalAccessGroups) : accessGroups;
 
         if (requiredGroups.isEmpty()) {
+            if (allowAuthenticatedRead) {
+                LOG.debug("No access groups configured — granting read access to all authenticated users.");
+                return AccessLevel.READ;
+            }
             LOG.warn("No access groups configured. No access will be granted.");
             return AccessLevel.NONE;
         }
