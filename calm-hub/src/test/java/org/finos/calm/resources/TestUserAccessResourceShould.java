@@ -231,18 +231,18 @@ public class TestUserAccessResourceShould {
 
     @Test
     void return_404_when_user_access_for_invalid_namespace_and_user_access_id() throws Exception {
-        when(mockUserAccessStore.getUserAccessForNamespaceAndId("invalid", 0))
+        when(mockUserAccessStore.getUserAccessForNamespaceAndId("invalid", 1))
                 .thenThrow(new NamespaceNotFoundException());
 
         given()
                 .when()
-                .get("/api/calm/namespaces/invalid/user-access/0")
+                .get("/api/calm/namespaces/invalid/user-access/1")
                 .then()
                 .statusCode(404)
                 .body(containsString("Invalid namespace"));
 
         verify(mockUserAccessStore, times(1))
-                .getUserAccessForNamespaceAndId("invalid", 0);
+                .getUserAccessForNamespaceAndId("invalid", 1);
     }
 
     @Test

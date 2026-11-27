@@ -55,4 +55,12 @@ public class ResourceIdResolver {
         }
         return new NumericResourceId(mappingService.getMapping(namespace, type, name).getNumericId());
     }
+
+    /** Numeric form for int-based store calls; GitHub ids yield 0 as those stores do not serve them. */
+    public int numericForWrite(ResourceId id) {
+        if (id instanceof NumericResourceId numeric) {
+            return numeric.value();
+        }
+        return 0;
+    }
 }
