@@ -57,11 +57,14 @@ jobs:
 
             # Step 3: Cache Maven Dependencies
             - name: Cache Maven Dependencies
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ~/.m2
-                  key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
+                  # Restore only. build-calm-hub.yml saves this cache, and its build resolves all that this
+                  # build resolves. A cache for each build fills the cache quota of the repository.
+                  key: ${{ runner.os }}-m2-calm-hub-integration-${{ hashFiles('pom.xml', 'calm-hub/pom.xml') }}
                   restore-keys: |
+                      ${{ runner.os }}-m2-calm-hub-integration-
                       ${{ runner.os }}-m2-
 
             # Step 4: Build the application with Maven
@@ -90,17 +93,25 @@ jobs:
                   IMAGE: ${{ secrets.DOCKER_USERNAME }}/calm-hub:${{ inputs.version }}
               run: bash ../scripts/check-calm-hub-release.sh "$VERSION" "$IMAGE" >> "$GITHUB_OUTPUT"
 
+            # The checkout can be a bare SHA, so the metadata action cannot read the commit from git.
+            - name: Resolve the commit
+              id: commit
+              env:
+                  SHA: ${{ inputs.ref || github.sha }}
+              run: echo "short=${SHA::7}" >> "$GITHUB_OUTPUT"
+
             # Step 7: Extract metadata for Docker
             - name: Extract Docker metadata
               id: meta
               uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
               with:
-                  context: git
                   images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
+                  labels: |
+                      org.opencontainers.image.revision=${{ inputs.ref || github.sha }}
                   flavor: latest=false
                   tags: |
                       type=raw,value=main,enable=${{ inputs.version == '' }}
-                      type=sha,format=short,enable=${{ inputs.version == '' }}
+                      type=raw,value=sha-${{ steps.commit.outputs.short }},enable=${{ inputs.version == '' }}
                       type=raw,value=${{ inputs.version }},enable=${{ inputs.version != '' }}
                       type=raw,value=${{ steps.release.outputs.minor }},enable=${{ inputs.version != '' }}
                       type=raw,value=latest,enable=${{ inputs.version != '' }}
@@ -122,7 +133,7 @@ jobs:
                   load: true
                   tags: calm-hub:smoke
                   cache-from: type=gha
-                  cache-to: type=gha,mode=max
+                  cache-to: ${{ inputs.version == '' && 'type=gha,mode=max' || '' }}
 
             - name: Smoke test
               run: |
@@ -160,4 +171,4 @@ jobs:
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
                   cache-from: type=gha
-                  cache-to: type=gha,mode=max
+                  cache-to: ${{ inputs.version == '' && 'type=gha,mode=max' || '' }}

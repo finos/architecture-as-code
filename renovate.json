@@ -13,6 +13,9 @@
   "timezone": "UTC",
   "schedule": ["before 7am on monday"],
   "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "automerge": false
+  },
   "prConcurrentLimit": 10,
   "prHourlyLimit": 2,
   "postUpdateOptions": ["npmDedupe"],
@@ -130,17 +133,6 @@
       "minimumReleaseAge": "14 days"
     },
     {
-      "description": "Security updates",
-      "matchDepTypes": ["dependencies"],
-      "matchCurrentVersion": "!/^0\\./",
-      "vulnerabilityAlerts": {
-        "enabled": true
-      },
-      "automerge": true,
-      "automergeType": "pr",
-      "groupName": "security updates"
-    },
-    {
       "description": "Pin GitHub Actions by digest",
       "matchManagers": ["github-actions"],
       "pinDigests": true
@@ -197,6 +189,32 @@
       "matchManagers": ["maven"],
       "matchPackageNames": ["io.quarkus:*", "io.quarkus.platform:*"],
       "allowedVersions": "/^(3\\.40|4\\.3)\\./"
+    },
+    {
+      "description": "Never update the root npm overrides. npm refuses a lockfile-only update of an overridden package (EOVERRIDE), and Renovate then pushes the branch without a lockfile",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json"],
+      "matchDepTypes": ["overrides"],
+      "enabled": false
+    },
+    {
+      "description": "Never update packageManager. Renovate writes the lockfile with this npm, so it must stay the npm that the Node version in .nvmrc bundles",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["packageManager"],
+      "enabled": false
+    },
+    {
+      "description": "Never update the root @typescript-eslint packages. The typescript-eslint package in the workspaces pins them to its own version, and Renovate cannot see that package in the lockfile, so npm refuses the update (ERESOLVE). Move the three together with npm update",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json"],
+      "matchPackageNames": ["@typescript-eslint/eslint-plugin", "@typescript-eslint/parser"],
+      "enabled": false
+    },
+    {
+      "description": "Raise .nvmrc updates in their own PR, without automerge, so that packageManager can move in the same PR. Must stay after the patch/minor/major group rules",
+      "matchManagers": ["nvm"],
+      "groupName": "node",
+      "automerge": false
     }
   ]
 }

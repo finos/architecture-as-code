@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
 @TestProfile(TestExtensionResourceReadOnlyShould.ReadOnlyExtensionsProfile.class)
@@ -25,6 +26,7 @@ class TestExtensionResourceReadOnlyShould {
                     "calm.readonly", "true",
                     "calm.extensions.dir", "local-dev/extensions",
                     "calm.extensions.example-services.backend-url", "http://localhost:8091",
+                    "calm.extensions.chat-provider", "example-services",
                     "calm.extensions.identity.private-key-location", KEYS.privateKey().toString(),
                     "calm.extensions.identity.public-key-locations", KEYS.publicKey().toString());
         }
@@ -40,7 +42,21 @@ class TestExtensionResourceReadOnlyShould {
                 .statusCode(200)
                 .body("values.id", contains("control-evaluation", "deployment", "example-services"))
                 .body("values[0].contributes.decorator-views.id", contains("control-evaluation"))
-                .body("values.find { it.id == 'example-services' }.routes.id", contains("screen", "namespace-services", "search"))
-                .body("values.find { it.id == 'example-services' }.commands.keySet()", contains("list-services"));
+                .body("values.find { it.id == 'example-services' }.routes.id", contains("screen", "namespace-services", "search", "chat"))
+                .body("chat.extension", equalTo("example-services"))
+                .body("chat.contribution", equalTo("assistant"))
+                .body("values.find { it.id == 'example-services' }.commands.keySet()", contains("list-services"))
+                .body("values.find { it.id == 'example-services' }.logo.keySet()", contains("light", "dark"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice")
+    void serve_a_logo_on_a_read_only_hub() {
+        given()
+                .when()
+                .get("/api/calm/extensions/example-services/logo/dark")
+                .then()
+                .statusCode(200)
+                .contentType("image/svg+xml");
     }
 }

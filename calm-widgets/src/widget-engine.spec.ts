@@ -155,16 +155,17 @@ describe('WidgetEngine', () => {
     });
 
     describe('registerDefaultWidgets', () => {
-        it('registers the default widgets (list, table, json-viewer, flow-sequence, related-nodes, block-architecture)', () => {
+        it('registers the default widgets (list, table, json-viewer, flow-sequence, related-nodes, block-architecture, c4-diagram)', () => {
             engine.registerDefaultWidgets();
 
-            expect(registerMock).toHaveBeenCalledTimes(6);
+            expect(registerMock).toHaveBeenCalledTimes(7);
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('list', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('table', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('json-viewer', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('flow-sequence', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('related-nodes', expect.any(Function));
             expect(localHandlebars.registerHelper).toHaveBeenCalledWith('block-architecture', expect.any(Function));
+            expect(localHandlebars.registerHelper).toHaveBeenCalledWith('c4-diagram', expect.any(Function));
         });
 
         // Alphabetical order makes the registration list easier to scan and

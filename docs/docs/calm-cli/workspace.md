@@ -121,7 +121,8 @@ Contributors run `calm workspace bump` on their branch, and they commit the resu
 ```json
 {
   "push": { "failIfModified": true },
-  "bump": { "defaultIncrement": "MINOR" }
+  "bump": { "defaultIncrement": "MINOR" },
+  "c4": { "mapping": "c4/acme.c4-mapping.json" }
 }
 ```
 
@@ -129,6 +130,7 @@ Contributors run `calm workspace bump` on their branch, and they commit the resu
 |---|---|---|---|
 | `push.failIfModified` | `true`, `false` | `false` | When `true`, `push` fails if a document has changed but CALM Hub already has its version. When `false`, `push` skips the document |
 | `bump.defaultIncrement` | `MAJOR`, `MINOR`, `PATCH` | `MINOR` | The bump type that `bump` uses when you do not supply one |
+| `c4.mapping` | A path relative to the git root, or a URL | None | The C4 mapping that `calm docify` uses when you do not supply `--c4-mapping` |
 
 ## Narrative Documents
 
@@ -223,10 +225,11 @@ When `new` or `add` makes a `$id`, it asks for the scope and then each part. The
 Push all tracked documents to CALM Hub.
 
 ```shell
-calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
+calm workspace push [--calm-hub-url <url>] [--fail-if-modified] [--base-url <url>]
 ```
 
 - **`--fail-if-modified`**: Fail if a document has changed but CALM Hub already has its version. This option overrides `push.failIfModified`.
+- **`--base-url <url>`**: The base URL each document's `$id` must start with. The default is the CALM Hub URL. Set it when CALM Hub's `calm.hub.base-url` is different from the URL you use to reach it, for example behind a proxy.
 
 | State in CALM Hub | Result |
 |---|---|
@@ -235,18 +238,21 @@ calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
 | The version exists with different content | `push` skips the document, or fails with `--fail-if-modified` |
 | The version is a snapshot with different content | `push` replaces it |
 
-`push` skips a document, with a warning, if its `$id` is not a CALM Hub `$id`.
+`push` skips a document, with a warning, if its `$id` is not a CALM Hub `$id`. It does not push a document whose `$id` base URL does not match, and the push fails.
 
 ### check
 
 Find tracked documents that have changed but do not have a new version, and validate the workspace.
 
 ```shell
-calm workspace check [--calm-hub-url <url>]
+calm workspace check [--calm-hub-url <url>] [--base-url <url>]
 ```
+
+- **`--base-url <url>`**: The base URL each document's `$id` must start with. The default is the CALM Hub URL.
 
 `check` exits with a non-zero status when:
 
+- a document's `$id` base URL does not match, so CALM Hub would reject it,
 - a document is different from CALM Hub at the same version,
 - a document that is not a snapshot refers to a snapshot,
 - an architecture or pattern is not valid, or validation cannot run.
@@ -273,11 +279,14 @@ Layout warnings do not change the exit code.
 Give each changed document a new version, and update all references to it. See [Bump Behaviour](#bump-behaviour).
 
 ```shell
-calm workspace bump [--calm-hub-url <url>] [--major | --minor | --patch] [--inherit-change-type]
+calm workspace bump [--calm-hub-url <url>] [--major | --minor | --patch] [--inherit-change-type] [--base-url <url>]
 ```
 
 - **`--major`**, **`--minor`**, **`--patch`**: Use this bump type for all changed documents, with no prompts.
 - **`--inherit-change-type`**: Give each dependent document the bump type of the document that it refers to, with no prompt.
+- **`--base-url <url>`**: The base URL each document's `$id` must start with. The default is the CALM Hub URL.
+
+If a document's `$id` base URL does not match, `bump` fails and does not change a file. A new version does not correct the base URL.
 
 After it bumps the documents, `bump` validates the workspace and prints the same summary as `check`. Validation failures do not change the exit code of `bump`. If CALM Hub has a snapshot of the new version, `bump` shows a warning, because a push of that version deletes the snapshot.
 

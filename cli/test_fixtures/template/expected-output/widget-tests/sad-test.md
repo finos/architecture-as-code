@@ -32,9 +32,9 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 
     conference-website["Conference Website"]:::node
 
-    conference-website -->|Request attendee details| load-balancer
-    load-balancer -->|Forward| attendees
-    attendees -->|Store or request attendee details| attendees-store
+    conference-website -->|"Request attendee details"| load-balancer
+    load-balancer -->|"Forward"| attendees
+    attendees -->|"Store or request attendee details"| attendees-store
 
 
 
@@ -1014,10 +1014,10 @@ The system is deployed across a Kubernetes cluster with the following deployment
 ### Container Deployment
 ```mermaid
 graph TD;
-load-balancer[Load Balancer]:::highlight;
-conference-website[Conference Website] -- Connects --> load-balancer[Load Balancer];
-load-balancer[Load Balancer] -- Connects --> attendees[Attendees Service];
-load-balancer[Load Balancer] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
+load-balancer["Load Balancer"]:::highlight;
+conference-website["Conference Website"] -- Connects --> load-balancer["Load Balancer"];
+load-balancer["Load Balancer"] -- Connects --> attendees["Attendees Service"];
+load-balancer["Load Balancer"] -- Deployed In --> k8s-cluster["Kubernetes Cluster"];
 classDef highlight fill:#f2bbae;
 ```
 

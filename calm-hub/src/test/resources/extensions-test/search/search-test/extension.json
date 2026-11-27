@@ -1,0 +1,14 @@
+{
+  "id": "search-test",
+  "version": "1.0.0",
+  "hubApi": 0,
+  "name": "Search test",
+  "description": "A search provider for the search endpoint tests",
+  "provider": "CALM Hub tests",
+  "routes": [
+    { "id": "search", "method": "POST", "path": "/search", "scope": "authenticated", "readOnly": true }
+  ],
+  "contributes": {
+    "search-provider": [ { "id": "records", "title": "Records", "route": "search" } ]
+  }
+}

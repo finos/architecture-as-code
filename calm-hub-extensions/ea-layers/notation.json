@@ -1,0 +1,766 @@
+{
+  "shapes": {
+    "BusinessActor": {
+      "viewBox": [
+        0,
+        0,
+        160,
+        70
+      ],
+      "resize": {
+        "mode": "stretch"
+      },
+      "minSize": [
+        120,
+        55
+      ],
+      "parts": [
+        {
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 160,
+            "height": 70
+          },
+          "fill": "background",
+          "stroke": "stroke"
+        },
+        {
+          "circle": {
+            "cx": 147,
+            "cy": 9,
+            "r": 4
+          },
+          "fill": "none",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        },
+        {
+          "path": "M147 13V22M141 16H153M147 22L142 29M147 22L152 29",
+          "fill": "none",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        }
+      ],
+      "slots": {
+        "label": {
+          "x": 8,
+          "y": 24,
+          "width": 144,
+          "height": 22,
+          "align": "center",
+          "weight": "bold",
+          "grow": true
+        }
+      },
+      "ports": "outline"
+    },
+    "ApplicationComponent": {
+      "viewBox": [
+        0,
+        0,
+        160,
+        70
+      ],
+      "resize": {
+        "mode": "stretch"
+      },
+      "minSize": [
+        120,
+        55
+      ],
+      "parts": [
+        {
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 160,
+            "height": 70
+          },
+          "fill": "background",
+          "stroke": "stroke"
+        },
+        {
+          "rect": {
+            "x": 141,
+            "y": 5,
+            "width": 13,
+            "height": 16
+          },
+          "fill": "background",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        },
+        {
+          "rect": {
+            "x": 137,
+            "y": 8,
+            "width": 8,
+            "height": 3
+          },
+          "fill": "background",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        },
+        {
+          "rect": {
+            "x": 137,
+            "y": 15,
+            "width": 8,
+            "height": 3
+          },
+          "fill": "background",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        }
+      ],
+      "slots": {
+        "label": {
+          "x": 8,
+          "y": 24,
+          "width": 144,
+          "height": 22,
+          "align": "center",
+          "weight": "bold",
+          "grow": true
+        }
+      },
+      "ports": "outline"
+    },
+    "ApplicationInterface": {
+      "viewBox": [
+        0,
+        0,
+        160,
+        70
+      ],
+      "resize": {
+        "mode": "stretch"
+      },
+      "minSize": [
+        120,
+        55
+      ],
+      "parts": [
+        {
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 160,
+            "height": 70
+          },
+          "fill": "background",
+          "stroke": "stroke"
+        },
+        {
+          "circle": {
+            "cx": 149,
+            "cy": 12,
+            "r": 5
+          },
+          "fill": "none",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        },
+        {
+          "line": {
+            "x1": 136,
+            "y1": 12,
+            "x2": 144,
+            "y2": 12
+          },
+          "fill": "none",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        }
+      ],
+      "slots": {
+        "label": {
+          "x": 8,
+          "y": 24,
+          "width": 144,
+          "height": 22,
+          "align": "center",
+          "weight": "bold",
+          "grow": true
+        }
+      },
+      "ports": "outline"
+    },
+    "DataObject": {
+      "viewBox": [
+        0,
+        0,
+        160,
+        70
+      ],
+      "resize": {
+        "mode": "nine-slice",
+        "insets": [
+          16,
+          4,
+          4,
+          4
+        ]
+      },
+      "minSize": [
+        120,
+        55
+      ],
+      "parts": [
+        {
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 160,
+            "height": 70
+          },
+          "fill": "background",
+          "stroke": "stroke"
+        },
+        {
+          "line": {
+            "x1": 0,
+            "y1": 14,
+            "x2": 160,
+            "y2": 14
+          },
+          "stroke": "stroke"
+        }
+      ],
+      "slots": {
+        "label": {
+          "x": 8,
+          "y": 26,
+          "width": 144,
+          "height": 22,
+          "align": "center",
+          "weight": "bold",
+          "grow": true
+        }
+      },
+      "ports": "outline"
+    },
+    "SystemSoftware": {
+      "viewBox": [
+        0,
+        0,
+        160,
+        70
+      ],
+      "resize": {
+        "mode": "stretch"
+      },
+      "minSize": [
+        120,
+        55
+      ],
+      "parts": [
+        {
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 160,
+            "height": 70
+          },
+          "fill": "background",
+          "stroke": "stroke"
+        },
+        {
+          "circle": {
+            "cx": 146,
+            "cy": 14,
+            "r": 7
+          },
+          "fill": "background",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        },
+        {
+          "path": "M143 7.6A7 7 0 0 1 153.4 12.4",
+          "fill": "none",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        }
+      ],
+      "slots": {
+        "label": {
+          "x": 8,
+          "y": 24,
+          "width": 144,
+          "height": 22,
+          "align": "center",
+          "weight": "bold",
+          "grow": true
+        }
+      },
+      "ports": "outline"
+    },
+    "TechnologyService": {
+      "viewBox": [
+        0,
+        0,
+        160,
+        70
+      ],
+      "resize": {
+        "mode": "nine-slice",
+        "insets": [
+          12,
+          12,
+          12,
+          12
+        ]
+      },
+      "minSize": [
+        120,
+        55
+      ],
+      "parts": [
+        {
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 160,
+            "height": 70,
+            "rx": 12
+          },
+          "fill": "background",
+          "stroke": "stroke"
+        },
+        {
+          "rect": {
+            "x": 136,
+            "y": 6,
+            "width": 18,
+            "height": 10,
+            "rx": 5
+          },
+          "fill": "none",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        }
+      ],
+      "slots": {
+        "label": {
+          "x": 8,
+          "y": 24,
+          "width": 144,
+          "height": 22,
+          "align": "center",
+          "weight": "bold",
+          "grow": true
+        }
+      },
+      "ports": "outline"
+    },
+    "CommunicationNetwork": {
+      "viewBox": [
+        0,
+        0,
+        160,
+        70
+      ],
+      "resize": {
+        "mode": "stretch"
+      },
+      "minSize": [
+        120,
+        55
+      ],
+      "parts": [
+        {
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 160,
+            "height": 70
+          },
+          "fill": "background",
+          "stroke": "stroke"
+        },
+        {
+          "path": "M137 19L141 9H156L152 19Z",
+          "fill": "none",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        },
+        {
+          "circle": {
+            "cx": 137,
+            "cy": 19,
+            "r": 1.6
+          },
+          "fill": "stroke",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        },
+        {
+          "circle": {
+            "cx": 141,
+            "cy": 9,
+            "r": 1.6
+          },
+          "fill": "stroke",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        },
+        {
+          "circle": {
+            "cx": 156,
+            "cy": 9,
+            "r": 1.6
+          },
+          "fill": "stroke",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        },
+        {
+          "circle": {
+            "cx": 152,
+            "cy": 19,
+            "r": 1.6
+          },
+          "fill": "stroke",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid",
+          "pin": "top-right"
+        }
+      ],
+      "slots": {
+        "label": {
+          "x": 8,
+          "y": 24,
+          "width": 144,
+          "height": 22,
+          "align": "center",
+          "weight": "bold",
+          "grow": true
+        }
+      },
+      "ports": "outline"
+    },
+    "Grouping": {
+      "viewBox": [
+        0,
+        0,
+        160,
+        70
+      ],
+      "resize": {
+        "mode": "nine-slice",
+        "insets": [
+          14,
+          4,
+          4,
+          70
+        ]
+      },
+      "minSize": [
+        120,
+        55
+      ],
+      "parts": [
+        {
+          "path": "M0 13V0H66V13",
+          "fill": "background",
+          "stroke": "stroke"
+        },
+        {
+          "rect": {
+            "x": 0,
+            "y": 13,
+            "width": 160,
+            "height": 57
+          },
+          "fill": "background",
+          "stroke": "stroke"
+        }
+      ],
+      "slots": {
+        "label": {
+          "x": 4,
+          "y": 1,
+          "width": 60,
+          "height": 11,
+          "align": "start",
+          "weight": "bold",
+          "size": "small"
+        }
+      },
+      "ports": "outline"
+    }
+  },
+  "markers": {
+    "serving": {
+      "viewBox": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "parts": [
+        {
+          "polyline": [
+            [
+              0,
+              0
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              0,
+              10
+            ]
+          ],
+          "fill": "none",
+          "stroke": "stroke",
+          "strokeWidth": 1.5,
+          "dash": "solid"
+        }
+      ]
+    },
+    "access": {
+      "viewBox": [
+        0,
+        0,
+        8,
+        8
+      ],
+      "parts": [
+        {
+          "polyline": [
+            [
+              0,
+              1
+            ],
+            [
+              8,
+              4
+            ],
+            [
+              0,
+              7
+            ]
+          ],
+          "fill": "none",
+          "stroke": "stroke",
+          "strokeWidth": 1.2,
+          "dash": "solid"
+        }
+      ]
+    }
+  },
+  "styles": {
+    "elements": [
+      {
+        "tag": "Business",
+        "background": "#ffffb5",
+        "color": "#000000",
+        "stroke": "#4d4d4d",
+        "strokeWidth": 1
+      },
+      {
+        "tag": "Application",
+        "background": "#b5ffff",
+        "color": "#000000",
+        "stroke": "#4d4d4d",
+        "strokeWidth": 1
+      },
+      {
+        "tag": "Technology",
+        "background": "#c9e7b7",
+        "color": "#000000",
+        "stroke": "#4d4d4d",
+        "strokeWidth": 1
+      },
+      {
+        "tag": "Business Actor",
+        "shape": "BusinessActor",
+        "label": "Business actor"
+      },
+      {
+        "tag": "Application Component",
+        "shape": "ApplicationComponent",
+        "label": "Application component"
+      },
+      {
+        "tag": "Application Interface",
+        "shape": "ApplicationInterface",
+        "label": "Application interface"
+      },
+      {
+        "tag": "Data Object",
+        "shape": "DataObject",
+        "label": "Data object"
+      },
+      {
+        "tag": "System Software",
+        "shape": "SystemSoftware",
+        "label": "System software"
+      },
+      {
+        "tag": "Technology Service",
+        "shape": "TechnologyService",
+        "label": "Technology service"
+      },
+      {
+        "tag": "Communication Network",
+        "shape": "CommunicationNetwork",
+        "label": "Communication network"
+      },
+      {
+        "tag": "Grouping",
+        "shape": "Grouping",
+        "border": "dashed",
+        "background": "#ffffff",
+        "color": "#000000",
+        "stroke": "#4d4d4d",
+        "strokeWidth": 1,
+        "label": "Grouping"
+      },
+      {
+        "tag": "Guessed",
+        "border": "dashed",
+        "stroke": "#b45309",
+        "strokeWidth": 2,
+        "label": "Type guessed"
+      }
+    ],
+    "relationships": [
+      {
+        "tag": "Serving",
+        "color": "#333333",
+        "end": "serving",
+        "label": "Serving",
+        "dark": {
+          "color": "#cbd5e1"
+        }
+      },
+      {
+        "tag": "Access",
+        "color": "#333333",
+        "style": "dotted",
+        "end": "access",
+        "label": "Access",
+        "dark": {
+          "color": "#cbd5e1"
+        }
+      },
+      {
+        "tag": "Composition",
+        "color": "#333333",
+        "start": "diamond",
+        "end": "none",
+        "label": "Composition",
+        "dark": {
+          "color": "#cbd5e1"
+        }
+      },
+      {
+        "tag": "Assignment",
+        "color": "#333333",
+        "start": "dot",
+        "end": "arrow",
+        "label": "Assignment",
+        "dark": {
+          "color": "#cbd5e1"
+        }
+      }
+    ],
+    "groups": [
+      {
+        "tag": "Business Layer",
+        "border": "solid",
+        "background": "#ffffe6",
+        "stroke": "#c9c97a",
+        "color": "#5c5c1f",
+        "label": "Business layer",
+        "dark": {
+          "background": "#2a2a14",
+          "stroke": "#8f8f4d",
+          "color": "#e6e6a3"
+        }
+      },
+      {
+        "tag": "Application Layer",
+        "border": "solid",
+        "background": "#e6ffff",
+        "stroke": "#6cc4c4",
+        "color": "#1f5c5c",
+        "label": "Application layer",
+        "dark": {
+          "background": "#142a2a",
+          "stroke": "#4d8f8f",
+          "color": "#a3e6e6"
+        }
+      },
+      {
+        "tag": "Technology Layer",
+        "border": "solid",
+        "background": "#eef7e8",
+        "stroke": "#8fbf7a",
+        "color": "#2f5c1f",
+        "label": "Technology layer",
+        "dark": {
+          "background": "#1a2a14",
+          "stroke": "#6b8f4d",
+          "color": "#bde6a3"
+        }
+      },
+      {
+        "tag": "Application Component",
+        "border": "solid",
+        "background": "#e6ffff",
+        "stroke": "#4d4d4d",
+        "color": "#000000",
+        "dark": {
+          "background": "#142a2a",
+          "stroke": "#94a3b8",
+          "color": "#e2e8f0"
+        }
+      },
+      {
+        "tag": "Grouping",
+        "border": "dashed",
+        "stroke": "#4d4d4d",
+        "color": "#000000",
+        "dark": {
+          "stroke": "#94a3b8",
+          "color": "#e2e8f0"
+        }
+      }
+    ]
+  }
+}

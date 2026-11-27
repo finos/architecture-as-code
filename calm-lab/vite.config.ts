@@ -45,5 +45,8 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         sourcemap: true,
+        // Spectral's nimma pastes a function's source into a template literal. The default minifier
+        // rewrites strings as backtick literals, which end that template early and break `calm validate -p`.
+        minify: 'esbuild',
     },
 });

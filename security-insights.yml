@@ -1,6 +1,6 @@
 header:
   schema-version: 2.2.0
-  last-updated: '2026-11-10'
+  last-updated: '2026-11-27'
   last-reviewed: '2026-09-26'
   url: https://raw.githubusercontent.com/finos/architecture-as-code/main/security-insights.yml
   comment: |
@@ -89,6 +89,12 @@ project:
       url: https://github.com/finos/architecture-as-code/tree/main/calm-hub-ui
       comment: |
         React frontend for CALM Hub. Status: Active.
+    - name: calm-hub-extensions
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-hub-extensions
+      comment: |
+        The CALM Hub extensions that the project owns: the C4 and Layers lenses.
+        Each one is a TypeScript service that runs as a sidecar of CALM Hub.
+        Docker images built from source; not published. Status: Active.
     - name: calm-server
       url: https://github.com/finos/architecture-as-code/tree/main/calm-server
       comment: |
@@ -198,7 +204,7 @@ repository:
           component gains a new interface, trust boundary or distribution channel.
     tools:
       - name: GitHub Secret Scanning
-        type: secret-scanning
+        type: secret
         comment: |
           GitHub secret scanning with push protection, enabled in the repository
           security settings. The setting is visible only to repository admins, so
@@ -257,7 +263,7 @@ repository:
         results: {}
       - name: Dependabot
         type: SCA
-        comment: Security updates and alerts for npm, Maven and GitHub Actions.
+        comment: Alerts for npm, Maven and GitHub Actions. Security updates are off. Renovate raises dependency updates, and the OSV Fix workflow raises npm lockfile fixes for blocking findings.
         rulesets:
           - GitHub Advisory Database
         integration:

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const FIX_SCRIPT = fileURLToPath(new URL('./osv-fix-npm.sh', import.meta.url));
 const THRESHOLD_SCRIPT = fileURLToPath(new URL('./osv-threshold.sh', import.meta.url));
+const SCAN_SCRIPT = fileURLToPath(new URL('./osv-scan.sh', import.meta.url));
 
 let root;
 let npmArgsFile;
@@ -45,11 +46,11 @@ function writeResults(results) {
     return path;
 }
 
-function run(script, results) {
+function run(script, results, env = {}) {
     return spawnSync('bash', [script, results, '5'], {
         cwd: root,
         encoding: 'utf8',
-        env: { ...process.env, PATH: `${root}:${process.env.PATH}`, NPM_ARGS_FILE: npmArgsFile },
+        env: { ...process.env, PATH: `${root}:${process.env.PATH}`, NPM_ARGS_FILE: npmArgsFile, ...env },
     });
 }
 
@@ -109,6 +110,17 @@ describe('osv-threshold.sh', () => {
         assert.match(result.stdout, /❌ next@15\.5\.25 \[package-lock\.json\] GHSA-4jqv-mc3x-m676 cvss=6\.3 MODERATE/);
     });
 
+    it('fails on a blocking Maven finding when package-lock.json has none', () => {
+        const results = writeResults([
+            finding('calm-hub/pom.xml', 'Maven', 'com.google.guava:guava', '33.6.0-jre', 'GHSA-xxph-c9ww-hj94', { cvss: '8.2', ghsa: 'HIGH' }),
+        ]);
+
+        const result = run(THRESHOLD_SCRIPT, results);
+
+        assert.equal(result.status, 1);
+        assert.match(result.stdout, /❌ com\.google\.guava:guava@33\.6\.0-jre \[calm-hub\/pom\.xml\] GHSA-xxph-c9ww-hj94 cvss=8\.2 HIGH/);
+    });
+
     it('passes when every finding is below the threshold or unscored', () => {
         const results = writeResults([
             finding('package-lock.json', 'npm', 'katex', '0.16.47', 'GHSA-238p-pmpm-9mq7', { cvss: '2.1', ghsa: 'LOW' }),
@@ -119,5 +131,36 @@ describe('osv-threshold.sh', () => {
 
         assert.equal(result.status, 0, result.stdout);
         assert.match(result.stdout, /Findings: 2 total, 0 at or above CVSS 5\./);
+    });
+});
+
+describe('osv-scan.sh', () => {
+    let scanArgsFile;
+
+    beforeEach(() => {
+        scanArgsFile = join(root, 'scan-args.txt');
+        // A stub ./osv-scanner records its arguments and exits with the requested status.
+        const stubScanner = join(root, 'osv-scanner');
+        writeFileSync(stubScanner, '#!/usr/bin/env bash\nprintf \'%s\\n\' "$@" > "$SCAN_ARGS_FILE"\nexit "$SCAN_STATUS"\n');
+        chmodSync(stubScanner, 0o755);
+    });
+
+    const scan = (status) => run(SCAN_SCRIPT, 'osv-results.json', { SCAN_ARGS_FILE: scanArgsFile, SCAN_STATUS: status });
+
+    it('scans the npm lockfile and the Maven projects, and passes when vulnerabilities are found', () => {
+        const result = scan('1');
+
+        assert.equal(result.status, 0, result.stdout);
+        const args = readFileSync(scanArgsFile, 'utf8').trim().split('\n');
+        const lockfiles = args.filter((_, i) => args[i - 1] === '--lockfile');
+        assert.deepEqual(lockfiles, ['package-lock.json', 'calm-hub/pom.xml', 'calm-models/pom.xml']);
+        assert.equal(args[args.indexOf('--output-file') + 1], 'osv-results.json');
+    });
+
+    it('fails with the scanner exit code on a scan error', () => {
+        const result = scan('127');
+
+        assert.equal(result.status, 127);
+        assert.match(result.stdout, /osv-scanner failed with exit code 127/);
     });
 });

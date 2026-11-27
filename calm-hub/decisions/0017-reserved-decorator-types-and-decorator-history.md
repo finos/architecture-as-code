@@ -1,10 +1,10 @@
 # ADR 0017: Reserved decorator types and decorator history
 
-**Status**: Proposed, partly built. Built (#3703, #3716): reserved types with
+**Status**: Accepted, partly built. Built (#3703, #3716): reserved types with
 configured writers, the Standard check, append-only reserved types with
-`supersedes` history, and Hub-set timestamps. Not built: the `validation` type,
-the `system` flag, supersede by key, and one document per decorator
-([#3639](https://github.com/finos/architecture-as-code/issues/3639)). The
+`supersedes` history, Hub-set timestamps, and one document per decorator
+([ADR 0020](0020-decorator-storage-one-document-per-decorator.md)). Not built: the
+`validation` type, the `system` flag, and supersede by key. The
 `system` flag needs the write seam in
 [ADR 0016](0016-store-write-seam-and-outbox-for-post-write-events.md).
 
@@ -38,8 +38,9 @@ them and see how they changed.
   whole history.
 - **Hub-set times.** Hub sets the decorator timestamps, and rejects a client that
   sends them.
-- **Size.** MongoDB and NitriteDB keep all decorators of a namespace in one
-  document. A write that would pass 16 MB gives 413.
+- **Size.** MongoDB and NitriteDB keep each decorator in its own document
+  ([ADR 0020](0020-decorator-storage-one-document-per-decorator.md)). A decorator
+  that would pass 16 MB gives 413.
 
 ## Decision (not built)
 
@@ -69,13 +70,12 @@ the namespace document reaches the MongoDB 16 MB limit
 ([ADR 0001](0001-versioned-artefact-storage.md)), and then every decorator write
 in the namespace fails. Before `validation` ships, both stores keep one document
 for each decorator. MongoDB moves with a new `SchemaMigrationStep` and the same
-change to `init-mongo.js`. Tracked in
-[#3639](https://github.com/finos/architecture-as-code/issues/3639).
+change to `init-mongo.js`. Built in
+[ADR 0020](0020-decorator-storage-one-document-per-decorator.md).
 
 ## Consequences
 
 - Validation and control evaluations are trusted by type, not by the caller's
   claim.
 - Reserved-type decorators grow without limit. Retention is a later decision.
-  Until #3639, the 16 MB limit stops writes to the namespace.
 - The `system` flag and supersede by key need the write seam in ADR 0016.

@@ -1,7 +1,7 @@
 # release-tracker
 
-A demo extension for local development. It uses every UI extension point: a screen, a landing card,
-an action, a designer tab, a detail panel and a decorator view. Use it to check the CALM Hub UI
+A demo extension for local development. It uses two screens, a landing card, an action, a designer tab,
+a detail panel, forms, a decorator view and a search provider. Use it to check the CALM Hub UI
 layout. `server.mjs` is its backend: it has no dependencies, and it uses the identity verifier of
 [example-services](../../extensions/example-services/identity.mjs). The data is made up. The designer tab
 route uses `{resourceType}/{resourceId}`, because CALM Hub refuses `%2F` in a path. Test the routes
@@ -12,11 +12,13 @@ URL does not start, and the UI then shows "CalmHub failed to load".
 
 | Contribution | Where the UI shows it |
 |---|---|
-| `screen` | The Extensions group of the side menu, and the home page card |
+| `screen` | Releases and Release calendar: a link to each in the Release tracker group of the side menu, and on the home page card. The Releases tiles filter the releases table (inline rows) and deployments table (a `source` route, 5 rows a page) |
 | `landing-card` | The home page card: the first 3 figures of its `stats` block |
-| `action`, `designer-tab` | The Extensions tab of an architecture or pattern |
-| `detail-panel` | The Extensions section of the node details |
+| `action`, `designer-tab` | The inspector beside the diagram of an architecture or pattern |
+| `detail-panel` | The inspector, for the selected node |
 | `decorator-views` | Badges on the diagram for `release-risk` decorators |
+| `form` | `log-release` on the screen (with a target chooser) and the designer tab; `review-node` in the inspector, for the selected node |
+| `search-provider` | A Releases group on the search page, for example `/search?q=payment` |
 
 Run it from `calm-hub/`, with the keys from the [example-services README](../../extensions/example-services/README.md):
 
@@ -37,8 +39,18 @@ node local-dev/demo-extensions/release-tracker/server.mjs
 links. It seeds only a database with no namespaces: to start again, delete the data directory
 (`~/.calm-hub/data` by default).
 
+The forms save in memory. A repeat of a submission id gets the first reply and saves nothing. A
+release version that is not `x.y.z`, or that is already logged, gets a `422` field error, and a
+review of a node with no data gets a `409`. Put `#slow` in a text field to see an unknown outcome:
+the backend saves, then replies after the 10-second Hub timeout.
+
 The detail panel has data for the nodes `web-app`, `api-gateway`, `user-service`, `order-service`,
-`database` and `message-queue`. To see the overlay, add a decorator of type `release-risk` with
+`database` and `message-queue`.
+
+The screen and the designer tab show the [navigation links](../../../../docs/docs/calm-hub/extension-navigation.md).
+The screen tiles filter the releases and deployments tables, and each release row links to its component in the
+demo architecture. The designer tab links to the screen for the same
+architecture and node. Follow a link, then **Back to …**, to check that Hub returns to the same filter or node. To see the overlay, add a decorator of type `release-risk` with
 `data.risk` set to `low`, `medium` or `high`, and `data.summary` set to a short text.
 
 Test the backend with `node --test local-dev/demo-extensions/release-tracker/server.test.mjs`, from

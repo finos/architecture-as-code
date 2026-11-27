@@ -168,6 +168,15 @@ describe('instantiate', () => {
         expect(result.$schema).toEqual('test-pattern');
     });
 
+    it('does not reload the schema directory, which generate() has already loaded', async () => {
+        schemaDirMocks.loadSchemas.mockClear();
+        const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await instantiate(pattern, true, new SchemaDirectory({} as any));
+
+        expect(schemaDirMocks.loadSchemas).not.toHaveBeenCalled();
+    });
+
     it('instantiates nodes with schema-required and const fields', async () => {
         const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

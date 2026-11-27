@@ -1,7 +1,7 @@
 # ADR 0009: Extensions run out of process, behind a Hub proxy
 
-**Status**: Proposed. Nothing is built. A proof of concept for one `screen` is on
-the `poc/3396-extension-screen` branch.
+**Status**: Accepted. Built: manifests from the operator's folder and the classpath, and
+the proxy as a JAX-RS resource (#3704, #3707).
 
 ## Context
 

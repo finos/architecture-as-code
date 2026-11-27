@@ -6,6 +6,7 @@ import io.quarkus.security.identity.SecurityIdentity;
 import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
 import io.smallrye.config.SmallRyeConfigBuilder;
+import io.vertx.core.json.JsonObject;
 import org.finos.calm.config.ExtensionsConfig;
 import org.finos.calm.domain.audit.AuditAction;
 import org.finos.calm.domain.audit.AuditEntityType;
@@ -26,6 +27,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -38,13 +40,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -73,7 +79,10 @@ class TestExtensionProxyServiceShould {
     private final CalmHubPermissionChecker permissions = mock(CalmHubPermissionChecker.class);
     private final AuditService auditService = mock(AuditService.class);
     private final SecurityIdentity alice = identity("alice");
+    private final ExtensionStreamWatchdog watchdog = ExtensionStreamWatchdog.started();
     private ExtensionProxyService service;
+
+    private ExtensionIdentitySigner signer;
 
     @BeforeEach
     void setup() {
@@ -85,10 +94,10 @@ class TestExtensionProxyServiceShould {
                         "calm.extensions.identity.public-key-locations", keys.publicKey().toString(),
                         "calm.hub.base-url", "https://hub.example.com"), "test", 100))
                 .build();
-        ExtensionIdentitySigner signer = new ExtensionIdentitySigner(config.getConfigMapping(ExtensionsConfig.class),
+        signer = new ExtensionIdentitySigner(config.getConfigMapping(ExtensionsConfig.class),
                 config, registry);
         signer.load();
-        service = new ExtensionProxyService(registry, signer, permissions, auditService, "oidc");
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, null, "oidc", watchdog);
         when(permissions.canRead(any(), any())).thenReturn(true);
         when(permissions.canWrite(any(), any())).thenReturn(true);
         register(backend.url("/base"), limits(1024, 1024, Duration.ofSeconds(5)));
@@ -97,6 +106,7 @@ class TestExtensionProxyServiceShould {
     @AfterEach
     void teardown() {
         backend.close();
+        watchdog.stop();
     }
 
     @Test
@@ -193,6 +203,69 @@ class TestExtensionProxyServiceShould {
                 "application/json", null, null, new ByteArrayInputStream(new byte[0]));
         assertThat(service.call(alice, json).status(), is(200));
         assertThat(claims(backend.received().header("X-Calm-Hub-Identity")).has("bdh"), is(false));
+    }
+
+    @Test
+    void refuse_a_busy_extension_before_hub_reads_its_data() {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        Route lens = new Route("lens", "POST", "/lens/{namespace}/{resourceType}/{resourceId}", "read", true, List.of("document"));
+        ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
+                List.of(lens), null, null);
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
+        when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
+                Optional.of(backend.url("/base")), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 0))));
+
+        assertThat(status(request("POST", "/lens/finos/architectures/7", "version=1.0.0", "{}")), is(503));
+        verify(hubData, never()).body(any(), any(), any(), any());
+    }
+
+    @Test
+    void send_no_identity_to_an_extension_that_the_operator_set_to_send_none() {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        Route lens = new Route("lens", "POST", "/lens/{namespace}/{resourceType}/{resourceId}", "read", true, List.of("document"));
+        ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
+                List.of(lens), null, null);
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
+        when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
+                Optional.of(backend.url("/base")), limits(1024, 1024, Duration.ofSeconds(5)), false)));
+        String hubBody = "{\"hubApi\":0,\"document\":{\"nodes\":[]}}";
+        when(hubData.body(any(), any(), any(), any())).thenReturn(hubBody.getBytes(StandardCharsets.UTF_8));
+        backend.reply(FixtureBackend.Reply.json(200, "{}"));
+
+        service.call(alice, request("POST", "/lens/finos/architectures/7", "version=1.0.0", "{}"));
+
+        FixtureBackend.Received received = backend.received();
+        assertThat(received.body(), is(hubBody));
+        assertThat(received.header("X-Calm-Hub-Identity"), nullValue());
+    }
+
+    @Test
+    void send_the_data_that_hub_read_in_place_of_the_body_of_the_caller_and_sign_it() throws Exception {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        Route lens = new Route("lens", "POST", "/lens/{namespace}/{resourceType}/{resourceId}", "read", true, List.of("document"));
+        ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
+                List.of(lens), null, null);
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
+        when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
+                Optional.of(backend.url("/base")), limits(64, 1024, Duration.ofSeconds(5)))));
+        String hubBody = "{\"hubApi\":0,\"document\":{\"nodes\":[]}}";
+        when(hubData.body(eq(alice), eq(lens), eq(Map.of("namespace", "finos", "resourceType", "architectures", "resourceId", "7")),
+                eq("version=1.0.0"))).thenReturn(hubBody.getBytes(StandardCharsets.UTF_8));
+        backend.reply(FixtureBackend.Reply.json(200, "{}"));
+
+        service.call(alice, new ExtensionProxyRequest("team-services", "POST", "/lens/finos/architectures/7", "version=1.0.0",
+                "application/x+json; charset=utf-16", "application/json", "en-GB",
+                new ByteArrayInputStream("{\"document\":\"forged\"}".getBytes(StandardCharsets.UTF_8))));
+
+        FixtureBackend.Received received = backend.received();
+        assertThat(received.body(), is(hubBody));
+        assertThat(received.header("Content-Type"), is("application/json"));
+        String hash = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                MessageDigest.getInstance("SHA-256").digest(hubBody.getBytes(StandardCharsets.UTF_8)));
+        assertThat(claims(received.header("X-Calm-Hub-Identity")).get("bdh").asText(), is(hash));
+
+        when(hubData.body(any(), any(), any(), any())).thenReturn(new byte[65]);
+        assertThat(status(request("POST", "/lens/finos/architectures/7", "version=1.0.0", "{}")), is(413));
     }
 
     @Test
@@ -747,6 +820,29 @@ class TestExtensionProxyServiceShould {
         assertThat(assertion.get("htp").asText(), is("/services/bob%3Ateam"));
     }
 
+    @Test
+    void call_a_dedicated_route_only_from_its_own_endpoint() throws IOException {
+        ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
+                MANIFEST.routes(), null, new ExtensionManifest.Contributions(null, null, null, null, null,
+                List.of(new ExtensionManifest.RouteContribution("services", "Services", "search")), null, null, null, null));
+        when(registry.find("team-services")).thenReturn(Optional.of(new RegisteredExtension(manifest, 0,
+                Optional.of(backend.url("/base")), limits(1024, 1024, Duration.ofSeconds(5)))));
+
+        ExtensionProxyException generic = assertThrows(ExtensionProxyException.class,
+                () -> service.call(alice, request("POST", "/search", null, "{}")));
+        assertThat(generic.status(), is(404));
+        assertThat(generic.getMessage(), is("Call this extension route through its CALM Hub endpoint"));
+        assertThat(assertThrows(ExtensionProxyException.class,
+                () -> service.checkAccess(alice, request("POST", "/search", null, "{}"))).status(), is(404));
+        // A dedicated endpoint reaches only its own route.
+        assertThat(assertThrows(ExtensionProxyException.class,
+                () -> service.callDedicated(alice, request("GET", "/screen", null, null), "search", null)).status(), is(404));
+        assertThat(backend.received(), nullValue());
+
+        assertThat(service.callDedicated(alice, request("POST", "/search", null, "{}"), "search", null).status(), is(200));
+        assertThat(claims(backend.received().header("X-Calm-Hub-Identity")).get("route").asText(), is("search"));
+    }
+
     private void register_service_routes() {
         ExtensionManifest manifest = new ExtensionManifest("team-services", "1.0.0", 0, "Team services", null, null,
                 List.of(new Route("service", "GET", "/services/{service}", "authenticated", false),
@@ -770,6 +866,534 @@ class TestExtensionProxyServiceShould {
 
         verify(subscription).cancel();
         assertThat(capped.getBody().toCompletableFuture().isCompletedExceptionally(), is(true));
+    }
+
+    private static final ExtensionManifest CHAT_MANIFEST = new ExtensionManifest("team-services", "1.0.0", 0,
+            "Team services", null, null, List.of(
+            new Route("screen", "GET", "/screen", "authenticated", false),
+            new Route("ask", "POST", "/chat", "authenticated", true)),
+            null, new ExtensionManifest.Contributions(null, null, null, null, null, null,
+            List.of(new ExtensionManifest.RouteContribution("assistant", "Ask Atlas", "ask")), null, null, null));
+    private static final String QUESTION = """
+            {"conversationId":"c1","messageId":"m1","messages":[{"role":"user","content":"Which services?"}],"extra":1}""";
+
+    @Test
+    void stream_each_event_to_a_caller_that_accepts_an_event_stream_before_the_backend_ends() throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", List.of(
+                "id: 1\nretry: 10\nevent: delta\ndata: {\"text\":\"Hel\"}\n\n",
+                "data: lo\n\n"), gate));
+
+        ExtensionProxyResponse reply = service.call(alice, eventStream("GET", "/screen"));
+        StringBuffer written = new StringBuffer();
+        CompletableFuture<Void> writing = CompletableFuture.runAsync(() -> reply.stream().writeTo(collect(written)));
+
+        await(() -> written.toString().contains("Hel"));
+        assertThat(written.toString(), is("event: delta\ndata: {\"text\":\"Hel\"}\n\n"));
+        gate.countDown();
+        writing.get(5, TimeUnit.SECONDS);
+        assertThat(written.toString(), is("event: delta\ndata: {\"text\":\"Hel\"}\n\ndata: lo\n\n"));
+        assertThat(reply.status(), is(200));
+        assertThat(reply.headers(), equalTo(Map.of("Content-Type", "text/event-stream; charset=utf-8",
+                "Cache-Control", "private, no-store", "X-Accel-Buffering", "no")));
+    }
+
+    @Test
+    void buffer_an_event_stream_for_a_caller_that_does_not_accept_one() {
+        backend.reply(new FixtureBackend.Reply(200, Map.of("Content-Type", "text/event-stream"),
+                "data: whole\n\n".getBytes(StandardCharsets.UTF_8), 0));
+
+        ExtensionProxyResponse reply = service.call(alice, request("GET", "/screen", null, null));
+
+        assertThat(reply.stream(), nullValue());
+        assertThat(new String(reply.body(), StandardCharsets.UTF_8), is("data: whole\n\n"));
+    }
+
+    @Test
+    void buffer_a_reply_that_is_not_an_event_stream_for_a_caller_that_accepts_one() {
+        backend.reply(FixtureBackend.Reply.json(200, "{\"a\":1}"));
+
+        ExtensionProxyResponse reply = service.call(alice, eventStream("GET", "/screen"));
+
+        assertThat(reply.stream(), nullValue());
+        assertThat(new String(reply.body(), StandardCharsets.UTF_8), is("{\"a\":1}"));
+    }
+
+    @Test
+    void refuse_more_streams_than_the_limit_and_free_the_slot_when_a_stream_closes() throws Exception {
+        register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 32,
+                1, 1, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", List.of("data: 1\n\n", "data: 2\n\n"), gate));
+        ExtensionProxyResponse open = service.call(alice, eventStream("GET", "/screen"));
+
+        ExtensionProxyException busy = assertThrows(ExtensionProxyException.class,
+                () -> service.call(alice, eventStream("GET", "/screen")));
+        assertThat(busy.status(), is(503));
+        assertThat(busy.headers(), equalTo(Map.of("Retry-After", "1")));
+        // A buffered call does not need a stream slot.
+        backend.reply(FixtureBackend.Reply.json(200, "{}"));
+        assertThat(service.call(alice, request("GET", "/screen", null, null)).status(), is(200));
+
+        open.stream().close();
+        gate.countDown();
+        backend.stream(FixtureBackend.Stream.events("data: 3\n\n"));
+        ExtensionProxyResponse next = service.call(alice, eventStream("GET", "/screen"));
+        assertThat(next.stream() != null, is(true));
+        next.stream().close();
+    }
+
+    @Test
+    void free_the_stream_slot_once_and_close_the_stream_when_the_call_times_out_while_the_stream_opens()
+            throws Exception {
+        CountDownLatch opening = new CountDownLatch(1);
+        CountDownLatch timedOut = new CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicBoolean first = new java.util.concurrent.atomic.AtomicBoolean(true);
+        // Holds the first stream inside its constructor, before the call can see it, until the call has timed out.
+        ExtensionStreamWatchdog holding = new ExtensionStreamWatchdog() {
+            // Not synchronized: it waits here while the test opens a newer stream, whose watch needs the monitor.
+            @Override
+            boolean watch(ExtensionEventStream stream, long delayNanos) {
+                if (first.compareAndSet(true, false)) {
+                    opening.countDown();
+                    try {
+                        timedOut.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                return super.watch(stream, delayNanos);
+            }
+        };
+        holding.start();
+        try {
+            service = new ExtensionProxyService(registry, signer, permissions, auditService, null, "oidc", holding);
+            register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofMillis(500), 1024, 1024,
+                    32, 2, 2, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+            CountDownLatch gate = new CountDownLatch(1);
+            backend.stream(FixtureBackend.Stream.untilClosed("data: first\n\n", "data: " + "x".repeat(1000) + "\n\n", gate));
+
+            CompletableFuture<Integer> call = CompletableFuture.supplyAsync(() -> status(eventStream("GET", "/screen")));
+            assertThat(opening.await(5, TimeUnit.SECONDS), is(true));
+            assertThat(call.get(5, TimeUnit.SECONDS), is(504));
+            // A newer stream takes the slot that the call freed, while the late stream is still opening.
+            ExtensionProxyResponse newer = service.call(alice, eventStream("GET", "/screen"));
+            ExtensionProxyResponse bobs = null;
+            try {
+                assertThat(service.streamUsers(), is(1));
+                timedOut.countDown();
+                gate.countDown();
+
+                // The late stream closes at once, not at its maximum time, and so closes the backend connection.
+                await(() -> holding.watched() == 1 && backend.streamBroken());
+                // A second release of the late stream would remove the count of alice's newer stream.
+                assertThat(service.streamUsers(), is(1));
+                assertThat(assertThrows(ExtensionProxyException.class, () -> service.call(alice, eventStream("GET", "/screen")))
+                        .getMessage(), startsWith("You have too many replies open"));
+                // The pool has 2 slots: a slot freed twice would let bob open a second stream.
+                bobs = service.call(identity("bob"), eventStream("GET", "/screen"));
+                assertThat(assertThrows(ExtensionProxyException.class, () -> service.call(identity("bob"),
+                        eventStream("GET", "/screen"))).getMessage(), is("The extension is busy. Try again later"));
+            } finally {
+                newer.stream().close();
+                if (bobs != null) {
+                    bobs.stream().close();
+                }
+            }
+        } finally {
+            timedOut.countDown();
+            holding.stop();
+        }
+    }
+
+    @Test
+    void refuse_a_user_at_the_per_user_stream_limit_while_another_user_still_streams() {
+        register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 32,
+                8, 8, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", List.of("data: 1\n\n", "data: 2\n\n"), gate));
+        SecurityIdentity bob = identity("bob");
+        try {
+            ExtensionProxyResponse alices = service.call(alice, eventStream("GET", "/screen"));
+            ExtensionProxyException busy = assertThrows(ExtensionProxyException.class,
+                    () -> service.call(alice, eventStream("GET", "/screen")));
+            assertThat(busy.status(), is(503));
+            assertThat(busy.headers(), equalTo(Map.of("Retry-After", "1")));
+
+            ExtensionProxyResponse bobs = service.call(bob, eventStream("GET", "/screen"));
+            assertThat(bobs.stream() != null, is(true));
+            assertThat(service.streamUsers(), is(2));
+
+            alices.stream().close();
+            ExtensionProxyResponse again = service.call(alice, eventStream("GET", "/screen"));
+            assertThat(again.stream() != null, is(true));
+            again.stream().close();
+            bobs.stream().close();
+            assertThat(service.streamUsers(), is(0));
+        } finally {
+            gate.countDown();
+        }
+    }
+
+    @Test
+    void keep_chat_streams_in_their_own_pool_so_generic_proxy_streams_cannot_fill_it() {
+        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 1, 1, 1,
+                Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream",
+                List.of("event: delta\ndata: {\"text\":\"a\"}\n\n", "event: done\ndata: {}\n\n"), gate));
+        SecurityIdentity bob = identity("bob");
+        try {
+            ExtensionProxyResponse generic = service.call(bob, eventStream("GET", "/screen"));
+            assertThat(assertThrows(ExtensionProxyException.class,
+                    () -> service.call(alice, eventStream("GET", "/screen"))).status(), is(503));
+
+            ExtensionProxyResponse answer = chat(QUESTION);
+            assertThat(answer.stream() != null, is(true));
+            ExtensionProxyException full = assertThrows(ExtensionProxyException.class, () -> service.chat(bob,
+                    "team-services", "assistant", "application/json", null, null,
+                    new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8))));
+            assertThat(full.status(), is(503));
+
+            answer.stream().close();
+            generic.stream().close();
+            assertThat(service.streamUsers(), is(0));
+            ExtensionProxyResponse next = chat(QUESTION);
+            assertThat(next.stream() != null, is(true));
+            next.stream().close();
+        } finally {
+            gate.countDown();
+        }
+    }
+
+    @Test
+    void count_the_streams_of_one_user_in_each_pool_on_its_own() {
+        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 8, 8, 1,
+                Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream",
+                List.of("event: delta\ndata: {\"text\":\"a\"}\n\n", "event: done\ndata: {}\n\n"), gate));
+        try {
+            ExtensionProxyResponse generic = service.call(alice, eventStream("GET", "/screen"));
+            // Alice's proxy stream does not count against her chat streams.
+            ExtensionProxyResponse answer = chat(QUESTION);
+            assertThat(service.streamUsers(), is(2));
+            // The per-user limit applies in each pool, the chat pool too.
+            assertThat(assertThrows(ExtensionProxyException.class, () -> service.call(alice, eventStream("GET", "/screen")))
+                    .getMessage(), startsWith("You have too many replies open"));
+            assertThat(assertThrows(ExtensionProxyException.class, () -> chat(QUESTION)).getMessage(),
+                    startsWith("You have too many replies open"));
+
+            answer.stream().close();
+            generic.stream().close();
+            assertThat(service.streamUsers(), is(0));
+        } finally {
+            gate.countDown();
+        }
+    }
+
+    @Test
+    void let_another_user_take_the_chat_slots_that_one_user_cannot_use() {
+        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 8, 3, 2,
+                Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream",
+                List.of("event: delta\ndata: {\"text\":\"a\"}\n\n", "event: done\ndata: {}\n\n"), gate));
+        SecurityIdentity bob = identity("bob");
+        List<ExtensionProxyResponse> open = new java.util.ArrayList<>();
+        try {
+            open.add(chat(QUESTION));
+            open.add(chat(QUESTION));
+            assertThat(assertThrows(ExtensionProxyException.class, () -> chat(QUESTION)).getMessage(),
+                    startsWith("You have too many replies open"));
+            open.add(service.chat(bob, "team-services", "assistant", "application/json", null, null,
+                    new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8))));
+            // The chat pool (3) is full, so bob is under his own limit and still gets 503.
+            assertThat(assertThrows(ExtensionProxyException.class, () -> service.chat(bob, "team-services", "assistant",
+                    "application/json", null, null, new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8))))
+                    .getMessage(), is("The extension is busy. Try again later"));
+        } finally {
+            open.forEach(reply -> reply.stream().close());
+            gate.countDown();
+        }
+        assertThat(service.streamUsers(), is(0));
+    }
+
+    @Test
+    void free_the_stream_slot_when_the_backend_does_not_send_an_event_stream() {
+        register(backend.url("/base"), new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 1024, 1024, 32,
+                1, 1, 1, Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        backend.reply(FixtureBackend.Reply.json(500, "{}"));
+        assertThat(status(eventStream("GET", "/screen")), is(502));
+        backend.reply(FixtureBackend.Reply.json(200, "{}"));
+        assertThat(service.call(alice, eventStream("GET", "/screen")).status(), is(200));
+        backend.stream(FixtureBackend.Stream.events("data: 1\n\n"));
+        ExtensionProxyResponse stream = service.call(alice, eventStream("GET", "/screen"));
+        assertThat(stream.stream() != null, is(true));
+        stream.stream().close();
+    }
+
+    @Test
+    void close_the_backend_connection_when_the_caller_closes_the_stream() throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(FixtureBackend.Stream.untilClosed("data: first\n\n", "data: " + "x".repeat(1000) + "\n\n", gate));
+        ExtensionProxyResponse reply = service.call(alice, eventStream("GET", "/screen"));
+
+        reply.stream().close();
+        gate.countDown();
+
+        await(backend::streamBroken);
+    }
+
+    @Test
+    void refuse_a_chat_route_on_the_generic_proxy_and_mcp_path_without_calling_the_backend() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+
+        ExtensionProxyException refused = assertThrows(ExtensionProxyException.class,
+                () -> service.call(alice, eventStream("POST", "/chat")));
+        assertThat(refused.status(), is(404));
+        assertThat(refused.getMessage(), is("Call this extension route through its CALM Hub endpoint"));
+        assertThat(assertThrows(ExtensionProxyException.class,
+                () -> service.checkAccess(alice, request("POST", "/chat", null, "{}"))).status(), is(404));
+        assertThat(backend.received(), nullValue());
+    }
+
+    @Test
+    void send_the_chat_body_that_hub_built_and_pass_back_only_the_citations_the_caller_can_open() throws Exception {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        when(permissions.canRead(alice, "finos")).thenReturn(true);
+        when(permissions.canRead(alice, "secret")).thenReturn(false);
+        backend.stream(FixtureBackend.Stream.events(
+                "event: delta\ndata: {\"text\":\"See \"}\n\n",
+                "event: citation\ndata: {\"label\":\"Open\",\"hub\":{\"namespace\":\"finos\",\"type\":\"architectures\","
+                        + "\"id\":\"1\",\"version\":\"1.0.0\"}}\n\n"
+                        + "event: citation\ndata: {\"label\":\"Hidden\",\"hub\":{\"namespace\":\"secret\",\"type\":"
+                        + "\"architectures\",\"id\":\"1\",\"version\":\"1.0.0\"}}\n\n"
+                        + "event: done\ndata: {}\n\n"));
+
+        ExtensionProxyResponse reply = service.chat(alice, "team-services", "assistant", "application/json", "en-GB", null,
+                new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8)));
+        StringBuffer written = new StringBuffer();
+        reply.stream().writeTo(collect(written));
+
+        FixtureBackend.Received received = backend.received();
+        assertThat(received.method(), is("POST"));
+        assertThat(received.pathAndQuery(), is("/base/chat"));
+        assertThat(received.header("Accept"), is("text/event-stream"));
+        assertThat(received.header("Accept-Language"), is("en-GB"));
+        assertThat(MAPPER.readTree(received.body()), equalTo(MAPPER.readTree("""
+                {"hubApi":0,"conversationId":"c1","messageId":"m1","messages":[{"role":"user","content":"Which services?"}]}""")));
+        JsonNode claims = claims(received.header("X-Calm-Hub-Identity"));
+        assertThat(claims.get("route").asText(), is("ask"));
+        assertThat(claims.get("htm").asText(), is("POST"));
+        assertThat(written.toString(), is("event: delta\ndata: {\"text\":\"See \"}\n\n"
+                + "event: citation\ndata: {\"label\":\"Open\",\"hub\":{\"namespace\":\"finos\",\"type\":\"architectures\","
+                + "\"id\":\"1\",\"version\":\"1.0.0\"}}\n\nevent: done\ndata: {}\n\n"));
+    }
+
+    @Test
+    void audit_a_chat_call_that_shares_no_context_as_a_read_with_no_message_text() throws Exception {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+
+        chat(QUESTION).stream().close();
+
+        AuditLogEntry entry = recorded();
+        assertThat(entry.getActor(), is("alice"));
+        assertThat(entry.getAction(), is(AuditAction.READ));
+        assertThat(entry.getEntityType(), is(AuditEntityType.EXTENSION));
+        assertThat(entry.getEntityId(), is("team-services"));
+        assertThat(entry.getRoute(), is("ask"));
+        assertThat(entry.getJti(), is(claims(backend.received().header("X-Calm-Hub-Identity")).get("jti").asText()));
+        assertThat(entry.getOutcome(), is(AuditOutcome.SUCCESS));
+        assertThat(entry.getNamespace(), nullValue());
+        assertThat(entry.getVersion(), nullValue());
+        assertThat(entry.getResourceType(), nullValue());
+        assertThat(entry.getResourceId(), nullValue());
+        assertThat(entry.getSourceIp(), nullValue());
+        assertThat(entry.toString(), not(containsString("Which services?")));
+    }
+
+    @Test
+    void audit_a_chat_call_with_the_source_ip_that_the_resource_passes() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+
+        service.chat(alice, "team-services", "assistant", "application/json", null, "192.0.2.17",
+                new ByteArrayInputStream(QUESTION.getBytes(StandardCharsets.UTF_8))).stream().close();
+
+        assertThat(recorded().getSourceIp(), is("192.0.2.17"));
+    }
+
+    @Test
+    void audit_a_chat_call_that_shares_a_context_with_the_resource_and_version_it_shared() {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        when(hubData.read("finos", "architectures", "7", "1.0.0"))
+                .thenReturn(Optional.of(new JsonObject().put("unique-id", "payments-document")));
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+
+        chat(shared("finos")).stream().close();
+
+        AuditLogEntry entry = recorded();
+        assertThat(entry.getAction(), is(AuditAction.READ));
+        assertThat(entry.getOutcome(), is(AuditOutcome.SUCCESS));
+        assertThat(entry.getNamespace(), is("finos"));
+        assertThat(entry.getResourceType(), is("architectures"));
+        assertThat(entry.getResourceId(), is("7"));
+        assertThat(entry.getVersion(), is("1.0.0"));
+        assertThat(entry.getJti() != null, is(true));
+        assertThat(entry.toString(), not(containsString("Which services?")));
+        assertThat(entry.toString(), not(containsString("payments-document")));
+    }
+
+    @Test
+    void audit_a_chat_call_whose_shared_context_the_caller_cannot_read_as_denied() {
+        ExtensionHubData hubData = mock(ExtensionHubData.class);
+        service = new ExtensionProxyService(registry, signer, permissions, auditService, hubData, "oidc", watchdog);
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        when(permissions.canRead(alice, "secret")).thenReturn(false);
+
+        assertThat(assertThrows(ExtensionProxyException.class, () -> chat(shared("secret"))).status(), is(403));
+
+        AuditLogEntry entry = recorded();
+        assertThat(entry.getAction(), is(AuditAction.READ));
+        assertThat(entry.getOutcome(), is(AuditOutcome.DENIED));
+        assertThat(entry.getNamespace(), is("secret"));
+        assertThat(entry.getResourceType(), is("architectures"));
+        assertThat(entry.getResourceId(), is("7"));
+        assertThat(entry.getVersion(), is("1.0.0"));
+        assertThat(entry.getJti(), nullValue());
+        assertThat(backend.received(), nullValue());
+        verify(hubData, never()).read(any(), any(), any(), any());
+    }
+
+    @Test
+    void end_a_chat_reply_after_its_terminal_event_and_free_the_stream_slot_while_the_backend_still_sends() throws Exception {
+        registerChat(new ExtensionLimits(Duration.ofSeconds(2), Duration.ofSeconds(5), 4096, 4096, 32, 1, 1, 1,
+                Duration.ofSeconds(5), Duration.ofSeconds(30)));
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(FixtureBackend.Stream.untilClosed("event: error\ndata: {\"message\":\"No model\"}\n\n",
+                "event: delta\ndata: {\"text\":\"" + "x".repeat(1000) + "\"}\n\n", gate));
+        StringBuffer written = new StringBuffer();
+
+        chat(QUESTION).stream().writeTo(collect(written));
+        gate.countDown();
+
+        assertThat(written.toString(), is("event: error\ndata: {\"message\":\"No model\"}\n\n"));
+        await(backend::streamBroken);
+        backend.stream(FixtureBackend.Stream.events("event: done\ndata: {}\n\n"));
+        assertThat(chat(QUESTION).status(), is(200));
+    }
+
+    @Test
+    void keep_a_generic_event_stream_open_after_an_event_named_done() throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        backend.stream(new FixtureBackend.Stream(200, "text/event-stream",
+                List.of("event: done\ndata: {}\n\n", "data: after\n\n"), gate));
+        ExtensionProxyResponse reply = service.call(alice, eventStream("GET", "/screen"));
+        StringBuffer written = new StringBuffer();
+        CompletableFuture<Void> writing = CompletableFuture.runAsync(() -> reply.stream().writeTo(collect(written)));
+
+        await(() -> written.toString().contains("done"));
+        gate.countDown();
+        writing.get(5, TimeUnit.SECONDS);
+        assertThat(written.toString(), is("event: done\ndata: {}\n\ndata: after\n\n"));
+    }
+
+    @Test
+    void return_502_when_a_chat_route_replies_with_success_but_no_event_stream() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.reply(FixtureBackend.Reply.json(200, "{\"answer\":\"buffered\"}"));
+
+        ExtensionProxyException failed = assertThrows(ExtensionProxyException.class, () -> chat(QUESTION));
+
+        assertThat(failed.status(), is(502));
+    }
+
+    @Test
+    void pass_on_a_json_client_error_from_a_chat_route() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+        backend.reply(FixtureBackend.Reply.json(429, "{\"message\":\"Slow down\"}"));
+
+        ExtensionProxyResponse reply = chat(QUESTION);
+
+        assertThat(reply.status(), is(429));
+        assertThat(reply.stream(), nullValue());
+    }
+
+    @Test
+    void refuse_a_chat_message_that_is_not_valid_or_too_large_before_calling_the_backend() {
+        registerChat(limits(200, 4096, Duration.ofSeconds(5)));
+
+        assertThat(assertThrows(ExtensionProxyException.class, () -> chat("{\"messages\":[]}")).status(), is(400));
+        String longQuestion = QUESTION.replace("Which services?", "x".repeat(180));
+        assertThat(assertThrows(ExtensionProxyException.class, () -> chat(longQuestion)).status(), is(413));
+        assertThat(backend.received(), nullValue());
+    }
+
+    @Test
+    void refuse_an_unknown_chat_entry_or_extension_with_404() {
+        registerChat(limits(4096, 4096, Duration.ofSeconds(5)));
+
+        assertThat(assertThrows(ExtensionProxyException.class, () -> service.chat(alice, "team-services", "other",
+                "application/json", null, null, new ByteArrayInputStream(new byte[0]))).status(), is(404));
+        assertThat(assertThrows(ExtensionProxyException.class, () -> service.chat(alice, "missing", "assistant",
+                "application/json", null, null, new ByteArrayInputStream(new byte[0]))).status(), is(404));
+        register(backend.url("/base"), limits(4096, 4096, Duration.ofSeconds(5)));
+        assertThat(assertThrows(ExtensionProxyException.class, () -> chat(QUESTION)).status(), is(404));
+    }
+
+    private static String shared(String namespace) {
+        return QUESTION.replace("\"extra\":1", "\"context\":{\"namespace\":\"" + namespace
+                + "\",\"resourceType\":\"architectures\",\"resourceId\":\"7\",\"version\":\"1.0.0\"}");
+    }
+
+    private AuditLogEntry recorded() {
+        ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+        verify(auditService).record(captor.capture());
+        return captor.getValue();
+    }
+
+    private ExtensionProxyResponse chat(String body) {
+        return service.chat(alice, "team-services", "assistant", "application/json", null, null,
+                new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private void registerChat(ExtensionLimits limits) {
+        when(registry.find("team-services")).thenReturn(Optional.of(
+                new RegisteredExtension(CHAT_MANIFEST, 0, Optional.of(backend.url("/base")), limits)));
+    }
+
+    private static ExtensionProxyRequest eventStream(String method, String path) {
+        boolean post = "POST".equals(method);
+        return new ExtensionProxyRequest("team-services", method, path, null, post ? "application/json" : null,
+                "text/event-stream", null, post ? new ByteArrayInputStream("{}".getBytes(StandardCharsets.UTF_8)) : null);
+    }
+
+    private static OutputStream collect(StringBuffer written) {
+        return new OutputStream() {
+            @Override
+            public void write(int b) {
+                write(new byte[] {(byte) b}, 0, 1);
+            }
+
+            @Override
+            public void write(byte[] bytes, int offset, int length) {
+                written.append(new String(bytes, offset, length, StandardCharsets.UTF_8));
+            }
+        };
+    }
+
+    private static void await(java.util.function.BooleanSupplier condition) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (!condition.getAsBoolean()) {
+            if (System.nanoTime() > deadline) {
+                throw new AssertionError("The condition did not hold within 5 seconds");
+            }
+            Thread.sleep(10);
+        }
     }
 
     static SecurityIdentity identity(String name) {

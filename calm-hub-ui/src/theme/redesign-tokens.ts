@@ -17,7 +17,7 @@ export const redesignTokens = {
     shadow: {
         card: '0 1px 2px rgba(16,24,40,.04)',
         floating: '0 2px 6px rgba(16,24,40,.06)',
-        railAccent: 'inset 3px 0 0 #2563EB', // selected rail row left accent
+        railAccent: 'inset 3px 0 0 var(--calm-rail-accent)', // selected rail row left accent
     },
     transition: '120ms ease', // hover/active transitions ~120–160ms ease
     rail: {

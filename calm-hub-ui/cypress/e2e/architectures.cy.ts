@@ -21,7 +21,7 @@ describe('Architecture Tests', () => {
 
         cy.get('canvas').should("exist");
         cy.findByRole("tab", { name: /diagram/i }).should("exist");
-        cy.findByRole("tab", { name: /json/i }).should("exist");
+        cy.findByRole("button", { name: "Choose a lens" }).should("exist");
     })
 
     it("Displays architecture JSON successfully", () => {
@@ -31,7 +31,8 @@ describe('Architecture Tests', () => {
         cy.findByText(/1/i).click();
         cy.findByText(/1.0.0/i).click();
 
-        cy.findByRole("tab", { name: /json/i}).click();
+        cy.findByRole("button", { name: "Choose a lens" }).click();
+        cy.findByRole("list", { name: "Lenses" }).findByRole("button", { name: "JSON" }).click();
 
         cy.fixture('three-tier-calm').then(data => {
             cy.contains(/\$schema/i).should("exist");

@@ -200,20 +200,45 @@ describe('projectC4', () => {
             const architecture = {
                 nodes: [
                     node('sys', 'system'),
-                    node('payments', 'service', { 'detailed-architecture': hub('finos') }),
+                    node('orders', 'service', { 'detailed-architecture': hub('finos.calm') }),
+                    node('payments', 'service', { 'detailed-architecture': hub('finos.calm.payments') }),
+                    node('platform', 'service', { 'detailed-architecture': hub('finos') }),
                     node('ledger', 'service', { 'detailed-architecture': hub('finos.calmx') }),
                     node('ledger-db', 'database'),
                 ],
-                relationships: [composed('sys', 'payments', 'ledger'), composed('ledger', 'ledger-db')],
+                relationships: [composed('sys', 'orders', 'payments', 'platform', 'ledger'), composed('ledger', 'ledger-db')],
             };
 
             const model = projectC4(architecture, undefined, { namespace: 'finos.calm' });
 
+            expect(element(model, 'orders')).toMatchObject({ kind: 'container', external: [] });
             expect(element(model, 'payments')).toMatchObject({ kind: 'container', external: [] });
+            expect(element(model, 'platform')).toMatchObject({ kind: 'software-system', external: ['other-team'] });
             expect(element(model, 'ledger')).toMatchObject({ kind: 'software-system', external: ['other-team'] });
             expect(element(model, 'ledger').notes).toEqual(['Owned by namespace finos.calmx, so it is shown as a software system, not a container']);
             expect(element(model, 'ledger-db').kind).toBe('component');
             expect(element(projectC4(architecture), 'ledger').external).toEqual([]);
+        });
+
+        it('reads the namespace only from the path of a CALM Hub URL, decoded once', () => {
+            const linked = (reference: string) => {
+                const architecture = {
+                    nodes: [node('sys', 'system'), node('svc', 'service', { 'detailed-architecture': reference })],
+                    relationships: [composed('sys', 'svc')],
+                };
+                return element(projectC4(architecture, undefined, { namespace: 'finos.calm' }), 'svc').external;
+            };
+            const hubPath = '/calm/namespaces/finos/architectures/1/versions/1.0.0';
+
+            expect(linked(`https://example.com/architecture.json?source=${hubPath}`)).toEqual([]);
+            expect(linked(`https://example.com/architecture.json#${hubPath}`)).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos%2Ecalm/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos.calm%2Epayments/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/%66inos.calm/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos.calm%2Ex%25zz/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos.calm%E0/architectures/1/versions/1.0.0')).toEqual([]);
+            expect(linked('https://hub.example.com/calm/namespaces/finos%2Ecalmx/architectures/1/versions/1.0.0')).toEqual(['other-team']);
+            expect(linked(`../other${hubPath}`)).toEqual(['other-team']);
         });
     });
 
@@ -240,9 +265,9 @@ describe('projectC4', () => {
             { element: 'sidecar', rule: 'hidden-relationship', message: 'Hidden, so its interacts relationship "audit" is not drawn' },
         ]);
         expect(model.relationships).toEqual([
-            { source: 'user', target: 'api', label: 'Uses', technology: undefined, count: 1 },
-            { source: 'api', target: 'db', label: 'Reads orders', technology: 'JDBC', count: 2 },
-            { source: 'user', target: 'db', label: 'Uses', technology: undefined, count: 1 },
+            { source: 'user', target: 'api', label: 'Uses', technology: undefined, count: 1, ids: ['i'] },
+            { source: 'api', target: 'db', label: 'Reads orders', technology: 'JDBC', count: 2, ids: ['api-db-Reads orders', 'api-db-Writes orders'] },
+            { source: 'user', target: 'db', label: 'Uses', technology: undefined, count: 1, ids: ['audit'] },
         ]);
     });
 });
@@ -299,6 +324,7 @@ describe('c4View', () => {
 
         expect(ids(view.outside)).toEqual(['buyer', 'crm', 'pay', 'shop']);
         expect(edges(view)).toEqual(['buyer->shopx1', 'shop->crmx2', 'shop->payx1']);
+        expect(view.relationships.find((r) => r.target === 'crm')?.ids.sort()).toEqual(['handler-crm-db-Reads customers', 'orders-crm-api-Syncs customers']);
     });
 
     it('shows the children of a system and lifts the other end of each relationship to the highest element outside it', () => {
@@ -329,6 +355,40 @@ describe('c4View', () => {
         const view = c4View(deployed, 'deployment');
 
         expect(view.deployments?.map((d) => [d.node.id, ids(d.hosted)])).toEqual([['k8s', ['api', 'db']], ['idle', []]]);
+        expect(edges(view)).toEqual(['api->dbx1']);
+    });
+
+    it('leaves hidden elements off the deployment diagram, and moves what a hidden node holds to the node above it', async () => {
+        const mapping = await resolveC4Mapping({
+            'unique-id': 'm', extends: CALM_DEFAULT_C4_MAPPING_URL, 'node-types': { database: 'hidden', 'x:pod': 'hidden' },
+        });
+        const deployed = projectC4({
+            nodes: [node('k8s', 'network'), node('pod', 'x:pod'), node('api', 'service'), node('db', 'database')],
+            relationships: [
+                { 'unique-id': 'd1', 'relationship-type': { 'deployed-in': { container: 'k8s', nodes: ['pod', 'db'] } } },
+                { 'unique-id': 'd2', 'relationship-type': { 'deployed-in': { container: 'pod', nodes: ['api'] } } },
+            ],
+        }, mapping);
+
+        const view = c4View(deployed, 'deployment');
+
+        expect(view.deployments?.map((d) => [d.node.id, ids(d.hosted)])).toEqual([['k8s', ['api']]]);
+    });
+
+    it('keeps what a hidden top-level node holds, outside any deployment node', async () => {
+        const mapping = await resolveC4Mapping({ 'unique-id': 'm', extends: CALM_DEFAULT_C4_MAPPING_URL, 'node-types': { 'x:pod': 'hidden' } });
+        const deployed = projectC4({
+            nodes: [node('pod', 'x:pod'), node('api', 'service'), node('db', 'database')],
+            relationships: [
+                { 'unique-id': 'd', 'relationship-type': { 'deployed-in': { container: 'pod', nodes: ['api', 'db'] } } },
+                connects('api', 'db', 'Reads'),
+            ],
+        }, mapping);
+
+        const view = c4View(deployed, 'deployment');
+
+        expect(view.deployments).toEqual([]);
+        expect(ids(view.outside)).toEqual(['api', 'db']);
         expect(edges(view)).toEqual(['api->dbx1']);
     });
 

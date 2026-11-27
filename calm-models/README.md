@@ -16,7 +16,7 @@ An internal business model built to allow for lazy loading of nested CALM docume
 A flattened data model used for templating. This represents CALM data in a simplified, template-friendly format that's optimized for rendering documentation and generating output files.
 
 ### 4. **c4**
-The C4 model of an architecture, from the C4 mapping standard (finos/calm-schema#53). `resolveC4Mapping` resolves a mapping and its `extends` chain, `projectC4` gives each node a C4 kind, external reasons and conflicts, and `c4View` builds one diagram with relationships lifted to the elements it shows. It is for the CALM Hub C4 tab and the docify `c4-diagram` widget. The caller loads mappings and detailed architectures, so the module makes no network requests.
+The C4 model of an architecture, from the C4 mapping standard (finos/calm-schema#53). `resolveC4Mapping` resolves a mapping and its `extends` chain, `projectC4` gives each node a C4 kind, external reasons and conflicts, and `c4View` builds one diagram with relationships lifted to the elements it shows. It is for the CALM Hub C4 lens and the docify `c4-diagram` widget. The caller loads mappings and detailed architectures, so the module makes no network requests.
 
 ## What Should Be In This Module
 

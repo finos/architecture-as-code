@@ -3,6 +3,7 @@ package org.finos.calm.domain;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 public class TestResourceMappingShould {
@@ -40,6 +41,29 @@ public class TestResourceMappingShould {
 
         assertThat(mapping1, is(mapping2));
         assertThat(mapping1.hashCode(), is(mapping2.hashCode()));
+    }
+
+    @Test
+    void treat_path_and_variant_as_part_of_identity() {
+        ResourceMapping aws = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api").setResourceType(ResourceType.ARCHITECTURE)
+                .setNumericId(1).setPath("aws").build();
+        ResourceMapping azure = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api").setResourceType(ResourceType.ARCHITECTURE)
+                .setNumericId(1).setPath("azure").build();
+        ResourceMapping awsVariant = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api").setResourceType(ResourceType.ARCHITECTURE)
+                .setNumericId(1).setPath("aws").setVariant("calm").build();
+        ResourceMapping same = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api").setResourceType(ResourceType.ARCHITECTURE)
+                .setNumericId(1).setPath("aws").build();
+
+        assertThat(aws.equals(azure), is(false));
+        assertThat(aws.equals(awsVariant), is(false));
+        assertThat(aws, is(same));
+        assertThat(aws.hashCode(), is(same.hashCode()));
+        assertThat(aws.toString(), containsString("aws"));
+        assertThat(awsVariant.toString(), containsString("calm"));
     }
 
     @Test

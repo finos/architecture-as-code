@@ -50,6 +50,7 @@ architecture-as-code/
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
 ├── calm-hub-ui/               # React frontend for CALM Hub
+├── calm-hub-extensions/       # The CALM Hub extensions we own, one folder per manifest id (see its README)
 ├── calm-lab/                  # Standalone learning lab app (lab.calm.finos.org)
 ├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
@@ -100,9 +101,10 @@ nvm use          # if not — reads .nvmrc → 26.3.1
 
 Running on another major version breaks in ways that are slow to diagnose: native bindings
 (`@swc/core`, `@tailwindcss/oxide`) resolve for the wrong ABI, and Node 26's global Web Storage API
-shadows jsdom's `localStorage` in tests. `@types/node` is pinned to `^26` by a root `package.json`
-override and by a Renovate `allowedVersions` rule, because transitive deps with loose constraints
-will otherwise hoist an older major to the root and mask API differences.
+shadows jsdom's `localStorage` in tests. `@types/node` is pinned to `^26` by the root `package.json`
+(the `devDependencies` entry, and an override that refers to it) and by a Renovate
+`allowedVersions` rule, because transitive deps with loose constraints will otherwise hoist an
+older major to the root and mask API differences.
 
 Packages that touch `localStorage` or `sessionStorage` document their own stubbing pattern — see
 [calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md).
@@ -137,8 +139,28 @@ Rules for `overrides` in the root `package.json`:
   major version at the next regeneration.
 - If the tree holds a package at more than one major version, use a version-scoped key, for
   example `"brace-expansion@^1.0.0": "^1.1.16"`. A plain key forces all copies to one major.
+- The `@types/node` override is `$@types/node`, which refers to the root `devDependencies` entry.
+  npm refuses an override that differs from a direct dependency of the root package.
 - `postUpdateOptions: ["npmDedupe"]` in `renovate.json` is intentional. Do not remove it to fix a
   Renovate lockfile failure.
+
+`renovate.json` turns off the Renovate updates of these root `package.json` entries, security fixes
+included, because the npm command that Renovate runs for them fails. Lock file maintenance and
+`npm update` can still move their locked versions. Change the entries by hand:
+
+| Root `package.json` entry | Why the Renovate update fails | How to change it |
+|---|---|---|
+| `overrides` | npm refuses `npm install <package>@<version>` for an overridden package (`EOVERRIDE`) | Change the override, then use the `npm update` method above |
+| `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser` | `typescript-eslint` in the workspaces pins them to its own version (`ERESOLVE`) | `npm update` the two and `typescript-eslint` together |
+| `packageManager` | Renovate writes the lockfile with this npm, and CI runs `npm ci` with the npm that Node bundles | Renovate raises `.nvmrc` updates in their own PR. Set `packageManager` in that PR to the npm of the new Node version |
+
+To check a change to `renovate.json`, use the latest Renovate image, as the
+`Validate Renovate Configuration` workflow does. `npm install -g renovate` installs an old release
+and gives no error when the Node version is too old for the latest release:
+
+```bash
+docker run --rm --pull=always --volume "$PWD:/usr/src/app:ro" ghcr.io/renovatebot/renovate:latest renovate-config-validator
+```
 
 ## CALM Schema Updates
 
@@ -225,6 +247,7 @@ TypeScript packages (npm workspaces) build in order:
                                      ↳ calm-lab
   calm-models → calm-diagram → calm-docusaurus-plugin → docs
                              ↳ calm-plugins/vscode
+  calm-models → calm-hub-extensions/c4 (bundled into its dist)
 ```
 
 Always build dependencies before dependent packages. The Maven reactor works this out for itself:
@@ -258,6 +281,31 @@ cd calm-hub && ../mvnw -P integration verify
 
 All new code needs tests covering both success and error cases. Aim for >80% coverage on new code,
 100% on critical paths.
+
+A test must not need the internet, because a slow or failed request fails PRs that did not cause it.
+Mock the HTTP layer (`calmSite()` in `shared`) or serve the data from a local server. A check that must
+read a registry goes in its own workflow, with a `paths` filter and a schedule, as
+`validate-docify-template-deps.yml` does. Do not wait for a set time or send a set quantity of data
+to let another thread finish. Wait for the condition.
+
+### Maven downloads in CI
+
+Maven Central limits the request rate of the GitHub runners (HTTP 429). Two settings keep the
+builds away from that limit:
+
+- `.mvn/maven.config` raises the number of times Maven tries a download again after a 429 or 503.
+  Maven reads it for each `mvn` and `./mvnw` command in the repository. It sets the limit under
+  two names, because Maven 3.10 renamed the property and some workflows use the `mvn` of the
+  runner, not the wrapper. Keep both.
+- A build that saves a `~/.m2` cache must resolve all that the builds that restore it resolve.
+  `actions/cache` does not save again after an exact hit, so if a build that resolves less saves
+  first, the others download their missing artifacts in each run. `build-calm-hub.yml` and
+  `calm-schema-compatibility.yml` run the same integration build and save the
+  `calm-hub-integration` cache. The coverage build and the two JVM image builds only restore it
+  (`actions/cache/restore`), and use the `mvn` of the runner as the integration build does: the
+  cache does not hold the Maven that `./mvnw` downloads. The native image builds save one cache
+  for each architecture. Do not give each Maven build its own cache: the repository has a 10 GB
+  limit for all caches, and GitHub then removes the caches that were not used for the longest time.
 
 ## Commit Messages
 

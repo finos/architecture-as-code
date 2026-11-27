@@ -17,7 +17,7 @@ describe('CountBadge', () => {
     it('fills blue with white text when active', () => {
         render(<CountBadge count={1} active />);
         const badge = screen.getByTestId('count-badge');
-        expect(badge).toHaveStyle({ backgroundColor: '#2563EB' });
+        expect(badge).toHaveStyle({ backgroundColor: 'var(--color-interaction)' });
         expect(badge).toHaveStyle({ color: '#ffffff' });
     });
 

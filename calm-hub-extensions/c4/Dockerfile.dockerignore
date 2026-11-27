@@ -1,0 +1,11 @@
+# For a build from the repository root with this Dockerfile.
+*
+!package.json
+!package-lock.json
+!.npmrc
+!tsconfig.base.json
+!calm-models/
+!calm-hub-extensions/c4/
+**/node_modules
+**/dist
+**/coverage

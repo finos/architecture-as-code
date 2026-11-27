@@ -2,9 +2,12 @@ package org.finos.calm.resources;
 
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.vertx.http.runtime.CurrentVertxRequest;
+import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HEAD;
 import jakarta.ws.rs.PATCH;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -15,6 +18,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import jakarta.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -48,11 +52,14 @@ public class ExtensionProxyResource {
     private final ExtensionProxyService service;
     private final SecurityIdentity identity;
     private final boolean captureSourceIp;
+    private final CurrentVertxRequest currentRequest;
 
     @Inject
-    public ExtensionProxyResource(ExtensionProxyService service, SecurityIdentity identity, Config properties) {
+    public ExtensionProxyResource(ExtensionProxyService service, SecurityIdentity identity, Config properties,
+                                  CurrentVertxRequest currentRequest) {
         this.service = service;
         this.identity = identity;
+        this.currentRequest = currentRequest;
         // Read at run time, as AuditRequestFilter does.
         this.captureSourceIp = properties.getOptionalValue("calm.audit.capture-source-ip", Boolean.class).orElse(false);
     }
@@ -61,7 +68,15 @@ public class ExtensionProxyResource {
     @Path("{path: .*}")
     @Operation(summary = "Call a GET route of an extension", description = DESCRIPTION)
     public Response get(@PathParam("id") String id, @Context UriInfo uriInfo, @Context HttpHeaders headers) {
-        return proxy("GET", id, uriInfo, headers, null);
+        return proxy("GET", id, uriInfo, headers, null, false);
+    }
+
+    /** HEAD of a GET route: the headers of its reply, without the body. */
+    @HEAD
+    @Path("{path: .*}")
+    @Operation(hidden = true)
+    public Response head(@PathParam("id") String id, @Context UriInfo uriInfo, @Context HttpHeaders headers) {
+        return proxy("GET", id, uriInfo, headers, null, true);
     }
 
     @POST
@@ -69,7 +84,7 @@ public class ExtensionProxyResource {
     @Operation(summary = "Call a POST route of an extension", description = DESCRIPTION)
     public Response post(@PathParam("id") String id, @Context UriInfo uriInfo, @Context HttpHeaders headers,
                          InputStream body) {
-        return proxy("POST", id, uriInfo, headers, body);
+        return proxy("POST", id, uriInfo, headers, body, false);
     }
 
     @PUT
@@ -77,7 +92,7 @@ public class ExtensionProxyResource {
     @Operation(summary = "Call a PUT route of an extension", description = DESCRIPTION)
     public Response put(@PathParam("id") String id, @Context UriInfo uriInfo, @Context HttpHeaders headers,
                         InputStream body) {
-        return proxy("PUT", id, uriInfo, headers, body);
+        return proxy("PUT", id, uriInfo, headers, body, false);
     }
 
     @PATCH
@@ -85,7 +100,7 @@ public class ExtensionProxyResource {
     @Operation(summary = "Call a PATCH route of an extension", description = DESCRIPTION)
     public Response patch(@PathParam("id") String id, @Context UriInfo uriInfo, @Context HttpHeaders headers,
                           InputStream body) {
-        return proxy("PATCH", id, uriInfo, headers, body);
+        return proxy("PATCH", id, uriInfo, headers, body, false);
     }
 
     @DELETE
@@ -93,10 +108,11 @@ public class ExtensionProxyResource {
     @Operation(summary = "Call a DELETE route of an extension", description = DESCRIPTION)
     public Response delete(@PathParam("id") String id, @Context UriInfo uriInfo, @Context HttpHeaders headers,
                            InputStream body) {
-        return proxy("DELETE", id, uriInfo, headers, body);
+        return proxy("DELETE", id, uriInfo, headers, body, false);
     }
 
-    private Response proxy(String method, String id, UriInfo uriInfo, HttpHeaders headers, InputStream body) {
+    private Response proxy(String method, String id, UriInfo uriInfo, HttpHeaders headers, InputStream body,
+                           boolean head) {
         // The raw, still-encoded path, so that the service sees any encoded dot or slash.
         String path = "/" + uriInfo.getPathParameters(false).getFirst("path");
         ExtensionProxyRequest request = new ExtensionProxyRequest(id, method, path, uriInfo.getRequestUri().getRawQuery(),
@@ -109,19 +125,45 @@ public class ExtensionProxyResource {
             if (uriInfo.getRequestUri().getRawPath().indexOf(';') >= 0) {
                 throw new ExtensionProxyException(400, ExtensionPaths.NOT_ALLOWED);
             }
-            ExtensionProxyResponse reply = service.call(identity, request);
-            Response.ResponseBuilder builder = Response.status(reply.status())
-                    .entity(reply.body().length == 0 ? null : reply.body());
-            reply.headers().forEach(builder::header);
-            return builder.header("Content-Security-Policy", CONTENT_SECURITY_POLICY).build();
+            return response(service.call(identity, request), head, currentRequest.getCurrent());
         } catch (ExtensionProxyException e) {
-            Response.ResponseBuilder builder = Response.status(e.status());
-            e.headers().forEach(builder::header);
-            return builder.type(MediaType.APPLICATION_JSON)
-                    .entity(Map.of("error", e.getMessage()))
-                    .header("Cache-Control", "private")
-                    .header("Content-Security-Policy", CONTENT_SECURITY_POLICY)
-                    .build();
+            return error(e);
         }
+    }
+
+    /** The reply of the extension. An event stream goes to the caller event by event, while it arrives. */
+    static Response response(ExtensionProxyResponse reply, RoutingContext exchange) {
+        return response(reply, false, exchange);
+    }
+
+    private static Response response(ExtensionProxyResponse reply, boolean head, RoutingContext exchange) {
+        Response.ResponseBuilder builder = Response.status(reply.status());
+        if (reply.stream() != null && head) {
+            // JAX-RS does not call the writer for HEAD, so the stream closes at once.
+            reply.stream().close();
+        } else if (reply.stream() != null) {
+            // The writer closes the stream when it ends. A failed response filter skips the writer, so the end of the
+            // exchange, in any way, closes the stream too and frees its slot and its backend connection. Vert.x does not
+            // call the handler for an exchange that ended before Hub added it, such as when the caller left first.
+            exchange.addEndHandler(ended -> reply.stream().close());
+            if (exchange.response().ended() || exchange.response().closed()) {
+                reply.stream().close();
+            }
+            builder.entity((StreamingOutput) reply.stream()::writeTo);
+        } else {
+            builder.entity(reply.body().length == 0 ? null : reply.body());
+        }
+        reply.headers().forEach(builder::header);
+        return builder.header("Content-Security-Policy", CONTENT_SECURITY_POLICY).build();
+    }
+
+    static Response error(ExtensionProxyException e) {
+        Response.ResponseBuilder builder = Response.status(e.status());
+        e.headers().forEach(builder::header);
+        return builder.type(MediaType.APPLICATION_JSON)
+                .entity(Map.of("error", e.getMessage()))
+                .header("Cache-Control", "private")
+                .header("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+                .build();
     }
 }

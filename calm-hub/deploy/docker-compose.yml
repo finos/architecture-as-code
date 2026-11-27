@@ -24,6 +24,12 @@
 # WARNING: jvm and native profiles use the `no-auth` Quarkus profile for local
 # quick-start only.  DO NOT use in production — see calm-hub/README.md for the
 # secure / proxy-auth profiles.
+#
+# The jvm and native profiles also run the extensions in calm-hub-extensions as sidecars: c4 (the C4 lens) and
+# ea-layers (the Layers lens) of the Diagram tab. Each sidecar copies its extension folder into the calm-extensions
+# volume, which Hub reads as calm.extensions.dir, and Hub calls it on the private network. Compose builds the
+# sidecar images from source when they are not present. To run Hub without one, leave out its service and its
+# calm.extensions settings of Hub, and remove the volume (docker compose down -v), which still holds its folder.
 
 services:
   mongodb:
@@ -40,6 +46,58 @@ services:
     networks:
       - calm-net
 
+  # Makes the key that Hub signs extension identity assertions with, once. The private key is readable by the
+  # Hub container user: local quick-start only.
+  calm-hub-keys:
+    image: node:26-alpine
+    profiles: [jvm, native]
+    network_mode: none
+    volumes:
+      - calm-hub-keys:/keys
+    command:
+      - node
+      - -e
+      - |
+        const fs = require('node:fs');
+        if (!fs.existsSync('/keys/hub-private.pem')) {
+          const { publicKey, privateKey } = require('node:crypto').generateKeyPairSync('ec', { namedCurve: 'P-256' });
+          fs.writeFileSync('/keys/hub-public.pem', publicKey.export({ type: 'spki', format: 'pem' }), { mode: 0o644 });
+          fs.writeFileSync('/keys/hub-private.pem', privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o644 });
+        }
+
+  c4:
+    image: finos/calm-hub-c4:latest
+    build:
+      context: ../..
+      dockerfile: calm-hub-extensions/c4/Dockerfile
+    container_name: calm-hub-c4
+    profiles: [jvm, native]
+    environment:
+      - CALM_HUB_URL=http://hub:8080
+      # The calm.hub.base-url of Hub, which Hub signs as the issuer.
+      - CALM_HUB_ISSUER=http://localhost:8080
+      - CALM_C4_EXPORT_DIR=/extensions
+    volumes:
+      - calm-extensions:/extensions
+    networks:
+      - calm-net
+
+  ea-layers:
+    image: finos/calm-hub-ea-layers:latest
+    build:
+      context: ../..
+      dockerfile: calm-hub-extensions/ea-layers/Dockerfile
+    container_name: calm-hub-ea-layers
+    profiles: [jvm, native]
+    environment:
+      - CALM_HUB_URL=http://hub:8080
+      - CALM_HUB_ISSUER=http://localhost:8080
+      - CALM_EA_LAYERS_EXPORT_DIR=/extensions
+    volumes:
+      - calm-extensions:/extensions
+    networks:
+      - calm-net
+
   calmhub:
     image: finos/calm-hub:latest
     container_name: calm-hub
@@ -49,9 +107,27 @@ services:
     environment:
       # no-auth is used here for the local quick-start only — DO NOT use in production.
       # For a production deployment select an appropriate auth profile (secure, proxy-auth).
-      - JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017 -Dquarkus.profile=no-auth
+      - >-
+        JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017 -Dquarkus.profile=no-auth
+        -Dcalm.extensions.dir=/extensions
+        -Dcalm.extensions.c4.backend-url=http://c4:8093 -Dcalm.extensions.c4.allow-http=true
+        -Dcalm.extensions.ea-layers.backend-url=http://ea-layers:8094 -Dcalm.extensions.ea-layers.allow-http=true
+        -Dcalm.extensions.identity.private-key-location=/keys/hub-private.pem
+        -Dcalm.extensions.identity.public-key-locations=/keys/hub-public.pem
+        -Dcalm.extensions.allow-without-auth=true
+    volumes:
+      - calm-extensions:/extensions:ro
+      - calm-hub-keys:/keys:ro
+    depends_on:
+      calm-hub-keys:
+        condition: service_completed_successfully
+      c4:
+        condition: service_healthy
+      ea-layers:
+        condition: service_healthy
     networks:
-      - calm-net
+      calm-net:
+        aliases: [hub]
 
   calmhub-native:
     image: finos/calm-hub:latest-native
@@ -66,8 +142,27 @@ services:
       # WARNING: never run with auth disabled in production.
       - QUARKUS_PROFILE=no-auth
       - CALM_AUTH_ENABLED=false
+      - CALM_EXTENSIONS_DIR=/extensions
+      - CALM_EXTENSIONS__C4__BACKEND_URL=http://c4:8093
+      - CALM_EXTENSIONS__C4__ALLOW_HTTP=true
+      - CALM_EXTENSIONS__EA_LAYERS__BACKEND_URL=http://ea-layers:8094
+      - CALM_EXTENSIONS__EA_LAYERS__ALLOW_HTTP=true
+      - CALM_EXTENSIONS_IDENTITY_PRIVATE_KEY_LOCATION=/keys/hub-private.pem
+      - CALM_EXTENSIONS_IDENTITY_PUBLIC_KEY_LOCATIONS=/keys/hub-public.pem
+      - CALM_EXTENSIONS_ALLOW_WITHOUT_AUTH=true
+    volumes:
+      - calm-extensions:/extensions:ro
+      - calm-hub-keys:/keys:ro
+    depends_on:
+      calm-hub-keys:
+        condition: service_completed_successfully
+      c4:
+        condition: service_healthy
+      ea-layers:
+        condition: service_healthy
     networks:
-      - calm-net
+      calm-net:
+        aliases: [hub]
 
   calmhub-readonly-static:
     image: finos/calm-hub:latest-read-only-static
@@ -88,6 +183,10 @@ services:
     # Self-contained: NitriteDB baked into the image, mutating verbs return 405.
     networks:
       - calm-net
+
+volumes:
+  calm-extensions:
+  calm-hub-keys:
 
 networks:
   calm-net:

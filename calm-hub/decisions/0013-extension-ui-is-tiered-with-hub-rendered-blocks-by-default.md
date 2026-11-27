@@ -1,7 +1,7 @@
 # ADR 0013: Extension UI is tiered, with Hub-rendered blocks by default
 
-**Status**: Proposed. The proof of concept renders seven block types for one
-`screen`. Decorator views and the iframe tier are not built.
+**Status**: Accepted. Built (#3708, #3709, #3713): the seven block types, decorator views
+and the blocks schema. Built (#3771): diagram lenses. Built (#3798, #3801): declarative forms, tile filters, read-only table queries and a refresh after a confirmed write. Built (#3802): the `search-provider` contract and its group on the search page. Built (#3800): `designer-tab`, `action` and `detail-panel` show in the inspector beside the diagram, not in a tab of their own. Not built: the iframe tier.
 
 ## Context
 
@@ -39,8 +39,9 @@ views and blocks.
 | Tier | What runs in the browser | Extension points |
 |---|---|---|
 | 1. Decorator views | No extension code and no route. Hub draws stored decorators | `decorator-views` |
+| Lenses | No extension code. The route returns a graph, and Hub draws it with the shapes and styles of the lens notation | `diagram-lens` |
 | 2. Blocks | No extension code. The extension returns JSON blocks, versioned by `hubApi`. Hub renders them with its own components | `screen`, `designer-tab` (a subset), `landing-card` (a subset), `detail-panel` |
-| Host-owned contracts | No extension code. Hub renders from data or from the manifest | `search-provider`, `chat`, `action` |
+| Host-owned contracts | No extension code. Hub renders from data or from the manifest | `search-provider`, `chat`, `action`, `form` |
 | 3. Isolated code | Extension code in a cross-origin `<iframe sandbox="allow-scripts allow-forms">`, without `allow-same-origin` | `screen` and `designer-tab` only, when blocks are not enough |
 
 **Decorator views** need no extension code:
@@ -64,6 +65,47 @@ block JSON Schema, versioned by `hubApi`, so that other clients, such as the VS
 Code extension framework
 ([#3499](https://github.com/finos/architecture-as-code/issues/3499)), can render
 blocks.
+
+**A different picture of the same architecture is a lens, not a tab.** The
+Diagram tab lists its lenses. A `diagram-lens` names a `GET` route, the view
+`params` that it owns, and a `notation`. The route returns a graph
+(`lens.schema.json`): nodes, edges and groups with tags, and no positions
+unless the layout is `fixed`. Hub lays it out and draws it.
+
+The notation (`notation.schema.json`) is data, not code. A shape is SVG
+geometry from a closed subset (`path`, `rect`, `circle`, `ellipse`, `line`,
+`polyline`, `polygon`) with text slots, ports and resize rules. Styles are keyed
+by tag and cascade, as in Structurizr. An icon is a `data:` image shown with
+`<img>`, so no remote fetch and no script. Hub checks the notation at start-up.
+The UI builds each SVG element from the JSON, never from markup. The notation
+is a file in the extension folder, so each notation ships with its extension,
+like any other part of it. Hub ships only a small core notation (a box and
+common edge markers). So an author defines their own notation, and the iframe
+tier stays for editors and other views that need code.
+
+**Blocks have a bounded set of interactions, all declared as data.** Hub owns each control and
+each call. No extension code runs in the browser.
+
+| Interaction | Declared by | What Hub calls |
+|---|---|---|
+| Tile filter | A `stats` item `filter` that names a `table` in the same reply | Nothing for inline rows. The source route for a `source` table |
+| Table query | A `table` `source`: a route and a page size | The route, only if it is `GET` and `readOnly`, with the filter, search text and page as query parameters |
+| Form | A `form` block that names a `contributes.form` entry | The form route, through Hub's form endpoint |
+| Refresh | Nothing: a `2xx` from an action or form route that is not `readOnly` | The routes of the slots and source tables of that extension again, with the same filters |
+
+A failure or an unknown outcome refreshes nothing, because Hub cannot know what changed.
+
+**A form is declarative.** The manifest declares its fields from a closed set of types (`text`,
+`multiline`, `number`, `choice`, `checkbox`) with their rules, and its target: none, a resource
+version or a node. A blocks reply places it with a `form` block. Hub draws the fields, and checks
+the input with the manifest rules in the UI and again on the server. Hub sends
+`{submission, context, input}` to the form route through its own endpoint. The input and the
+trusted context are separate parts of the body, and Hub derives the context from the target, not
+from the input. The generic proxy and MCP refuse a form route, so a caller cannot skip these checks.
+The UI keeps the target that the user started to edit when the selection changes. Each reply says
+whether Hub sent the call to the backend, so the UI can tell a refusal from an unknown outcome. A
+repeat after an unknown outcome keeps its submission id, so the backend can detect a duplicate.
+Until that outcome is settled or the user forgets it, the form sends only that repeat.
 
 **`designer-tab` is for views that a service computes on request.** A result that
 is stored must be a decorator, so that the CLI, MCP and VS Code see it too, and a
@@ -99,8 +141,8 @@ Extensions do not use Hub's class names. They read Hub's CSS variables.
   [#3399](https://github.com/finos/architecture-as-code/issues/3399) are a
   decorator view of `validation` decorators. A Validation tab fits blocks, but
   needs a Hub target that selects an element on the diagram.
-- Blocks have no forms or live interaction. An extension that needs them waits
-  for the iframe tier.
+- Blocks have only the interactions in the table above. An extension that needs
+  other input or live interaction waits for the iframe tier.
 - `DiagramSection` gets a tab registry in place of its closed tab union. A
   `?tab=deployments` link goes to the Decorators view, and an unknown tab falls
   back to `diagram`.

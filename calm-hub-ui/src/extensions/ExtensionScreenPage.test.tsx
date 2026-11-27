@@ -26,6 +26,24 @@ it('loads a screen from route parameters', async () => {
     expect(await screen.findByRole('heading', { name: 'screen 1', level: 1 })).toBeInTheDocument();
 });
 
+it('names the extension, with its logo, above the screen heading', async () => {
+    vi.spyOn(ExtensionService.prototype, 'call').mockResolvedValue({ hubApi: 0, blocks: [] });
+    render(
+        <MemoryRouter initialEntries={['/extensions/ext-1/screen']}>
+            <ExtensionsContext.Provider value={[fakeExtension(1)]}>
+                <Routes>
+                    <Route path="/extensions/:extensionId/:contributionId" element={<ExtensionScreenPage />} />
+                </Routes>
+            </ExtensionsContext.Provider>
+        </MemoryRouter>
+    );
+    const owner = screen.getByTestId('extension-screen-owner');
+    expect(owner).toHaveTextContent('Extension 1');
+    expect(owner.querySelector('[data-testid="extension-marker"]')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'screen 1', level: 1 })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+});
+
 it('says so for an unknown screen', () => {
     renderAt('/extensions/ext-1/nothing');
     expect(screen.getByText('Extension screen unavailable.')).toBeInTheDocument();

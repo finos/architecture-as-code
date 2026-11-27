@@ -25,7 +25,7 @@ classDef system fill:#eef1ff,stroke:#204485,stroke-width:1px,color:#000000;
 
 
     app[/"⚙️ Application"/]:::service
-    user([👤 User]):::actor
+    user(["👤 User"]):::actor
 
     user --> app
 

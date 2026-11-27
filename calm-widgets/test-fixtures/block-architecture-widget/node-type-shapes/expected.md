@@ -28,15 +28,15 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
     redis-cache["Redis Cache"]:::node
     web-app["Web Application"]:::node
 
-    user -->|User interacts with web app| web-app
-    web-app -->|Web app calls API| api-service
-    api-service -->|API queries database| database
-    api-service -->|API publishes events| message-bus
-    api-service -->|API calls payment service| payment-system
-    api-service -->|API reads from cache| redis-cache
-    web-app -->|Requests go through load balancer| load-balancer
-    load-balancer -->|Load balancer routes to API| api-service
-    api-service -->|API queues background jobs| worker-queue
+    user -->|"User interacts with web app"| web-app
+    web-app -->|"Web app calls API"| api-service
+    api-service -->|"API queries database"| database
+    api-service -->|"API publishes events"| message-bus
+    api-service -->|"API calls payment service"| payment-system
+    api-service -->|"API reads from cache"| redis-cache
+    web-app -->|"Requests go through load balancer"| load-balancer
+    load-balancer -->|"Load balancer routes to API"| api-service
+    api-service -->|"API queues background jobs"| worker-queue
 
 
 
@@ -70,24 +70,24 @@ classDef system fill:#eef1ff,stroke:#204485,stroke-width:1px,color:#000000;
 
     api-service[/"⚙️ API Service"/]:::service
     worker-queue["Background Jobs"]:::node
-    user([👤 Customer]):::actor
+    user(["👤 Customer"]):::actor
     load-balancer["Load Balancer"]:::node
     message-bus@{shape: h-cyl, label: "📨 Message Bus"}
     class message-bus messagebus
-    payment-system[🏢 Payment System]:::system
-    database[(🗄️ PostgreSQL)]:::database
+    payment-system["🏢 Payment System"]:::system
+    database[("🗄️ PostgreSQL")]:::database
     redis-cache["Redis Cache"]:::node
-    web-app[[💻 Web Application]]:::webclient
+    web-app[["💻 Web Application"]]:::webclient
 
-    user -->|User interacts with web app| web-app
-    web-app -->|Web app calls API| api-service
-    api-service -->|API queries database| database
-    api-service -->|API publishes events| message-bus
-    api-service -->|API calls payment service| payment-system
-    api-service -->|API reads from cache| redis-cache
-    web-app -->|Requests go through load balancer| load-balancer
-    load-balancer -->|Load balancer routes to API| api-service
-    api-service -->|API queues background jobs| worker-queue
+    user -->|"User interacts with web app"| web-app
+    web-app -->|"Web app calls API"| api-service
+    api-service -->|"API queries database"| database
+    api-service -->|"API publishes events"| message-bus
+    api-service -->|"API calls payment service"| payment-system
+    api-service -->|"API reads from cache"| redis-cache
+    web-app -->|"Requests go through load balancer"| load-balancer
+    load-balancer -->|"Load balancer routes to API"| api-service
+    api-service -->|"API queues background jobs"| worker-queue
 
 
 
@@ -122,24 +122,24 @@ classDef system fill:#eef1ff,stroke:#204485,stroke-width:1px,color:#000000;
     api-service[/"⚙️ API Service"/]:::service
     worker-queue@{shape: h-cyl, label: "📨 Background Jobs"}
     class worker-queue messagebus
-    user([👤 Customer]):::actor
+    user(["👤 Customer"]):::actor
     load-balancer[/"⚙️ Load Balancer"/]:::service
     message-bus@{shape: h-cyl, label: "📨 Message Bus"}
     class message-bus messagebus
-    payment-system[🏢 Payment System]:::system
-    database[(🗄️ PostgreSQL)]:::database
-    redis-cache[(🗄️ Redis Cache)]:::database
-    web-app[[💻 Web Application]]:::webclient
+    payment-system["🏢 Payment System"]:::system
+    database[("🗄️ PostgreSQL")]:::database
+    redis-cache[("🗄️ Redis Cache")]:::database
+    web-app[["💻 Web Application"]]:::webclient
 
-    user -->|User interacts with web app| web-app
-    web-app -->|Web app calls API| api-service
-    api-service -->|API queries database| database
-    api-service -->|API publishes events| message-bus
-    api-service -->|API calls payment service| payment-system
-    api-service -->|API reads from cache| redis-cache
-    web-app -->|Requests go through load balancer| load-balancer
-    load-balancer -->|Load balancer routes to API| api-service
-    api-service -->|API queues background jobs| worker-queue
+    user -->|"User interacts with web app"| web-app
+    web-app -->|"Web app calls API"| api-service
+    api-service -->|"API queries database"| database
+    api-service -->|"API publishes events"| message-bus
+    api-service -->|"API calls payment service"| payment-system
+    api-service -->|"API reads from cache"| redis-cache
+    web-app -->|"Requests go through load balancer"| load-balancer
+    load-balancer -->|"Load balancer routes to API"| api-service
+    api-service -->|"API queues background jobs"| worker-queue
 
 
 

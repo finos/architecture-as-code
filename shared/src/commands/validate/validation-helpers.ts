@@ -135,12 +135,12 @@ export function extractChoicesFromArchitecture(architecture: object): CalmChoice
     return relationshipsOf(architecture)
         .filter(isDecision)
         // An anyOf decision can have several answers, or none.
-        .flatMap((rel) => rel['relationship-type']['options'])
-        .map((answer) => ({
+        .flatMap((rel) => rel['relationship-type']['options'].map((answer: JsonObject) => ({
             description: answer['description'],
             nodes: answer['nodes'] || [],
-            relationships: answer['relationships'] || []
-        }));
+            relationships: answer['relationships'] || [],
+            optionId: rel['unique-id']
+        })));
 }
 
 /**

@@ -6,6 +6,9 @@ import {
     DocumentLoader
 } from '@finos/calm-shared';
 import { Command } from 'commander';
+import { mkdtemp, rm, writeFile } from 'fs/promises';
+import os from 'os';
+import path from 'path';
 import { MockInstance } from 'vitest';
 
 let calmShared: typeof import('@finos/calm-shared');
@@ -431,6 +434,42 @@ describe('CLI Commands', () => {
 
             expect(buildDocumentLoaderSpy).toHaveBeenCalledWith(expect.objectContaining({ calmHubUrl: 'http://localhost:8080', allowedRemoteHosts: ['hub.example.com'] }));
             expect(docifierConstructorSpy.mock.calls[0][11]).toBe(documentLoader);
+        });
+
+        it('gives the widgets the mapping from --c4-mapping', async () => {
+            const dir = await mkdtemp(path.join(os.tmpdir(), 'docify-c4-'));
+            const file = path.join(dir, 'acme.json');
+            await writeFile(file, JSON.stringify({ 'unique-id': 'acme', 'node-types': { 'aws:lambda': 'container' } }));
+            const setC4MappingSpy = vi.spyOn(calmShared, 'setC4Mapping');
+
+            await program.parseAsync(['node', 'cli.js', 'docify', '--architecture', 'model.json', '--output', 'outDir', '--c4-mapping', file]);
+
+            expect(setC4MappingSpy).toHaveBeenCalledWith(expect.objectContaining({ 'unique-id': 'acme' }));
+            expect(docifierConstructorSpy).toHaveBeenCalled();
+            await rm(dir, { recursive: true, force: true });
+        });
+
+        it('gives the document loader the --url-to-local-file-mapping', async () => {
+            const urlMap = new Map([['https://example.com/c4-mapping.json', '/local/c4-mapping.json']]);
+            vi.mocked(templateModule.getUrlToLocalFileMap).mockReturnValue(urlMap);
+
+            await program.parseAsync(['node', 'cli.js', 'docify', '--architecture', 'model.json', '--output', 'outDir', '--url-to-local-file-mapping', 'url-map.json']);
+
+            expect(templateModule.getUrlToLocalFileMap).toHaveBeenCalledWith('url-map.json');
+            expect(calmShared.buildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({ urlToLocalMap: urlMap }));
+        });
+
+        it('stops when the --c4-mapping cannot be loaded', async () => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((code?: number) => { throw new Error(`exit ${code}`); }) as never);
+            const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+            await expect(program.parseAsync(['node', 'cli.js', 'docify', '--architecture', 'model.json', '--output', 'outDir', '--c4-mapping', 'no-such-mapping.json']))
+                .rejects.toThrow('exit 1');
+
+            expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('❌ Cannot load the C4 mapping:'));
+            expect(docifierConstructorSpy).not.toHaveBeenCalled();
+            exitSpy.mockRestore();
+            errorSpy.mockRestore();
         });
 
         it('should honour --clear-output-directory', async () => {

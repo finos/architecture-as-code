@@ -15,6 +15,7 @@
 #   --no-docker    Run steps 1 and 2 only; skip the docker build step.
 #                  CI uses this flag and performs its own multi-arch buildx push.
 #   --no-maven     Skip the Maven build (assumes target/quarkus-app/ already exists).
+#                  CI uses this flag: its workflow runs step 1 with the Maven of the runner.
 #   --smoke        After the docker build, run the readonly smoke test (start container,
 #                  run smoke-test.sh readonly, stop container).  Mirrors what CI does.
 #   --help         Show this message.

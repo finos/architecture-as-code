@@ -800,12 +800,12 @@ public class ExtensionTools {
             String text = scalarText(value);
             // The same rule as @finos/calm-shared buildExtensionRequest (test resource extensions-test/path-values.json).
             if (text.isEmpty() || text.equals(".") || CONTROL_CHARACTER.matcher(text).find()
-                    || ExtensionPaths.hasForbiddenPart(encodePathValue(text)) || !wellFormed(text)) {
+                    || ExtensionPaths.hasForbiddenPart(ExtensionPaths.encodePathValue(text)) || !wellFormed(text)) {
                 throw new IllegalArgumentException("Input property '" + name + "' " + PATH_VALUE_RULE
                         + ", because it fills the path " + route.path());
             }
             rest.remove(name);
-            matcher.appendReplacement(path, Matcher.quoteReplacement(encodePathValue(text)));
+            matcher.appendReplacement(path, Matcher.quoteReplacement(ExtensionPaths.encodePathValue(text)));
         }
         matcher.appendTail(path);
         String method = route.method();
@@ -821,7 +821,7 @@ public class ExtensionTools {
                     throw new IllegalArgumentException("Input property '" + name + "' " + QUERY_VALUE_RULE
                             + ", because it goes in the query");
                 }
-                parameters.add(encodeQueryText(name) + "=" + encodeQueryText(v));
+                parameters.add(ExtensionPaths.encodeQueryText(name) + "=" + ExtensionPaths.encodeQueryText(v));
             }));
             query = parameters.isEmpty() ? null : String.join("&", parameters);
         }
@@ -968,36 +968,6 @@ public class ExtensionTools {
         }
         // An object or null is sent as JSON.
         return List.of(Json.encode(value));
-    }
-
-    /**
-     * Encodes a path value as encodeURIComponent in the shared client does, so that both clients send, and Hub signs,
-     * the same path for one input. It leaves the RFC 3986 unreserved characters and {@code !*'()} as they are, so a
-     * value cannot add a path segment.
-     */
-    static String encodePathValue(String value) {
-        return encode(value, "-._~!*'()", false);
-    }
-
-    /** Encodes a query name or value as URLSearchParams in the shared client does: a space becomes {@code +}. */
-    static String encodeQueryText(String value) {
-        return encode(value, "*-._", true);
-    }
-
-    private static String encode(String value, String unencoded, boolean plusForSpace) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : value.getBytes(StandardCharsets.UTF_8)) {
-            int c = b & 0xff;
-            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || unencoded.indexOf(c) >= 0) {
-                sb.append((char) c);
-            } else if (c == ' ' && plusForSpace) {
-                sb.append('+');
-            } else {
-                sb.append('%').append(Character.toUpperCase(Character.forDigit(c >> 4, 16)))
-                        .append(Character.toUpperCase(Character.forDigit(c & 0xf, 16)));
-            }
-        }
-        return sb.toString();
     }
 
     static String inputSchemaId(String extensionId, String commandName) {

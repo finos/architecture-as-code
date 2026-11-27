@@ -42,6 +42,8 @@ export interface C4Relationship {
     technology?: string;
     /** How many CALM relationships this one stands for after lifting. */
     count: number;
+    /** The unique-ids of the CALM relationships that it stands for, each once. */
+    ids: string[];
 }
 
 export interface C4Model {
@@ -221,7 +223,7 @@ export function projectC4(
     if (options.namespace) {
         for (const element of elements.values()) {
             const owner = element.detailedArchitecture && hubNamespaceOf(element.detailedArchitecture);
-            if (!owner || isSameOrBelow(options.namespace, owner)) continue;
+            if (!owner || isSameOrBelow(owner, options.namespace)) continue;
             element.external.push('other-team');
             if (element.kind !== 'software-system') {
                 element.notes.push(`Owned by namespace ${owner}, so it is shown as a software system, not a ${element.kind}`);
@@ -231,13 +233,15 @@ export function projectC4(
     }
 
     const merged = new Map<string, C4Relationship>();
-    const add = (source: string, target: string, label: string, technology?: string) => {
+    const add = (id: string, source: string, target: string, label: string, technology?: string) => {
         if (!nodes.has(source) || !nodes.has(target)) return;
         if (elements.get(source)!.kind === 'hidden' || elements.get(target)!.kind === 'hidden') return;
         const key = `${source}\u0000${target}`;
         const existing = merged.get(key);
-        if (existing) existing.count++;
-        else merged.set(key, { source, target, label, technology, count: 1 });
+        if (existing) {
+            existing.count++;
+            if (!existing.ids.includes(id)) existing.ids.push(id);
+        } else merged.set(key, { source, target, label, technology, count: 1, ids: [id] });
     };
     const isHidden = (id: string) => elements.get(id)?.kind === 'hidden';
     for (const relationship of relationships) {
@@ -250,8 +254,9 @@ export function projectC4(
             conflict(elements.get(id)!, 'hidden-relationship', `Hidden, so its ${name} relationship "${relationship['unique-id']}" is not drawn`);
         }
         const label = relationship.description ?? 'Uses';
-        if (type.connects) add(type.connects.source.node, type.connects.destination.node, label, relationship.protocol);
-        if (type.interacts) for (const target of type.interacts.nodes) add(type.interacts.actor, target, label, relationship.protocol);
+        const id = relationship['unique-id'];
+        if (type.connects) add(id, type.connects.source.node, type.connects.destination.node, label, relationship.protocol);
+        if (type.interacts) for (const target of type.interacts.nodes) add(id, type.interacts.actor, target, label, relationship.protocol);
     }
 
     return { elements, relationships: [...merged.values()], deployedIn, hasEnterpriseBoundary, conflicts };
@@ -259,9 +264,26 @@ export function projectC4(
 
 /** The namespace in a CALM Hub architecture URL (`.../calm/namespaces/{namespace}/architectures/...`). */
 function hubNamespaceOf(reference: string): string | undefined {
-    return /\/calm\/namespaces\/([^/]+)\/architectures\//.exec(reference)?.[1];
+    // Only the path counts: a query or fragment can hold a Hub path that is not the link target.
+    let path: string;
+    try {
+        path = new URL(reference, 'file:///').pathname;
+    } catch {
+        return undefined;
+    }
+    const encoded = /\/calm\/namespaces\/([^/]+)\/architectures\//.exec(path)?.[1];
+    if (!encoded) return undefined;
+    try {
+        const namespace = decodeURIComponent(encoded);
+        return HUB_NAMESPACE.test(namespace) ? namespace : undefined;
+    } catch {
+        return undefined;
+    }
 }
 
-function isSameOrBelow(namespace: string, owner: string): boolean {
-    return namespace === owner || namespace.startsWith(`${owner}.`);
+/** The namespace grammar of CALM Hub (`ResourceValidationConstants.NAMESPACE_REGEX`). */
+const HUB_NAMESPACE = /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*$/;
+
+function isSameOrBelow(namespace: string, ancestor: string): boolean {
+    return namespace === ancestor || namespace.startsWith(`${ancestor}.`);
 }

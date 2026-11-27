@@ -124,10 +124,10 @@ Renders relationships as Mermaid graph diagrams, showing connections between nod
 - For `relationship-id`: The specified relationship must exist in the `relationships` array.
 
 **Supported relationship types:**
-- **Interacts**: Actor-to-node interactions (e.g., "User[User] -- Interacts --> Frontend[Frontend App]")
-- **Connects**: Direct connections between services (e.g., "api[API] -- Connects --> db[Database]")
-- **Composed-of**: Container composition relationships (e.g., "sys[System] -- Composed Of --> svc[Service]")
-- **Deployed-in**: Deployment relationships (e.g., "svc[Service] -- Deployed In --> cluster[Cluster]")
+- **Interacts**: Actor-to-node interactions (e.g., `User["User"] -- Interacts --> Frontend["Frontend App"]`)
+- **Connects**: Direct connections between services (e.g., `api["API"] -- Connects --> db["Database"]`)
+- **Composed-of**: Container composition relationships (e.g., `sys["System"] -- Composed Of --> svc["Service"]`)
+- **Deployed-in**: Deployment relationships (e.g., `svc["Service"] -- Deployed In --> cluster["Cluster"]`)
 
 **Output behavior:**
 - **Node perspective**: When using `node-id`, shows the node highlighted with all its related connections
@@ -140,10 +140,10 @@ Renders relationships as Mermaid graph diagrams, showing connections between nod
 *Node view (`node-id="load-balancer"`)* - Shows the load balancer and all its connections:
 ```mermaid
 graph TD;
-load-balancer[Load Balancer]:::highlight;
-conference-website[Conference Website] -- Connects --> load-balancer[Load Balancer];
-load-balancer[Load Balancer] -- Connects --> attendees[Attendees Service];
-load-balancer[Load Balancer] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
+load-balancer["Load Balancer"]:::highlight;
+conference-website["Conference Website"] -- Connects --> load-balancer["Load Balancer"];
+load-balancer["Load Balancer"] -- Connects --> attendees["Attendees Service"];
+load-balancer["Load Balancer"] -- Deployed In --> k8s-cluster["Kubernetes Cluster"];
 classDef highlight fill:#f2bbae;
 ```
 
@@ -371,9 +371,9 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
         class enterprise-bank boundary
 
 
-    trading-ui__iface__web-ui -->|Place Trade| trade-svc__iface__api
-    trade-svc__iface__jdbc -->|Persist| trading-db__iface__sql
-    trade-svc__iface__events -->|Publish Events| message-bus__iface__trade-events-topic
+    trading-ui__iface__web-ui -->|"Place Trade"| trade-svc__iface__api
+    trade-svc__iface__jdbc -->|"Persist"| trading-db__iface__sql
+    trade-svc__iface__events -->|"Publish Events"| message-bus__iface__trade-events-topic
 
     trading-ui -.- trading-ui__iface__web-ui
     trade-svc -.- trade-svc__iface__api
@@ -429,9 +429,9 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
         class enterprise-bank boundary
 
 
-    trading-ui -->|Place Trade| trade-svc
-    trade-svc -->|Persist| trading-db
-    trade-svc -->|Publish Events| message-bus
+    trading-ui -->|"Place Trade"| trade-svc
+    trade-svc -->|"Persist"| trading-db
+    trade-svc -->|"Publish Events"| message-bus
 
 
     class trade-svc highlight
@@ -443,6 +443,48 @@ classDef highlight fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#000;
                         click trading-db "#trading-db" "Jump to Trading DB"
                         click trading-ui "#trading-ui" "Jump to Trading UI"
 
+```
+
+### C4 Diagram Widget
+
+Renders an architecture as a Mermaid C4 diagram. The [CALM C4 standard](https://calm.finos.org/standards/c4/1.1/c4-mapping.json) sets how node types become C4 elements. The projection is `projectC4` in `@finos/calm-models/c4`.
+
+```handlebars
+{{!-- System context diagram of the first software system --}}
+{{c4-diagram this}}
+
+{{!-- Container diagram of one system, by its unique-id --}}
+{{c4-diagram this level="container" scope="shop"}}
+
+{{!-- Component diagram of one container, and a deployment diagram --}}
+{{c4-diagram this level="component" scope="orders"}}
+{{c4-diagram this level="deployment" title="Production"}}
+```
+
+**Options:**
+- `level`: `context` (default), `container`, `component` or `deployment`
+- `scope`: the unique-id of the system or container that the diagram shows. Default: the first one at that level
+- `title`: the diagram title
+
+The widget uses the default C4 mapping. To use a different mapping, call `setC4Mapping` with a resolved mapping before you render. `calm docify --c4-mapping` does this.
+
+When the projection reports conflicts, the widget lists them in a table under the diagram. The widget does not apply rule E3: docify replaces each `detailed-architecture` link with the document that it loads, so the widget cannot see the namespace of the link. The C4 lens in CALM Hub applies E3.
+
+Output of `{{c4-diagram this level="container" scope="shop"}}`:
+
+```mermaid
+C4Container
+    System_Boundary(shop, "Shop System") {
+        Container(web, "Web", "webclient", "Shop front")
+        Container(orders, "Orders", "service", "Takes orders")
+        ContainerDb(orders_db, "Orders DB", "database", "Stores orders")
+    }
+    Person(buyer, "Buyer", "Buys things")
+    System(payments, "Payments", "Takes payment")
+    Rel(buyer, web, "Browses the shop")
+    Rel(web, orders, "Places orders", "HTTPS")
+    Rel(orders, orders_db, "Stores orders", "JDBC")
+    Rel(orders, payments, "Takes payment", "HTTPS")
 ```
 
 ## 🛠️ Creating Custom Widgets

@@ -1,6 +1,13 @@
 import https from 'node:https';
 
-const GITHUB_API = 'https://api.github.com';
+const GITHUB_API_HOST = 'api.github.com';
+
+/**
+ * Encode each segment of a repository file path for use in a GitHub API URL.
+ */
+export function encodeRepoPath(filePath: string): string {
+  return filePath.split('/').map(encodeURIComponent).join('/');
+}
 
 /**
  * GitHub REST API wrapper — server-side only.
@@ -14,7 +21,6 @@ export async function githubFetch(
   options: { token?: string; method?: string; body?: string } = {},
 ): Promise<Response> {
   const { token, method = 'GET', body } = options;
-  const url = `${GITHUB_API}${path}`;
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
@@ -28,7 +34,8 @@ export async function githubFetch(
   }
 
   return new Promise<Response>((resolve, reject) => {
-    const req = https.request(url, { method, headers }, (res) => {
+    // A fixed hostname keeps the request (and the token) on the GitHub API, whatever the path holds.
+    const req = https.request({ hostname: GITHUB_API_HOST, path, method, headers }, (res) => {
       const chunks: Buffer[] = [];
       res.on('data', (chunk: Buffer) => chunks.push(chunk));
       res.on('end', () => {

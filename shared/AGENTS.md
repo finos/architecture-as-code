@@ -22,6 +22,9 @@ Because this is a shared library, rigorous testing is mandatory.
 
 In tests, read released meta-schemas with `calmSchemaDir(release?)` from `src/test/test-utils.ts`.
 
+Tests must not need the internet. For a test that sends real requests to `calm.finos.org`, start `calmSite()` from
+`src/test/mocks/calm-site.ts`: it answers them with `msw`, from the files in this repository.
+
 **IMPORTANT**: Always run npm commands from the **repository root** using workspaces.
 
 ```bash
@@ -66,7 +69,7 @@ Rules:
   - `enrichWithDocumentPositions()` - Adds precise line/character positions to validation output using `@stoplight/json`
   - `parseDocumentWithPositions()` - Parses JSON/YAML with position tracking for error location
 - **Schema Directory** (`schema-directory.ts`): Registry of bundled CALM schemas, used for lookup by schema URL (`getSchema`).
-- **Docify** (`docify/`): Documentation generator (`docifier`) with C4/relationship graphing (`docify/graphing`) and template bundles (`docify/template-bundles`, e.g. `docusaurus`).
+- **Docify** (`docify/`): Documentation generator (`docifier`) with C4/relationship graphing (`docify/graphing`) and template bundles (`docify/template-bundles`, e.g. `docusaurus`). `npm run check:docify-template-deps --workspace shared` checks that npm can resolve the dependencies of the docusaurus bundle. It reads the npm registry, so it is not part of `npm test`: the `validate-docify-template-deps.yml` workflow runs it when the bundle's `package.json` changes, and each week.
 - **Resolver** (`resolver/`): CALM reference resolver plus the network-addressable extractor and validator.
 - **Hub Client** (`hub/`): `calm-hub-client` for talking to CALM Hub.
 - **View Model** (`view-model/`): ADR (Architecture Decision Record) view-model logic.

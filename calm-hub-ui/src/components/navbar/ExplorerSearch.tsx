@@ -6,6 +6,8 @@ import { AdrService } from '../../service/adr-service/adr-service.js';
 import { SearchResult } from '../../model/search.js';
 import { FlatResult, TYPE_LABELS, useSearchNavigation } from '../../hooks/useSearchNavigation.js';
 import { useCatalogueSearch } from '../../hooks/useCatalogueSearch.js';
+import { useProductName } from '../branding/brand-names.js';
+import { SearchChatEntry } from '../../extensions/chat/SearchChatEntry.js';
 
 interface ExplorerSearchProps {
     searchService?: SearchService;
@@ -26,6 +28,7 @@ export function ExplorerSearch({
     adrService: adrServiceProp,
     onSearchingChange,
 }: ExplorerSearchProps) {
+    const productName = useProductName();
     const {
         query,
         results,
@@ -42,7 +45,7 @@ export function ExplorerSearch({
     const listboxId = useId();
     const calmService = useMemo(() => calmServiceProp ?? new CalmService(), [calmServiceProp]);
     const adrService = useMemo(() => adrServiceProp ?? new AdrService(), [adrServiceProp]);
-    const { navigateToResult: goToResult } = useSearchNavigation({ calmService, adrService });
+    const { navigateToResult: goToResult, submitSearch } = useSearchNavigation({ calmService, adrService });
 
     // Results render inline while a query is present, so this keys off the query
     // rather than the hook's `open` (dropdown) flag.
@@ -69,7 +72,7 @@ export function ExplorerSearch({
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
-            if (!active || flatResults.length === 0) return;
+            if (!active) return;
 
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -77,14 +80,19 @@ export function ExplorerSearch({
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 moveSelection(-1);
-            } else if (e.key === 'Enter' && selectedIndex >= 0) {
+            } else if (e.key === 'Enter') {
                 e.preventDefault();
-                navigateToResult(flatResults[selectedIndex]);
+                if (selectedIndex >= 0 && flatResults[selectedIndex]) {
+                    navigateToResult(flatResults[selectedIndex]);
+                } else {
+                    clear();
+                    submitSearch(query);
+                }
             } else if (e.key === 'Escape') {
                 handleClear();
             }
         },
-        [active, flatResults, selectedIndex, moveSelection, navigateToResult, handleClear]
+        [active, flatResults, selectedIndex, moveSelection, navigateToResult, handleClear, clear, query, submitSearch]
     );
 
     const renderGroupedResults = () => {
@@ -141,8 +149,8 @@ export function ExplorerSearch({
                 <input
                     ref={inputRef}
                     type="text"
-                    placeholder="Search CALM Hub..."
-                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-base-content placeholder:text-base-content/40"
+                    placeholder={`Search ${productName}...`}
+                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-base-content text-ellipsis placeholder:text-base-content/40"
                     value={query}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
@@ -165,8 +173,9 @@ export function ExplorerSearch({
                 )}
             </div>
             {active && (
-                <div id={listboxId} className="flex-1 min-h-0 overflow-y-auto" role="listbox">
-                    {renderGroupedResults()}
+                <div className="flex-1 min-h-0 overflow-y-auto">
+                    <div id={listboxId} role="listbox">{renderGroupedResults()}</div>
+                    <SearchChatEntry />
                 </div>
             )}
         </>

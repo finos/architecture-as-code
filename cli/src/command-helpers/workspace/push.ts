@@ -15,6 +15,8 @@ import {
     DocumentMetadata,
     HubClientError,
     extractDocumentMetadata,
+    hasExpectedBaseUrl,
+    normalizeBaseUrl,
     isSnapshotVersion,
     initLogger,
     Logger,
@@ -34,6 +36,7 @@ import {
 } from './document-kind';
 import { findSnapshotDependencyViolations } from './snapshot';
 import { resourceTypeForDocumentType } from './document-id-type';
+import { baseUrlMismatchMessage } from './base-url-check';
 
 const logger: Logger = initLogger(false, 'workspace');
 const DEFINITE_CREATE_REJECTION_STATUSES = new Set([400, 401, 403, 404]);
@@ -47,12 +50,15 @@ export interface PushOptions {
      *    version whose content is unchanged is still skipped.
      */
     failIfModified?: boolean;
+    /** Mapping documents whose `$id` base URL differs from this are not pushed (CalmHub would reject them). */
+    expectedBaseUrl?: string;
 }
 
 interface PushEntryContext {
     bundlePath: string;
     client: CalmHubClient;
     conflicts: string[];
+    expectedBaseUrl?: string;
     failIfModified: boolean;
     id: string;
     manifest: WorkspaceManifest;
@@ -74,6 +80,7 @@ export async function pushWorkspaceToHub(
     options: PushOptions = {}
 ): Promise<void> {
     const failIfModified = options.failIfModified ?? false;
+    const expectedBaseUrl = options.expectedBaseUrl === undefined ? undefined : normalizeBaseUrl(options.expectedBaseUrl);
     const manifest = await loadManifest(bundlePath);
     const entries = Object.entries(manifest);
 
@@ -122,6 +129,7 @@ export async function pushWorkspaceToHub(
             bundlePath,
             client,
             conflicts,
+            expectedBaseUrl,
             failIfModified,
             id,
             manifest,
@@ -255,7 +263,7 @@ async function pushMappingEntry(
     entry: MappingWorkspaceManifestEntry,
     context: PushEntryContext
 ): Promise<void> {
-    const { bundlePath, client, conflicts, failIfModified, id, manifest, mappingFailures, raw, snapshotBlocked, snapshotDependencies } = context;
+    const { bundlePath, client, conflicts, expectedBaseUrl, failIfModified, id, manifest, mappingFailures, raw, snapshotBlocked, snapshotDependencies } = context;
     const expectedResourceType = entry.type === 'unknown' ? undefined : resourceTypeForDocumentType(entry.type);
     if (entry.type !== 'unknown' && !expectedResourceType) {
         logger.warn(`Skipping '${id}': document type '${entry.type}' has no CalmHub resource type.`);
@@ -286,6 +294,12 @@ async function pushMappingEntry(
     }
     if (!namespace) {
         logger.warn(`Skipping '${id}': document $id has no namespace.`);
+        return;
+    }
+    if (expectedBaseUrl !== undefined && !hasExpectedBaseUrl(metadata, expectedBaseUrl)) {
+        const message = baseUrlMismatchMessage(id, metadata.baseUrl, expectedBaseUrl);
+        logger.error(message);
+        mappingFailures.push(`${id}: $id base URL does not match CalmHub`);
         return;
     }
 

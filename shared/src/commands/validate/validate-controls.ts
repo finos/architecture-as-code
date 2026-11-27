@@ -86,7 +86,10 @@ async function validateControlDetail(
     if (configError) return fail(configError);
     if (!config) return nothing();
 
-    return runSchemaValidation(config, requirementSchema, requirementUrl, controlPath, schemaDirectory, debug);
+    // An inline config is part of the architecture, so its errors point into it. A config-url
+    // document is not, so its errors stay on the requirement.
+    const errorPath = detail.config ? `${controlPath}/config` : controlPath;
+    return runSchemaValidation(config, requirementSchema, requirementUrl, controlPath, errorPath, schemaDirectory, debug);
 }
 
 async function resolveRequirementSchema(
@@ -179,6 +182,7 @@ async function runSchemaValidation(
     requirementSchema: object,
     requirementUrl: string,
     controlPath: string,
+    errorPath: string,
     schemaDirectory: SchemaDirectory,
     debug: boolean
 ): Promise<ControlDetailResult> {
@@ -190,13 +194,12 @@ async function runSchemaValidation(
         return fail(controlError(controlPath, `Could not compile requirement schema from '${requirementUrl}': ${getErrorMessage(err)}`));
     }
     const errors = validator.validate(config);
-    return { outputs: controlErrorsToValidationOutputs(errors, controlPath), hasErrors: errors.length > 0 };
+    return { outputs: controlErrorsToValidationOutputs(errors, errorPath), hasErrors: errors.length > 0 };
 }
 
-function controlErrorsToValidationOutputs(errors: ErrorObject[], controlPath: string): ValidationOutput[] {
+function controlErrorsToValidationOutputs(errors: ErrorObject[], basePath: string): ValidationOutput[] {
     return errors.map(error => {
-        const rawPath = error.instancePath ?? '';
-        const path = rawPath === '' ? controlPath : controlPath + rawPath;
+        const path = basePath + (error.instancePath ?? '');
         return ValidationOutput.error('control-requirement-validation', error.message ?? '', path, {
             schemaPath: error.schemaPath,
             source: 'architecture'

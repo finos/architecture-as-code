@@ -226,7 +226,18 @@ class TestExtensionIdentitySignerShould {
         IllegalStateException e = assertThrows(IllegalStateException.class, this::signer);
 
         assertThat(e.getMessage(), containsString(
-                "calm.extensions.identity.private-key-location must be set, because an enabled extension has routes"));
+                "calm.extensions.identity.private-key-location must be set, because an enabled extension has routes "
+                        + "and sends the identity assertion"));
+    }
+
+    @Test
+    void need_no_key_when_each_extension_with_routes_sends_no_identity() {
+        ExtensionManifest manifest = new ExtensionManifest("c4", "1.0.0", 0, "C4", null, null,
+                List.of(new ExtensionManifest.Route("lens", "GET", "/lens/{namespace}", "read", false)), null, null);
+        when(registry.enabled()).thenReturn(List.of(new RegisteredExtension(manifest, 0, Optional.empty(),
+                new ExtensionLimits(Duration.ofSeconds(1), Duration.ofSeconds(1), 1, 1, 1), false)));
+
+        assertThat(signer().publicKeys(), empty());
     }
 
     @Test

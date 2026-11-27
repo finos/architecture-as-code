@@ -110,3 +110,5 @@ We can see in this configurtation that it is implementing the control requiremen
   "protocol": "mTLS"
 }
 ```
+
+To convert an existing control catalogue to CALM, see [Converting Your Controls to CALM](../tutorials/build-a-calm-architecture/converting-controls.md).

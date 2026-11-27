@@ -9,7 +9,7 @@ export interface C4View {
     /** The element the diagram is about. At container and component level, the boundary around `inside`. */
     scope?: C4Element;
     inside: C4Element[];
-    /** Everything else on the diagram. At context level, this includes the scope. */
+    /** Everything else on the diagram. At context level, this includes the scope. At deployment level, the elements outside any deployment node. */
     outside: C4Element[];
     relationships: C4Relationship[];
     /** Deployment level only: each deployment node and what is deployed in it. */
@@ -60,17 +60,35 @@ export function c4View(model: C4Model, level: C4Level, scopeId?: string): C4View
     const ownedElsewhere = (id: string) => element(id).external.includes('other-team');
 
     if (level === 'deployment') {
+        const hidden = (id: string) => element(id).kind === 'hidden';
+        // An element deployed in a hidden node moves up to the nearest node that the diagram draws.
+        const visibleHost = (id: string) => {
+            const seen = new Set([id]);
+            for (let host = model.deployedIn.get(id); host !== undefined && !seen.has(host); host = model.deployedIn.get(host)) {
+                if (!hidden(host)) return host;
+                seen.add(host);
+            }
+            return undefined;
+        };
+        const hostOf = new Map([...model.deployedIn.keys()].filter((id) => !hidden(id)).flatMap((id) => {
+            const host = visibleHost(id);
+            return host === undefined ? [] : [[id, host] as const];
+        }));
         const hosts = new Set([
-            ...model.deployedIn.values(),
+            ...hostOf.values(),
             ...[...model.elements.values()].filter((e) => e.kind === 'deployment-node').map((e) => e.id),
         ]);
         const deployments = [...hosts].map((host) => ({
             node: element(host),
-            hosted: [...model.deployedIn].filter(([, h]) => h === host).map(([id]) => element(id)),
+            hosted: [...hostOf].filter(([, h]) => h === host).map(([id]) => element(id)),
         }));
-        const hosted = new Set(deployments.flatMap((d) => d.hosted.map((h) => h.id)));
-        const relationships = lift(model, (id) => (hosted.has(id) ? id : undefined), () => true);
-        return { level, inside: [], outside: [], relationships, deployments };
+        // An element whose only hosts are hidden is drawn outside any deployment node.
+        const outside = [...model.deployedIn.keys()]
+            .filter((id) => !hidden(id) && !hostOf.has(id) && !hosts.has(id))
+            .map(element);
+        const drawn = new Set([...deployments.flatMap((d) => d.hosted), ...outside].map((e) => e.id));
+        const relationships = lift(model, (id) => (drawn.has(id) ? id : undefined), () => true);
+        return { level, inside: [], outside, relationships, deployments };
     }
 
     const scope = scopeId === undefined ? undefined : model.elements.get(scopeId);
@@ -110,8 +128,10 @@ function lift(
         if (!source || !target || source === target || !keep(source, target)) continue;
         const key = `${source}\u0000${target}`;
         const existing = merged.get(key);
-        if (existing) existing.count += relationship.count;
-        else merged.set(key, { ...relationship, source, target });
+        if (existing) {
+            existing.count += relationship.count;
+            existing.ids = [...new Set([...existing.ids, ...relationship.ids])];
+        } else merged.set(key, { ...relationship, source, target });
     }
     return [...merged.values()];
 }
