@@ -40,6 +40,24 @@ public interface ControlStore {
 
     List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException;
     String getConfigurationForVersion(String domain, int controlId, int configurationId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException;
+
+    default List<Integer> getConfigurationsForControl(String domain, ResourceId id) throws DomainNotFoundException, ControlNotFoundException {
+        return getConfigurationsForControl(domain, ResourceIds.numeric(id));
+    }
+
+    default List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, ResourceId id) throws DomainNotFoundException, ControlNotFoundException {
+        return getConfigurationDetailsForControl(domain, ResourceIds.numeric(id));
+    }
+
+    default List<String> getConfigurationVersions(String domain, ResourceId controlId, ResourceId configId)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        return getConfigurationVersions(domain, ResourceIds.numeric(controlId), ResourceIds.numeric(configId));
+    }
+
+    default String getConfigurationForVersion(String domain, ResourceId controlId, ResourceId configId, String version)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException {
+        return getConfigurationForVersion(domain, ResourceIds.numeric(controlId), ResourceIds.numeric(configId), version);
+    }
     void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, CreateControlConfiguration request) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException;
 
     /**

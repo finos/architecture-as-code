@@ -23,6 +23,7 @@ import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundExceptio
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.github.registry.ControlDomains;
+import org.finos.calm.store.github.registry.RegistryIdentity;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
@@ -174,13 +175,23 @@ public class GitHubControlStore implements ControlStore {
     // writes are unsupported for a request that was never trying to write.
     @Override
     public List<Integer> getConfigurationsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        findControlEntry(domain, new GitHubResourceId(String.valueOf(controlId), null, null));
+        return getConfigurationsForControl(domain, new GitHubResourceId(String.valueOf(controlId), null, null));
+    }
+
+    @Override
+    public List<Integer> getConfigurationsForControl(String domain, ResourceId id) throws DomainNotFoundException, ControlNotFoundException {
+        findControlEntry(domain, ResourceIds.github(id));
         return List.of();
     }
 
     @Override
     public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        findControlEntry(domain, new GitHubResourceId(String.valueOf(controlId), null, null));
+        return getConfigurationDetailsForControl(domain, new GitHubResourceId(String.valueOf(controlId), null, null));
+    }
+
+    @Override
+    public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, ResourceId id) throws DomainNotFoundException, ControlNotFoundException {
+        findControlEntry(domain, ResourceIds.github(id));
         return List.of();
     }
 
@@ -191,13 +202,27 @@ public class GitHubControlStore implements ControlStore {
 
     @Override
     public List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
-        findControlEntry(domain, new GitHubResourceId(String.valueOf(controlId), null, null));
+        return getConfigurationVersions(domain, new GitHubResourceId(String.valueOf(controlId), null, null),
+                new GitHubResourceId(String.valueOf(configurationId), null, null));
+    }
+
+    @Override
+    public List<String> getConfigurationVersions(String domain, ResourceId controlId, ResourceId configId)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        findControlEntry(domain, ResourceIds.github(controlId));
         throw new ControlConfigurationNotFoundException();
     }
 
     @Override
     public String getConfigurationForVersion(String domain, int controlId, int configurationId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException {
-        findControlEntry(domain, new GitHubResourceId(String.valueOf(controlId), null, null));
+        return getConfigurationForVersion(domain, new GitHubResourceId(String.valueOf(controlId), null, null),
+                new GitHubResourceId(String.valueOf(configurationId), null, null), version);
+    }
+
+    @Override
+    public String getConfigurationForVersion(String domain, ResourceId controlId, ResourceId configId, String version)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException {
+        findControlEntry(domain, ResourceIds.github(controlId));
         throw new ControlConfigurationNotFoundException();
     }
 
@@ -229,9 +254,7 @@ public class GitHubControlStore implements ControlStore {
                 boolean inDomain = domain.equals(ControlDomains.extractDomain(entry));
                 if (inDomain) {
                     domainExists = true;
-                    if (controlId.name().equals(entry.stem())
-                            && (!controlId.hasPath() || controlId.path().equals(entry.path()))
-                            && (!controlId.hasVariant() || controlId.variant().equals(entry.variant()))) {
+                    if (RegistryIdentity.matches(controlId.name(), controlId.path(), controlId.variant(), entry)) {
                         matches.add(entry);
                     }
                 }

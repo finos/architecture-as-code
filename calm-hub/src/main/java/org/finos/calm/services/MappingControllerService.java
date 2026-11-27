@@ -24,7 +24,6 @@ import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.store.*;
 import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.util.CanonicalVersion;
-import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +56,7 @@ public class MappingControllerService {
     private final ControlStore controlStore;
     private final CalmDocumentParser documentParser;
     private final Instance<GitHubCloneManager> gitHubCloneManager;
+    private final ResourceIdResolver resourceIdResolver;
 
     @Inject
     public MappingControllerService(ResourceMappingStore mappingStore,
@@ -69,7 +69,8 @@ public class MappingControllerService {
                                     DomainStore domainStore,
                                     ControlStore controlStore,
                                     CalmDocumentParser documentParser,
-                                    Instance<GitHubCloneManager> gitHubCloneManager) {
+                                    Instance<GitHubCloneManager> gitHubCloneManager,
+                                    ResourceIdResolver resourceIdResolver) {
         this.mappingStore = mappingStore;
         this.patternStore = patternStore;
         this.architectureStore = architectureStore;
@@ -81,6 +82,7 @@ public class MappingControllerService {
         this.controlStore = controlStore;
         this.documentParser = documentParser;
         this.gitHubCloneManager = gitHubCloneManager;
+        this.resourceIdResolver = resourceIdResolver;
     }
 
     // =========================================================================
@@ -269,10 +271,9 @@ public class MappingControllerService {
             return gitHubCloneManager.get().headSha(namespace);
         }
         List<String> versions = getVersions(namespace, type, id);
-        if (versions == null || versions.isEmpty()) {
-            return null;
-        }
-        return versions.stream().max(SemanticVersionOrder.ASCENDING).orElse(null);
+        // Order puts snapshots before their release; latestRelease skips a snapshot that would
+        // otherwise shadow a published version as "latest".
+        return ResourceVersion.latestRelease(versions);
     }
 
     public List<ResourceMapping> listMappings(String namespace, ResourceType resourceType)
@@ -441,7 +442,17 @@ public class MappingControllerService {
         return controlStore.getRequirementVersions(domain, controlId);
     }
 
+    public List<String> getRequirementVersions(String domain, ResourceId controlId)
+            throws DomainNotFoundException, ControlNotFoundException {
+        return controlStore.getRequirementVersions(domain, controlId);
+    }
+
     public String getRequirementForVersion(String domain, int controlId, String version)
+            throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException {
+        return controlStore.getRequirementForVersion(domain, controlId, version);
+    }
+
+    public String getRequirementForVersion(String domain, ResourceId controlId, String version)
             throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException {
         return controlStore.getRequirementForVersion(domain, controlId, version);
     }
@@ -451,12 +462,28 @@ public class MappingControllerService {
         return controlStore.getConfigurationDetailsForControl(domain, controlId);
     }
 
+    public List<ControlConfigDetail> getConfigurationsForControl(String domain, ResourceId controlId)
+            throws DomainNotFoundException, ControlNotFoundException {
+        return controlStore.getConfigurationDetailsForControl(domain, controlId);
+    }
+
     public List<String> getConfigurationVersions(String domain, int controlId, int configId)
             throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
         return controlStore.getConfigurationVersions(domain, controlId, configId);
     }
 
+    public List<String> getConfigurationVersions(String domain, ResourceId controlId, ResourceId configId)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        return controlStore.getConfigurationVersions(domain, controlId, configId);
+    }
+
     public String getConfigurationForVersion(String domain, int controlId, int configId, String version)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException,
+                   ControlConfigurationVersionNotFoundException {
+        return controlStore.getConfigurationForVersion(domain, controlId, configId, version);
+    }
+
+    public String getConfigurationForVersion(String domain, ResourceId controlId, ResourceId configId, String version)
             throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException,
                    ControlConfigurationVersionNotFoundException {
         return controlStore.getConfigurationForVersion(domain, controlId, configId, version);
@@ -472,14 +499,29 @@ public class MappingControllerService {
      * @throws DomainNotFoundException   if the domain does not exist
      * @throws ControlNotFoundException  if no control with the given name exists in the domain
      */
-    public int resolveControlId(String domain, String controlName)
+    /**
+     * Resolves a control name to an id in the active storage mode. GitHub mode uses the filename
+     * stem carried by the listing, with its path and variant when present; numeric modes use the
+     * numeric id. Case-insensitive name matching.
+     */
+    public ResourceId resolveControlResourceId(String domain, String controlName)
             throws DomainNotFoundException, ControlNotFoundException {
-        List<ControlDetail> controls = controlStore.getControlsForDomain(domain);
-        return controls.stream()
+        ControlDetail detail = controlStore.getControlsForDomain(domain).stream()
                 .filter(c -> controlName.equalsIgnoreCase(c.getName()))
                 .findFirst()
-                .map(d -> ResourceIds.parseNumeric(d.getId()))
                 .orElseThrow(ControlNotFoundException::new);
+        if (resourceIdResolver.isGitHub()) {
+            Tags tags = detail.getTags();
+            return new GitHubResourceId(detail.getId(),
+                    tags == null ? null : tags.path(), tags == null ? null : tags.variant());
+        }
+        return new NumericResourceId(ResourceIds.parseNumeric(detail.getId()));
+    }
+
+    /** Numeric form for the control write routes, which GitHub mode refuses with a 501. */
+    public int resolveControlId(String domain, String controlName)
+            throws DomainNotFoundException, ControlNotFoundException {
+        return resourceIdResolver.numericForWrite(resolveControlResourceId(domain, controlName));
     }
 
     /**
@@ -493,14 +535,24 @@ public class MappingControllerService {
      * @throws DomainNotFoundException              if the domain does not exist
      * @throws ControlConfigurationNotFoundException if no configuration with the given name exists
      */
-    public int resolveConfigId(String domain, int controlId, String configName)
+    /** Resolves a configuration name to an id in the active storage mode. */
+    public ResourceId resolveConfigResourceId(String domain, ResourceId controlId, String configName)
             throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
-        List<ControlConfigDetail> configs = controlStore.getConfigurationDetailsForControl(domain, controlId);
-        return configs.stream()
+        ControlConfigDetail detail = controlStore.getConfigurationDetailsForControl(domain, controlId).stream()
                 .filter(c -> configName.equalsIgnoreCase(c.getName()))
                 .findFirst()
-                .map(d -> ResourceIds.parseNumeric(d.getId()))
                 .orElseThrow(ControlConfigurationNotFoundException::new);
+        if (resourceIdResolver.isGitHub()) {
+            return new GitHubResourceId(detail.getId(), null, null);
+        }
+        return new NumericResourceId(ResourceIds.parseNumeric(detail.getId()));
+    }
+
+    /** Numeric form for the control write routes, which GitHub mode refuses with a 501. */
+    public int resolveConfigId(String domain, int controlId, String configName)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        return resourceIdResolver.numericForWrite(resolveConfigResourceId(domain,
+                new NumericResourceId(controlId), configName));
     }
 
     // =========================================================================

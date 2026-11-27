@@ -309,18 +309,21 @@ public class ArchitectureResource {
             @Valid @BeanParam ArchitectureIdParam architectureIdParam
     ) {
         ResourceId resourceId = architectureIdParam.toResourceId(resourceIdResolver);
-        int architectureId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(timelineService.getTimelineForArchitecture(namespace, architectureId)).build();
+            return Response.ok(timelineService.getTimelineForArchitecture(namespace, resourceId)).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving architecture timeline", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (ArchitectureNotFoundException e) {
-            logger.error("Invalid architecture [{}] when retrieving architecture timeline", architectureId, e);
-            return invalidArchitectureResponse(architectureId);
+            logger.error("Invalid architecture [{}] when retrieving architecture timeline",
+                    STRICT_SANITIZATION_POLICY.sanitize(architectureIdParam.rawId()), e);
+            return invalidArchitectureResponse(architectureIdParam.rawId());
         } catch (JsonProcessingException e) {
-            logger.error("Failed to serialise timeline for architecture [{}] in namespace [{}]", architectureId, namespace, e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Failed to build timeline for architecture: " + architectureId).build();
+            logger.error("Failed to serialise timeline for architecture [{}] in namespace [{}]",
+                    STRICT_SANITIZATION_POLICY.sanitize(architectureIdParam.rawId()), namespace, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Failed to build timeline for architecture: "
+                            + STRICT_SANITIZATION_POLICY.sanitize(architectureIdParam.rawId())).build();
         }
     }
 
@@ -356,7 +359,12 @@ public class ArchitectureResource {
     }
 
     private Response invalidArchitectureResponse(int architectureId) {
-        return Response.status(Response.Status.NOT_FOUND).entity("Invalid architecture provided: " + architectureId).build();
+        return invalidArchitectureResponse(String.valueOf(architectureId));
+    }
+
+    private Response invalidArchitectureResponse(String architectureId) {
+        return Response.status(Response.Status.NOT_FOUND).entity("Invalid architecture provided: "
+                + STRICT_SANITIZATION_POLICY.sanitize(architectureId)).build();
     }
 
     private Response invalidVersionResponse(String version) {

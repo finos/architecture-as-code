@@ -204,15 +204,14 @@ public class ControlResource {
             String domain,
             @Valid @BeanParam ControlIdParam controlIdParam) {
         ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
-        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(new ValueWrapper<>(store.getConfigurationDetailsForControl(domain, controlId))).build();
+            return Response.ok(new ValueWrapper<>(store.getConfigurationDetailsForControl(domain, resourceId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving configurations", domain, e);
             return invalidDomainResponse(domain);
         } catch (ControlNotFoundException e) {
-            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
-            return invalidControlResponse(controlId);
+            logger.error("Control [{}] not found in domain [{}]", STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), domain, e);
+            return invalidControlResponse(controlIdParam.rawId());
         }
     }
 
@@ -260,20 +259,19 @@ public class ControlResource {
             @Valid @BeanParam ControlIdParam controlIdParam,
             @Valid @BeanParam ConfigIdParam configIdParam) {
         ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
-        int controlId = resourceIdResolver.numericForWrite(controlResourceId);
         ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
-        int configId = resourceIdResolver.numericForWrite(configResourceId);
         try {
-            return Response.ok(new ValueWrapper<>(store.getConfigurationVersions(domain, controlId, configId))).build();
+            return Response.ok(new ValueWrapper<>(store.getConfigurationVersions(domain, controlResourceId, configResourceId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving configuration versions", domain, e);
             return invalidDomainResponse(domain);
         } catch (ControlNotFoundException e) {
-            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
-            return invalidControlResponse(controlId);
+            logger.error("Control [{}] not found in domain [{}]", STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), domain, e);
+            return invalidControlResponse(controlIdParam.rawId());
         } catch (ControlConfigurationNotFoundException e) {
-            logger.error("Configuration [{}] not found for control [{}]", configId, controlId, e);
-            return invalidConfigurationResponse(configId);
+            logger.error("Configuration [{}] not found for control [{}]", STRICT_SANITIZATION_POLICY.sanitize(configIdParam.rawId()),
+                    STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), e);
+            return invalidConfigurationResponse(configIdParam.rawId());
         }
     }
 
@@ -295,22 +293,22 @@ public class ControlResource {
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version) {
         ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
-        int controlId = resourceIdResolver.numericForWrite(controlResourceId);
         ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
-        int configId = resourceIdResolver.numericForWrite(configResourceId);
         try {
-            return Response.ok(store.getConfigurationForVersion(domain, controlId, configId, version)).build();
+            return Response.ok(store.getConfigurationForVersion(domain, controlResourceId, configResourceId, version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving configuration version", domain, e);
             return invalidDomainResponse(domain);
         } catch (ControlNotFoundException e) {
-            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
-            return invalidControlResponse(controlId);
+            logger.error("Control [{}] not found in domain [{}]", STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), domain, e);
+            return invalidControlResponse(controlIdParam.rawId());
         } catch (ControlConfigurationNotFoundException e) {
-            logger.error("Configuration [{}] not found for control [{}]", configId, controlId, e);
-            return invalidConfigurationResponse(configId);
+            logger.error("Configuration [{}] not found for control [{}]", STRICT_SANITIZATION_POLICY.sanitize(configIdParam.rawId()),
+                    STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), e);
+            return invalidConfigurationResponse(configIdParam.rawId());
         } catch (ControlConfigurationVersionNotFoundException e) {
-            logger.error("Configuration version [{}] not found for config [{}]", version, configId, e);
+            logger.error("Configuration version [{}] not found for config [{}]", version,
+                    STRICT_SANITIZATION_POLICY.sanitize(configIdParam.rawId()), e);
             return invalidVersionResponse(version);
         }
     }
@@ -429,14 +427,22 @@ public class ControlResource {
     }
 
     private Response invalidControlResponse(int controlId) {
+        return invalidControlResponse(String.valueOf(controlId));
+    }
+
+    private Response invalidControlResponse(String controlId) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Control not found: " + controlId)
+                .entity("Control not found: " + STRICT_SANITIZATION_POLICY.sanitize(controlId))
                 .build();
     }
 
     private Response invalidConfigurationResponse(int configId) {
+        return invalidConfigurationResponse(String.valueOf(configId));
+    }
+
+    private Response invalidConfigurationResponse(String configId) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Configuration not found: " + configId)
+                .entity("Configuration not found: " + STRICT_SANITIZATION_POLICY.sanitize(configId))
                 .build();
     }
 

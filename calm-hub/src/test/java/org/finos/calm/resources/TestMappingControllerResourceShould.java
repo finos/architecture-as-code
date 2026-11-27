@@ -1234,7 +1234,7 @@ public class TestMappingControllerResourceShould {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
         // Empty list → resolveConfigId throws ControlConfigurationNotFoundException → new config path
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(Collections.emptyList());
         when(mockControlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq("security"), eq(5)))
                 .thenReturn(99);
@@ -1252,7 +1252,7 @@ public class TestMappingControllerResourceShould {
     void return_201_when_adding_version_to_existing_config_via_versioned_path_post() throws Exception {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(99, "tls-config")));
 
         String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/configurations/tls-config/versions/2.0.0\"}";
@@ -1281,7 +1281,7 @@ public class TestMappingControllerResourceShould {
     void return_200_with_requirement_versions_resolved_by_control_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getRequirementVersions("security", 5)).thenReturn(List.of("1.0.0", "2.0.0"));
+        when(mockControlStore.getRequirementVersions("security", new NumericResourceId(5))).thenReturn(List.of("1.0.0", "2.0.0"));
 
         given().when().get("/calm/domains/security/controls/access-control/requirement/versions")
                 .then().statusCode(200)
@@ -1300,7 +1300,7 @@ public class TestMappingControllerResourceShould {
     void return_200_with_requirement_at_version_resolved_by_control_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getRequirementForVersion("security", 5, "1.0.0")).thenReturn("{\"type\":\"req\"}");
+        when(mockControlStore.getRequirementForVersion("security", new NumericResourceId(5), "1.0.0")).thenReturn("{\"type\":\"req\"}");
 
         given().when().get("/calm/domains/security/controls/access-control/requirement/versions/1.0.0")
                 .then().statusCode(200)
@@ -1311,7 +1311,7 @@ public class TestMappingControllerResourceShould {
     void return_200_with_configurations_resolved_by_control_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(
                         new ControlConfigDetail(10, "encryption-config"),
                         new ControlConfigDetail(20, "tls-config")));
@@ -1325,9 +1325,10 @@ public class TestMappingControllerResourceShould {
     void return_200_with_configuration_versions_resolved_by_config_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "encryption-config")));
-        when(mockControlStore.getConfigurationVersions("security", 5, 10)).thenReturn(List.of("1.0.0"));
+        when(mockControlStore.getConfigurationVersions("security", new NumericResourceId(5), new NumericResourceId(10)))
+                .thenReturn(List.of("1.0.0"));
 
         given().when().get("/calm/domains/security/controls/access-control/configurations/encryption-config/versions")
                 .then().statusCode(200)
@@ -1338,9 +1339,10 @@ public class TestMappingControllerResourceShould {
     void return_200_with_configuration_at_version_resolved_by_config_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "encryption-config")));
-        when(mockControlStore.getConfigurationForVersion("security", 5, 10, "1.0.0")).thenReturn("{\"key\":\"val\"}");
+        when(mockControlStore.getConfigurationForVersion("security", new NumericResourceId(5), new NumericResourceId(10), "1.0.0"))
+                .thenReturn("{\"key\":\"val\"}");
 
         given().when().get("/calm/domains/security/controls/access-control/configurations/encryption-config/versions/1.0.0")
                 .then().statusCode(200)
@@ -1351,7 +1353,7 @@ public class TestMappingControllerResourceShould {
     void return_404_when_configuration_name_not_found() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "encryption-config")));
 
         given().when().get("/calm/domains/security/controls/access-control/configurations/nonexistent/versions")
@@ -1563,7 +1565,7 @@ public class TestMappingControllerResourceShould {
     void return_404_when_requirement_version_not_found() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getRequirementForVersion("security", 5, "9.9.9"))
+        when(mockControlStore.getRequirementForVersion("security", new NumericResourceId(5), "9.9.9"))
                 .thenThrow(new ControlRequirementVersionNotFoundException());
         given().when().get("/calm/domains/security/controls/access-control/requirement/versions/9.9.9")
                 .then().statusCode(404);
@@ -1627,7 +1629,7 @@ public class TestMappingControllerResourceShould {
     void return_404_when_config_not_found_on_get_config_at_version() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(Collections.emptyList());
         given().when().get("/calm/domains/security/controls/access-control/configurations/nonexistent-cfg/versions/1.0.0")
                 .then().statusCode(404);
@@ -1637,9 +1639,9 @@ public class TestMappingControllerResourceShould {
     void return_404_when_config_version_not_found() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "tls-config")));
-        when(mockControlStore.getConfigurationForVersion("security", 5, 10, "9.9.9"))
+        when(mockControlStore.getConfigurationForVersion("security", new NumericResourceId(5), new NumericResourceId(10), "9.9.9"))
                 .thenThrow(new ControlConfigurationVersionNotFoundException());
         given().when().get("/calm/domains/security/controls/access-control/configurations/tls-config/versions/9.9.9")
                 .then().statusCode(404);
@@ -1732,7 +1734,7 @@ public class TestMappingControllerResourceShould {
     void return_400_when_config_path_post_first_version_is_not_1_0_0_for_new_config() throws Exception {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(Collections.emptyList());
         String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/configurations/new-cfg/versions/2.0.0\"}";
         given().header("Content-Type", "application/json")
@@ -1745,7 +1747,7 @@ public class TestMappingControllerResourceShould {
     void return_409_when_config_version_already_exists() throws Exception {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "tls-config")));
         doThrow(new ControlConfigurationVersionExistsException()).when(mockControlStore)
                 .createConfigurationForVersion(eq("security"), eq(5), eq(10), eq("2.0.0"), any(CreateControlConfiguration.class));
@@ -1760,7 +1762,7 @@ public class TestMappingControllerResourceShould {
     void return_404_when_config_not_found_adding_config_version() throws Exception {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "tls-config")));
         doThrow(new ControlConfigurationNotFoundException()).when(mockControlStore)
                 .createConfigurationForVersion(eq("security"), eq(5), eq(10), eq("2.0.0"), any(CreateControlConfiguration.class));
@@ -2176,7 +2178,7 @@ public class TestMappingControllerResourceShould {
         // the configuration as already existing.
         when(mockControlStore.getControlsForDomain("security"))
                 .thenReturn(List.of(new ControlDetail(5, "my-ctrl", "Desc")));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "my-cfg")));
 
         String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/my-ctrl/configurations/my-cfg/versions/1.0.0-SNAPSHOT\"}";

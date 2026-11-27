@@ -15,6 +15,7 @@ import org.finos.calm.domain.timeline.CreateTimelineRequest;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.TimelineStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,9 @@ public class TimelineTools {
 
     @Inject
     TimelineStore timelineStore;
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     @Tool(description = "List all timelines in a CalmHub namespace. Returns timeline IDs, names, and descriptions.")
     @PermissionsAllowed(CalmHubScopes.READ)
@@ -76,11 +80,8 @@ public class TimelineTools {
         if (err.isPresent()) return err.get();
 
         try {
-            Timeline timeline = new Timeline.TimelineBuilder()
-                    .setNamespace(namespace)
-                    .setId(timelineId)
-                    .build();
-            List<String> versions = timelineStore.getTimelineVersions(timeline);
+            List<String> versions = timelineStore.getTimelineVersions(namespace,
+                    resourceIdResolver.forStorage(String.valueOf(timelineId), null, null));
             return McpResponseFormatter.formatVersionList("timeline", timelineId, namespace, versions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
@@ -105,12 +106,8 @@ public class TimelineTools {
         if (err.isPresent()) return err.get();
 
         try {
-            Timeline timeline = new Timeline.TimelineBuilder()
-                    .setNamespace(namespace)
-                    .setId(timelineId)
-                    .setVersion(version)
-                    .build();
-            return ToolResponse.success(timelineStore.getTimelineForVersion(timeline));
+            return ToolResponse.success(timelineStore.getTimelineForVersion(namespace,
+                    resourceIdResolver.forStorage(String.valueOf(timelineId), null, null), version));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);

@@ -92,6 +92,21 @@ class TestGitHubControlStoreShould {
     }
 
     @Test
+    void select_the_root_control_when_a_subfolder_has_the_same_stem() throws Exception {
+        RegistryEntry root = new RegistryEntry("acme", Path.of("controls/security/acme.json"),
+                RegistryResourceType.CONTROL, "Root", Instant.now());
+        RegistryEntry nested = new RegistryEntry("acme", Path.of("controls/security/team/acme.json"),
+                RegistryResourceType.CONTROL, "Nested", Instant.now());
+        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of(root, nested))));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL))
+                .thenReturn(List.of(root, nested));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        assertThat(store.getConfigurationDetailsForControl(DOMAIN, new GitHubResourceId("acme", "security", null)), is(empty()));
+        assertThat(store.getConfigurationDetailsForControl(DOMAIN, new GitHubResourceId("acme", "security/team", null)), is(empty()));
+    }
+
+    @Test
     void throw_domain_not_found_when_domain_missing_on_get_controls() {
         when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of());

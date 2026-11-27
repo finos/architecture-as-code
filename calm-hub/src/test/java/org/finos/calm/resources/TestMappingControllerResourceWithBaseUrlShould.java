@@ -6,6 +6,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.Flow;
+import org.finos.calm.domain.NumericResourceId;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceMapping;
@@ -514,7 +515,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
         ControlDetail control = new ControlDetail(10, "data-encryption", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
         // Empty list → resolveConfigId throws → new config branch
-        when(mockControlStore.getConfigurationDetailsForControl("security", 10))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(10)))
                 .thenReturn(Collections.emptyList());
         when(mockControlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq("security"), eq(10)))
                 .thenReturn(5);
@@ -536,7 +537,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
     void return_201_when_post_to_calm_adds_version_to_existing_configuration() throws Exception {
         ControlDetail control = new ControlDetail(10, "data-encryption", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 10))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(10)))
                 .thenReturn(List.of(new ControlConfigDetail(5, "tls-settings")));
 
         String body = "{ \"$id\": \"https://hub.example.com/calm/domains/security/controls/data-encryption/configurations/tls-settings/versions/2.0.0\" }";

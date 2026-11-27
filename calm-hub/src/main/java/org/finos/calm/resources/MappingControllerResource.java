@@ -677,7 +677,7 @@ public class MappingControllerResource {
             @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
             String controlName) {
         try {
-            int controlId = service.resolveControlId(domain, controlName);
+            ResourceId controlId = service.resolveControlResourceId(domain, controlName);
             return Response.ok(new ValueWrapper<>(service.getRequirementVersions(domain, controlId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Domain [{}] not found when retrieving requirement versions for control [{}]", domain, controlName, e);
@@ -708,7 +708,7 @@ public class MappingControllerResource {
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version) {
         try {
-            int controlId = service.resolveControlId(domain, controlName);
+            ResourceId controlId = service.resolveControlResourceId(domain, controlName);
             return Response.ok(service.getRequirementForVersion(domain, controlId, version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Domain [{}] not found when retrieving requirement for control [{}] version [{}]", domain, controlName, version, e);
@@ -741,7 +741,7 @@ public class MappingControllerResource {
             @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
             String controlName) {
         try {
-            int controlId = service.resolveControlId(domain, controlName);
+            ResourceId controlId = service.resolveControlResourceId(domain, controlName);
             return Response.ok(new ValueWrapper<>(service.getConfigurationsForControl(domain, controlId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Domain [{}] not found when retrieving configurations for control [{}]", domain, controlName, e);
@@ -772,8 +772,8 @@ public class MappingControllerResource {
             @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE)
             String configName) {
         try {
-            int controlId = service.resolveControlId(domain, controlName);
-            int configId = service.resolveConfigId(domain, controlId, configName);
+            ResourceId controlId = service.resolveControlResourceId(domain, controlName);
+            ResourceId configId = service.resolveConfigResourceId(domain, controlId, configName);
             return Response.ok(new ValueWrapper<>(service.getConfigurationVersions(domain, controlId, configId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Domain [{}] not found when retrieving configuration versions for control [{}]", domain, controlName, e);
@@ -811,8 +811,8 @@ public class MappingControllerResource {
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version) {
         try {
-            int controlId = service.resolveControlId(domain, controlName);
-            int configId = service.resolveConfigId(domain, controlId, configName);
+            ResourceId controlId = service.resolveControlResourceId(domain, controlName);
+            ResourceId configId = service.resolveConfigResourceId(domain, controlId, configName);
             return Response.ok(service.getConfigurationForVersion(domain, controlId, configId, version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Domain [{}] not found when retrieving configuration version for control [{}]", domain, controlName, e);

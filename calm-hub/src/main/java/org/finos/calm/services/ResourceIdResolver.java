@@ -7,6 +7,7 @@ import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.domain.NumericResourceId;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.MappingNotFoundException;
@@ -54,6 +55,14 @@ public class ResourceIdResolver {
             return new GitHubResourceId(name, path, variant);
         }
         return new NumericResourceId(mappingService.getMapping(namespace, type, name).getNumericId());
+    }
+
+    /** Resolves a stored mapping without a second lookup, keeping its path and variant for GitHub mode. */
+    public ResourceId forMapping(ResourceMapping mapping) {
+        if (isGitHub()) {
+            return new GitHubResourceId(mapping.getCustomId(), mapping.getPath(), mapping.getVariant());
+        }
+        return new NumericResourceId(mapping.getNumericId());
     }
 
     /** Numeric form for int-based store calls; GitHub ids yield 0 as those stores do not serve them. */

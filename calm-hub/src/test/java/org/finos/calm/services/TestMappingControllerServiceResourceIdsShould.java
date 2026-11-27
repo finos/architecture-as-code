@@ -5,6 +5,8 @@ import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.domain.NumericResourceId;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.Tags;
+import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.resources.CalmDocumentParser;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.ControlStore;
@@ -48,13 +50,16 @@ class TestMappingControllerServiceResourceIdsShould {
     @Mock private Instance<GitHubCloneManager> cloneManagers;
 
     private MappingControllerService service;
+    private ResourceIdResolver resolver;
     private final NumericResourceId id = new NumericResourceId(7);
 
     @BeforeEach
     void setup() {
+        resolver = new ResourceIdResolver();
+        resolver.databaseMode = "mongo";
         service = new MappingControllerService(mappingStore, patternStore, architectureStore,
                 flowStore, standardStore, interfaceStore, timelineStore, domainStore,
-                controlStore, documentParser, cloneManagers);
+                controlStore, documentParser, cloneManagers, resolver);
     }
 
     @Test
@@ -95,6 +100,32 @@ class TestMappingControllerServiceResourceIdsShould {
     void return_null_when_no_numeric_version_exists() throws Exception {
         when(architectureStore.getArchitectureVersions("finos", id)).thenReturn(List.of());
         assertThat(service.resolveLatestVersion("finos", ResourceType.ARCHITECTURE, id), nullValue());
+    }
+
+    @Test
+    void skip_a_snapshot_that_outranks_a_published_release() throws Exception {
+        when(architectureStore.getArchitectureVersions("finos", id))
+                .thenReturn(List.of("1.0.0", "2.0.0-SNAPSHOT"));
+
+        assertThat(service.resolveLatestVersion("finos", ResourceType.ARCHITECTURE, id), equalTo("1.0.0"));
+    }
+
+    @Test
+    void resolve_a_control_name_to_its_github_stem_with_tags() throws Exception {
+        resolver.databaseMode = "github";
+        when(controlStore.getControlsForDomain("security")).thenReturn(List.of(new ControlDetail(
+                "access-control", "Access Control", null, null, new Tags("team", "calm"))));
+
+        assertThat(service.resolveControlResourceId("security", "access control"),
+                equalTo(new GitHubResourceId("access-control", "team", "calm")));
+        assertThat(service.resolveControlId("security", "access control"), equalTo(0));
+    }
+
+    @Test
+    void resolve_a_control_name_to_its_numeric_id_in_numeric_modes() throws Exception {
+        when(controlStore.getControlsForDomain("security")).thenReturn(List.of(new ControlDetail("12", "access-control", null)));
+
+        assertThat(service.resolveControlResourceId("security", "access-control"), equalTo(new NumericResourceId(12)));
     }
 
     @Test

@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.SchemaValidationLimits;
 import org.finos.calm.domain.conventions.ConventionDefault;
 import org.finos.calm.domain.conventions.ConventionSchemaError;
@@ -61,7 +62,17 @@ public class ConventionService {
         return conventionStore.getConventionVersions(namespace, type, id);
     }
 
+    public List<String> getConventionVersions(String namespace, ConventionType type, ResourceId id)
+            throws NamespaceNotFoundException, ConventionNotFoundException {
+        return conventionStore.getConventionVersions(namespace, type, id);
+    }
+
     public String getConventionForVersion(String namespace, ConventionType type, int id, String version)
+            throws NamespaceNotFoundException, ConventionNotFoundException, ConventionVersionNotFoundException {
+        return conventionStore.getConventionForVersion(namespace, type, id, version);
+    }
+
+    public String getConventionForVersion(String namespace, ConventionType type, ResourceId id, String version)
             throws NamespaceNotFoundException, ConventionNotFoundException, ConventionVersionNotFoundException {
         return conventionStore.getConventionForVersion(namespace, type, id, version);
     }

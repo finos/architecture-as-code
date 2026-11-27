@@ -15,6 +15,7 @@ import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,9 @@ public class PatternTools {
 
     @Inject
     PatternStore patternStore;
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     @Tool(description = "List all patterns in a CalmHub namespace. Returns pattern IDs, names, and descriptions.")
     @PermissionsAllowed(CalmHubScopes.READ)
@@ -76,11 +80,8 @@ public class PatternTools {
         if (err.isPresent()) return err.get();
 
         try {
-            Pattern pattern = new Pattern.PatternBuilder()
-                    .setNamespace(namespace)
-                    .setId(patternId)
-                    .build();
-            List<String> versions = patternStore.getPatternVersions(pattern);
+            List<String> versions = patternStore.getPatternVersions(namespace,
+                    resourceIdResolver.forStorage(String.valueOf(patternId), null, null));
             return McpResponseFormatter.formatVersionList("pattern", patternId, namespace, versions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
@@ -105,12 +106,8 @@ public class PatternTools {
         if (err.isPresent()) return err.get();
 
         try {
-            Pattern pattern = new Pattern.PatternBuilder()
-                    .setNamespace(namespace)
-                    .setId(patternId)
-                    .setVersion(version)
-                    .build();
-            return ToolResponse.success(patternStore.getPatternForVersion(pattern));
+            return ToolResponse.success(patternStore.getPatternForVersion(namespace,
+                    resourceIdResolver.forStorage(String.valueOf(patternId), null, null), version));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);

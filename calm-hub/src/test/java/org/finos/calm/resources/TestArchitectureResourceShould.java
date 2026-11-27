@@ -521,7 +521,7 @@ public class TestArchitectureResourceShould {
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_architecture_timeline() throws NamespaceNotFoundException, ArchitectureNotFoundException {
         when(mockTimelineStore.getTimelinesForNamespace(any())).thenReturn(List.of());
-        when(mockArchitectureStore.getArchitectureVersions(any())).thenThrow(new NamespaceNotFoundException());
+        when(mockArchitectureStore.getArchitectureVersions(anyString(), any(ResourceId.class))).thenThrow(new NamespaceNotFoundException());
 
         given()
                 .when()
@@ -533,7 +533,7 @@ public class TestArchitectureResourceShould {
     @Test
     void return_a_404_when_an_invalid_architecture_is_provided_on_get_architecture_timeline() throws NamespaceNotFoundException, ArchitectureNotFoundException {
         when(mockTimelineStore.getTimelinesForNamespace(any())).thenReturn(List.of());
-        when(mockArchitectureStore.getArchitectureVersions(any())).thenThrow(new ArchitectureNotFoundException());
+        when(mockArchitectureStore.getArchitectureVersions(anyString(), any(ResourceId.class))).thenThrow(new ArchitectureNotFoundException());
 
         given()
                 .when()
@@ -613,7 +613,7 @@ public class TestArchitectureResourceShould {
     @Test
     void return_an_implied_timeline_projection_when_architecture_has_versions() throws NamespaceNotFoundException, ArchitectureNotFoundException {
         when(mockTimelineStore.getTimelinesForNamespace(any())).thenReturn(List.of());
-        when(mockArchitectureStore.getArchitectureVersions(any()))
+        when(mockArchitectureStore.getArchitectureVersions(anyString(), any(ResourceId.class)))
                 .thenReturn(List.of("1.1.0", "1.0.0"));
 
         given()

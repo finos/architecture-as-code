@@ -5,6 +5,7 @@ import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.NumericResourceId;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.conventions.ConventionType;
+import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.timeline.Timeline;
 import org.junit.jupiter.api.Test;
 
@@ -95,14 +96,27 @@ class TestStoreResourceIdDefaultsShould {
     @Test
     void control_defaults_delegate_to_the_numeric_methods() throws Exception {
         ControlStore store = mock(ControlStore.class, CALLS_REAL_METHODS);
+        NumericResourceId configId = new NumericResourceId(9);
         when(store.getRequirementVersions("security", 7)).thenReturn(List.of("1.0.0"));
         when(store.getRequirementForVersion("security", 7, "1.0.0")).thenReturn("{}");
+        when(store.getConfigurationsForControl("security", 7)).thenReturn(List.<Integer>of());
+        when(store.getConfigurationDetailsForControl("security", 7)).thenReturn(List.<ControlConfigDetail>of());
+        when(store.getConfigurationVersions("security", 7, 9)).thenReturn(List.of("1.0.0"));
+        when(store.getConfigurationForVersion("security", 7, 9, "1.0.0")).thenReturn("{}");
 
         store.getRequirementVersions("security", id);
         store.getRequirementForVersion("security", id, "1.0.0");
+        store.getConfigurationsForControl("security", id);
+        store.getConfigurationDetailsForControl("security", id);
+        store.getConfigurationVersions("security", id, configId);
+        store.getConfigurationForVersion("security", id, configId, "1.0.0");
 
         verify(store).getRequirementVersions("security", 7);
         verify(store).getRequirementForVersion("security", 7, "1.0.0");
+        verify(store).getConfigurationsForControl("security", 7);
+        verify(store).getConfigurationDetailsForControl("security", 7);
+        verify(store).getConfigurationVersions("security", 7, 9);
+        verify(store).getConfigurationForVersion("security", 7, 9, "1.0.0");
     }
 
     @Test

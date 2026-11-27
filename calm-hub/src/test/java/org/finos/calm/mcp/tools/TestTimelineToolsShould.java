@@ -2,12 +2,15 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.exception.TimelineVersionExistsException;
 import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.domain.timeline.Timeline;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.TimelineStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +29,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -36,6 +42,9 @@ class TestTimelineToolsShould {
     @Mock
     TimelineStore timelineStore;
 
+    @Mock
+    ResourceIdResolver resourceIdResolver;
+
     @InjectMocks
     TimelineTools timelineTools;
 
@@ -43,6 +52,8 @@ class TestTimelineToolsShould {
     void setup() {
         timelineTools.mcpEnabled = true;
         timelineTools.allowPutOperations = true;
+        lenient().when(resourceIdResolver.forStorage(anyString(), any(), any()))
+                .thenAnswer(call -> new NumericResourceId(Integer.parseInt(call.getArgument(0))));
     }
 
     private static String text(ToolResponse r) {
@@ -110,7 +121,7 @@ class TestTimelineToolsShould {
 
     @Test
     void return_versions_for_valid_timeline() throws Exception {
-        when(timelineStore.getTimelineVersions(any()))
+        when(timelineStore.getTimelineVersions(anyString(), any(ResourceId.class)))
                 .thenReturn(List.of("1.0.0", "2.0.0"));
 
         ToolResponse result = timelineTools.listTimelineVersions("workshop", 1);
@@ -122,7 +133,7 @@ class TestTimelineToolsShould {
 
     @Test
     void return_empty_versions_message() throws Exception {
-        when(timelineStore.getTimelineVersions(any()))
+        when(timelineStore.getTimelineVersions(anyString(), any(ResourceId.class)))
                 .thenReturn(List.of());
 
         ToolResponse result = timelineTools.listTimelineVersions("workshop", 1);
@@ -133,7 +144,7 @@ class TestTimelineToolsShould {
 
     @Test
     void return_error_when_timeline_not_found_for_versions() throws Exception {
-        when(timelineStore.getTimelineVersions(any()))
+        when(timelineStore.getTimelineVersions(anyString(), any(ResourceId.class)))
                 .thenThrow(new TimelineNotFoundException());
 
         ToolResponse result = timelineTools.listTimelineVersions("workshop", 99);
@@ -144,7 +155,7 @@ class TestTimelineToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_versions() throws Exception {
-        when(timelineStore.getTimelineVersions(any()))
+        when(timelineStore.getTimelineVersions(anyString(), any(ResourceId.class)))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = timelineTools.listTimelineVersions("missing", 1);
@@ -173,7 +184,7 @@ class TestTimelineToolsShould {
 
     @Test
     void return_timeline_json_for_valid_version() throws Exception {
-        when(timelineStore.getTimelineForVersion(any()))
+        when(timelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenReturn("{\"events\":[]}");
 
         ToolResponse result = timelineTools.getTimeline("workshop", 1, "1.0.0");
@@ -184,19 +195,19 @@ class TestTimelineToolsShould {
 
     @Test
     void return_timeline_json_for_commit_sha_version() throws Exception {
-        when(timelineStore.getTimelineForVersion(any())).thenReturn("{\"events\":[]}");
+        when(timelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"events\":[]}");
 
         ToolResponse result = timelineTools.getTimeline("workshop", 1, "1e38a517");
 
         assertThat(result.isError(), is(false));
-        ArgumentCaptor<Timeline> captor = ArgumentCaptor.forClass(Timeline.class);
-        verify(timelineStore).getTimelineForVersion(captor.capture());
-        assertThat(captor.getValue().getDotVersion(), is("1e38a517"));
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(timelineStore).getTimelineForVersion(eq("workshop"), any(ResourceId.class), captor.capture());
+        assertThat(captor.getValue(), is("1e38a517"));
     }
 
     @Test
     void return_error_when_timeline_version_not_found() throws Exception {
-        when(timelineStore.getTimelineForVersion(any()))
+        when(timelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenThrow(new TimelineVersionNotFoundException());
 
         ToolResponse result = timelineTools.getTimeline("workshop", 1, "9.9.9");
@@ -207,7 +218,7 @@ class TestTimelineToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_get() throws Exception {
-        when(timelineStore.getTimelineForVersion(any()))
+        when(timelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = timelineTools.getTimeline("missing", 1, "1.0.0");
@@ -218,7 +229,7 @@ class TestTimelineToolsShould {
 
     @Test
     void return_error_when_timeline_not_found_for_get() throws Exception {
-        when(timelineStore.getTimelineForVersion(any()))
+        when(timelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenThrow(new TimelineNotFoundException());
 
         ToolResponse result = timelineTools.getTimeline("workshop", 99, "1.0.0");

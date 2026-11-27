@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
+import org.finos.calm.domain.NumericResourceId;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
@@ -291,9 +292,9 @@ public class TestControlResourceShould {
     @MethodSource("provideParametersForGetConfigurationsTests")
     void respond_correctly_to_get_configurations(String domain, Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
         if (exceptionToThrow != null) {
-            when(mockControlStore.getConfigurationDetailsForControl(anyString(), anyInt())).thenThrow(exceptionToThrow);
+            when(mockControlStore.getConfigurationDetailsForControl(anyString(), any(ResourceId.class))).thenThrow(exceptionToThrow);
         } else {
-            when(mockControlStore.getConfigurationDetailsForControl(anyString(), anyInt()))
+            when(mockControlStore.getConfigurationDetailsForControl(anyString(), any(ResourceId.class)))
                     .thenReturn(List.of(
                             new ControlConfigDetail(10, "config-a", "Config A Title"),
                             new ControlConfigDetail(20, "config-b", null)));
@@ -319,12 +320,12 @@ public class TestControlResourceShould {
                     .statusCode(expectedStatusCode);
         }
 
-        verify(mockControlStore).getConfigurationDetailsForControl(domain, 1);
+        verify(mockControlStore).getConfigurationDetailsForControl(domain, new NumericResourceId(1));
     }
 
     @Test
     void return_empty_configurations_for_control_with_none() throws Exception {
-        when(mockControlStore.getConfigurationDetailsForControl(VALID_DOMAIN, 1)).thenReturn(List.of());
+        when(mockControlStore.getConfigurationDetailsForControl(VALID_DOMAIN, new NumericResourceId(1))).thenReturn(List.of());
 
         given()
                 .when()
@@ -333,7 +334,7 @@ public class TestControlResourceShould {
                 .statusCode(200)
                 .body("values", is(empty()));
 
-        verify(mockControlStore).getConfigurationDetailsForControl(VALID_DOMAIN, 1);
+        verify(mockControlStore).getConfigurationDetailsForControl(VALID_DOMAIN, new NumericResourceId(1));
     }
 
     // --- Configuration Version Endpoints ---
@@ -361,9 +362,9 @@ public class TestControlResourceShould {
     @MethodSource("provideParametersForGetConfigurationVersionsTests")
     void respond_correctly_to_get_configuration_versions(String domain, Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
         if (exceptionToThrow != null) {
-            when(mockControlStore.getConfigurationVersions(anyString(), anyInt(), anyInt())).thenThrow(exceptionToThrow);
+            when(mockControlStore.getConfigurationVersions(anyString(), any(ResourceId.class), any(ResourceId.class))).thenThrow(exceptionToThrow);
         } else {
-            when(mockControlStore.getConfigurationVersions(anyString(), anyInt(), anyInt())).thenReturn(List.of("1.0.0", "2.0.0"));
+            when(mockControlStore.getConfigurationVersions(anyString(), any(ResourceId.class), any(ResourceId.class))).thenReturn(List.of("1.0.0", "2.0.0"));
         }
 
         if (expectedStatusCode == 200) {
@@ -383,7 +384,7 @@ public class TestControlResourceShould {
                     .statusCode(expectedStatusCode);
         }
 
-        verify(mockControlStore).getConfigurationVersions(domain, 1, 10);
+        verify(mockControlStore).getConfigurationVersions(domain, new NumericResourceId(1), new NumericResourceId(10));
     }
 
     // --- Configuration for specific version ---
@@ -432,9 +433,9 @@ public class TestControlResourceShould {
     @MethodSource("provideParametersForGetConfigurationForVersionTests")
     void respond_correctly_to_get_configuration_for_version(String domain, Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
         if (exceptionToThrow != null) {
-            when(mockControlStore.getConfigurationForVersion(anyString(), anyInt(), anyInt(), anyString())).thenThrow(exceptionToThrow);
+            when(mockControlStore.getConfigurationForVersion(anyString(), any(ResourceId.class), any(ResourceId.class), anyString())).thenThrow(exceptionToThrow);
         } else {
-            when(mockControlStore.getConfigurationForVersion(anyString(), anyInt(), anyInt(), anyString())).thenReturn("{\"version\": \"specific\"}");
+            when(mockControlStore.getConfigurationForVersion(anyString(), any(ResourceId.class), any(ResourceId.class), anyString())).thenReturn("{\"version\": \"specific\"}");
         }
 
         if (expectedStatusCode == 200) {
@@ -452,7 +453,7 @@ public class TestControlResourceShould {
                     .statusCode(expectedStatusCode);
         }
 
-        verify(mockControlStore).getConfigurationForVersion(domain, 1, 10, "1.0.0");
+        verify(mockControlStore).getConfigurationForVersion(domain, new NumericResourceId(1), new NumericResourceId(10), "1.0.0");
     }
 
     // --- createRequirementForVersion ---

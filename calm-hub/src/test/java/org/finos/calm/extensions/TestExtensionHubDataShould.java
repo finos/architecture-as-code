@@ -4,19 +4,19 @@ import io.quarkus.security.identity.SecurityIdentity;
 import io.vertx.core.json.JsonObject;
 import jakarta.json.Json;
 import org.eclipse.microprofile.config.Config;
-import org.finos.calm.domain.Architecture;
-import org.finos.calm.domain.Pattern;
-import org.finos.calm.domain.ResourceMapping;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.ResolvedConventionDefault;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
+import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.extensions.ExtensionManifest.Route;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.services.ConventionService;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.PatternStore;
-import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +33,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -48,17 +49,22 @@ class TestExtensionHubDataShould {
 
     private final ArchitectureStore architectures = mock(ArchitectureStore.class);
     private final PatternStore patterns = mock(PatternStore.class);
-    private final ResourceMappingStore mappings = mock(ResourceMappingStore.class);
     private final ConventionService conventions = mock(ConventionService.class);
     private final CalmHubPermissionChecker permissions = mock(CalmHubPermissionChecker.class);
+    private final ResourceIdResolver resourceIdResolver = mock(ResourceIdResolver.class);
     private final SecurityIdentity alice = mock(SecurityIdentity.class);
     private ExtensionHubData hubData;
 
     @BeforeEach
     void setup() throws Exception {
-        hubData = new ExtensionHubData(architectures, patterns, mappings, conventions, permissions,
+        hubData = new ExtensionHubData(architectures, patterns, conventions, permissions, resourceIdResolver,
                 "https://hub.example.com");
-        when(architectures.getArchitectureForVersion(any())).thenThrow(new ArchitectureNotFoundException());
+        when(resourceIdResolver.forStorage(anyString(), any(), any()))
+                .thenAnswer(call -> new NumericResourceId(Integer.parseInt(call.getArgument(0))));
+        when(resourceIdResolver.forName(anyString(), any(), anyString(), any(), any()))
+                .thenThrow(new MappingNotFoundException());
+        when(architectures.getArchitectureForVersion(anyString(), any(), anyString()))
+                .thenThrow(new ArchitectureNotFoundException());
         when(conventions.resolveDefault(any(), any())).thenReturn(Optional.empty());
     }
 
@@ -74,8 +80,8 @@ class TestExtensionHubDataShould {
         stored(8, "1.0.0", "{\"nodes\": [{\"unique-id\": \"a1\"}]}");
         stored(12, "2.0.0", "{\"nodes\": [{\"unique-id\": \"b1\"}]}");
         stored(9, "1.0.0", "{\"nodes\": [{\"unique-id\": \"secret\"}]}");
-        when(mappings.getMapping("finos", ResourceType.ARCHITECTURE, "shop-api")).thenReturn(
-                new ResourceMapping.ResourceMappingBuilder().setNumericId(12).build());
+        doReturn(new NumericResourceId(12)).when(resourceIdResolver)
+                .forName("finos", ResourceType.ARCHITECTURE, "shop-api", null, null);
 
         JsonObject body = body(ALL, "version=1.0.0");
 
@@ -93,9 +99,11 @@ class TestExtensionHubDataShould {
                 "c4-mapping", "finos", 3, "1.0.0", false,
                 json("{\"unique-id\": \"team\", \"extends\": \"/api/calm/namespaces/org/conventions/c4-mapping/1/versions/1.0.0\"}"))));
         when(permissions.canRead(alice, "org")).thenReturn(true);
-        when(conventions.getConventionForVersion("org", ConventionType.C4_MAPPING, 1, "1.0.0")).thenReturn(
+        when(conventions.getConventionForVersion(eq("org"), eq(ConventionType.C4_MAPPING),
+                eq(new NumericResourceId(1)), eq("1.0.0"))).thenReturn(
                 "{\"unique-id\": \"org\", \"extends\": \"/api/calm/namespaces/secret/conventions/c4-mapping/2/versions/1.0.0\"}");
-        when(conventions.getConventionForVersion("secret", ConventionType.C4_MAPPING, 2, "1.0.0")).thenReturn("{\"unique-id\": \"secret\"}");
+        when(conventions.getConventionForVersion(eq("secret"), eq(ConventionType.C4_MAPPING),
+                eq(new NumericResourceId(2)), eq("1.0.0"))).thenReturn("{\"unique-id\": \"secret\"}");
 
         JsonObject body = body(ALL, "version=1.0.0");
 
@@ -118,8 +126,8 @@ class TestExtensionHubDataShould {
 
     @Test
     void send_the_document_of_a_pattern_and_refuse_another_resource_type() throws Exception {
-        doReturn("{\"unique-id\": \"p\"}").when(patterns).getPatternForVersion(argThat((Pattern p) -> p != null && p.getId() == 4
-                && "1.0.0".equals(p.getDotVersion())));
+        doReturn("{\"unique-id\": \"p\"}").when(patterns).getPatternForVersion("finos",
+                new NumericResourceId(4), "1.0.0");
         Map<String, String> pattern = Map.of("namespace", "finos", "resourceType", "patterns", "resourceId", "4");
         Map<String, String> flow = Map.of("namespace", "finos", "resourceType", "flows", "resourceId", "4");
 
@@ -163,7 +171,8 @@ class TestExtensionHubDataShould {
     void send_the_convention_default_alone_when_its_extends_chain_cannot_be_followed() throws Exception {
         stored(7, "1.0.0", "{\"nodes\": []}");
         when(permissions.canRead(any(), any())).thenReturn(true);
-        when(conventions.getConventionForVersion("missing", ConventionType.C4_MAPPING, 1, "1.0.0")).thenThrow(new RuntimeException("not found"));
+        when(conventions.getConventionForVersion(eq("missing"), eq(ConventionType.C4_MAPPING),
+                eq(new NumericResourceId(1)), eq("1.0.0"))).thenThrow(new RuntimeException("not found"));
         for (String link : List.of(
                 "https://other.example.com/calm/namespaces/org/conventions/c4-mapping/1/versions/1.0.0",
                 "/calm/namespaces/org/conventions/other-type/1/versions/1.0.0",
@@ -185,7 +194,8 @@ class TestExtensionHubDataShould {
         when(conventions.resolveDefault("finos", ConventionType.C4_MAPPING)).thenReturn(Optional.of(new ResolvedConventionDefault(
                 "c4-mapping", "finos", 3, "1.0.0", false,
                 json("{\"unique-id\": \"team\", \"extends\": \"/calm/namespaces/org/conventions/c4-mapping/1/versions/1.0.0\"}"))));
-        when(conventions.getConventionForVersion("org", ConventionType.C4_MAPPING, 1, "1.0.0")).thenReturn("{\"unique-id\": \"org\"}");
+        when(conventions.getConventionForVersion(eq("org"), eq(ConventionType.C4_MAPPING),
+                eq(new NumericResourceId(1)), eq("1.0.0"))).thenReturn("{\"unique-id\": \"org\"}");
 
         assertThat(body(ALL, "version=1.0.0").getJsonObject("linked").fieldNames(), containsInAnyOrder(
                 "/calm/namespaces/org/conventions/c4-mapping/1/versions/1.0.0"));
@@ -201,8 +211,8 @@ class TestExtensionHubDataShould {
         Config none = mock(Config.class);
         when(none.getOptionalValue("calm.hub.base-url", String.class)).thenReturn(Optional.empty());
 
-        ExtensionHubData configured = new ExtensionHubData(architectures, patterns, mappings, conventions, permissions, config);
-        ExtensionHubData local = new ExtensionHubData(architectures, patterns, mappings, conventions, permissions, none);
+        ExtensionHubData configured = new ExtensionHubData(architectures, patterns, conventions, permissions, config, resourceIdResolver);
+        ExtensionHubData local = new ExtensionHubData(architectures, patterns, conventions, permissions, none, resourceIdResolver);
 
         assertThat(configured.hubPath("https://calm.example.com/calm/x"), is(Optional.of("/calm/x")));
         assertThat(configured.hubPath("http://localhost:8080/calm/x").stream().toList(), empty());
@@ -218,8 +228,8 @@ class TestExtensionHubDataShould {
     }
 
     private void stored(int id, String version, String json) throws Exception {
-        doReturn(json).when(architectures).getArchitectureForVersion(argThat((Architecture a) -> a != null && a.getId() == id
-                && version.equals(a.getDotVersion()) && "finos".equals(a.getNamespace())));
+        doReturn(json).when(architectures).getArchitectureForVersion("finos",
+                new NumericResourceId(id), version);
     }
 
     private static jakarta.json.JsonObject json(String text) {

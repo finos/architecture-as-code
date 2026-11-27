@@ -67,6 +67,11 @@ abstract class AbstractReadOnlyGitHubStore extends AbstractGitHubStore {
      * {@code .orElseThrow(XNotFoundException::new)}.
      */
     Optional<RegistryEntry> findEntry(String namespace, RegistryResourceType type, GitHubResourceId id) {
+        // Object-based overloads carry a numeric id, not a filename stem. A null name must not
+        // turn into a partial lookup matching any file of that type in the namespace.
+        if (id.name() == null || id.name().isBlank()) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(RegistryLookup.singleOrNull(
                 registryService.find(namespace, type, id.name(), id.path(), id.variant())));
     }

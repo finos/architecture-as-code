@@ -129,6 +129,17 @@ class TestCustomIdEnrichmentServiceShould {
     }
 
     @Test
+    void leave_a_stem_named_zero_unenriched_without_a_mapping_lookup() throws Exception {
+        List<NamespaceResourceSummary> summaries =
+                List.of(new NamespaceResourceSummary("Zero", "GitHub stem", "0", 1));
+
+        service.enrich(NAMESPACE, ResourceType.ARCHITECTURE, summaries);
+
+        verify(mappingStore, never()).listMappingsByNumericIds(anyString(), any(), anyList());
+        assertNull(summaries.get(0).getCustomId());
+    }
+
+    @Test
     void not_query_the_mapping_store_for_an_empty_list() throws Exception {
         List<NamespaceResourceSummary> summaries = List.of();
 

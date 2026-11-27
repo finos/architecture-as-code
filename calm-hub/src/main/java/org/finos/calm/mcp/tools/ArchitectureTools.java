@@ -14,6 +14,7 @@ import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.ArchitectureStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,9 @@ public class ArchitectureTools {
 
     @Inject
     ArchitectureStore architectureStore;
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     @Tool(description = "List all architectures in a CalmHub namespace. Returns architecture IDs, names, and descriptions.")
     @PermissionsAllowed(CalmHubScopes.READ)
@@ -76,11 +80,8 @@ public class ArchitectureTools {
         if (err.isPresent()) return err.get();
 
         try {
-            Architecture arch = new Architecture.ArchitectureBuilder()
-                    .setNamespace(namespace)
-                    .setId(architectureId)
-                    .build();
-            List<String> versions = architectureStore.getArchitectureVersions(arch);
+            List<String> versions = architectureStore.getArchitectureVersions(namespace,
+                    resourceIdResolver.forStorage(String.valueOf(architectureId), null, null));
             return McpResponseFormatter.formatVersionList("architecture", architectureId, namespace, versions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
@@ -105,12 +106,8 @@ public class ArchitectureTools {
         if (err.isPresent()) return err.get();
 
         try {
-            Architecture arch = new Architecture.ArchitectureBuilder()
-                    .setNamespace(namespace)
-                    .setId(architectureId)
-                    .setVersion(version)
-                    .build();
-            return ToolResponse.success(architectureStore.getArchitectureForVersion(arch));
+            return ToolResponse.success(architectureStore.getArchitectureForVersion(namespace,
+                    resourceIdResolver.forStorage(String.valueOf(architectureId), null, null), version));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);

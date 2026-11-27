@@ -17,9 +17,13 @@ class TestRegistrySnapshotFindShould {
     private final RegistryEntry plain = entry("api", "patterns/api.json");
     private final RegistryEntry variant = entry("api", "patterns/aws/api.calm.json");
     private final RegistryEntry other = entry("web", "patterns/web.json");
+    private final RegistryEntry root = entry("dup", "patterns/dup.json");
+    private final RegistryEntry nested = entry("dup", "patterns/team/dup.json");
+    private final RegistryEntry singleExtension = entry("single", "patterns/single.json");
+    private final RegistryEntry compoundExtension = entry("single", "patterns/single.calm.json");
 
     private final RegistrySnapshot snapshot = new RegistrySnapshot(
-            Map.of("finos", List.of(plain, variant, other)));
+            Map.of("finos", List.of(plain, variant, other, root, nested, singleExtension, compoundExtension)));
 
     @Test
     void match_the_stem_and_ignore_unsupplied_parts() {
@@ -31,6 +35,20 @@ class TestRegistrySnapshotFindShould {
         assertThat(snapshot.find("finos", null, "api", "aws", "calm"), contains(variant));
         assertThat(snapshot.find("finos", null, "api", null, "calm"), contains(variant));
         assertThat(snapshot.find("finos", null, "api", "aws", null), contains(variant));
+    }
+
+    @Test
+    void select_the_root_file_when_a_subfolder_has_the_same_stem() {
+        assertThat(snapshot.find("finos", null, "dup", null, null), contains(root, nested));
+        assertThat(snapshot.find("finos", null, "dup", "", null), contains(root));
+        assertThat(snapshot.find("finos", null, "dup", "team", null), contains(nested));
+    }
+
+    @Test
+    void select_the_single_extension_file_when_a_variant_exists() {
+        assertThat(snapshot.find("finos", null, "single", null, null), contains(singleExtension, compoundExtension));
+        assertThat(snapshot.find("finos", null, "single", null, ""), contains(singleExtension));
+        assertThat(snapshot.find("finos", null, "single", null, "calm"), contains(compoundExtension));
     }
 
     @Test

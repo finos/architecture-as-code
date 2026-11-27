@@ -144,15 +144,25 @@ public class CalmResourceErrorResponses {
     }
 
     public static Response conventionNotFoundResponse(String namespace, int id) {
+        return conventionNotFoundResponse(namespace, String.valueOf(id));
+    }
+
+    public static Response conventionNotFoundResponse(String namespace, String id) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Convention " + id + " does not exist in namespace: "
+                .entity("Convention " + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(id)
+                        + " does not exist in namespace: "
                         + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
                 .build();
     }
 
     public static Response conventionVersionNotFoundResponse(int id, String version) {
+        return conventionVersionNotFoundResponse(String.valueOf(id), version);
+    }
+
+    public static Response conventionVersionNotFoundResponse(String id, String version) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Convention " + id + " has no version "
+                .entity("Convention " + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(id)
+                        + " has no version "
                         + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(version))
                 .build();
     }

@@ -2,7 +2,6 @@ package org.finos.calm.services;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.MappingNotFoundException;
@@ -55,14 +54,17 @@ public class PatternImplementationService {
     private final PatternImplementationStore implementationStore;
     private final ResourceMappingStore mappingStore;
     private final PatternStore patternStore;
+    private final ResourceIdResolver resourceIdResolver;
 
     @Inject
     public PatternImplementationService(PatternImplementationStore implementationStore,
                                         ResourceMappingStore mappingStore,
-                                        PatternStore patternStore) {
+                                        PatternStore patternStore,
+                                        ResourceIdResolver resourceIdResolver) {
         this.implementationStore = implementationStore;
         this.mappingStore = mappingStore;
         this.patternStore = patternStore;
+        this.resourceIdResolver = resourceIdResolver;
     }
 
     /**
@@ -105,11 +107,7 @@ public class PatternImplementationService {
     private boolean patternVersionExists(String namespace, String patternName, String canonicalVersion) {
         try {
             ResourceMapping mapping = mappingStore.getMapping(namespace, ResourceType.PATTERN, patternName);
-            Pattern pattern = new Pattern.PatternBuilder()
-                    .setNamespace(namespace)
-                    .setId(mapping.getNumericId())
-                    .build();
-            return patternStore.getPatternVersions(pattern).stream()
+            return patternStore.getPatternVersions(namespace, resourceIdResolver.forMapping(mapping)).stream()
                     .map(CanonicalVersion::of)
                     .anyMatch(canonicalVersion::equals);
         } catch (MappingNotFoundException | NamespaceNotFoundException | PatternNotFoundException e) {

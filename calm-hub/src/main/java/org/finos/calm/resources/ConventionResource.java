@@ -141,19 +141,18 @@ public class ConventionResource {
             @PathParam("conventionType") String conventionType,
             @Valid @BeanParam IdParam idParam) {
         ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
-        int id = resourceIdResolver.numericForWrite(resourceId);
         Optional<ConventionType> type = ConventionType.fromName(conventionType);
         if (type.isEmpty()) {
             return CalmResourceErrorResponses.unknownConventionTypeResponse();
         }
         try {
-            return Response.ok(new ValueWrapper<>(conventionService.getConventionVersions(namespace, type.get(), id))).build();
+            return Response.ok(new ValueWrapper<>(conventionService.getConventionVersions(namespace, type.get(), resourceId))).build();
         } catch (NamespaceNotFoundException e) {
             LOG.error("Invalid namespace [{}] when listing convention versions", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (ConventionNotFoundException e) {
-            LOG.error("Convention [{}] not found when listing versions", id, e);
-            return CalmResourceErrorResponses.conventionNotFoundResponse(namespace, id);
+            LOG.error("Convention [{}] not found when listing versions", STRICT_SANITIZATION_POLICY.sanitize(idParam.rawId()), e);
+            return CalmResourceErrorResponses.conventionNotFoundResponse(namespace, idParam.rawId());
         }
     }
 
@@ -173,22 +172,22 @@ public class ConventionResource {
             @Valid @BeanParam IdParam idParam,
             @PathParam("version") @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE) String version) {
         ResourceId resourceId = idParam.toResourceId(resourceIdResolver);
-        int id = resourceIdResolver.numericForWrite(resourceId);
         Optional<ConventionType> type = ConventionType.fromName(conventionType);
         if (type.isEmpty()) {
             return CalmResourceErrorResponses.unknownConventionTypeResponse();
         }
         try {
-            return Response.ok(conventionService.getConventionForVersion(namespace, type.get(), id, version)).build();
+            return Response.ok(conventionService.getConventionForVersion(namespace, type.get(), resourceId, version)).build();
         } catch (NamespaceNotFoundException e) {
             LOG.error("Invalid namespace [{}] when reading a convention", STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (ConventionNotFoundException e) {
-            LOG.error("Convention [{}] not found", id, e);
-            return CalmResourceErrorResponses.conventionNotFoundResponse(namespace, id);
+            LOG.error("Convention [{}] not found", STRICT_SANITIZATION_POLICY.sanitize(idParam.rawId()), e);
+            return CalmResourceErrorResponses.conventionNotFoundResponse(namespace, idParam.rawId());
         } catch (ConventionVersionNotFoundException e) {
-            LOG.error("Version [{}] of convention [{}] not found", STRICT_SANITIZATION_POLICY.sanitize(version), id, e);
-            return CalmResourceErrorResponses.conventionVersionNotFoundResponse(id, version);
+            LOG.error("Version [{}] of convention [{}] not found", STRICT_SANITIZATION_POLICY.sanitize(version),
+                    STRICT_SANITIZATION_POLICY.sanitize(idParam.rawId()), e);
+            return CalmResourceErrorResponses.conventionVersionNotFoundResponse(idParam.rawId(), version);
         }
     }
 

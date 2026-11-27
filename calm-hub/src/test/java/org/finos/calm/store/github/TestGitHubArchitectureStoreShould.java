@@ -84,6 +84,16 @@ class TestGitHubArchitectureStoreShould {
     }
 
     @Test
+    void refuse_an_object_id_with_no_name_instead_of_matching_any_architecture() throws Exception {
+        RegistryEntry entry = new RegistryEntry("my-arch", Path.of("architectures/my-arch.json"),
+                RegistryResourceType.ARCHITECTURE, "My Architecture", Instant.now());
+        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of(entry))));
+        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(42).build();
+
+        assertThrows(ArchitectureNotFoundException.class, () -> store.getArchitectureVersions(architecture));
+    }
+
+    @Test
     void throw_unsupported_on_delete_architecture_version() {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.deleteArchitectureVersion("finos", 1, "1.0.0-SNAPSHOT"));

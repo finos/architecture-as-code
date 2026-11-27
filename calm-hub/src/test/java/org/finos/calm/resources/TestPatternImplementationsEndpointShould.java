@@ -3,7 +3,7 @@ package org.finos.calm.resources;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
-import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.GitHubModeNotSupportedException;
@@ -72,7 +72,7 @@ class TestPatternImplementationsEndpointShould {
                 .thenReturn(mapping("api-gateway", 3));
         lenient().when(mockMappingStore.listMappingsByNumericIds(anyString(), any(), any()))
                 .thenReturn(List.of());
-        lenient().when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
+        lenient().when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
     }
 
     private static ResourceMapping mapping(String customId, int numericId) {
@@ -158,7 +158,7 @@ class TestPatternImplementationsEndpointShould {
 
     @Test
     void find_the_architectures_that_implement_a_snapshot_version() throws Exception {
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0", "1.1.0-SNAPSHOT"));
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("1.0.0", "1.1.0-SNAPSHOT"));
         stubCandidates(List.of(naming("1.1.0-SNAPSHOT", "finos", 7, "1.0.0"), naming("1.1.0", "finos", 8, "1.0.0")));
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/1.1.0-SNAPSHOT/implementations")
@@ -314,7 +314,7 @@ class TestPatternImplementationsEndpointShould {
 
     @Test
     void return_404_when_the_pattern_exists_but_the_version_does_not() throws Exception {
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("2.0.0"));
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("2.0.0"));
         stubCandidates(List.of(naming("1.0.0", "finos", 7, "1.2.0")));
 
         given().when().get(PATH).then().statusCode(404);
@@ -332,7 +332,7 @@ class TestPatternImplementationsEndpointShould {
     @Test
     void return_501_in_github_mode_although_its_versions_are_commit_shas() throws Exception {
         // GitHub mode lists commit SHAs, so the version check alone would answer 404.
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("a1b2c3d"));
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("a1b2c3d"));
         when(mockImplementationStore.findSchemasContaining(any(), any()))
                 .thenThrow(new GitHubModeNotSupportedException("Not available in GitHub storage mode."));
 
