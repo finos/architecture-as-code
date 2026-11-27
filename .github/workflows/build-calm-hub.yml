@@ -39,8 +39,8 @@ jobs:
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ~/.m2
-                  # The key names the Maven build. A cache that another build saved does not hold all that this
-                  # build needs, and an exact hit is not saved again.
+                  # This build saves the cache that the coverage and image builds restore. It resolves all that
+                  # they resolve. An exact hit is not saved again, so a build that resolves less must not save it.
                   key: ${{ runner.os }}-m2-calm-hub-integration-${{ hashFiles('pom.xml', 'calm-hub/pom.xml') }}
                   restore-keys: |
                       ${{ runner.os }}-m2-calm-hub-integration-

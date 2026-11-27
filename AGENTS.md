@@ -289,10 +289,15 @@ builds away from that limit:
   Maven reads it for each `mvn` and `./mvnw` command in the repository. It sets the limit under
   two names, because Maven 3.10 renamed the property and some workflows use the `mvn` of the
   runner, not the wrapper. Keep both.
-- Each workflow caches `~/.m2` with a key that names its Maven build, for example
-  `calm-hub-integration`. Give a new Maven build its own name. `actions/cache` does not save again
-  after an exact hit, so builds that share a key share the cache of the build that saved first,
-  and the others download their missing artifacts in each run.
+- A build that saves a `~/.m2` cache must resolve all that the builds that restore it resolve.
+  `actions/cache` does not save again after an exact hit, so if a build that resolves less saves
+  first, the others download their missing artifacts in each run. `build-calm-hub.yml` and
+  `calm-schema-compatibility.yml` run the same integration build and save the
+  `calm-hub-integration` cache. The coverage build and the two JVM image builds only restore it
+  (`actions/cache/restore`), and use the `mvn` of the runner as the integration build does: the
+  cache does not hold the Maven that `./mvnw` downloads. The native image builds save one cache
+  for each architecture. Do not give each Maven build its own cache: the repository has a 10 GB
+  limit for all caches, and GitHub then removes the caches that were not used for the longest time.
 
 ## Commit Messages
 

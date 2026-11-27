@@ -296,7 +296,7 @@ Stage 2 — runtime (minimal base)
 
 | Script | Output | Notes |
 |:-------|:-------|:------|
-| `build-readonly-image.sh [--no-docker] [--no-maven] [TAG]` | `calm-hub:read-only-static` | `--no-docker` skips local build (used by CI buildx); `--no-maven` reuses existing build |
+| `build-readonly-image.sh [--no-docker] [--no-maven] [TAG]` | `calm-hub:read-only-static` | `--no-docker` skips local build (used by CI buildx); `--no-maven` reuses existing build (used by CI, which builds with the runner's `mvn`) |
 | `build-native-image.sh [TAG]` | `calm-hub:native` | GraalVM Mandrel container build; requires ≥8 GB Docker RAM |
 | `build-readonly-native-image.sh [TAG]` | `calm-hub:read-only-native` | Builds JVM jar (for seed stage) AND native binary; two-stage Docker |
 
