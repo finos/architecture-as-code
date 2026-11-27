@@ -263,7 +263,7 @@ repository:
         results: {}
       - name: Dependabot
         type: SCA
-        comment: Alerts for npm, Maven and GitHub Actions. Security updates are off, because Renovate and the OSV Fix workflow raise the fixes.
+        comment: Alerts for npm, Maven and GitHub Actions. Security updates are off. Renovate raises dependency updates, and the OSV Fix workflow raises npm lockfile fixes for blocking findings.
         rulesets:
           - GitHub Advisory Database
         integration:
