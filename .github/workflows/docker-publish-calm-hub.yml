@@ -57,11 +57,14 @@ jobs:
 
             # Step 3: Cache Maven Dependencies
             - name: Cache Maven Dependencies
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ~/.m2
-                  key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
+                  # Restore only. build-calm-hub.yml saves this cache, and its build resolves all that this
+                  # build resolves. A cache for each build fills the cache quota of the repository.
+                  key: ${{ runner.os }}-m2-calm-hub-integration-${{ hashFiles('pom.xml', 'calm-hub/pom.xml') }}
                   restore-keys: |
+                      ${{ runner.os }}-m2-calm-hub-integration-
                       ${{ runner.os }}-m2-
 
             # Step 4: Build the application with Maven

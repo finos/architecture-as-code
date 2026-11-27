@@ -4,7 +4,7 @@ import { ConfirmActionDialog } from '../ConfirmActionDialog.js';
 import { useExtensionService } from '../ExtensionsContext.js';
 import { useExtensionRefresh } from '../extensionRefresh.js';
 import { Heading, HeadingLevel } from '../Heading.js';
-import { formDraftKey, payloadOf, useFormDraft, useFormDrafts } from './formDrafts.js';
+import { FormDraft, formDraftKey, payloadOf, useFormDraft, useFormDrafts } from './formDrafts.js';
 import { FormFieldInput } from './FormFieldInput.js';
 import { checkValues, FormInput, formTarget, initialValues, own, sameTarget, targetName } from './formRules.js';
 import { FormTargetPicker } from './FormTargetPicker.js';
@@ -67,15 +67,19 @@ function FormView({ form, route, slot, headingLevel }: { form: ExtensionForm; ro
     const chosen = draft?.target ?? context;
     // An empty context is not a choice, so an edit does not pin it, and a later screen link can still fill the picker.
     const pickedContext = Object.keys(context).length > 0 ? context : undefined;
-    const target = picks ? formTarget(form, chosen) : (draft?.target ?? live);
-    const values = { ...initialValues(form), ...draft?.values };
-    const { input, errors: checkErrors } = checkValues(form, values);
+    const read = (from: FormDraft | undefined) => {
+        const target = picks ? formTarget(form, from?.target ?? context) : (from?.target ?? live);
+        const values = { ...initialValues(form), ...from?.values };
+        const { input, errors: checkErrors } = checkValues(form, values);
+        const pending = from?.phase === 'pending';
+        const repeat = !!target && from?.unresolved?.payload === payloadOf(target, input);
+        // The form sends nothing but a repeat until the earlier submission is settled, so the backend cannot save both.
+        const held = !!from?.unresolved && !repeat;
+        return { target, values, input, checkErrors, pending, repeat, held };
+    };
+    const { target, values, pending, repeat, held } = read(draft);
     const phase = draft?.phase ?? 'editing';
-    const pending = phase === 'pending';
     const fieldErrors = draft?.fieldErrors ?? {};
-    const repeat = !!target && draft?.unresolved?.payload === payloadOf(target, input);
-    // The form sends nothing but a repeat until the earlier submission is settled, so the backend cannot save both.
-    const held = !!draft?.unresolved && !repeat;
     const unresolvedId = `${baseId}-unresolved`;
     const fieldId = (id: string) => `${baseId}-${id}`;
 
@@ -99,6 +103,8 @@ function FormView({ form, route, slot, headingLevel }: { form: ExtensionForm; ro
 
     const onSubmit = (event: FormEvent) => {
         event.preventDefault();
+        // From the store, not from this render: an edit can come before the form shows it.
+        const { target, input, checkErrors, pending, held } = read(drafts.get(key));
         if (pending || held) return;
         const missingTarget = target
             ? undefined

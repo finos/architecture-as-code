@@ -24,7 +24,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -450,12 +449,8 @@ class TestExtensionProxyResourceShould {
      */
     private static void failEachStreamOfAFullPool(Runnable failedCall) throws Exception {
         CountDownLatch gate = new CountDownLatch(1);
-        List<String> parts = new ArrayList<>(List.of("event: delta\ndata: {\"text\":\"Hel\"}\n\n"));
-        // Enough data that a write of the backend fails after Hub closes the connection.
-        for (int i = 0; i < 300; i++) {
-            parts.add("data: " + "x".repeat(1000) + "\n\n");
-        }
-        backend.stream(new FixtureBackend.Stream(200, "text/event-stream", parts, gate));
+        backend.stream(FixtureBackend.Stream.untilClosed("event: delta\ndata: {\"text\":\"Hel\"}\n\n",
+                "data: " + "x".repeat(1000) + "\n\n", gate));
         try {
             for (int i = 0; i < 8; i++) {
                 failedCall.run();

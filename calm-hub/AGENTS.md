@@ -296,7 +296,7 @@ Stage 2 — runtime (minimal base)
 
 | Script | Output | Notes |
 |:-------|:-------|:------|
-| `build-readonly-image.sh [--no-docker] [--no-maven] [TAG]` | `calm-hub:read-only-static` | `--no-docker` skips local build (used by CI buildx); `--no-maven` reuses existing build |
+| `build-readonly-image.sh [--no-docker] [--no-maven] [TAG]` | `calm-hub:read-only-static` | `--no-docker` skips local build (used by CI buildx); `--no-maven` reuses existing build (used by CI, which builds with the runner's `mvn`) |
 | `build-native-image.sh [TAG]` | `calm-hub:native` | GraalVM Mandrel container build; requires ≥8 GB Docker RAM |
 | `build-readonly-native-image.sh [TAG]` | `calm-hub:read-only-native` | Builds JVM jar (for seed stage) AND native binary; two-stage Docker |
 
@@ -523,7 +523,8 @@ from; it fails if there is none.
   refuses a bearer token with `typ: calm-ext+jwt` in every auth mode, and sends the 401 challenge for it itself, so
   that an OIDC provider that is down cannot make it a 500
 - Tests generate key pairs at run time (`ExtensionTestKeys`); `*.pem` is git-ignored. `FixtureBackend` is a
-  loopback backend for proxy tests
+  loopback backend for proxy tests. A test that waits for `streamBroken()` or `brokenStreams()` must use
+  `FixtureBackend.Stream.untilClosed`: a stream of a set size can end before Hub's close takes effect
 - `calm-hub-extensions/` holds the extensions we own (`c4`, `ea-layers`): real services, each with its own notation.
   Each runs as a sidecar and copies its folder to the shared `calm.extensions.dir` volume (`deploy/docker-compose.yml`).
   `TestExtensionManifestLoaderShould` loads that folder, so a manifest or notation that Hub refuses fails the Java tests

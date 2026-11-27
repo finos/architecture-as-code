@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import {
     extractNetworkAddressables,
     AddressableEntry,
@@ -9,6 +9,7 @@ import {
     NetworkAddressableValidator,
     ValidationResult,
 } from './network-addressable-validator.js';
+import { calmSite } from '../test/mocks/calm-site.js';
 
 const WORKSHOP_DIR = join(
     __dirname,
@@ -21,15 +22,19 @@ const jsonPath = join(
 const jsonDoc = readFileSync(jsonPath, 'utf-8');
 const entries: AddressableEntry[] = extractNetworkAddressables(jsonDoc);
 
-// Using default HttpReferenceResolver; ensure network access is available
+// The default HttpReferenceResolver sends real requests, and calmSite answers them.
+const site = calmSite();
 const validator = new NetworkAddressableValidator();
 
 describe('NetworkAddressableValidator E2E', () => {
     let results: ValidationResult[];
 
     beforeAll(async () => {
+        site.listen({ onUnhandledRequest: 'error' });
         results = await validator.validate(entries);
     });
+
+    afterAll(() => site.close());
 
     it('validates the conference website URL as reachable and not a schema', () => {
         const entry = entries.find(

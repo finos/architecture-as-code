@@ -282,6 +282,31 @@ cd calm-hub && ../mvnw -P integration verify
 All new code needs tests covering both success and error cases. Aim for >80% coverage on new code,
 100% on critical paths.
 
+A test must not need the internet, because a slow or failed request fails PRs that did not cause it.
+Mock the HTTP layer (`calmSite()` in `shared`) or serve the data from a local server. A check that must
+read a registry goes in its own workflow, with a `paths` filter and a schedule, as
+`validate-docify-template-deps.yml` does. Do not wait for a set time or send a set quantity of data
+to let another thread finish. Wait for the condition.
+
+### Maven downloads in CI
+
+Maven Central limits the request rate of the GitHub runners (HTTP 429). Two settings keep the
+builds away from that limit:
+
+- `.mvn/maven.config` raises the number of times Maven tries a download again after a 429 or 503.
+  Maven reads it for each `mvn` and `./mvnw` command in the repository. It sets the limit under
+  two names, because Maven 3.10 renamed the property and some workflows use the `mvn` of the
+  runner, not the wrapper. Keep both.
+- A build that saves a `~/.m2` cache must resolve all that the builds that restore it resolve.
+  `actions/cache` does not save again after an exact hit, so if a build that resolves less saves
+  first, the others download their missing artifacts in each run. `build-calm-hub.yml` and
+  `calm-schema-compatibility.yml` run the same integration build and save the
+  `calm-hub-integration` cache. The coverage build and the two JVM image builds only restore it
+  (`actions/cache/restore`), and use the `mvn` of the runner as the integration build does: the
+  cache does not hold the Maven that `./mvnw` downloads. The native image builds save one cache
+  for each architecture. Do not give each Maven build its own cache: the repository has a 10 GB
+  limit for all caches, and GitHub then removes the caches that were not used for the longest time.
+
 ## Commit Messages
 
 **Conventional Commits**, enforced by commitlint via husky — invalid messages are rejected at commit

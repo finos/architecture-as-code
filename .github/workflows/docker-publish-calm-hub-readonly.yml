@@ -57,18 +57,28 @@ jobs:
 
             # Step 3: Cache Maven Dependencies
             - name: Cache Maven Dependencies
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ~/.m2
-                  key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
+                  # Restore only. build-calm-hub.yml saves this cache, and its build resolves all that this
+                  # build resolves. A cache for each build fills the cache quota of the repository.
+                  key: ${{ runner.os }}-m2-calm-hub-integration-${{ hashFiles('pom.xml', 'calm-hub/pom.xml') }}
                   restore-keys: |
+                      ${{ runner.os }}-m2-calm-hub-integration-
                       ${{ runner.os }}-m2-
 
-            # Step 4: Build application and stage seed content via the shared script.
-            # --no-docker: skip the local docker build; this workflow uses buildx below
-            # for a multi-arch push.  The same script is used for local builds.
-            - name: Build and stage seed content
-              run: bash calm-hub/build-readonly-image.sh --no-docker
+            # Step 4: Build the application with the Maven of the runner, as build-calm-hub.yml does.
+            # The restored cache does not hold the Maven of the wrapper, and ./mvnw downloads it from
+            # Maven Central with no retry.
+            - name: Build with Maven
+              working-directory: calm-hub
+              run: mvn package -DskipITs
+
+            # Stage seed content via the shared script, which local builds also use.
+            # --no-maven: step 4 built the application. --no-docker: skip the local docker build;
+            # this workflow uses buildx below for a multi-arch push.
+            - name: Stage seed content
+              run: bash calm-hub/build-readonly-image.sh --no-maven --no-docker
 
 
             # Step 5: Set up Docker Buildx for multi-architecture builds
