@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,7 +38,11 @@ class TestNamespaceAccessFilterShould {
     private ResourceRegistry registryService;
 
     private NamespaceAccessFilter filterWithAuth(boolean authEnabled) {
-        return new NamespaceAccessFilter(identity, accessValidator, registryService, authEnabled);
+        return new NamespaceAccessFilter(identity, accessValidator, registryService, authEnabled, () -> true);
+    }
+
+    private NamespaceAccessFilter filterOutsideARequest(boolean authEnabled) {
+        return new NamespaceAccessFilter(identity, accessValidator, registryService, authEnabled, () -> false);
     }
 
     @Test
@@ -156,5 +161,44 @@ class TestNamespaceAccessFilterShould {
         Set<String> result = filter.getAccessibleNamespaces();
 
         assertThat(result, is(empty()));
+    }
+
+    @Test
+    void return_no_namespaces_without_touching_the_identity_outside_a_request() {
+        NamespaceAccessFilter filter = filterOutsideARequest(true);
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of()), Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        Set<String> result = filter.getAccessibleNamespaces();
+
+        assertThat(result, is(empty()));
+        verifyNoInteractions(identity, accessValidator);
+    }
+
+    @Test
+    void return_all_namespaces_outside_a_request_when_auth_disabled() {
+        NamespaceAccessFilter filter = filterOutsideARequest(false);
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(), "private", List.of()), Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        Set<String> result = filter.getAccessibleNamespaces();
+
+        assertThat(result, containsInAnyOrder("finos", "private"));
+        verifyNoInteractions(identity);
+    }
+
+    @Test
+    void return_no_namespaces_when_no_request_context_exists() {
+        NamespaceAccessFilter filter = new NamespaceAccessFilter(identity, accessValidator, registryService, true);
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of()), Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        Set<String> result = filter.getAccessibleNamespaces();
+
+        assertThat(result, is(empty()));
+        verifyNoInteractions(identity, accessValidator);
     }
 }

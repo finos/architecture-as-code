@@ -1,10 +1,29 @@
 import { z } from 'zod';
 
+// These values go into GitHub API paths that the server calls with its token,
+// so they must not hold path separators or '.' / '..' segments that move to another endpoint.
+const githubNameSchema = (label: string) =>
+  z
+    .string()
+    .min(1, `${label} is required`)
+    .regex(/^[A-Za-z0-9_.-]+$/, `${label} may only contain letters, digits, '-', '_' and '.'`)
+    .refine((name) => name !== '.' && name !== '..', `${label} is not valid`);
+
+export const githubOwnerSchema = githubNameSchema('Repository owner');
+export const githubRepoSchema = githubNameSchema('Repository name');
+export const githubFilePathSchema = z
+  .string()
+  .min(1, 'File path is required')
+  .refine(
+    (path) => path.split('/').every((segment) => segment !== '.' && segment !== '..'),
+    "File path must not contain '.' or '..' segments",
+  );
+
 // Input schema for fetching a CALM file from GitHub
 export const githubFetchInputSchema = z.object({
-  owner: z.string().min(1, 'Repository owner is required'),
-  repo: z.string().min(1, 'Repository name is required'),
-  filePath: z.string().min(1, 'File path is required'),
+  owner: githubOwnerSchema,
+  repo: githubRepoSchema,
+  filePath: githubFilePathSchema,
 });
 export type GitHubFetchInput = z.infer<typeof githubFetchInputSchema>;
 

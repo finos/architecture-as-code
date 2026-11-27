@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { githubFetch } from '@/lib/github/client';
+import { encodeRepoPath, githubFetch } from '@/lib/github/client';
 import {
   githubFetchInputSchema,
   githubContentsResponseSchema,
@@ -84,7 +84,7 @@ export async function POST(request: Request): Promise<Response> {
   let fileSha: string;
   let rawContent: string;
   try {
-    const contentsRes = await githubFetch(`/repos/${owner}/${repo}/contents/${filePath}`, { token: token ?? undefined });
+    const contentsRes = await githubFetch(`/repos/${owner}/${repo}/contents/${encodeRepoPath(filePath)}`, { token: token ?? undefined });
 
     if (contentsRes.status === 404) {
       return NextResponse.json(

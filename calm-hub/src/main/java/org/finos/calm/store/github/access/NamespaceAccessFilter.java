@@ -1,5 +1,7 @@
 package org.finos.calm.store.github.access;
 
+import io.quarkus.arc.Arc;
+import io.quarkus.arc.ArcContainer;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -14,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 /**
  * Resolves the set of namespaces the current caller can access, for GitHub-mode stores
@@ -32,6 +35,12 @@ import java.util.Set;
  * already calls into {@code UserAccessStore.getGrantsForUser}, which in GitHub mode is
  * {@code GitHubUserAccessStore} — the OIDC role resolution still happens, just in one
  * place instead of two.
+ *
+ * <p>The injected {@link SecurityIdentity} is request-scoped. Today the only callers are the
+ * GitHub-mode control and domain stores, reached from REST resources and MCP tools, which run
+ * in an active request context. Off a request thread (for example a {@code @Scheduled} sync tick
+ * or the startup initializer) there is no caller identity, so when auth is enabled the filter
+ * returns no namespaces instead of throwing {@code ContextNotActiveException}.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
@@ -43,16 +52,32 @@ public class NamespaceAccessFilter {
     private final UserAccessValidator accessValidator;
     private final ResourceRegistry registryService;
     private final boolean authEnabled;
+    private final BooleanSupplier requestContextActive;
 
     @Inject
     public NamespaceAccessFilter(SecurityIdentity identity,
                                   UserAccessValidator accessValidator,
                                   ResourceRegistry registryService,
                                   @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false") boolean authEnabled) {
+        this(identity, accessValidator, registryService, authEnabled,
+                NamespaceAccessFilter::isRequestContextActive);
+    }
+
+    NamespaceAccessFilter(SecurityIdentity identity,
+                          UserAccessValidator accessValidator,
+                          ResourceRegistry registryService,
+                          boolean authEnabled,
+                          BooleanSupplier requestContextActive) {
         this.identity = identity;
         this.accessValidator = accessValidator;
         this.registryService = registryService;
         this.authEnabled = authEnabled;
+        this.requestContextActive = requestContextActive;
+    }
+
+    private static boolean isRequestContextActive() {
+        ArcContainer container = Arc.container();
+        return container != null && container.requestContext().isActive();
     }
 
     public Set<String> getAccessibleNamespaces() {
@@ -63,6 +88,11 @@ public class NamespaceAccessFilter {
         // where there is no real identity to resolve grants against at all.
         if (!authEnabled) {
             return new HashSet<>(allNamespaces);
+        }
+
+        if (!requestContextActive.getAsBoolean()) {
+            LOG.warn("Namespace access was checked outside a request, where there is no caller identity; returning no namespaces");
+            return Set.of();
         }
 
         if (identity == null || identity.isAnonymous()) {

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import '@/lib/github/globals';
-import { githubFetch } from '@/lib/github/client';
+import { encodeRepoPath, githubFetch } from '@/lib/github/client';
+import { githubFilePathSchema, githubOwnerSchema, githubRepoSchema } from '@/lib/github/types';
 import { getHeadSha, createBranch, commitMultipleFiles, createPR, ensureLabel, addLabelToPR } from '@/lib/github/operations';
 import type { PipelineConfig } from '@/lib/agents/pipeline-generator';
 import type { CloudInfraConfig } from '@/lib/agents/cloud-infra-generator';
@@ -28,9 +29,9 @@ const LABEL_MAP: Record<string, { name: string; color: string; description: stri
 
 const createPRRequestSchema = z.object({
   type: z.enum(['pipeline', 'remediation', 'infra']),
-  owner: z.string(),
-  repo: z.string(),
-  filePath: z.string(),       // original CALM file path (for remediation)
+  owner: githubOwnerSchema,
+  repo: githubRepoSchema,
+  filePath: githubFilePathSchema, // original CALM file path (for remediation)
   fileSha: z.string(),        // current SHA of CALM file (for remediation)
   defaultBranch: z.string(),  // base branch for PR
 });
@@ -379,7 +380,7 @@ export async function POST(req: Request): Promise<Response> {
           ).toString('base64');
 
           const contentResponse = await githubFetch(
-            `/repos/${owner}/${repo}/contents/${filePath}`,
+            `/repos/${owner}/${repo}/contents/${encodeRepoPath(filePath)}`,
             {
               method: 'PUT',
               token,
