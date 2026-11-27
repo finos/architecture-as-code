@@ -1,6 +1,6 @@
 header:
   schema-version: 2.2.0
-  last-updated: '2026-11-15'
+  last-updated: '2026-11-27'
   last-reviewed: '2026-09-26'
   url: https://raw.githubusercontent.com/finos/architecture-as-code/main/security-insights.yml
   comment: |
@@ -263,7 +263,7 @@ repository:
         results: {}
       - name: Dependabot
         type: SCA
-        comment: Security updates and alerts for npm, Maven and GitHub Actions.
+        comment: Alerts for npm, Maven and GitHub Actions. Security updates are off, because Renovate and the OSV Fix workflow raise the fixes.
         rulesets:
           - GitHub Advisory Database
         integration:
