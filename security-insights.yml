@@ -204,7 +204,7 @@ repository:
           component gains a new interface, trust boundary or distribution channel.
     tools:
       - name: GitHub Secret Scanning
-        type: secret-scanning
+        type: secret
         comment: |
           GitHub secret scanning with push protection, enabled in the repository
           security settings. The setting is visible only to repository admins, so
