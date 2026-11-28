@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { CanvasPanel } from './webview/canvas-panel';
 import { CalmCanvasCodeLensProvider } from './services/codelens-provider';
+import { CalmIdHoverProvider } from './services/hover-provider';
 import { HubClient } from './services/hub-client';
 import { HubAuthService } from './services/hub-auth-service';
 import { HubStatusBar } from './services/hub-status-bar';
@@ -94,6 +95,10 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.languages.registerCodeLensProvider(
             calmSelector,
             new CalmCanvasCodeLensProvider()
+        ),
+        vscode.languages.registerHoverProvider(
+            calmSelector,
+            new CalmIdHoverProvider()
         )
     );
 

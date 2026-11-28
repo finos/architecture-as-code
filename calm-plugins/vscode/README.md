@@ -24,6 +24,8 @@ are sent back to the canvas.
   and relationship properties.
 - **Navigation:** pan, zoom, inspect selected elements, and drill into referenced
   standard nodes with breadcrumb navigation.
+- **Id hover:** in the JSON editor, hover a `unique-id`, where it is declared or
+  referenced, to see the node, interface, relationship or flow that it identifies.
 - **Layout:** choose top-to-bottom or left-to-right automatic layout from the
   canvas toolbar.
 - **Validation:** click **Validate** to check the model against the bundled CALM
