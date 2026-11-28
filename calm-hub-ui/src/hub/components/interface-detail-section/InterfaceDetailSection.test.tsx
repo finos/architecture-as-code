@@ -32,7 +32,7 @@ vi.mock('../../../service/interface-service.js', () => ({
 
 const interfaceData: InterfaceData = {
     namespace: 'org.finos',
-    interfaceId: 1,
+    interfaceId: '1',
     interfaceName: 'Payment API',
     interfaceDescription: 'Payment gateway interface',
 };
@@ -95,7 +95,7 @@ describe('InterfaceDetailSection', () => {
             await waitFor(() => {
                 expect(mockFetchInterfaceVersions).toHaveBeenCalledWith(
                     'org.finos',
-                    1,
+                    '1',
                 );
             });
         });
@@ -107,7 +107,7 @@ describe('InterfaceDetailSection', () => {
             await waitFor(() => {
                 expect(mockFetchInterfaceForVersion).toHaveBeenCalledWith(
                     'org.finos',
-                    1,
+                    '1',
                     '1.0.0'
                 );
             });
@@ -162,7 +162,7 @@ describe('InterfaceDetailSection', () => {
             await waitFor(() => {
                 expect(mockFetchInterfaceForVersion).toHaveBeenCalledWith(
                     'org.finos',
-                    1,
+                    '1',
                     '2.0.0'
                 );
             });
@@ -213,12 +213,12 @@ describe('InterfaceDetailSection', () => {
             const { rerender } = render(<InterfaceDetailSection interfaceData={interfaceData} />);
 
             await waitFor(() => {
-                expect(mockFetchInterfaceVersions).toHaveBeenCalledWith('org.finos', 1);
+                expect(mockFetchInterfaceVersions).toHaveBeenCalledWith('org.finos', '1');
             });
 
             const newInterfaceData: InterfaceData = {
                 namespace: 'org.finos',
-                interfaceId: 2,
+                interfaceId: '2',
                 interfaceName: 'Auth API',
                 interfaceDescription: 'Authentication interface',
             };
@@ -227,7 +227,7 @@ describe('InterfaceDetailSection', () => {
             rerender(<InterfaceDetailSection interfaceData={newInterfaceData} />);
 
             await waitFor(() => {
-                expect(mockFetchInterfaceVersions).toHaveBeenCalledWith('org.finos', 2);
+                expect(mockFetchInterfaceVersions).toHaveBeenCalledWith('org.finos', '2');
             });
         });
 

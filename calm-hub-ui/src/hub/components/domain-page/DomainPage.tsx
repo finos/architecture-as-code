@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { IoShieldCheckmarkOutline } from 'react-icons/io5';
 import { ControlService } from '../../../service/control-service.js';
 import { ControlDetail } from '../../../model/control.js';
+import { resourceIdentityQuery } from '../../../model/search.js';
 import { colors } from '../../../theme/colors.js';
 import { ControlCard } from './ControlCard.js';
 
@@ -81,11 +82,11 @@ export function DomainPage({ domain, controlCount }: DomainPageProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {controls.map((control) => (
                             <ControlCard
-                                key={control.id}
+                                key={`${control.id}|${control.tags?.path ?? ''}|${control.tags?.variant ?? ''}`}
                                 name={control.title ?? control.name}
                                 description={control.description}
                                 controlId={control.id}
-                                href={`/${encodeURIComponent(domain)}/controls/${control.id}/detail`}
+                                href={`/${encodeURIComponent(domain)}/controls/${encodeURIComponent(control.id)}/detail?${resourceIdentityQuery(control.tags)}`}
                             />
                         ))}
                     </div>

@@ -772,7 +772,10 @@ export default function Hub({ storage }: HubProps) {
     // the domain's control list. The key resets the panel's view mode when the
     // control changes.
     const content = controlData ? (
-        <ControlPanel key={controlData.controlId} controlData={controlData} />
+        <ControlPanel
+            key={`${controlData.controlId}|${controlData.path ?? ''}|${controlData.variant ?? ''}`}
+            controlData={controlData}
+        />
     ) : isBrokenRefRoute ? (
         // A malformed detailed-architecture ref (missing/extra segments): the
         // raw ref cannot be split into route segments, so echo it verbatim.

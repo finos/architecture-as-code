@@ -94,6 +94,27 @@ describe('SearchResultsPage', () => {
         );
     });
 
+    it('opens each control of a same-stem pair from search with its own identity', async () => {
+        const cases = [
+            { name: 'Prod auth', tags: { path: 'security', variant: '' }, link: '/security/controls/Prod%20auth/detail?path=security&variant=' },
+            { name: 'Legacy auth', tags: { path: 'security/legacy', variant: '' }, link: '/security/controls/Legacy%20auth/detail?path=security%2Flegacy&variant=' },
+            { name: 'Auth v2', tags: { path: 'security', variant: 'v2' }, link: '/security/controls/Auth%20v2/detail?path=security&variant=v2' },
+        ];
+
+        for (const { name, link } of cases) {
+            const results: GroupedSearchResults = {
+                ...emptyResults,
+                controls: [
+                    ...cases.map((c) => ({ namespace: 'security', id: 'auth', name: c.name, description: 'copy', tags: c.tags })),
+                ],
+            };
+            const { unmount } = renderPage('/search?q=auth', createMockSearchService(vi.fn().mockResolvedValue(results)));
+            fireEvent.click(await screen.findByText(name));
+            await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(link));
+            unmount();
+        }
+    });
+
     it('shows an empty state when nothing matches', async () => {
         renderPage('/search?q=zzz', createMockSearchService(vi.fn().mockResolvedValue(emptyResults)));
         expect(await screen.findByText(/No results found for/i)).toBeInTheDocument();

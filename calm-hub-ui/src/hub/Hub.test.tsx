@@ -498,7 +498,7 @@ const loadInterface = () =>
     act(() =>
         captured?.onInterfaceLoad({
             namespace: 'org.finos',
-            interfaceId: 1,
+            interfaceId: '1',
             interfaceName: 'test-interface',
             interfaceDescription: 'A test interface',
         })

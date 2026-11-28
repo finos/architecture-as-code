@@ -83,12 +83,12 @@ describe('useResourceFromRoute', () => {
     });
 
     it('loads an interface via onInterfaceLoad when the id matches', async () => {
-        fetchInterfacesForNamespace.mockResolvedValue([{ id: 7, name: 'My Interface', description: 'desc' }]);
+        fetchInterfacesForNamespace.mockResolvedValue([{ id: '7', name: 'My Interface', description: 'desc' }]);
         renderAt('/traderx/interfaces/7/detail');
         await waitFor(() => {
             expect(callbacks.onInterfaceLoad).toHaveBeenCalledWith({
                 namespace: 'traderx',
-                interfaceId: 7,
+                interfaceId: '7',
                 interfaceName: 'My Interface',
                 interfaceDescription: 'desc',
             });
@@ -97,13 +97,13 @@ describe('useResourceFromRoute', () => {
 
     it('loads an interface via onInterfaceLoad when the slug matches', async () => {
         fetchInterfacesForNamespace.mockResolvedValue([
-            { id: 7, name: 'My Interface', description: 'desc', customId: 'my-interface' },
+            { id: '7', name: 'My Interface', description: 'desc', customId: 'my-interface' },
         ]);
         renderAt('/traderx/interfaces/my-interface/detail');
         await waitFor(() => {
             expect(callbacks.onInterfaceLoad).toHaveBeenCalledWith({
                 namespace: 'traderx',
-                interfaceId: 7,
+                interfaceId: '7',
                 interfaceName: 'My Interface',
                 interfaceDescription: 'desc',
             });
@@ -143,6 +143,42 @@ describe('useResourceFromRoute', () => {
         renderAt('/security/controls/5/detail');
         await waitFor(() => {
             expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({ controlId: "5" }));
+        });
+    });
+
+    it('loads the control named by the folder path when two controls share a stem', async () => {
+        fetchControlsForDomain.mockResolvedValue([
+            { id: 'auth', name: 'auth', description: 'root copy', title: 'Root auth', tags: { path: '', variant: '' } },
+            { id: 'auth', name: 'auth', description: 'legacy copy', title: 'Legacy auth', tags: { path: 'security/legacy', variant: '' } },
+            { id: 'auth', name: 'auth', description: 'prod copy', title: 'Prod auth', tags: { path: 'security', variant: '' } },
+        ]);
+        renderAt('/security/controls/auth/detail?path=security/legacy&variant=');
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith({
+                domain: 'security',
+                controlId: 'auth',
+                controlName: 'auth',
+                controlDescription: 'legacy copy',
+                controlTitle: 'Legacy auth',
+                path: 'security/legacy',
+                variant: undefined,
+            });
+        });
+    });
+
+    it('loads the control named by the variant when two controls share a stem and path', async () => {
+        fetchControlsForDomain.mockResolvedValue([
+            { id: 'auth', name: 'auth', description: 'plain copy', title: 'Plain auth', tags: { path: 'security', variant: '' } },
+            { id: 'auth', name: 'auth', description: 'v2 copy', title: 'Auth v2', tags: { path: 'security', variant: 'v2' } },
+        ]);
+        renderAt('/security/controls/auth/detail?path=security&variant=v2');
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({
+                controlDescription: 'v2 copy',
+                controlTitle: 'Auth v2',
+                path: 'security',
+                variant: 'v2',
+            }));
         });
     });
 
@@ -197,6 +233,27 @@ describe('useResourceFromRoute — reloads', () => {
 
         expect(loadResource).toHaveBeenCalledTimes(1);
         loadResource.mockRestore();
+    });
+
+    it('loads the other control again when only its identity query changes', async () => {
+        vi.clearAllMocks();
+        fetchControlsForDomain.mockResolvedValue([
+            { id: 'auth', name: 'auth', description: 'prod copy', title: 'Prod auth', tags: { path: 'security', variant: '' } },
+            { id: 'auth', name: 'auth', description: 'legacy copy', title: 'Legacy auth', tags: { path: 'security/legacy', variant: '' } },
+        ]);
+        renderWithNavigation(
+            '/security/controls/auth/detail?path=security&variant=',
+            '/security/controls/auth/detail?path=security/legacy&variant='
+        );
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({ controlTitle: 'Prod auth' }));
+        });
+
+        fireEvent.click(screen.getByRole('button'));
+
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({ controlTitle: 'Legacy auth' }));
+        });
     });
 
     it('loads the resource again on a navigation to the same path', async () => {
@@ -272,7 +329,7 @@ describe('useResourceFromRoute — stale results after navigation', () => {
         const { unmount } = renderAt('/traderx/interfaces/7/detail');
 
         unmount();
-        resolveInterfaces([{ id: 7, name: 'My Interface', description: 'desc' }]);
+        resolveInterfaces([{ id: '7', name: 'My Interface', description: 'desc' }]);
         await flush();
 
         expect(callbacks.onInterfaceLoad).not.toHaveBeenCalled();

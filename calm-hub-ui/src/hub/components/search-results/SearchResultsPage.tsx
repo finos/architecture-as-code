@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SearchService } from '../../../service/search-service.js';
-import { GroupedSearchResults, SearchResult } from '../../../model/search.js';
+import { GroupedSearchResults, SearchResult, searchResultKey } from '../../../model/search.js';
 import { TYPE_LABELS, flattenResults, useSearchNavigation } from '../../../hooks/useSearchNavigation.js';
 import { colors } from '../../../theme/colors.js';
 import { useExtensions } from '../../../extensions/ExtensionsContext.js';
@@ -124,7 +124,7 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                                 <div className="flex flex-col gap-2">
                                     {(items as SearchResult[]).map((item) => (
                                         <button
-                                            key={`${type}-${item.namespace}-${item.id}`}
+                                            key={searchResultKey(type, item)}
                                             className="w-full text-left rounded-xl px-4 py-3 hover:bg-base-200 transition-colors cursor-pointer"
                                             style={{ border: `1px solid ${colors.redesign.border}` }}
                                             onClick={() => navigateToResult({ type, result: item })}

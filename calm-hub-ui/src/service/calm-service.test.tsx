@@ -685,9 +685,15 @@ describe('CalmService', () => {
         });
 
         it('resolves a slug to its numeric id through the mappings', async () => {
-            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, { values: [{ namespace, customId: 'my-arch', resourceType: 'ARCHITECTURE', numericId: 42 }] });
+            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, { values: [{ namespace, customId: 'my-arch', resourceType: 'ARCHITECTURE', id: '42', numericId: 42 }] });
             expect(await calmService.resolveArchitectureVersionTarget(namespace, 'my-arch', '1.0.0'))
                 .toBe(`/api/calm/namespaces/${namespace}/architectures/42/versions/1-0-0`);
+        });
+
+        it('resolves a slug in GitHub mode from the string id without a numeric id', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, { values: [{ namespace, customId: 'my-arch', resourceType: 'ARCHITECTURE', id: 'my-arch' }] });
+            expect(await calmService.resolveArchitectureVersionTarget(namespace, 'my-arch', '1.0.0'))
+                .toBe(`/api/calm/namespaces/${namespace}/architectures/my-arch/versions/1-0-0`);
         });
 
         it('returns undefined when the slug cannot be resolved', async () => {

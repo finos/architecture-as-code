@@ -2,7 +2,7 @@
  * Represents an interface summary returned from the API.
  */
 export interface InterfaceDetail {
-    id: number;
+    id: string;
     name: string;
     description: string;
     customId?: string;
@@ -13,7 +13,7 @@ export interface InterfaceDetail {
  */
 export interface InterfaceData {
     namespace: string;
-    interfaceId: number;
+    interfaceId: string;
     interfaceName: string;
     interfaceDescription: string;
 }

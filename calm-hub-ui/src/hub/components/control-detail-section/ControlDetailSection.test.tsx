@@ -93,6 +93,22 @@ describe('ControlDetailSection', () => {
         vi.clearAllMocks();
     });
 
+    it('loads the documents of the identified control, not another control with the same stem', async () => {
+        setupMocks();
+        render(<ControlDetailSection
+            controlData={{ ...controlData, controlId: 'auth', path: 'security/legacy', variant: 'markdown' }}
+        />);
+
+        await waitFor(() => {
+            expect(mockFetchRequirementVersions).toHaveBeenCalledWith(
+                'security', 'auth', { path: 'security/legacy', variant: 'markdown' }
+            );
+            expect(mockFetchConfigurationsForControl).toHaveBeenCalledWith(
+                'security', 'auth', { path: 'security/legacy', variant: 'markdown' }
+            );
+        });
+    });
+
     // ──────────────────────────────────────────────────
     // Desktop: side-by-side columns
     // ──────────────────────────────────────────────────

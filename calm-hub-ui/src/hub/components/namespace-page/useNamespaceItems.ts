@@ -22,7 +22,7 @@ export interface NamespaceItemGroup {
 }
 
 const summaryToItem = (s: ResourceSummary): NamespaceItem => ({
-    id: s.customId ?? s.id.toString(),
+    id: s.customId ?? s.id,
     name: s.name,
     description: s.description,
     customId: s.customId,

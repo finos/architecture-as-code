@@ -7,7 +7,7 @@ const ax = axios.create();
 const mock = new AxiosMockAdapter(ax as never);
 
 const namespace = 'org.finos';
-const interfaceId = 1;
+const interfaceId = '1';
 const version = '1.0.0';
 
 describe('InterfaceService', () => {

@@ -279,6 +279,8 @@ CALM Hub uses the **HTTP Streamable** MCP transport (Quarkiverse `quarkus-mcp-se
 | `AdrTools` | `list_adrs`, `get_adr` |
 | `ConventionTools` | `listConventions`, `getConvention`, `getNamespaceDefaultConvention` |
 
+The tools in `ArchitectureTools`, `PatternTools`, `TimelineTools`, `StandardTools`, `InterfaceTools` and `ControlTools` take string `id` arguments in every storage mode. In GitHub mode, `id` is the filename stem and the optional `path` and `variant` arguments identify one file when several share that stem: an omitted argument means "any" and returns an ambiguity error, while an empty string means "none". Listings show the tags of each resource, so pass them back on a read.
+
 To retrieve the full tool list from a running instance:
 
 ```bash

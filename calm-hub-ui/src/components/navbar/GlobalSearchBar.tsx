@@ -3,7 +3,7 @@ import { IoSearchOutline, IoCloseOutline } from 'react-icons/io5';
 import { SearchService } from '../../service/search-service.js';
 import { CalmService } from '../../service/calm-service.js';
 import { AdrService } from '../../service/adr-service/adr-service.js';
-import { SearchResult } from '../../model/search.js';
+import { SearchResult, searchResultKey } from '../../model/search.js';
 import { FlatResult, TYPE_LABELS, useSearchNavigation } from '../../hooks/useSearchNavigation.js';
 import { useCatalogueSearch } from '../../hooks/useCatalogueSearch.js';
 import { useProductName } from '../branding/brand-names.js';
@@ -139,7 +139,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     const currentIndex = globalIndex++;
                     return (
                         <button
-                            key={`${type}-${item.namespace}-${item.id}`}
+                            key={searchResultKey(type, item)}
                             id={optionId(currentIndex)}
                             className={`w-full text-left px-3 py-2 text-sm hover:bg-base-200 cursor-pointer ${
                                 currentIndex === selectedIndex ? 'bg-base-200' : ''

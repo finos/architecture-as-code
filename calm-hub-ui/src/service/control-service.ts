@@ -7,17 +7,13 @@ import {
     ControlRequirementDoc,
 } from '../model/control.js';
 import { apiClient } from './utils/api-client.js';
-import type { ResourceTags } from '../model/search.js';
+import { resourceIdentityQuery, type ResourceTags } from '../model/search.js';
 
 export class ControlService {
     private readonly ax: AxiosInstance;
 
     private static withTags(url: string, tags?: ResourceTags): string {
-        if (!tags?.path && !tags?.variant) return url;
-        const query = new URLSearchParams();
-        if (tags.path) query.set('path', tags.path);
-        if (tags.variant) query.set('variant', tags.variant);
-        return `${url}?${query.toString()}`;
+        return `${url}?${resourceIdentityQuery(tags)}`;
     }
 
     constructor(axiosInstance?: AxiosInstance) {

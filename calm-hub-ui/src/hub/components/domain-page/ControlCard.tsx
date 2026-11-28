@@ -5,7 +5,7 @@ import { ItemCard } from '../namespace-page/ItemCard.js';
 interface ControlCardProps {
     name: string;
     description?: string;
-    /** The control's numeric id, shown as the mono footer meta (`#5`). */
+    /** The control's id, shown as the mono footer meta. */
     controlId: string;
     /** Deep link to the control's detail route. */
     href: string;

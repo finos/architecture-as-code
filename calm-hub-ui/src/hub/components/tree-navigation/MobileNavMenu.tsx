@@ -8,6 +8,7 @@ import { AdrService } from '../../../service/adr-service/adr-service.js';
 import { ResourceSummary } from '../../../model/calm.js';
 import { pickLatestVersion } from '../../../model/version.js';
 import { ControlDetail } from '../../../model/control.js';
+import { resourceIdentityQuery, type ResourceTags } from '../../../model/search.js';
 import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
 import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
@@ -69,6 +70,7 @@ type View =
 interface LeafItem {
     id: string;
     name: string;
+    tags?: ResourceTags;
 }
 
 interface EmptyMessageContext {
@@ -172,7 +174,7 @@ export function MobileNavMenu({
             if (type === 'Interfaces') {
                 interfaceService
                     .fetchInterfacesForNamespace(namespace)
-                    .then((ifaces) => finish(ifaces.map((i) => ({ id: i.id.toString(), name: i.name }))))
+                    .then((ifaces) => finish(ifaces.map((i) => ({ id: i.id, name: i.name }))))
                     .catch(() => finish([]));
             } else if (type === 'ADRs') {
                 adrService
@@ -190,7 +192,7 @@ export function MobileNavMenu({
                             : calmService.fetchStandardSummaries.bind(calmService);
                 fetcher(namespace)
                     .then((sums: ResourceSummary[]) =>
-                        finish(sums.map((s) => ({ id: s.customId ?? s.id.toString(), name: s.name })))
+                        finish(sums.map((s) => ({ id: s.customId ?? s.id, name: s.name })))
                     )
                     .catch(() => finish([]));
             }
@@ -206,7 +208,7 @@ export function MobileNavMenu({
             controlService
                 .fetchControlsForDomain(domain)
                 .then((controls: ControlDetail[]) =>
-                    setLeafItems(controls.map((c) => ({ id: c.id.toString(), name: c.title ?? c.name })))
+                    setLeafItems(controls.map((c) => ({ id: c.id, name: c.title ?? c.name, tags: c.tags })))
                 )
                 .catch(() => setLeafItems([]))
                 .finally(() => setLeafLoading(false));
@@ -235,8 +237,8 @@ export function MobileNavMenu({
     );
 
     const selectControl = useCallback(
-        (id: string, domain: string) => {
-            navigate(`/${domain}/controls/${id}/detail`);
+        (id: string, domain: string, tags?: ResourceTags) => {
+            navigate(`/${domain}/controls/${encodeURIComponent(id)}/detail?${resourceIdentityQuery(tags)}`);
             onClose();
         },
         [navigate, onClose]
@@ -328,10 +330,10 @@ export function MobileNavMenu({
                 }));
             case 'controls':
                 return leafItems.map((item) => ({
-                    key: item.id,
+                    key: `${item.id}|${item.tags?.path ?? ''}|${item.tags?.variant ?? ''}`,
                     label: item.name,
                     isLeaf: true,
-                    onClick: () => selectControl(item.id, view.domain),
+                    onClick: () => selectControl(item.id, view.domain, item.tags),
                 }));
             default:
                 return [];

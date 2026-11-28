@@ -461,14 +461,14 @@ export class CalmService {
      */
     public async resolveArchitectureVersionTarget(namespace: string, id: string, version: string): Promise<string | undefined> {
         const versionPath = version.replace(/\./g, '-');
-        let numericId = id;
+        let targetId = id;
         if (isSlug(id)) {
             const mappings = await this.requestMappings(namespace, 'Architectures');
             const match = mappings.find((m) => m.customId === id);
             if (!match) return undefined;
-            numericId = String(match.numericId);
+            targetId = match.id;
         }
-        return `/api/calm/namespaces/${namespace}/architectures/${numericId}/versions/${versionPath}`;
+        return `/api/calm/namespaces/${namespace}/architectures/${encodeURIComponent(targetId)}/versions/${versionPath}`;
     }
 
     /**
