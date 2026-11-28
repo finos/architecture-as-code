@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { ControlPanel } from './ControlPanel.js';
+import type { ControlData } from '../../../model/control.js';
 
 // ControlDetailSection (wrapped by the panel) fetches via ControlService on mount;
 // stub it so the panel renders without real network calls.
@@ -17,9 +18,9 @@ vi.mock('../../../service/control-service.js', () => ({
     }),
 }));
 
-const controlData = {
+const controlData: ControlData = {
     domain: 'security',
-    controlId: 5,
+    controlId: "5",
     controlName: 'Encryption',
     controlDescription: 'Encrypt data',
 };

@@ -17,7 +17,7 @@ describe('SearchService', () => {
         it('should return grouped search results', async () => {
             const expectedResults = {
                 architectures: [
-                    { namespace: 'finos', id: 1, name: 'Test Arch', description: 'desc' },
+                    { namespace: 'finos', id: '1', name: 'Test Arch', description: 'desc' },
                 ],
                 patterns: [],
                 flows: [],
@@ -56,10 +56,10 @@ describe('SearchService', () => {
         it('should return results with multiple types populated', async () => {
             const expectedResults = {
                 architectures: [
-                    { namespace: 'finos', id: 1, name: 'Demo Arch', description: 'demo' },
+                    { namespace: 'finos', id: '1', name: 'Demo Arch', description: 'demo' },
                 ],
                 patterns: [
-                    { namespace: 'finos', id: 2, name: 'Demo Pattern', description: 'demo' },
+                    { namespace: 'finos', id: '2', name: 'Demo Pattern', description: 'demo' },
                 ],
                 flows: [],
                 standards: [],
@@ -67,7 +67,7 @@ describe('SearchService', () => {
                 controls: [
                     {
                         namespace: 'api-threats',
-                        id: 1,
+                        id: '1',
                         name: 'Demo Control',
                         description: 'demo',
                     },

@@ -56,7 +56,7 @@ function mockViewport(isMobile: boolean) {
 
 const controlData: ControlData = {
     domain: 'security',
-    controlId: 1,
+    controlId: "1",
     controlName: 'Access Control',
     controlDescription: 'Controls access to resources',
 };
@@ -69,7 +69,7 @@ const configJson = { minKeyLength: 256, algorithm: 'AES' };
 function setupMocks({
     reqVersions = ['0.1.0'],
     reqSchema = requirementSchema,
-    configs = [{ id: 10 }] as ControlConfigDetail[],
+    configs = [{ id: "10" }] as ControlConfigDetail[],
     cfgVersions = ['1.0.0'],
     cfgJson = configJson,
 }: {
@@ -91,6 +91,22 @@ function setupMocks({
 describe('ControlDetailSection', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    it('loads the documents of the identified control, not another control with the same stem', async () => {
+        setupMocks();
+        render(<ControlDetailSection
+            controlData={{ ...controlData, controlId: 'auth', path: 'security/legacy', variant: 'markdown' }}
+        />);
+
+        await waitFor(() => {
+            expect(mockFetchRequirementVersions).toHaveBeenCalledWith(
+                'security', 'auth', { path: 'security/legacy', variant: 'markdown' }
+            );
+            expect(mockFetchConfigurationsForControl).toHaveBeenCalledWith(
+                'security', 'auth', { path: 'security/legacy', variant: 'markdown' }
+            );
+        });
     });
 
     // ──────────────────────────────────────────────────
@@ -196,7 +212,7 @@ describe('ControlDetailSection', () => {
             const { rerender } = render(<ControlDetailSection controlData={controlData} />);
 
             await user.click(await screen.findByRole('tab', { name: 'Configuration' }));
-            rerender(<ControlDetailSection controlData={{ ...controlData, controlId: 2 }} />);
+            rerender(<ControlDetailSection controlData={{ ...controlData, controlId: "2" }} />);
 
             expect(await screen.findByRole('tab', { name: 'Requirement' })).toHaveClass('tab-active');
         });
@@ -211,8 +227,8 @@ describe('ControlDetailSection', () => {
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
-                expect(mockFetchRequirementVersions).toHaveBeenCalledWith('security', 1);
-                expect(mockFetchConfigurationsForControl).toHaveBeenCalledWith('security', 1);
+                expect(mockFetchRequirementVersions).toHaveBeenCalledWith('security', '1', undefined);
+                expect(mockFetchConfigurationsForControl).toHaveBeenCalledWith('security', '1', undefined);
             });
         });
 
@@ -221,30 +237,30 @@ describe('ControlDetailSection', () => {
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
-                expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '2.0.0');
+                expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', '1', '2.0.0', undefined);
             });
         });
 
         it('auto-selects a default configuration and its latest version', async () => {
             setupMocks({
-                configs: [{ id: 10 }, { id: 20 }],
+                configs: [{ id: "10" }, { id: "20" }],
                 cfgVersions: ['1.0.0', '2.0.0', '1.5.0'],
             });
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
-                expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 10);
-                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 10, '2.0.0');
+                expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', '1', '10', undefined);
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', '1', '10', '2.0.0', undefined);
             });
         });
 
         it('auto-loads a lone configuration and its lone version', async () => {
-            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
+            setupMocks({ configs: [{ id: "10" }], cfgVersions: ['1.0.0'] });
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
-                expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 10);
-                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 10, '1.0.0');
+                expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', '1', '10', undefined);
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', '1', '10', '1.0.0', undefined);
             });
         });
     });
@@ -279,7 +295,7 @@ describe('ControlDetailSection', () => {
             const select = await screen.findByLabelText('Requirement version');
             await user.selectOptions(select, '0.1.0');
 
-            expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '0.1.0');
+            expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', '1', '0.1.0', undefined);
             expect(select).toHaveValue('0.1.0');
         });
     });
@@ -290,9 +306,9 @@ describe('ControlDetailSection', () => {
     describe('configuration picker', () => {
         it('labels options using title then name then a fallback', async () => {
             setupMocks({ configs: [
-                { id: 10, title: 'Rate Limit Config' },
-                { id: 20, name: 'config-b' },
-                { id: 30 },
+                { id: "10", title: 'Rate Limit Config' },
+                { id: "20", name: 'config-b' },
+                { id: "30" },
             ]});
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -304,39 +320,39 @@ describe('ControlDetailSection', () => {
         });
 
         it('fetches versions for the chosen configuration', async () => {
-            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
+            setupMocks({ configs: [{ id: "10" }, { id: "20" }] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
             const select = await screen.findByLabelText('Configuration');
             await user.selectOptions(select, '20');
 
-            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 20);
+            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', '1', '20', undefined);
         });
 
         it('does not request a version the newly selected configuration lacks', async () => {
-            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
+            setupMocks({ configs: [{ id: "10" }, { id: "20" }] });
             // config 10 has 2.0.0; config 20 only has 1.0.0
-            mockFetchConfigurationVersions.mockImplementation((_d: unknown, _c: unknown, configId: number) =>
-                Promise.resolve(configId === 10 ? ['2.0.0'] : ['1.0.0']),
+            mockFetchConfigurationVersions.mockImplementation((_d: unknown, _c: unknown, configId: string) =>
+                Promise.resolve(configId === '10' ? ['2.0.0'] : ['1.0.0']),
             );
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() =>
-                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 10, '2.0.0'),
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', '1', '10', '2.0.0', undefined),
             );
 
             await user.selectOptions(await screen.findByLabelText('Configuration'), '20');
 
             await waitFor(() =>
-                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 20, '1.0.0'),
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', '1', '20', '1.0.0', undefined),
             );
-            expect(mockFetchConfigurationForVersion).not.toHaveBeenCalledWith('security', 1, 20, '2.0.0');
+            expect(mockFetchConfigurationForVersion).not.toHaveBeenCalledWith('security', '1', '20', '2.0.0', undefined);
         });
 
         it('shows a version picker for the auto-selected config and re-fetches on config change', async () => {
-            setupMocks({ configs: [{ id: 10 }, { id: 20 }], cfgVersions: ['1.0.0', '1.1.0'] });
+            setupMocks({ configs: [{ id: "10" }, { id: "20" }], cfgVersions: ['1.0.0', '1.1.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -344,14 +360,14 @@ describe('ControlDetailSection', () => {
             // right away with the latest version selected.
             const versionSelect = await screen.findByLabelText('Configuration version');
             expect(versionSelect).toHaveValue('1.1.0');
-            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 10);
+            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', '1', '10', undefined);
 
             // Choosing a different config re-fetches that config's versions.
             await user.selectOptions(screen.getByLabelText('Configuration'), '20');
-            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 20);
+            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', '1', '20', undefined);
 
             await user.selectOptions(screen.getByLabelText('Configuration version'), '1.0.0');
-            expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 20, '1.0.0');
+            expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', '1', '20', '1.0.0', undefined);
         });
     });
 
@@ -370,7 +386,7 @@ describe('ControlDetailSection', () => {
 
             const newControl: ControlData = {
                 domain: 'compliance',
-                controlId: 2,
+                controlId: "2",
                 controlName: 'Encryption',
                 controlDescription: 'Data encryption standards',
             };
@@ -378,9 +394,9 @@ describe('ControlDetailSection', () => {
 
             await waitFor(() => {
                 expect(mockFetchRequirementVersions).toHaveBeenCalledTimes(2);
-                expect(mockFetchRequirementVersions).toHaveBeenLastCalledWith('compliance', 2);
+                expect(mockFetchRequirementVersions).toHaveBeenLastCalledWith('compliance', '2', undefined);
                 expect(mockFetchConfigurationsForControl).toHaveBeenCalledTimes(2);
-                expect(mockFetchConfigurationsForControl).toHaveBeenLastCalledWith('compliance', 2);
+                expect(mockFetchConfigurationsForControl).toHaveBeenLastCalledWith('compliance', '2', undefined);
             });
         });
 
@@ -393,9 +409,9 @@ describe('ControlDetailSection', () => {
                     : Promise.resolve({ control: 'second' })
             );
             const { rerender } = render(<ControlDetailSection controlData={controlData} />);
-            await waitFor(() => expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '0.1.0'));
+            await waitFor(() => expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', '1', '0.1.0', undefined));
 
-            rerender(<ControlDetailSection controlData={{ ...controlData, domain: 'compliance', controlId: 2 }} />);
+            rerender(<ControlDetailSection controlData={{ ...controlData, domain: 'compliance', controlId: "2" }} />);
             await waitFor(() => {
                 expect(screen.getAllByTestId('readable-json-view')[0]).toHaveTextContent('second');
             });
@@ -413,7 +429,7 @@ describe('ControlDetailSection', () => {
             await user.selectOptions(picker, '1.0.0');
 
             await waitFor(() => {
-                expect(mockFetchConfigurationForVersion).toHaveBeenLastCalledWith('security', 1, 10, '1.0.0');
+                expect(mockFetchConfigurationForVersion).toHaveBeenLastCalledWith('security', '1', '10', '1.0.0', undefined);
             });
             expect(picker).toHaveValue('1.0.0');
         });

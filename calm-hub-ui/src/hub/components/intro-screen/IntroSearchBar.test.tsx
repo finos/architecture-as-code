@@ -19,12 +19,12 @@ const emptyResults: GroupedSearchResults = {
 // is deterministic without stubbing CalmService.
 const controlResults: GroupedSearchResults = {
     ...emptyResults,
-    controls: [{ namespace: 'security', id: 7, name: 'PCI-DSS', description: 'Encryption at rest' }],
+    controls: [{ namespace: 'security', id: '7', name: 'PCI-DSS', description: 'Encryption at rest' }],
 };
 
 const groupedResults: GroupedSearchResults = {
     ...controlResults,
-    standards: [{ namespace: 'security', id: 8, name: 'Encryption Standard', description: 'AES-256' }],
+    standards: [{ namespace: 'security', id: '8', name: 'Encryption Standard', description: 'AES-256' }],
 };
 
 function createMockSearchService(searchFn: (q: string) => Promise<GroupedSearchResults>) {

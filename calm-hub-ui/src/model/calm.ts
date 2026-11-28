@@ -22,7 +22,7 @@ export type CalmType = 'Architectures' | 'Patterns' | 'Flows' | 'ADRs' | 'Standa
  * Summary returned from the API for namespace-scoped resources.
  */
 export interface ResourceSummary {
-    id: number;
+    id: string;
     name: string;
     description: string;
     customId?: string;
@@ -41,7 +41,9 @@ export interface ResourceMapping {
     namespace: string;
     customId: string;
     resourceType: string;
-    numericId: number;
+    id: string;
+    /** Absent in GitHub mode, where mappings have no numeric id. */
+    numericId?: number;
 }
 
 /**

@@ -11,7 +11,10 @@ vi.mock('../../../service/control-service.js', () => ({
     }); }),
 }));
 
-const LocationProbe = () => <div data-testid="location">{useLocation().pathname}</div>;
+const LocationProbe = () => {
+    const location = useLocation();
+    return <div data-testid="location">{location.pathname}{location.search}</div>;
+};
 
 const renderPage = (controlCount = 2, domain = 'security') =>
     render(
@@ -24,8 +27,8 @@ const renderPage = (controlCount = 2, domain = 'security') =>
 beforeEach(() => {
     vi.clearAllMocks();
     fetchControlsForDomain.mockResolvedValue([
-        { id: 5, name: 'Encryption', description: 'Encrypt data' },
-        { id: 6, name: 'Access Control', description: 'Limit access' },
+        { id: '5', name: 'Encryption', description: 'Encrypt data' },
+        { id: '6', name: 'Access Control', description: 'Limit access' },
     ]);
 });
 
@@ -66,6 +69,21 @@ describe('DomainPage', () => {
         expect(screen.getByTestId('location')).toHaveTextContent('/my%20domain/controls/5/detail');
     });
 
+    it('gives controls that share a stem distinct deep links', async () => {
+        fetchControlsForDomain.mockResolvedValue([
+            { id: 'auth', name: 'auth', title: 'Prod auth', tags: { path: 'security', variant: '' } },
+            { id: 'auth', name: 'auth', title: 'Legacy auth', tags: { path: 'security/legacy', variant: '' } },
+            { id: 'auth', name: 'auth', title: 'Auth v2', tags: { path: 'security', variant: 'v2' } },
+        ]);
+        renderPage(3);
+
+        const cards = await screen.findAllByTestId('control-card');
+        expect(cards).toHaveLength(3);
+        expect(cards[0]).toHaveAttribute('href', '/security/controls/auth/detail?path=security&variant=');
+        expect(cards[1]).toHaveAttribute('href', '/security/controls/auth/detail?path=security%2Flegacy&variant=');
+        expect(cards[2]).toHaveAttribute('href', '/security/controls/auth/detail?path=security&variant=v2');
+    });
+
     it('shows an empty message when the domain has no controls', async () => {
         fetchControlsForDomain.mockResolvedValue([]);
         renderPage(0);
@@ -86,7 +104,7 @@ describe('DomainPage', () => {
         );
         expect(screen.queryByText('Encryption')).not.toBeInTheDocument();
 
-        await act(async () => resolveNext([{ id: 9, name: 'Data Retention', description: 'Keep data briefly' }]));
+        await act(async () => resolveNext([{ id: '9', name: 'Data Retention', description: 'Keep data briefly' }]));
         expect(screen.getByText('Data Retention')).toBeInTheDocument();
         expect(fetchControlsForDomain).toHaveBeenLastCalledWith('privacy');
     });

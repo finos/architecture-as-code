@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { CalmService } from '../../service/calm-service.js';
 import { ControlService } from '../../service/control-service.js';
 import { InterfaceService } from '../../service/interface-service.js';
@@ -57,6 +57,10 @@ export function useResourceFromRoute({
     onLoadError,
 }: UseResourceFromRouteOptions) {
     const { namespace, type, id, version } = useParams<HubParams>();
+    const [searchParams] = useSearchParams();
+    const controlPath = searchParams.get('path') ?? '';
+    const controlVariant = searchParams.get('variant') ?? '';
+    const hasControlIdentity = searchParams.has('path') || searchParams.has('variant');
 
     const onControlLoadRef = useRef(onControlLoad);
     const onInterfaceLoadRef = useRef(onInterfaceLoad);
@@ -98,10 +102,10 @@ export function useResourceFromRoute({
                 .fetchInterfacesForNamespace(namespace)
                 .then((interfaces) => {
                     if (cancelled) return;
-                    // Interfaces are deep-linked both by numeric id and by customId (the namespace
+                    // Interfaces are deep-linked both by id and by customId (the namespace
                     // browse page prefers the customId when one exists), so match either.
                     const match = interfaces.find(
-                        (i) => i.id === Number(id) || i.customId === id
+                        (i) => String(i.id) === id || i.customId === id
                     );
                     if (match) {
                         onInterfaceLoadRef.current({
@@ -121,11 +125,19 @@ export function useResourceFromRoute({
                 .fetchControlsForDomain(namespace)
                 .then((controls) => {
                     if (cancelled) return;
-                    // Controls are deep-linked both by numeric id (mobile drill-down) and by
-                    // name slug (global/Explorer search -> /controls/<name>/detail), so match either.
-                    const match =
-                        controls.find((c) => String(c.id) === id) ??
-                        controls.find((c) => c.name === id);
+                    // Controls are deep-linked both by id (mobile drill-down) and by name slug
+                    // (global/Explorer search), so match either. An explicit path or variant pins
+                    // one file among controls that share the id; only an empty value means "none".
+                    const byId = controls.filter((c) => c.id === id);
+                    const byName = controls.filter((c) => c.name === id);
+                    const candidates = byId.length > 0 ? byId : byName;
+                    const match = hasControlIdentity
+                        ? candidates.find(
+                              (c) =>
+                                  (c.tags?.path ?? '') === controlPath &&
+                                  (c.tags?.variant ?? '') === controlVariant
+                          )
+                        : candidates[0];
                     if (!match) {
                         reportError(new Error(`Control ${id} not found in domain ${namespace}`));
                         return;
@@ -136,6 +148,8 @@ export function useResourceFromRoute({
                         controlName: match.name,
                         controlDescription: match.description,
                         controlTitle: match.title,
+                        path: controlPath || undefined,
+                        variant: controlVariant || undefined,
                     });
                 })
                 .catch(reportError);
@@ -158,5 +172,5 @@ export function useResourceFromRoute({
             });
         }
         return cleanup;
-    }, [resourceKey, namespace, type, id, version, calmService, adrService, interfaceService, controlService, onDataLoad, onAdrLoad, onLoadError]);
+    }, [resourceKey, namespace, type, id, version, controlPath, controlVariant, hasControlIdentity, calmService, adrService, interfaceService, controlService, onDataLoad, onAdrLoad, onLoadError]);
 }

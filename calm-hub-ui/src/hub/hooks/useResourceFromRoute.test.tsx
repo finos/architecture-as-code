@@ -83,12 +83,12 @@ describe('useResourceFromRoute', () => {
     });
 
     it('loads an interface via onInterfaceLoad when the id matches', async () => {
-        fetchInterfacesForNamespace.mockResolvedValue([{ id: 7, name: 'My Interface', description: 'desc' }]);
+        fetchInterfacesForNamespace.mockResolvedValue([{ id: '7', name: 'My Interface', description: 'desc' }]);
         renderAt('/traderx/interfaces/7/detail');
         await waitFor(() => {
             expect(callbacks.onInterfaceLoad).toHaveBeenCalledWith({
                 namespace: 'traderx',
-                interfaceId: 7,
+                interfaceId: '7',
                 interfaceName: 'My Interface',
                 interfaceDescription: 'desc',
             });
@@ -97,13 +97,13 @@ describe('useResourceFromRoute', () => {
 
     it('loads an interface via onInterfaceLoad when the slug matches', async () => {
         fetchInterfacesForNamespace.mockResolvedValue([
-            { id: 7, name: 'My Interface', description: 'desc', customId: 'my-interface' },
+            { id: '7', name: 'My Interface', description: 'desc', customId: 'my-interface' },
         ]);
         renderAt('/traderx/interfaces/my-interface/detail');
         await waitFor(() => {
             expect(callbacks.onInterfaceLoad).toHaveBeenCalledWith({
                 namespace: 'traderx',
-                interfaceId: 7,
+                interfaceId: '7',
                 interfaceName: 'My Interface',
                 interfaceDescription: 'desc',
             });
@@ -111,21 +111,23 @@ describe('useResourceFromRoute', () => {
     });
 
     it('loads a control via onControlLoad when the id matches', async () => {
-        fetchControlsForDomain.mockResolvedValue([{ id: 5, name: 'Encryption', description: 'desc' }]);
+        fetchControlsForDomain.mockResolvedValue([{ id: "5", name: 'Encryption', description: 'desc' }]);
         renderAt('/security/controls/5/detail');
         await waitFor(() => {
             expect(callbacks.onControlLoad).toHaveBeenCalledWith({
                 domain: 'security',
-                controlId: 5,
+                controlId: "5",
                 controlName: 'Encryption',
                 controlDescription: 'desc',
                 controlTitle: undefined,
+                path: undefined,
+                variant: undefined,
             });
         });
     });
 
     it('reports a load error when no control matches the routed id', async () => {
-        fetchControlsForDomain.mockResolvedValue([{ id: 5, name: 'Encryption', description: 'desc' }]);
+        fetchControlsForDomain.mockResolvedValue([{ id: "5", name: 'Encryption', description: 'desc' }]);
         renderAt('/security/controls/999/detail');
         await waitFor(() => {
             expect(callbacks.onLoadError).toHaveBeenCalled();
@@ -135,12 +137,48 @@ describe('useResourceFromRoute', () => {
 
     it('prefers an id match over a name match', async () => {
         fetchControlsForDomain.mockResolvedValue([
-            { id: 9, name: '5', description: 'named five' },
-            { id: 5, name: 'Encryption', description: 'id five' },
+            { id: "9", name: '5', description: 'named five' },
+            { id: "5", name: 'Encryption', description: 'id five' },
         ]);
         renderAt('/security/controls/5/detail');
         await waitFor(() => {
-            expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({ controlId: 5 }));
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({ controlId: "5" }));
+        });
+    });
+
+    it('loads the control named by the folder path when two controls share a stem', async () => {
+        fetchControlsForDomain.mockResolvedValue([
+            { id: 'auth', name: 'auth', description: 'root copy', title: 'Root auth', tags: { path: '', variant: '' } },
+            { id: 'auth', name: 'auth', description: 'legacy copy', title: 'Legacy auth', tags: { path: 'security/legacy', variant: '' } },
+            { id: 'auth', name: 'auth', description: 'prod copy', title: 'Prod auth', tags: { path: 'security', variant: '' } },
+        ]);
+        renderAt('/security/controls/auth/detail?path=security/legacy&variant=');
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith({
+                domain: 'security',
+                controlId: 'auth',
+                controlName: 'auth',
+                controlDescription: 'legacy copy',
+                controlTitle: 'Legacy auth',
+                path: 'security/legacy',
+                variant: undefined,
+            });
+        });
+    });
+
+    it('loads the control named by the variant when two controls share a stem and path', async () => {
+        fetchControlsForDomain.mockResolvedValue([
+            { id: 'auth', name: 'auth', description: 'plain copy', title: 'Plain auth', tags: { path: 'security', variant: '' } },
+            { id: 'auth', name: 'auth', description: 'v2 copy', title: 'Auth v2', tags: { path: 'security', variant: 'v2' } },
+        ]);
+        renderAt('/security/controls/auth/detail?path=security&variant=v2');
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({
+                controlDescription: 'v2 copy',
+                controlTitle: 'Auth v2',
+                path: 'security',
+                variant: 'v2',
+            }));
         });
     });
 
@@ -154,16 +192,18 @@ describe('useResourceFromRoute', () => {
 
     it('loads a control by name slug (search deep-link) and passes the title', async () => {
         fetchControlsForDomain.mockResolvedValue([
-            { id: 5, name: 'encryption-at-rest', description: 'desc', title: 'Encryption at rest' },
+            { id: "5", name: 'encryption-at-rest', description: 'desc', title: 'Encryption at rest' },
         ]);
         renderAt('/security/controls/encryption-at-rest/detail');
         await waitFor(() => {
             expect(callbacks.onControlLoad).toHaveBeenCalledWith({
                 domain: 'security',
-                controlId: 5,
+                controlId: "5",
                 controlName: 'encryption-at-rest',
                 controlDescription: 'desc',
                 controlTitle: 'Encryption at rest',
+                path: undefined,
+                variant: undefined,
             });
         });
     });
@@ -193,6 +233,27 @@ describe('useResourceFromRoute — reloads', () => {
 
         expect(loadResource).toHaveBeenCalledTimes(1);
         loadResource.mockRestore();
+    });
+
+    it('loads the other control again when only its identity query changes', async () => {
+        vi.clearAllMocks();
+        fetchControlsForDomain.mockResolvedValue([
+            { id: 'auth', name: 'auth', description: 'prod copy', title: 'Prod auth', tags: { path: 'security', variant: '' } },
+            { id: 'auth', name: 'auth', description: 'legacy copy', title: 'Legacy auth', tags: { path: 'security/legacy', variant: '' } },
+        ]);
+        renderWithNavigation(
+            '/security/controls/auth/detail?path=security&variant=',
+            '/security/controls/auth/detail?path=security/legacy&variant='
+        );
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({ controlTitle: 'Prod auth' }));
+        });
+
+        fireEvent.click(screen.getByRole('button'));
+
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({ controlTitle: 'Legacy auth' }));
+        });
     });
 
     it('loads the resource again on a navigation to the same path', async () => {
@@ -268,7 +329,7 @@ describe('useResourceFromRoute — stale results after navigation', () => {
         const { unmount } = renderAt('/traderx/interfaces/7/detail');
 
         unmount();
-        resolveInterfaces([{ id: 7, name: 'My Interface', description: 'desc' }]);
+        resolveInterfaces([{ id: '7', name: 'My Interface', description: 'desc' }]);
         await flush();
 
         expect(callbacks.onInterfaceLoad).not.toHaveBeenCalled();
@@ -280,7 +341,7 @@ describe('useResourceFromRoute — stale results after navigation', () => {
         const { unmount } = renderAt('/security/controls/999/detail');
 
         unmount();
-        resolveControls([{ id: 5, name: 'Encryption', description: 'desc' }]);
+        resolveControls([{ id: "5", name: 'Encryption', description: 'desc' }]);
         await flush();
 
         expect(callbacks.onLoadError).not.toHaveBeenCalled();
@@ -292,7 +353,7 @@ describe('useResourceFromRoute — stale results after navigation', () => {
         const { unmount } = renderAt('/security/controls/5/detail');
 
         unmount();
-        resolveControls([{ id: 5, name: 'Encryption', description: 'desc' }]);
+        resolveControls([{ id: "5", name: 'Encryption', description: 'desc' }]);
         await flush();
 
         expect(callbacks.onControlLoad).not.toHaveBeenCalled();

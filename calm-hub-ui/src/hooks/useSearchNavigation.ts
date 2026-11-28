@@ -2,7 +2,7 @@ import { useCallback, useContext, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalmService } from '../service/calm-service.js';
 import { AdrService } from '../service/adr-service/adr-service.js';
-import { GroupedSearchResults, SearchResult } from '../model/search.js';
+import { GroupedSearchResults, SearchResult, resourceIdentityQuery } from '../model/search.js';
 import { pickLatestVersion } from '../model/version.js';
 import { linkState, ReturnPointContext } from '../navigation/returnPoints.js';
 import { resourcePath } from '../hub/routes.js';
@@ -118,7 +118,7 @@ export function useSearchNavigation({ calmService: calmServiceProp, adrService: 
             };
 
             if (type === 'controls') {
-                go(`/${ns}/controls/${encodeURIComponent(result.name)}/detail`);
+                go(`/${ns}/controls/${encodeURIComponent(result.name)}/detail?${resourceIdentityQuery(result.tags)}`);
                 return;
             }
 

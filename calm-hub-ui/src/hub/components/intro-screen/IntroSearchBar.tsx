@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef } from 'react';
 import { IoSearchOutline, IoCloseOutline } from 'react-icons/io5';
 import { SearchService } from '../../../service/search-service.js';
-import { SearchResult } from '../../../model/search.js';
+import { SearchResult, searchResultKey } from '../../../model/search.js';
 import { FlatResult, TYPE_LABELS, useSearchNavigation } from '../../../hooks/useSearchNavigation.js';
 import { useCatalogueSearch } from '../../../hooks/useCatalogueSearch.js';
 import { colors } from '../../../theme/colors.js';
@@ -123,7 +123,7 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
                     const currentIndex = globalIndex++;
                     return (
                         <button
-                            key={`${type}-${item.namespace}-${item.id}`}
+                            key={searchResultKey(type, item)}
                             id={optionId(currentIndex)}
                             className={`w-full text-left px-4 py-2.5 text-sm hover:bg-base-200 cursor-pointer ${
                                 currentIndex === selectedIndex ? 'bg-base-200' : ''

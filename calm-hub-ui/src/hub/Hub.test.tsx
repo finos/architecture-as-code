@@ -489,7 +489,7 @@ const loadControl = () =>
     act(() =>
         captured?.onControlLoad({
             domain: 'test-domain',
-            controlId: 1,
+            controlId: "1",
             controlName: 'test-control',
             controlDescription: 'A test control',
         })
@@ -498,7 +498,7 @@ const loadInterface = () =>
     act(() =>
         captured?.onInterfaceLoad({
             namespace: 'org.finos',
-            interfaceId: 1,
+            interfaceId: '1',
             interfaceName: 'test-interface',
             interfaceDescription: 'A test interface',
         })
