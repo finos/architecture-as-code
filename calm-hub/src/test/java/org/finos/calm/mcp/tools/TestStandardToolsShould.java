@@ -469,4 +469,11 @@ class TestStandardToolsShould {
         assertThat(captor.getValue().getName(), is("Original Name"));
         assertThat(captor.getValue().getDescription(), is("Original Desc"));
     }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(standardTools.listStandardVersions("workshop", "abc", null, null).isError(), is(true));
+        assertThat(standardTools.getStandard("workshop", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(standardTools.createStandardVersion("workshop", "abc", null, null, "1.1.0", "{}").isError(), is(true));
+    }
 }

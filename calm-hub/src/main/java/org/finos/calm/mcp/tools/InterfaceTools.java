@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.CalmInterface;
+import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
 import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
@@ -57,7 +58,7 @@ public class InterfaceTools {
         try {
             List<NamespaceInterfaceSummary> interfaces = interfaceStore.getInterfacesForNamespace(namespace);
             List<McpResponseFormatter.ResourceSummary> summaries = interfaces.stream()
-                    .map(i -> new McpResponseFormatter.ResourceSummary(i.getId(), i.getName(), i.getDescription()))
+                    .map(i -> new McpResponseFormatter.ResourceSummary(i.getId(), i.getName(), i.getDescription(), i.getTags()))
                     .toList();
             return McpResponseFormatter.formatResourceList("interface", namespace, summaries);
         } catch (NamespaceNotFoundException e) {
@@ -84,6 +85,9 @@ public class InterfaceTools {
         try {
             List<String> versions = interfaceStore.getInterfaceVersions(namespace, resolve(interfaceId, path, variant));
             return McpResponseFormatter.formatVersionList("interface", interfaceId, namespace, versions);
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -112,6 +116,9 @@ public class InterfaceTools {
 
         try {
             return ToolResponse.success(interfaceStore.getInterfaceForVersion(namespace, resolve(interfaceId, path, variant), version));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -195,6 +202,9 @@ public class InterfaceTools {
             interfaceStore.createInterfaceForVersion(request, namespace, numericId(interfaceId, path, variant), version);
             logger.info("Interface [{}] version [{}] created in namespace [{}]", interfaceId, version, namespace);
             return ToolResponse.success("Interface " + interfaceId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -208,7 +218,7 @@ public class InterfaceTools {
     }
 
     private ResourceId resolve(String id, String path, String variant) {
-        return resourceIdResolver.forStorage(id, path, variant);
+        return resourceIdResolver.forStorage(id, path == null ? "" : path, variant == null ? "" : variant);
     }
 
     private int numericId(String id, String path, String variant) {

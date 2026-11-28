@@ -11,6 +11,7 @@ import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
+import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
@@ -56,7 +57,7 @@ public class ControlTools {
         try {
             List<ControlDetail> controls = controlStore.getControlsForDomain(domain);
             List<McpResponseFormatter.ResourceSummary> summaries = controls.stream()
-                    .map(c -> new McpResponseFormatter.ResourceSummary(c.getId(), c.getName(), c.getDescription()))
+                    .map(c -> new McpResponseFormatter.ResourceSummary(c.getId(), c.getName(), c.getDescription(), c.getTags()))
                     .collect(Collectors.toList());
             return McpResponseFormatter.formatResourceList("control", "domain", domain, summaries);
         } catch (DomainNotFoundException e) {
@@ -84,6 +85,9 @@ public class ControlTools {
 
         try {
             return ToolResponse.success(controlStore.getRequirementForVersion(domain, resolve(controlId, path, variant), version));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (DomainNotFoundException e) {
             logger.warn("Domain not found [{}]", domain, e);
             return ToolResponse.error("Error: Domain '" + domain + "' not found.");
@@ -114,6 +118,9 @@ public class ControlTools {
         try {
             List<String> versions = controlStore.getRequirementVersions(domain, resolve(controlId, path, variant));
             return McpResponseFormatter.formatVersionList("control", controlId, "domain", domain, versions);
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (DomainNotFoundException e) {
             logger.warn("Domain not found [{}]", domain, e);
             return ToolResponse.error("Error: Domain '" + domain + "' not found.");
@@ -177,6 +184,9 @@ public class ControlTools {
             int configurationId = controlStore.createControlConfiguration(request, domain, numericId(controlId, path, variant));
             logger.info("Control configuration created with ID [{}] for control [{}] in domain [{}]", configurationId, controlId, domain);
             return ToolResponse.success("Control configuration created successfully with ID: " + configurationId + " for control " + controlId + " in domain '" + domain + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (DomainNotFoundException e) {
             logger.warn("Domain not found [{}]", domain, e);
             return ToolResponse.error("Error: Domain '" + domain + "' not found.");
@@ -187,7 +197,7 @@ public class ControlTools {
     }
 
     private ResourceId resolve(String id, String path, String variant) {
-        return resourceIdResolver.forStorage(id, path, variant);
+        return resourceIdResolver.forStorage(id, path == null ? "" : path, variant == null ? "" : variant);
     }
 
     private int numericId(String id, String path, String variant) {

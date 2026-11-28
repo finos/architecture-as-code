@@ -136,4 +136,10 @@ class TestConventionToolsShould {
         assertThat(text(conventionTools.getNamespaceDefaultConvention("org", "c4-mapping")), containsString("set on this namespace"));
         assertThat(text(conventionTools.getNamespaceDefaultConvention("other", "c4-mapping")), containsString("No c4-mapping default"));
     }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(conventionTools.listConventionVersions("workshop", "c4-mapping", "abc", null, null).isError(), is(true));
+        assertThat(conventionTools.getConvention("workshop", "c4-mapping", "abc", null, null, "1.0.0").isError(), is(true));
+    }
 }

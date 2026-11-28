@@ -112,6 +112,14 @@ class TestArchitectureToolsShould {
         verifyNoInteractions(architectureStore);
     }
 
+    @Test
+    void return_an_error_for_an_id_that_cannot_be_resolved() {
+        ToolResponse result = architectureTools.listArchitectureVersions("workshop", "abc", null, null);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Error:"));
+    }
+
     // --- listArchitectureVersions ---
 
     @Test
@@ -621,5 +629,23 @@ class TestArchitectureToolsShould {
         assertThat(text(architectureTools.createArchitecture("workshop", "n", "d", "{}")), containsString("disabled"));
         assertThat(text(architectureTools.updateArchitecture("workshop", 1, "1.1.0", "{}", null, null)), containsString("disabled"));
         verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(architectureTools.listArchitectureVersions("workshop", "abc", null, null).isError(), is(true));
+        assertThat(architectureTools.getArchitecture("workshop", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(architectureTools.createArchitectureVersion("workshop", "abc", null, null, "1.1.0", "{}").isError(), is(true));
+        assertThat(architectureTools.updateArchitecture("workshop", "abc", null, null, "1.0.0", "{}", null, null).isError(), is(true));
+    }
+
+    @Test
+    void include_tags_from_the_listing_in_the_output() throws Exception {
+        when(architectureStore.getArchitecturesForNamespace("workshop")).thenReturn(List.of(
+                new org.finos.calm.domain.namespaces.NamespaceResourceSummary("API", "desc",
+                        new org.finos.calm.domain.Tags("team", "calm"), "api", 0)));
+        String text = text(architectureTools.listArchitectures("workshop"));
+        assertThat(text, containsString("Path: team"));
+        assertThat(text, containsString("Variant: calm"));
     }
 }

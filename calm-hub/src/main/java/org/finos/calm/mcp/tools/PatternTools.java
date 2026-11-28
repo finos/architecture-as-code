@@ -7,7 +7,9 @@ import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
@@ -59,7 +61,7 @@ public class PatternTools {
         try {
             List<NamespaceResourceSummary> patterns = patternStore.getPatternsForNamespace(namespace);
             List<McpResponseFormatter.ResourceSummary> summaries = patterns.stream()
-                    .map(p -> new McpResponseFormatter.ResourceSummary(p.getId(), p.getName(), p.getDescription()))
+                    .map(p -> new McpResponseFormatter.ResourceSummary(p.getId(), p.getName(), p.getDescription(), p.getTags()))
                     .toList();
             return McpResponseFormatter.formatResourceList("pattern", namespace, summaries);
         } catch (NamespaceNotFoundException e) {
@@ -85,8 +87,11 @@ public class PatternTools {
 
         try {
             List<String> versions = patternStore.getPatternVersions(namespace,
-                    resourceIdResolver.forStorage(patternId, path, variant));
+                    resolve(patternId, path, variant));
             return McpResponseFormatter.formatVersionList("pattern", patternId, namespace, versions);
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -115,7 +120,10 @@ public class PatternTools {
 
         try {
             return ToolResponse.success(patternStore.getPatternForVersion(namespace,
-                    resourceIdResolver.forStorage(patternId, path, variant), version));
+                    resolve(patternId, path, variant), version));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -181,13 +189,16 @@ public class PatternTools {
         try {
             Pattern pattern = new Pattern.PatternBuilder()
                     .setNamespace(namespace)
-                    .setId(resourceIdResolver.numericForWrite(resourceIdResolver.forStorage(patternId, path, variant)))
+                    .setId(resourceIdResolver.numericForWrite(resolve(patternId, path, variant)))
                     .setVersion(version)
                     .setPattern(patternJson)
                     .build();
             patternStore.createPatternForVersion(pattern);
             logger.info("Pattern [{}] version [{}] created in namespace [{}]", patternId, version, namespace);
             return ToolResponse.success("Pattern " + patternId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -225,13 +236,16 @@ public class PatternTools {
         try {
             Pattern pattern = new Pattern.PatternBuilder()
                     .setNamespace(namespace)
-                    .setId(resourceIdResolver.numericForWrite(resourceIdResolver.forStorage(patternId, path, variant)))
+                    .setId(resourceIdResolver.numericForWrite(resolve(patternId, path, variant)))
                     .setVersion(version)
                     .setPattern(patternJson)
                     .build();
             patternStore.updatePatternForVersion(pattern);
             logger.info("Pattern [{}] version [{}] updated in namespace [{}]", patternId, version, namespace);
             return ToolResponse.success("Pattern " + patternId + " version '" + version + "' updated successfully in namespace '" + namespace + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -257,5 +271,9 @@ public class PatternTools {
 
     public ToolResponse updatePattern(String namespace, int patternId, String version, String patternJson) {
         return updatePattern(namespace, String.valueOf(patternId), null, null, version, patternJson);
+    }
+
+    private ResourceId resolve(String id, String path, String variant) {
+        return resourceIdResolver.forStorage(id, path == null ? "" : path, variant == null ? "" : variant);
     }
 }

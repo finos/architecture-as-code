@@ -10,6 +10,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.ResolvedConventionDefault;
+import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.ConventionNotFoundException;
 import org.finos.calm.domain.exception.ConventionVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -60,7 +61,7 @@ public class ConventionTools {
         try {
             return McpResponseFormatter.formatResourceList(conventionType + " convention", namespace,
                     conventionService.getConventionsForNamespace(namespace, ConventionType.fromName(conventionType).orElseThrow()).stream()
-                            .map(s -> new McpResponseFormatter.ResourceSummary(s.getId(), s.getName(), s.getDescription()))
+                            .map(s -> new McpResponseFormatter.ResourceSummary(s.getId(), s.getName(), s.getDescription(), s.getTags()))
                             .toList());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
@@ -88,6 +89,9 @@ public class ConventionTools {
         try {
             return McpResponseFormatter.formatVersionList("convention", conventionId, namespace,
                     conventionService.getConventionVersions(namespace, ConventionType.fromName(conventionType).orElseThrow(), resolve(conventionId, path, variant)));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -119,6 +123,9 @@ public class ConventionTools {
         try {
             return ToolResponse.success(conventionService.getConventionForVersion(namespace,
                     ConventionType.fromName(conventionType).orElseThrow(), resolve(conventionId, path, variant), version));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -169,7 +176,7 @@ public class ConventionTools {
     }
 
     private ResourceId resolve(String id, String path, String variant) {
-        return resourceIdResolver.forStorage(id, path, variant);
+        return resourceIdResolver.forStorage(id, path == null ? "" : path, variant == null ? "" : variant);
     }
 
     private int numericId(String id, String path, String variant) {

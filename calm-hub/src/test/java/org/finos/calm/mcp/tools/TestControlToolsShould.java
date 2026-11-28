@@ -454,4 +454,11 @@ class TestControlToolsShould {
         assertThat(text(response), containsString("Configuration JSON"));
         verifyNoInteractions(controlStore);
     }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(controlTools.listControlVersions("security", "abc", null, null).isError(), is(true));
+        assertThat(controlTools.getControl("security", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(controlTools.createControlConfiguration("security", "abc", null, null, "{}").isError(), is(true));
+    }
 }

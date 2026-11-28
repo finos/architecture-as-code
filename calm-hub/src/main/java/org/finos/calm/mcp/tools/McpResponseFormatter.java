@@ -1,6 +1,7 @@
 package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.ToolResponse;
+import org.finos.calm.domain.Tags;
 
 import java.util.List;
 
@@ -16,7 +17,12 @@ public final class McpResponseFormatter {
      * Lightweight projection used to pass resource metadata to the formatter,
      * decoupled from any specific domain type.
      */
-    public record ResourceSummary(String id, String name, String description) {}
+    public record ResourceSummary(String id, String name, String description, Tags tags) {
+
+        public ResourceSummary(String id, String name, String description) {
+            this(id, name, description, null);
+        }
+    }
 
     /**
      * Lightweight projection for ADR list entries, carrying the status field
@@ -49,6 +55,12 @@ public final class McpResponseFormatter {
             }
             if (s.description() != null) {
                 sb.append(", Description: ").append(s.description());
+            }
+            if (s.tags() != null && s.tags().path() != null && !s.tags().path().isBlank()) {
+                sb.append(", Path: ").append(s.tags().path());
+            }
+            if (s.tags() != null && s.tags().variant() != null && !s.tags().variant().isBlank()) {
+                sb.append(", Variant: ").append(s.tags().variant());
             }
             sb.append("\n");
         }

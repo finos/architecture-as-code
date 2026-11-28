@@ -524,4 +524,12 @@ class TestTimelineToolsShould {
         assertThat(result.isError(), is(true));
         verifyNoInteractions(timelineStore);
     }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(timelineTools.listTimelineVersions("workshop", "abc", null, null).isError(), is(true));
+        assertThat(timelineTools.getTimeline("workshop", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(timelineTools.createTimelineVersion("workshop", "abc", null, null, "1.1.0", "{}").isError(), is(true));
+        assertThat(timelineTools.updateTimeline("workshop", "abc", null, null, "1.0.0", "{}").isError(), is(true));
+    }
 }

@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.Standard;
+import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
@@ -57,7 +58,7 @@ public class StandardTools {
         try {
             List<NamespaceResourceSummary> standards = standardStore.getStandardsForNamespace(namespace);
             List<McpResponseFormatter.ResourceSummary> summaries = standards.stream()
-                    .map(s -> new McpResponseFormatter.ResourceSummary(s.getId(), s.getName(), s.getDescription()))
+                    .map(s -> new McpResponseFormatter.ResourceSummary(s.getId(), s.getName(), s.getDescription(), s.getTags()))
                     .toList();
             return McpResponseFormatter.formatResourceList("standard", namespace, summaries);
         } catch (NamespaceNotFoundException e) {
@@ -84,6 +85,9 @@ public class StandardTools {
         try {
             List<String> versions = standardStore.getStandardVersions(namespace, resolve(standardId, path, variant));
             return McpResponseFormatter.formatVersionList("standard", standardId, namespace, versions);
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -112,6 +116,9 @@ public class StandardTools {
 
         try {
             return ToolResponse.success(standardStore.getStandardForVersion(namespace, resolve(standardId, path, variant), version));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -194,6 +201,9 @@ public class StandardTools {
             standardStore.createStandardForVersion(request, namespace, numericId(standardId, path, variant), version);
             logger.info("Standard [{}] version [{}] created in namespace [{}]", standardId, version, namespace);
             return ToolResponse.success("Standard " + standardId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -207,7 +217,7 @@ public class StandardTools {
     }
 
     private ResourceId resolve(String id, String path, String variant) {
-        return resourceIdResolver.forStorage(id, path, variant);
+        return resourceIdResolver.forStorage(id, path == null ? "" : path, variant == null ? "" : variant);
     }
 
     private int numericId(String id, String path, String variant) {

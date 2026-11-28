@@ -415,4 +415,12 @@ class TestInterfaceToolsShould {
         assertThat(text(interfaceTools.createInterfaceVersion("finos", 1, "1.1.0", "{}")), containsString("disabled"));
         verifyNoInteractions(interfaceStore);
     }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(interfaceTools.listInterfaceVersions("workshop", "abc", null, null).isError(), is(true));
+        assertThat(interfaceTools.getInterface("workshop", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(interfaceTools.createInterfaceVersion("workshop", "abc", null, null, "1.1.0", "{}").isError(), is(true));
+        assertThat(interfaceTools.listInterfaceVersions("workshop", "abc", "team", "calm").isError(), is(true));
+    }
 }

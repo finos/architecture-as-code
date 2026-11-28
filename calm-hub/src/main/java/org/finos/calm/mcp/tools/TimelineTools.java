@@ -7,6 +7,8 @@ import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.exception.TimelineVersionExistsException;
@@ -59,7 +61,7 @@ public class TimelineTools {
         try {
             List<NamespaceTimelineSummary> timelines = timelineStore.getTimelinesForNamespace(namespace);
             List<McpResponseFormatter.ResourceSummary> summaries = timelines.stream()
-                    .map(t -> new McpResponseFormatter.ResourceSummary(t.getId(), t.getName(), t.getDescription()))
+                    .map(t -> new McpResponseFormatter.ResourceSummary(t.getId(), t.getName(), t.getDescription(), t.getTags()))
                     .toList();
             return McpResponseFormatter.formatResourceList("timeline", namespace, summaries);
         } catch (NamespaceNotFoundException e) {
@@ -85,8 +87,11 @@ public class TimelineTools {
 
         try {
             List<String> versions = timelineStore.getTimelineVersions(namespace,
-                    resourceIdResolver.forStorage(timelineId, path, variant));
+                    resolve(timelineId, path, variant));
             return McpResponseFormatter.formatVersionList("timeline", timelineId, namespace, versions);
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -115,7 +120,10 @@ public class TimelineTools {
 
         try {
             return ToolResponse.success(timelineStore.getTimelineForVersion(namespace,
-                    resourceIdResolver.forStorage(timelineId, path, variant), version));
+                    resolve(timelineId, path, variant), version));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -181,13 +189,16 @@ public class TimelineTools {
         try {
             Timeline timeline = new Timeline.TimelineBuilder()
                     .setNamespace(namespace)
-                    .setId(resourceIdResolver.numericForWrite(resourceIdResolver.forStorage(timelineId, path, variant)))
+                    .setId(resourceIdResolver.numericForWrite(resolve(timelineId, path, variant)))
                     .setVersion(version)
                     .setTimeline(timelineJson)
                     .build();
             timelineStore.createTimelineForVersion(timeline);
             logger.info("Timeline [{}] version [{}] created in namespace [{}]", timelineId, version, namespace);
             return ToolResponse.success("Timeline " + timelineId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -225,13 +236,16 @@ public class TimelineTools {
         try {
             Timeline timeline = new Timeline.TimelineBuilder()
                     .setNamespace(namespace)
-                    .setId(resourceIdResolver.numericForWrite(resourceIdResolver.forStorage(timelineId, path, variant)))
+                    .setId(resourceIdResolver.numericForWrite(resolve(timelineId, path, variant)))
                     .setVersion(version)
                     .setTimeline(timelineJson)
                     .build();
             timelineStore.updateTimelineForVersion(timeline);
             logger.info("Timeline [{}] version [{}] updated in namespace [{}]", timelineId, version, namespace);
             return ToolResponse.success("Timeline " + timelineId + " version '" + version + "' updated successfully in namespace '" + namespace + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -257,5 +271,9 @@ public class TimelineTools {
 
     public ToolResponse updateTimeline(String namespace, int timelineId, String version, String timelineJson) {
         return updateTimeline(namespace, String.valueOf(timelineId), null, null, version, timelineJson);
+    }
+
+    private ResourceId resolve(String id, String path, String variant) {
+        return resourceIdResolver.forStorage(id, path == null ? "" : path, variant == null ? "" : variant);
     }
 }

@@ -555,4 +555,12 @@ class TestPatternToolsShould {
         assertThat(text(patternTools.updatePattern("workshop", 1, "1.0.0", "{}")), containsString("disabled"));
         verifyNoInteractions(patternStore);
     }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(patternTools.listPatternVersions("workshop", "abc", null, null).isError(), is(true));
+        assertThat(patternTools.getPattern("workshop", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(patternTools.createPatternVersion("workshop", "abc", null, null, "1.1.0", "{}").isError(), is(true));
+        assertThat(patternTools.updatePattern("workshop", "abc", null, null, "1.0.0", "{}").isError(), is(true));
+    }
 }
