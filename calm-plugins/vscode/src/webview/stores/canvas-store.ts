@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Node, Edge } from 'reactflow';
+import type { CalmFlow } from '../../core/types';
 
 export interface ValidationIssue {
     severity: 'error' | 'warning' | 'info';
@@ -32,6 +33,7 @@ export interface CanvasState {
     standardNodes: unknown[];
     loadedPatterns: unknown[];
     hubLoading: boolean;
+    flows: CalmFlow[];
 
     // Actions
     setNodes: (nodes: Node[]) => void;
@@ -48,6 +50,7 @@ export interface CanvasState {
     setPanelWidth: (width: number) => void;
     setExpandControlKey: (key: string | null) => void;
     setHubLoading: (loading: boolean) => void;
+    setFlows: (flows: CalmFlow[]) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set) => ({
@@ -67,6 +70,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     standardNodes: [],
     loadedPatterns: [],
     hubLoading: false,
+    flows: [],
 
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
@@ -84,4 +88,5 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     setPanelWidth: (width) => set({ panelWidth: width }),
     setExpandControlKey: (key) => set({ expandControlKey: key }),
     setHubLoading: (loading) => set({ hubLoading: loading }),
+    setFlows: (flows) => set({ flows }),
 }));

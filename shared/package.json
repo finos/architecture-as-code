@@ -12,6 +12,10 @@
         "./browser": {
             "types": "./dist/browser.d.ts",
             "default": "./dist/browser.js"
+        },
+        "./bundle": {
+            "types": "./dist/bundle.d.ts",
+            "default": "./dist/bundle.js"
         }
     },
     "files": [

@@ -90,7 +90,10 @@ export class ControlAssetService {
                     source: 'hub',
                     domain,
                     controlName: c.name,
-                    title: c.title && c.title !== c.name ? c.title : humanize(c.name),
+                    title:
+                        c.title && c.title !== c.name
+                            ? c.title
+                            : humanize(c.name),
                     description: c.description ?? '',
                 })),
             };

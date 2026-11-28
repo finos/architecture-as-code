@@ -6,7 +6,7 @@ import {
     isControlRef,
     parseControlCurie,
     parseCanonicalControlUrl,
-    makeControlMapKey,
+    makeControlMapKey
 } from './control-curie';
 
 const CANONICAL =

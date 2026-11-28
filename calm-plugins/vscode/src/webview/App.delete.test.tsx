@@ -120,6 +120,54 @@ describe('App: edits on a canvas with copies', () => {
         expect(Object.keys(saved.metadata._layout).every((id) => flow.nodes.some((n) => n.id === id))).toBe(true);
     });
 
+    describe('App: clear canvas after feature extraction', () => {
+        const clearButton = () => {
+            const button = document.querySelector<HTMLButtonElement>('button[title="Clear the whole document"]');
+            if (!button) throw new Error('Clear canvas button is missing');
+            return button;
+        };
+
+        it('can cancel clearing without writing the document', () => {
+            open({ nodes: [node('a')], relationships: [] });
+            act(() => clearButton().click());
+            const dialog = document.querySelector('[aria-label="Clear architecture"]');
+            expect(dialog).not.toBeNull();
+            const cancel = [...dialog!.querySelectorAll('button')].find((button) => button.textContent === 'Cancel')!;
+            act(() => cancel.click());
+            expect(document.querySelector('[aria-label="Clear architecture"]')).toBeNull();
+            expect(flow.nodes).toHaveLength(1);
+            expect(saves()).toHaveLength(0);
+            act(() => clearButton().click());
+            act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+            expect(document.querySelector('[aria-label="Clear architecture"]')).toBeNull();
+            expect(saves()).toHaveLength(0);
+        });
+
+        it.each([
+            { architecture: { nodes: [node('a')], relationships: [], metadata: { owner: 'team' }, name: 'Example' }, count: 1 },
+            { architecture: { metadata: { owner: 'team' }, flows: [{ 'unique-id': 'flow', name: 'Example', description: '', transitions: [] }] }, count: 0 },
+        ])('clears and restores the whole document with $count node(s) when optional features are disabled', ({ architecture, count }) => {
+            const featureWindow: Window & { __CALM_ENABLED_FEATURES__?: string[] } = window;
+            featureWindow.__CALM_ENABLED_FEATURES__ = [];
+            try {
+                open(architecture);
+                act(() => clearButton().click());
+                const dialog = document.querySelector('[aria-label="Clear architecture"]');
+                const confirm = [...dialog!.querySelectorAll('button')].find((button) => button.textContent === 'Clear')!;
+                act(() => confirm.click());
+                expect(lastSave()).toEqual({});
+                expect(flow.nodes).toHaveLength(0);
+
+                act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true })));
+                act(() => vi.runAllTimers());
+                expect(lastSave()).toEqual(architecture);
+                expect(flow.nodes).toHaveLength(count);
+            } finally {
+                delete featureWindow.__CALM_ENABLED_FEATURES__;
+            }
+        });
+    });
+
     it('keeps a nested node that is also in a container that stays', () => {
         open({
             nodes: [node('X'), node('Y'), node('s')],

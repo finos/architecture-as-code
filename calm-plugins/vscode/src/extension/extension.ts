@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { CanvasPanel } from './webview/canvas-panel';
 import { CalmCanvasCodeLensProvider } from './services/codelens-provider';
 import { HubClient } from './services/hub-client';
 import { HubAuthService } from './services/hub-auth-service';
 import { HubStatusBar } from './services/hub-status-bar';
 import { SvgImportService } from './services/svg-import';
+import { ExportService, ExportCancelledError } from './services/export-service';
+import { ImportService, ImportCancelledError } from './services/import-service';
 
 let canvasPanel: CanvasPanel | undefined;
 let outputChannel: vscode.OutputChannel;
@@ -76,14 +79,109 @@ export function activate(context: vscode.ExtensionContext): void {
 
     context.subscriptions.push(openCanvas);
 
-    const importService = new SvgImportService(outputChannel);
+    const svgImportService = new SvgImportService(outputChannel);
     const importSvg = vscode.commands.registerCommand(
         'calm.importSvg',
         async (uri?: vscode.Uri) => {
-            await importService.importSvgToNewFile(uri);
+            await svgImportService.importSvgToNewFile(uri);
         }
     );
     context.subscriptions.push(importSvg);
+
+    // --- Export/Import Bundle commands ---
+    const exportService = new ExportService(outputChannel);
+    const importService = new ImportService(outputChannel);
+
+    const exportBundle = vscode.commands.registerCommand(
+        'calm.exportBundle',
+        async (uri?: vscode.Uri) => {
+            try {
+                const document = uri
+                    ? await vscode.workspace.openTextDocument(uri)
+                    : vscode.window.activeTextEditor?.document;
+
+                if (!document) {
+                    void vscode.window.showErrorMessage('No architecture file is currently open');
+                    return;
+                }
+                if (document.isDirty && !await document.save()) {
+                    throw new Error('Save the document before exporting the bundle');
+                }
+
+                const filePath = document.uri.fsPath;
+                const fileName = path.basename(filePath);
+                const currentDirectory = path.dirname(filePath);
+
+                const result = await exportService.exportBundle({
+                    architecturePath: fileName === 'index.md' ? undefined : filePath,
+                    currentDirectory,
+                });
+
+                let message = `Exported ${result.fileCount} files to ${path.basename(result.archivePath)}`;
+                if (result.warnings.length > 0) {
+                    message += ` (${result.warnings.length} warnings)`;
+                }
+
+                const selection = await vscode.window.showInformationMessage(
+                    message,
+                    'Open Folder',
+                    'OK'
+                );
+
+                if (selection === 'Open Folder') {
+                    await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(result.archivePath));
+                }
+
+                outputChannel.appendLine(`[Export] Success: ${result.archivePath}`);
+            } catch (err) {
+                if (err instanceof ExportCancelledError) {
+                    outputChannel.appendLine('[Export] Cancelled by user');
+                    return;
+                }
+
+                const message = err instanceof Error ? err.message : String(err);
+                outputChannel.appendLine(`[Export] ERROR: ${message}`);
+
+                void vscode.window.showErrorMessage(`Export failed: ${message}`);
+            }
+        }
+    );
+    context.subscriptions.push(exportBundle);
+
+    const importBundle = vscode.commands.registerCommand(
+        'calm.importBundle',
+        async (uri?: vscode.Uri) => {
+            try {
+                const zipPath = uri?.fsPath;
+                const result = await importService.importBundle({
+                    zipPath,
+                });
+
+                const selection = await vscode.window.showInformationMessage(
+                    `Imported ${result.fileCount} files to ${path.basename(result.extractedPath)}`,
+                    'Open Folder',
+                    'OK'
+                );
+
+                if (selection === 'Open Folder') {
+                    await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(result.extractedPath));
+                }
+
+                outputChannel.appendLine(`[Import] Success: ${result.extractedPath}`);
+            } catch (err) {
+                if (err instanceof ImportCancelledError) {
+                    outputChannel.appendLine('[Import] Cancelled by user');
+                    return;
+                }
+
+                const message = err instanceof Error ? err.message : String(err);
+                outputChannel.appendLine(`[Import] ERROR: ${message}`);
+
+                void vscode.window.showErrorMessage(`Import failed: ${message}`);
+            }
+        }
+    );
+    context.subscriptions.push(importBundle);
 
     // Inline "View in CALM Canvas" affordances on CALM documents.
     const calmSelector: vscode.DocumentSelector = [

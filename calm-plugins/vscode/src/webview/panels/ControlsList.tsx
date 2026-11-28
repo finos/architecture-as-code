@@ -18,6 +18,10 @@ interface ControlsListProps {
     onBrowseControls?: () => void;
 }
 
+function isEnumProperty(def: RequirementPropertyDef): boolean {
+    return def.type === 'enum' || Array.isArray(def.allowedValues);
+}
+
 /** Coerce a raw input string back to the native type declared by the property. */
 export function coerceValue(def: RequirementPropertyDef, raw: string): unknown {
     if (raw === '') return undefined;
@@ -26,7 +30,7 @@ export function coerceValue(def: RequirementPropertyDef, raw: string): unknown {
         const n = Number(raw);
         return Number.isNaN(n) ? undefined : n;
     }
-    if (def.type === 'enum' && def.allowedValues) {
+    if (isEnumProperty(def) && def.allowedValues) {
         const match = def.allowedValues.find((v) => String(v) === raw);
         return match ?? raw;
     }
@@ -254,7 +258,7 @@ function PropertyField({ controlKey, propName, def, value, readonly, onPropInput
                 <option value="false">false</option>
             </select>
         );
-    } else if (def.type === 'enum') {
+    } else if (isEnumProperty(def)) {
         input = (
             <select value={display} onChange={(e) => onChange(e.target.value, true)} style={ctrlInputStyle}>
                 <option value="">— Select —</option>

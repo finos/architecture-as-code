@@ -6,6 +6,59 @@ import * as vscode from 'vscode';
 import { CanvasPanel } from './canvas-panel';
 import type { ExtToWebviewMessage, WebviewToExtMessage } from '../types/messages';
 
+describe('CanvasPanel current integration', () => {
+    it('sends standard nodes using the current message contract', () => {
+        const nodes = [{ id: 'svc', name: 'Service', controls: {} }];
+        const postMessage = vi.fn();
+        const harness = {
+            assetService: { getStandardNodes: () => nodes, getPatterns: () => [] },
+            log: { appendLine: vi.fn() },
+            postMessage,
+        };
+        Reflect.apply(Reflect.get(CanvasPanel.prototype, 'sendAssets'), harness, []);
+        expect(postMessage).toHaveBeenCalledWith({ type: 'standardNodesLoaded', nodes });
+        expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'buildingBlocksLoaded' }));
+    });
+
+    it('exports flows through the production pattern save handler', async () => {
+        vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('Checkout');
+        const handleSavePattern = vi.fn();
+        const flows = [{
+            'unique-id': 'checkout', name: 'Checkout', description: '',
+            transitions: [{ 'relationship-unique-id': 'request', 'sequence-number': 1, description: 'Call' }],
+        }];
+        await Reflect.apply(Reflect.get(CanvasPanel.prototype, 'handleExportPattern'), { handleSavePattern }, [
+            JSON.stringify({ nodes: [], relationships: [], flows }),
+        ]);
+        expect(handleSavePattern).toHaveBeenCalledWith('checkout.pattern.json', expect.any(String));
+        const pattern = JSON.parse(handleSavePattern.mock.calls[0][1]);
+        expect(pattern.required).toContain('flows');
+        expect(pattern.properties.flows.prefixItems[0].properties['unique-id'].const).toBe('checkout');
+    });
+
+    it('reports invalid pattern JSON instead of saving it', async () => {
+        vi.spyOn(vscode.window, 'showInputBox').mockResolvedValue('Checkout');
+        const error = vi.spyOn(vscode.window, 'showErrorMessage');
+        const handleSavePattern = vi.fn();
+        await Reflect.apply(Reflect.get(CanvasPanel.prototype, 'handleExportPattern'), { handleSavePattern }, ['invalid']);
+        expect(error).toHaveBeenCalledWith('Cannot export pattern: invalid document JSON');
+        expect(handleSavePattern).not.toHaveBeenCalled();
+    });
+
+    it('keeps canvas edits unsaved and preserves the submitted flow JSON', () => {
+        const applyEdit = vi.spyOn(vscode.workspace, 'applyEdit');
+        const save = vi.fn();
+        const json = JSON.stringify({ nodes: [], relationships: [], flows: [{ 'unique-id': 'flow' }] });
+        const harness = {
+            currentDocument: { uri: vscode.Uri.file('model.calm.json'), getText: () => '{}', positionAt: () => ({ line: 0, character: 0 }), save },
+            syncCoordinator: { canvasChanged: () => true },
+        };
+        Reflect.apply(Reflect.get(CanvasPanel.prototype, 'handleCanvasChanged'), harness, [json]);
+        expect(applyEdit).toHaveBeenCalledOnce();
+        expect(save).not.toHaveBeenCalled();
+    });
+});
+
 function makeDoc(filePath: string, initialText: string) {
     let text = initialText;
     return {

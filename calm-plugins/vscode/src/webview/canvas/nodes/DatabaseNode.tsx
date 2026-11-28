@@ -1,20 +1,19 @@
 import React from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
 import { getNodeStyleOverride } from '../../utils/standard-node-style';
-import { theme } from '../theme-colors';
-import { DATABASE_FILL } from '../node-colours';
+import { onSurface, theme } from '../theme-colors';
 import { ValidationBadge } from './ValidationBadge';
 
 export function DatabaseNode({ id, data, selected }: NodeProps) {
     const override = getNodeStyleOverride(data as Record<string, unknown>);
-    const fill = override.background ?? DATABASE_FILL;
+    const fill = override.background ?? onSurface(theme.green, 28);
     const stroke = selected ? theme.focus : theme.green;
     const errorCount = (data as any).validationErrors ?? 0;
     const warnCount = (data as any).validationWarnings ?? 0;
 
     return (
         <>
-            <NodeResizer isVisible={selected} minWidth={60} minHeight={50} lineStyle={{ borderColor: theme.focus }} />
+            <NodeResizer isVisible={selected} minWidth={40} minHeight={40} lineStyle={{ borderColor: theme.focus }} />
             <Handle type="target" position={Position.Top} />
             <Handle type="source" position={Position.Bottom} />
             <Handle type="target" position={Position.Left} id="left-target" />
@@ -54,4 +53,3 @@ const labelStyle: React.CSSProperties = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
 };
-

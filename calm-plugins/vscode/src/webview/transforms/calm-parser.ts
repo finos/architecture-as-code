@@ -2,16 +2,26 @@ import type { Node, Edge } from 'reactflow';
 import { MarkerType } from 'reactflow';
 import dagre from '@dagrejs/dagre';
 import type { CalmArchitecture } from './calm-editor-transformer';
+import type { CalmFlow } from '../../core/types';
+import { getDetailNodeVisual, DEFAULT_DETAIL_NODE_VISUAL } from '../canvas/nodes/nodeVisuals';
 import { splitEdgeMetadata } from './edge-metadata';
 
 export interface ParsedCALMData {
     nodes: Node[];
     edges: Edge[];
+    flows: CalmFlow[];
     copiesLimited: boolean;
 }
 
-const NODE_WIDTH = 250;
-const NODE_HEIGHT = 60;
+const MAX_LABEL_LENGTH = 30;
+
+function truncate(text: string | undefined, max: number): string | undefined {
+    if (!text) return text;
+    return text.length > max ? text.slice(0, max) + '...' : text;
+}
+
+const NODE_WIDTH = DEFAULT_DETAIL_NODE_VISUAL.width;
+const NODE_HEIGHT = DEFAULT_DETAIL_NODE_VISUAL.height;
 const GROUP_PADDING = 50;
 const CONTAINER_BASE_WIDTH = 500;
 const CONTAINER_BASE_HEIGHT = 350;
@@ -21,13 +31,13 @@ const CONTAINER_CHILD_HEIGHT_INCREMENT = 120;
 /** Copies above which a node in several containers is drawn in its last container only. */
 const MAX_COPIES = 1000;
 
-interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; edgeMetadata: Record<string, unknown> }
+interface ConnectsEntry { relId: string; src: string; dst: string; protocol?: string; description?: string; controls?: unknown; lineStyle: string; routing: string; sourceHandle?: string; targetHandle?: string; metaDirection?: string; edgeMetadata: Record<string, unknown> }
 
 export function parseCALMData(
     arch: CalmArchitecture,
     direction: 'DOWN' | 'RIGHT' = 'DOWN'
 ): ParsedCALMData {
-    if (!arch || !arch.nodes) return { nodes: [], edges: [], copiesLimited: false };
+    if (!arch || !arch.nodes) return { nodes: [], edges: [], flows: [], copiesLimited: false };
 
     const nodes: Node[] = [];
     const edges: Edge[] = [];
@@ -172,6 +182,7 @@ export function parseCALMData(
 
         let containerWidth = CONTAINER_BASE_WIDTH;
         let containerHeight = CONTAINER_BASE_HEIGHT;
+        const visual = getDetailNodeVisual((n['node-type'] as string) ?? 'system');
         if (isContainer) {
             const desc = descendantCount.get(id) ?? 0;
             containerWidth = CONTAINER_BASE_WIDTH + Math.ceil(Math.sqrt(desc)) * CONTAINER_CHILD_WIDTH_INCREMENT;
@@ -198,11 +209,14 @@ export function parseCALMData(
             ...(parent ? { parentId: parent, extent: 'parent' as const, zIndex: depth } : {}),
             ...(isContainer
                 ? {
+                      width: containerWidth,
+                      height: containerHeight,
                       style: { width: containerWidth, height: containerHeight },
                   }
-                : {}),
-            width: isContainer ? containerWidth : NODE_WIDTH,
-            height: isContainer ? containerHeight : NODE_HEIGHT,
+                : {
+                      width: visual.width,
+                      height: visual.height,
+                  }),
         };
     }
 
@@ -230,35 +244,38 @@ export function parseCALMData(
                 const description = (rel as any).description as
                     | string
                     | undefined;
-                const { lineStyle, routing, edgeMetadata } = splitEdgeMetadata((rel as any).metadata);
-                connectsList.push({ relId, src, dst, protocol, description, controls: (rel as any).controls, lineStyle, routing, edgeMetadata });
+                const { lineStyle, routing, sourceHandle, targetHandle, direction: metaDirection, edgeMetadata } = splitEdgeMetadata(rel.metadata);
+                connectsList.push({ relId, src, dst, protocol, description, controls: (rel as any).controls, lineStyle, routing, sourceHandle, targetHandle, metaDirection, edgeMetadata });
             }
         } else if (interacts) {
             const actor = interacts.actor;
             const protocol = (rel as any).protocol as string | undefined;
             const description = (rel as any).description as string | undefined;
-            const { lineStyle, routing, edgeMetadata } = splitEdgeMetadata((rel as any).metadata);
+            const { lineStyle, routing, sourceHandle, targetHandle, direction: metaDirection = 'source-to-target', edgeMetadata } = splitEdgeMetadata(rel.metadata);
             for (const target of interacts.nodes ?? []) {
                 if (actor && target) {
                     edges.push({
                         id: `${relId}#${target}`,
                         source: actor,
                         target,
-                        label: description || undefined,
+                        label: truncate(description, MAX_LABEL_LENGTH) || undefined,
+                        ...(sourceHandle ? { sourceHandle } : {}),
+                        ...(targetHandle ? { targetHandle } : {}),
                         data: {
                             calmVariant: 'interacts',
                             calmRelId: relId,
                             protocol,
                             description,
                             controls: (rel as any).controls,
-                            direction: 'source-to-target',
+                            direction: metaDirection,
                             lineStyle,
                             routing,
                             edgeMetadata,
                         },
                         type: 'tooltip',
-                        markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                        style: { strokeWidth: 1.5 },
+                        ...((metaDirection === 'source-to-target' || metaDirection === 'bidirectional') ? { markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 } } : {}),
+                        ...((metaDirection === 'target-to-source' || metaDirection === 'bidirectional') ? { markerStart: { type: MarkerType.ArrowClosed, width: 15, height: 15 } } : {}),
+                        style: { stroke: '#94a3b8', strokeWidth: 1.5 },
                     });
                 }
             }
@@ -273,26 +290,29 @@ export function parseCALMData(
             if (src && dst) {
                 const protocol = (rel as any).protocol as string | undefined;
                 const description = (rel as any).description as string | undefined;
-                const { lineStyle, routing, edgeMetadata } = splitEdgeMetadata((rel as any).metadata);
+                const { lineStyle, routing, sourceHandle: srcHandle, targetHandle: tgtHandle, direction: customDirection = 'source-to-target', edgeMetadata } = splitEdgeMetadata(rel.metadata);
                 edges.push({
                     id: relId,
                     source: src,
                     target: dst,
-                    label: protocol || description || variantKey,
+                    label: truncate(protocol || description || variantKey, MAX_LABEL_LENGTH),
+                    ...(srcHandle ? { sourceHandle: srcHandle } : {}),
+                    ...(tgtHandle ? { targetHandle: tgtHandle } : {}),
                     data: {
                         calmVariant: variantKey,
                         calmRelId: relId,
                         protocol,
                         description,
                         controls: (rel as any).controls,
-                        direction: 'source-to-target',
+                        direction: customDirection,
                         lineStyle,
                         routing,
                         edgeMetadata,
                     },
                     type: 'tooltip',
-                    markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                    style: { strokeWidth: 1.5 },
+                    ...((customDirection === 'source-to-target' || customDirection === 'bidirectional') ? { markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 } } : {}),
+                    ...((customDirection === 'target-to-source' || customDirection === 'bidirectional') ? { markerStart: { type: MarkerType.ArrowClosed, width: 15, height: 15 } } : {}),
+                    style: { stroke: '#94a3b8', strokeWidth: 1.5 },
                 });
             }
         }
@@ -313,14 +333,19 @@ export function parseCALMData(
     for (const entry of connectsList) {
         if (consumed.has(entry.relId)) continue;
         const reverse = byPairKey.get(pairKey(entry.dst, entry.src, entry))
-            ?.find((e) => !consumed.has(e.relId) && e.relId !== entry.relId);
+            ?.find((e) => !consumed.has(e.relId) && e.relId !== entry.relId
+                && e.sourceHandle === entry.targetHandle && e.targetHandle === entry.sourceHandle
+                && (e.metaDirection ?? 'source-to-target') === 'source-to-target'
+                && (entry.metaDirection ?? 'source-to-target') === 'source-to-target');
         const isBidi = !!reverse;
         if (reverse) consumed.add(reverse.relId);
         consumed.add(entry.relId);
 
-        const directionValue = isBidi ? 'bidirectional' : 'source-to-target';
-        const markerEnd = { type: MarkerType.ArrowClosed, width: 15, height: 15 };
-        const markerStart = isBidi ? { type: MarkerType.ArrowClosed, width: 15, height: 15 } : undefined;
+        const directionValue = entry.metaDirection === 'none' || entry.metaDirection === 'target-to-source' || entry.metaDirection === 'bidirectional'
+            ? entry.metaDirection : isBidi ? 'bidirectional' : 'source-to-target';
+        const arrowMarker = { type: MarkerType.ArrowClosed, width: 15, height: 15 };
+        const markerEnd = (directionValue === 'source-to-target' || directionValue === 'bidirectional') ? arrowMarker : undefined;
+        const markerStart = (directionValue === 'target-to-source' || directionValue === 'bidirectional') ? arrowMarker : undefined;
         // The second edge of an unmerged pair uses the other target handle, so that the two do not draw over each other
         const overlapsReverse = drawnEnds.has(JSON.stringify([entry.dst, entry.src]));
         drawnEnds.add(JSON.stringify([entry.src, entry.dst]));
@@ -329,8 +354,9 @@ export function parseCALMData(
             id: entry.relId,
             source: entry.src,
             target: entry.dst,
-            ...(overlapsReverse ? { targetHandle: 'left-target' } : {}),
-            label: entry.protocol || entry.description || undefined,
+            label: truncate(entry.protocol || entry.description, MAX_LABEL_LENGTH) || undefined,
+            ...(entry.sourceHandle ? { sourceHandle: entry.sourceHandle } : {}),
+            ...(entry.targetHandle ? { targetHandle: entry.targetHandle } : overlapsReverse ? { targetHandle: 'left-target' } : {}),
             data: {
                 calmVariant: 'connects',
                 calmRelId: entry.relId,
@@ -342,6 +368,7 @@ export function parseCALMData(
                 lineStyle: entry.lineStyle,
                 routing: entry.routing,
                 edgeMetadata: entry.edgeMetadata,
+                ...(overlapsReverse && !entry.targetHandle ? { _autoTargetHandle: 'left-target' } : {}),
             },
             type: 'tooltip',
             markerEnd,
@@ -350,9 +377,12 @@ export function parseCALMData(
         });
     }
 
+    // Extract flows (already in the right shape for the store)
+    const flows: CalmFlow[] = (arch as Record<string, unknown>).flows as CalmFlow[] ?? [];
+
     // Apply Dagre auto-layout
     const layoutedNodes = applyDagreLayout(nodes, edges, direction);
-    return { nodes: layoutedNodes, edges, copiesLimited: capped };
+    return { nodes: layoutedNodes, edges, flows, copiesLimited: capped };
 }
 
 const KNOWN_NODE_TYPES = new Set([

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
-import { getNodeStyleOverride } from '../../utils/standard-node-style';
-import { theme, readableTextOn } from '../theme-colors';
-import { WEBCLIENT_FILL } from '../node-colours';
+import { isStandardNode, getNodeStyleOverride } from '../../utils/standard-node-style';
+import { onSurface, theme, blockBorder, readableTextOn } from '../theme-colors';
 import { ValidationBadge } from './ValidationBadge';
 
 export function WebclientNode({ id, data, selected }: NodeProps) {
+    const isBlock = isStandardNode(data as Record<string, unknown>);
     const override = getNodeStyleOverride(data as Record<string, unknown>);
     const text = override.text ?? readableTextOn(override.background);
     const errorCount = (data as any).validationErrors ?? 0;
@@ -18,19 +18,20 @@ export function WebclientNode({ id, data, selected }: NodeProps) {
             <Handle type="target" position={Position.Left} id="left-target" />
             <Handle type="source" position={Position.Right} id="right-source" />
 
-            <NodeResizer isVisible={selected} minWidth={100} minHeight={40} lineStyle={{ borderColor: theme.focus }} />
+            <NodeResizer isVisible={selected} minWidth={40} minHeight={40} lineStyle={{ borderColor: theme.focus }} />
             <div style={{
                 ...baseStyle,
+                ...(isBlock ? standardNodeStyle : {}),
                 ...(selected ? selectedStyle : {}),
                 ...(override.background ? { background: override.background } : {}),
             }}>
                 <ValidationBadge errorCount={errorCount} warnCount={warnCount} nodeId={(data as any).calmId ?? id} />
                 <div style={iconStyle}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={text ?? theme.blue} strokeWidth="1.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={text ?? (isBlock ? theme.badgeFg : theme.blue)} strokeWidth="1.5">
                         <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
                     </svg>
                 </div>
-                <span style={{ ...labelStyle, ...(text ? { color: text } : {}) }}>
+                <span style={{ ...labelStyle, ...(isBlock ? labelBlockStyle : {}), ...(text ? { color: text } : {}) }}>
                     {(data as any).label ?? (data as any).calmId}
                 </span>
             </div>
@@ -41,8 +42,11 @@ export function WebclientNode({ id, data, selected }: NodeProps) {
 const baseStyle: React.CSSProperties = {
     position: 'relative', display: 'flex', alignItems: 'center', gap: '7px',
     width: '100%', height: '100%', padding: '8px 10px', boxSizing: 'border-box',
-    background: WEBCLIENT_FILL, border: `1.5px solid ${theme.blue}`, borderRadius: '10px',
+    background: onSurface(theme.blue, 22), border: `1.5px solid ${theme.blue}`, borderRadius: '10px',
     cursor: 'default', userSelect: 'none',
+};
+const standardNodeStyle: React.CSSProperties = {
+    background: theme.badgeBg, borderColor: blockBorder, borderWidth: '2px', borderRadius: '6px',
 };
 const selectedStyle: React.CSSProperties = {
     borderColor: theme.focus, boxShadow: `0 0 0 1.5px ${theme.focus}`,
@@ -52,3 +56,4 @@ const labelStyle: React.CSSProperties = {
     fontSize: '10px', fontWeight: 600, color: theme.text,
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
 };
+const labelBlockStyle: React.CSSProperties = { color: theme.badgeFg };

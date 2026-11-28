@@ -13,7 +13,7 @@ export function ActorNode({ id, data, selected }: NodeProps) {
 
     return (
         <>
-            <NodeResizer isVisible={selected} minWidth={60} minHeight={50} lineStyle={{ borderColor: theme.focus }} />
+            <NodeResizer isVisible={selected} minWidth={40} minHeight={40} lineStyle={{ borderColor: theme.focus }} />
             <Handle type="target" position={Position.Top} />
             <Handle type="source" position={Position.Bottom} />
             <Handle type="target" position={Position.Left} id="left-target" />
@@ -54,4 +54,3 @@ const labelStyle: React.CSSProperties = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
 };
-

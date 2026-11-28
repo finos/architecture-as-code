@@ -19,6 +19,26 @@ describe('splitEdgeMetadata', () => {
 
 describe('joinEdgeMetadata', () => {
     it.each([
+        { 'source-handle': 'right-source', 'target-handle': 'left-target', direction: 'none', owner: 'team' },
+        [{ owner: 'team' }, { 'source-handle': 'right-source', direction: 'target-to-source' }],
+    ])('round-trips saved handle and direction fields without changing the metadata shape', (original) => {
+        expect(joinEdgeMetadata(splitEdgeMetadata(original), original)).toBe(original);
+    });
+
+    it('saves edited handles and direction in array metadata without discarding other elements', () => {
+        const original = [{ owner: 'team' }, { 'line-style': 'dashed' }];
+        expect(joinEdgeMetadata({
+            ...splitEdgeMetadata(original),
+            sourceHandle: 'right-source',
+            targetHandle: 'left-target',
+            direction: 'none',
+        }, original)).toEqual([
+            { owner: 'team' },
+            { 'line-style': 'dashed', 'source-handle': 'right-source', 'target-handle': 'left-target', direction: 'none' },
+        ]);
+    });
+
+    it.each([
         ['no metadata', undefined],
         ['empty metadata', {}],
         ['explicit defaults', { 'line-style': 'solid', routing: 'bezier' }],
