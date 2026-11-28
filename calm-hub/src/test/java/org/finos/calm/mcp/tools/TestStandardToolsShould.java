@@ -2,6 +2,10 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
@@ -29,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -41,12 +46,19 @@ class TestStandardToolsShould {
     @Mock
     StandardStore standardStore;
 
+    @Mock
+    ResourceIdResolver resourceIdResolver;
+
     @InjectMocks
     StandardTools standardTools;
 
     @BeforeEach
     void setup() {
         standardTools.mcpEnabled = true;
+        lenient().when(resourceIdResolver.forStorage(anyString(), any(), any()))
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
+        lenient().when(resourceIdResolver.numericForWrite(any()))
+                .thenAnswer(call -> call.getArgument(0) instanceof NumericResourceId numeric ? numeric.value() : 0);
     }
 
     private static String text(ToolResponse r) {
@@ -117,7 +129,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_versions_for_valid_standard() throws Exception {
-        when(standardStore.getStandardVersions("finos", 1))
+        when(standardStore.getStandardVersions("finos", new NumericResourceId(1)))
                 .thenReturn(List.of("1.0.0", "1.1.0"));
 
         ToolResponse result = standardTools.listStandardVersions("finos", 1);
@@ -129,7 +141,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_empty_versions_message_for_standard() throws Exception {
-        when(standardStore.getStandardVersions("finos", 1))
+        when(standardStore.getStandardVersions("finos", new NumericResourceId(1)))
                 .thenReturn(List.of());
 
         ToolResponse result = standardTools.listStandardVersions("finos", 1);
@@ -140,7 +152,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_error_when_standard_not_found_for_versions() throws Exception {
-        when(standardStore.getStandardVersions("finos", 99))
+        when(standardStore.getStandardVersions("finos", new NumericResourceId(99)))
                 .thenThrow(new StandardNotFoundException());
 
         ToolResponse result = standardTools.listStandardVersions("finos", 99);
@@ -151,7 +163,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_standard_versions() throws Exception {
-        when(standardStore.getStandardVersions("missing", 1))
+        when(standardStore.getStandardVersions("missing", new NumericResourceId(1)))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = standardTools.listStandardVersions("missing", 1);
@@ -191,7 +203,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_standard_json_for_valid_version() throws Exception {
-        when(standardStore.getStandardForVersion("finos", 1, "1.0.0"))
+        when(standardStore.getStandardForVersion("finos", new NumericResourceId(1), "1.0.0"))
                 .thenReturn("{\"$schema\":\"https://calm.finos.org/schema\"}");
 
         ToolResponse result = standardTools.getStandard("finos", 1, "1.0.0");
@@ -202,7 +214,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_standard_json_for_commit_sha_version() throws Exception {
-        when(standardStore.getStandardForVersion("finos", 1, "1e38a517")).thenReturn("{\"$schema\":\"x\"}");
+        when(standardStore.getStandardForVersion("finos", new NumericResourceId(1), "1e38a517")).thenReturn("{\"$schema\":\"x\"}");
 
         ToolResponse result = standardTools.getStandard("finos", 1, "1e38a517");
 
@@ -212,7 +224,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_error_when_standard_version_not_found() throws Exception {
-        when(standardStore.getStandardForVersion("finos", 1, "9.9.9"))
+        when(standardStore.getStandardForVersion("finos", new NumericResourceId(1), "9.9.9"))
                 .thenThrow(new StandardVersionNotFoundException());
 
         ToolResponse result = standardTools.getStandard("finos", 1, "9.9.9");
@@ -223,7 +235,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_error_when_standard_not_found_for_get() throws Exception {
-        when(standardStore.getStandardForVersion("finos", 99, "1.0.0"))
+        when(standardStore.getStandardForVersion("finos", new NumericResourceId(99), "1.0.0"))
                 .thenThrow(new StandardNotFoundException());
 
         ToolResponse result = standardTools.getStandard("finos", 99, "1.0.0");
@@ -234,7 +246,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_get_standard() throws Exception {
-        when(standardStore.getStandardForVersion("missing", 1, "1.0.0"))
+        when(standardStore.getStandardForVersion("missing", new NumericResourceId(1), "1.0.0"))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = standardTools.getStandard("missing", 1, "1.0.0");

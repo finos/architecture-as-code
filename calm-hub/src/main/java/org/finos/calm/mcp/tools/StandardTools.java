@@ -7,6 +7,7 @@ import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
@@ -15,6 +16,7 @@ import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.StandardStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +41,9 @@ public class StandardTools {
 
     @Inject
     StandardStore standardStore;
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     @Tool(description = "List all standards in a CalmHub namespace. Returns standard IDs, names, and descriptions.")
     @PermissionsAllowed(CalmHubScopes.READ)
@@ -65,15 +70,19 @@ public class StandardTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listStandardVersions(
             @ToolArg(description = "The namespace containing the standard") String namespace,
-            @ToolArg(description = "The standard ID (positive integer)") int standardId) {
+            @ToolArg(description = "The standard ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String standardId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(standardId, "Standard ID"));
+                () -> McpValidationHelper.validateResourceId(standardId, "Standard ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant));
         if (err.isPresent()) return err.get();
 
         try {
-            List<String> versions = standardStore.getStandardVersions(namespace, standardId);
+            List<String> versions = standardStore.getStandardVersions(namespace, resolve(standardId, path, variant));
             return McpResponseFormatter.formatVersionList("standard", standardId, namespace, versions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
@@ -88,17 +97,21 @@ public class StandardTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getStandard(
             @ToolArg(description = "The namespace containing the standard") String namespace,
-            @ToolArg(description = "The standard ID (positive integer)") int standardId,
+            @ToolArg(description = "The standard ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String standardId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(standardId, "Standard ID"),
+                () -> McpValidationHelper.validateResourceId(standardId, "Standard ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateSnapshotVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {
-            return ToolResponse.success(standardStore.getStandardForVersion(namespace, standardId, version));
+            return ToolResponse.success(standardStore.getStandardForVersion(namespace, resolve(standardId, path, variant), version));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -143,13 +156,17 @@ public class StandardTools {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createStandardVersion(
             @ToolArg(description = "The namespace containing the standard") String namespace,
-            @ToolArg(description = "The standard ID (positive integer)") int standardId,
+            @ToolArg(description = "The standard ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String standardId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The new version string to publish (e.g. '1.1.0')") String version,
             @ToolArg(description = "The full CALM standard JSON content for this version") String standardJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(standardId, "Standard ID"),
+                () -> McpValidationHelper.validateResourceId(standardId, "Standard ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(standardJson, "Standard JSON"),
                 () -> McpValidationHelper.validateMaxLength(standardJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Standard JSON"),
@@ -162,7 +179,7 @@ public class StandardTools {
             String existingDescription = null;
             boolean standardFound = false;
             for (NamespaceResourceSummary s : standards) {
-                if (Objects.equals(s.getId(), String.valueOf(standardId))) {
+                if (Objects.equals(s.getId(), standardId)) {
                     existingName = s.getName();
                     existingDescription = s.getDescription();
                     standardFound = true;
@@ -174,7 +191,7 @@ public class StandardTools {
                 return McpResponseFormatter.entityNotFound("standard", standardId, namespace);
             }
             CreateStandardRequest request = new CreateStandardRequest(existingName, existingDescription, standardJson);
-            standardStore.createStandardForVersion(request, namespace, standardId, version);
+            standardStore.createStandardForVersion(request, namespace, numericId(standardId, path, variant), version);
             logger.info("Standard [{}] version [{}] created in namespace [{}]", standardId, version, namespace);
             return ToolResponse.success("Standard " + standardId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
@@ -187,5 +204,27 @@ public class StandardTools {
             logger.warn("Version [{}] already exists for standard [{}] in namespace [{}]", version, standardId, namespace, e);
             return ToolResponse.error("Error: Version '" + version + "' already exists for standard " + standardId + ".");
         }
+    }
+
+    private ResourceId resolve(String id, String path, String variant) {
+        return resourceIdResolver.forStorage(id, path, variant);
+    }
+
+    private int numericId(String id, String path, String variant) {
+        return resourceIdResolver.numericForWrite(resolve(id, path, variant));
+    }
+
+    // Numeric-id overloads kept for callers that still have an int (not exposed as MCP tools).
+
+    public ToolResponse listStandardVersions(String namespace, int standardId) {
+        return listStandardVersions(namespace, String.valueOf(standardId), null, null);
+    }
+
+    public ToolResponse getStandard(String namespace, int standardId, String version) {
+        return getStandard(namespace, String.valueOf(standardId), null, null, version);
+    }
+
+    public ToolResponse createStandardVersion(String namespace, int standardId, String version, String standardJson) {
+        return createStandardVersion(namespace, String.valueOf(standardId), null, null, version, standardJson);
     }
 }

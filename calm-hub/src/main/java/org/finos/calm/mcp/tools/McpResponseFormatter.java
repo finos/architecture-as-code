@@ -60,6 +60,10 @@ public final class McpResponseFormatter {
      * container-aware overload with {@code "namespace"} as the container type.
      */
     public static ToolResponse formatVersionList(String resourceType, int id, String namespace, List<String> versions) {
+        return formatVersionList(resourceType, String.valueOf(id), namespace, versions);
+    }
+
+    public static ToolResponse formatVersionList(String resourceType, String id, String namespace, List<String> versions) {
         return formatVersionList(resourceType, id, "namespace", namespace, versions);
     }
 
@@ -68,6 +72,10 @@ public final class McpResponseFormatter {
      * When the list is empty the message includes the container for diagnostic context.
      */
     public static ToolResponse formatVersionList(String resourceType, int id, String containerType, String containerName, List<String> versions) {
+        return formatVersionList(resourceType, String.valueOf(id), containerType, containerName, versions);
+    }
+
+    public static ToolResponse formatVersionList(String resourceType, String id, String containerType, String containerName, List<String> versions) {
         if (versions.isEmpty()) {
             return ToolResponse.success("No versions found for " + resourceType + " " + id + " in " + containerType + " '" + containerName + "'.");
         }
@@ -121,6 +129,10 @@ public final class McpResponseFormatter {
      * Capitalises the resource type label (e.g. "architecture" → "Architecture 1 not found").
      */
     public static ToolResponse entityNotFound(String resourceType, int id, String namespace) {
+        return entityNotFound(resourceType, String.valueOf(id), namespace);
+    }
+
+    public static ToolResponse entityNotFound(String resourceType, String id, String namespace) {
         String capitalised = Character.toUpperCase(resourceType.charAt(0)) + resourceType.substring(1);
         return ToolResponse.error("Error: " + capitalised + " " + id + " not found in namespace '" + namespace + "'.");
     }
@@ -129,6 +141,10 @@ public final class McpResponseFormatter {
      * Standard error response when a specific version of an entity cannot be found.
      */
     public static ToolResponse versionNotFound(String resourceType, int id, String version) {
+        return versionNotFound(resourceType, String.valueOf(id), version);
+    }
+
+    public static ToolResponse versionNotFound(String resourceType, String id, String version) {
         return ToolResponse.error("Error: Version '" + version + "' not found for " + resourceType + " " + id + ".");
     }
 }

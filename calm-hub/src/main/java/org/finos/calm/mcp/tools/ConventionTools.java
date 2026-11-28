@@ -7,6 +7,7 @@ import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.ResolvedConventionDefault;
 import org.finos.calm.domain.exception.ConventionNotFoundException;
@@ -14,6 +15,7 @@ import org.finos.calm.domain.exception.ConventionVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.ConventionService;
+import org.finos.calm.services.ResourceIdResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +42,9 @@ public class ConventionTools {
 
     @Inject
     ConventionService conventionService;
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     @Tool(description = "List the conventions of one type in a CalmHub namespace. Convention types: c4-mapping.")
     @PermissionsAllowed(CalmHubScopes.READ)
@@ -68,17 +73,21 @@ public class ConventionTools {
     public ToolResponse listConventionVersions(
             @ToolArg(description = "The namespace containing the convention") String namespace,
             @ToolArg(description = "The convention type (e.g. 'c4-mapping')") String conventionType,
-            @ToolArg(description = "The convention ID (positive integer)") int conventionId) {
+            @ToolArg(description = "The convention ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String conventionId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> validateConventionType(conventionType),
-                () -> McpValidationHelper.validatePositiveId(conventionId, "Convention ID"));
+                () -> McpValidationHelper.validateResourceId(conventionId, "Convention ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant));
         if (err.isPresent()) return err.get();
 
         try {
             return McpResponseFormatter.formatVersionList("convention", conventionId, namespace,
-                    conventionService.getConventionVersions(namespace, ConventionType.fromName(conventionType).orElseThrow(), conventionId));
+                    conventionService.getConventionVersions(namespace, ConventionType.fromName(conventionType).orElseThrow(), resolve(conventionId, path, variant)));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -93,19 +102,23 @@ public class ConventionTools {
     public ToolResponse getConvention(
             @ToolArg(description = "The namespace containing the convention") String namespace,
             @ToolArg(description = "The convention type (e.g. 'c4-mapping')") String conventionType,
-            @ToolArg(description = "The convention ID (positive integer)") int conventionId,
+            @ToolArg(description = "The convention ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String conventionId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
                 () -> validateConventionType(conventionType),
-                () -> McpValidationHelper.validatePositiveId(conventionId, "Convention ID"),
+                () -> McpValidationHelper.validateResourceId(conventionId, "Convention ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {
             return ToolResponse.success(conventionService.getConventionForVersion(namespace,
-                    ConventionType.fromName(conventionType).orElseThrow(), conventionId, version));
+                    ConventionType.fromName(conventionType).orElseThrow(), resolve(conventionId, path, variant), version));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -153,5 +166,23 @@ public class ConventionTools {
         return ConventionType.fromName(conventionType).isPresent()
                 ? null
                 : "Error: Unknown convention type. Convention types: " + CONVENTION_TYPES + ".";
+    }
+
+    private ResourceId resolve(String id, String path, String variant) {
+        return resourceIdResolver.forStorage(id, path, variant);
+    }
+
+    private int numericId(String id, String path, String variant) {
+        return resourceIdResolver.numericForWrite(resolve(id, path, variant));
+    }
+
+    // Numeric-id overloads kept for callers that still have an int (not exposed as MCP tools).
+
+    public ToolResponse listConventionVersions(String namespace, String conventionType, int conventionId) {
+        return listConventionVersions(namespace, conventionType, String.valueOf(conventionId), null, null);
+    }
+
+    public ToolResponse getConvention(String namespace, String conventionType, int conventionId, String version) {
+        return getConvention(namespace, conventionType, String.valueOf(conventionId), null, null, version);
     }
 }

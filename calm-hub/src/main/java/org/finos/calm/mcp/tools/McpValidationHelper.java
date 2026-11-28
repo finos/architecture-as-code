@@ -2,6 +2,7 @@ package org.finos.calm.mcp.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkiverse.mcp.server.ToolResponse;
+import org.finos.calm.resources.ResourceValidationConstants;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -184,6 +185,34 @@ final class McpValidationHelper {
                 .map(Enum::name)
                 .collect(Collectors.joining(", "));
         return "Error: Invalid " + fieldName + " '" + value + "'. Valid values: " + validValues + ".";
+    }
+
+    /** Validates a storage id; GitHub mode uses filename stems, numeric modes use decimal ids. */
+    static String validateResourceId(String id, String fieldName) {
+        if (id == null || id.isBlank()) {
+            return "Error: " + fieldName + " is required.";
+        }
+        if (!id.matches("[A-Za-z0-9_-]+")) {
+            return "Error: " + fieldName + " must be letters, digits, '-' or '_'.";
+        }
+        if (id.matches("0+|-\\d+")) {
+            return "Error: " + fieldName + " must be a positive integer or a GitHub filename stem.";
+        }
+        return null;
+    }
+
+    static String validateOptionalPath(String path) {
+        if (path != null && !path.matches(ResourceValidationConstants.PATH_QUERY_PARAM_REGEX)) {
+            return "Error: path must be a '/'-separated list of folder names.";
+        }
+        return null;
+    }
+
+    static String validateOptionalVariant(String variant) {
+        if (variant != null && !variant.matches(ResourceValidationConstants.VARIANT_QUERY_PARAM_REGEX)) {
+            return "Error: variant must be empty or a single token of letters, digits, '-' or '_'.";
+        }
+        return null;
     }
 
     /**

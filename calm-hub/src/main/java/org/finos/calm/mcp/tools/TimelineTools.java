@@ -72,16 +72,20 @@ public class TimelineTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listTimelineVersions(
             @ToolArg(description = "The namespace containing the timeline") String namespace,
-            @ToolArg(description = "The timeline ID (positive integer)") int timelineId) {
+            @ToolArg(description = "The timeline ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String timelineId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(timelineId, "Timeline ID"));
+                () -> McpValidationHelper.validateResourceId(timelineId, "Timeline ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant));
         if (err.isPresent()) return err.get();
 
         try {
             List<String> versions = timelineStore.getTimelineVersions(namespace,
-                    resourceIdResolver.forStorage(String.valueOf(timelineId), null, null));
+                    resourceIdResolver.forStorage(timelineId, path, variant));
             return McpResponseFormatter.formatVersionList("timeline", timelineId, namespace, versions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
@@ -96,18 +100,22 @@ public class TimelineTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getTimeline(
             @ToolArg(description = "The namespace containing the timeline") String namespace,
-            @ToolArg(description = "The timeline ID (positive integer)") int timelineId,
+            @ToolArg(description = "The timeline ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String timelineId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(timelineId, "Timeline ID"),
+                () -> McpValidationHelper.validateResourceId(timelineId, "Timeline ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateSnapshotVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {
             return ToolResponse.success(timelineStore.getTimelineForVersion(namespace,
-                    resourceIdResolver.forStorage(String.valueOf(timelineId), null, null), version));
+                    resourceIdResolver.forStorage(timelineId, path, variant), version));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -153,13 +161,17 @@ public class TimelineTools {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createTimelineVersion(
             @ToolArg(description = "The namespace containing the timeline") String namespace,
-            @ToolArg(description = "The timeline ID to publish a new version for (positive integer)") int timelineId,
+            @ToolArg(description = "The timeline ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String timelineId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The new version string to publish (e.g. '1.1.0')") String version,
             @ToolArg(description = "The full CALM timeline JSON content for this version") String timelineJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(timelineId, "Timeline ID"),
+                () -> McpValidationHelper.validateResourceId(timelineId, "Timeline ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(timelineJson, "Timeline JSON"),
                 () -> McpValidationHelper.validateMaxLength(timelineJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Timeline JSON"),
@@ -169,7 +181,7 @@ public class TimelineTools {
         try {
             Timeline timeline = new Timeline.TimelineBuilder()
                     .setNamespace(namespace)
-                    .setId(timelineId)
+                    .setId(resourceIdResolver.numericForWrite(resourceIdResolver.forStorage(timelineId, path, variant)))
                     .setVersion(version)
                     .setTimeline(timelineJson)
                     .build();
@@ -192,14 +204,18 @@ public class TimelineTools {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse updateTimeline(
             @ToolArg(description = "The namespace containing the timeline") String namespace,
-            @ToolArg(description = "The timeline ID (positive integer)") int timelineId,
+            @ToolArg(description = "The timeline ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String timelineId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string to update (e.g. '1.0.0')") String version,
             @ToolArg(description = "The updated CALM timeline JSON content") String timelineJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.checkMutationAllowed(allowPutOperations),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(timelineId, "Timeline ID"),
+                () -> McpValidationHelper.validateResourceId(timelineId, "Timeline ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(timelineJson, "Timeline JSON"),
                 () -> McpValidationHelper.validateMaxLength(timelineJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Timeline JSON"),
@@ -209,7 +225,7 @@ public class TimelineTools {
         try {
             Timeline timeline = new Timeline.TimelineBuilder()
                     .setNamespace(namespace)
-                    .setId(timelineId)
+                    .setId(resourceIdResolver.numericForWrite(resourceIdResolver.forStorage(timelineId, path, variant)))
                     .setVersion(version)
                     .setTimeline(timelineJson)
                     .build();
@@ -223,5 +239,23 @@ public class TimelineTools {
             logger.warn("Timeline [{}] not found in namespace [{}]", timelineId, namespace, e);
             return McpResponseFormatter.entityNotFound("timeline", timelineId, namespace);
         }
+    }
+
+    // Numeric-id overloads kept for callers that still have an int (not exposed as MCP tools).
+
+    public ToolResponse listTimelineVersions(String namespace, int timelineId) {
+        return listTimelineVersions(namespace, String.valueOf(timelineId), null, null);
+    }
+
+    public ToolResponse getTimeline(String namespace, int timelineId, String version) {
+        return getTimeline(namespace, String.valueOf(timelineId), null, null, version);
+    }
+
+    public ToolResponse createTimelineVersion(String namespace, int timelineId, String version, String timelineJson) {
+        return createTimelineVersion(namespace, String.valueOf(timelineId), null, null, version, timelineJson);
+    }
+
+    public ToolResponse updateTimeline(String namespace, int timelineId, String version, String timelineJson) {
+        return updateTimeline(namespace, String.valueOf(timelineId), null, null, version, timelineJson);
     }
 }

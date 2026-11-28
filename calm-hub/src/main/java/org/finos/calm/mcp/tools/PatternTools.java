@@ -72,16 +72,20 @@ public class PatternTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listPatternVersions(
             @ToolArg(description = "The namespace containing the pattern") String namespace,
-            @ToolArg(description = "The pattern ID (positive integer)") int patternId) {
+            @ToolArg(description = "The pattern ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String patternId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(patternId, "Pattern ID"));
+                () -> McpValidationHelper.validateResourceId(patternId, "Pattern ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant));
         if (err.isPresent()) return err.get();
 
         try {
             List<String> versions = patternStore.getPatternVersions(namespace,
-                    resourceIdResolver.forStorage(String.valueOf(patternId), null, null));
+                    resourceIdResolver.forStorage(patternId, path, variant));
             return McpResponseFormatter.formatVersionList("pattern", patternId, namespace, versions);
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
@@ -96,18 +100,22 @@ public class PatternTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getPattern(
             @ToolArg(description = "The namespace containing the pattern") String namespace,
-            @ToolArg(description = "The pattern ID (positive integer)") int patternId,
+            @ToolArg(description = "The pattern ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String patternId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(patternId, "Pattern ID"),
+                () -> McpValidationHelper.validateResourceId(patternId, "Pattern ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateSnapshotVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {
             return ToolResponse.success(patternStore.getPatternForVersion(namespace,
-                    resourceIdResolver.forStorage(String.valueOf(patternId), null, null), version));
+                    resourceIdResolver.forStorage(patternId, path, variant), version));
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -153,13 +161,17 @@ public class PatternTools {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createPatternVersion(
             @ToolArg(description = "The namespace containing the pattern") String namespace,
-            @ToolArg(description = "The pattern ID to publish a new version for (positive integer)") int patternId,
+            @ToolArg(description = "The pattern ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String patternId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The new version string to publish (e.g. '1.1.0')") String version,
             @ToolArg(description = "The full CALM pattern JSON content for this version") String patternJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(patternId, "Pattern ID"),
+                () -> McpValidationHelper.validateResourceId(patternId, "Pattern ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(patternJson, "Pattern JSON"),
                 () -> McpValidationHelper.validateMaxLength(patternJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Pattern JSON"),
@@ -169,7 +181,7 @@ public class PatternTools {
         try {
             Pattern pattern = new Pattern.PatternBuilder()
                     .setNamespace(namespace)
-                    .setId(patternId)
+                    .setId(resourceIdResolver.numericForWrite(resourceIdResolver.forStorage(patternId, path, variant)))
                     .setVersion(version)
                     .setPattern(patternJson)
                     .build();
@@ -192,14 +204,18 @@ public class PatternTools {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse updatePattern(
             @ToolArg(description = "The namespace containing the pattern") String namespace,
-            @ToolArg(description = "The pattern ID (positive integer)") int patternId,
+            @ToolArg(description = "The pattern ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String patternId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string to update (e.g. '1.0.0')") String version,
             @ToolArg(description = "The updated CALM pattern JSON content") String patternJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.checkMutationAllowed(allowPutOperations),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(patternId, "Pattern ID"),
+                () -> McpValidationHelper.validateResourceId(patternId, "Pattern ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(patternJson, "Pattern JSON"),
                 () -> McpValidationHelper.validateMaxLength(patternJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Pattern JSON"),
@@ -209,7 +225,7 @@ public class PatternTools {
         try {
             Pattern pattern = new Pattern.PatternBuilder()
                     .setNamespace(namespace)
-                    .setId(patternId)
+                    .setId(resourceIdResolver.numericForWrite(resourceIdResolver.forStorage(patternId, path, variant)))
                     .setVersion(version)
                     .setPattern(patternJson)
                     .build();
@@ -223,5 +239,23 @@ public class PatternTools {
             logger.warn("Pattern [{}] not found in namespace [{}]", patternId, namespace, e);
             return McpResponseFormatter.entityNotFound("pattern", patternId, namespace);
         }
+    }
+
+    // Numeric-id overloads kept for callers that still have an int (not exposed as MCP tools).
+
+    public ToolResponse listPatternVersions(String namespace, int patternId) {
+        return listPatternVersions(namespace, String.valueOf(patternId), null, null);
+    }
+
+    public ToolResponse getPattern(String namespace, int patternId, String version) {
+        return getPattern(namespace, String.valueOf(patternId), null, null, version);
+    }
+
+    public ToolResponse createPatternVersion(String namespace, int patternId, String version, String patternJson) {
+        return createPatternVersion(namespace, String.valueOf(patternId), null, null, version, patternJson);
+    }
+
+    public ToolResponse updatePattern(String namespace, int patternId, String version, String patternJson) {
+        return updatePattern(namespace, String.valueOf(patternId), null, null, version, patternJson);
     }
 }

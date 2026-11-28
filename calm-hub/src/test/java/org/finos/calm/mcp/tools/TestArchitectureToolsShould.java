@@ -55,6 +55,8 @@ class TestArchitectureToolsShould {
         architectureTools.allowPutOperations = true;
         lenient().when(resourceIdResolver.forStorage(anyString(), any(), any()))
                 .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
+        lenient().when(resourceIdResolver.numericForWrite(any()))
+                .thenAnswer(call -> call.getArgument(0) instanceof NumericResourceId numeric ? numeric.value() : 0);
     }
 
     private static String text(ToolResponse r) {
