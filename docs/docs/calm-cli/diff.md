@@ -57,9 +57,23 @@ Nodes added:
 
 The symbols are: `+` added, `-` removed, `~` modified, `↔` renamed and `=` unchanged. The `Flows:` line shows only when a document has flows. Flows have no renamed count.
 
+## Pattern Obligations
+
+A pattern declares each node and relationship at one of three obligations. See [Choices and optional elements](../core-concepts/patterns.md#choices-and-optional-elements).
+
+| Obligation | Declared as | An architecture has the item |
+|---|---|---|
+| `required` | An entry in `prefixItems` | Once, at that position |
+| `alternative` | An option of a `oneOf` or `anyOf` entry in `prefixItems` | Only if chosen, then once, at that position |
+| `catalogue` | An option of `items` | Any number of times, or not at all |
+
+When both versions declare an item at a different obligation, the diff counts it as modified and shows the change, for example `cache (catalogue -> required)`. The JSON output lists the change under `obligationChanged`, with `from` and `to`.
+
+`minItems` sets how many items an architecture must have, so it decides whether the last `prefixItems` entries can be left out. The diff reports a change to it on its own line, for example `Nodes minItems: 1 -> 2`, and under `minItemsChanged` in the JSON output. A pattern without `minItems` counts as 0.
+
 ## Using `diff` in CI
 
-`--exit-code` makes the command fail when it finds a change. A change includes items that the command skipped because they have no `unique-id`. Use it to make sure that a changed document also gets a new version:
+`--exit-code` makes the command fail when it finds a change. A change includes items that the command skipped because they have no `unique-id`, and pattern items whose obligation changed. Use it to make sure that a changed document also gets a new version:
 
 ```shell
 calm diff -a ./baseline.arch.json -b ./updated.arch.json --exit-code

@@ -10,6 +10,7 @@ import {
     type MetadataDiffResult,
     type MomentDiff,
     type NodesAndRelationshipsDiffResult,
+    type ObligationChange,
     type TimelineInput,
 } from '@finos/calm-models/diff';
 import type { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
@@ -80,7 +81,11 @@ export function hasChanges(diff: DiffResult): boolean {
         (diff.invalidItems?.nodes.length ?? 0) > 0 ||
         (diff.invalidItems?.relationships.length ?? 0) > 0 ||
         (diff.undiffableItems?.nodes.length ?? 0) > 0 ||
-        (diff.undiffableItems?.relationships.length ?? 0) > 0
+        (diff.undiffableItems?.relationships.length ?? 0) > 0 ||
+        (diff.obligationChanged?.nodes.length ?? 0) > 0 ||
+        (diff.obligationChanged?.relationships.length ?? 0) > 0 ||
+        diff.minItemsChanged?.nodes !== undefined ||
+        diff.minItemsChanged?.relationships !== undefined
     );
 }
 
@@ -101,6 +106,27 @@ function edgeLabel(edge: CalmRelationshipSchema): string {
     return typeof item['unique-id'] === 'string' ? item['unique-id'] : '(unpinned relationship)';
 }
 
+type Identified = { 'unique-id'?: string };
+
+/**
+ * A pattern item whose obligation changed is a modification. One that is also
+ * modified or renamed keeps its one line, with the obligation change added.
+ */
+function obligationLabels<T extends Identified>(
+    changes: ObligationChange<T>[],
+    modified: { updated: T }[],
+    renamed: { newId: string }[],
+) {
+    const byId = new Map(changes.map((c) => [c.item['unique-id'], c]));
+    const suffix = (id: string | undefined) => {
+        const change = byId.get(id);
+        return change ? ` (${change.from} -> ${change.to})` : '';
+    };
+    const listed = new Set<string | undefined>([...modified.map((m) => m.updated['unique-id']), ...renamed.map((r) => r.newId)]);
+    const only = changes.filter((c) => !listed.has(c.item['unique-id']));
+    return { suffix, only };
+}
+
 export function formatDiff(
     diff: DiffResult,
     format: DiffOutputFormat,
@@ -114,14 +140,21 @@ export function formatDiff(
     const invalidFlows = diff.invalidItems?.flows?.length ?? 0;
     const undiffableNodes = diff.undiffableItems?.nodes.length ?? 0;
     const undiffableEdges = diff.undiffableItems?.relationships.length ?? 0;
+    const nodeObligations = obligationLabels(diff.obligationChanged?.nodes ?? [], diff.nodesModified, diff.nodesRenamed);
+    const edgeObligations = obligationLabels(diff.obligationChanged?.relationships ?? [], diff.edgesModified, diff.edgesRenamed);
+    const nodesModified = diff.nodesModified.length + nodeObligations.only.length;
+    const edgesModified = diff.edgesModified.length + edgeObligations.only.length;
     const counts = architectureLevelChangeCounts(diff);
     const title = `CALM ${documentType} diff`;
     const lines = [
         title,
         '-'.repeat(title.length),
-        `Nodes:         +${diff.nodesAdded.length}  -${diff.nodesRemoved.length}  ~${diff.nodesModified.length}  ↔${diff.nodesRenamed.length}  =${diff.nodesSame.length}`,
-        `Relationships: +${diff.edgesAdded.length}  -${diff.edgesRemoved.length}  ~${diff.edgesModified.length}  ↔${diff.edgesRenamed.length}  =${diff.edgesSame.length}`,
+        `Nodes:         +${diff.nodesAdded.length}  -${diff.nodesRemoved.length}  ~${nodesModified}  ↔${diff.nodesRenamed.length}  =${diff.nodesSame.length}`,
+        `Relationships: +${diff.edgesAdded.length}  -${diff.edgesRemoved.length}  ~${edgesModified}  ↔${diff.edgesRenamed.length}  =${diff.edgesSame.length}`,
     ];
+    const minItems = diff.minItemsChanged;
+    if (minItems?.nodes) lines.push(`Nodes minItems:         ${minItems.nodes.from} -> ${minItems.nodes.to}`);
+    if (minItems?.relationships) lines.push(`Relationships minItems: ${minItems.relationships.from} -> ${minItems.relationships.to}`);
     const flows = {
         added: diff.flowsAdded?.length ?? 0,
         removed: diff.flowsRemoved?.length ?? 0,
@@ -155,12 +188,18 @@ export function formatDiff(
     };
     list('Nodes added:', diff.nodesAdded.map(nodeLabel));
     list('Nodes removed:', diff.nodesRemoved.map(nodeLabel));
-    list('Nodes modified:', diff.nodesModified.map((n) => nodeLabel(n.original)));
-    list('Nodes renamed:', diff.nodesRenamed.map((r) => `${r.oldId} -> ${r.newId}`));
+    list('Nodes modified:', [
+        ...diff.nodesModified.map((n) => nodeLabel(n.original) + nodeObligations.suffix(n.updated['unique-id'])),
+        ...nodeObligations.only.map((c) => nodeLabel(c.item) + nodeObligations.suffix(c.item['unique-id'])),
+    ]);
+    list('Nodes renamed:', diff.nodesRenamed.map((r) => `${r.oldId} -> ${r.newId}${nodeObligations.suffix(r.newId)}`));
     list('Relationships added:', diff.edgesAdded.map(edgeLabel));
     list('Relationships removed:', diff.edgesRemoved.map(edgeLabel));
-    list('Relationships modified:', diff.edgesModified.map((e) => edgeLabel(e.original)));
-    list('Relationships renamed:', diff.edgesRenamed.map((r) => `${r.oldId} -> ${r.newId}`));
+    list('Relationships modified:', [
+        ...diff.edgesModified.map((e) => edgeLabel(e.original) + edgeObligations.suffix(e.updated['unique-id'])),
+        ...edgeObligations.only.map((c) => edgeLabel(c.item) + edgeObligations.suffix(c.item['unique-id'])),
+    ]);
+    list('Relationships renamed:', diff.edgesRenamed.map((r) => `${r.oldId} -> ${r.newId}${edgeObligations.suffix(r.newId)}`));
     list('Flows added:', diff.flowsAdded?.map((flow) => flow['unique-id']) ?? []);
     list('Flows removed:', diff.flowsRemoved?.map((flow) => flow['unique-id']) ?? []);
     list('Flows modified:', diff.flowsModified?.map((flow) => flow.original['unique-id']) ?? []);

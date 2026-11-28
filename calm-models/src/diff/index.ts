@@ -39,4 +39,9 @@ export type {
     RelationshipRenameMapping,
     InvalidDiffItems,
     UndiffableDiffItems,
+    ObligationChange,
+    ObligationChangedItems,
+    PatternObligation,
+    MinItemsChange,
+    MinItemsChanged,
 } from './diff-types.js';

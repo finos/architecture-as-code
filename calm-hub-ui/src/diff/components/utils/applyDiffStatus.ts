@@ -22,7 +22,9 @@ export function applyDiffStatus(
         const nodeData = node.data as CalmNodeSchema;
         const uniqueId = nodeData['unique-id'];
 
-        let diffStatus: DiffNodeData['diffStatus'] = 'unchanged';
+        let diffStatus: DiffNodeData['diffStatus'] = obligationChanged(diffResult.obligationChanged?.nodes, uniqueId)
+            ? 'modified'
+            : 'unchanged';
         let originalId: string | undefined;
 
         // Only match by a real unique-id. Unconstrained pattern nodes have no
@@ -65,7 +67,9 @@ export function applyDiffStatus(
         const edgeData = edge.data as CalmRelationshipSchema;
         const uniqueId = edgeData['unique-id'];
 
-        let diffStatus: DiffEdgeData['diffStatus'] = 'unchanged';
+        let diffStatus: DiffEdgeData['diffStatus'] = obligationChanged(diffResult.obligationChanged?.relationships, uniqueId)
+            ? 'modified'
+            : 'unchanged';
         let originalId: string | undefined;
 
         // See the node loop above: id-less pattern edges must not match by
@@ -107,6 +111,14 @@ export function applyDiffStatus(
         nodes: nodesWithDiff,
         edges: edgesWithDiff,
     };
+}
+
+/** A pattern item that both versions declare, at a different obligation. */
+function obligationChanged(
+    changes: { item: { 'unique-id'?: string } }[] | undefined,
+    uniqueId: string | undefined,
+): boolean {
+    return !!uniqueId && !!changes?.some((c) => c.item['unique-id'] === uniqueId);
 }
 
 function getNodeStyle(diffStatus?: string): React.CSSProperties {

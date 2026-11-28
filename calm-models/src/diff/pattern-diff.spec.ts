@@ -223,3 +223,132 @@ describe('items catalogues', () => {
         expect(normalisePatternToInstance(plain).nodes).toHaveLength(0);
     });
 });
+
+describe('obligation changes', () => {
+    const node = (id: string) => ({
+        type: 'object',
+        properties: { 'unique-id': { const: id }, 'node-type': { const: 'service' } },
+    });
+    const relationship = (id: string) => ({
+        type: 'object',
+        properties: { 'unique-id': { const: id } },
+    });
+    type ArraySchema = { prefixItems: unknown[]; items?: unknown; minItems?: number };
+    const array = (field: ArraySchema) => ({ type: 'array', minItems: field.prefixItems.length, ...field });
+    const pattern = (nodes: ArraySchema, relationships: ArraySchema = { prefixItems: [] }) => ({
+        properties: {
+            nodes: array(nodes),
+            relationships: array(relationships),
+        },
+    });
+
+    const required = pattern({ prefixItems: [node('webapp'), node('cache')] });
+    const alternative = pattern({ prefixItems: [node('webapp'), { oneOf: [node('cache'), node('queue')] }] });
+    const anyOfSlot = pattern({ prefixItems: [node('webapp'), { anyOf: [node('cache')] }] });
+    const catalogue = pattern({ prefixItems: [node('webapp')], items: { anyOf: [node('cache')] } });
+
+    it.each([
+        ['required', 'catalogue', required, catalogue],
+        ['catalogue', 'required', catalogue, required],
+        ['required', 'alternative', required, alternative],
+        ['alternative', 'required', alternative, required],
+        ['alternative', 'catalogue', anyOfSlot, catalogue],
+        ['catalogue', 'alternative', catalogue, anyOfSlot],
+    ])('reports a node that moves from %s to %s', (from, to, a, b) => {
+        const result = diffPatterns(a, b);
+        expect(result.obligationChanged?.nodes).toEqual([
+            { item: { 'unique-id': 'cache', 'node-type': 'service' }, from, to },
+        ]);
+        expect(result.nodesSame.map((n) => n['unique-id'])).toEqual(['webapp']);
+    });
+
+    it('reports a relationship that moves into a catalogue', () => {
+        const a = pattern({ prefixItems: [] }, { prefixItems: [relationship('r1')] });
+        const b = pattern({ prefixItems: [] }, { prefixItems: [], items: { oneOf: [relationship('r1')] } });
+        const result = diffPatterns(a, b);
+        expect(result.obligationChanged?.relationships).toEqual([
+            { item: { 'unique-id': 'r1' }, from: 'required', to: 'catalogue' },
+        ]);
+        expect(result.edgesSame).toHaveLength(0);
+    });
+
+    it('reports both the obligation change and the content change of a node', () => {
+        const changed = pattern({
+            prefixItems: [node('webapp')],
+            items: { anyOf: [{ properties: { 'unique-id': { const: 'cache' }, 'node-type': { const: 'database' } } }] },
+        });
+        const result = diffPatterns(required, changed);
+        expect(result.nodesModified.map((m) => m.updated['unique-id'])).toEqual(['cache']);
+        expect(result.obligationChanged?.nodes.map((c) => c.item['unique-id'])).toEqual(['cache']);
+    });
+
+    it('reports the strongest obligation of a node that a pattern declares twice', () => {
+        const both = pattern({ prefixItems: [node('webapp'), node('cache')], items: { anyOf: [node('cache')] } });
+        expect(diffPatterns(both, catalogue).obligationChanged?.nodes.map((c) => [c.from, c.to]))
+            .toEqual([['required', 'catalogue']]);
+        expect(diffPatterns(required, both).obligationChanged).toBeUndefined();
+    });
+
+    it('reports the obligation change of a renamed node', () => {
+        const renamed = pattern({ prefixItems: [node('webapp')], items: { anyOf: [node('cache-v2')] } });
+        const result = diffPatterns(required, renamed);
+        expect(result.nodesRenamed.map((r) => [r.oldId, r.newId])).toEqual([['cache', 'cache-v2']]);
+        expect(result.obligationChanged?.nodes).toEqual([
+            { item: { 'unique-id': 'cache-v2', 'node-type': 'service' }, from: 'required', to: 'catalogue' },
+        ]);
+    });
+
+    it('does not report a node that stays at the same obligation', () => {
+        const oneOfSlot = pattern({ prefixItems: [node('webapp'), { oneOf: [node('cache')] }] });
+        expect(diffPatterns(anyOfSlot, oneOfSlot).obligationChanged).toBeUndefined();
+        expect(diffPatterns(catalogue, catalogue).obligationChanged).toBeUndefined();
+    });
+});
+
+describe('minItems changes', () => {
+    const node = (id: string) => ({
+        type: 'object',
+        properties: { 'unique-id': { const: id }, 'node-type': { const: 'service' } },
+    });
+    const pattern = (nodes: Record<string, unknown>, relationships: Record<string, unknown> = { prefixItems: [] }) => ({
+        properties: {
+            nodes: { type: 'array', ...nodes },
+            relationships: { type: 'array', ...relationships },
+        },
+    });
+
+    it.each([
+        ['plain entries', { prefixItems: [node('webapp'), node('cache')] }],
+        ['an alternative entry', { prefixItems: [node('webapp'), { oneOf: [node('cache'), node('queue')] }] }],
+        ['a catalogue', { prefixItems: [node('webapp')], items: { anyOf: [node('cache')] } }],
+    ])('reports a minItems change on %s, and no item change', (_, nodes) => {
+        const result = diffPatterns(pattern({ ...nodes, minItems: 1 }), pattern({ ...nodes, minItems: 2 }));
+        expect(result.minItemsChanged).toEqual({ nodes: { from: 1, to: 2 } });
+        expect(result.obligationChanged).toBeUndefined();
+        expect(result.nodesAdded.length + result.nodesRemoved.length + result.nodesModified.length).toBe(0);
+    });
+
+    it('reports a minItems change on relationships', () => {
+        const result = diffPatterns(pattern({ prefixItems: [] }), pattern({ prefixItems: [] }, { prefixItems: [], minItems: 1 }));
+        expect(result.minItemsChanged).toEqual({ relationships: { from: 0, to: 1 } });
+    });
+
+    it('reports a minItems larger than the number of prefixItems entries', () => {
+        const catalogue = { prefixItems: [node('webapp')], items: { anyOf: [node('cache')] } };
+        expect(diffPatterns(pattern({ ...catalogue, minItems: 1 }), pattern({ ...catalogue, minItems: 3 })).minItemsChanged)
+            .toEqual({ nodes: { from: 1, to: 3 } });
+    });
+
+    it('treats a missing minItems as 0', () => {
+        expect(diffPatterns(pattern({ prefixItems: [] }), pattern({ prefixItems: [], minItems: 0 })).minItemsChanged)
+            .toBeUndefined();
+    });
+
+    it('uses the largest minItems when the pattern sets it in more than one place', () => {
+        const split = {
+            properties: { nodes: { type: 'array', prefixItems: [node('webapp')], minItems: 1 } },
+            allOf: [{ properties: { nodes: { minItems: 2 } } }],
+        };
+        expect(diffPatterns(split, pattern({ prefixItems: [node('webapp')], minItems: 2 })).minItemsChanged).toBeUndefined();
+    });
+});

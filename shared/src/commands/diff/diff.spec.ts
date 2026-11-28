@@ -187,6 +187,24 @@ describe('runDiff', () => {
         expect(result.hasChanges).toBe(true);
     });
 
+    it('treats a node that moves into a catalogue as a change', async () => {
+        const cache = { properties: { 'unique-id': { const: 'cache' }, 'node-type': { const: 'database' } } };
+        const pattern = (nodes: Record<string, unknown>) => ({
+            $schema: 'https://calm.finos.org/release/1.3/meta/calm.json',
+            type: 'object',
+            properties: { nodes: { type: 'array', ...nodes }, relationships: { type: 'array', prefixItems: [] } },
+        });
+        const a = writeArch('a.pattern.json', pattern({ prefixItems: [cache], minItems: 1 }));
+        const b = writeArch('b.pattern.json', pattern({ prefixItems: [], items: { anyOf: [cache] } }));
+
+        const result = await runDiff(a, b, { format: 'summary' });
+
+        expect(result.hasChanges).toBe(true);
+        expect(result.formatted).toContain('Nodes:         +0  -0  ~1  ↔0  =0');
+        expect(result.formatted).toContain('Nodes modified:\n  - cache (required -> catalogue)');
+        expect(result.formatted).toContain('Nodes minItems:         1 -> 0');
+    });
+
     it('diffs two pattern files and reports a pattern-titled summary', async () => {
         const a = writeArch('a.pattern.json', makePattern('Service A'));
         const b = writeArch('b.pattern.json', makePattern('Service A v2'));
@@ -290,6 +308,22 @@ describe('hasChanges', () => {
         expect(hasChanges(r)).toBe(true);
     });
 
+    it('returns true when only a minItems change is present', () => {
+        const r: NodesAndRelationshipsDiffResult = { ...emptyResult, minItemsChanged: { relationships: { from: 1, to: 2 } } };
+        expect(hasChanges(r)).toBe(true);
+    });
+
+    it('returns true when only obligation changes are present', () => {
+        const r: NodesAndRelationshipsDiffResult = {
+            ...emptyResult,
+            obligationChanged: {
+                nodes: [],
+                relationships: [{ item: { 'unique-id': 'r1' }, from: 'catalogue', to: 'required' }],
+            },
+        };
+        expect(hasChanges(r)).toBe(true);
+    });
+
     it.each([
         ['ADR added', { adrs: ['adr-001', 'adr-002'] }, ['ADRs:          +1  -0  =1', 'ADRs added:\n  - adr-002']],
         ['ADR removed', { adrs: [] }, ['ADRs:          +0  -1  =0', 'ADRs removed:\n  - adr-001']],
@@ -341,6 +375,26 @@ describe('formatDiff', () => {
         };
         const out = formatDiff(r, 'summary');
         expect(out).toContain('Undiffable items: 1 node(s) + 1 relationship(s)');
+    });
+
+    it('counts an obligation change once, on the line of a modified or renamed item', () => {
+        const r: NodesAndRelationshipsDiffResult = {
+            ...emptyResult,
+            nodesModified: [{ original: { 'unique-id': 'db' }, updated: { 'unique-id': 'db' } }] as never,
+            nodesRenamed: [{ oldId: 'old', newId: 'new' }] as never,
+            obligationChanged: {
+                nodes: [
+                    { item: { 'unique-id': 'db' }, from: 'required', to: 'alternative' },
+                    { item: { 'unique-id': 'new' }, from: 'alternative', to: 'catalogue' },
+                    { item: { 'unique-id': 'cache' }, from: 'catalogue', to: 'required' },
+                ] as never,
+                relationships: [],
+            },
+        };
+        const out = formatDiff(r, 'summary', 'pattern');
+        expect(out).toContain('Nodes:         +0  -0  ~2  ↔1  =0');
+        expect(out).toContain('Nodes modified:\n  - db (required -> alternative)\n  - cache (catalogue -> required)');
+        expect(out).toContain('Nodes renamed:\n  - old -> new (alternative -> catalogue)');
     });
 
     it('surfaces architecture-level ADR, control, and metadata counts in the summary view', () => {
