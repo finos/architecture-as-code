@@ -333,3 +333,43 @@ All tool prompts must:
 - **CALM Schema**: https://calm.finos.org/release/1.3/meta/calm.json
 - **User Docs**: https://calm.finos.org
 - **VSCode Extension**: See `calm-plugins/vscode/AGENTS.md`
+
+## Running tests and skill evals
+
+Run these commands from the repo root.
+
+| Command | What it runs |
+|---|---|
+| `npm test --workspace calm-ai` | Runs offline unit tests for the checks used by the live skill evals. Requires no assistant CLI or credentials. |
+| `npm run test:eval --workspace calm-ai` | Runs live skill evals with an authenticated assistant CLI and checks the results against each case's expectations. |
+
+The live Vitest suite needs Node 26, Git, and an authenticated assistant CLI
+on macOS or Linux. Codex is the default and requires
+`codex exec --ignore-user-config` support. Claude Code requires a `claude` CLI
+with `--restricted` support. GitHub Copilot requires the standalone `copilot`
+CLI with `--prompt` and `--output-format json` support.
+
+```bash
+npm run build:cli
+npm run test:eval --workspace calm-ai
+CALM_EVAL_ASSISTANT=claude npm run test:eval --workspace calm-ai
+CALM_EVAL_ASSISTANT=copilot npm run test:eval --workspace calm-ai
+```
+
+Set `CALM_EVAL_MODEL` to override the selected assistant's default model. Each case makes
+one live attempt. The suite deletes its artifacts after all selected tests pass.
+Failed or interrupted runs preserve the generated files and logs for every case
+under `sandbox/calm-ai-evals/`.
+
+To inspect artifacts from a passing run, set the retention option:
+
+```bash
+CALM_EVAL_KEEP_ARTIFACTS=1 npm run test:eval --workspace calm-ai
+CALM_EVAL_ASSISTANT=claude CALM_EVAL_MODEL=sonnet CALM_EVAL_KEEP_ARTIFACTS=1 npm run test:eval --workspace calm-ai
+```
+
+The suite prints the directory for retained artifacts.
+
+To add a case, create an `evals/*.eval.ts` Vitest test that calls `runEval` with
+a prompt, output filename, and artifact assertions. The runner installs the
+assistant's CALM skill and runs strict CALM validation before the assertions.

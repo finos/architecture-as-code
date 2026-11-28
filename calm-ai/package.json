@@ -10,7 +10,8 @@
     "scripts": {
         "validate": "echo 'Validating tool prompt files...'",
         "lint": "echo 'Linting markdown files...'",
-        "test": "echo 'Testing tool prompts...'"
+        "test": "vitest run",
+        "test:eval": "vitest run --config vitest.eval.mts"
     },
     "keywords": [
         "calm",
