@@ -38,10 +38,18 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
             originRoot = Files.createTempDirectory("calm-github-it-origin");
             cloneDirectory = Files.createTempDirectory("calm-github-it-clones");
 
-            createRepo(originRoot.resolve("finos-repo.git"), Map.of(
-                    "controls/security/access-control.json", "{}",
-                    "standard-nodes/rate-limit-policy.json", "{\"name\":\"Rate Limit Policy\"}",
-                    "standards/searchable-standard.json", "{\"name\":\"Searchable Standard\"}"
+            createRepo(originRoot.resolve("finos-repo.git"), Map.ofEntries(
+                    Map.entry("controls/security/access-control.json", "{}"),
+                    Map.entry("standard-nodes/rate-limit-policy.json", "{\"name\":\"Rate Limit Policy\"}"),
+                    Map.entry("standards/searchable-standard.json", "{\"name\":\"Searchable Standard\"}"),
+                    Map.entry("architectures/api.json", "{\"unique-id\":\"api\"}"),
+                    Map.entry("flows/payments.json", "{\"unique-id\":\"payments\"}"),
+                    Map.entry("timelines/roadmap.json", "{\"unique-id\":\"roadmap\"}"),
+                    Map.entry("timelines/team/roadmap.json", "{\"unique-id\":\"team-roadmap\"}"),
+                    Map.entry("patterns/foo.json", "{\"unique-id\":\"foo\"}"),
+                    Map.entry("patterns/foo.dev.json", "{\"unique-id\":\"foo-dev\"}"),
+                    Map.entry("conventions/c4-mapping/team-a/acme.json", "{\"unique-id\":\"acme\",\"node-types\":{}}"),
+                    Map.entry("conventions/c4-mapping/team-b/acme.json", "{\"unique-id\":\"acme\",\"node-types\":{}}")
             ));
             createRepo(originRoot.resolve("other-repo.git"), Map.of(
                     "controls/finance/other-control.json", "{}",

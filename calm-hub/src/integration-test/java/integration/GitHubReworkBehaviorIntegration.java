@@ -18,6 +18,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.matchesPattern;
@@ -135,6 +136,54 @@ class GitHubReworkBehaviorIntegration {
                 .statusCode(200)
                 .body("standards.name", contains("Searchable Standard"))
                 .body("standards.namespace", contains("finos"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice", roles = "group1")
+    void read_a_flow_using_the_id_and_version_from_the_listing() {
+        String flowId = given()
+                .when().get("/api/calm/namespaces/finos/flows")
+                .then().statusCode(200)
+                .extract().jsonPath().getString("values.find { it.id == 'payments' }.id");
+
+        List<String> versions = given()
+                .when().get("/api/calm/namespaces/finos/flows/" + flowId + "/versions")
+                .then().statusCode(200)
+                .extract().jsonPath().getList("values", String.class);
+
+        assertThat(versions, hasItem(matchesPattern(SHA_PATTERN)));
+        given()
+                .when().get("/api/calm/namespaces/finos/flows/" + flowId + "/versions/" + versions.get(0))
+                .then().statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "alice", roles = "group1")
+    void build_an_architecture_timeline_when_two_timelines_share_a_stem() {
+        // The fixture has timelines/roadmap.json and timelines/team/roadmap.json. A null
+        // path would be ambiguous; the listing-derived id must mean "no path".
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures/api/timeline")
+                .then().statusCode(200)
+                .body("$schema", containsString("calm-timeline"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice", roles = "group1")
+    void select_the_single_extension_pattern_with_an_empty_variant() {
+        // patterns/foo.json and patterns/foo.dev.json share a stem; ?variant= selects the root file.
+        given()
+                .when().get("/calm/namespaces/finos/patterns/foo?variant=")
+                .then().statusCode(200);
+    }
+
+    @Test
+    @TestSecurity(user = "alice", roles = "group1")
+    void refuse_a_convention_with_two_files_of_the_same_stem_and_no_path() {
+        given()
+                .when().get("/api/calm/namespaces/finos/conventions/c4-mapping/acme/versions/"
+                        + cloneManager.headSha("finos"))
+                .then().statusCode(404);
     }
 
     @Test
