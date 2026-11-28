@@ -4,6 +4,7 @@ import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
@@ -53,7 +54,7 @@ class TestArchitectureToolsShould {
         architectureTools.mcpEnabled = true;
         architectureTools.allowPutOperations = true;
         lenient().when(resourceIdResolver.forStorage(anyString(), any(), any()))
-                .thenAnswer(call -> new NumericResourceId(Integer.parseInt(call.getArgument(0))));
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
     }
 
     private static String text(ToolResponse r) {

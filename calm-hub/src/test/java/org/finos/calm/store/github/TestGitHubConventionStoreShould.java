@@ -1,9 +1,11 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.conventions.ConventionDefault;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.CreateConventionRequest;
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
 import org.finos.calm.domain.exception.ConventionNotFoundException;
 import org.finos.calm.domain.exception.ConventionVersionNotFoundException;
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
@@ -63,6 +65,16 @@ class TestGitHubConventionStoreShould {
         when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of())));
         when(registryService.listByType("finos", RegistryResourceType.CONVENTION)).thenReturn(List.of(ACME, DEFAULT, OTHER_TYPE));
         when(cloneManager.headSha("finos")).thenReturn(SHA);
+    }
+
+    @Test
+    void refuse_an_ambiguous_convention_stem_instead_of_picking_one() {
+        RegistryEntry first = entry("first", 111, "conventions/c4-mapping/team-a/acme.json");
+        RegistryEntry second = entry("second", 112, "conventions/c4-mapping/team-b/acme.json");
+        when(registryService.listByType("finos", RegistryResourceType.CONVENTION)).thenReturn(List.of(first, second));
+
+        assertThrows(AmbiguousResourceIdException.class, () -> store.getConventionVersions("finos", C4,
+                new GitHubResourceId("acme", null, null)));
     }
 
     @Test

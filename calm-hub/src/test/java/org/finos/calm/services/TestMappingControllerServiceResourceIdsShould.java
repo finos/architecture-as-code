@@ -122,6 +122,16 @@ class TestMappingControllerServiceResourceIdsShould {
     }
 
     @Test
+    void resolve_a_control_from_a_listing_with_no_tags_as_having_no_path_or_variant() throws Exception {
+        resolver.databaseMode = "github";
+        when(controlStore.getControlsForDomain("security"))
+                .thenReturn(List.of(new ControlDetail("access-control", "access-control", null)));
+
+        assertThat(service.resolveControlResourceId("security", "access-control"),
+                equalTo(new GitHubResourceId("access-control", "", "")));
+    }
+
+    @Test
     void resolve_a_control_name_to_its_numeric_id_in_numeric_modes() throws Exception {
         when(controlStore.getControlsForDomain("security")).thenReturn(List.of(new ControlDetail("12", "access-control", null)));
 

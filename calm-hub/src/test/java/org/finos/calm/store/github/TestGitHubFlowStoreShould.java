@@ -76,6 +76,17 @@ class TestGitHubFlowStoreShould {
     }
 
     @Test
+    void refuse_a_flow_object_with_no_name_as_flow_resource_builds_it() throws Exception {
+        RegistryEntry entry = new RegistryEntry("payments", Path.of("flows/payments.json"),
+                RegistryResourceType.FLOW, "Payments", Instant.now());
+        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of("finos", List.of(entry))));
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(0).build();
+
+        assertThrows(FlowNotFoundException.class, () -> store.getFlowVersions(flow));
+        assertThrows(FlowNotFoundException.class, () -> store.getFlowForVersion(flow));
+    }
+
+    @Test
     void throw_namespace_not_found_when_namespace_missing() {
         when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
 

@@ -511,9 +511,7 @@ public class MappingControllerService {
                 .findFirst()
                 .orElseThrow(ControlNotFoundException::new);
         if (resourceIdResolver.isGitHub()) {
-            Tags tags = detail.getTags();
-            return new GitHubResourceId(detail.getId(),
-                    tags == null ? null : tags.path(), tags == null ? null : tags.variant());
+            return resourceIdResolver.forSummary(detail.getId(), detail.getTags());
         }
         return new NumericResourceId(ResourceIds.parseNumeric(detail.getId()));
     }

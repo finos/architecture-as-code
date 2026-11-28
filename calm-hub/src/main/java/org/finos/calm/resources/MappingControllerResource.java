@@ -277,7 +277,7 @@ public class MappingControllerResource {
     public Response createResourceVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
-            @PathParam("name") @Pattern(regexp = RESOURCE_STEM_REGEX, message = RESOURCE_STEM_MESSAGE) String name,
+            @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
             String requestBody
     ) throws URISyntaxException {
@@ -338,8 +338,8 @@ public class MappingControllerResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
             @PathParam("name") @Pattern(regexp = RESOURCE_STEM_REGEX, message = RESOURCE_STEM_MESSAGE) String name,
-            @QueryParam("path") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String path,
-            @QueryParam("variant") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String variant
+            @QueryParam("path") @Pattern(regexp = PATH_QUERY_PARAM_REGEX, message = PATH_QUERY_PARAM_MESSAGE) String path,
+            @QueryParam("variant") @Pattern(regexp = VARIANT_QUERY_PARAM_REGEX, message = VARIANT_QUERY_PARAM_MESSAGE) String variant
     ) {
         ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
@@ -400,8 +400,8 @@ public class MappingControllerResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
             @PathParam("name") @Pattern(regexp = RESOURCE_STEM_REGEX, message = RESOURCE_STEM_MESSAGE) String name,
-            @QueryParam("path") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String path,
-            @QueryParam("variant") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String variant
+            @QueryParam("path") @Pattern(regexp = PATH_QUERY_PARAM_REGEX, message = PATH_QUERY_PARAM_MESSAGE) String path,
+            @QueryParam("variant") @Pattern(regexp = VARIANT_QUERY_PARAM_REGEX, message = VARIANT_QUERY_PARAM_MESSAGE) String variant
     ) {
         ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
@@ -467,8 +467,8 @@ public class MappingControllerResource {
             @PathParam("type") String type,
             @PathParam("name") @Pattern(regexp = RESOURCE_STEM_REGEX, message = RESOURCE_STEM_MESSAGE) String name,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version,
-            @QueryParam("path") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String path,
-            @QueryParam("variant") @Pattern(regexp = QUERY_PARAM_NO_WHITESPACE_REGEX, message = QUERY_PARAM_NO_WHITESPACE_MESSAGE) String variant
+            @QueryParam("path") @Pattern(regexp = PATH_QUERY_PARAM_REGEX, message = PATH_QUERY_PARAM_MESSAGE) String path,
+            @QueryParam("variant") @Pattern(regexp = VARIANT_QUERY_PARAM_REGEX, message = VARIANT_QUERY_PARAM_MESSAGE) String variant
     ) {
         ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {

@@ -13,8 +13,8 @@ import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ResourceVersion;
-import org.finos.calm.domain.Tags;
 import org.finos.calm.domain.Semver;
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
@@ -134,7 +134,7 @@ public class ArchitectureTimelineService {
                 if (referencesArchitecture(timelineJson, markers)) {
                     return timelineJson;
                 }
-            } catch (TimelineNotFoundException | TimelineVersionNotFoundException e) {
+            } catch (TimelineNotFoundException | TimelineVersionNotFoundException | AmbiguousResourceIdException e) {
                 logger.debug("Skipping timeline {} while resolving explicit timeline for architecture {}",
                         summary.getId(), idText(architectureId), e);
             }
@@ -144,9 +144,7 @@ public class ArchitectureTimelineService {
 
     /** Timeline summaries carry string ids; their tags disambiguate equal stems in GitHub mode. */
     private ResourceId timelineId(NamespaceTimelineSummary summary) {
-        Tags tags = summary.getTags();
-        return resourceIdResolver.forStorage(summary.getId(),
-                tags == null ? null : tags.path(), tags == null ? null : tags.variant());
+        return resourceIdResolver.forSummary(summary.getId(), summary.getTags());
     }
 
     private List<String> architectureMarkers(String namespace, ResourceId architectureId)

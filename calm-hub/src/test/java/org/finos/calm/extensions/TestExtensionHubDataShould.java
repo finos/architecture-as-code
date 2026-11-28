@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 import jakarta.json.Json;
 import org.eclipse.microprofile.config.Config;
 import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.conventions.ConventionType;
@@ -60,7 +61,7 @@ class TestExtensionHubDataShould {
         hubData = new ExtensionHubData(architectures, patterns, conventions, permissions, resourceIdResolver,
                 "https://hub.example.com");
         when(resourceIdResolver.forStorage(anyString(), any(), any()))
-                .thenAnswer(call -> new NumericResourceId(Integer.parseInt(call.getArgument(0))));
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
         when(resourceIdResolver.forName(anyString(), any(), anyString(), any(), any()))
                 .thenThrow(new MappingNotFoundException());
         when(architectures.getArchitectureForVersion(anyString(), any(), anyString()))

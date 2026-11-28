@@ -80,6 +80,17 @@ public class TestMappingControllerResourceShould {
                 + "\"unique-id\":\"" + name + "\",\"name\":\"My Flow\",\"description\":\"A flow\",\"transitions\":[]}";
     }
 
+    @Test
+    void reject_create_names_that_are_not_custom_ids() {
+        given().contentType("application/json").body(versionedDoc("finos", "architectures", "42", "1.0.0"))
+                .post("/calm/namespaces/finos/architectures/42/versions/1.0.0")
+                .then().statusCode(400);
+        given().contentType("application/json").body(versionedDoc("finos", "architectures", "my_arch", "1.0.0"))
+                .post("/calm/namespaces/finos/architectures/my_arch/versions/1.0.0")
+                .then().statusCode(400);
+        verifyNoInteractions(mockArchitectureStore);
+    }
+
     // --- POST create new ---
 
     @Test

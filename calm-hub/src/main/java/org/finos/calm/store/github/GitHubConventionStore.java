@@ -22,6 +22,7 @@ import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ConventionFiles;
 import org.finos.calm.store.github.registry.RegistryEntry;
 import org.finos.calm.store.github.registry.RegistryIdentity;
+import org.finos.calm.store.github.registry.RegistryLookup;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.sync.GitHubCloneManager;
@@ -150,9 +151,13 @@ public class GitHubConventionStore extends AbstractReadOnlyGitHubStore implement
 
     private RegistryEntry entry(String namespace, ConventionType type, ResourceId id) throws ConventionNotFoundException {
         org.finos.calm.domain.GitHubResourceId github = ResourceIds.github(id);
-        return entries(namespace, type)
+        List<RegistryEntry> matches = entries(namespace, type)
                 .filter(e -> RegistryIdentity.matches(github.name(), github.path(), github.variant(), e))
-                .findFirst()
-                .orElseThrow(ConventionNotFoundException::new);
+                .toList();
+        RegistryEntry match = RegistryLookup.singleOrNull(matches);
+        if (match == null) {
+            throw new ConventionNotFoundException();
+        }
+        return match;
     }
 }

@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
@@ -32,6 +34,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -65,8 +68,8 @@ public class TestArchitectureTimelineServiceShould {
     void setup() {
         service = new ArchitectureTimelineService(mockArchitectureStore, mockTimelineStore, mockMappingStore,
                 mockResourceIdResolver);
-        lenient().when(mockResourceIdResolver.forStorage(anyString(), any(), any()))
-                .thenAnswer(call -> new NumericResourceId(Integer.parseInt(call.getArgument(0))));
+        lenient().when(mockResourceIdResolver.forSummary(anyString(), any()))
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
     }
 
     // No stored timeline references the architecture -> the implied projection is produced.
@@ -256,7 +259,7 @@ public class TestArchitectureTimelineServiceShould {
     void resolve_an_explicit_timeline_by_github_stem_without_parsing_it_as_a_number() throws Exception {
         GitHubResourceId architecture = new GitHubResourceId("foo", null, null);
         GitHubResourceId timeline = new GitHubResourceId("roadmap", null, null);
-        doReturn(timeline).when(mockResourceIdResolver).forStorage("roadmap", null, null);
+        doReturn(timeline).when(mockResourceIdResolver).forSummary("roadmap", null);
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Roadmap", "curated", "roadmap")));
         when(mockTimelineStore.getTimelineVersions(NAMESPACE, timeline)).thenReturn(List.of("abc1234"));
@@ -267,6 +270,20 @@ public class TestArchitectureTimelineServiceShould {
 
         assertThat(result.get("current-moment").asText(), is("go-live"));
         verify(mockMappingStore, never()).listMappingsByNumericIds(anyString(), any(), anyList());
+    }
+
+    @Test
+    void skip_an_ambiguous_timeline_and_fall_back_to_the_implied_projection() throws Exception {
+        when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
+                .thenReturn(List.of(new NamespaceTimelineSummary("Roadmap", "curated", "roadmap")));
+        doThrow(new AmbiguousResourceIdException("ambiguous")).when(mockResourceIdResolver)
+                .forSummary("roadmap", null);
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class)))
+                .thenReturn(List.of("1.0.0"));
+
+        JsonNode result = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
+
+        assertThat(result.get("moments").get(0).get("name").asText(), is("1.0.0"));
     }
 
     @Test

@@ -125,22 +125,18 @@ public class FlowResource {
             @Valid @BeanParam FlowIdParam flowIdParam
     ) {
         ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
-        int flowId = resourceIdResolver.numericForWrite(resourceId);
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(namespace)
-                .setId(flowId)
-                .build();
 
         try {
-            List<String> versions =  store.getFlowVersions(namespace, resourceId);
+            List<String> versions = store.getFlowVersions(namespace, resourceId);
             String lastVersion = ResourceVersion.latestRelease(versions);
-           return getFlowInternal(namespace,flowId, lastVersion);
+            return getFlowInternal(namespace, resourceId, lastVersion, flowIdParam.rawId());
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting the latest flow version", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (FlowNotFoundException e) {
-            logger.error("Invalid flow [{}] when getting the latest flow version", flowId, e);
-            return invalidFlowResponse(flowId);
+            logger.error("Invalid flow [{}] when getting the latest flow version",
+                    STRICT_SANITIZATION_POLICY.sanitize(flowIdParam.rawId()), e);
+            return invalidFlowResponse(flowIdParam.rawId());
         }
     }
 
@@ -189,27 +185,20 @@ public class FlowResource {
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
         ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
-        int flowId = resourceIdResolver.numericForWrite(resourceId);
-        return getFlowInternal(namespace, flowId, version);
+        return getFlowInternal(namespace, resourceId, version, flowIdParam.rawId());
     }
 
-    private Response getFlowInternal(String namespace, int flowId, String version) {
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(namespace)
-                .setId(flowId)
-                .setVersion(version)
-                .build();
-
+    private Response getFlowInternal(String namespace, ResourceId resourceId, String version, String rawId) {
         try {
-            return Response.ok(store.getFlowForVersion(flow)).build();
+            return Response.ok(store.getFlowForVersion(namespace, resourceId, version)).build();
         } catch (NamespaceNotFoundException e) {
-            logger.error("Invalid namespace [{}] when getting a flow", flow, e);
+            logger.error("Invalid namespace [{}] when getting a flow", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (FlowNotFoundException e) {
-            logger.error("Invalid flow [{}] when getting a flow", flow, e);
-            return invalidFlowResponse(flowId);
+            logger.error("Invalid flow [{}] when getting a flow", STRICT_SANITIZATION_POLICY.sanitize(rawId), e);
+            return invalidFlowResponse(rawId);
         } catch (FlowVersionNotFoundException e) {
-            logger.error("Invalid version [{}] when getting a flow", flow, e);
+            logger.error("Invalid version [{}] when getting a flow", version, e);
             return invalidVersionResponse(version);
         }
     }
@@ -333,7 +322,12 @@ public class FlowResource {
     }
 
     private Response invalidFlowResponse(int flowId) {
-        return Response.status(Response.Status.NOT_FOUND).entity("Invalid flow provided: " + flowId).build();
+        return invalidFlowResponse(String.valueOf(flowId));
+    }
+
+    private Response invalidFlowResponse(String flowId) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Invalid flow provided: " + STRICT_SANITIZATION_POLICY.sanitize(flowId)).build();
     }
 
     private Response invalidVersionResponse(String version) {
