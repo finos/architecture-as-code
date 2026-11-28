@@ -67,8 +67,8 @@ describe('ControlAssetService.browseControlsForDomain', () => {
     it('maps Hub control details into browse entries', async () => {
         const hub = mockHub({
             getControlsForDomain: vi.fn().mockResolvedValue([
-                { id: 1, name: 'micro-segmentation', description: 'd', title: 'Micro Seg' },
-                { id: 2, name: 'tls', description: 'TLS everywhere' },
+                { id: 'ctrl-1', name: 'micro-segmentation', description: 'd', title: 'Micro Seg', tags: { path: 'aws/prod' } },
+                { id: 'ctrl-2', name: 'tls', description: 'TLS everywhere' },
             ]),
         });
         const svc = new ControlAssetService(hub, () => []);
@@ -80,6 +80,8 @@ describe('ControlAssetService.browseControlsForDomain', () => {
                 source: 'hub',
                 domain: 'security',
                 controlName: 'micro-segmentation',
+                hubId: 'ctrl-1',
+                tags: { path: 'aws/prod' },
                 title: 'Micro Seg',
                 description: 'd',
             },
@@ -87,6 +89,7 @@ describe('ControlAssetService.browseControlsForDomain', () => {
                 source: 'hub',
                 domain: 'security',
                 controlName: 'tls',
+                hubId: 'ctrl-2',
                 title: 'Tls',
                 description: 'TLS everywhere',
             },
@@ -124,7 +127,7 @@ describe('ControlAssetService.browseControlsForDomain', () => {
     it('humanizes slug to title when Hub control has no title', async () => {
         const hub = mockHub({
             getControlsForDomain: vi.fn().mockResolvedValue([
-                { id: 1, name: 'resiliency-tier', description: 'desc' },
+                { id: 'ctrl-1', name: 'resiliency-tier', description: 'desc' },
             ]),
         });
         const svc = new ControlAssetService(hub, () => []);
@@ -135,7 +138,7 @@ describe('ControlAssetService.browseControlsForDomain', () => {
     it('uses explicit title from Hub when provided', async () => {
         const hub = mockHub({
             getControlsForDomain: vi.fn().mockResolvedValue([
-                { id: 1, name: 'resiliency-tier', description: 'desc', title: 'Custom Title' },
+                { id: 'ctrl-1', name: 'resiliency-tier', description: 'desc', title: 'Custom Title' },
             ]),
         });
         const svc = new ControlAssetService(hub, () => []);

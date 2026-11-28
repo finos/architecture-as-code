@@ -71,6 +71,7 @@ import {
 } from './panels/control-metadata';
 import { isControlRef, isLocalControlPath, makeControlMapKey, parseControlCurie } from '../extension/services/control-curie';
 import type { ParsedRequirement } from '../extension/services/requirement-parser';
+import type { ControlIdentity } from '../extension/types/messages';
 import { ToolbarMenu } from './panels/ToolbarMenu';
 import { nodeTypes } from './canvas/nodeTypes';
 import { edgeTypes } from './canvas/edgeTypes';
@@ -120,7 +121,7 @@ function CanvasApp() {
     const [controlPickerTarget, setControlPickerTarget] = useState<
         | { type: 'node'; nodeId: string }
         | { type: 'document' }
-        | { type: 'standard-node-draft'; onAttach: (ref: string, parsed: ParsedRequirement) => void; existingKeys?: Set<string> }
+        | { type: 'standard-node-draft'; onAttach: (ref: string, parsed: ParsedRequirement, identity?: ControlIdentity) => void; existingKeys?: Set<string> }
         | null
     >(null);
     const [expandControlKey, setExpandControlKey] = useState<string | null>(null);
@@ -221,7 +222,7 @@ function CanvasApp() {
                 }
                 console.log(`[CALM] Control resolved for ${ref}: ${Object.keys(result.parsed.properties).length} properties`);
                 apply(ckey, (c) => enrichControlWithRequirement(c, result.parsed));
-            });
+            }, ctrl.hubIdentity);
         }
     }, []);
 
@@ -890,9 +891,9 @@ function CanvasApp() {
     // --- Control focused (standards panel) ---
 
     // --- Control picker attach ---
-    const handleControlAttach = useCallback((ref: string, parsed: ParsedRequirement) => {
+    const handleControlAttach = useCallback((ref: string, parsed: ParsedRequirement, identity?: ControlIdentity) => {
         const key = makeControlMapKey(ref);
-        const entry = buildControlEntry(ref, parsed);
+        const entry = buildControlEntry(ref, parsed, identity);
         const target = controlPickerTarget;
         setShowControlPicker(false);
         setControlPickerTarget(null);
@@ -921,7 +922,7 @@ function CanvasApp() {
                 enrichAllControls(reactFlowInstance.getNodes(), generation);
             }, 0);
         } else if (target.type === 'standard-node-draft') {
-            target.onAttach(ref, parsed);
+            target.onAttach(ref, parsed, identity);
         }
     }, [controlPickerTarget, setNodes, emitChange, reactFlowInstance, enrichNodeControls, enrichAllControls]);
 

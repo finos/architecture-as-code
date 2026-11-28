@@ -110,6 +110,20 @@ describe('buildControlEntry', () => {
             },
         });
     });
+
+    it('seeds the Hub identity when the picker supplies one', () => {
+        const identity = {
+            domain: 'security', controlName: 'micro-segmentation',
+            hubId: 'aws/prod/seg', path: 'aws/prod', variant: 'markdown',
+        };
+        expect(buildControlEntry('security:controls:micro-segmentation', parsed, identity).hubIdentity)
+            .toEqual(identity);
+    });
+
+    it('leaves older entries without a Hub identity', () => {
+        expect(buildControlEntry('security:controls:micro-segmentation', parsed).hubIdentity)
+            .toBeUndefined();
+    });
 });
 
 describe('enrichControlWithRequirement', () => {
@@ -139,6 +153,12 @@ describe('enrichControlWithRequirement', () => {
     it('does not overwrite a non-empty description', () => {
         const control: ControlEntry = { description: 'custom', requirements: [{ 'requirement-url': 'r', config: {} }] };
         expect(enrichControlWithRequirement(control, parsed).description).toBe('custom');
+    });
+
+    it('preserves the Hub identity used for enrichment', () => {
+        const hubIdentity = { domain: 'security', controlName: 'seg', hubId: 'aws/prod/seg', path: 'aws/prod' };
+        const control: ControlEntry = { requirements: [{ 'requirement-url': 'security:controls:seg' }], hubIdentity };
+        expect(enrichControlWithRequirement(control, parsed).hubIdentity).toEqual(hubIdentity);
     });
 });
 
