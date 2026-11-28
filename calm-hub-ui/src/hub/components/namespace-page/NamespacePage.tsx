@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalmService } from '../../../service/calm-service.js';
 import { AdrService } from '../../../service/adr-service/adr-service.js';
@@ -7,6 +7,9 @@ import { resolveResourceDetailPath } from '../tree-navigation/navigation-loaders
 import { NamespacePageHeader } from './NamespacePageHeader.js';
 import { SegmentedTypeTabs } from './SegmentedTypeTabs.js';
 import { ItemCard } from './ItemCard.js';
+import { ItemTable } from './ItemTable.js';
+import { ItemsToolbar } from './ItemsToolbar.js';
+import { useViewMode } from './useViewMode.js';
 import { EmptyState } from './EmptyState.js';
 import { NamespaceConventions } from './NamespaceConventions.js';
 import { useNamespaceItems } from './useNamespaceItems.js';
@@ -34,7 +37,7 @@ interface NamespacePageProps {
  * via `?type=`), and a responsive card grid of the active type's items. An empty
  * type renders an {@link EmptyState} in the grid area. Tab counts come from the
  * namespace's counts (passed in — no extra fetch); items come from
- * {@link useNamespaceItems}.
+ * {@link useNamespaceItems}. Large types default to a table via {@link useViewMode}.
  */
 export function NamespacePage({ namespace, counts }: NamespacePageProps) {
     const { groups, loading } = useNamespaceItems(namespace);
@@ -69,6 +72,25 @@ export function NamespacePage({ namespace, counts }: NamespacePageProps) {
         [groups, active]
     );
 
+    const { view, setView } = useViewMode(activeItems.length);
+
+    // Filter text is scoped to the namespace + type so it clears when either changes.
+    const filterScope = `${namespace}:${active}`;
+    const [filterState, setFilterState] = useState({ scope: filterScope, text: '' });
+    const filter = filterState.scope === filterScope ? filterState.text : '';
+    const setFilter = (text: string) => setFilterState({ scope: filterScope, text });
+
+    const visibleItems = useMemo(() => {
+        const needle = filter.trim().toLowerCase();
+        if (!needle) return activeItems;
+        return activeItems.filter((item) =>
+            [item.name, item.description, item.customId].some((field) => field?.toLowerCase().includes(needle))
+        );
+    }, [activeItems, filter]);
+
+    const meta = getResourceTypeMeta(active);
+    const hasVersions = activeItems.some((item) => item.versionCount !== undefined);
+
     return (
         <div className="h-full overflow-auto bg-base-100" style={{ padding: '32px 40px' }}>
             <NamespacePageHeader namespace={namespace} total={counts?.total} description={counts?.description} />
@@ -86,23 +108,40 @@ export function NamespacePage({ namespace, counts }: NamespacePageProps) {
                         <span className="loading loading-spinner loading-md text-base-content/50" />
                     </div>
                 ) : activeItems.length === 0 ? (
-                    <EmptyState
-                        message={`No ${getResourceTypeMeta(active).pluralLabel} in this namespace yet`}
-                    />
+                    <EmptyState message={`No ${meta.pluralLabel} in this namespace yet`} />
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {activeItems.map((item) => (
-                            <ItemCard
-                                key={`${active}-${item.id}`}
-                                name={item.name}
-                                description={item.description}
-                                type={active}
-                                customId={item.customId}
-                                versionCount={item.versionCount}
-                                onActivate={() => openItem(active, item.id)}
+                    <>
+                        <ItemsToolbar
+                            filter={filter}
+                            onFilterChange={setFilter}
+                            pluralLabel={meta.pluralLabel}
+                            view={view}
+                            onViewChange={setView}
+                        />
+                        {visibleItems.length === 0 ? (
+                            <EmptyState message={`No ${meta.pluralLabel} match "${filter.trim()}"`} />
+                        ) : view === 'list' ? (
+                            <ItemTable
+                                items={visibleItems}
+                                showVersions={hasVersions}
+                                onActivate={(item) => openItem(active, item.id)}
                             />
-                        ))}
-                    </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {visibleItems.map((item) => (
+                                    <ItemCard
+                                        key={`${active}-${item.id}`}
+                                        name={item.name}
+                                        description={item.description}
+                                        type={active}
+                                        customId={item.customId}
+                                        versionCount={item.versionCount}
+                                        onActivate={() => openItem(active, item.id)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
