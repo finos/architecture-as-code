@@ -45,7 +45,7 @@ abstract class ConventionScenarios {
         given().get(base + "/versions/1.0.0").then().statusCode(200).body("unique-id", equalTo("c4"));
         given().get(base + "/versions/1.1.0").then().statusCode(200).body("unique-id", equalTo("v2"));
         given().get("/api/calm/namespaces/cfg-c/conventions/c4-mapping").then().statusCode(200)
-                .body("values.id", hasItem(id));
+                .body("values.id", hasItem(String.valueOf(id)));
     }
 
     @Test

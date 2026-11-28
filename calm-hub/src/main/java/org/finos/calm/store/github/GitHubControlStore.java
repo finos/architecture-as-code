@@ -1,5 +1,9 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.GitHubResourceId;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.domain.Tags;
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -19,6 +23,7 @@ import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundExceptio
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.github.registry.ControlDomains;
+import org.finos.calm.store.github.registry.RegistryIdentity;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
@@ -26,6 +31,7 @@ import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.access.NamespaceAccessFilter;
 import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistryLookup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,10 +87,7 @@ public class GitHubControlStore implements ControlStore {
             for (RegistryEntry entry : entries) {
                 if (domain.equals(ControlDomains.extractDomain(entry))) {
                     results.add(new ControlDetail(
-                            (entry.uniqueId().hashCode() & 0x7FFFFFFF),
-                            entry.uniqueId(),
-                            null,
-                            entry.name()));
+                            entry.stem(), entry.uniqueId(), null, entry.name(), Tags.of(entry.path(), entry.variant())));
                 }
             }
         }
@@ -101,14 +104,19 @@ public class GitHubControlStore implements ControlStore {
 
     @Override
     public List<String> getRequirementVersions(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        RegistryEntry entry = findControlEntry(domain, controlId);
+        return getRequirementVersions(domain, new GitHubResourceId(String.valueOf(controlId), null, null));
+    }
+
+    @Override
+    public String getRequirementForVersion(String domain, int controlId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException {
+        return getRequirementForVersion(domain, new GitHubResourceId(String.valueOf(controlId), null, null), version);
+    }
+
+    @Override
+    public List<String> getRequirementVersions(String domain, ResourceId id) throws DomainNotFoundException, ControlNotFoundException {
+        RegistryEntry entry = findControlEntry(domain, ResourceIds.github(id));
         String namespace = findNamespaceForControl(entry);
         if (namespace == null) {
-            // Same transient registry-consistency condition getRequirementForVersion below
-            // fails closed on (see its comment) - a genuine 404 there and a silent empty
-            // list here would tell two callers of the same control two different, contradictory
-            // things. Fail closed here too, rather than claiming "no versions" for a control that
-            // was just found to exist.
             LOG.error("Could not resolve namespace for control [{}] in domain [{}] - registry may be mid-rebuild",
                     entry.uniqueId(), domain);
             throw new ControlNotFoundException();
@@ -126,26 +134,17 @@ public class GitHubControlStore implements ControlStore {
     }
 
     @Override
-    public String getRequirementForVersion(String domain, int controlId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException {
-        RegistryEntry entry = findControlEntry(domain, controlId);
+    public String getRequirementForVersion(String domain, ResourceId id, String version) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException {
+        RegistryEntry entry = findControlEntry(domain, ResourceIds.github(id));
         String namespace = findNamespaceForControl(entry);
         if (namespace == null) {
-            // findControlEntry just found this exact entry by walking the same
-            // namespace/CONTROL listing findNamespaceForControl uses, so this only
-            // happens on a genuine registry-consistency problem (e.g. a rebuild
-            // swapped the snapshot out from under this request). Fail closed rather
-            // than fall back to using the caller-supplied domain string as a directory
-            // name - domain is not a namespace, and guessing one from the other was the
-            // bug here.
             LOG.error("Could not resolve namespace for control [{}] in domain [{}] - registry may be mid-rebuild",
                     entry.uniqueId(), domain);
             throw new ControlRequirementVersionNotFoundException();
         }
-
         if (version == null || !version.matches(SHA_PATTERN)) {
             throw new ControlRequirementVersionNotFoundException();
         }
-
         String headSha = cloneManager.headSha(namespace);
         if (version.equals(headSha)) {
             try {
@@ -155,7 +154,6 @@ public class GitHubControlStore implements ControlStore {
                 throw new ControlRequirementVersionNotFoundException();
             }
         }
-
         String repo = cloneManager.getRepoForNamespace(namespace);
         String content = repo != null ? versionService.getFileAtVersion(repo, entry.filePath().toString(), version) : null;
         if (content == null) {
@@ -177,13 +175,23 @@ public class GitHubControlStore implements ControlStore {
     // writes are unsupported for a request that was never trying to write.
     @Override
     public List<Integer> getConfigurationsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        findControlEntry(domain, controlId);
+        return getConfigurationsForControl(domain, new GitHubResourceId(String.valueOf(controlId), null, null));
+    }
+
+    @Override
+    public List<Integer> getConfigurationsForControl(String domain, ResourceId id) throws DomainNotFoundException, ControlNotFoundException {
+        findControlEntry(domain, ResourceIds.github(id));
         return List.of();
     }
 
     @Override
     public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        findControlEntry(domain, controlId);
+        return getConfigurationDetailsForControl(domain, new GitHubResourceId(String.valueOf(controlId), null, null));
+    }
+
+    @Override
+    public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, ResourceId id) throws DomainNotFoundException, ControlNotFoundException {
+        findControlEntry(domain, ResourceIds.github(id));
         return List.of();
     }
 
@@ -194,13 +202,27 @@ public class GitHubControlStore implements ControlStore {
 
     @Override
     public List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
-        findControlEntry(domain, controlId);
+        return getConfigurationVersions(domain, new GitHubResourceId(String.valueOf(controlId), null, null),
+                new GitHubResourceId(String.valueOf(configurationId), null, null));
+    }
+
+    @Override
+    public List<String> getConfigurationVersions(String domain, ResourceId controlId, ResourceId configId)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        findControlEntry(domain, ResourceIds.github(controlId));
         throw new ControlConfigurationNotFoundException();
     }
 
     @Override
     public String getConfigurationForVersion(String domain, int controlId, int configurationId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException {
-        findControlEntry(domain, controlId);
+        return getConfigurationForVersion(domain, new GitHubResourceId(String.valueOf(controlId), null, null),
+                new GitHubResourceId(String.valueOf(configurationId), null, null), version);
+    }
+
+    @Override
+    public String getConfigurationForVersion(String domain, ResourceId controlId, ResourceId configId, String version)
+            throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException {
+        findControlEntry(domain, ResourceIds.github(controlId));
         throw new ControlConfigurationNotFoundException();
     }
 
@@ -219,9 +241,10 @@ public class GitHubControlStore implements ControlStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
-    private RegistryEntry findControlEntry(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
+    private RegistryEntry findControlEntry(String domain, GitHubResourceId controlId) throws DomainNotFoundException, ControlNotFoundException {
         Set<String> accessible = accessFilter.getAccessibleNamespaces();
         boolean domainExists = false;
+        List<RegistryEntry> matches = new ArrayList<>();
         for (String namespace : registryService.getSnapshot().getNamespaces()) {
             if (!accessible.contains(namespace)) {
                 continue;
@@ -231,8 +254,8 @@ public class GitHubControlStore implements ControlStore {
                 boolean inDomain = domain.equals(ControlDomains.extractDomain(entry));
                 if (inDomain) {
                     domainExists = true;
-                    if ((entry.uniqueId().hashCode() & 0x7FFFFFFF) == controlId) {
-                        return entry;
+                    if (RegistryIdentity.matches(controlId.name(), controlId.path(), controlId.variant(), entry)) {
+                        matches.add(entry);
                     }
                 }
             }
@@ -240,14 +263,16 @@ public class GitHubControlStore implements ControlStore {
         if (!domainExists) {
             // The requested domain doesn't exist in any namespace this caller can see -
             // do NOT fall back to scanning every accessible namespace for a coincidental
-            // controlId hash match regardless of domain. That previously let a caller
-            // pass a bogus/wrong domain alongside a real controlId from a DIFFERENT
-            // domain and get that other domain's content back instead of a 404 - a
-            // cross-domain read, and one that would become live the moment domain grants
-            // are scoped independently of namespace access (see getGrantsForUser).
+            // id match regardless of domain. That previously let a caller pass a bogus/wrong
+            // domain alongside a real control id from a DIFFERENT domain and get that other
+            // domain's content back instead of a 404.
             throw new DomainNotFoundException(domain);
         }
-        throw new ControlNotFoundException();
+        RegistryEntry match = RegistryLookup.singleOrNull(matches);
+        if (match == null) {
+            throw new ControlNotFoundException();
+        }
+        return match;
     }
 
     private String findNamespaceForControl(RegistryEntry entry) {

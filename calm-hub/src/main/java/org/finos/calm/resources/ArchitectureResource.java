@@ -1,5 +1,9 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.resources.params.ArchitectureIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -52,10 +56,13 @@ import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX
 /**
  * Resource for managing architectures in a given namespace
  */
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 @Authenticated
 public class ArchitectureResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final ArchitectureStore store;
     private final ArchitectureTimelineService timelineService;
@@ -147,15 +154,17 @@ public class ArchitectureResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getArchitectureVersions(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("architectureId") int architectureId
+            @Valid @BeanParam ArchitectureIdParam architectureIdParam
     ) {
+        ResourceId resourceId = architectureIdParam.toResourceId(resourceIdResolver);
+        int architectureId = resourceIdResolver.numericForWrite(resourceId);
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
                 .build();
 
         try {
-            return Response.ok(new ValueWrapper<>(store.getArchitectureVersions(architecture))).build();
+            return Response.ok(new ValueWrapper<>(store.getArchitectureVersions(namespace, resourceId))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting versions of architecture", architecture, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -175,8 +184,10 @@ public class ArchitectureResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getArchitecture(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("architectureId") int architectureId,
+            @Valid @BeanParam ArchitectureIdParam architectureIdParam,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version) {
+        ResourceId resourceId = architectureIdParam.toResourceId(resourceIdResolver);
+        int architectureId = resourceIdResolver.numericForWrite(resourceId);
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
@@ -184,7 +195,7 @@ public class ArchitectureResource {
                 .build();
 
         try {
-            return Response.ok(store.getArchitectureForVersion(architecture)).build();
+            return Response.ok(store.getArchitectureForVersion(namespace, resourceId, version)).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting an architecture", architecture, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -204,10 +215,12 @@ public class ArchitectureResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createVersionedArchitecture(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("architectureId") int architectureId,
+            @Valid @BeanParam ArchitectureIdParam architectureIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             ArchitectureRequest architectureRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = architectureIdParam.toResourceId(resourceIdResolver);
+        int architectureId = resourceIdResolver.numericForWrite(resourceId);
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
@@ -246,9 +259,11 @@ public class ArchitectureResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateVersionedArchitecture(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("architectureId") int architectureId,
+            @Valid @BeanParam ArchitectureIdParam architectureIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             ArchitectureRequest architectureRequest) throws URISyntaxException {
+        ResourceId resourceId = architectureIdParam.toResourceId(resourceIdResolver);
+        int architectureId = resourceIdResolver.numericForWrite(resourceId);
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)
@@ -291,19 +306,24 @@ public class ArchitectureResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getArchitectureTimeline(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("architectureId") int architectureId
+            @Valid @BeanParam ArchitectureIdParam architectureIdParam
     ) {
+        ResourceId resourceId = architectureIdParam.toResourceId(resourceIdResolver);
         try {
-            return Response.ok(timelineService.getTimelineForArchitecture(namespace, architectureId)).build();
+            return Response.ok(timelineService.getTimelineForArchitecture(namespace, resourceId)).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving architecture timeline", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (ArchitectureNotFoundException e) {
-            logger.error("Invalid architecture [{}] when retrieving architecture timeline", architectureId, e);
-            return invalidArchitectureResponse(architectureId);
+            logger.error("Invalid architecture [{}] when retrieving architecture timeline",
+                    STRICT_SANITIZATION_POLICY.sanitize(architectureIdParam.rawId()), e);
+            return invalidArchitectureResponse(architectureIdParam.rawId());
         } catch (JsonProcessingException e) {
-            logger.error("Failed to serialise timeline for architecture [{}] in namespace [{}]", architectureId, namespace, e);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Failed to build timeline for architecture: " + architectureId).build();
+            logger.error("Failed to serialise timeline for architecture [{}] in namespace [{}]",
+                    STRICT_SANITIZATION_POLICY.sanitize(architectureIdParam.rawId()), namespace, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("Failed to build timeline for architecture: "
+                            + STRICT_SANITIZATION_POLICY.sanitize(architectureIdParam.rawId())).build();
         }
     }
 
@@ -317,8 +337,10 @@ public class ArchitectureResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deleteArchitecture(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("architectureId") int architectureId
+            @Valid @BeanParam ArchitectureIdParam architectureIdParam
     ) {
+        ResourceId resourceId = architectureIdParam.toResourceId(resourceIdResolver);
+        int architectureId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deleteArchitecture(namespace, architectureId);
         } catch (NamespaceNotFoundException e) {
@@ -337,7 +359,12 @@ public class ArchitectureResource {
     }
 
     private Response invalidArchitectureResponse(int architectureId) {
-        return Response.status(Response.Status.NOT_FOUND).entity("Invalid architecture provided: " + architectureId).build();
+        return invalidArchitectureResponse(String.valueOf(architectureId));
+    }
+
+    private Response invalidArchitectureResponse(String architectureId) {
+        return Response.status(Response.Status.NOT_FOUND).entity("Invalid architecture provided: "
+                + STRICT_SANITIZATION_POLICY.sanitize(architectureId)).build();
     }
 
     private Response invalidVersionResponse(String version) {

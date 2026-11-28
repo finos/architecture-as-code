@@ -7,11 +7,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.GitHubResourceId;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.domain.Semver;
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
@@ -55,16 +58,19 @@ public class ArchitectureTimelineService {
     private final ArchitectureStore architectureStore;
     private final TimelineStore timelineStore;
     private final ResourceMappingStore mappingStore;
+    private final ResourceIdResolver resourceIdResolver;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Logger logger = LoggerFactory.getLogger(ArchitectureTimelineService.class);
 
     @Inject
     public ArchitectureTimelineService(ArchitectureStore architectureStore,
                                        TimelineStore timelineStore,
-                                       ResourceMappingStore mappingStore) {
+                                       ResourceMappingStore mappingStore,
+                                       ResourceIdResolver resourceIdResolver) {
         this.architectureStore = architectureStore;
         this.timelineStore = timelineStore;
         this.mappingStore = mappingStore;
+        this.resourceIdResolver = resourceIdResolver;
     }
 
     /**
@@ -76,11 +82,20 @@ public class ArchitectureTimelineService {
      */
     public String getTimelineForArchitecture(String namespace, int architectureId)
             throws NamespaceNotFoundException, ArchitectureNotFoundException, JsonProcessingException {
+        return getTimelineForArchitecture(namespace, new NumericResourceId(architectureId));
+    }
+
+    /**
+     * Resolves the timeline from the id the REST route resolved, so GitHub stems reach the store
+     * unchanged instead of being converted to a numeric zero.
+     */
+    public String getTimelineForArchitecture(String namespace, ResourceId architectureId)
+            throws NamespaceNotFoundException, ArchitectureNotFoundException, JsonProcessingException {
 
         String explicit = findExplicitTimeline(namespace, architectureId);
         if (explicit != null) {
             logger.debug("Returning explicit timeline for architecture {} in namespace '{}'",
-                    architectureId, namespace);
+                    idText(architectureId), namespace);
             return explicit;
         }
         return buildImpliedTimeline(namespace, architectureId);
@@ -97,7 +112,7 @@ public class ArchitectureTimelineService {
      * The {@code /versions/} suffix keeps the match exact so e.g. architecture 6 is not matched
      * by a reference to 60.</p>
      */
-    private String findExplicitTimeline(String namespace, int architectureId)
+    private String findExplicitTimeline(String namespace, ResourceId architectureId)
             throws NamespaceNotFoundException {
 
         List<NamespaceTimelineSummary> summaries = timelineStore.getTimelinesForNamespace(namespace);
@@ -108,44 +123,51 @@ public class ArchitectureTimelineService {
 
         for (NamespaceTimelineSummary summary : summaries) {
             try {
-                Timeline base = new Timeline.TimelineBuilder()
-                        .setNamespace(namespace)
-                        .setId(summary.getId())
-                        .build();
-
-                List<String> versions = timelineStore.getTimelineVersions(base);
+                ResourceId timelineId = timelineId(summary);
+                List<String> versions = timelineStore.getTimelineVersions(namespace, timelineId);
                 if (versions == null || versions.isEmpty()) {
                     continue;
                 }
 
                 String latest = ResourceVersion.latestRelease(orderVersions(versions));
-                Timeline versioned = new Timeline.TimelineBuilder()
-                        .setNamespace(namespace)
-                        .setId(summary.getId())
-                        .setVersion(latest)
-                        .build();
-
-                String timelineJson = timelineStore.getTimelineForVersion(versioned);
+                String timelineJson = timelineStore.getTimelineForVersion(namespace, timelineId, latest);
                 if (referencesArchitecture(timelineJson, markers)) {
                     return timelineJson;
                 }
-            } catch (TimelineNotFoundException | TimelineVersionNotFoundException e) {
+            } catch (TimelineNotFoundException | TimelineVersionNotFoundException | AmbiguousResourceIdException e) {
                 logger.debug("Skipping timeline {} while resolving explicit timeline for architecture {}",
-                        summary.getId(), architectureId, e);
+                        summary.getId(), idText(architectureId), e);
             }
         }
         return null;
     }
 
-    private List<String> architectureMarkers(String namespace, int architectureId)
+    /** Timeline summaries carry string ids; their tags disambiguate equal stems in GitHub mode. */
+    private ResourceId timelineId(NamespaceTimelineSummary summary) {
+        return resourceIdResolver.forSummary(summary.getId(), summary.getTags());
+    }
+
+    private List<String> architectureMarkers(String namespace, ResourceId architectureId)
             throws NamespaceNotFoundException {
+        String id = idText(architectureId);
         List<String> markers = new ArrayList<>();
-        markers.add("/architectures/" + architectureId + "/versions/");
-        for (ResourceMapping mapping : mappingStore.listMappingsByNumericIds(
-                namespace, ResourceType.ARCHITECTURE, List.of(architectureId))) {
-            markers.add("/calm/namespaces/" + namespace + "/architectures/" + mapping.getCustomId() + "/versions/");
+        markers.add("/architectures/" + id + "/versions/");
+        if (architectureId instanceof NumericResourceId numeric) {
+            for (ResourceMapping mapping : mappingStore.listMappingsByNumericIds(
+                    namespace, ResourceType.ARCHITECTURE, List.of(numeric.value()))) {
+                markers.add("/calm/namespaces/" + namespace + "/architectures/" + mapping.getCustomId() + "/versions/");
+            }
+        } else {
+            markers.add("/calm/namespaces/" + namespace + "/architectures/" + id + "/versions/");
         }
         return markers;
+    }
+
+    private static String idText(ResourceId id) {
+        if (id instanceof NumericResourceId numeric) {
+            return String.valueOf(numeric.value());
+        }
+        return ((GitHubResourceId) id).name();
     }
 
     private boolean referencesArchitecture(String timelineJson, List<String> markers) {
@@ -170,15 +192,10 @@ public class ArchitectureTimelineService {
         return false;
     }
 
-    private String buildImpliedTimeline(String namespace, int architectureId)
+    private String buildImpliedTimeline(String namespace, ResourceId architectureId)
             throws NamespaceNotFoundException, ArchitectureNotFoundException, JsonProcessingException {
 
-        Architecture architecture = new Architecture.ArchitectureBuilder()
-                .setNamespace(namespace)
-                .setId(architectureId)
-                .build();
-
-        List<String> versions = architectureStore.getArchitectureVersions(architecture);
+        List<String> versions = architectureStore.getArchitectureVersions(namespace, architectureId);
         List<String> orderedVersions = orderVersions(versions);
 
         ObjectNode timeline = objectMapper.createObjectNode();
@@ -186,7 +203,7 @@ public class ArchitectureTimelineService {
 
         ArrayNode moments = timeline.putArray("moments");
         for (String version : orderedVersions) {
-            moments.add(buildMoment(namespace, architectureId, version));
+            moments.add(buildMoment(namespace, idText(architectureId), version));
         }
 
         if (!orderedVersions.isEmpty()) {
@@ -194,7 +211,7 @@ public class ArchitectureTimelineService {
         }
 
         logger.debug("Built implied timeline for architecture {} in namespace '{}' with {} moments",
-                architectureId, namespace, orderedVersions.size());
+                idText(architectureId), namespace, orderedVersions.size());
 
         return objectMapper.writeValueAsString(timeline);
     }
@@ -239,7 +256,7 @@ public class ArchitectureTimelineService {
         }
     }
 
-    private ObjectNode buildMoment(String namespace, int architectureId, String version) {
+    private ObjectNode buildMoment(String namespace, String architectureId, String version) {
         ObjectNode moment = objectMapper.createObjectNode();
         moment.put("unique-id", version);
         moment.put("node-type", "moment");

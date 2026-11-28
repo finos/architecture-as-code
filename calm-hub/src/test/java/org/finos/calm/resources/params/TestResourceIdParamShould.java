@@ -48,10 +48,10 @@ class TestResourceIdParamShould {
         for (String path : new String[]{"../../x", "/abs", "aws//prod", "aws/.", "aws/..", "aws/prod/"}) {
             assertThat(path, path.matches(PATH_QUERY_PARAM_REGEX), is(false));
         }
-        for (String variant : new String[]{"calm", "v1-2"}) {
+        for (String variant : new String[]{"calm", "v1-2", ""}) {
             assertThat(variant, variant.matches(VARIANT_QUERY_PARAM_REGEX), is(true));
         }
-        for (String variant : new String[]{"a/b", "a.b", "a b", ""}) {
+        for (String variant : new String[]{"a/b", "a.b", "a b"}) {
             assertThat(variant, variant.matches(VARIANT_QUERY_PARAM_REGEX), is(false));
         }
     }

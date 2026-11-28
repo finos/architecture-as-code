@@ -2,6 +2,10 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.services.ResourceIdResolver;
 import jakarta.json.Json;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.ResolvedConventionDefault;
@@ -23,6 +27,9 @@ import java.util.Optional;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -34,12 +41,19 @@ class TestConventionToolsShould {
     @Mock
     ConventionService conventionService;
 
+    @Mock
+    ResourceIdResolver resourceIdResolver;
+
     @InjectMocks
     ConventionTools conventionTools;
 
     @BeforeEach
     void setup() {
         conventionTools.mcpEnabled = true;
+        lenient().when(resourceIdResolver.forStorage(anyString(), any(), any()))
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
+        lenient().when(resourceIdResolver.numericForWrite(any()))
+                .thenAnswer(call -> call.getArgument(0) instanceof NumericResourceId numeric ? numeric.value() : 0);
     }
 
     private static String text(ToolResponse response) {
@@ -69,8 +83,8 @@ class TestConventionToolsShould {
 
     @Test
     void list_versions_and_get_a_version() throws Exception {
-        when(conventionService.getConventionVersions("finos", C4, 3)).thenReturn(List.of("1.0.0", "1.1.0"));
-        when(conventionService.getConventionForVersion("finos", C4, 3, "1.1.0")).thenReturn("{\"unique-id\":\"acme\"}");
+        when(conventionService.getConventionVersions("finos", C4, new NumericResourceId(3))).thenReturn(List.of("1.0.0", "1.1.0"));
+        when(conventionService.getConventionForVersion("finos", C4, new NumericResourceId(3), "1.1.0")).thenReturn("{\"unique-id\":\"acme\"}");
 
         assertThat(text(conventionTools.listConventionVersions("finos", "c4-mapping", 3)), containsString("1.1.0"));
         assertThat(text(conventionTools.getConvention("finos", "c4-mapping", 3, "1.1.0")), is("{\"unique-id\":\"acme\"}"));
@@ -78,7 +92,7 @@ class TestConventionToolsShould {
 
     @Test
     void get_a_version_by_commit_sha() throws Exception {
-        when(conventionService.getConventionForVersion("finos", C4, 3, "1e38a517")).thenReturn("{\"unique-id\":\"acme\"}");
+        when(conventionService.getConventionForVersion("finos", C4, new NumericResourceId(3), "1e38a517")).thenReturn("{\"unique-id\":\"acme\"}");
 
         assertThat(text(conventionTools.getConvention("finos", "c4-mapping", 3, "1e38a517")), is("{\"unique-id\":\"acme\"}"));
     }
@@ -86,11 +100,11 @@ class TestConventionToolsShould {
     @Test
     void report_missing_namespaces_conventions_and_versions() throws Exception {
         when(conventionService.getConventionsForNamespace("missing", C4)).thenThrow(new NamespaceNotFoundException());
-        when(conventionService.getConventionVersions("missing", C4, 3)).thenThrow(new NamespaceNotFoundException());
-        when(conventionService.getConventionVersions("finos", C4, 9)).thenThrow(new ConventionNotFoundException());
-        when(conventionService.getConventionForVersion("missing", C4, 3, "1.0.0")).thenThrow(new NamespaceNotFoundException());
-        when(conventionService.getConventionForVersion("finos", C4, 9, "1.0.0")).thenThrow(new ConventionNotFoundException());
-        when(conventionService.getConventionForVersion("finos", C4, 3, "2.0.0")).thenThrow(new ConventionVersionNotFoundException());
+        when(conventionService.getConventionVersions("missing", C4, new NumericResourceId(3))).thenThrow(new NamespaceNotFoundException());
+        when(conventionService.getConventionVersions("finos", C4, new NumericResourceId(9))).thenThrow(new ConventionNotFoundException());
+        when(conventionService.getConventionForVersion("missing", C4, new NumericResourceId(3), "1.0.0")).thenThrow(new NamespaceNotFoundException());
+        when(conventionService.getConventionForVersion("finos", C4, new NumericResourceId(9), "1.0.0")).thenThrow(new ConventionNotFoundException());
+        when(conventionService.getConventionForVersion("finos", C4, new NumericResourceId(3), "2.0.0")).thenThrow(new ConventionVersionNotFoundException());
         when(conventionService.resolveDefault("missing", C4)).thenThrow(new NamespaceNotFoundException());
 
         assertThat(conventionTools.listConventions("missing", "c4-mapping").isError(), is(true));
@@ -121,5 +135,11 @@ class TestConventionToolsShould {
 
         assertThat(text(conventionTools.getNamespaceDefaultConvention("org", "c4-mapping")), containsString("set on this namespace"));
         assertThat(text(conventionTools.getNamespaceDefaultConvention("other", "c4-mapping")), containsString("No c4-mapping default"));
+    }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(conventionTools.listConventionVersions("workshop", "c4-mapping", "abc", null, null).isError(), is(true));
+        assertThat(conventionTools.getConvention("workshop", "c4-mapping", "abc", null, null, "1.0.0").isError(), is(true));
     }
 }

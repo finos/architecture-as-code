@@ -2,14 +2,17 @@ package org.finos.calm.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.GitHubResourceId;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
+import org.finos.calm.domain.exception.AmbiguousResourceIdException;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
-import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.TimelineStore;
@@ -27,7 +30,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +52,9 @@ public class TestArchitectureTimelineServiceShould {
     @Mock
     private ResourceMappingStore mockMappingStore;
 
+    @Mock
+    private ResourceIdResolver mockResourceIdResolver;
+
     private ArchitectureTimelineService service;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -53,13 +66,16 @@ public class TestArchitectureTimelineServiceShould {
 
     @BeforeEach
     void setup() {
-        service = new ArchitectureTimelineService(mockArchitectureStore, mockTimelineStore, mockMappingStore);
+        service = new ArchitectureTimelineService(mockArchitectureStore, mockTimelineStore, mockMappingStore,
+                mockResourceIdResolver);
+        lenient().when(mockResourceIdResolver.forSummary(anyString(), any()))
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
     }
 
     // No stored timeline references the architecture -> the implied projection is produced.
     private JsonNode impliedTimelineFor(List<String> versions) throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE)).thenReturn(List.of());
-        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(versions);
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(versions);
         return objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
     }
 
@@ -228,8 +244,8 @@ public class TestArchitectureTimelineServiceShould {
     void return_explicit_timeline_when_a_stored_timeline_references_the_architecture() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0"));
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
+        when(mockTimelineStore.getTimelineForVersion(eq(NAMESPACE), any(ResourceId.class), anyString()))
                 .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
@@ -240,11 +256,42 @@ public class TestArchitectureTimelineServiceShould {
     }
 
     @Test
+    void resolve_an_explicit_timeline_by_github_stem_without_parsing_it_as_a_number() throws Exception {
+        GitHubResourceId architecture = new GitHubResourceId("foo", null, null);
+        GitHubResourceId timeline = new GitHubResourceId("roadmap", null, null);
+        doReturn(timeline).when(mockResourceIdResolver).forSummary("roadmap", null);
+        when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
+                .thenReturn(List.of(new NamespaceTimelineSummary("Roadmap", "curated", "roadmap")));
+        when(mockTimelineStore.getTimelineVersions(NAMESPACE, timeline)).thenReturn(List.of("abc1234"));
+        when(mockTimelineStore.getTimelineForVersion(NAMESPACE, timeline, "abc1234"))
+                .thenReturn(explicitTimelineReferencing("/calm/namespaces/finos/architectures/foo/versions/abc1234"));
+
+        JsonNode result = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, architecture));
+
+        assertThat(result.get("current-moment").asText(), is("go-live"));
+        verify(mockMappingStore, never()).listMappingsByNumericIds(anyString(), any(), anyList());
+    }
+
+    @Test
+    void skip_an_ambiguous_timeline_and_fall_back_to_the_implied_projection() throws Exception {
+        when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
+                .thenReturn(List.of(new NamespaceTimelineSummary("Roadmap", "curated", "roadmap")));
+        doThrow(new AmbiguousResourceIdException("ambiguous")).when(mockResourceIdResolver)
+                .forSummary("roadmap", null);
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class)))
+                .thenReturn(List.of("1.0.0"));
+
+        JsonNode result = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
+
+        assertThat(result.get("moments").get(0).get("name").asText(), is("1.0.0"));
+    }
+
+    @Test
     void select_the_latest_version_of_a_matching_explicit_timeline() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0", "2.0.0", "1.1.0"));
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0", "2.0.0", "1.1.0"));
+        when(mockTimelineStore.getTimelineForVersion(eq(NAMESPACE), any(ResourceId.class), anyString()))
                 .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
@@ -256,10 +303,10 @@ public class TestArchitectureTimelineServiceShould {
     void ignore_a_stored_timeline_that_references_a_different_architecture() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Other Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0"));
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
+        when(mockTimelineStore.getTimelineForVersion(eq(NAMESPACE), any(ResourceId.class), anyString()))
                 .thenReturn(explicitTimelineReferencing("/calm/namespaces/finos/architectures/99/versions/1.0.0"));
-        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
@@ -272,10 +319,10 @@ public class TestArchitectureTimelineServiceShould {
         // Architecture 42 must not be matched by a reference to architecture 420.
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Other Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0"));
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
+        when(mockTimelineStore.getTimelineForVersion(eq(NAMESPACE), any(ResourceId.class), anyString()))
                 .thenReturn(explicitTimelineReferencing("/calm/namespaces/finos/architectures/420/versions/1.0.0"));
-        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
@@ -286,8 +333,8 @@ public class TestArchitectureTimelineServiceShould {
     void fall_back_to_implied_when_a_stored_timeline_has_no_versions() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Empty Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of());
-        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of());
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
@@ -298,8 +345,8 @@ public class TestArchitectureTimelineServiceShould {
     void skip_a_stored_timeline_whose_version_lookup_fails() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Broken Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenThrow(new TimelineNotFoundException());
-        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class))).thenThrow(new TimelineNotFoundException());
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
@@ -310,9 +357,9 @@ public class TestArchitectureTimelineServiceShould {
     void fall_back_to_implied_when_a_stored_timeline_is_not_valid_json() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Corrupt Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0"));
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class))).thenReturn("this is not json");
-        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
+        when(mockTimelineStore.getTimelineForVersion(eq(NAMESPACE), any(ResourceId.class), anyString())).thenReturn("this is not json");
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
@@ -322,7 +369,7 @@ public class TestArchitectureTimelineServiceShould {
     @Test
     void propagate_namespace_not_found_exception() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE)).thenReturn(List.of());
-        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class)))
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class)))
                 .thenThrow(new NamespaceNotFoundException());
 
         assertThrows(NamespaceNotFoundException.class,
@@ -346,7 +393,7 @@ public class TestArchitectureTimelineServiceShould {
     @Test
     void propagate_architecture_not_found_exception() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE)).thenReturn(List.of());
-        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class)))
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class)))
                 .thenThrow(new ArchitectureNotFoundException());
 
         assertThrows(ArchitectureNotFoundException.class,
@@ -362,8 +409,8 @@ public class TestArchitectureTimelineServiceShould {
                 .thenReturn(List.of(mapping));
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0"));
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
+        when(mockTimelineStore.getTimelineForVersion(eq(NAMESPACE), any(ResourceId.class), anyString()))
                 .thenReturn(explicitTimelineReferencing(
                         "http://localhost:8080/calm/namespaces/finos/architectures/risk-arch/versions/1.0.0"));
 
@@ -384,16 +431,14 @@ public class TestArchitectureTimelineServiceShould {
                 .thenReturn(List.of(
                         new NamespaceTimelineSummary("Prefix Timeline", "curated", 7),
                         new NamespaceTimelineSummary("Other Namespace Timeline", "curated", 8)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0"));
-        when(mockTimelineStore.getTimelineForVersion(
-                new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(7).setVersion("1.0.0").build()))
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
+        when(mockTimelineStore.getTimelineForVersion(NAMESPACE, new NumericResourceId(7), "1.0.0"))
                 .thenReturn(explicitTimelineReferencing(
                         "http://localhost:8080/calm/namespaces/finos/architectures/risk-arch-v2/versions/1.0.0"));
-        when(mockTimelineStore.getTimelineForVersion(
-                new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(8).setVersion("1.0.0").build()))
+        when(mockTimelineStore.getTimelineForVersion(NAMESPACE, new NumericResourceId(8), "1.0.0"))
                 .thenReturn(explicitTimelineReferencing(
                         "http://localhost:8080/calm/namespaces/other-ns/architectures/risk-arch/versions/1.0.0"));
-        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+        when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
 
@@ -404,15 +449,13 @@ public class TestArchitectureTimelineServiceShould {
     void read_the_latest_release_of_an_explicit_timeline_when_a_newer_snapshot_exists() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class)))
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class)))
                 .thenReturn(List.of("1.0.0", "1.1.0-SNAPSHOT"));
-        when(mockTimelineStore.getTimelineForVersion(
-                new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(7).setVersion("1.0.0").build()))
+        when(mockTimelineStore.getTimelineForVersion(NAMESPACE, new NumericResourceId(7), "1.0.0"))
                 .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
-        lenient().when(mockTimelineStore.getTimelineForVersion(
-                new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(7).setVersion("1.1.0-SNAPSHOT").build()))
+        lenient().when(mockTimelineStore.getTimelineForVersion(NAMESPACE, new NumericResourceId(7), "1.1.0-SNAPSHOT"))
                 .thenReturn("{\"$schema\":\"" + ArchitectureTimelineService.TIMELINE_SCHEMA + "\",\"moments\":[]}");
-        lenient().when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class)))
+        lenient().when(mockArchitectureStore.getArchitectureVersions(eq(NAMESPACE), any(ResourceId.class)))
                 .thenReturn(List.of("1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
@@ -425,10 +468,9 @@ public class TestArchitectureTimelineServiceShould {
     void read_the_snapshot_of_an_explicit_timeline_when_no_release_is_published_yet() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceTimelineSummary("Trading Timeline", "curated", 7)));
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class)))
+        when(mockTimelineStore.getTimelineVersions(eq(NAMESPACE), any(ResourceId.class)))
                 .thenReturn(List.of("1.0.0-SNAPSHOT"));
-        when(mockTimelineStore.getTimelineForVersion(
-                new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(7).setVersion("1.0.0-SNAPSHOT").build()))
+        when(mockTimelineStore.getTimelineForVersion(NAMESPACE, new NumericResourceId(7), "1.0.0-SNAPSHOT"))
                 .thenReturn(explicitTimelineReferencing("/api/calm/namespaces/finos/architectures/42/versions/1.0.0"));
 
         JsonNode timeline = objectMapper.readTree(service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));

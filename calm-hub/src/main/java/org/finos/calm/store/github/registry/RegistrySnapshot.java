@@ -19,8 +19,14 @@ public record RegistrySnapshot(
         Map<String, List<RegistryEntry>> entriesByNamespace,
         Map<String, RegistryEntry> entriesByQualifiedId
 ) {
+
     public static final RegistrySnapshot EMPTY = new RegistrySnapshot(
             Collections.emptyMap(), Collections.emptyMap());
+
+    /** For tests that only exercise the namespace index; the qualified-id index is not used. */
+    public RegistrySnapshot(Map<String, List<RegistryEntry>> entriesByNamespace) {
+        this(entriesByNamespace, Collections.emptyMap());
+    }
 
     public Optional<RegistryEntry> findByUniqueId(String namespace, String uniqueId) {
         return Optional.ofNullable(entriesByQualifiedId.get(namespace + ":" + uniqueId));
@@ -35,6 +41,19 @@ public record RegistrySnapshot(
 
     public List<RegistryEntry> listAll(String namespace) {
         return entriesByNamespace.getOrDefault(namespace, Collections.emptyList());
+    }
+
+    /**
+     * Returns every entry matching the supplied parts of the composite identity. A {@code null}
+     * part is not supplied and therefore does not filter; an empty path or variant means "none".
+     * Callers never pick a winner from more than one match — ambiguity is resolved as a 404 above
+     * this layer.
+     */
+    public List<RegistryEntry> find(String namespace, RegistryResourceType type, String name, String path, String variant) {
+        return entriesByNamespace.getOrDefault(namespace, Collections.emptyList()).stream()
+                .filter(e -> type == null || e.type() == type)
+                .filter(e -> RegistryIdentity.matches(name, path, variant, e))
+                .toList();
     }
 
     public List<String> getNamespaces() {

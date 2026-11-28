@@ -1,5 +1,13 @@
 package org.finos.calm.resources;
 
+import jakarta.ws.rs.BeanParam;
+
+import jakarta.validation.Valid;
+
+import org.finos.calm.resources.params.ArchitectureIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+import org.finos.calm.domain.ResourceId;
+
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
@@ -37,10 +45,13 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
  * is always an idempotent upsert — there is no server-allocated id to report via a
  * {@code Location} header.</p>
  */
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 @Authenticated
 public class LayoutResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final LayoutStore layoutStore;
     private final Logger logger = LoggerFactory.getLogger(LayoutResource.class);
@@ -68,8 +79,13 @@ public class LayoutResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getLayout(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("architectureId") @Min(value = 1, message = "Architecture ID must be a positive integer") int architectureId
+            @Valid @BeanParam ArchitectureIdParam architectureIdParam
     ) {
+        ResourceId resourceId = architectureIdParam.toResourceId(resourceIdResolver);
+        int architectureId = resourceIdResolver.numericForWrite(resourceId);
+        if (!resourceIdResolver.isGitHub() && architectureId <= 0) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Architecture ID must be a positive integer").build();
+        }
         try {
             return layoutStore.getLayout(namespace, architectureId)
                     .map(layoutJson -> Response.ok(layoutJson).build())
@@ -103,9 +119,14 @@ public class LayoutResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response saveLayout(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("architectureId") @Min(value = 1, message = "Architecture ID must be a positive integer") int architectureId,
+            @Valid @BeanParam ArchitectureIdParam architectureIdParam,
             String layoutJson
     ) {
+        ResourceId resourceId = architectureIdParam.toResourceId(resourceIdResolver);
+        int architectureId = resourceIdResolver.numericForWrite(resourceId);
+        if (!resourceIdResolver.isGitHub() && architectureId <= 0) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Architecture ID must be a positive integer").build();
+        }
         try {
             String forPath = LayoutRequestParsing.parseForTarget(layoutJson);
             String expectedPath = LayoutRequestParsing.canonicalPath(namespace, "architectures", architectureId);

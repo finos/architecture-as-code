@@ -7,7 +7,9 @@ import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.domain.NumericResourceId;
 import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
+import org.finos.calm.domain.Tags;
 import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -54,5 +56,32 @@ public class ResourceIdResolver {
             return new GitHubResourceId(name, path, variant);
         }
         return new NumericResourceId(mappingService.getMapping(namespace, type, name).getNumericId());
+    }
+
+    /**
+     * Resolves an id taken from a listing summary. A summary drops empty tags, so a missing path
+     * or variant must become {@code ""} ("none"), not {@code null} ("any path/variant"), or the
+     * lookup matches every file with the same stem.
+     */
+    public ResourceId forSummary(String id, Tags tags) {
+        String path = tags == null || tags.path() == null ? "" : tags.path();
+        String variant = tags == null || tags.variant() == null ? "" : tags.variant();
+        return forStorage(id, path, variant);
+    }
+
+    /** Resolves a stored mapping without a second lookup, keeping its path and variant for GitHub mode. */
+    public ResourceId forMapping(ResourceMapping mapping) {
+        if (isGitHub()) {
+            return new GitHubResourceId(mapping.getCustomId(), mapping.getPath(), mapping.getVariant());
+        }
+        return new NumericResourceId(mapping.getNumericId());
+    }
+
+    /** Numeric form for int-based store calls; GitHub ids yield 0 as those stores do not serve them. */
+    public int numericForWrite(ResourceId id) {
+        if (id instanceof NumericResourceId numeric) {
+            return numeric.value();
+        }
+        return 0;
     }
 }

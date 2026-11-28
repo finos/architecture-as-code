@@ -38,7 +38,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_REGEX;
 /**
  * REST resource for managing domains.
  */
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/domains")
 public class DomainResource {
 

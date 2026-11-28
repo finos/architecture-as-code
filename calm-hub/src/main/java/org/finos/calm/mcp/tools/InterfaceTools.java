@@ -7,7 +7,9 @@ import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.CalmInterface;
+import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
 import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
@@ -15,6 +17,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.InterfaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +43,9 @@ public class InterfaceTools {
     @Inject
     InterfaceStore interfaceStore;
 
+    @Inject
+    ResourceIdResolver resourceIdResolver;
+
     @Tool(description = "List all interfaces in a CalmHub namespace. Returns interface IDs, names, and descriptions.")
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listInterfaces(
@@ -52,7 +58,7 @@ public class InterfaceTools {
         try {
             List<NamespaceInterfaceSummary> interfaces = interfaceStore.getInterfacesForNamespace(namespace);
             List<McpResponseFormatter.ResourceSummary> summaries = interfaces.stream()
-                    .map(i -> new McpResponseFormatter.ResourceSummary(i.getId(), i.getName(), i.getDescription()))
+                    .map(i -> new McpResponseFormatter.ResourceSummary(i.getId(), i.getName(), i.getDescription(), i.getTags()))
                     .toList();
             return McpResponseFormatter.formatResourceList("interface", namespace, summaries);
         } catch (NamespaceNotFoundException e) {
@@ -65,16 +71,23 @@ public class InterfaceTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listInterfaceVersions(
             @ToolArg(description = "The namespace containing the interface") String namespace,
-            @ToolArg(description = "The interface ID (positive integer)") int interfaceId) {
+            @ToolArg(description = "The interface ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String interfaceId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(interfaceId, "Interface ID"));
+                () -> McpValidationHelper.validateResourceId(interfaceId, "Interface ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant));
         if (err.isPresent()) return err.get();
 
         try {
-            List<String> versions = interfaceStore.getInterfaceVersions(namespace, interfaceId);
+            List<String> versions = interfaceStore.getInterfaceVersions(namespace, resolve(interfaceId, path, variant));
             return McpResponseFormatter.formatVersionList("interface", interfaceId, namespace, versions);
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -88,17 +101,24 @@ public class InterfaceTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getInterface(
             @ToolArg(description = "The namespace containing the interface") String namespace,
-            @ToolArg(description = "The interface ID (positive integer)") int interfaceId,
+            @ToolArg(description = "The interface ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String interfaceId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(interfaceId, "Interface ID"),
+                () -> McpValidationHelper.validateResourceId(interfaceId, "Interface ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateSnapshotVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {
-            return ToolResponse.success(interfaceStore.getInterfaceForVersion(namespace, interfaceId, version));
+            return ToolResponse.success(interfaceStore.getInterfaceForVersion(namespace, resolve(interfaceId, path, variant), version));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -144,13 +164,17 @@ public class InterfaceTools {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createInterfaceVersion(
             @ToolArg(description = "The namespace containing the interface") String namespace,
-            @ToolArg(description = "The interface ID (positive integer)") int interfaceId,
+            @ToolArg(description = "The interface ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String interfaceId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The new version string to publish (e.g. '1.1.0')") String version,
             @ToolArg(description = "The full CALM interface JSON content for this version") String interfaceJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(interfaceId, "Interface ID"),
+                () -> McpValidationHelper.validateResourceId(interfaceId, "Interface ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(interfaceJson, "Interface JSON"),
                 () -> McpValidationHelper.validateMaxLength(interfaceJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Interface JSON"),
@@ -175,9 +199,12 @@ public class InterfaceTools {
                 return McpResponseFormatter.entityNotFound("interface", interfaceId, namespace);
             }
             CreateInterfaceRequest request = new CreateInterfaceRequest(existingName, existingDescription, interfaceJson);
-            interfaceStore.createInterfaceForVersion(request, namespace, interfaceId, version);
+            interfaceStore.createInterfaceForVersion(request, namespace, numericId(interfaceId, path, variant), version);
             logger.info("Interface [{}] version [{}] created in namespace [{}]", interfaceId, version, namespace);
             return ToolResponse.success("Interface " + interfaceId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -188,5 +215,27 @@ public class InterfaceTools {
             logger.warn("Version [{}] already exists for interface [{}] in namespace [{}]", version, interfaceId, namespace, e);
             return ToolResponse.error("Error: Version '" + version + "' already exists for interface " + interfaceId + ".");
         }
+    }
+
+    private ResourceId resolve(String id, String path, String variant) {
+        return resourceIdResolver.forStorage(id, path == null ? "" : path, variant == null ? "" : variant);
+    }
+
+    private int numericId(String id, String path, String variant) {
+        return resourceIdResolver.numericForWrite(resolve(id, path, variant));
+    }
+
+    // Numeric-id overloads kept for callers that still have an int (not exposed as MCP tools).
+
+    public ToolResponse listInterfaceVersions(String namespace, int interfaceId) {
+        return listInterfaceVersions(namespace, String.valueOf(interfaceId), null, null);
+    }
+
+    public ToolResponse getInterface(String namespace, int interfaceId, String version) {
+        return getInterface(namespace, String.valueOf(interfaceId), null, null, version);
+    }
+
+    public ToolResponse createInterfaceVersion(String namespace, int interfaceId, String version, String interfaceJson) {
+        return createInterfaceVersion(namespace, String.valueOf(interfaceId), null, null, version, interfaceJson);
     }
 }

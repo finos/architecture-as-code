@@ -330,14 +330,14 @@ public class TestDecoratorResourceShould {
     }
 
     @Test
-    void return_404_when_getting_by_id_with_invalid_id_format() {
+    void return_400_when_getting_by_id_with_invalid_id_format() {
         String namespace = "test-namespace";
         String invalidId = "invalid-id";
 
         given()
                 .when().get("/api/calm/namespaces/{namespace}/decorators/{id}", namespace, invalidId)
                 .then()
-                .statusCode(404);
+                .statusCode(400);
     }
 
     @Test
@@ -346,7 +346,7 @@ public class TestDecoratorResourceShould {
                 .when().get("/api/calm/namespaces/test-namespace/decorators/0")
                 .then()
                 .statusCode(400)
-                .body(containsString("ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
     }
 
     @Test
@@ -355,7 +355,7 @@ public class TestDecoratorResourceShould {
                 .when().get("/api/calm/namespaces/test-namespace/decorators/-1")
                 .then()
                 .statusCode(400)
-                .body(containsString("ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
     }
 
     @Test
@@ -578,7 +578,7 @@ public class TestDecoratorResourceShould {
                 .get("/api/calm/namespaces/finos/decorators/0/history")
                 .then()
                 .statusCode(400)
-                .body(containsString("ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
 
         verify(decoratorStore, never()).getDecoratorHistory(anyString(), anyInt());
     }
@@ -921,7 +921,7 @@ public class TestDecoratorResourceShould {
                 .put("/api/calm/namespaces/test-namespace/decorators/0")
                 .then()
                 .statusCode(400)
-                .body(containsString("ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
     }
 
     @Test
@@ -933,7 +933,7 @@ public class TestDecoratorResourceShould {
                 .put("/api/calm/namespaces/test-namespace/decorators/-1")
                 .then()
                 .statusCode(400)
-                .body(containsString("ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
     }
 
     // ---- DELETE /api/calm/namespaces/{namespace}/decorators/{id} ----
@@ -992,7 +992,7 @@ public class TestDecoratorResourceShould {
                 .delete("/api/calm/namespaces/test-namespace/decorators/0")
                 .then()
                 .statusCode(400)
-                .body(containsString("ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
     }
 
     // ---- Hub-owned times ----

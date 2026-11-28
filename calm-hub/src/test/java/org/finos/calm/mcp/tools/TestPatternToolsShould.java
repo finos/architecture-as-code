@@ -2,12 +2,16 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.PatternStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +31,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -37,6 +43,9 @@ class TestPatternToolsShould {
     @Mock
     PatternStore patternStore;
 
+    @Mock
+    ResourceIdResolver resourceIdResolver;
+
     @InjectMocks
     PatternTools patternTools;
 
@@ -44,6 +53,10 @@ class TestPatternToolsShould {
     void setup() {
         patternTools.mcpEnabled = true;
         patternTools.allowPutOperations = true;
+        lenient().when(resourceIdResolver.forStorage(anyString(), any(), any()))
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
+        lenient().when(resourceIdResolver.numericForWrite(any()))
+                .thenAnswer(call -> call.getArgument(0) instanceof NumericResourceId numeric ? numeric.value() : 0);
     }
 
     private static String text(ToolResponse r) {
@@ -99,7 +112,7 @@ class TestPatternToolsShould {
 
     @Test
     void return_versions_for_valid_pattern() throws Exception {
-        when(patternStore.getPatternVersions(any())).thenReturn(List.of("1.0.0", "2.0.0"));
+        when(patternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("1.0.0", "2.0.0"));
 
         ToolResponse result = patternTools.listPatternVersions("workshop", 1);
 
@@ -110,7 +123,7 @@ class TestPatternToolsShould {
 
     @Test
     void return_empty_versions_message() throws Exception {
-        when(patternStore.getPatternVersions(any())).thenReturn(List.of());
+        when(patternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenReturn(List.of());
 
         ToolResponse result = patternTools.listPatternVersions("workshop", 1);
 
@@ -120,7 +133,7 @@ class TestPatternToolsShould {
 
     @Test
     void return_error_when_pattern_not_found_for_versions() throws Exception {
-        when(patternStore.getPatternVersions(any())).thenThrow(new PatternNotFoundException());
+        when(patternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenThrow(new PatternNotFoundException());
 
         ToolResponse result = patternTools.listPatternVersions("workshop", 99);
 
@@ -130,7 +143,7 @@ class TestPatternToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_versions() throws Exception {
-        when(patternStore.getPatternVersions(any())).thenThrow(new NamespaceNotFoundException());
+        when(patternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = patternTools.listPatternVersions("missing", 1);
 
@@ -158,7 +171,7 @@ class TestPatternToolsShould {
 
     @Test
     void return_pattern_json_for_valid_version() throws Exception {
-        when(patternStore.getPatternForVersion(any())).thenReturn("{\"nodes\":[],\"relationships\":[]}");
+        when(patternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"nodes\":[],\"relationships\":[]}");
 
         ToolResponse result = patternTools.getPattern("workshop", 1, "1.0.0");
 
@@ -168,19 +181,19 @@ class TestPatternToolsShould {
 
     @Test
     void return_pattern_json_for_commit_sha_version() throws Exception {
-        when(patternStore.getPatternForVersion(any())).thenReturn("{\"nodes\":[]}");
+        when(patternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"nodes\":[]}");
 
         ToolResponse result = patternTools.getPattern("workshop", 1, "1e38a517");
 
         assertThat(result.isError(), is(false));
-        ArgumentCaptor<Pattern> captor = ArgumentCaptor.forClass(Pattern.class);
-        verify(patternStore).getPatternForVersion(captor.capture());
-        assertThat(captor.getValue().getDotVersion(), is("1e38a517"));
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(patternStore).getPatternForVersion(eq("workshop"), any(ResourceId.class), captor.capture());
+        assertThat(captor.getValue(), is("1e38a517"));
     }
 
     @Test
     void return_error_when_pattern_version_not_found() throws Exception {
-        when(patternStore.getPatternForVersion(any())).thenThrow(new PatternVersionNotFoundException());
+        when(patternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new PatternVersionNotFoundException());
 
         ToolResponse result = patternTools.getPattern("workshop", 1, "9.9.9");
 
@@ -190,7 +203,7 @@ class TestPatternToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_get_pattern() throws Exception {
-        when(patternStore.getPatternForVersion(any())).thenThrow(new NamespaceNotFoundException());
+        when(patternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = patternTools.getPattern("missing", 1, "1.0.0");
 
@@ -200,7 +213,7 @@ class TestPatternToolsShould {
 
     @Test
     void return_error_when_pattern_not_found_for_get() throws Exception {
-        when(patternStore.getPatternForVersion(any())).thenThrow(new PatternNotFoundException());
+        when(patternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new PatternNotFoundException());
 
         ToolResponse result = patternTools.getPattern("workshop", 99, "1.0.0");
 
@@ -541,5 +554,13 @@ class TestPatternToolsShould {
         assertThat(text(patternTools.createPatternVersion("workshop", 1, "1.1.0", "{}")), containsString("disabled"));
         assertThat(text(patternTools.updatePattern("workshop", 1, "1.0.0", "{}")), containsString("disabled"));
         verifyNoInteractions(patternStore);
+    }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(patternTools.listPatternVersions("workshop", "abc", null, null).isError(), is(true));
+        assertThat(patternTools.getPattern("workshop", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(patternTools.createPatternVersion("workshop", "abc", null, null, "1.1.0", "{}").isError(), is(true));
+        assertThat(patternTools.updatePattern("workshop", "abc", null, null, "1.0.0", "{}").isError(), is(true));
     }
 }

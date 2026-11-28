@@ -2,6 +2,10 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
@@ -25,7 +29,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -35,12 +41,19 @@ class TestControlToolsShould {
     @Mock
     ControlStore controlStore;
 
+    @Mock
+    ResourceIdResolver resourceIdResolver;
+
     @InjectMocks
     ControlTools controlTools;
 
     @BeforeEach
     void setup() {
         controlTools.mcpEnabled = true;
+        lenient().when(resourceIdResolver.forStorage(anyString(), any(), any()))
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
+        lenient().when(resourceIdResolver.numericForWrite(any()))
+                .thenAnswer(call -> call.getArgument(0) instanceof NumericResourceId numeric ? numeric.value() : 0);
     }
 
     private static String text(ToolResponse r) {
@@ -100,7 +113,7 @@ class TestControlToolsShould {
 
     @Test
     void return_control_json() throws Exception {
-        when(controlStore.getRequirementForVersion("security", 1, "1.0.0"))
+        when(controlStore.getRequirementForVersion("security", new NumericResourceId(1), "1.0.0"))
                 .thenReturn("{\"name\":\"BOLA\",\"description\":\"...\"}");
 
         ToolResponse result = controlTools.getControl("security", 1, "1.0.0");
@@ -111,7 +124,7 @@ class TestControlToolsShould {
 
     @Test
     void return_control_json_for_commit_sha_version() throws Exception {
-        when(controlStore.getRequirementForVersion("security", 1, "1e38a517"))
+        when(controlStore.getRequirementForVersion("security", new NumericResourceId(1), "1e38a517"))
                 .thenReturn("{\"name\":\"BOLA\"}");
 
         ToolResponse result = controlTools.getControl("security", 1, "1e38a517");
@@ -122,7 +135,7 @@ class TestControlToolsShould {
 
     @Test
     void return_error_for_missing_control_version() throws Exception {
-        when(controlStore.getRequirementForVersion("security", 1, "9.9.9"))
+        when(controlStore.getRequirementForVersion("security", new NumericResourceId(1), "9.9.9"))
                 .thenThrow(new ControlRequirementVersionNotFoundException());
 
         ToolResponse result = controlTools.getControl("security", 1, "9.9.9");
@@ -133,7 +146,7 @@ class TestControlToolsShould {
 
     @Test
     void return_error_for_missing_domain_on_get() throws Exception {
-        when(controlStore.getRequirementForVersion("missing", 1, "1.0.0"))
+        when(controlStore.getRequirementForVersion("missing", new NumericResourceId(1), "1.0.0"))
                 .thenThrow(new DomainNotFoundException("missing"));
 
         ToolResponse result = controlTools.getControl("missing", 1, "1.0.0");
@@ -144,7 +157,7 @@ class TestControlToolsShould {
 
     @Test
     void return_error_for_missing_control_on_get() throws Exception {
-        when(controlStore.getRequirementForVersion("security", 99, "1.0.0"))
+        when(controlStore.getRequirementForVersion("security", new NumericResourceId(99), "1.0.0"))
                 .thenThrow(new ControlNotFoundException());
 
         ToolResponse result = controlTools.getControl("security", 99, "1.0.0");
@@ -181,7 +194,7 @@ class TestControlToolsShould {
 
     @Test
     void return_control_versions() throws Exception {
-        when(controlStore.getRequirementVersions("security", 1))
+        when(controlStore.getRequirementVersions("security", new NumericResourceId(1)))
                 .thenReturn(List.of("1.0.0", "2.0.0"));
 
         ToolResponse result = controlTools.listControlVersions("security", 1);
@@ -193,7 +206,7 @@ class TestControlToolsShould {
 
     @Test
     void return_empty_versions_message() throws Exception {
-        when(controlStore.getRequirementVersions("security", 1))
+        when(controlStore.getRequirementVersions("security", new NumericResourceId(1)))
                 .thenReturn(List.of());
 
         ToolResponse result = controlTools.listControlVersions("security", 1);
@@ -204,7 +217,7 @@ class TestControlToolsShould {
 
     @Test
     void return_error_when_control_not_found_for_versions() throws Exception {
-        when(controlStore.getRequirementVersions("security", 99))
+        when(controlStore.getRequirementVersions("security", new NumericResourceId(99)))
                 .thenThrow(new ControlNotFoundException());
 
         ToolResponse result = controlTools.listControlVersions("security", 99);
@@ -214,7 +227,7 @@ class TestControlToolsShould {
 
     @Test
     void return_error_when_domain_not_found_for_versions() throws Exception {
-        when(controlStore.getRequirementVersions("missing", 1))
+        when(controlStore.getRequirementVersions("missing", new NumericResourceId(1)))
                 .thenThrow(new DomainNotFoundException("missing"));
 
         ToolResponse result = controlTools.listControlVersions("missing", 1);
@@ -440,5 +453,12 @@ class TestControlToolsShould {
         assertThat(response.isError(), is(true));
         assertThat(text(response), containsString("Configuration JSON"));
         verifyNoInteractions(controlStore);
+    }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(controlTools.listControlVersions("security", "abc", null, null).isError(), is(true));
+        assertThat(controlTools.getControl("security", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(controlTools.createControlConfiguration("security", "abc", null, null, "{}").isError(), is(true));
     }
 }

@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.FlowNotFoundException;
@@ -71,11 +72,11 @@ public class TestFlowResourceShould {
                 .statusCode(200)
                 .body("values[0].name", equalTo("Flow One"))
                 .body("values[0].description", equalTo("First"))
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Flow Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321))
+                .body("values[1].id", equalTo("54321"))
                 .body("values[1].versionCount", equalTo(1));
 
         verify(mockFlowStore, times(1)).getFlowsForNamespace("valid");
@@ -86,9 +87,9 @@ public class TestFlowResourceShould {
         String flowJson = "{ \"test\": \"json\" }";
         Flow.FlowBuilder mockFlowBuilder = new Flow.FlowBuilder().setNamespace("validNamespace").setId(1);
         Flow flowWithoutVersion = mockFlowBuilder.build();
-        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(Arrays.asList("v1", "v2", "v3"));
+        when(mockFlowStore.getFlowVersions(anyString(), any(ResourceId.class))).thenReturn(Arrays.asList("v1", "v2", "v3"));
         Flow expectedFlow = mockFlowBuilder.setVersion("v3").build();
-        when(mockFlowStore.getFlowForVersion(expectedFlow)).thenReturn(flowJson);
+        when(mockFlowStore.getFlowForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn(flowJson);
 
         given()
                 .when()
@@ -96,8 +97,8 @@ public class TestFlowResourceShould {
                 .then()
                 .statusCode(200);
 
-        verify(mockFlowStore, times(1)).getFlowVersions(flowWithoutVersion);
-        verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlow);
+        verify(mockFlowStore, times(1)).getFlowVersions(anyString(), any(ResourceId.class));
+        verify(mockFlowStore, times(1)).getFlowForVersion(anyString(), any(ResourceId.class), anyString());
     }
 
     @Test
@@ -105,9 +106,9 @@ public class TestFlowResourceShould {
         // A 1.1.0-SNAPSHOT past the published 1.0.0 must not shadow it as "latest".
         String flowJson = "{ \"test\": \"json\" }";
         Flow.FlowBuilder mockFlowBuilder = new Flow.FlowBuilder().setNamespace("validNamespace").setId(1);
-        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(Arrays.asList("1.0.0", "1.1.0-SNAPSHOT"));
+        when(mockFlowStore.getFlowVersions(anyString(), any(ResourceId.class))).thenReturn(Arrays.asList("1.0.0", "1.1.0-SNAPSHOT"));
         Flow expectedFlow = mockFlowBuilder.setVersion("1.0.0").build();
-        when(mockFlowStore.getFlowForVersion(expectedFlow)).thenReturn(flowJson);
+        when(mockFlowStore.getFlowForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn(flowJson);
 
         given()
                 .when()
@@ -115,7 +116,7 @@ public class TestFlowResourceShould {
                 .then()
                 .statusCode(200);
 
-        verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlow);
+        verify(mockFlowStore, times(1)).getFlowForVersion(anyString(), any(ResourceId.class), anyString());
     }
 
     @Test
@@ -123,9 +124,9 @@ public class TestFlowResourceShould {
         // GitHub storage returns SHAs oldest first; the largest SHA string is not the newest.
         String flowJson = "{ \"test\": \"json\" }";
         Flow.FlowBuilder mockFlowBuilder = new Flow.FlowBuilder().setNamespace("validNamespace").setId(1);
-        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(Arrays.asList("f00dbab", "1a2b3c4", "0cafe12"));
+        when(mockFlowStore.getFlowVersions(anyString(), any(ResourceId.class))).thenReturn(Arrays.asList("f00dbab", "1a2b3c4", "0cafe12"));
         Flow expectedFlow = mockFlowBuilder.setVersion("0cafe12").build();
-        when(mockFlowStore.getFlowForVersion(expectedFlow)).thenReturn(flowJson);
+        when(mockFlowStore.getFlowForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn(flowJson);
 
         given()
                 .when()
@@ -134,7 +135,7 @@ public class TestFlowResourceShould {
                 .statusCode(200)
                 .body(equalTo(flowJson));
 
-        verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlow);
+        verify(mockFlowStore, times(1)).getFlowForVersion(anyString(), any(ResourceId.class), anyString());
     }
 
     @Test
@@ -146,7 +147,7 @@ public class TestFlowResourceShould {
                 .setId(validFlowId)
                 .build();
 
-        when(mockFlowStore.getFlowVersions(flow)).thenThrow(new NamespaceNotFoundException());
+        when(mockFlowStore.getFlowVersions(anyString(), any(ResourceId.class))).thenThrow(new NamespaceNotFoundException());
 
         given()
                 .when()
@@ -161,13 +162,9 @@ public class TestFlowResourceShould {
     void return_404_with_invalid_flow_response_when_flow_not_found() throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
         String validNamespace = "validNamespace";
         int invalidFlowId = 999; // invalid flow ID
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(validNamespace)
-                .setId(invalidFlowId)
-                .build();
 
-        when(mockFlowStore.getFlowVersions(flow)).thenReturn(Arrays.asList("v1", "v2", "v3"));
-        when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenThrow(new FlowNotFoundException());
+        when(mockFlowStore.getFlowVersions(anyString(), any(ResourceId.class))).thenReturn(Arrays.asList("1.0.0"));
+        when(mockFlowStore.getFlowForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new FlowNotFoundException());
 
         given()
                 .when()
@@ -256,9 +253,9 @@ public class TestFlowResourceShould {
     void respond_correctly_to_get_flow_versions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws FlowNotFoundException, NamespaceNotFoundException {
         var versions = List.of("1.0.0", "1.0.1");
         if (exceptionToThrow != null) {
-            when(mockFlowStore.getFlowVersions(any(Flow.class))).thenThrow(exceptionToThrow);
+            when(mockFlowStore.getFlowVersions(anyString(), any(ResourceId.class))).thenThrow(exceptionToThrow);
         } else {
-            when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(versions);
+            when(mockFlowStore.getFlowVersions(anyString(), any(ResourceId.class))).thenReturn(versions);
         }
 
         if (expectedStatusCode == 200) {
@@ -282,7 +279,7 @@ public class TestFlowResourceShould {
                 .setId(12)
                 .build();
 
-        verify(mockFlowStore, times(1)).getFlowVersions(expectedFlowToRetrieve);
+        verify(mockFlowStore, times(1)).getFlowVersions(anyString(), any(ResourceId.class));
     }
 
     @Test
@@ -318,10 +315,10 @@ public class TestFlowResourceShould {
     @MethodSource("provideParametersForGetFlowTests")
     void respond_correctly_to_get_flow_for_a_specific_version_correctly(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws FlowVersionNotFoundException, FlowNotFoundException, NamespaceNotFoundException {
         if (exceptionToThrow != null) {
-            when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenThrow(exceptionToThrow);
+            when(mockFlowStore.getFlowForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(exceptionToThrow);
         } else {
             String flow = "{ \"test\": \"json\" }";
-            when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenReturn(flow);
+            when(mockFlowStore.getFlowForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn(flow);
         }
 
         if (expectedStatusCode == 200) {
@@ -345,7 +342,7 @@ public class TestFlowResourceShould {
                 .setVersion("1.0.0")
                 .build();
 
-        verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlowToRetrieve);
+        verify(mockFlowStore, times(1)).getFlowForVersion(anyString(), any(ResourceId.class), anyString());
     }
 
     @Test

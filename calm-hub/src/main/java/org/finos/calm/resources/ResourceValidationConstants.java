@@ -48,8 +48,9 @@ public class ResourceValidationConstants {
     // names such as "v1.2".
     public static final String PATH_QUERY_PARAM_REGEX = "^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*)?$";
     public static final String PATH_QUERY_PARAM_MESSAGE = "path must be a '/'-separated list of folder names";
-    public static final String VARIANT_QUERY_PARAM_REGEX = "^[A-Za-z0-9_-]+$";
-    public static final String VARIANT_QUERY_PARAM_MESSAGE = "variant must be a single token of letters, digits, '-' or '_'";
+    // Empty is allowed and means "no variant", so a client can select foo.json when foo.dev.json exists.
+    public static final String VARIANT_QUERY_PARAM_REGEX = "^[A-Za-z0-9_-]*$";
+    public static final String VARIANT_QUERY_PARAM_MESSAGE = "variant must be empty or a single token of letters, digits, '-' or '_'";
     public static final String LIMIT_MESSAGE = "limit must be greater than or equal to 1";
     public static final String OFFSET_MESSAGE = "offset must be greater than or equal to 0";
     public static final PolicyFactory STRICT_SANITIZATION_POLICY = new HtmlPolicyBuilder().toFactory();

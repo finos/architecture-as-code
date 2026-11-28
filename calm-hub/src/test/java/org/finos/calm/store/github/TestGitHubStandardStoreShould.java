@@ -64,8 +64,7 @@ class TestGitHubStandardStoreShould {
                 RegistryResourceType.STANDARD, "Naming Convention", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:naming-convention", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
@@ -113,10 +112,8 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("std-x", Path.of("standards/x.json"),
                 RegistryResourceType.STANDARD, "X", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:std-x", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         assertThrows(StandardNotFoundException.class,
                 () -> store.getStandardVersions("finos", 99999));
@@ -141,12 +138,14 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("std-1", Path.of("standards/std.json"),
                 RegistryResourceType.STANDARD, "Std", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:std-1", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         int hashId = ("std-1".hashCode() & 0x7FFFFFFF);
+
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
+
         List<String> versions = store.getStandardVersions("finos", hashId);
         assertThat(versions, is(empty()));
     }
@@ -156,13 +155,15 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("std-1", Path.of("standards/std.json"),
                 RegistryResourceType.STANDARD, "Std", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:std-1", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
         int hashId = ("std-1".hashCode() & 0x7FFFFFFF);
+
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
+
         List<String> versions = store.getStandardVersions("finos", hashId);
 
         assertThat(versions, hasSize(1));
@@ -178,15 +179,16 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/test.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubStandardStore realFileReaderStore = new GitHubStandardStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
+
         String content = realFileReaderStore.getStandardForVersion("finos", hashId, "abc1234");
         assertThat(content, equalTo("{\"name\":\"Test Standard\"}"));
     }
@@ -201,15 +203,16 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("policy", Path.of("standards/policy.guideline.json"),
                 RegistryResourceType.STANDARD, "Policy", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:policy", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubStandardStore realFileReaderStore = new GitHubStandardStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
         int hashId = ("policy".hashCode() & 0x7FFFFFFF);
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
+
         String content = realFileReaderStore.getStandardForVersion("finos", hashId, "abc1234");
         assertThat(content, startsWith("# Policy"));
     }
@@ -219,16 +222,18 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("policy", Path.of("standards/policy.guideline.json"),
                 RegistryResourceType.STANDARD, "Policy", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:policy", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
         when(versionService.getFileAtVersion("finos/repo", "standards/policy.guideline.json", "abc1234"))
                 .thenReturn("{\"nodes\":[{\"name\":\"old\"}]}");
 
         int hashId = ("policy".hashCode() & 0x7FFFFFFF);
+
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
+
         String content = store.getStandardForVersion("finos", hashId, "abc1234");
         assertThat(content, equalTo("{\"nodes\":[{\"name\":\"old\"}]}"));
     }
@@ -244,10 +249,8 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("std-1", Path.of("standards/std.json"),
                 RegistryResourceType.STANDARD, "Std", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:std-1", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
@@ -255,6 +258,10 @@ class TestGitHubStandardStoreShould {
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("std-1".hashCode() & 0x7FFFFFFF);
+
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
+
         List<String> versions = store.getStandardVersions("finos", hashId);
 
         assertThat(versions, hasSize(2));
@@ -266,16 +273,18 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/test.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
         when(versionService.getFileAtVersion("finos/repo", "standards/test.json", "abc1234"))
                 .thenReturn("{\"name\":\"Old Standard\"}");
 
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
+
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
+
         String content = store.getStandardForVersion("finos", hashId, "abc1234");
 
         assertThat(content, equalTo("{\"name\":\"Old Standard\"}"));
@@ -286,12 +295,13 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/test.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
+
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
 
         assertThrows(StandardVersionNotFoundException.class,
                 () -> store.getStandardForVersion("finos", hashId, "1.0.0"));
@@ -302,16 +312,17 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/nonexistent.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
         when(versionService.getFileAtVersion("finos/repo", "standards/nonexistent.json", "abc1234"))
                 .thenReturn(null);
 
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
+
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
 
         assertThrows(StandardVersionNotFoundException.class,
                 () -> store.getStandardForVersion("finos", hashId, "abc1234"));
@@ -322,15 +333,15 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("test-std", Path.of("standards/nonexistent.json"),
                 RegistryResourceType.STANDARD, "Test", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:test-std", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubStandardStore realFileReaderStore = new GitHubStandardStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
 
         assertThrows(StandardVersionNotFoundException.class,
                 () -> realFileReaderStore.getStandardForVersion("finos", hashId, "abc1234"));
@@ -345,15 +356,15 @@ class TestGitHubStandardStoreShould {
         RegistryEntry entry = new RegistryEntry("already-markdown", Path.of("standards/already-markdown.md"),
                 RegistryResourceType.STANDARD, "Already Markdown", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:already-markdown", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubStandardStore realFileReaderStore = new GitHubStandardStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
         int hashId = ("already-markdown".hashCode() & 0x7FFFFFFF);
+        when(registryService.find("finos", RegistryResourceType.STANDARD, String.valueOf(hashId), null, null))
+                .thenReturn(List.of(entry));
 
         String content = realFileReaderStore.getStandardForVersion("finos", hashId, "abc1234");
         assertThat(content, equalTo("# Already markdown"));

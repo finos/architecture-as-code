@@ -15,6 +15,15 @@ public interface FlowStore {
     Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace, String version) throws NamespaceNotFoundException;
     List<String> getFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException;
     String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException;
+
+    default List<String> getFlowVersions(String namespace, ResourceId id) throws NamespaceNotFoundException, FlowNotFoundException {
+        return getFlowVersions(new Flow.FlowBuilder().setNamespace(namespace).setId(ResourceIds.numeric(id)).build());
+    }
+
+    default String getFlowForVersion(String namespace, ResourceId id, String version) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
+        return getFlowForVersion(new Flow.FlowBuilder()
+                .setNamespace(namespace).setId(ResourceIds.numeric(id)).setVersion(version).build());
+    }
     Flow createFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionExistsException;
     Flow updateFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException;
 

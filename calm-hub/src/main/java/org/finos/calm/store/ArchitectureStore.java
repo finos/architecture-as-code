@@ -33,6 +33,16 @@ public interface ArchitectureStore {
     Architecture createArchitectureForNamespace(Architecture architecture) throws NamespaceNotFoundException;
     List<String> getArchitectureVersions(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException;
     String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException;
+
+    default List<String> getArchitectureVersions(String namespace, ResourceId id) throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        return getArchitectureVersions(new Architecture.ArchitectureBuilder()
+                .setNamespace(namespace).setId(ResourceIds.numeric(id)).build());
+    }
+
+    default String getArchitectureForVersion(String namespace, ResourceId id, String version) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException {
+        return getArchitectureForVersion(new Architecture.ArchitectureBuilder()
+                .setNamespace(namespace).setId(ResourceIds.numeric(id)).setVersion(version).build());
+    }
     Architecture createArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionExistsException;
     Architecture updateArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException;
 

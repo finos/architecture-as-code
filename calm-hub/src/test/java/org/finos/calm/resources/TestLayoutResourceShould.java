@@ -100,7 +100,7 @@ public class TestLayoutResourceShould {
                 .get("/api/calm/namespaces/finos/architectures/0/layout")
                 .then()
                 .statusCode(400)
-                .body(containsString("Architecture ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
 
         verifyNoInteractions(mockLayoutStore);
     }
@@ -253,7 +253,7 @@ public class TestLayoutResourceShould {
                 .put("/api/calm/namespaces/finos/architectures/0/layout")
                 .then()
                 .statusCode(400)
-                .body(containsString("Architecture ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
 
         verifyNoInteractions(mockLayoutStore);
     }

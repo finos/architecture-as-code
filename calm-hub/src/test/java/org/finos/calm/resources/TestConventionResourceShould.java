@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.json.Json;
+import org.finos.calm.domain.NumericResourceId;
 import org.finos.calm.domain.conventions.ConventionDefault;
 import org.finos.calm.domain.conventions.ConventionSchemaError;
 import org.finos.calm.domain.conventions.ConventionType;
@@ -91,7 +92,7 @@ class TestConventionResourceShould {
                 .thenReturn(List.of(new NamespaceResourceSummary("Acme", "Acme mapping", 3, 2)));
 
         given().get(BASE).then().statusCode(200)
-                .body("values[0].id", equalTo(3))
+                .body("values[0].id", equalTo("3"))
                 .body("values[0].name", equalTo("Acme"))
                 .body("values[0].versionCount", equalTo(2));
     }
@@ -130,7 +131,8 @@ class TestConventionResourceShould {
     @ParameterizedTest
     @MethodSource("versionReadFailures")
     void map_read_failures_to_404(Exception failure, int status, String message) throws Exception {
-        when(mockConventionService.getConventionForVersion("finos", ConventionType.C4_MAPPING, 3, "1.0.0")).thenThrow(failure);
+        when(mockConventionService.getConventionForVersion("finos", ConventionType.C4_MAPPING,
+                new NumericResourceId(3), "1.0.0")).thenThrow(failure);
 
         given().get(BASE + "/3/versions/1.0.0").then().statusCode(status).body(containsString(message));
     }
@@ -171,17 +173,20 @@ class TestConventionResourceShould {
 
     @Test
     void return_a_convention_version_as_json() throws Exception {
-        when(mockConventionService.getConventionForVersion("finos", ConventionType.C4_MAPPING, 3, "1.0.0"))
-                .thenReturn("{\"unique-id\":\"acme\"}");
+        when(mockConventionService.getConventionForVersion("finos", ConventionType.C4_MAPPING,
+                new NumericResourceId(3), "1.0.0")).thenReturn("{\"unique-id\":\"acme\"}");
 
         given().get(BASE + "/3/versions/1.0.0").then().statusCode(200).body("unique-id", equalTo("acme"));
     }
 
     @Test
     void list_convention_versions_and_report_a_missing_convention() throws Exception {
-        when(mockConventionService.getConventionVersions("finos", ConventionType.C4_MAPPING, 3)).thenReturn(List.of("1.0.0", "1.1.0"));
-        when(mockConventionService.getConventionVersions("finos", ConventionType.C4_MAPPING, 9)).thenThrow(new ConventionNotFoundException());
-        when(mockConventionService.getConventionVersions("missing", ConventionType.C4_MAPPING, 3)).thenThrow(new NamespaceNotFoundException());
+        when(mockConventionService.getConventionVersions("finos", ConventionType.C4_MAPPING, new NumericResourceId(3)))
+                .thenReturn(List.of("1.0.0", "1.1.0"));
+        when(mockConventionService.getConventionVersions("finos", ConventionType.C4_MAPPING, new NumericResourceId(9)))
+                .thenThrow(new ConventionNotFoundException());
+        when(mockConventionService.getConventionVersions("missing", ConventionType.C4_MAPPING, new NumericResourceId(3)))
+                .thenThrow(new NamespaceNotFoundException());
 
         given().get(BASE + "/3/versions").then().statusCode(200).body("values[1]", equalTo("1.1.0"));
         given().get(BASE + "/9/versions").then().statusCode(404);

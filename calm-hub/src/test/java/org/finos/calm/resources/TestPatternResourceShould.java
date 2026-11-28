@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
@@ -90,11 +91,11 @@ public class TestPatternResourceShould {
                 .statusCode(200)
                 .body("values[0].name", equalTo("Pattern One"))
                 .body("values[0].description", equalTo("First"))
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[0].versionCount", equalTo(3))
                 .body("values[1].name", equalTo("Pattern Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321))
+                .body("values[1].id", equalTo("54321"))
                 .body("values[1].versionCount", equalTo(1));
 
         verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", PageRequest.UNPAGED);
@@ -120,9 +121,9 @@ public class TestPatternResourceShould {
                 .get("/api/calm/namespaces/finos/patterns")
                 .then()
                 .statusCode(200)
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[0].customId", equalTo("api-gateway-pattern"))
-                .body("values[1].id", equalTo(54321))
+                .body("values[1].id", equalTo("54321"))
                 .body("values[1].customId", nullValue());
     }
 
@@ -139,7 +140,7 @@ public class TestPatternResourceShould {
                 .then()
                 .statusCode(200)
                 .body("values[0].name", equalTo("Pattern One"))
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[0].customId", nullValue());
     }
 
@@ -272,7 +273,7 @@ public class TestPatternResourceShould {
                 .setId(12)
                 .build();
 
-        verify(mockPatternStore, times(1)).getPatternVersions(expectedPatternToRetrieve);
+        verify(mockPatternStore, times(1)).getPatternVersions(anyString(), any(ResourceId.class));
     }
 
     static Stream<Arguments> provideParametersForPatternVersionTests() {
@@ -288,9 +289,9 @@ public class TestPatternResourceShould {
     void respond_correctly_to_get_pattern_versions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, NamespaceNotFoundException {
         var versions = List.of("1.0.0", "1.0.1");
         if (exceptionToThrow != null) {
-            when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(exceptionToThrow);
+            when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenThrow(exceptionToThrow);
         } else {
-            when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(versions);
+            when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenReturn(versions);
         }
 
         if (expectedStatusCode == 200 ) {
@@ -349,7 +350,7 @@ public class TestPatternResourceShould {
                 .setVersion("1.0.0")
                 .build();
 
-        verify(mockPatternStore, times(1)).getPatternForVersion(expectedPatternToRetrieve);
+        verify(mockPatternStore, times(1)).getPatternForVersion(anyString(), any(ResourceId.class), anyString());
     }
 
     static Stream<Arguments> provideParametersForGetPatternTests() {
@@ -365,10 +366,10 @@ public class TestPatternResourceShould {
     @MethodSource("provideParametersForGetPatternTests")
     void respond_to_get_pattern_for_a_specific_version_correctly(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, NamespaceNotFoundException, PatternVersionNotFoundException {
         if (exceptionToThrow != null) {
-            when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(exceptionToThrow);
+            when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(exceptionToThrow);
         } else {
             String pattern = "{ \"test\": \"json\" }";
-            when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn(pattern);
+            when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn(pattern);
         }
 
         if (expectedStatusCode == 200) {
@@ -432,7 +433,7 @@ public class TestPatternResourceShould {
         // GET keeps SNAPSHOT_VERSION_REGEX, so a snapshot created via the name-based API stays
         // readable here. A 404 (not 400) proves the path param passed validation and reached
         // the store.
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new PatternVersionNotFoundException());
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new PatternVersionNotFoundException());
 
         given()
                 .when()

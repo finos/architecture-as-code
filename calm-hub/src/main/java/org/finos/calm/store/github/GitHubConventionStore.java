@@ -3,6 +3,10 @@ package org.finos.calm.store.github;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.domain.GitHubResourceId;
+import org.finos.calm.domain.Tags;
 import org.finos.calm.domain.conventions.ConventionDefault;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.CreateConventionRequest;
@@ -17,6 +21,8 @@ import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ConventionFiles;
 import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistryIdentity;
+import org.finos.calm.store.github.registry.RegistryLookup;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.sync.GitHubCloneManager;
@@ -51,7 +57,7 @@ public class GitHubConventionStore extends AbstractReadOnlyGitHubStore implement
             throws NamespaceNotFoundException {
         verifyNamespace(namespace);
         return entries(namespace, type)
-                .map(e -> new NamespaceResourceSummary(e.name(), null, id(e), 0))
+                .map(e -> new NamespaceResourceSummary(e.name(), null, Tags.of(e.path(), e.variant()), e.stem(), 0))
                 .toList();
     }
 
@@ -63,12 +69,24 @@ public class GitHubConventionStore extends AbstractReadOnlyGitHubStore implement
     @Override
     public List<String> getConventionVersions(String namespace, ConventionType type, int id)
             throws NamespaceNotFoundException, ConventionNotFoundException {
+        return getConventionVersions(namespace, type, new GitHubResourceId(String.valueOf(id), null, null));
+    }
+
+    @Override
+    public List<String> getConventionVersions(String namespace, ConventionType type, ResourceId id)
+            throws NamespaceNotFoundException, ConventionNotFoundException {
         verifyNamespace(namespace);
         return getVersions(namespace, entry(namespace, type, id));
     }
 
     @Override
     public String getConventionForVersion(String namespace, ConventionType type, int id, String version)
+            throws NamespaceNotFoundException, ConventionNotFoundException, ConventionVersionNotFoundException {
+        return getConventionForVersion(namespace, type, new GitHubResourceId(String.valueOf(id), null, null), version);
+    }
+
+    @Override
+    public String getConventionForVersion(String namespace, ConventionType type, ResourceId id, String version)
             throws NamespaceNotFoundException, ConventionNotFoundException, ConventionVersionNotFoundException {
         verifyNamespace(namespace);
         return read(namespace, entry(namespace, type, id), version);
@@ -86,7 +104,7 @@ public class GitHubConventionStore extends AbstractReadOnlyGitHubStore implement
         if (headSha == null) {
             return Optional.empty();
         }
-        return defaultEntry(namespace, type).map(e -> new ConventionDefault(type.getName(), namespace, id(e), headSha));
+        return defaultEntry(namespace, type).map(e -> new ConventionDefault(type.getName(), namespace, 0, headSha));
     }
 
     // Reads default.json itself: another file with the same unique-id has the same id.
@@ -131,11 +149,15 @@ public class GitHubConventionStore extends AbstractReadOnlyGitHubStore implement
         }
     }
 
-    private RegistryEntry entry(String namespace, ConventionType type, int id) throws ConventionNotFoundException {
-        return entries(namespace, type).filter(e -> id(e) == id).findFirst().orElseThrow(ConventionNotFoundException::new);
-    }
-
-    private static int id(RegistryEntry entry) {
-        return entry.uniqueId().hashCode() & 0x7FFFFFFF;
+    private RegistryEntry entry(String namespace, ConventionType type, ResourceId id) throws ConventionNotFoundException {
+        org.finos.calm.domain.GitHubResourceId github = ResourceIds.github(id);
+        List<RegistryEntry> matches = entries(namespace, type)
+                .filter(e -> RegistryIdentity.matches(github.name(), github.path(), github.variant(), e))
+                .toList();
+        RegistryEntry match = RegistryLookup.singleOrNull(matches);
+        if (match == null) {
+            throw new ConventionNotFoundException();
+        }
+        return match;
     }
 }

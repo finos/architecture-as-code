@@ -2,6 +2,10 @@ package org.finos.calm.mcp.tools;
 
 import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.domain.CalmInterface;
 import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
@@ -28,6 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -37,12 +42,19 @@ class TestInterfaceToolsShould {
     @Mock
     InterfaceStore interfaceStore;
 
+    @Mock
+    ResourceIdResolver resourceIdResolver;
+
     @InjectMocks
     InterfaceTools interfaceTools;
 
     @BeforeEach
     void setup() {
         interfaceTools.mcpEnabled = true;
+        lenient().when(resourceIdResolver.forStorage(anyString(), any(), any()))
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
+        lenient().when(resourceIdResolver.numericForWrite(any()))
+                .thenAnswer(call -> call.getArgument(0) instanceof NumericResourceId numeric ? numeric.value() : 0);
     }
 
     private static String text(ToolResponse r) {
@@ -102,7 +114,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_versions_for_valid_interface() throws Exception {
-        when(interfaceStore.getInterfaceVersions("finos", 1))
+        when(interfaceStore.getInterfaceVersions("finos", new NumericResourceId(1)))
                 .thenReturn(List.of("1.0.0", "1.1.0"));
 
         ToolResponse result = interfaceTools.listInterfaceVersions("finos", 1);
@@ -114,7 +126,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_empty_versions_message_for_interface() throws Exception {
-        when(interfaceStore.getInterfaceVersions("finos", 1))
+        when(interfaceStore.getInterfaceVersions("finos", new NumericResourceId(1)))
                 .thenReturn(List.of());
 
         ToolResponse result = interfaceTools.listInterfaceVersions("finos", 1);
@@ -125,7 +137,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_error_when_interface_not_found_for_versions() throws Exception {
-        when(interfaceStore.getInterfaceVersions("finos", 99))
+        when(interfaceStore.getInterfaceVersions("finos", new NumericResourceId(99)))
                 .thenThrow(new InterfaceNotFoundException());
 
         ToolResponse result = interfaceTools.listInterfaceVersions("finos", 99);
@@ -136,7 +148,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_interface_versions() throws Exception {
-        when(interfaceStore.getInterfaceVersions("missing", 1))
+        when(interfaceStore.getInterfaceVersions("missing", new NumericResourceId(1)))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = interfaceTools.listInterfaceVersions("missing", 1);
@@ -157,7 +169,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_interface_json_for_valid_version() throws Exception {
-        when(interfaceStore.getInterfaceForVersion("finos", 1, "1.0.0"))
+        when(interfaceStore.getInterfaceForVersion("finos", new NumericResourceId(1), "1.0.0"))
                 .thenReturn("{\"$schema\":\"https://calm.finos.org/schema\"}");
 
         ToolResponse result = interfaceTools.getInterface("finos", 1, "1.0.0");
@@ -168,7 +180,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_interface_json_for_commit_sha_version() throws Exception {
-        when(interfaceStore.getInterfaceForVersion("finos", 1, "1e38a517")).thenReturn("{\"$schema\":\"x\"}");
+        when(interfaceStore.getInterfaceForVersion("finos", new NumericResourceId(1), "1e38a517")).thenReturn("{\"$schema\":\"x\"}");
 
         ToolResponse result = interfaceTools.getInterface("finos", 1, "1e38a517");
 
@@ -178,7 +190,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_error_when_interface_version_not_found() throws Exception {
-        when(interfaceStore.getInterfaceForVersion("finos", 1, "9.9.9"))
+        when(interfaceStore.getInterfaceForVersion("finos", new NumericResourceId(1), "9.9.9"))
                 .thenThrow(new InterfaceVersionNotFoundException());
 
         ToolResponse result = interfaceTools.getInterface("finos", 1, "9.9.9");
@@ -189,7 +201,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_error_when_interface_not_found_for_get() throws Exception {
-        when(interfaceStore.getInterfaceForVersion("finos", 99, "1.0.0"))
+        when(interfaceStore.getInterfaceForVersion("finos", new NumericResourceId(99), "1.0.0"))
                 .thenThrow(new InterfaceNotFoundException());
 
         ToolResponse result = interfaceTools.getInterface("finos", 99, "1.0.0");
@@ -200,7 +212,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_get_interface() throws Exception {
-        when(interfaceStore.getInterfaceForVersion("missing", 1, "1.0.0"))
+        when(interfaceStore.getInterfaceForVersion("missing", new NumericResourceId(1), "1.0.0"))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = interfaceTools.getInterface("missing", 1, "1.0.0");
@@ -402,5 +414,13 @@ class TestInterfaceToolsShould {
         assertThat(text(interfaceTools.createInterface("finos", "n", "d", "{}")), containsString("disabled"));
         assertThat(text(interfaceTools.createInterfaceVersion("finos", 1, "1.1.0", "{}")), containsString("disabled"));
         verifyNoInteractions(interfaceStore);
+    }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(interfaceTools.listInterfaceVersions("workshop", "abc", null, null).isError(), is(true));
+        assertThat(interfaceTools.getInterface("workshop", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(interfaceTools.createInterfaceVersion("workshop", "abc", null, null, "1.1.0", "{}").isError(), is(true));
+        assertThat(interfaceTools.listInterfaceVersions("workshop", "abc", "team", "calm").isError(), is(true));
     }
 }

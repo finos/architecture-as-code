@@ -54,7 +54,7 @@ public class NitriteInterfaceIntegration {
     @Order(3)
     void end_to_end_verify_interface_in_list() {
         Map<String, Object> expected = new HashMap<>();
-        expected.put("id", 1);
+        expected.put("id", "1");
         expected.put("name", NAME);
         expected.put("description", DESCRIPTION);
 
@@ -127,7 +127,7 @@ public class NitriteInterfaceIntegration {
     @Order(9)
     void end_to_end_verify_interface_details_updated_after_new_version() {
         Map<String, Object> expected = new HashMap<>();
-        expected.put("id", 1);
+        expected.put("id", "1");
         expected.put("name", "Updated TCP Port");
         expected.put("description", "Updated Description");
 

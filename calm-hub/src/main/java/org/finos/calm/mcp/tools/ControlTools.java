@@ -7,13 +7,16 @@ import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
+import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.ControlStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +42,9 @@ public class ControlTools {
     @Inject
     ControlStore controlStore;
 
+    @Inject
+    ResourceIdResolver resourceIdResolver;
+
     @PermissionsAllowed(CalmHubScopes.DOMAIN_READ)
     @Tool(description = "List all control requirements in a domain (e.g. 'security'). Returns control IDs, names, and descriptions.")
     public ToolResponse listControls(
@@ -51,7 +57,7 @@ public class ControlTools {
         try {
             List<ControlDetail> controls = controlStore.getControlsForDomain(domain);
             List<McpResponseFormatter.ResourceSummary> summaries = controls.stream()
-                    .map(c -> new McpResponseFormatter.ResourceSummary(c.getId(), c.getName(), c.getDescription()))
+                    .map(c -> new McpResponseFormatter.ResourceSummary(c.getId(), c.getName(), c.getDescription(), c.getTags()))
                     .collect(Collectors.toList());
             return McpResponseFormatter.formatResourceList("control", "domain", domain, summaries);
         } catch (DomainNotFoundException e) {
@@ -64,17 +70,24 @@ public class ControlTools {
     @Tool(description = "Get the full JSON content of a specific control requirement version.")
     public ToolResponse getControl(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
-            @ToolArg(description = "The control ID (positive integer)") int controlId,
+            @ToolArg(description = "The control ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String controlId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateDomain(domain),
-                () -> McpValidationHelper.validatePositiveId(controlId, "Control ID"),
+                () -> McpValidationHelper.validateResourceId(controlId, "Control ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {
-            return ToolResponse.success(controlStore.getRequirementForVersion(domain, controlId, version));
+            return ToolResponse.success(controlStore.getRequirementForVersion(domain, resolve(controlId, path, variant), version));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (DomainNotFoundException e) {
             logger.warn("Domain not found [{}]", domain, e);
             return ToolResponse.error("Error: Domain '" + domain + "' not found.");
@@ -91,16 +104,23 @@ public class ControlTools {
     @Tool(description = "List available versions for a specific control requirement.")
     public ToolResponse listControlVersions(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
-            @ToolArg(description = "The control ID (positive integer)") int controlId) {
+            @ToolArg(description = "The control ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String controlId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateDomain(domain),
-                () -> McpValidationHelper.validatePositiveId(controlId, "Control ID"));
+                () -> McpValidationHelper.validateResourceId(controlId, "Control ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant));
         if (err.isPresent()) return err.get();
 
         try {
-            List<String> versions = controlStore.getRequirementVersions(domain, controlId);
+            List<String> versions = controlStore.getRequirementVersions(domain, resolve(controlId, path, variant));
             return McpResponseFormatter.formatVersionList("control", controlId, "domain", domain, versions);
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (DomainNotFoundException e) {
             logger.warn("Domain not found [{}]", domain, e);
             return ToolResponse.error("Error: Domain '" + domain + "' not found.");
@@ -144,12 +164,16 @@ public class ControlTools {
     @Tool(description = "Create a new control configuration for an existing control requirement. The configuration is created with an initial version 1.0.0 from the supplied configuration JSON. Returns the assigned configuration ID.")
     public ToolResponse createControlConfiguration(
             @ToolArg(description = "The domain containing the control (e.g. 'security')") String domain,
-            @ToolArg(description = "The control ID (positive integer) to create a configuration for") int controlId,
+            @ToolArg(description = "The control ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String controlId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The full control configuration JSON content") String configurationJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateDomain(domain),
-                () -> McpValidationHelper.validatePositiveId(controlId, "Control ID"),
+                () -> McpValidationHelper.validateResourceId(controlId, "Control ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateNotBlank(configurationJson, "Configuration JSON"),
                 () -> McpValidationHelper.validateMaxLength(configurationJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Configuration JSON"),
                 () -> McpValidationHelper.validateJson(configurationJson, "Configuration JSON"));
@@ -157,9 +181,12 @@ public class ControlTools {
 
         try {
             CreateControlConfiguration request = new CreateControlConfiguration(configurationJson);
-            int configurationId = controlStore.createControlConfiguration(request, domain, controlId);
+            int configurationId = controlStore.createControlConfiguration(request, domain, numericId(controlId, path, variant));
             logger.info("Control configuration created with ID [{}] for control [{}] in domain [{}]", configurationId, controlId, domain);
             return ToolResponse.success("Control configuration created successfully with ID: " + configurationId + " for control " + controlId + " in domain '" + domain + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (DomainNotFoundException e) {
             logger.warn("Domain not found [{}]", domain, e);
             return ToolResponse.error("Error: Domain '" + domain + "' not found.");
@@ -167,5 +194,27 @@ public class ControlTools {
             logger.warn("Control [{}] not found in domain [{}]", controlId, domain, e);
             return ToolResponse.error("Error: Control " + controlId + " not found in domain '" + domain + "'.");
         }
+    }
+
+    private ResourceId resolve(String id, String path, String variant) {
+        return resourceIdResolver.forStorage(id, path == null ? "" : path, variant == null ? "" : variant);
+    }
+
+    private int numericId(String id, String path, String variant) {
+        return resourceIdResolver.numericForWrite(resolve(id, path, variant));
+    }
+
+    // Numeric-id overloads kept for callers that still have an int (not exposed as MCP tools).
+
+    public ToolResponse getControl(String domain, int controlId, String version) {
+        return getControl(domain, String.valueOf(controlId), null, null, version);
+    }
+
+    public ToolResponse listControlVersions(String domain, int controlId) {
+        return listControlVersions(domain, String.valueOf(controlId), null, null);
+    }
+
+    public ToolResponse createControlConfiguration(String domain, int controlId, String configurationJson) {
+        return createControlConfiguration(domain, String.valueOf(controlId), null, null, configurationJson);
     }
 }

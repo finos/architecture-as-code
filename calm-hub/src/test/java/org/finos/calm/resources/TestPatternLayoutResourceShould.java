@@ -99,7 +99,7 @@ public class TestPatternLayoutResourceShould {
                 .get("/api/calm/namespaces/finos/patterns/0/layout")
                 .then()
                 .statusCode(400)
-                .body(containsString("Pattern ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
 
         verifyNoInteractions(mockPatternLayoutStore);
     }
@@ -272,7 +272,7 @@ public class TestPatternLayoutResourceShould {
                 .put("/api/calm/namespaces/finos/patterns/0/layout")
                 .then()
                 .statusCode(400)
-                .body(containsString("Pattern ID must be a positive integer"));
+                .body(containsString("Invalid resource id"));
 
         verifyNoInteractions(mockPatternLayoutStore);
     }

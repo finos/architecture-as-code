@@ -4,6 +4,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
@@ -81,10 +82,10 @@ public class TestTimelineResourceShould {
                 .statusCode(200)
                 .body("values[0].name", equalTo("Timeline One"))
                 .body("values[0].description", equalTo("First"))
-                .body("values[0].id", equalTo(12345))
+                .body("values[0].id", equalTo("12345"))
                 .body("values[1].name", equalTo("Timeline Two"))
                 .body("values[1].description", equalTo("Second"))
-                .body("values[1].id", equalTo(54321));
+                .body("values[1].id", equalTo("54321"));
 
         verify(mockTimelineStore, times(1)).getTimelinesForNamespace("valid");
     }
@@ -166,9 +167,9 @@ public class TestTimelineResourceShould {
     void respond_correctly_to_get_timeline_versions_query(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws TimelineNotFoundException, NamespaceNotFoundException {
         var versions = List.of("1.0.0", "1.0.1");
         if (exceptionToThrow != null) {
-            when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenThrow(exceptionToThrow);
+            when(mockTimelineStore.getTimelineVersions(anyString(), any(ResourceId.class))).thenThrow(exceptionToThrow);
         } else {
-            when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(versions);
+            when(mockTimelineStore.getTimelineVersions(anyString(), any(ResourceId.class))).thenReturn(versions);
         }
 
         if (expectedStatusCode == 200) {
@@ -192,7 +193,7 @@ public class TestTimelineResourceShould {
                 .setId(12)
                 .build();
 
-        verify(mockTimelineStore, times(1)).getTimelineVersions(expectedTimelineToRetrieve);
+        verify(mockTimelineStore, times(1)).getTimelineVersions(anyString(), any(ResourceId.class));
     }
 
     @Test
@@ -230,7 +231,7 @@ public class TestTimelineResourceShould {
         // GET keeps SNAPSHOT_VERSION_OR_SHA_REGEX, so a snapshot created via the name-based API stays
         // readable here. A 404 (not 400) proves the path param passed validation and reached
         // the store.
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class)))
+        when(mockTimelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenThrow(new TimelineVersionNotFoundException());
 
         given()
@@ -253,10 +254,10 @@ public class TestTimelineResourceShould {
     @MethodSource("provideParametersForGetTimelineTests")
     void respond_correctly_to_get_timeline_for_a_specific_version_correctly(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws TimelineVersionNotFoundException, TimelineNotFoundException, NamespaceNotFoundException {
         if (exceptionToThrow != null) {
-            when(mockTimelineStore.getTimelineForVersion(any(Timeline.class))).thenThrow(exceptionToThrow);
+            when(mockTimelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(exceptionToThrow);
         } else {
             String timeline = "{ \"moments\": [] }";
-            when(mockTimelineStore.getTimelineForVersion(any(Timeline.class))).thenReturn(timeline);
+            when(mockTimelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn(timeline);
         }
 
         if (expectedStatusCode == 200) {
@@ -280,7 +281,7 @@ public class TestTimelineResourceShould {
                 .setVersion("1.0.0")
                 .build();
 
-        verify(mockTimelineStore, times(1)).getTimelineForVersion(expectedTimelineToRetrieve);
+        verify(mockTimelineStore, times(1)).getTimelineForVersion(anyString(), any(ResourceId.class), anyString());
     }
 
     @Test

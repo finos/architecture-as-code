@@ -63,14 +63,11 @@ public class ResourceRegistry {
 
             for (RegistryEntry registryEntry : entries) {
                 // A uniqueId is only guaranteed unique when a document sets its own
-                // "unique-id" - the path-derived fallback (extractUniqueId) is just the
-                // filename minus extension, so two files with the same name in different
-                // subdirectories (e.g. patterns/a/foo.json and patterns/b/foo.json)
-                // collide here. listByType still lists both (byNamespace is unaffected),
-                // but a direct findByUniqueId lookup can only ever resolve to one - log
-                // it so a colliding repo layout is at least diagnosable, not a silent
-                // "wrong document served" surprise. entries is sorted by path below, so
-                // which one wins is at least deterministic across rebuilds.
+                // "unique-id" - the path-derived fallback is just the filename minus
+                // extension, so two files with the same name in different subdirectories
+                // collide here. listByType still lists both; a direct findByUniqueId can
+                // only resolve one, so log the collision rather than serve the wrong file
+                // silently.
                 String qualifiedId = namespace + ":" + registryEntry.uniqueId();
                 RegistryEntry previous = byQualifiedId.put(qualifiedId, registryEntry);
                 if (previous != null && !previous.filePath().equals(registryEntry.filePath())) {
@@ -82,12 +79,8 @@ public class ResourceRegistry {
             }
         }
 
-        this.snapshot = new RegistrySnapshot(
-                Map.copyOf(byNamespace),
-                Map.copyOf(byQualifiedId)
-        );
-        LOG.info("Registry rebuilt: {} namespaces, {} total entries",
-                byNamespace.size(), byQualifiedId.size());
+        this.snapshot = new RegistrySnapshot(Map.copyOf(byNamespace), Map.copyOf(byQualifiedId));
+        LOG.info("Registry rebuilt: {} namespaces, {} total entries", byNamespace.size(), byQualifiedId.size());
     }
 
     public Optional<RegistryEntry> findByUniqueId(String namespace, String uniqueId) {
@@ -96,6 +89,11 @@ public class ResourceRegistry {
 
     public List<RegistryEntry> listByType(String namespace, RegistryResourceType type) {
         return snapshot.listByType(namespace, type);
+    }
+
+    /** Resolves the composite (stem, path, variant) identity; a null part is an unconstrained field. */
+    public List<RegistryEntry> find(String namespace, RegistryResourceType type, String name, String path, String variant) {
+        return snapshot.find(namespace, type, name, path, variant);
     }
 
     private List<RegistryEntry> scanDirectory(String namespace, Path root) {

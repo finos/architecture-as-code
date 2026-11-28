@@ -129,6 +129,17 @@ class TestCustomIdEnrichmentServiceShould {
     }
 
     @Test
+    void leave_a_stem_named_zero_unenriched_without_a_mapping_lookup() throws Exception {
+        List<NamespaceResourceSummary> summaries =
+                List.of(new NamespaceResourceSummary("Zero", "GitHub stem", "0", 1));
+
+        service.enrich(NAMESPACE, ResourceType.ARCHITECTURE, summaries);
+
+        verify(mappingStore, never()).listMappingsByNumericIds(anyString(), any(), anyList());
+        assertNull(summaries.get(0).getCustomId());
+    }
+
+    @Test
     void not_query_the_mapping_store_for_an_empty_list() throws Exception {
         List<NamespaceResourceSummary> summaries = List.of();
 
@@ -147,7 +158,7 @@ class TestCustomIdEnrichmentServiceShould {
     @Test
     void not_query_the_mapping_store_when_every_summary_has_a_null_id() throws Exception {
         List<NamespaceResourceSummary> summaries =
-                List.of(new NamespaceResourceSummary("No ID", "Unstored", null, 0));
+                List.of(new NamespaceResourceSummary("No ID", "Unstored", (Integer) null, 0));
 
         service.enrich(NAMESPACE, ResourceType.STANDARD, summaries);
 
@@ -158,7 +169,7 @@ class TestCustomIdEnrichmentServiceShould {
     @Test
     void omit_null_ids_from_the_lookup_but_still_enrich_the_rest() throws Exception {
         List<NamespaceResourceSummary> summaries = Arrays.asList(
-                new NamespaceResourceSummary("No ID", "Unstored", null, 0),
+                new NamespaceResourceSummary("No ID", "Unstored", (Integer) null, 0),
                 new NamespaceResourceSummary("Has ID", "Stored", 4, 1)
         );
         when(mappingStore.listMappingsByNumericIds(NAMESPACE, ResourceType.STANDARD, List.of(4)))

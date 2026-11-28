@@ -1,5 +1,6 @@
 package org.finos.calm.services;
 
+import org.finos.calm.domain.GitHubResourceId;
 import org.finos.calm.domain.SchemaValidationLimits;
 import org.finos.calm.domain.conventions.ConventionDefault;
 import org.finos.calm.domain.conventions.ConventionType;
@@ -53,6 +54,17 @@ class TestConventionServiceShould {
         namespaceStore = mock(NamespaceStore.class);
         when(conventionStore.getDefault(anyString(), any())).thenReturn(Optional.empty());
         service = new ConventionService(conventionStore, namespaceStore, validator);
+    }
+
+    @Test
+    void pass_a_github_id_to_the_store_without_numeric_unwrapping() throws Exception {
+        GitHubResourceId id = new GitHubResourceId("acme", null, null);
+
+        service.getConventionVersions("finos", C4, id);
+        service.getConventionForVersion("finos", C4, id, "abc1234");
+
+        verify(conventionStore).getConventionVersions("finos", C4, id);
+        verify(conventionStore).getConventionForVersion("finos", C4, id, "abc1234");
     }
 
     @Test

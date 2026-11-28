@@ -3,11 +3,15 @@ package org.finos.calm.mcp.tools;
 import io.quarkiverse.mcp.server.TextContent;
 import io.quarkiverse.mcp.server.ToolResponse;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.NumericResourceId;
+import org.finos.calm.domain.ResourceIds;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.ArchitectureStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +30,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -36,6 +43,9 @@ class TestArchitectureToolsShould {
     @Mock
     ArchitectureStore architectureStore;
 
+    @Mock
+    ResourceIdResolver resourceIdResolver;
+
     @InjectMocks
     ArchitectureTools architectureTools;
 
@@ -43,6 +53,10 @@ class TestArchitectureToolsShould {
     void setup() {
         architectureTools.mcpEnabled = true;
         architectureTools.allowPutOperations = true;
+        lenient().when(resourceIdResolver.forStorage(anyString(), any(), any()))
+                .thenAnswer(call -> new NumericResourceId(ResourceIds.parseNumeric(call.getArgument(0))));
+        lenient().when(resourceIdResolver.numericForWrite(any()))
+                .thenAnswer(call -> call.getArgument(0) instanceof NumericResourceId numeric ? numeric.value() : 0);
     }
 
     private static String text(ToolResponse r) {
@@ -98,11 +112,19 @@ class TestArchitectureToolsShould {
         verifyNoInteractions(architectureStore);
     }
 
+    @Test
+    void return_an_error_for_an_id_that_cannot_be_resolved() {
+        ToolResponse result = architectureTools.listArchitectureVersions("workshop", "abc", null, null);
+
+        assertThat(result.isError(), is(true));
+        assertThat(text(result), containsString("Error:"));
+    }
+
     // --- listArchitectureVersions ---
 
     @Test
     void return_versions_for_valid_architecture() throws Exception {
-        when(architectureStore.getArchitectureVersions(any()))
+        when(architectureStore.getArchitectureVersions(anyString(), any(ResourceId.class)))
                 .thenReturn(List.of("1.0.0", "2.0.0"));
 
         ToolResponse result = architectureTools.listArchitectureVersions("workshop", 1);
@@ -114,7 +136,7 @@ class TestArchitectureToolsShould {
 
     @Test
     void return_empty_versions_message() throws Exception {
-        when(architectureStore.getArchitectureVersions(any()))
+        when(architectureStore.getArchitectureVersions(anyString(), any(ResourceId.class)))
                 .thenReturn(List.of());
 
         ToolResponse result = architectureTools.listArchitectureVersions("workshop", 1);
@@ -125,7 +147,7 @@ class TestArchitectureToolsShould {
 
     @Test
     void return_error_when_architecture_not_found_for_versions() throws Exception {
-        when(architectureStore.getArchitectureVersions(any()))
+        when(architectureStore.getArchitectureVersions(anyString(), any(ResourceId.class)))
                 .thenThrow(new ArchitectureNotFoundException());
 
         ToolResponse result = architectureTools.listArchitectureVersions("workshop", 99);
@@ -136,7 +158,7 @@ class TestArchitectureToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_versions() throws Exception {
-        when(architectureStore.getArchitectureVersions(any()))
+        when(architectureStore.getArchitectureVersions(anyString(), any(ResourceId.class)))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = architectureTools.listArchitectureVersions("missing", 1);
@@ -165,7 +187,7 @@ class TestArchitectureToolsShould {
 
     @Test
     void return_architecture_json_for_valid_version() throws Exception {
-        when(architectureStore.getArchitectureForVersion(any()))
+        when(architectureStore.getArchitectureForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenReturn("{\"nodes\":[],\"relationships\":[]}");
 
         ToolResponse result = architectureTools.getArchitecture("workshop", 1, "1.0.0");
@@ -177,15 +199,15 @@ class TestArchitectureToolsShould {
     @ParameterizedTest
     @ValueSource(strings = {"1e38a517", "1.0.0-SNAPSHOT"})
     void return_architecture_json_for_commit_sha_and_snapshot_versions(String version) throws Exception {
-        when(architectureStore.getArchitectureForVersion(any()))
+        when(architectureStore.getArchitectureForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenReturn("{\"nodes\":[]}");
 
         ToolResponse result = architectureTools.getArchitecture("workshop", 1, version);
 
         assertThat(result.isError(), is(false));
-        ArgumentCaptor<Architecture> captor = ArgumentCaptor.forClass(Architecture.class);
-        verify(architectureStore).getArchitectureForVersion(captor.capture());
-        assertThat(captor.getValue().getDotVersion(), is(version));
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(architectureStore).getArchitectureForVersion(eq("workshop"), any(ResourceId.class), captor.capture());
+        assertThat(captor.getValue(), is(version));
     }
 
     @Test
@@ -198,7 +220,7 @@ class TestArchitectureToolsShould {
 
     @Test
     void return_error_when_architecture_version_not_found() throws Exception {
-        when(architectureStore.getArchitectureForVersion(any()))
+        when(architectureStore.getArchitectureForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenThrow(new ArchitectureVersionNotFoundException());
 
         ToolResponse result = architectureTools.getArchitecture("workshop", 1, "9.9.9");
@@ -209,7 +231,7 @@ class TestArchitectureToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_get() throws Exception {
-        when(architectureStore.getArchitectureForVersion(any()))
+        when(architectureStore.getArchitectureForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = architectureTools.getArchitecture("missing", 1, "1.0.0");
@@ -220,7 +242,7 @@ class TestArchitectureToolsShould {
 
     @Test
     void return_error_when_architecture_not_found_for_get() throws Exception {
-        when(architectureStore.getArchitectureForVersion(any()))
+        when(architectureStore.getArchitectureForVersion(anyString(), any(ResourceId.class), anyString()))
                 .thenThrow(new ArchitectureNotFoundException());
 
         ToolResponse result = architectureTools.getArchitecture("workshop", 99, "1.0.0");
@@ -607,5 +629,23 @@ class TestArchitectureToolsShould {
         assertThat(text(architectureTools.createArchitecture("workshop", "n", "d", "{}")), containsString("disabled"));
         assertThat(text(architectureTools.updateArchitecture("workshop", 1, "1.1.0", "{}", null, null)), containsString("disabled"));
         verifyNoInteractions(architectureStore);
+    }
+
+    @Test
+    void return_an_error_for_an_unresolvable_id_on_every_read() {
+        assertThat(architectureTools.listArchitectureVersions("workshop", "abc", null, null).isError(), is(true));
+        assertThat(architectureTools.getArchitecture("workshop", "abc", null, null, "1.0.0").isError(), is(true));
+        assertThat(architectureTools.createArchitectureVersion("workshop", "abc", null, null, "1.1.0", "{}").isError(), is(true));
+        assertThat(architectureTools.updateArchitecture("workshop", "abc", null, null, "1.0.0", "{}", null, null).isError(), is(true));
+    }
+
+    @Test
+    void include_tags_from_the_listing_in_the_output() throws Exception {
+        when(architectureStore.getArchitecturesForNamespace("workshop")).thenReturn(List.of(
+                new org.finos.calm.domain.namespaces.NamespaceResourceSummary("API", "desc",
+                        new org.finos.calm.domain.Tags("team", "calm"), "api", 0)));
+        String text = text(architectureTools.listArchitectures("workshop"));
+        assertThat(text, containsString("Path: team"));
+        assertThat(text, containsString("Variant: calm"));
     }
 }

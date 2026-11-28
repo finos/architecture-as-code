@@ -34,6 +34,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -77,6 +78,17 @@ public class TestMappingControllerResourceShould {
     private static String flowDoc(String name, String version) {
         return "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/flows/" + name + "/versions/" + version + "\","
                 + "\"unique-id\":\"" + name + "\",\"name\":\"My Flow\",\"description\":\"A flow\",\"transitions\":[]}";
+    }
+
+    @Test
+    void reject_create_names_that_are_not_custom_ids() {
+        given().contentType("application/json").body(versionedDoc("finos", "architectures", "42", "1.0.0"))
+                .post("/calm/namespaces/finos/architectures/42/versions/1.0.0")
+                .then().statusCode(400);
+        given().contentType("application/json").body(versionedDoc("finos", "architectures", "my_arch", "1.0.0"))
+                .post("/calm/namespaces/finos/architectures/my_arch/versions/1.0.0")
+                .then().statusCode(400);
+        verifyNoInteractions(mockArchitectureStore);
     }
 
     // --- POST create new ---
@@ -780,7 +792,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0", "1.1.0"));
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("1.0.0", "1.1.0"));
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions")
                 .then().statusCode(200)
@@ -797,7 +809,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("snapshot-sort-test")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "snapshot-sort-test")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class)))
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class)))
                 .thenReturn(List.of("1.0.0", "1.0.0-SNAPSHOT"));
 
         given().when().get("/calm/namespaces/finos/patterns/snapshot-sort-test/versions")
@@ -813,7 +825,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("sorted-test")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "sorted-test")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class)))
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class)))
                 .thenReturn(List.of("2.0.0", "1.0.0", "1.1.0", "1.0.1"));
 
         given().when().get("/calm/namespaces/finos/patterns/sorted-test/versions")
@@ -832,7 +844,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("sha-test")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "sha-test")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class)))
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class)))
                 .thenReturn(List.of("2.0.0", "abc1234", "1.0.0"));
 
         given().when().get("/calm/namespaces/finos/patterns/sha-test/versions")
@@ -850,7 +862,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("digits-test")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "digits-test")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class)))
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class)))
                 .thenReturn(List.of("1.0.0", "1234567"));
 
         given().when().get("/calm/namespaces/finos/patterns/digits-test/versions")
@@ -873,7 +885,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("missing-versions")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "missing-versions")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(new PatternNotFoundException());
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenThrow(new PatternNotFoundException());
 
         given().when().get("/calm/namespaces/finos/patterns/missing-versions/versions")
                 .then().statusCode(404).body(containsString("missing-versions"));
@@ -885,7 +897,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("err-list-versions")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "err-list-versions")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(new RuntimeException("boom"));
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenThrow(new RuntimeException("boom"));
 
         given().when().get("/calm/namespaces/finos/patterns/err-list-versions/versions")
                 .then().statusCode(500);
@@ -897,10 +909,10 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
+        when(mockPatternStore.getPatternVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("1.0.0"));
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions").then().statusCode(200);
-        verify(mockPatternStore).getPatternVersions(any(Pattern.class));
+        verify(mockPatternStore).getPatternVersions(anyString(), any(ResourceId.class));
     }
 
     // --- GET specific version ---
@@ -911,7 +923,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{\"version\": \"1.0.0\"}");
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"version\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0")
                 .then().statusCode(200).body(containsString("1.0.0"));
@@ -923,7 +935,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{\"version\": \"abc1234\"}");
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"version\": \"abc1234\"}");
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/abc1234")
                 .then().statusCode(200).body(containsString("abc1234"));
@@ -944,7 +956,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("my-arch")
                 .setResourceType(ResourceType.ARCHITECTURE).setNumericId(2).build();
         when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "my-arch")).thenReturn(mapping);
-        when(mockArchitectureStore.getArchitectureForVersion(any(Architecture.class))).thenReturn("{\"v\": \"1.0.0\"}");
+        when(mockArchitectureStore.getArchitectureForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"v\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/architectures/my-arch/versions/1.0.0")
                 .then().statusCode(200).body(containsString("1.0.0"));
@@ -956,7 +968,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("my-flow")
                 .setResourceType(ResourceType.FLOW).setNumericId(5).build();
         when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "my-flow")).thenReturn(mapping);
-        when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenReturn("{\"v\": \"1.0.0\"}");
+        when(mockFlowStore.getFlowForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"v\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/flows/my-flow/versions/1.0.0")
                 .then().statusCode(200).body(containsString("1.0.0"));
@@ -968,7 +980,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("my-standard")
                 .setResourceType(ResourceType.STANDARD).setNumericId(3).build();
         when(mockMappingStore.getMapping("finos", ResourceType.STANDARD, "my-standard")).thenReturn(mapping);
-        when(mockStandardStore.getStandardForVersion("finos", 3, "1.0.0")).thenReturn("{\"v\": \"1.0.0\"}");
+        when(mockStandardStore.getStandardForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"v\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/standards/my-standard/versions/1.0.0")
                 .then().statusCode(200).body(containsString("1.0.0"));
@@ -980,7 +992,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("my-interface")
                 .setResourceType(ResourceType.INTERFACE).setNumericId(4).build();
         when(mockMappingStore.getMapping("finos", ResourceType.INTERFACE, "my-interface")).thenReturn(mapping);
-        when(mockInterfaceStore.getInterfaceForVersion("finos", 4, "1.0.0")).thenReturn("{\"v\": \"1.0.0\"}");
+        when(mockInterfaceStore.getInterfaceForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"v\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/interfaces/my-interface/versions/1.0.0")
                 .then().statusCode(200).body(containsString("1.0.0"));
@@ -1000,7 +1012,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new PatternVersionNotFoundException());
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new PatternVersionNotFoundException());
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/9.9.9")
                 .then().statusCode(404);
@@ -1012,7 +1024,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("missing-pattern")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "missing-pattern")).thenReturn(mapping);
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new PatternNotFoundException());
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new PatternNotFoundException());
 
         given().when().get("/calm/namespaces/finos/patterns/missing-pattern/versions/1.0.0")
                 .then().statusCode(404).body(containsString("missing-pattern"));
@@ -1024,7 +1036,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("badns").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("badns", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new NamespaceNotFoundException());
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new NamespaceNotFoundException());
 
         given().when().get("/calm/namespaces/badns/patterns/api-gateway/versions/1.0.0")
                 .then().statusCode(404);
@@ -1048,10 +1060,10 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
-        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{}");
+        when(mockPatternStore.getPatternForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{}");
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0").then().statusCode(200);
-        verify(mockPatternStore).getPatternForVersion(any(Pattern.class));
+        verify(mockPatternStore).getPatternForVersion(anyString(), any(ResourceId.class), anyString());
     }
 
     // --- GET list resources of type ---
@@ -1233,7 +1245,7 @@ public class TestMappingControllerResourceShould {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
         // Empty list → resolveConfigId throws ControlConfigurationNotFoundException → new config path
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(Collections.emptyList());
         when(mockControlStore.createControlConfiguration(any(CreateControlConfiguration.class), eq("security"), eq(5)))
                 .thenReturn(99);
@@ -1251,7 +1263,7 @@ public class TestMappingControllerResourceShould {
     void return_201_when_adding_version_to_existing_config_via_versioned_path_post() throws Exception {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(99, "tls-config")));
 
         String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/configurations/tls-config/versions/2.0.0\"}";
@@ -1280,7 +1292,7 @@ public class TestMappingControllerResourceShould {
     void return_200_with_requirement_versions_resolved_by_control_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getRequirementVersions("security", 5)).thenReturn(List.of("1.0.0", "2.0.0"));
+        when(mockControlStore.getRequirementVersions("security", new NumericResourceId(5))).thenReturn(List.of("1.0.0", "2.0.0"));
 
         given().when().get("/calm/domains/security/controls/access-control/requirement/versions")
                 .then().statusCode(200)
@@ -1299,7 +1311,7 @@ public class TestMappingControllerResourceShould {
     void return_200_with_requirement_at_version_resolved_by_control_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getRequirementForVersion("security", 5, "1.0.0")).thenReturn("{\"type\":\"req\"}");
+        when(mockControlStore.getRequirementForVersion("security", new NumericResourceId(5), "1.0.0")).thenReturn("{\"type\":\"req\"}");
 
         given().when().get("/calm/domains/security/controls/access-control/requirement/versions/1.0.0")
                 .then().statusCode(200)
@@ -1310,7 +1322,7 @@ public class TestMappingControllerResourceShould {
     void return_200_with_configurations_resolved_by_control_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(
                         new ControlConfigDetail(10, "encryption-config"),
                         new ControlConfigDetail(20, "tls-config")));
@@ -1324,9 +1336,10 @@ public class TestMappingControllerResourceShould {
     void return_200_with_configuration_versions_resolved_by_config_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "encryption-config")));
-        when(mockControlStore.getConfigurationVersions("security", 5, 10)).thenReturn(List.of("1.0.0"));
+        when(mockControlStore.getConfigurationVersions("security", new NumericResourceId(5), new NumericResourceId(10)))
+                .thenReturn(List.of("1.0.0"));
 
         given().when().get("/calm/domains/security/controls/access-control/configurations/encryption-config/versions")
                 .then().statusCode(200)
@@ -1337,9 +1350,10 @@ public class TestMappingControllerResourceShould {
     void return_200_with_configuration_at_version_resolved_by_config_name() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "encryption-config")));
-        when(mockControlStore.getConfigurationForVersion("security", 5, 10, "1.0.0")).thenReturn("{\"key\":\"val\"}");
+        when(mockControlStore.getConfigurationForVersion("security", new NumericResourceId(5), new NumericResourceId(10), "1.0.0"))
+                .thenReturn("{\"key\":\"val\"}");
 
         given().when().get("/calm/domains/security/controls/access-control/configurations/encryption-config/versions/1.0.0")
                 .then().statusCode(200)
@@ -1350,7 +1364,7 @@ public class TestMappingControllerResourceShould {
     void return_404_when_configuration_name_not_found() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "encryption-config")));
 
         given().when().get("/calm/domains/security/controls/access-control/configurations/nonexistent/versions")
@@ -1562,7 +1576,7 @@ public class TestMappingControllerResourceShould {
     void return_404_when_requirement_version_not_found() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getRequirementForVersion("security", 5, "9.9.9"))
+        when(mockControlStore.getRequirementForVersion("security", new NumericResourceId(5), "9.9.9"))
                 .thenThrow(new ControlRequirementVersionNotFoundException());
         given().when().get("/calm/domains/security/controls/access-control/requirement/versions/9.9.9")
                 .then().statusCode(404);
@@ -1626,7 +1640,7 @@ public class TestMappingControllerResourceShould {
     void return_404_when_config_not_found_on_get_config_at_version() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(Collections.emptyList());
         given().when().get("/calm/domains/security/controls/access-control/configurations/nonexistent-cfg/versions/1.0.0")
                 .then().statusCode(404);
@@ -1636,9 +1650,9 @@ public class TestMappingControllerResourceShould {
     void return_404_when_config_version_not_found() throws Exception {
         ControlDetail detail = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(detail));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "tls-config")));
-        when(mockControlStore.getConfigurationForVersion("security", 5, 10, "9.9.9"))
+        when(mockControlStore.getConfigurationForVersion("security", new NumericResourceId(5), new NumericResourceId(10), "9.9.9"))
                 .thenThrow(new ControlConfigurationVersionNotFoundException());
         given().when().get("/calm/domains/security/controls/access-control/configurations/tls-config/versions/9.9.9")
                 .then().statusCode(404);
@@ -1731,7 +1745,7 @@ public class TestMappingControllerResourceShould {
     void return_400_when_config_path_post_first_version_is_not_1_0_0_for_new_config() throws Exception {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(Collections.emptyList());
         String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/access-control/configurations/new-cfg/versions/2.0.0\"}";
         given().header("Content-Type", "application/json")
@@ -1744,7 +1758,7 @@ public class TestMappingControllerResourceShould {
     void return_409_when_config_version_already_exists() throws Exception {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "tls-config")));
         doThrow(new ControlConfigurationVersionExistsException()).when(mockControlStore)
                 .createConfigurationForVersion(eq("security"), eq(5), eq(10), eq("2.0.0"), any(CreateControlConfiguration.class));
@@ -1759,7 +1773,7 @@ public class TestMappingControllerResourceShould {
     void return_404_when_config_not_found_adding_config_version() throws Exception {
         ControlDetail control = new ControlDetail(5, "access-control", "Desc");
         when(mockControlStore.getControlsForDomain("security")).thenReturn(List.of(control));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "tls-config")));
         doThrow(new ControlConfigurationNotFoundException()).when(mockControlStore)
                 .createConfigurationForVersion(eq("security"), eq(5), eq(10), eq("2.0.0"), any(CreateControlConfiguration.class));
@@ -2175,7 +2189,7 @@ public class TestMappingControllerResourceShould {
         // the configuration as already existing.
         when(mockControlStore.getControlsForDomain("security"))
                 .thenReturn(List.of(new ControlDetail(5, "my-ctrl", "Desc")));
-        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+        when(mockControlStore.getConfigurationDetailsForControl("security", new NumericResourceId(5)))
                 .thenReturn(List.of(new ControlConfigDetail(10, "my-cfg")));
 
         String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/my-ctrl/configurations/my-cfg/versions/1.0.0-SNAPSHOT\"}";
@@ -2261,7 +2275,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("my-timeline")
                 .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
         when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "my-timeline")).thenReturn(mapping);
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenReturn(List.of("1.0.0", "1.1.0"));
+        when(mockTimelineStore.getTimelineVersions(anyString(), any(ResourceId.class))).thenReturn(List.of("1.0.0", "1.1.0"));
 
         given().when().get("/calm/namespaces/finos/timelines/my-timeline/versions")
                 .then().statusCode(200)
@@ -2276,7 +2290,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("missing-timeline")
                 .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
         when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "missing-timeline")).thenReturn(mapping);
-        when(mockTimelineStore.getTimelineVersions(any(Timeline.class))).thenThrow(new TimelineNotFoundException());
+        when(mockTimelineStore.getTimelineVersions(anyString(), any(ResourceId.class))).thenThrow(new TimelineNotFoundException());
 
         given().when().get("/calm/namespaces/finos/timelines/missing-timeline/versions")
                 .then().statusCode(404).body(containsString("missing-timeline"));
@@ -2288,7 +2302,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("my-timeline")
                 .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
         when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "my-timeline")).thenReturn(mapping);
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class))).thenReturn("{\"v\": \"1.0.0\"}");
+        when(mockTimelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString())).thenReturn("{\"v\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/timelines/my-timeline/versions/1.0.0")
                 .then().statusCode(200).body(containsString("1.0.0"));
@@ -2300,7 +2314,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("missing-timeline")
                 .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
         when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "missing-timeline")).thenReturn(mapping);
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class))).thenThrow(new TimelineNotFoundException());
+        when(mockTimelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new TimelineNotFoundException());
 
         given().when().get("/calm/namespaces/finos/timelines/missing-timeline/versions/1.0.0")
                 .then().statusCode(404).body(containsString("missing-timeline"));
@@ -2312,7 +2326,7 @@ public class TestMappingControllerResourceShould {
                 .setNamespace("finos").setCustomId("my-timeline")
                 .setResourceType(ResourceType.TIMELINE).setNumericId(6).build();
         when(mockMappingStore.getMapping("finos", ResourceType.TIMELINE, "my-timeline")).thenReturn(mapping);
-        when(mockTimelineStore.getTimelineForVersion(any(Timeline.class))).thenThrow(new TimelineVersionNotFoundException());
+        when(mockTimelineStore.getTimelineForVersion(anyString(), any(ResourceId.class), anyString())).thenThrow(new TimelineVersionNotFoundException());
 
         given().when().get("/calm/namespaces/finos/timelines/my-timeline/versions/9.9.9")
                 .then().statusCode(404);

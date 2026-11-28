@@ -1,5 +1,9 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceId;
+import org.finos.calm.resources.params.FlowIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -40,9 +44,12 @@ import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERS
 import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 public class FlowResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final FlowStore store;
     private final CustomIdEnrichmentService customIds;
@@ -115,23 +122,21 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getLatestFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId
+            @Valid @BeanParam FlowIdParam flowIdParam
     ) {
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(namespace)
-                .setId(flowId)
-                .build();
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
 
         try {
-            List<String> versions =  store.getFlowVersions(flow);
+            List<String> versions = store.getFlowVersions(namespace, resourceId);
             String lastVersion = ResourceVersion.latestRelease(versions);
-           return getFlowInternal(namespace,flowId, lastVersion);
+            return getFlowInternal(namespace, resourceId, lastVersion, flowIdParam.rawId());
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting the latest flow version", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (FlowNotFoundException e) {
-            logger.error("Invalid flow [{}] when getting the latest flow version", flowId, e);
-            return invalidFlowResponse(flowId);
+            logger.error("Invalid flow [{}] when getting the latest flow version",
+                    STRICT_SANITIZATION_POLICY.sanitize(flowIdParam.rawId()), e);
+            return invalidFlowResponse(flowIdParam.rawId());
         }
     }
 
@@ -146,15 +151,17 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getFlowVersions(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId
+            @Valid @BeanParam FlowIdParam flowIdParam
     ) {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
                 .build();
 
         try {
-            return Response.ok(new ValueWrapper<>(store.getFlowVersions(flow))).build();
+            return Response.ok(new ValueWrapper<>(store.getFlowVersions(namespace, resourceId))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting versions of flow", flow, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
@@ -174,29 +181,24 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId,
+            @Valid @BeanParam FlowIdParam flowIdParam,
             @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
-        return getFlowInternal(namespace, flowId, version);
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        return getFlowInternal(namespace, resourceId, version, flowIdParam.rawId());
     }
 
-    private Response getFlowInternal(String namespace, int flowId, String version) {
-        Flow flow = new Flow.FlowBuilder()
-                .setNamespace(namespace)
-                .setId(flowId)
-                .setVersion(version)
-                .build();
-
+    private Response getFlowInternal(String namespace, ResourceId resourceId, String version, String rawId) {
         try {
-            return Response.ok(store.getFlowForVersion(flow)).build();
+            return Response.ok(store.getFlowForVersion(namespace, resourceId, version)).build();
         } catch (NamespaceNotFoundException e) {
-            logger.error("Invalid namespace [{}] when getting a flow", flow, e);
+            logger.error("Invalid namespace [{}] when getting a flow", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (FlowNotFoundException e) {
-            logger.error("Invalid flow [{}] when getting a flow", flow, e);
-            return invalidFlowResponse(flowId);
+            logger.error("Invalid flow [{}] when getting a flow", STRICT_SANITIZATION_POLICY.sanitize(rawId), e);
+            return invalidFlowResponse(rawId);
         } catch (FlowVersionNotFoundException e) {
-            logger.error("Invalid version [{}] when getting a flow", flow, e);
+            logger.error("Invalid version [{}] when getting a flow", version, e);
             return invalidVersionResponse(version);
         }
     }
@@ -212,10 +214,12 @@ public class FlowResource {
     )
     public Response createVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId,
+            @Valid @BeanParam FlowIdParam flowIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
@@ -251,10 +255,12 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId,
+            @Valid @BeanParam FlowIdParam flowIdParam,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)  String version,
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace(namespace)
                 .setId(flowId)
@@ -290,8 +296,10 @@ public class FlowResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deleteFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("flowId") int flowId
+            @Valid @BeanParam FlowIdParam flowIdParam
     ) {
+        ResourceId resourceId = flowIdParam.toResourceId(resourceIdResolver);
+        int flowId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deleteFlow(namespace, flowId);
         } catch (NamespaceNotFoundException e) {
@@ -314,7 +322,12 @@ public class FlowResource {
     }
 
     private Response invalidFlowResponse(int flowId) {
-        return Response.status(Response.Status.NOT_FOUND).entity("Invalid flow provided: " + flowId).build();
+        return invalidFlowResponse(String.valueOf(flowId));
+    }
+
+    private Response invalidFlowResponse(String flowId) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("Invalid flow provided: " + STRICT_SANITIZATION_POLICY.sanitize(flowId)).build();
     }
 
     private Response invalidVersionResponse(String version) {

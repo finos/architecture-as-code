@@ -3,6 +3,7 @@ package org.finos.calm.services;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.finos.calm.domain.CustomIdentifiable;
+import org.finos.calm.domain.ResourceIds;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.store.ResourceMappingStore;
@@ -51,9 +52,15 @@ public class CustomIdEnrichmentService {
             return summaries;
         }
 
+        // Summary ids are strings on the wire. In numeric modes they are decimal forms of the
+        // stored id; in GitHub mode they are stems and are deliberately left unenriched — the
+        // mapping lookup below is keyed on numeric ids and has no meaning for a stem. A leading
+        // zero would pass a plain digit check but fail parseNumeric, losing the whole page.
         List<Integer> numericIds = summaries.stream()
                 .map(CustomIdentifiable::getId)
                 .filter(Objects::nonNull)
+                .filter(id -> id.matches("[1-9]\\d{0,8}"))
+                .map(id -> ResourceIds.parseNumeric(id))
                 .toList();
 
         if (numericIds.isEmpty()) {
@@ -75,7 +82,11 @@ public class CustomIdEnrichmentService {
                             (first, second) -> first));
 
             for (T summary : summaries) {
-                String customId = customIdsByNumericId.get(summary.getId());
+                String id = summary.getId();
+                if (id == null || !id.matches("[1-9]\\d{0,8}")) {
+                    continue;
+                }
+                String customId = customIdsByNumericId.get(Integer.parseInt(id));
                 if (customId != null) {
                     summary.setCustomId(customId);
                 }

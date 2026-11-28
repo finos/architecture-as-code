@@ -1,7 +1,9 @@
 package org.finos.calm.domain.timeline;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import org.finos.calm.domain.CustomIdentifiable;
+import org.finos.calm.domain.Tags;
 
 import java.util.Objects;
 
@@ -9,13 +11,27 @@ import java.util.Objects;
 public class NamespaceTimelineSummary implements CustomIdentifiable {
     private String name;
     private String description;
-    private Integer id;
+    private String id;
     private String customId;
+    private Tags tags;
 
     public NamespaceTimelineSummary(String name, String description, Integer id) {
+        this(name, description, id == null ? null : String.valueOf(id), null);
+    }
+
+    public NamespaceTimelineSummary(String name, String description, String id) {
+        this(name, description, id, null);
+    }
+
+    public NamespaceTimelineSummary(String name, String description, Tags tags, String id) {
+        this(name, description, id, tags);
+    }
+
+    private NamespaceTimelineSummary(String name, String description, String id, Tags tags) {
         this.name = name;
         this.description = description;
         this.id = id;
+        this.tags = tags;
     }
 
     public String getName() {
@@ -35,12 +51,21 @@ public class NamespaceTimelineSummary implements CustomIdentifiable {
     }
 
     @Override
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(String id) {
         this.id = id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id == null ? null : String.valueOf(id);
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Tags getTags() {
+        return tags;
     }
 
     @Override
@@ -57,11 +82,11 @@ public class NamespaceTimelineSummary implements CustomIdentifiable {
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         NamespaceTimelineSummary that = (NamespaceTimelineSummary) o;
-        return Objects.equals(name, that.name) && Objects.equals(description, that.description) && Objects.equals(id, that.id) && Objects.equals(customId, that.customId);
+        return Objects.equals(name, that.name) && Objects.equals(description, that.description) && Objects.equals(id, that.id) && Objects.equals(customId, that.customId) && Objects.equals(tags, that.tags);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, id, customId);
+        return Objects.hash(name, description, id, customId, tags);
     }
 }

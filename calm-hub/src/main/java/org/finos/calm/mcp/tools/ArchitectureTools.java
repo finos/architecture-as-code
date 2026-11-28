@@ -7,13 +7,16 @@ import io.quarkus.security.PermissionsAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
+import org.finos.calm.domain.exception.InvalidResourceIdException;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.ArchitectureStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +46,9 @@ public class ArchitectureTools {
     @Inject
     ArchitectureStore architectureStore;
 
+    @Inject
+    ResourceIdResolver resourceIdResolver;
+
     @Tool(description = "List all architectures in a CalmHub namespace. Returns architecture IDs, names, and descriptions.")
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listArchitectures(
@@ -55,7 +61,7 @@ public class ArchitectureTools {
         try {
             List<NamespaceResourceSummary> architectures = architectureStore.getArchitecturesForNamespace(namespace);
             List<McpResponseFormatter.ResourceSummary> summaries = architectures.stream()
-                    .map(a -> new McpResponseFormatter.ResourceSummary(a.getId(), a.getName(), a.getDescription()))
+                    .map(a -> new McpResponseFormatter.ResourceSummary(a.getId(), a.getName(), a.getDescription(), a.getTags()))
                     .toList();
             return McpResponseFormatter.formatResourceList("architecture", namespace, summaries);
         } catch (NamespaceNotFoundException e) {
@@ -68,20 +74,24 @@ public class ArchitectureTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse listArchitectureVersions(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
-            @ToolArg(description = "The architecture ID (positive integer)") int architectureId) {
+            @ToolArg(description = "The architecture ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String architectureId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"));
+                () -> McpValidationHelper.validateResourceId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant));
         if (err.isPresent()) return err.get();
 
         try {
-            Architecture arch = new Architecture.ArchitectureBuilder()
-                    .setNamespace(namespace)
-                    .setId(architectureId)
-                    .build();
-            List<String> versions = architectureStore.getArchitectureVersions(arch);
+            List<String> versions = architectureStore.getArchitectureVersions(namespace,
+                    resolve(architectureId, path, variant));
             return McpResponseFormatter.formatVersionList("architecture", architectureId, namespace, versions);
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -95,22 +105,25 @@ public class ArchitectureTools {
     @PermissionsAllowed(CalmHubScopes.READ)
     public ToolResponse getArchitecture(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
-            @ToolArg(description = "The architecture ID (positive integer)") int architectureId,
+            @ToolArg(description = "The architecture ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String architectureId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string, as returned by the list versions tool (e.g. '1.0.0', or a commit SHA in GitHub mode)") String version) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateResourceId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateSnapshotVersionOrSha(version));
         if (err.isPresent()) return err.get();
 
         try {
-            Architecture arch = new Architecture.ArchitectureBuilder()
-                    .setNamespace(namespace)
-                    .setId(architectureId)
-                    .setVersion(version)
-                    .build();
-            return ToolResponse.success(architectureStore.getArchitectureForVersion(arch));
+            return ToolResponse.success(architectureStore.getArchitectureForVersion(namespace,
+                    resolve(architectureId, path, variant), version));
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -127,13 +140,17 @@ public class ArchitectureTools {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse createArchitectureVersion(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
-            @ToolArg(description = "The architecture ID to publish a new version for (positive integer)") int architectureId,
+            @ToolArg(description = "The architecture ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String architectureId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The new version string to publish (e.g. '1.1.0')") String version,
             @ToolArg(description = "The full CALM architecture JSON content for this version") String architectureJson) {
         Optional<ToolResponse> err = McpValidationHelper.firstError(
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateResourceId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
                 () -> McpValidationHelper.validateMaxLength(architectureJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Architecture JSON"),
@@ -158,7 +175,7 @@ public class ArchitectureTools {
         try {
             Architecture architecture = new Architecture.ArchitectureBuilder()
                     .setNamespace(namespace)
-                    .setId(architectureId)
+                    .setId(resourceIdResolver.numericForWrite(resolve(architectureId, path, variant)))
                     .setVersion(version)
                     .setName(resolvedName)
                     .setDescription(resolvedDescription)
@@ -167,6 +184,9 @@ public class ArchitectureTools {
             architectureStore.createArchitectureForVersion(architecture);
             logger.info("Architecture [{}] version [{}] created in namespace [{}]", architectureId, version, namespace);
             return ToolResponse.success("Architecture " + architectureId + " version '" + version + "' created successfully in namespace '" + namespace + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -183,7 +203,9 @@ public class ArchitectureTools {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public ToolResponse updateArchitecture(
             @ToolArg(description = "The namespace containing the architecture") String namespace,
-            @ToolArg(description = "The architecture ID (positive integer)") int architectureId,
+            @ToolArg(description = "The architecture ID (numeric in MongoDB/standalone, filename stem in GitHub mode)") String architectureId,
+            @ToolArg(description = "Optional folder path for a GitHub id", required = false) String path,
+            @ToolArg(description = "Optional variant for a GitHub id", required = false) String variant,
             @ToolArg(description = "The version string to update (e.g. '1.0.0')") String version,
             @ToolArg(description = "The updated CALM architecture JSON content") String architectureJson,
             @ToolArg(description = "Optional new name for the architecture; omit to keep existing name", required = false) String name,
@@ -192,7 +214,9 @@ public class ArchitectureTools {
                 () -> McpValidationHelper.checkEnabled(mcpEnabled),
                 () -> McpValidationHelper.checkMutationAllowed(allowPutOperations),
                 () -> McpValidationHelper.validateNamespace(namespace),
-                () -> McpValidationHelper.validatePositiveId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateResourceId(architectureId, "Architecture ID"),
+                () -> McpValidationHelper.validateOptionalPath(path),
+                () -> McpValidationHelper.validateOptionalVariant(variant),
                 () -> McpValidationHelper.validateVersion(version),
                 () -> McpValidationHelper.validateNotBlank(architectureJson, "Architecture JSON"),
                 () -> McpValidationHelper.validateMaxLength(architectureJson, McpValidationHelper.MAX_JSON_PAYLOAD_LENGTH, "Architecture JSON"),
@@ -221,7 +245,7 @@ public class ArchitectureTools {
         try {
             Architecture architecture = new Architecture.ArchitectureBuilder()
                     .setNamespace(namespace)
-                    .setId(architectureId)
+                    .setId(resourceIdResolver.numericForWrite(resolve(architectureId, path, variant)))
                     .setVersion(version)
                     .setName(resolvedName)
                     .setDescription(resolvedDescription)
@@ -230,6 +254,9 @@ public class ArchitectureTools {
             architectureStore.updateArchitectureForVersion(architecture);
             logger.info("Architecture [{}] updated with version [{}] in namespace [{}]", architectureId, version, namespace);
             return ToolResponse.success("Architecture " + architectureId + " updated successfully with version '" + version + "' in namespace '" + namespace + "'.");
+        } catch (InvalidResourceIdException e) {
+            logger.warn("Invalid resource id: {}", e.getMessage());
+            return ToolResponse.error("Error: " + e.getMessage());
         } catch (NamespaceNotFoundException e) {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
@@ -270,5 +297,27 @@ public class ArchitectureTools {
             logger.warn("Namespace not found [{}]", namespace, e);
             return McpResponseFormatter.namespaceNotFound(namespace);
         }
+    }
+
+    // Numeric-id overloads kept for callers that still have an int (not exposed as MCP tools).
+
+    public ToolResponse listArchitectureVersions(String namespace, int architectureId) {
+        return listArchitectureVersions(namespace, String.valueOf(architectureId), null, null);
+    }
+
+    public ToolResponse getArchitecture(String namespace, int architectureId, String version) {
+        return getArchitecture(namespace, String.valueOf(architectureId), null, null, version);
+    }
+
+    public ToolResponse createArchitectureVersion(String namespace, int architectureId, String version, String architectureJson) {
+        return createArchitectureVersion(namespace, String.valueOf(architectureId), null, null, version, architectureJson);
+    }
+
+    public ToolResponse updateArchitecture(String namespace, int architectureId, String version, String architectureJson, String name, String description) {
+        return updateArchitecture(namespace, String.valueOf(architectureId), null, null, version, architectureJson, name, description);
+    }
+
+    private ResourceId resolve(String id, String path, String variant) {
+        return resourceIdResolver.forStorage(id, path == null ? "" : path, variant == null ? "" : variant);
     }
 }

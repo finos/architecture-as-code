@@ -6,8 +6,7 @@ import io.vertx.core.json.JsonObject;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.Config;
-import org.finos.calm.domain.Architecture;
-import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.ResourceId;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.conventions.ConventionType;
 import org.finos.calm.domain.conventions.ResolvedConventionDefault;
@@ -15,9 +14,9 @@ import org.finos.calm.domain.extensions.ExtensionManifest;
 import org.finos.calm.resources.ResourceValidationConstants;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.services.ConventionService;
+import org.finos.calm.services.ResourceIdResolver;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.PatternStore;
-import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,30 +46,32 @@ public class ExtensionHubData {
     private static final java.util.regex.Pattern ARCHITECTURE_PATH =
             java.util.regex.Pattern.compile("^(?:/api)?/calm/namespaces/([^/]+)/architectures/([^/]+)/versions/([^/]+)$");
     private static final java.util.regex.Pattern CONVENTION_PATH =
-            java.util.regex.Pattern.compile("^(?:/api)?/calm/namespaces/([^/]+)/conventions/([^/]+)/(\\d+)/versions/([^/]+)$");
+            java.util.regex.Pattern.compile("^(?:/api)?/calm/namespaces/([^/]+)/conventions/([^/]+)/([^/]+)/versions/([^/]+)$");
     private static final String DEFAULT_BASE_URL = "http://localhost:8080";
 
     private final ArchitectureStore architectures;
     private final PatternStore patterns;
-    private final ResourceMappingStore mappings;
     private final ConventionService conventions;
     private final CalmHubPermissionChecker permissions;
+    private final ResourceIdResolver resourceIdResolver;
     private final URI baseUrl;
 
     @Inject
-    public ExtensionHubData(ArchitectureStore architectures, PatternStore patterns, ResourceMappingStore mappings,
-                            ConventionService conventions, CalmHubPermissionChecker permissions, Config properties) {
-        this(architectures, patterns, mappings, conventions, permissions,
+    public ExtensionHubData(ArchitectureStore architectures, PatternStore patterns,
+                            ConventionService conventions, CalmHubPermissionChecker permissions, Config properties,
+                            ResourceIdResolver resourceIdResolver) {
+        this(architectures, patterns, conventions, permissions, resourceIdResolver,
                 properties.getOptionalValue("calm.hub.base-url", String.class).orElse(DEFAULT_BASE_URL));
     }
 
-    ExtensionHubData(ArchitectureStore architectures, PatternStore patterns, ResourceMappingStore mappings,
-                     ConventionService conventions, CalmHubPermissionChecker permissions, String baseUrl) {
+    ExtensionHubData(ArchitectureStore architectures, PatternStore patterns,
+                     ConventionService conventions, CalmHubPermissionChecker permissions,
+                     ResourceIdResolver resourceIdResolver, String baseUrl) {
         this.architectures = architectures;
         this.patterns = patterns;
-        this.mappings = mappings;
         this.conventions = conventions;
         this.permissions = permissions;
+        this.resourceIdResolver = resourceIdResolver;
         this.baseUrl = URI.create(baseUrl);
     }
 
@@ -114,11 +115,14 @@ public class ExtensionHubData {
     /** The document of an architecture or a pattern version, or empty when there is no such version. */
     Optional<JsonObject> read(String namespace, String resourceType, String id, String version) {
         try {
+            ResourceId resolved = switch (resourceType) {
+                case "architectures" -> resourceId(namespace, ResourceType.ARCHITECTURE, id);
+                case "patterns" -> resourceId(namespace, ResourceType.PATTERN, id);
+                default -> throw new ExtensionProxyException(400, "Hub sends the document of an architecture or a pattern only");
+            };
             String text = switch (resourceType) {
-                case "architectures" -> architectures.getArchitectureForVersion(new Architecture.ArchitectureBuilder()
-                        .setNamespace(namespace).setId(numericId(namespace, ResourceType.ARCHITECTURE, id)).setVersion(version).build());
-                case "patterns" -> patterns.getPatternForVersion(new Pattern.PatternBuilder()
-                        .setNamespace(namespace).setId(numericId(namespace, ResourceType.PATTERN, id)).setVersion(version).build());
+                case "architectures" -> architectures.getArchitectureForVersion(namespace, resolved, version);
+                case "patterns" -> patterns.getPatternForVersion(namespace, resolved, version);
                 default -> throw new ExtensionProxyException(400, "Hub sends the document of an architecture or a pattern only");
             };
             return Optional.of(new JsonObject(text));
@@ -133,9 +137,11 @@ public class ExtensionHubData {
         }
     }
 
-    /** A numeric id, or a custom id of the name-based API. */
-    private int numericId(String namespace, ResourceType type, String id) throws Exception {
-        return id.matches("\\d{1,9}") ? Integer.parseInt(id) : mappings.getMapping(namespace, type, id).getNumericId();
+    /** A storage id, or a custom id of the name-based API resolved through the mapping store. */
+    private ResourceId resourceId(String namespace, ResourceType type, String id) throws Exception {
+        return id.matches("[1-9]\\d{0,8}")
+                ? resourceIdResolver.forStorage(id, null, null)
+                : resourceIdResolver.forName(namespace, type, id, null, null);
     }
 
     /** The detailed architectures that the nodes link to, on this Hub and in the same namespace, keyed by the link. */
@@ -198,7 +204,8 @@ public class ExtensionHubData {
             }
             JsonObject parent;
             try {
-                parent = new JsonObject(conventions.getConventionForVersion(ns, type, Integer.parseInt(m.group(3)), decode(m.group(4))));
+                parent = new JsonObject(conventions.getConventionForVersion(ns, type,
+                        resourceIdResolver.forStorage(decode(m.group(3)), null, null), decode(m.group(4))));
             } catch (Exception e) {
                 return;
             }

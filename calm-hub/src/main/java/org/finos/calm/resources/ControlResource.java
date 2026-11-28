@@ -1,5 +1,10 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.resources.params.ConfigIdParam;
+import org.finos.calm.resources.params.ControlIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+import org.finos.calm.domain.ResourceId;
+
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
@@ -29,10 +34,13 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 /**
  * REST resource for managing controls within domains.
  */
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/domains")
 @Authenticated
 public class ControlResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final ControlStore store;
 
@@ -98,9 +106,11 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId) {
+            @Valid @BeanParam ControlIdParam controlIdParam) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(new ValueWrapper<>(store.getRequirementVersions(domain, controlId))).build();
+            return Response.ok(new ValueWrapper<>(store.getRequirementVersions(domain, resourceId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving requirement versions", domain, e);
             return invalidDomainResponse(domain);
@@ -122,12 +132,14 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
             @PathParam("version")
             @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE)
             String version) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
-            return Response.ok(store.getRequirementForVersion(domain, controlId, version)).build();
+            return Response.ok(store.getRequirementForVersion(domain, resourceId, version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving requirement version", domain, e);
             return invalidDomainResponse(domain);
@@ -153,11 +165,13 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
             @PathParam("version")
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version,
             @Valid @NotNull(message = "Request must not be null") CreateControlRequirement createControlRequirement) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.createRequirementForVersion(domain, controlId, version, createControlRequirement);
             return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/requirement/versions/" + version)).build();
@@ -188,15 +202,16 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId) {
+            @Valid @BeanParam ControlIdParam controlIdParam) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
         try {
-            return Response.ok(new ValueWrapper<>(store.getConfigurationDetailsForControl(domain, controlId))).build();
+            return Response.ok(new ValueWrapper<>(store.getConfigurationDetailsForControl(domain, resourceId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving configurations", domain, e);
             return invalidDomainResponse(domain);
         } catch (ControlNotFoundException e) {
-            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
-            return invalidControlResponse(controlId);
+            logger.error("Control [{}] not found in domain [{}]", STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), domain, e);
+            return invalidControlResponse(controlIdParam.rawId());
         }
     }
 
@@ -213,8 +228,10 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
             int configurationId = store.createControlConfiguration(createControlConfiguration, domain, controlId);
             return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configurationId)).build();
@@ -239,19 +256,22 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
-            @PathParam("configId") int configId) {
+            @Valid @BeanParam ControlIdParam controlIdParam,
+            @Valid @BeanParam ConfigIdParam configIdParam) {
+        ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
+        ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
         try {
-            return Response.ok(new ValueWrapper<>(store.getConfigurationVersions(domain, controlId, configId))).build();
+            return Response.ok(new ValueWrapper<>(store.getConfigurationVersions(domain, controlResourceId, configResourceId))).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving configuration versions", domain, e);
             return invalidDomainResponse(domain);
         } catch (ControlNotFoundException e) {
-            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
-            return invalidControlResponse(controlId);
+            logger.error("Control [{}] not found in domain [{}]", STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), domain, e);
+            return invalidControlResponse(controlIdParam.rawId());
         } catch (ControlConfigurationNotFoundException e) {
-            logger.error("Configuration [{}] not found for control [{}]", configId, controlId, e);
-            return invalidConfigurationResponse(configId);
+            logger.error("Configuration [{}] not found for control [{}]", STRICT_SANITIZATION_POLICY.sanitize(configIdParam.rawId()),
+                    STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), e);
+            return invalidConfigurationResponse(configIdParam.rawId());
         }
     }
 
@@ -267,24 +287,28 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
-            @PathParam("configId") int configId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
+            @Valid @BeanParam ConfigIdParam configIdParam,
             @PathParam("version")
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version) {
+        ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
+        ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
         try {
-            return Response.ok(store.getConfigurationForVersion(domain, controlId, configId, version)).build();
+            return Response.ok(store.getConfigurationForVersion(domain, controlResourceId, configResourceId, version)).build();
         } catch (DomainNotFoundException e) {
             logger.error("Invalid domain [{}] when retrieving configuration version", domain, e);
             return invalidDomainResponse(domain);
         } catch (ControlNotFoundException e) {
-            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
-            return invalidControlResponse(controlId);
+            logger.error("Control [{}] not found in domain [{}]", STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), domain, e);
+            return invalidControlResponse(controlIdParam.rawId());
         } catch (ControlConfigurationNotFoundException e) {
-            logger.error("Configuration [{}] not found for control [{}]", configId, controlId, e);
-            return invalidConfigurationResponse(configId);
+            logger.error("Configuration [{}] not found for control [{}]", STRICT_SANITIZATION_POLICY.sanitize(configIdParam.rawId()),
+                    STRICT_SANITIZATION_POLICY.sanitize(controlIdParam.rawId()), e);
+            return invalidConfigurationResponse(configIdParam.rawId());
         } catch (ControlConfigurationVersionNotFoundException e) {
-            logger.error("Configuration version [{}] not found for config [{}]", version, configId, e);
+            logger.error("Configuration version [{}] not found for config [{}]", version,
+                    STRICT_SANITIZATION_POLICY.sanitize(configIdParam.rawId()), e);
             return invalidVersionResponse(version);
         }
     }
@@ -302,12 +326,16 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
-            @PathParam("configId") int configId,
+            @Valid @BeanParam ControlIdParam controlIdParam,
+            @Valid @BeanParam ConfigIdParam configIdParam,
             @PathParam("version")
             @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
             String version,
             @Valid @NotNull(message = "Request must not be null") CreateControlConfiguration createControlConfiguration) {
+        ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(controlResourceId);
+        ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
+        int configId = resourceIdResolver.numericForWrite(configResourceId);
         try {
             store.createConfigurationForVersion(domain, controlId, configId, version, createControlConfiguration);
             return Response.created(URI.create("/api/calm/domains/" + domain + "/controls/" + controlId + "/configurations/" + configId + "/versions/" + version)).build();
@@ -341,7 +369,9 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId) {
+            @Valid @BeanParam ControlIdParam controlIdParam) {
+        ResourceId resourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deleteControlRequirement(domain, controlId);
         } catch (DomainNotFoundException e) {
@@ -369,8 +399,12 @@ public class ControlResource {
             @PathParam("domain")
             @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
             String domain,
-            @PathParam("controlId") int controlId,
-            @PathParam("configId") int configId) {
+            @Valid @BeanParam ControlIdParam controlIdParam,
+            @Valid @BeanParam ConfigIdParam configIdParam) {
+        ResourceId controlResourceId = controlIdParam.toResourceId(resourceIdResolver);
+        int controlId = resourceIdResolver.numericForWrite(controlResourceId);
+        ResourceId configResourceId = configIdParam.toResourceId(resourceIdResolver);
+        int configId = resourceIdResolver.numericForWrite(configResourceId);
         try {
             store.deleteControlConfiguration(domain, controlId, configId);
         } catch (DomainNotFoundException e) {
@@ -393,14 +427,22 @@ public class ControlResource {
     }
 
     private Response invalidControlResponse(int controlId) {
+        return invalidControlResponse(String.valueOf(controlId));
+    }
+
+    private Response invalidControlResponse(String controlId) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Control not found: " + controlId)
+                .entity("Control not found: " + STRICT_SANITIZATION_POLICY.sanitize(controlId))
                 .build();
     }
 
     private Response invalidConfigurationResponse(int configId) {
+        return invalidConfigurationResponse(String.valueOf(configId));
+    }
+
+    private Response invalidConfigurationResponse(String configId) {
         return Response.status(Response.Status.NOT_FOUND)
-                .entity("Configuration not found: " + configId)
+                .entity("Configuration not found: " + STRICT_SANITIZATION_POLICY.sanitize(configId))
                 .build();
     }
 

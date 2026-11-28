@@ -1,5 +1,11 @@
 package org.finos.calm.resources;
 
+import jakarta.validation.Valid;
+
+import org.finos.calm.resources.params.AdrIdParam;
+import org.finos.calm.services.ResourceIdResolver;
+import org.finos.calm.domain.ResourceId;
+
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.Pattern;
@@ -35,9 +41,12 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 /**
  * Resource for managing ADRs in a given namespace
  */
-@Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
+@Tag(name = "Storage API", description = "String-ID based CALM storage endpoints (numeric in MongoDB/standalone, composite in GitHub mode)")
 @Path("/api/calm/namespaces")
 public class AdrResource {
+
+    @Inject
+    ResourceIdResolver resourceIdResolver;
 
     private final AdrStore store;
     private final StorageWriteExceptionMapper storageWriteExceptionMapper;
@@ -131,9 +140,11 @@ public class AdrResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateAdrForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("adrId") int adrId,
+            @Valid @BeanParam AdrIdParam adrIdParam,
             NewAdrRequest newAdrRequest
     ) {
+        ResourceId resourceId = adrIdParam.toResourceId(resourceIdResolver);
+        int adrId = resourceIdResolver.numericForWrite(resourceId);
         Adr adr = new Adr.AdrBuilder(newAdrRequest)
                 .setUpdateDateTime(LocalDateTime.now())
                 .build();
@@ -174,8 +185,10 @@ public class AdrResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getAdr(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("adrId") int adrId
+            @Valid @BeanParam AdrIdParam adrIdParam
     ) {
+        ResourceId resourceId = adrIdParam.toResourceId(resourceIdResolver);
+        int adrId = resourceIdResolver.numericForWrite(resourceId);
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(adrId)
@@ -205,8 +218,10 @@ public class AdrResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getAdrRevisions(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("adrId") int adrId
+            @Valid @BeanParam AdrIdParam adrIdParam
     ) {
+        ResourceId resourceId = adrIdParam.toResourceId(resourceIdResolver);
+        int adrId = resourceIdResolver.numericForWrite(resourceId);
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(adrId)
@@ -243,9 +258,11 @@ public class AdrResource {
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getAdrRevision(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("adrId") int adrId,
+            @Valid @BeanParam AdrIdParam adrIdParam,
             @PathParam("revision") int revision
     ) {
+        ResourceId resourceId = adrIdParam.toResourceId(resourceIdResolver);
+        int adrId = resourceIdResolver.numericForWrite(resourceId);
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
                 .setId(adrId)
@@ -277,9 +294,11 @@ public class AdrResource {
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response updateAdrStatusForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("adrId") int adrId,
+            @Valid @BeanParam AdrIdParam adrIdParam,
             @PathParam("status") Status status
     ) {
+        ResourceId resourceId = adrIdParam.toResourceId(resourceIdResolver);
+        int adrId = resourceIdResolver.numericForWrite(resourceId);
 
         AdrMeta adrMeta = new AdrMeta.AdrMetaBuilder()
                 .setNamespace(namespace)
@@ -310,10 +329,16 @@ public class AdrResource {
     @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
     public Response deleteAdrForNamespace(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
-            @PathParam("adrId") int adrId
+            @Valid @BeanParam AdrIdParam adrIdParam
     ) {
+        ResourceId resourceId = adrIdParam.toResourceId(resourceIdResolver);
+        int adrId = resourceIdResolver.numericForWrite(resourceId);
         try {
             store.deleteAdr(namespace, adrId);
+        } catch (AmbiguousResourceIdException e) {
+            throw e; // let the 404 mapper produce the generic response
+        } catch (InvalidResourceIdException e) {
+            return CalmResourceErrorResponses.invalidResourceIdResponse(e.getMessage());
         } catch (Exception e) {
             return handleException(e, namespace, adrId);
         }

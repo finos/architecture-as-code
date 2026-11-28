@@ -65,8 +65,7 @@ class TestGitHubPatternStoreShould {
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
@@ -134,13 +133,15 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
-        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "event-driven";
+
+        when(registryService.find("finos", RegistryResourceType.PATTERN, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getPatternVersions(pattern);
 
         assertThat(versions, is(empty()));
@@ -151,14 +152,16 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("1234567");
 
-        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "event-driven";
+
+        when(registryService.find("finos", RegistryResourceType.PATTERN, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getPatternVersions(pattern);
 
         assertThat(versions, hasSize(1));
@@ -170,18 +173,20 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
         when(versionService.getFileVersions("finos/architecture-as-code", "main", "patterns/event-driven.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
-        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).build();
+        String stem = "event-driven";
+
+        when(registryService.find("finos", RegistryResourceType.PATTERN, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setName(stem).build();
         List<String> versions = store.getPatternVersions(pattern);
 
         assertThat(versions, hasSize(2));
@@ -197,16 +202,18 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubPatternStore realFileReaderStore = new GitHubPatternStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
-        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "event-driven";
+
+        when(registryService.find("finos", RegistryResourceType.PATTERN, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
 
         String content = realFileReaderStore.getPatternForVersion(pattern);
         assertThat(content, equalTo("{\"nodes\":[],\"relationships\":[]}"));
@@ -217,17 +224,19 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
         when(versionService.getFileAtVersion("finos/repo", "patterns/event-driven.json", "abc1234"))
                 .thenReturn("{\"nodes\":[{\"name\":\"old\"}]}");
 
-        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "event-driven";
+
+        when(registryService.find("finos", RegistryResourceType.PATTERN, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
         String content = store.getPatternForVersion(pattern);
 
         assertThat(content, equalTo("{\"nodes\":[{\"name\":\"old\"}]}"));
@@ -238,13 +247,15 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
-        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
+        String stem = "event-driven";
+
+        when(registryService.find("finos", RegistryResourceType.PATTERN, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setName(stem).setVersion("1.0.0").build();
 
         assertThrows(PatternVersionNotFoundException.class, () -> store.getPatternForVersion(pattern));
     }
@@ -254,16 +265,18 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/nonexistent.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
         when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
         GitHubPatternStore realFileReaderStore = new GitHubPatternStore(registryService, cloneManager, versionService,
                 new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
-        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+        String stem = "event-driven";
+
+        when(registryService.find("finos", RegistryResourceType.PATTERN, stem, null, null))
+                .thenReturn(List.of(entry));
+
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setName(stem).setVersion("abc1234").build();
 
         assertThrows(PatternVersionNotFoundException.class, () -> realFileReaderStore.getPatternForVersion(pattern));
     }
@@ -273,12 +286,10 @@ class TestGitHubPatternStoreShould {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry));
+                Map.of("finos", List.of(entry)));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(99999).build();
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setName("nonexistent").build();
         assertThrows(PatternNotFoundException.class, () -> store.getPatternVersions(pattern));
     }
 }

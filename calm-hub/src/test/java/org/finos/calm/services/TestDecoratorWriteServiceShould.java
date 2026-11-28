@@ -425,7 +425,7 @@ class TestDecoratorWriteServiceShould {
 
     private static GitHubDecoratorStore gitHubStore() {
         ResourceRegistry registry = mock(ResourceRegistry.class);
-        lenient().when(registry.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of(NAMESPACE, List.of()), Map.of()));
+        lenient().when(registry.getSnapshot()).thenReturn(new RegistrySnapshot(Map.of(NAMESPACE, List.of())));
         return new GitHubDecoratorStore(registry);
     }
 }

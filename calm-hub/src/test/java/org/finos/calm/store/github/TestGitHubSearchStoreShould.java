@@ -85,8 +85,7 @@ class TestGitHubSearchStoreShould {
                 "payment-svc", java.nio.file.Path.of("architectures/payment.json"),
                 org.finos.calm.store.github.registry.RegistryResourceType.ARCHITECTURE, "Payment Service", java.time.Instant.now());
         org.finos.calm.store.github.registry.RegistrySnapshot snapshot = new org.finos.calm.store.github.registry.RegistrySnapshot(
-                java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:payment-svc", entry)
+                java.util.Map.of("finos", java.util.List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
@@ -109,7 +108,7 @@ class TestGitHubSearchStoreShould {
         entries.add(new RegistryEntry("payment-pattern", Path.of("patterns/payment.json"),
                 RegistryResourceType.PATTERN, "Payment Pattern", Instant.now()));
 
-        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", entries), Map.of());
+        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", entries));
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         GroupedSearchResults result = store.search("payment", Optional.empty(), Optional.empty());
@@ -125,7 +124,7 @@ class TestGitHubSearchStoreShould {
         RegistryEntry adr = new RegistryEntry("payment-decision", Path.of("adrs/payment-decision.md"),
                 RegistryResourceType.ADR, "Payment Decision", Instant.now());
         when(registryService.getSnapshot()).thenReturn(
-                new RegistrySnapshot(Map.of("finos", List.of(adr)), Map.of()));
+                new RegistrySnapshot(Map.of("finos", List.of(adr))));
 
         GroupedSearchResults result = store.search("payment", Optional.empty(), Optional.empty());
 
@@ -139,7 +138,7 @@ class TestGitHubSearchStoreShould {
         RegistryEntry hidden = new RegistryEntry("payment-hidden", Path.of("architectures/hidden.json"),
                 RegistryResourceType.ARCHITECTURE, "Payment Hidden", Instant.now());
         when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(
-                Map.of("finos", List.of(visible), "other", List.of(hidden)), Map.of()));
+                Map.of("finos", List.of(visible), "other", List.of(hidden))));
 
         GroupedSearchResults result = store.search("payment", Optional.of(Set.of("finos")), Optional.empty());
 
