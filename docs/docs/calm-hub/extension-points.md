@@ -435,7 +435,9 @@ its `title` and `detail`. When CALM Hub draws the graph:
 ## search-provider
 
 Adds a group of results from the extension to the CALM Hub search page. The page shows the
-catalogue results first, then one group for each provider, with the entry `title` as its heading.
+catalogue results first, then one group for each provider, with the entry `title` as its heading. The
+page does not query the providers when the query has a `namespace:` or `type:`
+[qualifier](mcp-and-api.md#search), because these narrow the catalogue only.
 
 ```json
 "routes": [{ "id": "search", "method": "POST", "path": "/search", "scope": "authenticated", "readOnly": true }],

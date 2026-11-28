@@ -22,7 +22,15 @@ export class SearchService {
             .catch((error) => {
                 const errorMessage = 'Error performing search:';
                 console.error(errorMessage, error);
-                return Promise.reject(new Error(errorMessage));
+                // A 400 explains a bad qualifier, so show it rather than a generic failure.
+                const serverMessage = error?.response?.status === 400 ? error.response.data?.error : undefined;
+                return Promise.reject(new SearchQueryError(serverMessage ?? errorMessage, Boolean(serverMessage)));
             });
+    }
+}
+
+export class SearchQueryError extends Error {
+    constructor(message: string, readonly userFacing: boolean) {
+        super(message);
     }
 }

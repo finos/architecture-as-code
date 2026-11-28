@@ -59,11 +59,11 @@ function SearchFor({ q }: { q: string }) {
     return <button onClick={() => navigate(`/search?q=${q}`)}>search {q}</button>;
 }
 
-function renderPage(service: ExtensionService, extensions: ExtensionSummary[], searchService?: SearchService) {
+function renderPage(service: ExtensionService, extensions: ExtensionSummary[], searchService?: SearchService, path = '/search?q=payments') {
     vi.spyOn(service, 'fetchExtensions').mockResolvedValue(extensions);
     const catalogueService = searchService ?? ({ search: vi.fn().mockResolvedValue(catalogue) } as unknown as SearchService);
     return render(
-        <MemoryRouter initialEntries={['/search?q=payments']}>
+        <MemoryRouter initialEntries={[path]}>
             <ExtensionsProvider service={service}>
                 <SearchResultsPage searchService={catalogueService} />
                 <SearchFor q="treasury" />
@@ -77,6 +77,18 @@ const group = (name: RegExp) => screen.getByRole('region', { name });
 afterEach(() => vi.restoreAllMocks());
 
 describe('SearchResultsPage with extension search providers', () => {
+    it('leaves out the providers when the query has a qualifier', async () => {
+        const { service, search } = controlledService();
+        renderPage(service, [delivery], undefined, '/search?q=type:architecture%20payments');
+
+        expect(await screen.findByText('Payments platform')).toBeInTheDocument();
+        await waitFor(() => expect(service.fetchExtensions).toHaveBeenCalled());
+        await act(async () => {});
+        expect(screen.queryByTestId('provider-results')).not.toBeInTheDocument();
+        expect(screen.getByText('1 result')).toBeInTheDocument();
+        expect(search).not.toHaveBeenCalled();
+    });
+
     it('shows each provider in its own group, so one failure keeps the catalogue and the other providers', async () => {
         const { service, calls, sent } = controlledService();
         renderPage(service, [reviews, delivery]);

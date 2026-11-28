@@ -68,9 +68,15 @@ class TestGitHubSearchStoreShould {
     }
 
     @Test
-    void return_empty_for_blank_query() {
+    void list_all_readable_entries_for_blank_query() {
+        RegistryEntry entry = new RegistryEntry("payment-svc", Path.of("architectures/payment.json"),
+                RegistryResourceType.ARCHITECTURE, "Payment Service", Instant.now());
+        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(
+                Map.of("finos", List.of(entry)), Map.of("finos:payment-svc", entry)));
+
         GroupedSearchResults result = store.search("", Optional.empty(), Optional.empty());
-        assertThat(result.getArchitectures(), is(empty()));
+        assertThat(result.getArchitectures().size(), is(1));
+        assertThat(store.search("", Optional.of(Set.of("other")), Optional.empty()).getArchitectures(), is(empty()));
     }
 
     @Test

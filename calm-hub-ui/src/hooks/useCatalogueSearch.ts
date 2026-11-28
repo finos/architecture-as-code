@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { SearchService } from '../service/search-service.js';
+import { SearchQueryError, SearchService } from '../service/search-service.js';
 import { GroupedSearchResults } from '../model/search.js';
 import { FlatResult, flattenResults } from './useSearchNavigation.js';
+import { hasUnfinishedQualifier } from '../model/search-query.js';
 
 const DEBOUNCE_MS = 300;
 
@@ -11,11 +12,15 @@ export interface UseCatalogueSearch {
     results: GroupedSearchResults | null;
     loading: boolean;
     error: boolean;
+    /** A message the user can act on, such as an unknown `type:` qualifier. */
+    errorMessage: string | null;
     /** Whether the results dropdown should show (opens once a search resolves). */
     open: boolean;
     selectedIndex: number;
     flatResults: FlatResult[];
     handleInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
+    /** Set the query text, as a typed change would. */
+    updateQuery: (value: string) => void;
     /** Move the highlight (wraps around); no-op when there are no results. */
     moveSelection: (delta: 1 | -1) => void;
     setSelectedIndex: (index: number) => void;
@@ -38,6 +43,7 @@ export function useCatalogueSearch(searchService?: SearchService): UseCatalogueS
     const [results, setResults] = useState<GroupedSearchResults | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [open, setOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
 
@@ -62,22 +68,26 @@ export function useCatalogueSearch(searchService?: SearchService): UseCatalogueS
                 return;
             }
 
+            if (hasUnfinishedQualifier(searchQuery)) return;
+
             abortRef.current?.abort();
             const controller = new AbortController();
             abortRef.current = controller;
 
             setLoading(true);
             setError(false);
+            setErrorMessage(null);
             try {
                 const data = await service.search(searchQuery);
                 if (controller.signal.aborted) return;
                 setResults(data);
                 setOpen(true);
                 setSelectedIndex(-1);
-            } catch {
+            } catch (e) {
                 if (controller.signal.aborted) return;
                 setResults(null);
                 setError(true);
+                setErrorMessage(e instanceof SearchQueryError && e.userFacing ? e.message : null);
                 setOpen(true);
             } finally {
                 if (!controller.signal.aborted) setLoading(false);
@@ -86,14 +96,18 @@ export function useCatalogueSearch(searchService?: SearchService): UseCatalogueS
         [service]
     );
 
-    const handleInputChange = useCallback(
-        (e: ChangeEvent<HTMLInputElement>) => {
-            const value = e.target.value;
+    const updateQuery = useCallback(
+        (value: string) => {
             setQuery(value);
             if (debounceRef.current) clearTimeout(debounceRef.current);
             debounceRef.current = setTimeout(() => performSearch(value), DEBOUNCE_MS);
         },
         [performSearch]
+    );
+
+    const handleInputChange = useCallback(
+        (e: ChangeEvent<HTMLInputElement>) => updateQuery(e.target.value),
+        [updateQuery]
     );
 
     const cancelPending = useCallback(() => {
@@ -137,10 +151,12 @@ export function useCatalogueSearch(searchService?: SearchService): UseCatalogueS
         results,
         loading,
         error,
+        errorMessage,
         open,
         selectedIndex,
         flatResults,
         handleInputChange,
+        updateQuery,
         moveSelection,
         setSelectedIndex,
         cancelPending,

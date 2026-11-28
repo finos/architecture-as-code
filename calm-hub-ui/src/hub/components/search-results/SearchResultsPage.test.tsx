@@ -1,8 +1,8 @@
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { vi, describe, it, expect } from 'vitest';
 import { SearchResultsPage } from './SearchResultsPage.js';
-import { SearchService } from '../../../service/search-service.js';
+import { SearchQueryError, SearchService } from '../../../service/search-service.js';
 import { GroupedSearchResults } from '../../../model/search.js';
 
 const emptyResults: GroupedSearchResults = {
@@ -66,8 +66,17 @@ describe('SearchResultsPage', () => {
 
         expect(await screen.findByText('PCI-DSS')).toBeInTheDocument();
         expect(screen.getByText('1 result')).toBeInTheDocument();
-        expect(screen.getByText('“pci”')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Results for pci' })).toBeInTheDocument();
         expect(screen.getByText(/Controls \(1\)/)).toBeInTheDocument();
+    });
+
+    it('colours the qualifiers in the heading', async () => {
+        renderPage('/search?q=ns%3Asecurity%20pci', createMockSearchService(vi.fn().mockResolvedValue(controlResults)));
+
+        expect(await screen.findByText('PCI-DSS')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Results for ns:security pci');
+        expect(screen.getByText('ns:')).toHaveClass('text-primary');
+        expect(within(screen.getByRole('heading', { level: 1 })).getByText('security')).toHaveClass('text-accent');
     });
 
     it('deep-links into the resource when a result is clicked', async () => {
@@ -88,6 +97,12 @@ describe('SearchResultsPage', () => {
     it('shows an error state when the search fails', async () => {
         renderPage('/search?q=boom', createMockSearchService(vi.fn().mockRejectedValue(new Error('nope'))));
         expect(await screen.findByText(/Search failed/i)).toBeInTheDocument();
+    });
+
+    it('shows the server message when the query is invalid', async () => {
+        const searchFn = vi.fn().mockRejectedValue(new SearchQueryError('Unknown type. Use one of: pattern', true));
+        renderPage('/search?q=type%3Abad', createMockSearchService(searchFn));
+        expect(await screen.findByText('Unknown type. Use one of: pattern')).toBeInTheDocument();
     });
 
     it('shows only the results for the current query when an earlier search settles late', async () => {

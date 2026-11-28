@@ -91,6 +91,19 @@ An architecture names its pattern in its own `$schema`, which `calm generate` se
 
 The hub answers on demand and caches nothing, reading the architectures you are allowed to see. See [ADR 0008](https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0008-pattern-implementations-read-the-architecture-schema.md) for why the link is resolved at request time rather than stored.
 
+### Search
+
+`GET /calm/search?q=<query>` searches the names and descriptions of all resource types. The MCP `searchHub` tool takes the same query. Qualifiers narrow the results:
+
+| Qualifier | Example | Result |
+|---|---|---|
+| `namespace:` or `ns:` | `namespace:finos.calm` | Only results from that namespace. Controls belong to a domain, so this leaves them out |
+| `type:` | `type:pattern` | Only one type: `architecture`, `pattern`, `flow`, `standard`, `interface`, `control` or `adr`. A plural also works |
+
+A space after the colon is allowed. The other text is the search term. A query with only qualifiers lists all that they allow, for example `ns:workshop type:architecture`. An unknown type gives a 400 that lists the valid types.
+
+The search bars in the UI suggest the qualifiers and their values as you type. Tab or Enter accepts a suggestion. Backspace or Esc closes the list, so that Enter searches for the text as typed. The search page does not query [extension search providers](extension-points.md#search-provider) when the query has a qualifier.
+
 ### Snapshot Versions
 
 A version ending in `-SNAPSHOT` (e.g. `1.0.0-SNAPSHOT`) is mutable — it can be re-posted with new content. A release version (e.g. `1.0.0`) is immutable once created. Publishing a release deletes the matching snapshot, if one exists. Snapshots are supported on architectures, patterns, flows, standards, interfaces, and timelines only.
@@ -257,7 +270,7 @@ CALM Hub uses the **HTTP Streamable** MCP transport (Quarkiverse `quarkus-mcp-se
 | `DomainTools` | `list_domains`, `create_domain` |
 | `InterfaceTools` | `list_interfaces`, `get_interface` |
 | `NamespaceTools` | `list_namespaces`, `create_namespace` |
-| `SearchTools` | `search_architectures` |
+| `SearchTools` | `searchHub` (accepts `namespace:` and `type:` qualifiers) |
 | `StandardTools` | `list_standards` |
 | `TimelineTools` | `get_timeline` |
 | `AdrTools` | `list_adrs`, `get_adr` |

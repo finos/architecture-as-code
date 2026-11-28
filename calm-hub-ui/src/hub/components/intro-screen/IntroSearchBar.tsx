@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useId, useRef } from 'react';
+import { SEARCH_PLACEHOLDER_HINT } from '../../../model/search-query.js';
+import { useQueryAssist } from '../../../hooks/useQueryAssist.js';
+import { AssistedSearchInput } from '../../../components/navbar/search/AssistedSearchInput.js';
+import { SearchSuggestionList } from '../../../components/navbar/search/SearchSuggestionList.js';
 import { IoSearchOutline, IoCloseOutline } from 'react-icons/io5';
 import { SearchService } from '../../../service/search-service.js';
+import { CalmService } from '../../../service/calm-service.js';
 import { SearchResult } from '../../../model/search.js';
 import { FlatResult, TYPE_LABELS, useSearchNavigation } from '../../../hooks/useSearchNavigation.js';
 import { useCatalogueSearch } from '../../../hooks/useCatalogueSearch.js';
@@ -10,6 +15,8 @@ import { SearchChatEntry } from '../../../extensions/chat/SearchChatEntry.js';
 interface IntroSearchBarProps {
     /** Injected for tests; defaults to a fresh {@link SearchService}. */
     searchService?: SearchService;
+    /** Injected for tests; loads the namespaces that `namespace:` suggests. */
+    calmService?: CalmService;
 }
 
 /**
@@ -17,32 +24,49 @@ interface IntroSearchBarProps {
  * match; submitting the query (Enter with nothing highlighted, or the Search button)
  * goes to the full `/search` results page.
  */
-export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
+export function IntroSearchBar({ searchService, calmService }: IntroSearchBarProps) {
     const {
         query,
         results,
         loading,
         error,
+        errorMessage,
         open,
         selectedIndex,
         flatResults,
         handleInputChange,
+        updateQuery,
         moveSelection,
         clear,
         closeDropdown,
     } = useCatalogueSearch(searchService);
 
-    const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const listboxId = useId();
     const optionId = (index: number) => `${listboxId}-option-${index}`;
-    const activeDescendant = open && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
+    const {
+        inputRef,
+        highlightRef,
+        suggestions,
+        showSuggestions,
+        suggestionIndex,
+        handleChange,
+        handleFocus,
+        handleBlur,
+        syncHighlightScroll,
+        acceptSuggestion,
+        handleSuggestionKey,
+    } = useQueryAssist(query, updateQuery, handleInputChange, calmService);
+    const listboxOpen = open || showSuggestions;
+    const activeDescendant = showSuggestions
+        ? optionId(suggestionIndex)
+        : open && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
     const { navigateToResult: goToResult, submitSearch } = useSearchNavigation();
 
     const handleClear = useCallback(() => {
         clear();
         inputRef.current?.focus();
-    }, [clear]);
+    }, [clear, inputRef]);
 
     const navigateToResult = useCallback(
         (flatResult: FlatResult) => {
@@ -62,6 +86,7 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
 
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
+            if (handleSuggestionKey(e)) return;
             if (e.key === 'ArrowDown') {
                 if (!open || flatResults.length === 0) return;
                 e.preventDefault();
@@ -81,23 +106,24 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
                 closeDropdown();
             }
         },
-        [open, flatResults, selectedIndex, moveSelection, navigateToResult, submitQuery, closeDropdown]
+        [handleSuggestionKey, open, flatResults, selectedIndex, moveSelection, navigateToResult, submitQuery, closeDropdown]
     );
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
                 closeDropdown();
+                handleBlur();
             }
         }
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [closeDropdown]);
+    }, [closeDropdown, handleBlur]);
 
     const renderGroupedResults = () => {
         if (error) {
-            return <div className="p-4 text-sm text-error">Search failed, please try again</div>;
+            return <div className="p-4 text-sm text-error">{errorMessage ?? 'Search failed, please try again'}</div>;
         }
 
         if (!results) return null;
@@ -163,19 +189,22 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
                 style={{ backgroundColor: colors.redesign.surface, border: `1px solid ${colors.redesign.border}` }}
             >
                 <IoSearchOutline className="h-5 w-5 shrink-0" style={{ color: colors.redesign.muted }} />
-                <input
-                    ref={inputRef}
-                    type="text"
-                    placeholder="Search the architecture catalogue…"
-                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-base text-base-content placeholder:text-base-content/40"
-                    value={query}
-                    onChange={handleInputChange}
+                <AssistedSearchInput
+                    query={query}
+                    inputRef={inputRef}
+                    highlightRef={highlightRef}
+                    onChange={handleChange}
+                    onFocus={handleFocus}
+                    onSyncScroll={syncHighlightScroll}
+                    wrapperClassName="flex-1 min-w-0"
+                    textClassName="text-base leading-6"
+                    placeholder={`Search the architecture catalogue… e.g. ${SEARCH_PLACEHOLDER_HINT}`}
                     onKeyDown={handleKeyDown}
                     aria-label="Search the architecture catalogue"
                     role="combobox"
-                    aria-expanded={open}
+                    aria-expanded={listboxOpen}
                     aria-haspopup="listbox"
-                    aria-controls={open ? listboxId : undefined}
+                    aria-controls={listboxOpen ? listboxId : undefined}
                     aria-activedescendant={activeDescendant}
                     autoFocus
                 />
@@ -199,11 +228,21 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
                 </button>
             </div>
             <SearchChatEntry />
-            {open && (
+            {listboxOpen && (
                 <div
                     className="absolute left-0 right-0 top-full mt-2 max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-xl shadow-lg z-50"
                 >
-                    <div id={listboxId} role="listbox">{renderGroupedResults()}</div>
+                    {showSuggestions ? (
+                        <SearchSuggestionList
+                            listboxId={listboxId}
+                            suggestions={suggestions}
+                            selectedIndex={suggestionIndex}
+                            optionId={optionId}
+                            onAccept={acceptSuggestion}
+                        />
+                    ) : (
+                        <div id={listboxId} role="listbox">{renderGroupedResults()}</div>
+                    )}
                 </div>
             )}
         </div>

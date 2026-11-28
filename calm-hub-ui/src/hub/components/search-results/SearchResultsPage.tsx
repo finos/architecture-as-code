@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { SearchService } from '../../../service/search-service.js';
+import { SearchQueryError, SearchService } from '../../../service/search-service.js';
+import { hasQualifiers } from '../../../model/search-query.js';
+import { QueryText } from '../../../components/navbar/search/QueryHighlight.js';
 import { GroupedSearchResults, SearchResult } from '../../../model/search.js';
 import { TYPE_LABELS, flattenResults, useSearchNavigation } from '../../../hooks/useSearchNavigation.js';
 import { colors } from '../../../theme/colors.js';
@@ -29,16 +31,19 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
         query: string;
         results: GroupedSearchResults | null;
         error: boolean;
+        errorMessage?: string;
     } | null>(null);
     const current = query !== '' && response?.query === query ? response : null;
     const loading = query !== '' && current === null;
     const results = current?.results ?? null;
     const error = current?.error ?? false;
+    const errorMessage = current?.errorMessage;
 
     const service = useMemo(() => searchService ?? new SearchService(), [searchService]);
     const { navigateToResult } = useSearchNavigation();
     const extensions = useExtensions();
-    const providers = useMemo(() => searchProviders(extensions), [extensions]);
+    // Qualifiers narrow the catalogue only, and providers would read them as search text.
+    const providers = useMemo(() => (hasQualifiers(query) ? [] : searchProviders(extensions)), [extensions, query]);
 
     useEffect(() => {
         if (!query) return;
@@ -48,8 +53,9 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
             .then((data) => {
                 if (!cancelled) setResponse({ query, results: data, error: false });
             })
-            .catch(() => {
-                if (!cancelled) setResponse({ query, results: null, error: true });
+            .catch((e) => {
+                const errorMessage = e instanceof SearchQueryError && e.userFacing ? e.message : undefined;
+                if (!cancelled) setResponse({ query, results: null, error: true, errorMessage });
             });
         return () => {
             cancelled = true;
@@ -68,7 +74,10 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
                     <h1 className="text-[28px] font-bold" style={{ color: colors.redesign.ink }}>
                         {query ? (
                             <>
-                                Results for <span style={{ color: colors.redesign.primaryText }}>“{query}”</span>
+                                Results for{' '}
+                                <span className="font-mono-jb text-[20px] font-medium break-all">
+                                    <QueryText query={query} />
+                                </span>
                             </>
                         ) : (
                             'Search'
@@ -101,7 +110,8 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
 
                 {query && !loading && error && (
                     <div className="text-sm text-error">
-                        {providers.length > 0 ? 'Catalogue search failed, please try again.' : 'Search failed, please try again.'}
+                        {errorMessage ??
+                            (providers.length > 0 ? 'Catalogue search failed, please try again.' : 'Search failed, please try again.')}
                     </div>
                 )}
 

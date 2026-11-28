@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import AxiosMockAdapter from 'axios-mock-adapter';
-import { SearchService } from './search-service.js';
+import { SearchQueryError, SearchService } from './search-service.js';
 import axios from 'axios';
 
 const ax = axios.create();
@@ -79,5 +79,19 @@ describe('SearchService', () => {
             const actual = await searchService.search('demo');
             expect(actual).toEqual(expectedResults);
         });
-    });
+    
+        it('rejects with the server message for a 400', async () => {
+            mock.onGet('/calm/search?q=type%3Adecorator').reply(400, { error: 'Unknown type. Use one of: pattern' });
+            const error = await searchService.search('type:decorator').catch((e) => e);
+            expect(error).toBeInstanceOf(SearchQueryError);
+            expect(error.message).toBe('Unknown type. Use one of: pattern');
+            expect(error.userFacing).toBe(true);
+        });
+
+        it('rejects with a generic message for other errors', async () => {
+            mock.onGet('/calm/search?q=x').reply(500, { error: 'boom' });
+            const error = await searchService.search('x').catch((e) => e);
+            expect(error.userFacing).toBe(false);
+        });
+});
 });
